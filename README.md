@@ -155,6 +155,10 @@ The Torch tests must be run from the `torch_binding/tests/` directory.
 
 ```luarocks make torch_binding/rocks/warp-ctc-scm-1.rockspec```
 
+You can also install without cloning the repository using
+
+```luarocks install http://raw.githubusercontent.com/baidu-research/warp-ctc/master/torch_binding/rocks/warp-ctc-scm-1.rockspec```
+
 There is a Torch CTC [tutorial](torch_binding/TUTORIAL.md).
 
 ## Contributing
