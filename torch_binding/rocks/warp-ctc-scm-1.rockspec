@@ -2,7 +2,7 @@ package = "warp-ctc"
 version = "scm-1"
 
 source = {
-   url = "https://github.com/baidu-research/warp-ctc",
+   url = "git://github.com/baidu-research/warp-ctc.git",
 }
 
 description = {
