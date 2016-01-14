@@ -10,7 +10,7 @@ description = {
    detailed = [[
    ]],
    homepage = "https://github.com/baidu-research/warp-ctc",
-   license = "BSD"
+   license = "Apache"
 }
 
 dependencies = {
