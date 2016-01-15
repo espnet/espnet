@@ -43,7 +43,8 @@ parallelism.
 
 ## Performance
 
-Our CTC implementation is efficient, compared with many of the other implementations publically available.
+Our CTC implementation is efficient, compared with many of the other implementations publically available.  All calculations are performed in log-space for numerical stability,
+we have found cases where this was required while training our Deep Speech models.
 We compare our performance with [Eesen](https://github.com/srvk/eesen/commit/68f2bc2d46a5513cce3c232a645292632a1b08f9), as well as with
 a CTC implementation built on [Theano](https://github.com/mohammadpz/CTC-Connectionist-Temporal-Classification/commit/904e8c72e15334887609d399254cf05a591d570f).
 We benchmark the Theano implementation operating on 32-bit floating-point numbers and doing the calculation in log-space,
