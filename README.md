@@ -43,12 +43,24 @@ parallelism.
 
 ## Performance
 
-Our CTC implementation is efficient, compared with many of the other implementations publically available.  All calculations are performed in log-space for numerical stability,
-we have found cases where this was required while training our Deep Speech models.
-We compare our performance with [Eesen](https://github.com/srvk/eesen/commit/68f2bc2d46a5513cce3c232a645292632a1b08f9), as well as with
-a CTC implementation built on [Theano](https://github.com/mohammadpz/CTC-Connectionist-Temporal-Classification/commit/904e8c72e15334887609d399254cf05a591d570f).
+Our CTC implementation is efficient compared with many of the other publicly available implementations.  It is
+also written to be as numerically stable as possible.  The algorithm is numerically sensitive and we have observed
+catastrophic underflow even in double precision with the standard calculation - the result of division of 
+two numbers on the order of 1e-324 which should have been approximately one, instead become infinity 
+when the denominator underflowed to 0.  Instead, by performing the calculation in log space, it is numerically
+stable even in single precision floating point at the cost of significantly more expensive operations.  Instead of
+one machine instruction, addition requires the evaluation of multiple transcendental functions.  Because of this,
+the speed of CTC implementations can only be fairly compared if they are both performing the calculation the same
+way.
+
+We compare our performance with [Eesen](https://github.com/srvk/eesen/commit/68f2bc2d46a5513cce3c232a645292632a1b08f9), 
+a CTC implementation built on 
+[Theano](https://github.com/mohammadpz/CTC-Connectionist-Temporal-Classification/commit/904e8c72e15334887609d399254cf05a591d570f),
+and a Cython CPU only implementation [Stanford-CTC](https://github.com/amaas/stanford-ctc/commit/c8859897336a349b6c561d2bf2d179fae90b4d67).
 We benchmark the Theano implementation operating on 32-bit floating-point numbers and doing the calculation in log-space,
-in order to match the other implementations we compare against.
+in order to match the other implementations we compare against.  Stanford-CTC was modified to perform the calculation
+in log-space as it did not support it natively.  It also does not support minibatches larger than 1, so would require
+an awkward memory layout to use in a real training pipeline, we assume linear increase in cost with minibatch size.
 
 We show results on two problem sizes relevant to our English and Mandarin end-to-end models, respectively, where *T* represents the number of timesteps in the input to CTC, *L* represents the length of the labels for each example, and *A* represents the alphabet size.
 
@@ -79,25 +91,26 @@ Benchmarked on a single NVIDIA Titan X GPU.
 Benchmarked on a dual-socket machine with two Intel E5-2660 v3
 processors - warp-ctc used 40 threads to maximally take advantage of the CPU resources.
 Eesen doesn't provide a CPU implementation. We noticed that the Theano implementation was not
-parallelizing computation across multiple threads.
+parallelizing computation across multiple threads.  Stanford-CTC provides no mechanism
+for parallelization across threads.
 
 
-| *T*=150, *L*=40, *A*=28           | warp-ctc  | Eesen   | Theano  |
+| *T*=150, *L*=40, *A*=28           | warp-ctc  | Stanford-CTC   | Theano  |
 |-----------------------------------|-------|---------|---------|
-| *N*=1                             | 2.6 ms|   --    | 15 ms |
-| *N*=16                            | 3.4 ms|   --    | 180 ms |
-| *N*=32                            | 3.9 ms|   --    | 375 ms |
-| *N*=64                            | 6.6 ms|   --    | 700 ms |
-| *N*=128                           |12.2 ms|   --    | 1340 ms |
+| *N*=1                             | 2.6 ms|  13 ms  | 15 ms |
+| *N*=16                            | 3.4 ms|  208 ms | 180 ms |
+| *N*=32                            | 3.9 ms|  416 ms | 375 ms |
+| *N*=64                            | 6.6 ms|  832 ms | 700 ms |
+| *N*=128                           |12.2 ms| 1684 ms | 1340 ms |
 
 
-| *T*=150, *L*=20, *A*=5000         | warp-ctc  | Eesen   | Theano  |
+| *T*=150, *L*=20, *A*=5000         | warp-ctc  | Stanford-CTC   | Theano  |
 |-----------------------------------|-------|---------|---------|
-| *N*=1                             | 21 ms |   --    | 850 ms  |
-| *N*=16                            | 37 ms |   --    | 10800 ms|
-| *N*=32                            | 54 ms |   --    | 22000 ms|
-| *N*=64                            | 101 ms|   --    | 42000 ms|
-| *N*=128                           | 184 ms|   --    | 86000 ms|
+| *N*=1                             | 21 ms |  31 ms  | 850 ms  |
+| *N*=16                            | 37 ms |  496 ms | 10800 ms|
+| *N*=32                            | 54 ms |  992 ms | 22000 ms|
+| *N*=64                            | 101 ms| 1984 ms | 42000 ms|
+| *N*=128                           | 184 ms| 3968 ms | 86000 ms|
 
 
 
