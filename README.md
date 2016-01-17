@@ -134,7 +134,7 @@ at this time.
 First get the code:
 
 ```
-git clone
+git clone https://github.com/baidu-research/warp-ctc.git
 cd warp-ctc
 ```
 
