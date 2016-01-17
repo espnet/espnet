@@ -118,8 +118,7 @@ for parallelization across threads.
 
 ## Interface
 
-The interface is in
-[`include/ctc.h`](https://github.com/baidu-research/ctc-release/blob/master/include/ctc.h).
+The interface is in [`include/ctc.h`](include/ctc.h).
 It supports CPU or GPU execution, and you can specify OpenMP parallelism
 if running on the CPU, or the CUDA stream if running on the GPU. We
 took care to ensure that the library does not perform memory
