@@ -1,5 +1,7 @@
 ![Baidu Logo](/doc/baidu-research-logo-small.png)
 
+[In Mandarin](README.md.mandarin)
+
 # warp-ctc
 
 A fast parallel implementation of CTC, on both CPU and GPU.
