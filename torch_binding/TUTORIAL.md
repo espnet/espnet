@@ -90,7 +90,7 @@ The function returns a lua table of the CTC loss for each set of sequences.
 Now for a slightly more interesting example. Suppose we have an input sequence of
 length three, with activations 
 
-`1,2,3,4,5`,`6,7,8,9,10` and `11,12,13,14,15`. 
+`<1,2,3,4,5>`,`<6,7,8,9,10>` and `<11,12,13,14,15>`. 
 
 The corresponding probabilities for the frames are then 
 
@@ -128,7 +128,7 @@ The small numerical difference is from doing one of the calculations by hand.
  
 Suppose the target sequence is `b,c` and the activations are 
 
-`-5,-4,-3,-2,-1`,`-10,-9,-8,-7,-6` and `-15,-14,-13,-12,-11`.
+`<-5,-4,-3,-2,-1>`,`<-10,-9,-8,-7,-6>` and `<-15,-14,-13,-12,-11>`.
 
 The corresponding probabilities for the frames are then again 
 
