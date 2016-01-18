@@ -1,6 +1,6 @@
 ![Baidu Logo](/doc/baidu-research-logo-small.png)
 
-[In Mandarin](README.mandarin.md)
+[In Mandarin 中文版](README.mandarin.md)
 
 # warp-ctc
 
