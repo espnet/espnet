@@ -84,11 +84,6 @@ th>acts = torch.Tensor({{1,2,3,4,5},{6,7,8,9,10},{11,12,13,14,15}}):cuda()
 th>labels = {{3,3}}
 th>sizes = {3}
 ```
-CTC calculates the probability of all the possible alignments. Note that the targets
-contain the repeated symbol `c`. CTC cannot emit a repeated symbol on consecutive timesteps
-(for more details consult http://www.cs.toronto.edu/~graves/icml_2006.pdf) it must separate 
-the repeated symbol with a blank and so the only possible aligned sequence is 
-`c <BLANK> c`.
 CTC计算了所有可能映射的概率。请注意目标包涵了重复的符号`c`.CTC不能在连续的时间步上发出一个重复的符号(更多细节，请见 [link](http://www.cs.toronto.edu/~graves/icml_2006.pdf)).
 对于重复的符号必须用一个空白分开，所以唯一可能的映射序列为`c <BLANK> c`.
 
