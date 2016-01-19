@@ -89,7 +89,7 @@ contain the repeated symbol `c`. CTC cannot emit a repeated symbol on consecutiv
 (for more details consult http://www.cs.toronto.edu/~graves/icml_2006.pdf) it must separate 
 the repeated symbol with a blank and so the only possible aligned sequence is 
 `c <BLANK> c`.
-CTC计算了所有可能映射的概率。请注意目标包涵了重复的符号`c`.CTC不能在连续的时间步上发出一个重复的符号(更多细节，请见 (http://www.cs.toronto.edu/~graves/icml_2006.pdf))。
+CTC计算了所有可能映射的概率。请注意目标包涵了重复的符号`c`.CTC不能在连续的时间步上发出一个重复的符号(更多细节，请见 [link](http://www.cs.toronto.edu/~graves/icml_2006.pdf)).
 对于重复的符号必须用一个空白分开，所以唯一可能的映射序列为`c <BLANK> c`.
 
 CTC假设，在给定数据的情况下，标签概率是有条件独立的，所以我们期待的答案即`Pr(c at frame 1)*Pr(<BLANK> at frame 2)*Pr(c at frame 3) = 0.2341*0.0117*0.2341`
