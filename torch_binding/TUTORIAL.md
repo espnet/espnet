@@ -1,5 +1,7 @@
 ## Torch Tutorial
 
+[In Chinese 中文版](TUTORIAL.zh_cn.md)
+
 Make sure you have `warp-ctc` installed by running ```luarocks make torch_binding/rocks/warp-ctc-scm-1.rockspec``` at the top level directory.
 
 Using the torch bindings, it is easy to experiment with CTC interactively.
