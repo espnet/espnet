@@ -90,33 +90,37 @@ Torch测试必须在 `torch_binding/tests/` 目录中运行。
 CUDA的执行需要至少3.0的计算能力， 所支持的标签长度最大值为639 （时间步数是有限的）。
 
 最后我们欢迎大家提出宝贵的意见及建议以改进我们的开源服务。
-(在此鸣谢新智元编译[接口
-接口在include/ctc.h中，它支持在CPU或者GPU上执行。 如果是在CPU上运行，可以指定OpenMP并行计算; 如果是在GPU上运行，请用CUDA stream。 为避免内存分配而导致的竞争及间接成本，我们会确保代码库不会在内部进行内存分配。 
-编译器
+在此鸣谢新智元编译[接口
+接口在[`include/ctc.h`](include/ctc.h)中，它支持在CPU或者GPU上执行。 如果是在CPU上运行，可以指定OpenMP并行计算; 如果是在GPU上运行，请用CUDA stream。 为避免内存分配而导致的竞争及间接成本，我们会确保代码库不会在内部进行内存分配。 
+## 编译器
 Warp-CTC已经在Ubuntu 14.04以及OSX 10.10进行了测试，现不支持Windows. 
 首先，请获取代码
+```
 git clone https://github.com/baidu-research/warp-ctc.git
 cd warp-ctc
-创建目录
+```
+创建目录 ```
 mkdir build
 cd build
+```
 假如使用非标准CUDA，请安装 (export CUDA_BIN_PATH=/path_to_cuda )以便被CMake检测。且确保Torch被监测到，注意（th is in $PATH）
 运行cmake, 创建
+```
 cmake ../
 make
-现在，C代码库以及与torch分享的代码库应当和测试可执行文件一同被创建。假如CUDA被检测到，test_gpu则被创建。
-测试
-为了运行测试，确保CUDA代码库在LD_LIBRARY_PATH (DYLD_LIBRARY_PATH for OSX)中。
-Torch测试必须在 torch_binding/tests/ 目录中运行。
-Torch安装
-luarocks make torch_binding/rocks/warp-ctc-scm-1.rockspec
+```
+现在，C代码库以及与torch分享的代码库应当和测试可执行文件一同被创建。假如CUDA被检测到，`test_gpu`则被创建。
+## 测试
+为了运行测试，确保CUDA代码库在`LD_LIBRARY_PATH` (`DYLD_LIBRARY_PATH` for OSX)中。
+Torch测试必须在 `torch_binding/tests/` 目录中运行。
+## Torch安装
+```luarocks make torch_binding/rocks/warp-ctc-scm-1.rockspec```
 即使不复制存储库（repository)，你也可以安装
-luarocks install http://raw.githubusercontent.com/baidu-research/warp-ctc/master/torch_binding/rocks/warp-ctc-scm-1.rockspec
-请见Torch CTC教程。
-限制
+```luarocks install http://raw.githubusercontent.com/baidu-research/warp-ctc/master/torch_binding/rocks/warp-ctc-scm-1.rockspec```
+请见Torch CTC[教程](torch_binding/TUTORIAL.zh_cn.md)。
+## 限制
 CUDA的执行需要至少3.0的计算能力， 所支持的标签长度最大值为639 （时间步数是有限的）。
 
 最后我们欢迎大家提出宝贵的意见及建议以改进我们的开源服务。
-[http://chuansong.me/account/AI_era](http://chuansong.me/account/AI_era)允许我们参考部分译文，[http://chuansong.me/n/2168385](http://chuansong.me/n/2168385)
 
-)
+[http://chuansong.me/account/AI_era](http://chuansong.me/account/AI_era)允许我们参考部分译文，[http://chuansong.me/n/2168385](http://chuansong.me/n/2168385)
