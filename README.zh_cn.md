@@ -100,7 +100,8 @@ Torch测试必须在 `torch_binding/tests/` 目录中运行。
 
 ```luarocks install http://raw.githubusercontent.com/baidu-research/warp-ctc/master/torch_binding/rocks/warp-ctc-scm-1.rockspec```
 
-请见Torch CTC教程。
+[请见Torch CTC教程](torch_binding/TUTORIAL.zh_cn.md)。
+
 ## 限制
 CUDA的执行需要至少3.0的计算能力， 所支持的标签长度最大值为639 （时间步数是有限的）。
 
