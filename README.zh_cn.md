@@ -7,7 +7,12 @@
 Warp-CTC是一个可以应用在CPU和GPU上高效并行的CTC代码库 （library）
 介绍
 CTC[Connectionist Temporal Classification](http://www.cs.toronto.edu/~graves/icml_2006.pdf)作为一个损失函数，用于在序列数据上进行监督式学习，不需要对齐输入数据及标签。比如，CTC可以被用来训练端对端的语音识别系统，这正是我们在百度硅谷试验室所使用的方法。
+[端到端](http://www.jmlr.org/proceedings/papers/v32/graves14.pdf)
+[系统](http://arxiv.org/pdf/1408.2873v2.pdf)
+[语音识别](http://arxiv.org/abs/1512.02595)
+
 ![DSCTC](/doc/deep-speech-ctc-small.png)
+
 上图展示了CTC计算输出序列（“THE CAT”）概率的过程，是对可能映射成“THE CAT”的所有可能输入序列对齐的和。这一过程考虑了标签会被复制的可能性，因为标签有可能在输入数据的几个时间步（time steps)时被拉伸 （请见上图底部的声谱图）。由于涉及到了组合学，计算所有可能概率的和的成本会很高，但是CTC运用了动态规划以大幅降低计算的复杂性。作为一个可微函数，CTC可以被用于深度神经网络的标准SGD训练。
 我们实验室专注于递归神经网络（RNN）的可扩展性 （scalibility), 而CTC损失函数是其中很重要的一部分。为了让我们的系统更有效率，我们并行处理了CTC算法，正如这篇文章中所描述的 。这个项目包含了我们的高性能CPU以及CUDA版本的CTC损失函数, 以及绑定的Torch. 该代码库提供了简单的C接口，易于与深度学习框架整合。
 
