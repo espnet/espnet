@@ -11,17 +11,17 @@ kaldi-io-for-python
 
 #### Examples
 
-- Reading feature scp example:
+###### Reading feature scp example:
 ```python
 import kaldi_io
 for key,mat in kaldi_io.read_mat_scp(file):
   ...
 ```
 
-- Writing feature ark to file/stream:
+###### Writing feature ark to file/stream:
 ```python
   import kaldi_io
-  with open(ark_file,'w') as f:
+  with open(ark_file,'wb') as f:
     for key,mat in dict.iteritems(): 
       kaldi_io.write_mat(f, mat, key=key)
 ```
