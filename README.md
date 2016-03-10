@@ -31,5 +31,5 @@ Apache License, Version 2.0 ('LICENSE-2.0.txt')
 
 #### Contact
 - If you have an extension to share, please create a pull request.
-- For feedback and suggestions you can create a GitHub 'Issue' in the project, 
-  or contact me by email: vesis84@gmail.com
+- For feedback and suggestions you can create a GitHub 'Issue' in the project.
+- For the positive reactions =) I am also reachable by email: vesis84@gmail.com
