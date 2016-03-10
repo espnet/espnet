@@ -299,12 +299,12 @@ def write_mat(file_or_fd, m, key=''):
    key (optional) : used for writing ark-file, the utterance-id gets written before the matrix.
 
    Example of writing single matrix:
-   kaldi_io.write_mat(filename, vec)
+   kaldi_io.write_mat(filename, mat)
 
    Example of writing arkfile:
    with open(ark_file,'w') as f:
-     for key,vec in dict.iteritems(): 
-       kaldi_io.write_mat(f, vec, key=key)
+     for key,mat in dict.iteritems(): 
+       kaldi_io.write_mat(f, mat, key=key)
   """
   fd = open_or_fd(file_or_fd, mode='wb')
   try:
