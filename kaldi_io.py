@@ -117,6 +117,37 @@ def read_vec_int(file_or_fd):
   if fd is not file_or_fd : fd.close() # cleanup
   return ans
 
+# Writing,
+def write_vec_int(file_or_fd, v, key=''):
+  """ write_vec_int(f, v, key='')
+   Write a binary kaldi integer vector to filename or stream.
+   Arguments:
+   file_or_fd : filename or opened file descriptor for writing,
+   v : the vector to be stored,
+   key (optional) : used for writing ark-file, the utterance-id gets written before the vector.
+
+   Example of writing single vector:
+   kaldi_io.write_vec_int(filename, vec)
+
+   Example of writing arkfile:
+   with open(ark_file,'w') as f:
+     for key,vec in dict.iteritems(): 
+       kaldi_io.write_vec_flt(f, vec, key=key)
+  """
+  fd = open_or_fd(file_or_fd, mode='wb')
+  try:
+    if key != '' : fd.write(key+' ') # ark-files have keys (utterance-id),
+    fd.write('\0B') # we write binary!
+    # dim,
+    fd.write('\4') # int32 type,
+    fd.write(struct.pack('<i',v.shape[0]))
+    # data,
+    for i in range(len(v)):
+      fd.write('\4') # int32 type,
+      fd.write(struct.pack('<i',v[i])) # binary,
+  finally:
+    if fd is not file_or_fd : fd.close()
+
 
 #################################################
 # Float vectors (confidences, ivectors, ...),
