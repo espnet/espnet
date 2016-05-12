@@ -20,7 +20,7 @@ would be (the components of the vectors here are arbitrary)
 
 ```{<2,0,0,0,0>, <1,3,0,0,0>, <1,4,1,0,0>, <1,1,5,6,0>, <1,1,1,1,1>, <1,1,7,1,1>, <9,1,1,1,1>}```
 
-and a valid target output sequence would be `daceba`.
+and a valid target output sequence would be `dacba`.
 
 
 
