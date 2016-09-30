@@ -8,7 +8,6 @@
 
 namespace ctc_helper {
 
-static const int BLANK = 0;
 static const float threshold = 1e-1;
 
 template<typename T>

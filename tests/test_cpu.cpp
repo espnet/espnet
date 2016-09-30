@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstring>
 #include <random>
 #include <tuple>
 #include <vector>
@@ -34,13 +35,14 @@ bool small_test() {
 
     float score;
 
-    ctcComputeInfo info;
-    info.loc = CTC_CPU;
-    info.num_threads = 1;
+    ctcOptions options;
+    memset(&options, 0, sizeof(options));
+    options.loc = CTC_CPU;
+    options.num_threads = 1;
 
     size_t cpu_alloc_bytes;
     throw_on_error(get_workspace_size(label_lengths.data(), lengths.data(),
-                                      alphabet_size, lengths.size(), info,
+                                      alphabet_size, lengths.size(), options,
                                       &cpu_alloc_bytes),
                    "Error: get_workspace_size in small_test");
 
@@ -53,7 +55,7 @@ bool small_test() {
                                     lengths.size(),
                                     &score,
                                     ctc_cpu_workspace,
-                                    info),
+                                    options),
                    "Error: compute_ctc_loss in small_test");
 
     free(ctc_cpu_workspace);
@@ -64,6 +66,131 @@ bool small_test() {
     const float ub = expected_score + eps;
 
     return (score > lb && score < ub);
+}
+
+int offset(int t, int n, int a) {
+    constexpr int minibatch = 2;
+    constexpr int alphabet_size = 6;
+    return (t * minibatch + n) * alphabet_size + a;
+}
+
+bool options_test() {
+    const int alphabet_size = 6;
+    const int T = 5;
+    const int minibatch = 2;
+
+    std::vector<float> activations =
+            {0.633766, 0.221185, 0.0917319, 0.0129757, 0.0142857, 0.0260553,
+             0.30176, 0.28562, 0.0831517, 0.0862751, 0.0816851, 0.161508,
+
+             0.111121, 0.588392, 0.278779, 0.0055756, 0.00569609, 0.010436,
+             0.24082, 0.397533, 0.0557226, 0.0546814, 0.0557528, 0.19549,
+
+             0.0357786, 0.633813, 0.321418, 0.00249248, 0.00272882, 0.0037688,
+             0.230246, 0.450868, 0.0389607, 0.038309, 0.0391602, 0.202456,
+
+             0.0663296, 0.643849, 0.280111, 0.00283995, 0.0035545, 0.00331533,
+             0.280884, 0.429522, 0.0326593, 0.0339046, 0.0326856, 0.190345,
+
+             0.458235, 0.396634, 0.123377, 0.00648837, 0.00903441, 0.00623107,
+             0.423286, 0.315517, 0.0338439, 0.0393744, 0.0339315, 0.154046};
+
+    std::vector<float> expected_grads = // from tensorflow
+            {-0.366234, 0.221185, 0.0917319, 0.0129757, 0.0142857, 0.0260553,
+             -0.69824, 0.28562, 0.0831517, 0.0862751, 0.0816851, 0.161508,
+
+             0.111121, -0.411608, 0.278779, 0.0055756, 0.00569609, 0.010436,
+             0.24082, -0.602467, 0.0557226, 0.0546814, 0.0557528, 0.19549,
+
+             0.0357786, 0.633813, -0.678582, 0.00249248, 0.00272882, 0.0037688,
+             0.230246, 0.450868, 0.0389607, 0.038309, 0.0391602, -0.797544,
+
+             0.0663296, -0.356151, 0.280111, 0.00283995, 0.0035545, 0.00331533,
+             0.280884, -0.570478, 0.0326593, 0.0339046, 0.0326856, 0.190345,
+
+             -0.541765, 0.396634, 0.123377, 0.00648837, 0.00903441, 0.00623107,
+             -0.576714, 0.315517, 0.0338439, 0.0393744, 0.0339315, 0.154046};
+
+
+    // Calculate the expected scores analytically
+    std::vector<double> expected_scores(2);
+    auto& a = activations;
+    expected_scores[0] =
+            -std::log(a[offset(0, 0, 0)] * a[offset(1, 0, 1)] * a[offset(2, 0, 2)]
+                      * a[offset(3, 0, 1)] * a[offset(4, 0, 0)]);
+    expected_scores[1] = 5.42262; // from tensorflow
+
+    // now take the log to account for the softmax
+    for (auto& a : activations) {
+        a = std::log(a);
+    }
+
+    std::vector<int> labels = {0, 1, 2, 1, 0,
+                               0, 1, 1, 0};
+
+    std::vector<int> label_lengths = {5, 4};
+
+    std::vector<int> lengths = {5, 5};
+
+    std::vector<float> grads(alphabet_size * T * minibatch);
+
+    std::vector<float> scores(2);
+
+    ctcOptions options;
+    memset(&options, 0, sizeof(options));
+    options.loc = CTC_CPU;
+    options.num_threads = 1;
+    options.blank_label = 5;
+
+    size_t cpu_alloc_bytes;
+    throw_on_error(get_workspace_size(label_lengths.data(), lengths.data(),
+                                      alphabet_size, lengths.size(), options,
+                                      &cpu_alloc_bytes),
+                   "Error: get_workspace_size in options_test");
+
+    void* ctc_cpu_workspace = malloc(cpu_alloc_bytes);
+
+    throw_on_error(compute_ctc_loss(activations.data(), grads.data(),
+                                    labels.data(), label_lengths.data(),
+                                    lengths.data(),
+                                    alphabet_size,
+                                    lengths.size(),
+                                    scores.data(),
+                                    ctc_cpu_workspace,
+                                    options),
+                   "Error: compute_ctc_loss in options_test");
+
+    free(ctc_cpu_workspace);
+
+    const double eps = 1e-4;
+
+    bool result = true;
+    for (int i = 0; i < grads.size(); i++) {
+        double lb = expected_grads[i] - eps;
+        double ub = expected_grads[i] + eps;
+        if (!(grads[i] > lb && grads[i] < ub)) {
+            std::cerr << "grad mismatch in options_test"
+                      << " expected grad: " << expected_grads[i]
+                      << " calculated score: " << grads[i]
+                      << " !(" << lb << " < " << grads[i]
+                      << " < " << ub << ")" << std::endl;
+            result = false;
+        }
+    }
+
+    for (int i = 0; i < 2; i++) {
+        double lb = expected_scores[i] - eps;
+        double ub = expected_scores[i] + eps;
+        if (!(scores[i] > lb && scores[i] < ub)) {
+            std::cerr << "score mismatch in options_test"
+                      << " expected score: " << expected_scores[i]
+                      << " calculated score: " << scores[i]
+                      << " !(" << lb << " < " << scores[i]
+                      << " < " << ub << ")" << std::endl;
+            result = false;
+        }
+    }
+    return result;
 }
 
 bool inf_test() {
@@ -88,13 +215,14 @@ bool inf_test() {
 
     float cost;
 
-    ctcComputeInfo info;
-    info.loc = CTC_CPU;
-    info.num_threads = 1;
+    ctcOptions options;
+    memset(&options, 0, sizeof(options));
+    options.loc = CTC_CPU;
+    options.num_threads = 1;
 
     size_t cpu_alloc_bytes;
     throw_on_error(get_workspace_size(label_lengths.data(), sizes.data(),
-                                      alphabet_size, sizes.size(), info,
+                                      alphabet_size, sizes.size(), options,
                                       &cpu_alloc_bytes),
                    "Error: get_workspace_size in inf_test");
 
@@ -107,7 +235,7 @@ bool inf_test() {
                                     sizes.size(),
                                     &cost,
                                     ctc_cpu_workspace,
-                                    info),
+                                    options),
                    "Error: compute_ctc_loss in inf_test");
 
     free(ctc_cpu_workspace);
@@ -117,7 +245,7 @@ bool inf_test() {
 
     for (int i = 0; i < alphabet_size * T; ++i)
         status &= !std::isnan(grads[i]);
- 
+
     return status;
 }
 
@@ -141,13 +269,14 @@ float grad_check(int T, int alphabet_size,
 
     std::vector<float> grads(acts.size());
 
-    ctcComputeInfo info;
-    info.loc = CTC_CPU;
-    info.num_threads = 1;
+    ctcOptions options;
+    memset(&options, 0, sizeof(options));
+    options.loc = CTC_CPU;
+    options.num_threads = 1;
 
     size_t cpu_alloc_bytes;
     throw_on_error(get_workspace_size(label_lengths.data(), sizes.data(),
-                                      alphabet_size, sizes.size(), info,
+                                      alphabet_size, sizes.size(), options,
                                       &cpu_alloc_bytes),
                    "Error: get_workspace_size in grad_check");
 
@@ -160,7 +289,7 @@ float grad_check(int T, int alphabet_size,
                                     minibatch,
                                     costs.data(),
                                     ctc_cpu_workspace,
-                                    info),
+                                    options),
                    "Error: compute_ctc_loss (0) in grad_check");
 
     float cost = std::accumulate(costs.begin(), costs.end(), 0.);
@@ -181,7 +310,7 @@ float grad_check(int T, int alphabet_size,
                                         minibatch,
                                         costsP1.data(),
                                         ctc_cpu_workspace,
-                                        info),
+                                        options),
                        "Error: compute_ctc_loss (1) in grad_check");
 
         acts[i] -= 2 * epsilon;
@@ -192,7 +321,7 @@ float grad_check(int T, int alphabet_size,
                                         minibatch,
                                         costsP2.data(),
                                         ctc_cpu_workspace,
-                                        info),
+                                        options),
                        "Error: compute_ctc_loss (2) in grad_check");
 
         float costP1 = std::accumulate(costsP1.begin(), costsP1.end(), 0.);
@@ -246,6 +375,7 @@ int main(void) {
 
     bool status = true;
     status &= small_test();
+    status &= options_test();
     status &= inf_test();
     status &= run_tests();
 

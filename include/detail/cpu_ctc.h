@@ -17,9 +17,11 @@ template<typename ProbT>
 class CpuCTC {
 public:
     // Noncopyable
-    CpuCTC(int alphabet_size, int minibatch, void* workspace, int num_threads) :
+    CpuCTC(int alphabet_size, int minibatch, void* workspace, int num_threads,
+           int blank_label) :
             alphabet_size_(alphabet_size), minibatch_(minibatch),
-            num_threads_(num_threads), workspace_(workspace) {
+            num_threads_(num_threads), workspace_(workspace),
+            blank_label_(blank_label) {
 #if defined(CTC_DISABLE_OMP) || defined(APPLE)
 #else
         if (num_threads > 0) {
@@ -52,11 +54,11 @@ private:
     class CpuCTC_metadata {
 
     private:
-        int setup_labels(const int* const labels, int L, int S);
+        int setup_labels(const int* const labels, int blank_label, int L, int S);
 
     public:
         CpuCTC_metadata(int L, int S, int T, int mb, int alphabet_size,
-                        void* workspace, size_t bytes_used,
+                        void* workspace, size_t bytes_used, int blank_label,
                         const int* const labels);
 
         ProbT* alphas;
@@ -71,6 +73,7 @@ private:
     int alphabet_size_; // Number of characters plus blank
     int minibatch_;
     int num_threads_;
+    int blank_label_;
     void* workspace_;
 
     void softmax(const ProbT* const activations, ProbT* probs,
@@ -101,6 +104,7 @@ template<typename ProbT>
 CpuCTC<ProbT>::CpuCTC_metadata::CpuCTC_metadata(int L, int S, int T, int mb,
                                                 int alphabet_size,
                                                 void* workspace, size_t bytes_used,
+                                                int blank_label,
                                                 const int* const labels) {
 
     alphas = reinterpret_cast<ProbT *>(static_cast<char *>(workspace) + bytes_used);
@@ -118,12 +122,12 @@ CpuCTC<ProbT>::CpuCTC_metadata::CpuCTC_metadata(int L, int S, int T, int mb,
     output = reinterpret_cast<ProbT *>(static_cast<char *>(workspace) + bytes_used);
     bytes_used += sizeof(ProbT) * alphabet_size;
 
-    repeats = setup_labels(labels, L, S);
+    repeats = setup_labels(labels, blank_label, L, S);
 }
 
 template<typename ProbT>
 int CpuCTC<ProbT>::CpuCTC_metadata::setup_labels(const int* const labels,
-                                                 int L, int S) {
+                                                 int blank_label, int L, int S) {
     int e_counter = 0;
     int s_counter = 0;
 
@@ -147,10 +151,10 @@ int CpuCTC<ProbT>::CpuCTC_metadata::setup_labels(const int* const labels,
     e_inc[e_counter++] = 1;
 
     for (int i = 0; i < L; ++i) {
-        labels_w_blanks[2 * i] = ctc_helper::BLANK;
+        labels_w_blanks[2 * i] = blank_label;
         labels_w_blanks[2 * i + 1] = labels[i];
     }
-    labels_w_blanks[S - 1] = ctc_helper::BLANK;
+    labels_w_blanks[S - 1] = blank_label;
 
     return repeats;
 }
@@ -188,7 +192,7 @@ CpuCTC<ProbT>::cost_and_grad_kernel(ProbT *grad, const ProbT* const probs,
 
     const int S = 2*L + 1; // Number of labels with blanks
 
-    CpuCTC_metadata ctcm(L, S, T, mb, alphabet_size_, workspace_, bytes_used, labels);
+    CpuCTC_metadata ctcm(L, S, T, mb, alphabet_size_, workspace_, bytes_used, blank_label_, labels);
 
     bool over_threshold = false;
 
@@ -240,7 +244,7 @@ ProbT CpuCTC<ProbT>::compute_alphas(const ProbT* probs, int repeats, int S, int 
         int idx1 = t * S, idx2 = (t - 1) * S, idx3 = t * (alphabet_size_ * minibatch_);
 
         if (start == 0) {
-            alphas[idx1] = alphas[idx2] + std::log(probs[ctc_helper::BLANK + idx3]);
+            alphas[idx1] = alphas[idx2] + std::log(probs[blank_label_ + idx3]);
             startloop += 1;
         }
 
@@ -248,7 +252,7 @@ ProbT CpuCTC<ProbT>::compute_alphas(const ProbT* probs, int repeats, int S, int 
             ProbT prev_sum = ctc_helper::log_plus<ProbT>()(alphas[i + idx2], alphas[(i-1) + idx2]);
 
             // Skip two if not on blank and not on repeat.
-            if (labels[i] != ctc_helper::BLANK && i != 1 && labels[i] != labels[i-2])
+            if (labels[i] != blank_label_ && i != 1 && labels[i] != labels[i-2])
                 prev_sum = ctc_helper::log_plus<ProbT>()(prev_sum, alphas[(i-2) + idx2]);
 
             alphas[i + idx1] = prev_sum + std::log(probs[labels[i] + idx3]);
@@ -324,7 +328,7 @@ ProbT CpuCTC<ProbT>::compute_betas_and_grad(ProbT* grad, const ProbT* const prob
         for(int i = start; i < endloop; ++i) {
             ProbT next_sum = ctc_helper::log_plus<ProbT>()(betas[i], betas[(i+1)]);
             // Skip two if not on blank and not on repeat.
-            if (labels[i] != ctc_helper::BLANK && i != (S-2) && labels[i] != labels[i+2]){
+            if (labels[i] != blank_label_ && i != (S-2) && labels[i] != labels[i+2]){
                 next_sum = ctc_helper::log_plus<ProbT>()(next_sum, betas[(i+2)]);
             }
             betas[i] = next_sum + std::log(probs[labels[i] + idx3]);
@@ -338,7 +342,7 @@ ProbT CpuCTC<ProbT>::compute_betas_and_grad(ProbT* grad, const ProbT* const prob
         }
 
         if (end == S) {
-            betas[(S-1)] = betas[(S-1)] + std::log(probs[ctc_helper::BLANK + idx3]);
+            betas[(S-1)] = betas[(S-1)] + std::log(probs[blank_label_ + idx3]);
             alphas[(S-1) + idx1] += betas[(S-1)];
 
             output[labels[S-1]] =
@@ -476,7 +480,7 @@ ctcStatus_t CpuCTC<ProbT>::score_forward(const ProbT* const activations,
         const int S = 2*L + 1; // Number of labels with blanks
 
         CpuCTC_metadata ctcm(L, S, T, mb, alphabet_size_, workspace_,
-                             bytes_used + mb * per_minibatch_bytes,
+                             bytes_used + mb * per_minibatch_bytes, blank_label_,
                              flat_labels + std::accumulate(label_lengths, label_lengths + mb, 0));
 
 

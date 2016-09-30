@@ -41,7 +41,7 @@ ctcStatus_t compute_ctc_loss(const float* const activations,
                              int minibatch,
                              float *costs,
                              void *workspace,
-                             ctcComputeInfo info) {
+                             ctcOptions options) {
 
     if (activations == nullptr ||
         flat_labels == nullptr ||
@@ -53,8 +53,9 @@ ctcStatus_t compute_ctc_loss(const float* const activations,
         minibatch <= 0)
         return CTC_STATUS_INVALID_VALUE;
 
-    if (info.loc == CTC_CPU) {
-        CpuCTC<float> ctc(alphabet_size, minibatch, workspace, info.num_threads);
+    if (options.loc == CTC_CPU) {
+        CpuCTC<float> ctc(alphabet_size, minibatch, workspace, options.num_threads,
+                          options.blank_label);
 
         if (gradients != NULL)
             return ctc.cost_and_grad(activations, gradients,
@@ -64,9 +65,10 @@ ctcStatus_t compute_ctc_loss(const float* const activations,
         else
             return ctc.score_forward(activations, costs, flat_labels,
                                      label_lengths, input_lengths);
-    } else if (info.loc == CTC_GPU) {
+    } else if (options.loc == CTC_GPU) {
 #ifdef __CUDACC__
-        GpuCTC<float> ctc(alphabet_size, minibatch, workspace, info.stream);
+        GpuCTC<float> ctc(alphabet_size, minibatch, workspace, options.stream,
+                          options.blank_label);
 
         if (gradients != NULL)
             return ctc.cost_and_grad(activations, gradients, costs,
@@ -88,7 +90,7 @@ ctcStatus_t compute_ctc_loss(const float* const activations,
 ctcStatus_t get_workspace_size(const int* const label_lengths,
                                const int* const input_lengths,
                                int alphabet_size, int minibatch,
-                               ctcComputeInfo info,
+                               ctcOptions options,
                                size_t* size_bytes)
 {
     if (label_lengths == nullptr ||
@@ -106,7 +108,7 @@ ctcStatus_t get_workspace_size(const int* const label_lengths,
 
     *size_bytes = 0;
 
-    if (info.loc == CTC_GPU) {
+    if (options.loc == CTC_GPU) {
         // GPU storage
         //nll_forward, nll_backward
         *size_bytes += 2 * sizeof(float) * minibatch;

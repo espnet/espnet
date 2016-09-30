@@ -91,7 +91,7 @@ void compute_alpha_kernel (const ProbT* probs, const int *label_sizes,
                            const int *labels_without_blanks, const int *label_offsets, 
                            int *labels_with_blanks, ProbT *alphas, 
                            ProbT* nll_forward, int stride, int out_dim,
-                           int S_memoffset, int T_memoffset) {
+                           int S_memoffset, int T_memoffset, int blank_label) {
 
     ctc_helper::log_plus<ProbT> log_plus_f;
 
@@ -107,15 +107,18 @@ void compute_alpha_kernel (const ProbT* probs, const int *label_sizes,
 
     if ((L + repeats) > T)
         return;
-   
+
     // Generate labels with blanks from labels without blanks
     {
         const int label_start_offset = label_offsets[blockIdx.x];
         for (int idx = tid; idx < L; idx += blockDim.x) {
-            labels_with_blanks[(blockIdx.x * S_memoffset) + 2 * idx + 1] = 
-                labels_without_blanks[label_start_offset + idx];
-            // printf("%d %d\n", tid, labels_without_blanks[label_start_offset + tid]);
-        } 
+            int offset = (blockIdx.x * S_memoffset) + 2 * idx;
+            labels_with_blanks[offset] = blank_label;
+            labels_with_blanks[offset+1] = labels_without_blanks[label_start_offset + idx];
+        }
+        if (tid == 0) {
+            labels_with_blanks[(blockIdx.x * S_memoffset) + 2 * L] = blank_label;
+        }
     }
     __syncthreads();
 
@@ -162,8 +165,7 @@ void compute_alpha_kernel (const ProbT* probs, const int *label_sizes,
         if (tid == 0) {
             if (start == 0) {
                 alpha[start_cur_row] = alpha[start_prev_row] +
-                                       log(probs[prob_offset + start_prob_col +
-                                                 ctc_helper::BLANK]);
+                                       log(probs[prob_offset + start_prob_col + blank_label]);
             }
             else if (start == 1) {
                 alpha[start_cur_row] = alpha[start_prev_row];
@@ -182,7 +184,7 @@ void compute_alpha_kernel (const ProbT* probs, const int *label_sizes,
             ProbT prev_sum = log_plus_f(alpha[idx + start_prev_row], alpha[(idx-1) + start_prev_row]);
 
             // Skip two if not on blank and not on repeat.
-            if ((label[idx] != ctc_helper::BLANK) &&
+            if ((label[idx] != blank_label) &&
                 (idx != 1) && (label[idx] != label[idx-2]))
                 prev_sum = log_plus_f(prev_sum, alpha[(idx-2) + start_prev_row]);
 
@@ -220,7 +222,7 @@ void compute_betas_and_grad_kernel (const ProbT* probs, const int *label_sizes,
                                     const int *labels_with_blanks, ProbT *alphas,
                                     const ProbT* nll_forward, ProbT *nll_backward,
                                     ProbT *grads, int stride, int out_dim,
-                                    int S_memoffset, int T_memoffset) {
+                                    int S_memoffset, int T_memoffset, int blank_label) {
 
     ctc_helper::log_plus<ProbT> log_plus_f;
     typedef CTASegReduce<NT, VT, ProbT, int, ctc_helper::log_plus<ProbT>> SegReduce;
@@ -350,7 +352,7 @@ void compute_betas_and_grad_kernel (const ProbT* probs, const int *label_sizes,
                 ProbT next_sum = log_plus_f(temp_buffer.beta[idx], temp_buffer.beta[idx+1]);
 
                     // Skip two if not on blank and not on repeat.
-                if ((label[idx] != ctc_helper::BLANK) &&
+                if ((label[idx] != blank_label) &&
                     (idx != (S-2)) && (label[idx] != label[idx+2]))
                     next_sum = log_plus_f(next_sum, temp_buffer.beta[idx+2]);
 
@@ -363,8 +365,7 @@ void compute_betas_and_grad_kernel (const ProbT* probs, const int *label_sizes,
             // Update input buffer for next iteration
             if ((tid == 0) && (end == S))
                 temp_buffer.beta[(S-1)] = temp_buffer.beta[(S-1)] +
-                                      log(probs[prob_offset + start_prob_col +
-                                                ctc_helper::BLANK]);
+                                          log(probs[prob_offset + start_prob_col + blank_label]);
 
             #pragma unroll
             for(int idx = tid, i = 0; idx < (S-1); idx += NT, i++) {

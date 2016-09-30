@@ -10,9 +10,11 @@ class GpuCTC {
         GpuCTC(int alphabet_size,
                int minibatch,
                void *workspace,
-               CUstream stream) :
+               CUstream stream,
+               int blank_label) :
             out_dim_(alphabet_size), minibatch_(minibatch),
-            gpu_workspace_(workspace), stream_(stream) {};
+            gpu_workspace_(workspace), stream_(stream),
+            blank_label_(blank_label) {};
 
         // Noncopyable
         GpuCTC(const GpuCTC&) = delete;
@@ -82,6 +84,7 @@ class GpuCTC {
         int activation_cols_; // Number of columns in activations
 
         CUstream stream_;
+        int blank_label_;
 
         void *gpu_workspace_; // Buffer for all temporary GPU memory
         int *utt_length_; // T
@@ -232,10 +235,6 @@ GpuCTC<ProbT>::setup_gpu_metadata(const int* const flat_labels,
         reinterpret_cast<int *>(static_cast<char*>(gpu_workspace_) +
                                 gpu_bytes_used);
     gpu_bytes_used += Smax * minibatch_ * sizeof(int);
-    cuda_status = cudaMemsetAsync(labels_with_blanks_, ctc_helper::BLANK,
-                                  S_ * minibatch_ * sizeof(int), stream_);
-    if (cuda_status != cudaSuccess)
-        return CTC_STATUS_MEMOPS_FAILED;
 
     alphas_ =
         reinterpret_cast<ProbT *>(static_cast<char*>(gpu_workspace_) +
@@ -275,14 +274,14 @@ ctcStatus_t GpuCTC<ProbT>::launch_alpha_beta_kernels(const ProbT* const probs,
             (probs, label_sizes_, utt_length_,
              repeats_, labels_without_blanks_, label_offsets_,
              labels_with_blanks_, alphas_, nll_forward_,
-             stride, out_dim_, S_, T_);
+             stride, out_dim_, S_, T_, blank_label_);
 
 
     if (compute_beta) {
         compute_betas_and_grad_kernel<ProbT, NT, VT><<<grid_size, NT, 0, stream_>>>
             (probs, label_sizes_, utt_length_, repeats_,
              labels_with_blanks_, alphas_, nll_forward_, nll_backward_,
-             grads, stride, out_dim_, S_, T_);
+             grads, stride, out_dim_, S_, T_, blank_label_);
 
         cudaStreamSynchronize(stream_);
     }

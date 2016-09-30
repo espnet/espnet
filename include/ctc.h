@@ -32,17 +32,22 @@ typedef enum {
     CTC_GPU = 1
 } ctcComputeLocation;
 
-/** Structure used to indicate where the ctc calculation should take place
- *  and parameters associated with that place.
- *  Cpu execution can specify the maximum number of threads that can be used
- *  Gpu execution can specify which stream the kernels should be launched in.
- *  */
-struct ctcComputeInfo {
+/** Structure used for options to the CTC compution.  Applications
+ *  should zero out the array using sizeof(struct ctcOptions) to
+ *  ensure forward compatibility with added options. */
+struct ctcOptions {
+    /// indicates where the ctc calculation should take place {CTC_CPU | CTC_GPU}
     ctcComputeLocation loc;
     union {
+        /// used when loc == CTC_CPU, the maximum number of threads that can be used
         unsigned int num_threads;
+
+        /// used when loc == CTC_GPU, which stream the kernels should be launched in
         CUstream stream;
     };
+
+    /// the label value/index that the CTC calculation should use as the blank label
+    int blank_label;
 };
 
 /** Compute the connectionist temporal classification loss between a sequence
@@ -76,11 +81,7 @@ struct ctcComputeInfo {
  *              minibatch.
  * \param [in,out] workspace In same memory space as probs. Should be of
  *                 size requested by get_workspace_size.
- * \param [in]  ctcComputeInfo describes whether or not the execution should
- *              take place on the CPU or GPU, and by extension the location of
- *              the probs and grads pointers.  Can be used to set the
- *              number of threads for cpu execution or the stream for gpu
- *              execution.
+ * \param [in]  options see struct ctcOptions
  *
  *  \return Status information
  *
@@ -94,7 +95,7 @@ ctcStatus_t compute_ctc_loss(const float* const activations,
                              int minibatch,
                              float *costs,
                              void *workspace,
-                             ctcComputeInfo info);
+                             ctcOptions options);
 
 
 /** For a given set of labels and minibatch size return the required workspace
@@ -107,8 +108,7 @@ ctcStatus_t compute_ctc_loss(const float* const activations,
  * \param [in]  alphabet_size How many symbols in the alphabet or, equivalently,
  *              the number of probabilities at each time step
  * \param [in]  mini_batch How many examples in a minibatch.
- * \param [in]  info struct describing the location (cpu/gpu) and associated
- *              parameters of execution
+ * \param [in]  info see struct ctcOptions
  * \param [out] size_bytes is pointer to a scalar where the memory
  *              requirement in bytes will be placed. This memory should be allocated
  *              at the same place, CPU or GPU, that the probs are in
@@ -118,7 +118,7 @@ ctcStatus_t compute_ctc_loss(const float* const activations,
 ctcStatus_t get_workspace_size(const int* const label_lengths,
                                const int* const input_lengths,
                                int alphabet_size, int minibatch,
-                               ctcComputeInfo info,
+                               ctcOptions info,
                                size_t* size_bytes);
 
 #ifdef __cplusplus
