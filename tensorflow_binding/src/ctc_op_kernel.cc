@@ -136,6 +136,7 @@ class CTCLossOp : public tf::OpKernel {
         //auto cuda_stream = //perftools::gputools::cuda::AsCUDAStreamValue(tf_stream);
         auto cuda_stream = ctx->eigen_device<Eigen::GpuDevice>().stream();
         auto options = ctcOptions{};
+        memset(&options, 0, sizeof(options));
         options.loc = CTC_GPU;
         options.stream = cuda_stream;
         options.blank_label = num_classes - 1;

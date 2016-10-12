@@ -65,8 +65,10 @@ extra_compile_args = ['-std=c++11', '-fPIC']
 # current tensorflow code triggers return type errors, silence those for now
 extra_compile_args += ['-Wno-return-type']
 
+lib_srcs = ['src/ctc_op_kernel.cc', 'src/warpctc_op.cc']
+
 ext = setuptools.Extension('warpctc_tensorflow.kernels',
-                           sources = ['src/ctc_op_kernel.cc'],
+                           sources = lib_srcs,
                            language = 'c++',
                            include_dirs = include_dirs,
                            library_dirs = [warp_ctc_path],
