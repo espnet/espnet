@@ -1,5 +1,3 @@
-//#include <Python.h>
-
 #define EIGEN_USE_GPU
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/kernels/bounds_check.h"
@@ -8,24 +6,6 @@
 #include <cuda.h>
 
 #include "ctc.h"
-
-// static struct PyMethodDef pythonMethods[] = {
-//     {NULL, NULL, 0, NULL}
-// };
-
-// static struct PyModuleDef pythonModule = {
-//     PyModuleDef_HEAD_INIT,
-//     "warpctc_tensorflow.kernels",
-//     NULL,
-//     -1,
-//     pythonMethods
-// };
-
-// PyMODINIT_FUNC
-// PyInit_kernels(void)
-// {
-//     return PyModule_Create(&pythonModule);
-// }
 
 namespace tf = tensorflow;
 
@@ -37,8 +17,6 @@ class CTCLossOp : public tf::OpKernel {
     }
 
     void Compute(tf::OpKernelContext* ctx) override {
-        // most of this is a copy/paste from the main tensorflow kernel
-
         const tf::Tensor* inputs;
         const tf::Tensor* labels_indices;
         const tf::Tensor* labels_values;
@@ -90,7 +68,6 @@ class CTCLossOp : public tf::OpKernel {
                     tf::errors::InvalidArgument("label SparseTensor is not valid: ",
                                             labels_sp_valid.error_message()));
 
-        // first difference from tensorflows... getting the labels together
         auto label_lengths = std::vector<int>{};
         for (const auto& g : labels_sp.group({0})) {  // iterate by batch
             const tf::int64 batch_indices = g.group()[0];
@@ -145,7 +122,9 @@ class CTCLossOp : public tf::OpKernel {
         auto warp_status = get_workspace_size(label_lengths.data(), seq_len_t.data(),
                                               num_classes, batch_size,
                                               options, &workspace_size_bytes);
-        // TODO error check warp_status
+        OP_REQUIRES(ctx, warp_status == CTC_STATUS_SUCCESS,
+                    tf::errors::Internal("warp_ctc error in get_workspace_size: ",
+                                         ctcGetStatusString(warp_status)));
 
         auto workspace_shape = tf::TensorShape{static_cast<int64_t>(workspace_size_bytes)};
         tf::Tensor workspace;
@@ -161,7 +140,8 @@ class CTCLossOp : public tf::OpKernel {
                                        loss_t.data(), workspace_t.data(), options);
         
         OP_REQUIRES(ctx, warp_status == CTC_STATUS_SUCCESS,
-                    tf::errors::Internal("warp_ctc error: ", ctcGetStatusString(warp_status)));
+                    tf::errors::Internal("warp_ctc error in compute_ctc_loss: ",
+                                         ctcGetStatusString(warp_status)));
 
     }
 

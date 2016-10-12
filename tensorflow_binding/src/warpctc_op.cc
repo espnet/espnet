@@ -1,169 +1,177 @@
 #define EIGEN_USE_GPU
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/kernels/bounds_check.h"
 #include "tensorflow/core/framework/allocator.h"
-
 #include "ctc.h"
 
+#include <cuda.h>
 
 REGISTER_OP("WarpCTC")
-    .Input("data: float32")
-    .Input("data_lengths: int32")
+    .Input("activations: float32")
     .Input("flat_labels: int32")
     .Input("label_lengths: int32")
-    .Attr("alphabet_size: int")
-    .Output("loss: float32")
-    .Output("gradient: float32");
+    .Input("input_lengths: int32")
+    .Output("costs: float32")
+    .Output("gradients: float32");
 
-using namespace tensorflow;
+namespace tf = tensorflow;
 
-class WarpCTCOpCPU : public OpKernel {
- public:
-  explicit WarpCTCOpCPU(OpKernelConstruction* context) : OpKernel(context) {
-    OP_REQUIRES_OK(context, context->GetAttr("alphabet_size", &alphabet_size_));
-  }
+namespace warp_ctc {
 
-  void Compute(OpKernelContext* context) override {
-    // Grab the input tensors
-    const Tensor& data_t = context->input(0);
-    const Tensor& data_lens_t = context->input(1);
-    const Tensor& labels_t = context->input(2);
-    const Tensor& label_lens_t = context->input(3);
-    auto data = data_t.flat<float>();
-    auto data_lens = data_lens_t.flat<int>();
-    auto labels = labels_t.flat<int>();
-    auto label_lens = label_lens_t.flat<int>();
-    int alphabet_size = alphabet_size_;
-    int n_minibatches = data_t.dim_size(1);
-
-    auto options = ctcOptions{};
-    memset(&options, 0, sizeof(options));
-    options.loc = CTC_CPU;
-    options.num_threads = context->device()->tensorflow_cpu_worker_threads()->num_threads;
-
-    size_t cpu_alloc_bytes;
-    ctcStatus_t stat_alloc = get_workspace_size(label_lens.data(), data_lens.data(),
-                                          alphabet_size, n_minibatches, options,
-                                          &cpu_alloc_bytes);
-
-    OP_REQUIRES(context, (stat_alloc == CTC_STATUS_SUCCESS),
-                errors::Internal("Error in CTC memory estimation"))
-
-    // allocate scratch space for ctc computation
-    Allocator* a = context->device()->GetAllocator(AllocatorAttributes());
-
-    void* scratch = a->AllocateRaw(1, cpu_alloc_bytes);
-
-    // allocate gradient tensor
-    Tensor* gradients = NULL;
-    OP_REQUIRES_OK(context, context->allocate_output(1, data_t.shape(),
-                                                     &gradients));
-    auto grads = gradients->flat<float>();
-
-    // compute CTC
-    std::vector<float> costs(n_minibatches);
-    ctcStatus_t stat_compute = compute_ctc_loss(data.data(),
-                                                grads.data(),
-                                                labels.data(),
-                                                label_lens.data(),
-                                                data_lens.data(),
-                                                alphabet_size,
-                                                n_minibatches,
-                                                costs.data(),
-                                                scratch,
-                                                options);
-    // std::raise(SIGINT);
-
-    a->DeallocateRaw(scratch);
-
-    OP_REQUIRES(context, (stat_compute == CTC_STATUS_SUCCESS),
-                errors::Internal("Error in CTC computation"))
-
-    Tensor* loss_t = nullptr;
-    OP_REQUIRES_OK(context, context->allocate_output(0, TensorShape({n_minibatches}), &loss_t));
-    auto loss = loss_t->flat<float>();
-    for (int i = 0; i < n_minibatches; ++i) {
-      loss(i) = costs[i];
+class WarpCTCOpBase : public tf::OpKernel {
+  public:
+    explicit WarpCTCOpBase(tf::OpKernelConstruction* ctx) : tf::OpKernel(ctx) {
     }
-  }
- private:
-  int alphabet_size_;
+
+    void Compute(tf::OpKernelContext* ctx) override {
+        // Grab the input tensors
+        const tf::Tensor* activations;
+        const tf::Tensor* flat_labels;
+        const tf::Tensor* label_lengths;
+        const tf::Tensor* input_lengths;
+        OP_REQUIRES_OK(ctx, ctx->input("activations", &activations));
+        OP_REQUIRES_OK(ctx, ctx->input("flat_labels", &flat_labels));
+        OP_REQUIRES_OK(ctx, ctx->input("label_lengths", &label_lengths));
+        OP_REQUIRES_OK(ctx, ctx->input("input_lengths", &input_lengths));
+
+        OP_REQUIRES(ctx, activations->shape().dims() == 3,
+                    tf::errors::InvalidArgument("activations is not a 3-Tensor"));
+        OP_REQUIRES(ctx, tf::TensorShapeUtils::IsVector(flat_labels->shape()),
+                     tf::errors::InvalidArgument("flat_labels is not a vector"));
+        OP_REQUIRES(ctx, tf::TensorShapeUtils::IsVector(label_lengths->shape()),
+                     tf::errors::InvalidArgument("label_lengths is not a vector"));
+        OP_REQUIRES(ctx, tf::TensorShapeUtils::IsVector(input_lengths->shape()),
+                     tf::errors::InvalidArgument("input_lengths is not a vector"));
+
+        const auto acts_shape = activations->shape();
+        const auto max_time = acts_shape.dim_size(0);
+        const auto batch_size = acts_shape.dim_size(1);
+        const auto num_classes_raw = acts_shape.dim_size(2);
+
+        auto activations_t = activations->tensor<float, 3>();
+        auto flat_labels_t = flat_labels->vec<int32_t>();
+
+        OP_REQUIRES(
+                ctx, tf::FastBoundsCheck(num_classes_raw, std::numeric_limits<int>::max()),
+                tf::errors::InvalidArgument("num_classes cannot exceed max int"));
+        const auto alphabet_size = static_cast<const int>(num_classes_raw);
+
+        OP_REQUIRES(
+                ctx, batch_size == input_lengths->dim_size(0),
+                tf::errors::InvalidArgument("len(input_lengths) != batch_size.  ",
+                                            "len(input_length):  ", input_lengths->dim_size(0),
+                                            " batch_size: ", batch_size));
+        auto input_lengths_t = input_lengths->vec<int32_t>();
+
+        OP_REQUIRES(
+                ctx, batch_size == label_lengths->dim_size(0),
+                tf::errors::InvalidArgument("len(label_lengths) != batch_size.  ",
+                                            "len(label_length):  ", label_lengths->dim_size(0),
+                                            " batch_size: ", batch_size));
+        auto label_lengths_t = label_lengths->vec<int32_t>();
+
+        // check that labels are in the alphabet?
+
+        for (int b = 0; b < batch_size; b++) {
+            OP_REQUIRES(ctx, input_lengths_t(b) <= max_time,
+                        tf::errors::InvalidArgument("input_lengths(", b, ") <= ", max_time));
+        }
+
+        tf::Tensor* costs = nullptr;
+        OP_REQUIRES_OK(ctx, ctx->allocate_output("costs", input_lengths->shape(), &costs));
+        auto costs_t = costs->vec<float>();
+
+        tf::Tensor* grads = nullptr;
+        OP_REQUIRES_OK(ctx, ctx->allocate_output("gradients", activations->shape(),
+                                                 &grads));
+        setZero(grads);
+        auto grads_t = grads->tensor<float, 3>();
+
+        auto options = create_options(ctx);
+
+        size_t workspace_size_bytes;
+        auto warp_status = get_workspace_size(label_lengths_t.data(),
+                                              input_lengths_t.data(),
+                                              alphabet_size, batch_size,
+                                              options, &workspace_size_bytes);
+
+        OP_REQUIRES(ctx, warp_status == CTC_STATUS_SUCCESS,
+                    tf::errors::Internal("warp_ctc error in get_workspace_size: ",
+                                         ctcGetStatusString(warp_status)));
+
+        auto workspace_shape = tf::TensorShape{static_cast<int64_t>(workspace_size_bytes)};
+        tf::Tensor workspace;
+        OP_REQUIRES_OK(ctx, ctx->allocate_temp(tf::DT_UINT8, workspace_shape, &workspace));
+        auto workspace_t = workspace.flat<uint8_t>();
+
+        // compute CTC
+        warp_status = compute_ctc_loss(activations_t.data(),
+                                       grads_t.data(),
+                                       flat_labels_t.data(),
+                                       label_lengths_t.data(),
+                                       input_lengths_t.data(),
+                                       alphabet_size, batch_size,
+                                       costs_t.data(), workspace_t.data(), options);
+
+        OP_REQUIRES(ctx, warp_status == CTC_STATUS_SUCCESS,
+                    tf::errors::Internal("warp_ctc error in compute_ctc_loss: ",
+                                         ctcGetStatusString(warp_status)));
+
+    }
+  private:
+    virtual void setZero(tf::Tensor* t) = 0;
+    virtual ctcOptions create_options(tf::OpKernelContext* ctx) = 0;
 };
 
-class WarpCTCOpGPU : public OpKernel {
- public:
-  explicit WarpCTCOpGPU(OpKernelConstruction* context) : OpKernel(context) {
-    OP_REQUIRES_OK(context, context->GetAttr("alphabet_size", &alphabet_size_));
-  }
+class WarpCTCOpCPU : public WarpCTCOpBase {
+  public:
+    explicit WarpCTCOpCPU(tf::OpKernelConstruction* ctx) : WarpCTCOpBase(ctx) {
+    }
 
-  void Compute(OpKernelContext* ctx) override {
+  private:
+    void setZero(tf::Tensor* t) override {
+        t->flat<float>().setZero();
+    }
 
-    const Tensor& data_t = ctx->input(0);
-    const Tensor& data_lens_t = ctx->input(1);
-    const Tensor& labels_t = ctx->input(2);
-    const Tensor& label_lens_t = ctx->input(3);
-    auto data = data_t.flat<float>();
-    auto data_lens = data_lens_t.flat<int32>();
-    auto labels = labels_t.flat<int32>();
-    auto label_lens = label_lens_t.flat<int32>();
-    int alphabet_size = alphabet_size_;
-    int n_minibatches = data_t.dim_size(1);
-
-    auto cuda_stream = ctx->eigen_device<Eigen::GpuDevice>().stream();
-    auto options = ctcOptions{};
-    memset(&options, 0, sizeof(options));
-    options.loc = CTC_GPU;
-    options.stream = cuda_stream;
-
-    size_t workspace_size_bytes;
-    ctcStatus_t stat_alloc = get_workspace_size(label_lens.data(), data_lens.data(),
-                                                alphabet_size, n_minibatches, options,
-                                                &workspace_size_bytes);
-    OP_REQUIRES(ctx, (stat_alloc == CTC_STATUS_SUCCESS),
-                errors::Internal("Error in CTC memory estimation"));
-
-    //  allocate scratch space for ctc computation
-    auto workspace_shape = TensorShape{static_cast<int64_t>(workspace_size_bytes)};
-    Tensor workspace;
-    OP_REQUIRES_OK(ctx, ctx->allocate_temp(DT_UINT8, workspace_shape, &workspace));
-    auto workspace_t = workspace.flat<uint8_t>();
-
-    // allocate gradient tensor
-    Tensor* loss = nullptr;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output("loss", data_lens_t.shape(), &loss));
-    auto loss_t = loss->vec<float>();
-    
-    Tensor* gradient;
-    OP_REQUIRES_OK(ctx,
-                   ctx->allocate_output("gradient", data_t.shape(), &gradient));
-    auto gradient_t = gradient->tensor<float, 3>();
-    cudaMemset(gradient_t.data(), 0, gradient->NumElements()*sizeof(float));
-
-    ctcStatus_t stat_compute = compute_ctc_loss(data.data(),
-                                                gradient_t.data(),
-                                                labels.data(),
-                                                label_lens.data(),
-                                                data_lens.data(),
-                                                alphabet_size,
-                                                n_minibatches,
-                                                loss_t.data(),
-                                                workspace_t.data(),
-                                                options);
-
-    OP_REQUIRES(ctx, (stat_compute == CTC_STATUS_SUCCESS),
-                errors::Internal("Error in CTC computation"));
-  }
- private:
-  int alphabet_size_;
+    ctcOptions create_options(tf::OpKernelContext* ctx) override {
+        auto options = ctcOptions{};
+        memset(&options, 0, sizeof(options));
+        options.loc = CTC_CPU;
+        options.num_threads = ctx->device()->tensorflow_cpu_worker_threads()->num_threads;
+        return options;
+    }
 };
 
-#undef EIGEN_USE_GPU
+class WarpCTCOpGPU : public WarpCTCOpBase {
+  public:
+    explicit WarpCTCOpGPU(tf::OpKernelConstruction* ctx) : WarpCTCOpBase(ctx) {
+    }
 
-REGISTER_KERNEL_BUILDER(Name("WarpCTC").Device(DEVICE_CPU), WarpCTCOpCPU);
+  private:
+    void setZero(tf::Tensor* t) override {
+        cudaMemset(t->flat<float>().data(), 0, t->NumElements()*sizeof(float));
+    }
+
+    ctcOptions create_options(tf::OpKernelContext* ctx) override {
+        auto cuda_stream = ctx->eigen_device<Eigen::GpuDevice>().stream();
+        auto options = ctcOptions{};
+        memset(&options, 0, sizeof(options));
+        options.loc = CTC_GPU;
+        options.stream = cuda_stream;
+        return options;
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("WarpCTC").Device(::tensorflow::DEVICE_CPU), WarpCTCOpCPU);
 REGISTER_KERNEL_BUILDER(Name("WarpCTC")
-                        .Device(DEVICE_GPU)
+                        .Device(::tensorflow::DEVICE_GPU)
                         .HostMemory("flat_labels")
                         .HostMemory("label_lengths")
-                        .HostMemory("data_lengths")
-                        .HostMemory("loss"),
+                        .HostMemory("input_lengths")
+                        .HostMemory("costs"),
                         WarpCTCOpGPU);
+
+}
+
+#undef EIGEN_USE_GPU

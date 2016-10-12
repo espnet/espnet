@@ -8,7 +8,7 @@ from tensorflow.python.ops.nn_grad import _BroadcastMul
 lib_file = imp.find_module('kernels', __path__)[1]
 _warpctc = tf.load_op_library(lib_file)
 
-def ctc(data, data_lengths, flat_labels, label_lengths, alphabet_size):
+def ctc(activations, input_lengths, flat_labels, label_lengths):
     '''
     compute_ctc_loss(const float* const activations,
                              float* gradients,
@@ -32,8 +32,7 @@ def ctc(data, data_lengths, flat_labels, label_lengths, alphabet_size):
     in the mini batch, and alphabet_size symbols in the alphabet, is located at
     activations[(t * mini_batch + n) * alphabet_size + p]
     '''
-    loss, _ = _warpctc.warp_ctc(data, data_lengths, flat_labels,
-                                label_lengths, alphabet_size)
+    loss, _ = _warpctc.warp_ctc(activations, flat_labels, label_lengths, input_lengths)
     return loss
 
 
