@@ -85,7 +85,7 @@ class WarpCTCOpBase : public tf::OpKernel {
         tf::Tensor* grads = nullptr;
         OP_REQUIRES_OK(ctx, ctx->allocate_output("gradients", activations->shape(),
                                                  &grads));
-        setZero(grads);
+        set_zero(grads);
         auto grads_t = grads->tensor<float, 3>();
 
         auto options = create_options(ctx);
@@ -120,7 +120,7 @@ class WarpCTCOpBase : public tf::OpKernel {
 
     }
   private:
-    virtual void setZero(tf::Tensor* t) = 0;
+    virtual void set_zero(tf::Tensor* t) = 0;
     virtual ctcOptions create_options(tf::OpKernelContext* ctx) = 0;
 };
 
@@ -130,7 +130,7 @@ class WarpCTCOpCPU : public WarpCTCOpBase {
     }
 
   private:
-    void setZero(tf::Tensor* t) override {
+    void set_zero(tf::Tensor* t) override {
         t->flat<float>().setZero();
     }
 
@@ -149,7 +149,7 @@ class WarpCTCOpGPU : public WarpCTCOpBase {
     }
 
   private:
-    void setZero(tf::Tensor* t) override {
+    void set_zero(tf::Tensor* t) override {
         cudaMemset(t->flat<float>().data(), 0, t->NumElements()*sizeof(float));
     }
 
@@ -164,8 +164,7 @@ class WarpCTCOpGPU : public WarpCTCOpBase {
 };
 
 REGISTER_KERNEL_BUILDER(Name("WarpCTC").Device(::tensorflow::DEVICE_CPU), WarpCTCOpCPU);
-REGISTER_KERNEL_BUILDER(Name("WarpCTC")
-                        .Device(::tensorflow::DEVICE_GPU)
+REGISTER_KERNEL_BUILDER(Name("WarpCTC").Device(::tensorflow::DEVICE_GPU)
                         .HostMemory("flat_labels")
                         .HostMemory("label_lengths")
                         .HostMemory("input_lengths")

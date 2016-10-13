@@ -11,9 +11,9 @@ namespace tf = tensorflow;
 
 namespace warp_ctc {
 
-class CTCLossOp : public tf::OpKernel {
+class CTCLossOpBase : public tf::OpKernel {
   public:
-    explicit CTCLossOp(tf::OpKernelConstruction* ctx) : tf::OpKernel(ctx) {
+    explicit CTCLossOpBase(tf::OpKernelConstruction* ctx) : tf::OpKernel(ctx) {
     }
 
     void Compute(tf::OpKernelContext* ctx) override {
@@ -100,22 +100,12 @@ class CTCLossOp : public tf::OpKernel {
         tf::Tensor* gradient;
         OP_REQUIRES_OK(ctx,
                        ctx->allocate_output("gradient", inputs_shape, &gradient));
+        set_zero(gradient);
         auto gradient_t = gradient->tensor<float, 3>();
-        cudaMemset(gradient_t.data(), 0, gradient->NumElements()*sizeof(float));
 
         auto inputs_t = inputs->tensor<float, 3>();
 
-        // second difference, don't need to make a map of input and gradients, just use them directly
-
-
-        // warp-ctc specific stuff from here on out
-        //auto tf_stream = ctx->device()->tensorflow_gpu_device_info()->stream;
-        //auto cuda_stream = //perftools::gputools::cuda::AsCUDAStreamValue(tf_stream);
-        auto cuda_stream = ctx->eigen_device<Eigen::GpuDevice>().stream();
-        auto options = ctcOptions{};
-        memset(&options, 0, sizeof(options));
-        options.loc = CTC_GPU;
-        options.stream = cuda_stream;
+        auto options = create_options(ctx);
         options.blank_label = num_classes - 1;
 
         size_t workspace_size_bytes;
@@ -145,15 +135,70 @@ class CTCLossOp : public tf::OpKernel {
 
     }
 
-
+  private:
+    virtual void set_zero(tf::Tensor* t) = 0;
+    virtual ctcOptions create_options(tf::OpKernelContext* ctx) = 0;
 };
 
+class CTCLossOpCPU : public CTCLossOpBase {
+  public:
+    explicit CTCLossOpCPU(tf::OpKernelConstruction* ctx) : CTCLossOpBase(ctx) {
+    }
+
+  private:
+    void set_zero(tf::Tensor* t) override {
+        t->flat<float>().setZero();
+    }
+
+    ctcOptions create_options(tf::OpKernelContext* ctx) override {
+        auto options = ctcOptions{};
+        memset(&options, 0, sizeof(options));
+        options.loc = CTC_CPU;
+        options.num_threads = ctx->device()->tensorflow_cpu_worker_threads()->num_threads;
+        return options;
+    }
+};
+
+class CTCLossOpGPU : public CTCLossOpBase {
+  public:
+    explicit CTCLossOpGPU(tf::OpKernelConstruction* ctx) : CTCLossOpBase(ctx) {
+    }
+
+  private:
+    void set_zero(tf::Tensor* t) override {
+        cudaMemset(t->flat<float>().data(), 0, t->NumElements()*sizeof(float));
+    }
+
+    ctcOptions create_options(tf::OpKernelContext* ctx) override {
+        auto cuda_stream = ctx->eigen_device<Eigen::GpuDevice>().stream();
+        auto options = ctcOptions{};
+        memset(&options, 0, sizeof(options));
+        options.loc = CTC_GPU;
+        options.stream = cuda_stream;
+        return options;
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("CTCLoss")
+                        .Device(::tensorflow::DEVICE_CPU)
+                        .Label("WarpCTC"),
+                        CTCLossOpCPU);
+
+// Register GPU kernel both with and without the label
+REGISTER_KERNEL_BUILDER(Name("CTCLoss")
+                        .Device(::tensorflow::DEVICE_GPU)
+                        .Label("WarpCTC")
+                        .HostMemory("labels_indices")
+                        .HostMemory("labels_values")
+                        .HostMemory("sequence_length")
+                        .HostMemory("loss"),
+                        CTCLossOpGPU);
 REGISTER_KERNEL_BUILDER(Name("CTCLoss")
                         .Device(::tensorflow::DEVICE_GPU)
                         .HostMemory("labels_indices")
                         .HostMemory("labels_values")
                         .HostMemory("sequence_length")
                         .HostMemory("loss"),
-                        CTCLossOp);
+                        CTCLossOpGPU);
 
 }

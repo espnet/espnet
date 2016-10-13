@@ -48,32 +48,41 @@ def SimpleSparseTensorFrom(x):
 class CTCLossTest(tf.test.TestCase):
 
   def _testCTCLoss(self, inputs, seq_lens, labels,
-                   loss_truth, grad_truth, expected_err_re=None):
+                   loss_truth, grad_truth,
+                   use_gpu=False, expected_err_re=None):
     self.assertEqual(len(inputs), len(grad_truth))
 
     inputs_t = tf.constant(inputs)
 
     log_dev_placement = False
-    tfconfig = tf.ConfigProto(log_device_placement=log_dev_placement,
+    if not use_gpu:
+      # Note: using use_gpu=False seems to not work
+      # it runs the GPU version instead
+      config = tf.ConfigProto(log_device_placement=log_dev_placement,
+                              device_count={'GPU': 0})
+    else:
+      config = tf.ConfigProto(log_device_placement=log_dev_placement,
                               allow_soft_placement=False)
-    with self.test_session(force_gpu=True, config=tfconfig) as sess:
-      loss = tf.nn.ctc_loss(inputs=inputs_t,
-                            labels=labels,
-                            sequence_length=seq_lens)
-      grad = tf.gradients(loss, [inputs_t])[0]
 
-      self.assertShapeEqual(loss_truth, loss)
-      self.assertShapeEqual(grad_truth, grad)
+    with tf.get_default_graph()._kernel_label_map({"CTCLoss": "WarpCTC"}):
+      with self.test_session(use_gpu=use_gpu, force_gpu=use_gpu, config=config) as sess:
+        loss = tf.nn.ctc_loss(inputs=inputs_t,
+                              labels=labels,
+                              sequence_length=seq_lens)
+        grad = tf.gradients(loss, [inputs_t])[0]
 
-      if expected_err_re is None:
-        (tf_loss, tf_grad) = sess.run([loss, grad])
-        self.assertAllClose(tf_loss, loss_truth, rtol=1e-4, atol=1e-4)
-        self.assertAllClose(tf_grad, grad_truth, rtol=1e-4, atol=1e-4)
-      else:
-        with self.assertRaisesOpError(expected_err_re):
-          sess.run([loss, grad])
+        self.assertShapeEqual(loss_truth, loss)
+        self.assertShapeEqual(grad_truth, grad)
 
-  def testBasic(self):
+        if expected_err_re is None:
+          (tf_loss, tf_grad) = sess.run([loss, grad])
+          self.assertAllClose(tf_loss, loss_truth, rtol=1e-4, atol=1e-4)
+          self.assertAllClose(tf_grad, grad_truth, rtol=1e-4, atol=1e-4)
+        else:
+          with self.assertRaisesOpError(expected_err_re):
+            sess.run([loss, grad])
+
+  def _testBasic(self, use_gpu):
     """Test two batch entries."""
     # Input and ground truth from Alex Graves' implementation.
     #
@@ -203,7 +212,13 @@ class CTCLossTest(tf.test.TestCase):
     # convert grad_truth into [max_time x batch_size x depth] Tensor
     grad_truth = np.asarray(grad_truth, dtype=np.float32)
 
-    self._testCTCLoss(inputs, seq_lens, labels, loss_truth, grad_truth)
+    self._testCTCLoss(inputs, seq_lens, labels, loss_truth, grad_truth, use_gpu=use_gpu)
+
+  def testBasicCPU(self):
+    self._testBasic(use_gpu=False)
+
+  def testBasicGPU(self):
+    self._testBasic(use_gpu=True)
 
 if __name__ == "__main__":
   tf.test.main()
