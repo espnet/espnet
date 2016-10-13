@@ -47,14 +47,14 @@ class CTCLossOpBase : public tf::OpKernel {
         OP_REQUIRES(ctx, tf::TensorShapeUtils::IsVector(labels_values->shape()),
                     tf::errors::InvalidArgument("labels_values is not a vector"));
 
-        const tf::TensorShape& inputs_shape = inputs->shape();
-        const tf::int64 max_time = inputs_shape.dim_size(0);
-        const tf::int64 batch_size = inputs_shape.dim_size(1);
-        const tf::int64 num_classes_raw = inputs_shape.dim_size(2);
+        const auto& inputs_shape = inputs->shape();
+        const auto max_time = inputs_shape.dim_size(0);
+        const auto batch_size = inputs_shape.dim_size(1);
+        const auto num_classes_raw = inputs_shape.dim_size(2);
         OP_REQUIRES(
                 ctx, tf::FastBoundsCheck(num_classes_raw, std::numeric_limits<int>::max()),
                 tf::errors::InvalidArgument("num_classes cannot exceed max int"));
-        const int num_classes = static_cast<const int>(num_classes_raw);
+        const auto num_classes = static_cast<const int>(num_classes_raw);
 
         OP_REQUIRES(
                 ctx, batch_size == seq_len->dim_size(0),
@@ -70,19 +70,19 @@ class CTCLossOpBase : public tf::OpKernel {
                             labels_indices->shape().DebugString(), " vs. ",
                             labels_values->shape().DebugString()));
 
-        tf::TensorShape labels_shape({batch_size, max_time});
-        std::vector<tf::int64> order{0, 1};
-        tf::sparse::SparseTensor labels_sp(*labels_indices, *labels_values,
-                                       labels_shape, order);
+        auto labels_shape = tf::TensorShape({batch_size, max_time});
+        auto order = std::vector<tf::int64>{0, 1};
+        auto labels_sp = tf::sparse::SparseTensor(*labels_indices, *labels_values,
+                                                  labels_shape, order);
 
-        tf::Status labels_sp_valid = labels_sp.IndicesValid();
+        auto labels_sp_valid = labels_sp.IndicesValid();
         OP_REQUIRES(ctx, labels_sp_valid.ok(),
                     tf::errors::InvalidArgument("label SparseTensor is not valid: ",
                                             labels_sp_valid.error_message()));
 
         auto label_lengths = std::vector<int>{};
         for (const auto& g : labels_sp.group({0})) {  // iterate by batch
-            const tf::int64 batch_indices = g.group()[0];
+            const auto batch_indices = g.group()[0];
             OP_REQUIRES(ctx, tf::FastBoundsCheck(batch_indices, batch_size),
                         tf::errors::InvalidArgument("labels batch index must be between ",
                                                     0, " and ", batch_size, " but saw: ",

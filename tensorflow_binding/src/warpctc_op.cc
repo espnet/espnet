@@ -44,7 +44,7 @@ class WarpCTCOpBase : public tf::OpKernel {
         OP_REQUIRES(ctx, tf::TensorShapeUtils::IsVector(input_lengths->shape()),
                      tf::errors::InvalidArgument("input_lengths is not a vector"));
 
-        const auto acts_shape = activations->shape();
+        const auto& acts_shape = activations->shape();
         const auto max_time = acts_shape.dim_size(0);
         const auto batch_size = acts_shape.dim_size(1);
         const auto num_classes_raw = acts_shape.dim_size(2);
