@@ -3,3 +3,4 @@ dist
 *.egg-info
 *.so
 include/cuda
+*.pyc

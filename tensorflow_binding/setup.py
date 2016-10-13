@@ -1,5 +1,7 @@
 """setup.py script for warp-ctc TensorFlow wrapper"""
 
+from __future__ import print_function
+
 import os
 import re
 import setuptools
