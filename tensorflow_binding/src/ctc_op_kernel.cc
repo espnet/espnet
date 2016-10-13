@@ -14,6 +14,18 @@ namespace warp_ctc {
 class CTCLossOpBase : public tf::OpKernel {
   public:
     explicit CTCLossOpBase(tf::OpKernelConstruction* ctx) : tf::OpKernel(ctx) {
+        bool preprocess_collapse_repeated;
+        OP_REQUIRES_OK(ctx, ctx->GetAttr("preprocess_collapse_repeated",
+                                         &preprocess_collapse_repeated));
+        OP_REQUIRES(ctx, preprocess_collapse_repeated == false,
+                    tf::errors::InvalidArgument("preprocess collapse repeated is not currently "
+                                                "supported in the WarpCTC kernel."));
+
+        bool ctc_merge_repeated;
+        OP_REQUIRES_OK(ctx, ctx->GetAttr("ctc_merge_repeated", &ctc_merge_repeated));
+        OP_REQUIRES(ctx, ctc_merge_repeated == true,
+                    tf::errors::InvalidArgument("ctc_merge_repeated == false is not currently "
+                                                "supported. WarpCTC always merges repeated symbols."));
     }
 
     void Compute(tf::OpKernelContext* ctx) override {
