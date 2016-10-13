@@ -214,3 +214,4 @@ REGISTER_KERNEL_BUILDER(Name("CTCLoss")
                         CTCLossOpGPU);
 
 }
+#undef EIGEN_USE_GPU
