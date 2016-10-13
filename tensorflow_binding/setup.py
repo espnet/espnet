@@ -76,7 +76,7 @@ ext = setuptools.Extension('warpctc_tensorflow.kernels',
                            language = 'c++',
                            include_dirs = include_dirs,
                            library_dirs = [warp_ctc_path],
-                           runtime_library_dirs = [warp_ctc_path],
+                           runtime_library_dirs = [os.path.realpath(warp_ctc_path)],
                            libraries = ['warpctc'],
                            extra_compile_args = extra_compile_args)
 
