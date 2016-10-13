@@ -8,7 +8,8 @@ from tensorflow.python.ops.nn_grad import _BroadcastMul
 lib_file = imp.find_module('kernels', __path__)[1]
 _warpctc = tf.load_op_library(lib_file)
 
-def ctc(activations, flat_labels, label_lengths, input_lengths):
+def ctc(activations, flat_labels, label_lengths, input_lengths,
+        blank_label=0):
     '''Computes the CTC loss between a sequence of activations and a
     ground truth labeling.
 
@@ -28,6 +29,9 @@ def ctc(activations, flat_labels, label_lengths, input_lengths):
         input_lengths: A 1-D Tensor of ints, the number of time steps
                        for each sequence in the minibatch.
 
+        blank_label: int, the label value/index that the CTC
+                     calculation should use as the blank label
+
     Returns:
         1-D float Tensor, the cost of each example in the minibatch
         (as negative log probabilities).
@@ -37,7 +41,8 @@ def ctc(activations, flat_labels, label_lengths, input_lengths):
     * The label reserved for the blank symbol should be label 0.
 
     '''
-    loss, _ = _warpctc.warp_ctc(activations, flat_labels, label_lengths, input_lengths)
+    loss, _ = _warpctc.warp_ctc(activations, flat_labels, label_lengths,
+                                input_lengths, blank_label)
     return loss
 
 

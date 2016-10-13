@@ -12,6 +12,7 @@ REGISTER_OP("WarpCTC")
     .Input("flat_labels: int32")
     .Input("label_lengths: int32")
     .Input("input_lengths: int32")
+    .Attr("blank_label: int = 0")
     .Output("costs: float32")
     .Output("gradients: float32");
 
@@ -22,6 +23,7 @@ namespace warp_ctc {
 class WarpCTCOpBase : public tf::OpKernel {
   public:
     explicit WarpCTCOpBase(tf::OpKernelConstruction* ctx) : tf::OpKernel(ctx) {
+        OP_REQUIRES_OK(ctx, ctx->GetAttr("blank_label", &blank_label_));
     }
 
     void Compute(tf::OpKernelContext* ctx) override {
@@ -89,6 +91,7 @@ class WarpCTCOpBase : public tf::OpKernel {
         auto grads_t = grads->tensor<float, 3>();
 
         auto options = create_options(ctx);
+        options.blank_label = blank_label_;
 
         size_t workspace_size_bytes;
         auto warp_status = get_workspace_size(label_lengths_t.data(),
@@ -120,6 +123,7 @@ class WarpCTCOpBase : public tf::OpKernel {
 
     }
   private:
+    int blank_label_;
     virtual void set_zero(tf::Tensor* t) = 0;
     virtual ctcOptions create_options(tf::OpKernelContext* ctx) = 0;
 };
