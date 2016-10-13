@@ -8,29 +8,34 @@ from tensorflow.python.ops.nn_grad import _BroadcastMul
 lib_file = imp.find_module('kernels', __path__)[1]
 _warpctc = tf.load_op_library(lib_file)
 
-def ctc(activations, input_lengths, flat_labels, label_lengths):
-    '''
-    compute_ctc_loss(const float* const activations,
-                             float* gradients,
-                             const int* const flat_labels,
-                             const int* const label_lengths,
-                             const int* const input_lengths,
-                             int alphabet_size,
-                             int minibatch,
-                             float *costs,
-                             void *workspace,
-                             ctcComputeInfo info);
-    We assume a fixed
-    memory layout for this 3 dimensional tensor, which has dimension
-    (t, n, p), where t is the time index, n is the minibatch index,
-    and p indexes over probabilities of each symbol in the alphabet.
-    The memory layout is (t, n, p) in C order (slowest to fastest changing
-    index, aka row-major), or (p, n, t) in Fortran order (fastest to slowest
-    changing index, aka column-major). We also assume strides are equal to
-    dimensions - there is no padding between dimensions.
-    More precisely, element (t, n, p), for a problem with mini_batch examples
-    in the mini batch, and alphabet_size symbols in the alphabet, is located at
-    activations[(t * mini_batch + n) * alphabet_size + p]
+def ctc(activations, flat_labels, label_lengths, input_lengths):
+    '''Computes the CTC loss between a sequence of activations and a
+    ground truth labeling.
+
+    Args:
+
+        activations: A 3-D Tensor of floats.  The dimensions
+                     should be (t, n, a), where t is the time index, n
+                     is the minibatch index, and a indexes over
+                     activations for each symbol in the alphabet.
+
+        flat_labels: A 1-D Tensor of ints, a concatenation of all the
+                     labels for the minibatch.
+
+        label_lengths: A 1-D Tensor of ints, the length of each label
+                       for each example in the minibatch.
+
+        input_lengths: A 1-D Tensor of ints, the number of time steps
+                       for each sequence in the minibatch.
+
+    Returns:
+        1-D float Tensor, the cost of each example in the minibatch
+        (as negative log probabilities).
+
+    * This class performs the softmax operation internally.
+
+    * The label reserved for the blank symbol should be label 0.
+
     '''
     loss, _ = _warpctc.warp_ctc(activations, flat_labels, label_lengths, input_lengths)
     return loss

@@ -13,9 +13,10 @@ class WarpCTCTest(tf.test.TestCase):
         input_lengths_t = tf.constant(input_lengths)
         flat_labels_t = tf.constant(flat_labels)
         label_lengths_t = tf.constant(label_lengths)
-        costs = ctc(activations_t, input_lengths=input_lengths_t,
+        costs = ctc(activations=activations_t,
                     flat_labels=flat_labels_t,
-                    label_lengths=label_lengths_t)
+                    label_lengths=label_lengths_t,
+                    input_lengths=input_lengths_t)
 
         grad = tf.gradients(costs, [activations_t])[0]
 

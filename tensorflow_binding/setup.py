@@ -1,8 +1,10 @@
 """setup.py script for warp-ctc TensorFlow wrapper"""
 
 import os
+import re
 import setuptools
 import sys
+import unittest
 from setuptools.command.build_ext import build_ext as orig_build_ext
 
 # We need to import tensorflow to find where its include directory is.
@@ -81,16 +83,23 @@ class build_tf_ext(orig_build_ext):
         self.compiler.compiler_so.remove('-Wstrict-prototypes')
         orig_build_ext.build_extensions(self)
 
-import unittest
 def discover_test_suite():
     test_loader = unittest.TestLoader()
     test_suite = test_loader.discover('tests', pattern='test_*.py')
     return test_suite
 
+# Read the README.md file for the long description. This lets us avoid
+# duplicating the package description in multiple places in the source.
+README_PATH = os.path.join(os.path.dirname(__file__), "README.md")
+with open(README_PATH, "r") as handle:
+    # Extract everything between the first set of ## headlines
+    LONG_DESCRIPTION = re.search("#.*([^#]*)##", handle.read()).group(1).strip()
+
 setuptools.setup(
     name = "warpctc_tensorflow",
     version = "0.1",
     description = "TensorFlow wrapper for warp-ctc",
+    long_description = LONG_DESCRIPTION,
     url = "https://github.com/baidu-research/warp-ctc",
     author = "Jared Casper",
     author_email = "jared.casper@baidu.com",
