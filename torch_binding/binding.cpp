@@ -142,14 +142,15 @@ extern "C" int gpu_ctc(lua_State* L) {
 
     float* costs = new float[minibatch_size];
 
-    ctcComputeInfo info;
-    info.loc = CTC_GPU;
-    info.stream = THCState_getCurrentStream(cutorch_getstate(L));
+    ctcOptions options;
+    memset(&options, 0, sizeof(options));
+    options.loc = CTC_GPU;
+    options.stream = THCState_getCurrentStream(cutorch_getstate(L));
 
     size_t gpu_size_bytes;
     get_workspace_size(label_sizes_ptr, sizes,
                        (int) probs->size[1], minibatch_size,
-                       info, &gpu_size_bytes);
+                       options, &gpu_size_bytes);
 
     float* gpu_workspace;
     THCudaMalloc(cutorch_getstate(L), (void **) &gpu_workspace, gpu_size_bytes);
@@ -158,7 +159,7 @@ extern "C" int gpu_ctc(lua_State* L) {
                      labels_ptr, label_sizes_ptr,
                      sizes, (int) probs->size[1],
                      minibatch_size, costs,
-                     gpu_workspace, info);
+                     gpu_workspace, options);
 
     lua_newtable(L);
 
@@ -208,19 +209,20 @@ extern "C" int cpu_ctc(lua_State* L) {
 
     float* costs = new float[minibatch_size];
 
-    ctcComputeInfo info;
-    info.loc = CTC_CPU;
-    info.num_threads = 0; // will use default number of threads
+    ctcOptions options;
+    memset(&options, 0, sizeof(options));
+    options.loc = CTC_CPU;
+    options.num_threads = 0; // will use default number of threads
 
 #if defined(CTC_DISABLE_OMP) || defined(APPLE)
     // have to use at least one
-    info.num_threads = std::max(info.num_threads, (unsigned int) 1);
+    options.num_threads = std::max(options.num_threads, (unsigned int) 1);
 #endif
 
     size_t cpu_size_bytes;
     get_workspace_size(label_sizes_ptr, sizes,
                        (int) probs->size[1], minibatch_size,
-                       info, &cpu_size_bytes);
+                       options, &cpu_size_bytes);
 
     float* cpu_workspace = (float*) new unsigned char[cpu_size_bytes];
 
@@ -228,7 +230,7 @@ extern "C" int cpu_ctc(lua_State* L) {
                      labels_ptr, label_sizes_ptr,
                      sizes, probs->size[1],
                      minibatch_size, costs,
-                     cpu_workspace, info);
+                     cpu_workspace, options);
 
     lua_newtable(L);
 
