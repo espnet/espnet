@@ -33,7 +33,7 @@ if "WARP_CTC_PATH" in os.environ:
 if not os.path.exists(os.path.join(warp_ctc_path, "libwarpctc.so")):
     print(("Could not find libwarpctc.so in {}.\n"
            "Build warp-ctc and set WARP_CTC_PATH to the location of"
-           " labwarpctc.so (default is '../build')").format(warp_ctc_path),
+           " libwarpctc.so (default is '../build')").format(warp_ctc_path),
           file=sys.stderr)
     sys.exit(1)
 
