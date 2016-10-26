@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import os
+import platform
 import re
 import setuptools
 import sys
@@ -27,10 +28,15 @@ if "TENSORFLOW_SRC_PATH" not in os.environ:
           file=sys.stderr)
     sys.exit(1)
 
+if platform.system() == 'Darwin':
+    lib_ext = ".dylib"
+else:
+    lib_ext = ".so"
+
 warp_ctc_path = "../build"
 if "WARP_CTC_PATH" in os.environ:
     warp_ctc_path = os.environ["WARP_CTC_PATH"]
-if not os.path.exists(os.path.join(warp_ctc_path, "libwarpctc.so")):
+if not os.path.exists(os.path.join(warp_ctc_path, "libwarpctc"+lib_ext)):
     print(("Could not find libwarpctc.so in {}.\n"
            "Build warp-ctc and set WARP_CTC_PATH to the location of"
            " libwarpctc.so (default is '../build')").format(warp_ctc_path),
