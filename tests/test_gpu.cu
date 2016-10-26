@@ -1,5 +1,4 @@
 #include <cmath>
-#include <cstring>
 #include <random>
 #include <tuple>
 #include <vector>
@@ -47,12 +46,7 @@ bool small_test() {
 
     float score;
 
-    float *grads_gpu;
-    throw_on_error(cudaMalloc(&grads_gpu, (alphabet_size * T) * sizeof(float)),
-                   "cudaMalloc");
-
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
+    ctcOptions options{};
     options.loc = CTC_GPU;
     options.stream = stream;
 
@@ -66,7 +60,7 @@ bool small_test() {
     throw_on_error(cudaMalloc(&ctc_gpu_workspace, gpu_alloc_bytes),
                    "cudaMalloc");
 
-    throw_on_error(compute_ctc_loss(activations_gpu, grads_gpu,
+    throw_on_error(compute_ctc_loss(activations_gpu, nullptr,
                                     labels.data(), label_lengths.data(),
                                     lengths.data(),
                                     alphabet_size,
@@ -81,16 +75,6 @@ bool small_test() {
 
     const float lb = expected_score - eps;
     const float ub = expected_score + eps;
-
-    std::vector<float> grads(alphabet_size * T);
-    throw_on_error(cudaMemcpyAsync(grads.data(), grads_gpu,
-                                   grads.size() * sizeof(float),
-                                   cudaMemcpyDeviceToHost, stream),
-                   "cudaMemcpyAsync");
-    throw_on_error(cudaStreamSynchronize(stream), "cudaStreamSynchronize");
-
-    // for (int i = 0; i < alphabet_size * T; ++i)
-    //     status &= !std::isnan(grads[i]);
 
     throw_on_error(cudaFree(activations_gpu),
                    "cudaFree");
@@ -184,8 +168,7 @@ bool options_test() {
     throw_on_error(cudaMalloc(&grads_gpu, (alphabet_size * T * minibatch) * sizeof(float)),
                    "cudaMalloc");
 
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
+    ctcOptions options{};
     options.loc = CTC_GPU;
     options.stream = stream;
     options.blank_label = 5;
@@ -228,8 +211,8 @@ bool options_test() {
 
     bool result = true;
     for (int i = 0; i < grads.size(); i++) {
-        double lb = expected_grads[i] - eps;
-        double ub = expected_grads[i] + eps;
+        const double lb = expected_grads[i] - eps;
+        const double ub = expected_grads[i] + eps;
         if (!(grads[i] > lb && grads[i] < ub)) {
             std::cerr << "grad mismatch in options_test"
                       << " expected grad: " << expected_grads[i]
@@ -241,8 +224,8 @@ bool options_test() {
     }
 
     for (int i = 0; i < 2; i++) {
-        double lb = expected_score[i] - eps;
-        double ub = expected_score[i] + eps;
+        const double lb = expected_score[i] - eps;
+        const double ub = expected_score[i] + eps;
 
         if (!(score[i] > lb && score[i] < ub)) {
             std::cerr << "score mismatch in options_test"
@@ -291,8 +274,7 @@ bool inf_test() {
 
     float cost;
 
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
+    ctcOptions options{};
     options.loc = CTC_GPU;
     options.stream = stream;
 
@@ -370,8 +352,7 @@ float grad_check(int T, int alphabet_size,
     throw_on_error(cudaMalloc(&grads_gpu, acts.size() * sizeof(float)),
                    "cudaMalloc");
 
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
+    ctcOptions options{};
     options.loc = CTC_GPU;
     options.stream = stream;
 
@@ -501,10 +482,10 @@ int main(void) {
     throw_on_error(cudaSetDevice(0), "cudaSetDevice");
 
     bool status = true;
-    //status &= small_test();
+    status &= small_test();
     status &= options_test();
-    //status &= inf_test();
-    //status &= run_tests();
+    status &= inf_test();
+    status &= run_tests();
 
     if (status)
         std::cout << "Tests pass" << std::endl;

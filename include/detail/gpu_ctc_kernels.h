@@ -112,7 +112,7 @@ void compute_alpha_kernel (const ProbT* probs, const int *label_sizes,
     {
         const int label_start_offset = label_offsets[blockIdx.x];
         for (int idx = tid; idx < L; idx += blockDim.x) {
-            int offset = (blockIdx.x * S_memoffset) + 2 * idx;
+            const int offset = (blockIdx.x * S_memoffset) + 2 * idx;
             labels_with_blanks[offset] = blank_label;
             labels_with_blanks[offset+1] = labels_without_blanks[label_start_offset + idx];
         }

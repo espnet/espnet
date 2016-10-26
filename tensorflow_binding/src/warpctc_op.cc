@@ -143,7 +143,6 @@ class WarpCTCOpCPU : public WarpCTCOpBase {
 
     ctcOptions create_options(tf::OpKernelContext* ctx) override {
         auto options = ctcOptions{};
-        memset(&options, 0, sizeof(options));
         options.loc = CTC_CPU;
         options.num_threads = ctx->device()->tensorflow_cpu_worker_threads()->num_threads;
         return options;
@@ -167,7 +166,6 @@ class WarpCTCOpGPU : public WarpCTCOpBase {
     ctcOptions create_options(tf::OpKernelContext* ctx) override {
         auto cuda_stream = ctx->eigen_device<Eigen::GpuDevice>().stream();
         auto options = ctcOptions{};
-        memset(&options, 0, sizeof(options));
         options.loc = CTC_GPU;
         options.stream = cuda_stream;
         return options;

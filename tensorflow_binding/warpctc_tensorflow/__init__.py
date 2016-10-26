@@ -1,5 +1,3 @@
-#import warpctc_tensorflow.kernels
-
 import imp
 import tensorflow as tf
 from tensorflow.python.framework import ops

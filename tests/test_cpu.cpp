@@ -1,5 +1,4 @@
 #include <cmath>
-#include <cstring>
 #include <random>
 #include <tuple>
 #include <vector>
@@ -35,8 +34,7 @@ bool small_test() {
 
     float score;
 
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
+    ctcOptions options{};
     options.loc = CTC_CPU;
     options.num_threads = 1;
 
@@ -136,8 +134,7 @@ bool options_test() {
 
     std::vector<float> scores(2);
 
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
+    ctcOptions options{};
     options.loc = CTC_CPU;
     options.num_threads = 1;
     options.blank_label = 5;
@@ -166,8 +163,8 @@ bool options_test() {
 
     bool result = true;
     for (int i = 0; i < grads.size(); i++) {
-        double lb = expected_grads[i] - eps;
-        double ub = expected_grads[i] + eps;
+        const double lb = expected_grads[i] - eps;
+        const double ub = expected_grads[i] + eps;
         if (!(grads[i] > lb && grads[i] < ub)) {
             std::cerr << "grad mismatch in options_test"
                       << " expected grad: " << expected_grads[i]
@@ -179,8 +176,8 @@ bool options_test() {
     }
 
     for (int i = 0; i < 2; i++) {
-        double lb = expected_scores[i] - eps;
-        double ub = expected_scores[i] + eps;
+        const double lb = expected_scores[i] - eps;
+        const double ub = expected_scores[i] + eps;
         if (!(scores[i] > lb && scores[i] < ub)) {
             std::cerr << "score mismatch in options_test"
                       << " expected score: " << expected_scores[i]
@@ -215,8 +212,7 @@ bool inf_test() {
 
     float cost;
 
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
+    ctcOptions options{};
     options.loc = CTC_CPU;
     options.num_threads = 1;
 
@@ -269,8 +265,7 @@ float grad_check(int T, int alphabet_size,
 
     std::vector<float> grads(acts.size());
 
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
+    ctcOptions options{};
     options.loc = CTC_CPU;
     options.num_threads = 1;
 

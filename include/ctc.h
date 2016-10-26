@@ -33,8 +33,10 @@ typedef enum {
 } ctcComputeLocation;
 
 /** Structure used for options to the CTC compution.  Applications
- *  should zero out the array using sizeof(struct ctcOptions) to
- *  ensure forward compatibility with added options. */
+ *  should zero out the array using memset and sizeof(struct
+ *  ctcOptions) in C or default initialization (e.g. 'ctcOptions
+ *  options{};' or 'auto options = ctcOptions{}') in C++ to ensure
+ *  forward compatibility with added options. */
 struct ctcOptions {
     /// indicates where the ctc calculation should take place {CTC_CPU | CTC_GPU}
     ctcComputeLocation loc;
