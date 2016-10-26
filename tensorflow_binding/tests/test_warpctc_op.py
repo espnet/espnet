@@ -1,6 +1,11 @@
 import tensorflow as tf
 import numpy as np
 from warpctc_tensorflow import ctc
+from tensorflow.python.client import device_lib
+
+def is_gpu_available():
+    """Returns whether TensorFlow can access a GPU."""
+    return any(x.device_type == 'GPU' for x in device_lib.list_local_devices())
 
 class WarpCTCTest(tf.test.TestCase):
 
@@ -78,7 +83,10 @@ class WarpCTCTest(tf.test.TestCase):
         self._test_basic(use_gpu=False)
 
     def test_basic_gpu(self):
-        self._test_basic(use_gpu=True)
+        if (is_gpu_available()):
+            self._test_basic(use_gpu=True)
+        else:
+            print("Skipping GPU test, no gpus available")
 
     def _test_multiple_batches(self, use_gpu):
         activations = np.array([
@@ -116,7 +124,10 @@ class WarpCTCTest(tf.test.TestCase):
         self._test_multiple_batches(use_gpu=False)
 
     def test_multiple_batches_gpu(self):
-        self._test_multiple_batches(use_gpu=True)
+        if (is_gpu_available()):
+            self._test_multiple_batches(use_gpu=True)
+        else:
+            print("Skipping GPU test, no gpus available")
 
 if __name__ == "__main__":
     tf.test.main()

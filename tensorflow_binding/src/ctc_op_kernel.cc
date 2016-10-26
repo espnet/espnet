@@ -1,9 +1,11 @@
+#ifdef WARPCTC_ENABLE_GPU
 #define EIGEN_USE_GPU
+#include <cuda.h>
+#endif
+
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/kernels/bounds_check.h"
 #include "tensorflow/core/util/sparse/sparse_tensor.h"
-#include "tensorflow/stream_executor/cuda/cuda_stream.h"
-#include <cuda.h>
 
 #include "ctc.h"
 
@@ -171,6 +173,13 @@ class CTCLossOpCPU : public CTCLossOpBase {
     }
 };
 
+REGISTER_KERNEL_BUILDER(Name("CTCLoss")
+                        .Device(::tensorflow::DEVICE_CPU)
+                        .Label("WarpCTC"),
+                        CTCLossOpCPU);
+
+#ifdef WARPCTC_ENABLE_GPU
+
 class CTCLossOpGPU : public CTCLossOpBase {
   public:
     explicit CTCLossOpGPU(tf::OpKernelConstruction* ctx) : CTCLossOpBase(ctx) {
@@ -191,11 +200,6 @@ class CTCLossOpGPU : public CTCLossOpBase {
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("CTCLoss")
-                        .Device(::tensorflow::DEVICE_CPU)
-                        .Label("WarpCTC"),
-                        CTCLossOpCPU);
-
 // Register GPU kernel both with and without the label
 REGISTER_KERNEL_BUILDER(Name("CTCLoss")
                         .Device(::tensorflow::DEVICE_GPU)
@@ -213,5 +217,7 @@ REGISTER_KERNEL_BUILDER(Name("CTCLoss")
                         .HostMemory("loss"),
                         CTCLossOpGPU);
 
-}
 #undef EIGEN_USE_GPU
+#endif
+
+}

@@ -21,6 +21,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import warpctc_tensorflow
+from tensorflow.python.client import device_lib
+
 
 def SimpleSparseTensorFrom(x):
   """Create a very simple SparseTensor with dimensions (batch, time).
@@ -44,6 +46,9 @@ def SimpleSparseTensorFrom(x):
 
   return tf.SparseTensor(x_ix, x_val, x_shape)
 
+def is_gpu_available():
+  """Returns whether TensorFlow can access a GPU."""
+  return any(x.device_type == 'GPU' for x in device_lib.list_local_devices())
 
 class CTCLossTest(tf.test.TestCase):
 
@@ -218,7 +223,10 @@ class CTCLossTest(tf.test.TestCase):
     self._testBasic(use_gpu=False)
 
   def testBasicGPU(self):
-    self._testBasic(use_gpu=True)
+    if (is_gpu_available()):
+      self._testBasic(use_gpu=True)
+    else:
+      print("Skipping GPU test, no gpus available")
 
 if __name__ == "__main__":
   tf.test.main()

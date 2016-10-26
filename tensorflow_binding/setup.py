@@ -17,10 +17,15 @@ except ImportError:
     raise RuntimeError("Tensorflow must be installed to build the tensorflow wrapper.")
 
 if "CUDA_HOME" not in os.environ:
-    print("Please define the CUDA_HOME environment variable.\n"
+    print("CUDA_HOME not found in the environment so building "
+          "without GPU support. To build with GPU support "
+          "please define the CUDA_HOME environment variable. "
           "This should be a path which contains include/cuda.h",
           file=sys.stderr)
-    sys.exit(1)
+    enable_gpu = False
+else:
+    enable_gpu = True
+
 
 if "TENSORFLOW_SRC_PATH" not in os.environ:
     print("Please define the TENSORFLOW_SRC_PATH environment variable.\n"
@@ -48,20 +53,27 @@ root_path = os.path.realpath(os.path.dirname(__file__))
 tf_include = tf.sysconfig.get_include()
 tf_src_dir = os.environ["TENSORFLOW_SRC_PATH"]
 tf_includes = [tf_include, tf_src_dir]
-warp_ctc_includes = [os.path.join(root_path, '../include'),
-                     os.path.join(root_path, 'include')]
-cuda_includes = [os.path.join(os.environ["CUDA_HOME"], 'include')]
-include_dirs = tf_includes + warp_ctc_includes + cuda_includes
+warp_ctc_includes = [os.path.join(root_path, '../include')]
+include_dirs = tf_includes + warp_ctc_includes
 
-# mimic tensorflow cuda include setup so that their include command work
-if not os.path.exists(os.path.join(root_path, "include")):
-    os.mkdir(os.path.join(root_path, "include"))
+extra_compile_args = ['-std=c++11', '-fPIC']
+# current tensorflow code triggers return type errors, silence those for now
+extra_compile_args += ['-Wno-return-type']
 
-cuda_inc_path = os.path.join(root_path, "include/cuda")
-if not os.path.exists(cuda_inc_path) or os.readlink(cuda_inc_path) != os.environ["CUDA_HOME"]:
-    if os.path.exists(cuda_inc_path):
-        os.remove(cuda_inc_path)
-    os.symlink(os.environ["CUDA_HOME"], cuda_inc_path)
+if (enable_gpu):
+    extra_compile_args += ['-DWARPCTC_ENABLE_GPU']
+    include_dirs += [os.path.join(os.environ["CUDA_HOME"], 'include')]
+
+    # mimic tensorflow cuda include setup so that their include command work
+    if not os.path.exists(os.path.join(root_path, "include")):
+        os.mkdir(os.path.join(root_path, "include"))
+
+    cuda_inc_path = os.path.join(root_path, "include/cuda")
+    if not os.path.exists(cuda_inc_path) or os.readlink(cuda_inc_path) != os.environ["CUDA_HOME"]:
+        if os.path.exists(cuda_inc_path):
+            os.remove(cuda_inc_path)
+        os.symlink(os.environ["CUDA_HOME"], cuda_inc_path)
+    include_dirs += [os.path.join(root_path, 'include')]
 
 # Ensure that all expected files and directories exist.
 for loc in include_dirs:
@@ -70,10 +82,6 @@ for loc in include_dirs:
                "Check your environment variables and paths?").format(loc),
               file=sys.stderr)
         sys.exit(1)
-
-extra_compile_args = ['-std=c++11', '-fPIC']
-# current tensorflow code triggers return type errors, silence those for now
-extra_compile_args += ['-Wno-return-type']
 
 lib_srcs = ['src/ctc_op_kernel.cc', 'src/warpctc_op.cc']
 

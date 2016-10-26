@@ -1,11 +1,14 @@
+#ifdef WARPCTC_ENABLE_GPU
 #define EIGEN_USE_GPU
+#include <cuda.h>
+#endif
+
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/kernels/bounds_check.h"
 #include "tensorflow/core/framework/allocator.h"
 #include "ctc.h"
 
-#include <cuda.h>
 
 REGISTER_OP("WarpCTC")
     .Input("activations: float32")
@@ -147,6 +150,10 @@ class WarpCTCOpCPU : public WarpCTCOpBase {
     }
 };
 
+REGISTER_KERNEL_BUILDER(Name("WarpCTC").Device(::tensorflow::DEVICE_CPU), WarpCTCOpCPU);
+
+#ifdef WARPCTC_ENABLE_GPU
+
 class WarpCTCOpGPU : public WarpCTCOpBase {
   public:
     explicit WarpCTCOpGPU(tf::OpKernelConstruction* ctx) : WarpCTCOpBase(ctx) {
@@ -167,14 +174,14 @@ class WarpCTCOpGPU : public WarpCTCOpBase {
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("WarpCTC").Device(::tensorflow::DEVICE_CPU), WarpCTCOpCPU);
 REGISTER_KERNEL_BUILDER(Name("WarpCTC").Device(::tensorflow::DEVICE_GPU)
                         .HostMemory("flat_labels")
                         .HostMemory("label_lengths")
                         .HostMemory("input_lengths")
                         .HostMemory("costs"),
                         WarpCTCOpGPU);
+#undef EIGEN_USE_GPU
+#endif
 
 }
 
-#undef EIGEN_USE_GPU
