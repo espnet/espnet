@@ -39,7 +39,11 @@ Now you can install the module
 pip install --user -e .
 ```
 
-Finally, run the tests to see if the installation was successful.
+Finally, run the tests to see if the installation was successful
+
+```
+nosetests tests/
+```
 
 
 Credits
