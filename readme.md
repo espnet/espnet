@@ -1,7 +1,7 @@
 Fast CTC for Chainer
 ====================
 
-This module contains two implementations of CTC [Graves2006] for Chainer.
+This module contains two implementations of CTC [Graves2006] for [Chainer](http://chainer.org).
 
     1. Is build using custom CUDA kernels / Cython code
     2. Is a wrapper around Baidu's warp-ctc
