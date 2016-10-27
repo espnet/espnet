@@ -12,6 +12,7 @@ setup(
         'Operating System :: POSIX :: Linux',
     ],
     author="Jahn Heymann",
+    packages=['chainer_ctc', 'chainer_ctc.src'],
     author_email="jahnheymann@gmail.com",
     setup_requires=['setuptools_cython', 'Cython >= 0.18'],
     ext_modules=[
