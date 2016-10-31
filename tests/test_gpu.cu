@@ -326,6 +326,11 @@ bool run_tests() {
 }
 
 int main(void) {
+    if (get_warpctc_version() != 1) {
+        std::cerr << "Invalid WarpCTC version." << std::endl;
+        return 1;
+    }
+
     std::cout << "Running GPU tests" << std::endl;
     throw_on_error(cudaSetDevice(0), "cudaSetDevice");
 
@@ -334,8 +339,11 @@ int main(void) {
     status &= inf_test();
     status &= run_tests();
 
-    if (status)
+    if (status) {
         std::cout << "Tests pass" << std::endl;
-    else
+        return 0;
+    } else {
         std::cout << "Some or all tests fail" << std::endl;
+        return 1;
+    }
 }
