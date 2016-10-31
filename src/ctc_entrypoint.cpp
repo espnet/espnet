@@ -12,6 +12,10 @@
 
 extern "C" {
 
+int get_warpctc_version() {
+    return 1;
+}
+
 const char* ctcGetStatusString(ctcStatus_t status) {
     switch (status) {
     case CTC_STATUS_SUCCESS:

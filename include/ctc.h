@@ -21,6 +21,9 @@ typedef enum {
     CTC_STATUS_UNKNOWN_ERROR = 4
 } ctcStatus_t;
 
+/** Returns a single integer which specifies the API version of the warpctc library */
+int get_warpctc_version();
+
 /** Returns a string containing a description of status that was passed in
  *  \param[in] status identifies which string should be returned
  *  \return C style string containing the text description
