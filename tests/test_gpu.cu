@@ -478,7 +478,7 @@ bool run_tests() {
 }
 
 int main(void) {
-    if (get_warpctc_version() != 1) {
+    if (get_warpctc_version() != 2) {
         std::cerr << "Invalid WarpCTC version." << std::endl;
         return 1;
     }

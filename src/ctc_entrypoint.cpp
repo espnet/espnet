@@ -13,7 +13,7 @@
 extern "C" {
 
 int get_warpctc_version() {
-    return 1;
+    return 2;
 }
 
 const char* ctcGetStatusString(ctcStatus_t status) {
