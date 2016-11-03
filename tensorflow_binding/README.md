@@ -7,7 +7,8 @@ TensorFlow, as well as a new WarpCTC op provided in this package.  The
 WarpCTC op has an interface that more closely matches the native
 WarpCTC interface than TensorFlow's CTCLoss op. Note that the CTCLoss
 op expects the reserved blank label to be the largest value while the
-WarpCTC op expects the reserved blank label to be label `0`.
+WarpCTC op takes the reserved blank label value as an attribute which
+defaults to `0`.
 
 ## Installation
 
