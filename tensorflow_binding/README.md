@@ -84,7 +84,7 @@ options are not currently supported.
 The WarpCTC op is available via the `warpctc_tensorflow.ctc` function:
 
 ```python
-costs = warpctc_tensorflow.ctc(activations, input_lengths, flat_labels, label_lengths)
+costs = warpctc_tensorflow.ctc(activations, flat_labels, label_lengths, input_lengths)
 ```
 
 The `activations` input is a 3 dimensional Tensor and all the others
