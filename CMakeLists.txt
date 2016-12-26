@@ -20,6 +20,8 @@ include_directories(include)
 FIND_PACKAGE(CUDA 6.5)
 MESSAGE(STATUS "cuda found ${CUDA_FOUND}")
 
+option(WITH_GPU "compile warp-ctc with cuda." ${CUDA_FOUND})
+
 # need to be at least 30 or __shfl_down in reduce wont compile
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_30,code=sm_30 -O2")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_35,code=sm_35")
@@ -53,7 +55,7 @@ ELSE()
 ENDIF()
 
 
-IF (CUDA_FOUND)
+IF (WITH_GPU)
 
     MESSAGE(STATUS "Building shared library with GPU support")
 
