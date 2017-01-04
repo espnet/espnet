@@ -77,11 +77,11 @@ IF (WITH_GPU)
     TARGET_LINK_LIBRARIES(test_gpu warpctc ${CUDA_curand_LIBRARY})
 
     INSTALL(TARGETS warpctc
-            RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
-            LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
-            ARCHIVE DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+            RUNTIME DESTINATION "bin"
+            LIBRARY DESTINATION "lib"
+            ARCHIVE DESTINATION "lib")
 
-    INSTALL(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
+    INSTALL(FILES include/ctc.h DESTINATION "include")
 
     IF (Torch_FOUND)
         MESSAGE(STATUS "Building Torch Bindings with GPU support")
@@ -121,11 +121,11 @@ ELSE()
     SET_TARGET_PROPERTIES(test_cpu PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 
     INSTALL(TARGETS warpctc
-            RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
-            LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
-            ARCHIVE DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+            RUNTIME DESTINATION "bin"
+            LIBRARY DESTINATION "lib"
+            ARCHIVE DESTINATION "lib")
 
-    INSTALL(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
+    INSTALL(FILES include/ctc.h DESTINATION "include")
 
     IF (Torch_FOUND)
         MESSAGE(STATUS "Building Torch Bindings with no GPU support")
