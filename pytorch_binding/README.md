@@ -5,12 +5,18 @@
 
 Install [PyTorch](https://github.com/pytorch/pytorch#installation).
 
-The bindings assume you followed the standard warp-ctc install instructions from source (given below).
-```
+`WARP_CTC_PATH` should be set to the location of a built WarpCTC
+(i.e. `libwarpctc.so`).  This defaults to `../build`, so from within a
+new warp-ctc clone you could build WarpCTC like this:
+
+```bash
 git clone https://github.com/baidu-research/warp-ctc.git
 cd warp-ctc
-mkdir build && cd build && cmake .. && make
+mkdir build; cd build
+cmake ..
+make
 ```
+Otherwise, set `WARP_CTC_PATH` to wherever you have `libwarpctc.so` installed.
 
 Now install the bindings
 ```
