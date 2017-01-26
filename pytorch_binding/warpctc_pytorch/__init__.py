@@ -21,12 +21,6 @@ _import_symbols(locals())
 
 class _CTC(Function):
     def forward(self, acts, labels, act_lens, label_lens):
-        """
-        acts: Tensor of (seqLength x batch x outputDim) containing output from network
-        labels: 1 dimensional Tensor containing all the targets of the batch in one sequence
-        act_lens: Tensor of size (batch) containing size of each output sequence from the network
-        label_lens: Tensor of (batch) containing label length of each example
-        """
         is_cuda = True if acts.is_cuda else False
         loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
         grads = torch.zeros(acts.size()).type_as(acts)
@@ -51,8 +45,14 @@ class CTCLoss(Module):
     def __init__(self):
         super(CTCLoss, self).__init__()
 
-    def forward(self, input, target, sizes, label_lens):
-        _assert_no_grad(target)
-        _assert_no_grad(sizes)
+    def forward(self, acts, labels, act_lens, label_lens):
+        """
+        acts: Tensor of (seqLength x batch x outputDim) containing output from network
+        labels: 1 dimensional Tensor containing all the targets of the batch in one sequence
+        act_lens: Tensor of size (batch) containing size of each output sequence from the network
+        act_lens: Tensor of (batch) containing label length of each example
+        """
+        _assert_no_grad(labels)
+        _assert_no_grad(act_lens)
         _assert_no_grad(label_lens)
-        return _CTC()(input, target, sizes, label_lens)
+        return _CTC()(acts, labels, act_lens, label_lens)
