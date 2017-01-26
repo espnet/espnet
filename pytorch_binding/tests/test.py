@@ -1,34 +1,25 @@
 import torch
-import warpctc_pytorch as warp_ctc
+from torch.autograd import Variable
+
+from warpctc_pytorch import CTCLoss
+
+ctc_loss = CTCLoss()
 
 
 def simple_test():
     probs = torch.FloatTensor([[[0.1, 0.6, 0.1, 0.1, 0.1], [0.1, 0.1, 0.6, 0.1, 0.1]]]).transpose(0, 1).contiguous()
-    grads = torch.zeros(probs.size())
-    labels = torch.IntTensor([1, 2])
-    label_sizes = torch.IntTensor([2])
-    sizes = torch.IntTensor(probs.size(1)).fill_(probs.size(0))
-    minibatch_size = probs.size(1)
-    costs = torch.zeros(minibatch_size)
-    warp_ctc.cpu_ctc(probs,
-                     grads,
-                     labels,
-                     label_sizes,
-                     sizes,
-                     minibatch_size,
-                     costs)
-    print('CPU_cost: %f' % costs.sum())
-    probs = probs.clone().cuda()
-    grads = torch.zeros(probs.size()).cuda()
-    costs = torch.zeros(minibatch_size)
-    warp_ctc.gpu_ctc(probs,
-                     grads,
-                     labels,
-                     label_sizes,
-                     sizes,
-                     minibatch_size,
-                     costs)
-    print('GPU_cost: %f' % costs.sum())
+    labels = Variable(torch.IntTensor([1, 2]))
+    label_sizes = Variable(torch.IntTensor([2]))
+    sizes = Variable(torch.IntTensor([2]))
+    probs = Variable(probs, requires_grad=True)
+    cost = ctc_loss(probs, labels, sizes, label_sizes)
+    cost.backward()
+    print('CPU_cost: %f' % cost.data[0])
+    probs = Variable(probs.data.clone(), requires_grad=True).cuda()
+    cost = ctc_loss(probs, labels, sizes, label_sizes)
+    cost.backward()
+    print('GPU_cost: %f' % cost.data[0])
+    grads = probs.grad
     print(grads.view(grads.size(0) * grads.size(1), grads.size(2)))
 
 
@@ -38,31 +29,18 @@ def medium_test(multiplier):
         [[0.6, 0.1, 0.1, 0.1, 0.1], [0.1, 0.1, 0.5, 0.2, 0.1]]
     ]).contiguous() * multiplier
 
-    grads = torch.zeros(probs.size())
-    labels = torch.IntTensor([1, 2, 1, 2])
-    label_sizes = torch.IntTensor([2, 2])
-    sizes = torch.IntTensor([2, 2])
-    minibatch_size = probs.size(1)
-    costs = torch.zeros(minibatch_size)
-    warp_ctc.cpu_ctc(probs,
-                     grads,
-                     labels,
-                     label_sizes,
-                     sizes,
-                     minibatch_size,
-                     costs)
-    print('CPU_cost: %f' % costs.sum())
-    probs = probs.clone().cuda()
-    grads = torch.zeros(probs.size()).cuda()
-    costs = torch.zeros(minibatch_size)
-    warp_ctc.gpu_ctc(probs,
-                     grads,
-                     labels,
-                     label_sizes,
-                     sizes,
-                     minibatch_size,
-                     costs)
-    print('GPU_cost: %f' % costs.sum())
+    labels = Variable(torch.IntTensor([1, 2, 1, 2]))
+    label_sizes = Variable(torch.IntTensor([2, 2]))
+    sizes = Variable(torch.IntTensor([2, 2]))
+    probs = Variable(probs, requires_grad=True)
+    cost = ctc_loss(probs, labels, sizes, label_sizes)
+    cost.backward()
+    print('CPU_cost: %f' % cost.data[0])
+    probs = Variable(probs.data.clone(), requires_grad=True).cuda()
+    cost = ctc_loss(probs, labels, sizes, label_sizes)
+    cost.backward()
+    print('GPU_cost: %f' % cost.data[0])
+    grads = probs.grad
     print(grads.view(grads.size(0) * grads.size(1), grads.size(2)))
 
 
@@ -72,31 +50,18 @@ def empty_label_test():
         [[0.6, 0.1, 0.1, 0.1, 0.1], [0.1, 0.1, 0.5, 0.2, 0.1]]
     ]).contiguous()
 
-    grads = torch.zeros(probs.size())
-    labels = torch.IntTensor([1, 2])
-    label_sizes = torch.IntTensor([2, 0])
-    sizes = torch.IntTensor([2, 2])
-    minibatch_size = probs.size(1)
-    costs = torch.zeros(minibatch_size)
-    warp_ctc.cpu_ctc(probs,
-                     grads,
-                     labels,
-                     label_sizes,
-                     sizes,
-                     minibatch_size,
-                     costs)
-    print('CPU_cost: %f' % costs.sum())
-    probs = probs.clone().cuda()
-    grads = torch.zeros(probs.size()).cuda()
-    costs = torch.zeros(minibatch_size)
-    warp_ctc.gpu_ctc(probs,
-                     grads,
-                     labels,
-                     label_sizes,
-                     sizes,
-                     minibatch_size,
-                     costs)
-    print('GPU_cost: %f' % costs.sum())
+    labels = Variable(torch.IntTensor([1, 2]))
+    label_sizes = Variable(torch.IntTensor([2, 0]))
+    sizes = Variable(torch.IntTensor([2, 2]))
+    probs = Variable(probs, requires_grad=True)
+    cost = ctc_loss(probs, labels, sizes, label_sizes)
+    cost.backward()
+    print('CPU_cost: %f' % cost.data[0])
+    probs = Variable(probs.data.clone(), requires_grad=True).cuda()
+    cost = ctc_loss(probs, labels, sizes, label_sizes)
+    cost.backward()
+    print('GPU_cost: %f' % cost.data[0])
+    grads = probs.grad
     print(grads.view(grads.size(0) * grads.size(1), grads.size(2)))
 
 simple_test()
