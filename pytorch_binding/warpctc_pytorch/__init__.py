@@ -41,9 +41,6 @@ class _CTC(Function):
                   costs)
         self.grads = grads
         self.costs = torch.FloatTensor([costs.sum()])
-        if is_cuda:
-            self.grads = self.grads.cuda()
-            self.costs = self.costs.cuda()
         return self.costs
 
     def backward(self, grad_output):

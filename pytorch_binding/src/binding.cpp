@@ -5,15 +5,14 @@
 
 #include "ctc.h"
 
-#ifdef TORCH_NOGPU
-    #include "TH.h"
-#else
+#ifdef WARPCTC_ENABLE_GPU
     #include "THC.h"
     #include "THCTensor.h"
     #include "detail/reduce.h"
+    extern THCState* state;
+#else
+    #include "TH.h"
 #endif
-
-extern THCState* state;
 
 extern "C" int cpu_ctc(THFloatTensor *probs,
                         THFloatTensor *grads,
@@ -62,47 +61,48 @@ extern "C" int cpu_ctc(THFloatTensor *probs,
     delete cpu_workspace;
     return 1;
 }
+#ifdef WARPCTC_ENABLE_GPU
+   extern "C" int gpu_ctc(THCudaTensor *probs,
+                           THCudaTensor *grads,
+                           THIntTensor *labels,
+                           THIntTensor *label_sizes,
+                           THIntTensor *sizes,
+                           int minibatch_size,
+                           THFloatTensor *costs) {
 
-extern "C" int gpu_ctc(THCudaTensor *probs,
-                        THCudaTensor *grads,
-                        THIntTensor *labels,
-                        THIntTensor *label_sizes,
-                        THIntTensor *sizes,
-                        int minibatch_size,
-                        THFloatTensor *costs) {
+       float *probs_ptr = probs->storage->data + probs->storageOffset;
+       float *grads_ptr;
+       if (grads->storage) {
+               grads_ptr = grads->storage->data + grads->storageOffset;
+       } else {
+               grads_ptr = NULL; // this will trigger the score forward code path
+       }
 
-    float *probs_ptr = probs->storage->data + probs->storageOffset;
-    float *grads_ptr;
-    if (grads->storage) {
-            grads_ptr = grads->storage->data + grads->storageOffset;
-    } else {
-            grads_ptr = NULL; // this will trigger the score forward code path
-    }
+       int *sizes_ptr = sizes->storage->data + sizes->storageOffset;
+       int *labels_ptr = labels->storage->data + labels->storageOffset;
+       int *label_sizes_ptr = label_sizes->storage->data + label_sizes->storageOffset;
+       float *costs_ptr = costs->storage->data + costs->storageOffset;
 
-    int *sizes_ptr = sizes->storage->data + sizes->storageOffset;
-    int *labels_ptr = labels->storage->data + labels->storageOffset;
-    int *label_sizes_ptr = label_sizes->storage->data + label_sizes->storageOffset;
-    float *costs_ptr = costs->storage->data + costs->storageOffset;
+       ctcOptions options;
+       memset(&options, 0, sizeof(options));
+       options.loc = CTC_GPU;
+       options.stream = THCState_getCurrentStream(state);
 
-    ctcOptions options;
-    memset(&options, 0, sizeof(options));
-    options.loc = CTC_GPU;
-    options.stream = THCState_getCurrentStream(state);
+       size_t gpu_size_bytes;
+       get_workspace_size(label_sizes_ptr, sizes_ptr,
+                          (int) probs->size[2], minibatch_size,
+                          options, &gpu_size_bytes);
 
-    size_t gpu_size_bytes;
-    get_workspace_size(label_sizes_ptr, sizes_ptr,
-                       (int) probs->size[2], minibatch_size,
-                       options, &gpu_size_bytes);
+       float* gpu_workspace;
+       THCudaMalloc(state, (void **) &gpu_workspace, gpu_size_bytes);
 
-    float* gpu_workspace;
-    THCudaMalloc(state, (void **) &gpu_workspace, gpu_size_bytes);
+       compute_ctc_loss(probs_ptr, grads_ptr,
+                        labels_ptr, label_sizes_ptr,
+                        sizes_ptr, probs->size[2],
+                        minibatch_size, costs_ptr,
+                        gpu_workspace, options);
 
-    compute_ctc_loss(probs_ptr, grads_ptr,
-                     labels_ptr, label_sizes_ptr,
-                     sizes_ptr, probs->size[2],
-                     minibatch_size, costs_ptr,
-                     gpu_workspace, options);
-
-    THCudaFree(state, (void *) gpu_workspace);
-    return 1;
-}
+       THCudaFree(state, (void *) gpu_workspace);
+       return 1;
+   }
+#endif

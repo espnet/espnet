@@ -16,9 +16,17 @@ mkdir build; cd build
 cmake ..
 make
 ```
-Otherwise, set `WARP_CTC_PATH` to wherever you have `libwarpctc.so` installed.
 
-Now install the bindings
+Otherwise, set `WARP_CTC_PATH` to wherever you have `libwarpctc.so`
+installed. If you have a GPU, you should also make sure that
+`CUDA_HOME` is set to the home cuda directory (i.e. where
+`include/cuda.h` and `lib/libcudart.so` live). For example:
+
+```
+export CUDA_HOME="/usr/local/cuda"
+```
+
+Now install the bindings:
 ```
 cd pytorch_binding
 python setup.py install
