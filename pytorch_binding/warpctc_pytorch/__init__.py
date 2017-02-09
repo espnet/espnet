@@ -22,6 +22,7 @@ _import_symbols(locals())
 class _CTC(Function):
     def forward(self, acts, labels, act_lens, label_lens):
         is_cuda = True if acts.is_cuda else False
+        acts = acts.contiguous()
         loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
         grads = torch.zeros(acts.size()).type_as(acts)
         minibatch_size = acts.size(1)
