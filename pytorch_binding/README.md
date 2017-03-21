@@ -32,6 +32,15 @@ cd pytorch_binding
 python setup.py install
 ```
 
+If you try the above and get a dlopen error on OSX with anaconda3 (as recommended by pytorch):
+```
+cd ../pytorch_binding
+python setup.py install
+cd ../build
+cp libwarpctc.dylib /Users/$WHOAMI/anaconda3/lib
+```
+This will resolve the library not loaded error. This can be easily modified to work with other python installs if needed.
+
 Example to use the bindings below.
 
 ```python
