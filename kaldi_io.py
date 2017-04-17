@@ -103,7 +103,7 @@ def read_vec_int(file_or_fd):
     assert(fd.read(1) == '\4'); # int-size
     vec_size = struct.unpack('<i', fd.read(4))[0] # vector dim
     # Vectors are structred as (LENGTHOFPOST,VALUE) 
-    vec = np.fromfile(fd,dtype=[('lenpost',np.int8),('post','i4')],count=vec_size)
+    vec = np.fromfile(fd,dtype=[('lenpost',np.int8),('post','<i')],count=vec_size)
     ans = vec[:]['post']
   else: # ascii,
     arr = (binary + fd.readline()).strip().split()
