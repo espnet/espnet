@@ -11,7 +11,7 @@ import os, re, gzip, struct
 # Select kaldi,
 if not 'KALDI_ROOT' in os.environ:
   # Default! To change run python with 'export KALDI_ROOT=/some_dir python'
-  os.environ['KALDI_ROOT']='/mnt/matylda5/iveselyk/Tools/kaldi-trunk' 
+  os.environ['KALDI_ROOT']='/mnt/matylda5/iveselyk/Tools/kaldi-trunk'
 
 # Add kaldi tools to path,
 os.environ['PATH'] = os.popen('echo $KALDI_ROOT/src/bin:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/src/fstbin/:$KALDI_ROOT/src/gmmbin/:$KALDI_ROOT/src/featbin/:$KALDI_ROOT/src/lm/:$KALDI_ROOT/src/sgmmbin/:$KALDI_ROOT/src/sgmm2bin/:$KALDI_ROOT/src/fgmmbin/:$KALDI_ROOT/src/latbin/:$KALDI_ROOT/src/nnetbin:$KALDI_ROOT/src/nnet2bin:$KALDI_ROOT/src/nnet3bin:$KALDI_ROOT/src/online2bin/:$KALDI_ROOT/src/ivectorbin/:$KALDI_ROOT/src/lmbin/').readline().strip() + ':' + os.environ['PATH']
@@ -33,23 +33,23 @@ def open_or_fd(file, mode='rb'):
     # separate offset from filename (optional),
     if re.search(':[0-9]+$', file):
       (file,offset) = file.rsplit(':',1)
-    # is it gzipped?
-    if file.split('.')[-1] == 'gz':
-      fd = gzip.open(file, mode)
     # input pipe?
-    elif file[-1] == '|':
+    if file[-1] == '|':
       fd = os.popen(file[:-1], 'rb')
     # output pipe?
     elif file[0] == '|':
       fd = os.popen(file[1:], 'wb')
+    # is it gzipped?
+    elif file.split('.')[-1] == 'gz':
+      fd = gzip.open(file, mode)
     # a normal file...
     else:
       fd = open(file, mode)
-  except TypeError: 
+  except TypeError:
     # 'file' is opened file descriptor,
     fd = file
   # Eventually seek to offset,
-  if offset != None: fd.seek(int(offset)) 
+  if offset != None: fd.seek(int(offset))
   return fd
 
 def read_key(fd):
@@ -131,7 +131,7 @@ def write_vec_int(file_or_fd, v, key=''):
 
    Example of writing arkfile:
    with open(ark_file,'w') as f:
-     for key,vec in dict.iteritems(): 
+     for key,vec in dict.iteritems():
        kaldi_io.write_vec_flt(f, vec, key=key)
   """
   fd = open_or_fd(file_or_fd, mode='wb')
@@ -151,6 +151,28 @@ def write_vec_int(file_or_fd, v, key=''):
 
 #################################################
 # Float vectors (confidences, ivectors, ...),
+
+# Reading,
+def read_vec_flt_scp(file_or_fd):
+  """ generator(key,mat) = read_vec_flt_scp(file_or_fd)
+   Returns generator of (key,vector) tuples, read according to kaldi scp.
+   file_or_fd : scp, gzipped scp, pipe or opened file descriptor.
+
+   Iterate the scp:
+   for key,vec in kaldi_io.read_vec_flt_scp(file):
+     ...
+
+   Read scp to a 'dictionary':
+   d = { key:mat for key,mat in kaldi_io.read_mat_scp(file) }
+  """
+  fd = open_or_fd(file_or_fd)
+  try:
+    for line in fd:
+      (key,rxfile) = line.split(' ')
+      vec = read_vec_flt(rxfile)
+      yield key, vec
+  finally:
+    if fd is not file_or_fd : fd.close()
 
 def read_vec_flt_ark(file_or_fd):
   """ generator(key,vec) = read_vec_flt_ark(file_or_fd)
@@ -187,8 +209,8 @@ def read_vec_flt(file_or_fd):
     vec_size = struct.unpack('<i', fd.read(4))[0] # vector dim
     # Read whole vector,
     buf = fd.read(vec_size * sample_size)
-    if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32') 
-    elif sample_size == 8 : ans = np.frombuffer(buf, dtype='float64') 
+    if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
+    elif sample_size == 8 : ans = np.frombuffer(buf, dtype='float64')
     else : raise BadSampleSize
     return ans
   else: # ascii,
@@ -215,7 +237,7 @@ def write_vec_flt(file_or_fd, v, key=''):
 
    Example of writing arkfile:
    with open(ark_file,'w') as f:
-     for key,vec in dict.iteritems(): 
+     for key,vec in dict.iteritems():
        kaldi_io.write_vec_flt(f, vec, key=key)
   """
   fd = open_or_fd(file_or_fd, mode='wb')
@@ -290,7 +312,7 @@ def read_mat(file_or_fd):
   fd = open_or_fd(file_or_fd)
   try:
     binary = fd.read(2)
-    if binary == '\0B' : 
+    if binary == '\0B' :
       mat = _read_mat_binary(fd)
     else:
       assert(binary == ' [')
@@ -312,8 +334,8 @@ def _read_mat_binary(fd):
   cols = struct.unpack('<i', fd.read(4))[0]
   # Read whole matrix
   buf = fd.read(rows * cols * sample_size)
-  if sample_size == 4 : vec = np.frombuffer(buf, dtype='float32') 
-  elif sample_size == 8 : vec = np.frombuffer(buf, dtype='float64') 
+  if sample_size == 4 : vec = np.frombuffer(buf, dtype='float32')
+  elif sample_size == 8 : vec = np.frombuffer(buf, dtype='float64')
   else : raise BadSampleSize
   mat = np.reshape(vec,(rows,cols))
   return mat
@@ -327,7 +349,7 @@ def _read_mat_ascii(fd):
     arr = line.strip().split()
     if arr[-1] != ']':
       rows.append(np.array(arr,dtype='float32')) # not last line
-    else: 
+    else:
       rows.append(np.array(arr[:-1],dtype='float32')) # last line
       mat = np.vstack(rows)
       return mat
@@ -346,7 +368,7 @@ def write_mat(file_or_fd, m, key=''):
 
    Example of writing arkfile:
    with open(ark_file,'w') as f:
-     for key,mat in dict.iteritems(): 
+     for key,mat in dict.iteritems():
        kaldi_io.write_mat(f, mat, key=key)
   """
   fd = open_or_fd(file_or_fd, mode='wb')
@@ -404,12 +426,12 @@ def read_post_ark(file_or_fd):
 
 def read_post(file_or_fd):
   """ [post] = read_post(file_or_fd)
-   Reads single kaldi 'Posterior' in binary format. 
-   
-   The 'Posterior' is C++ type 'vector<vector<tuple<int,float> > >', 
-   the outer-vector is usually time axis, inner-vector are the records 
+   Reads single kaldi 'Posterior' in binary format.
+
+   The 'Posterior' is C++ type 'vector<vector<tuple<int,float> > >',
+   the outer-vector is usually time axis, inner-vector are the records
    at given time,  and the tuple is composed of an 'index' (integer)
-   and a 'float-value'. The 'float-value' can represent a probability 
+   and a 'float-value'. The 'float-value' can represent a probability
    or any other numeric value.
 
    Returns vector of vectors of tuples.
@@ -430,12 +452,12 @@ def read_post(file_or_fd):
     # Loop over 'inner-vector',
     for j in range(inner_vec_size):
       assert(fd.read(1) == '\4'); # int-size
-      id[j] = struct.unpack('<i', fd.read(4))[0] # id 
+      id[j] = struct.unpack('<i', fd.read(4))[0] # id
       assert(fd.read(1) == '\4'); # float-size
       post[j] = struct.unpack('<f', fd.read(4))[0] # post
-    
+
     # Append the 'inner-vector' of tuples into the 'outer-vector'
-    ans.append(zip(id,post)) 
+    ans.append(zip(id,post))
 
   if fd is not file_or_fd: fd.close()
   return ans
@@ -499,4 +521,31 @@ def read_cntime(file_or_fd):
   ans = zip(t_beg,t_end)
   if fd is not file_or_fd : fd.close()
   return ans
+
+
+#################################################
+# Segments related,
+#
+
+# Segments as 'Bool vectors' can be handy,
+# - for 'superposing' the segmentations,
+# - for frame-selection in Speaker-ID experiments,
+def read_segments_as_bool_vec(segments_file):
+  """ [ bool_vec ] = read_segments_as_bool_vec(segments_file)
+   using kaldi 'segments' file for 1 wav, format : '<utt> <rec> <t-beg> <t-end>'
+   - t-beg, t-end is in seconds,
+   - assumed 100 frames/second,
+  """
+  segs = np.loadtxt(segments_file, dtype='object,object,f,f', ndmin=1)
+  # Sanity checks,
+  assert(len(segs) > 0) # empty segmentation is an error,
+  assert(len(np.unique([rec[1] for rec in segs ])) == 1) # segments with only 1 wav-file,
+  # Convert time to frame-indexes,
+  start = np.rint([100 * rec[2] for rec in segs]).astype(int)
+  end = np.rint([100 * rec[3] for rec in segs]).astype(int)
+  # Taken from 'read_lab_to_bool_vec', htk.py,
+  frms = np.repeat(np.r_[np.tile([False,True], len(end)), False],
+                   np.r_[np.c_[start - np.r_[0, end[:-1]], end-start].flat, 0])
+  assert np.sum(end-start) == np.sum(frms)
+  return frms
 
