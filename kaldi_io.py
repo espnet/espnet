@@ -102,11 +102,10 @@ def read_vec_int(file_or_fd):
   if binary == '\0B': # binary flag
     assert(fd.read(1) == '\4'); # int-size
     vec_size = struct.unpack('<i', fd.read(4))[0] # vector dim
-    ans = np.zeros(vec_size, dtype=int)
-    for i in range(vec_size):
-      assert(fd.read(1) == '\4'); # int-size
-      ans[i] = struct.unpack('<i', fd.read(4))[0] #data
-    return ans
+    # Elements from int32 vector are sored in tuples: (sizeof(int32), value),
+    vec = np.fromfile(fd, dtype=[('size',np.int8),('value','<i4')], count=vec_size)
+    assert(vec[0]['size'] == 4) # int32 size,
+    ans = vec[:]['value'] # values are in 2nd column,
   else: # ascii,
     arr = (binary + fd.readline()).strip().split()
     try:
