@@ -322,9 +322,11 @@ def read_mat(file_or_fd):
 
 def _read_mat_binary(fd):
   # Data type
-  type = fd.read(3)
-  if type == 'FM ': sample_size = 4 # floats
-  if type == 'DM ': sample_size = 8 # doubles
+  dtype = fd.read(3)
+  # 'CM', 'CM2', 'CM3' are possible values,
+  if dtype.startswith('CM'): return _read_compressed_mat(fd, dtype)
+  if dtype == 'FM ': sample_size = 4 # floats
+  if dtype == 'DM ': sample_size = 8 # doubles
   assert(sample_size > 0)
   # Dimensions
   fd.read(1)
@@ -352,6 +354,54 @@ def _read_mat_ascii(fd):
       rows.append(np.array(arr[:-1],dtype='float32')) # last line
       mat = np.vstack(rows)
       return mat
+
+
+def _read_compressed_mat(fd, format):
+  """ Read a compressed matrix,
+      see: https://github.com/kaldi-asr/kaldi/blob/master/src/matrix/compressed-matrix.h
+      methods: CompressedMatrix::Read(...), CompressedMatrix::CopyToMat(...),
+  """
+  assert(format == 'CM ') # The formats CM2, CM3 are not supported...
+
+  # Format of header 'struct',
+  global_header = np.dtype([('minvalue','float32'),('range','float32'),('num_rows','<i4'),('num_cols','<i4')]) # member '.format' is not written,
+  per_col_header = np.dtype([('percentile_0','uint16'),('percentile_25','uint16'),('percentile_75','uint16'),('percentile_100','uint16')])
+
+  # Mapping for percentiles in col-headers,
+  def uint16_to_float(value, min, range):
+    return np.float32(min + range * 1.52590218966964e-05 * value)
+
+  # Mapping for matrix elements,
+  def uint8_to_float_v2(vec, p0, p25, p75, p100):
+    # Split the vector by masks,
+    mask_0_64 = (vec <= 64);
+    mask_65_192 = np.all([vec>64, vec<=192], axis=0);
+    mask_193_255 = (vec > 192);
+    # Sanity check (useful but slow...),
+    # assert(len(vec) == np.sum(np.hstack([mask_0_64,mask_65_192,mask_193_255])))
+    # assert(len(vec) == np.sum(np.any([mask_0_64,mask_65_192,mask_193_255], axis=0)))
+    # Build the float vector,
+    ans = np.empty(len(vec), dtype='float32')
+    ans[mask_0_64] = p0 + (p25 - p0) / 64. * vec[mask_0_64]
+    ans[mask_65_192] = p25 + (p75 - p25) / 128. * (vec[mask_65_192] - 64)
+    ans[mask_193_255] = p75 + (p100 - p75) / 63. * (vec[mask_193_255] - 192)
+    return ans
+
+  # Read global header,
+  globmin, globrange, rows, cols = np.fromfile(fd, dtype=global_header, count=1)[0]
+
+  # The data is structed as [Colheader, ... , Colheader, Data, Data , .... ]
+  #                         {           cols           }{     size         }
+  col_headers = np.fromfile(fd, dtype=per_col_header, count=cols)
+  data = np.reshape(np.fromfile(fd, dtype='uint8', count=cols*rows), newshape=(cols,rows)) # stored as col-major,
+
+  mat = np.empty((cols,rows), dtype='float32')
+  for i, col_header in enumerate(col_headers):
+    col_header_flt = [ uint16_to_float(percentile, globmin, globrange) for percentile in col_header ]
+    mat[i] = uint8_to_float_v2(data[i], *col_header_flt)
+
+  return mat.T # transpose! col-major -> row-major,
+
 
 # Writing,
 def write_mat(file_or_fd, m, key=''):

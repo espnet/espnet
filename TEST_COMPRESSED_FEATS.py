@@ -1,0 +1,19 @@
+#!/bin/env python
+
+import kaldi_io
+import timeit
+
+t_beg = timeit.default_timer()
+orig = {k:m for k,m in kaldi_io.read_mat_ark('float.ark')}
+print timeit.default_timer() - t_beg;
+
+t_beg = timeit.default_timer()
+comp = {k:m for k,m in kaldi_io.read_mat_ark('compressed.ark')}
+print timeit.default_timer() - t_beg;
+# ~8-10x slower, this is already reasonable,
+
+for key in orig.keys():
+  print key, np.sum(np.abs(comp[key]-orig[key]))
+# => The values are not identical, but very similar.
+#    Can it be the `order' of arithmetic operations?
+
