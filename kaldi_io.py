@@ -18,6 +18,16 @@ os.environ['PATH'] = os.popen('echo $KALDI_ROOT/src/bin:$KALDI_ROOT/tools/openfs
 
 
 #################################################
+# Define all custom exceptions,
+class UnsupportedDataType(Exception): pass
+class UnknownVectorHeader(Exception): pass
+class UnkonwnMatrixHeader(Exception): pass
+
+class BadSampleSize(Exception): pass
+class BadInputFormat(Exception): pass
+
+
+#################################################
 # Data-type independent helper functions,
 
 def open_or_fd(file, mode='rb'):
@@ -101,9 +111,9 @@ def read_vec_int(file_or_fd):
   binary = fd.read(2)
   if binary == '\0B': # binary flag
     assert(fd.read(1) == '\4'); # int-size
-    vec_size = struct.unpack('<i', fd.read(4))[0] # vector dim
+    vec_size = struct.unpack('int32', fd.read(4))[0] # vector dim
     # Elements from int32 vector are sored in tuples: (sizeof(int32), value),
-    vec = np.fromfile(fd, dtype=[('size',np.int8),('value','<i4')], count=vec_size)
+    vec = np.fromfile(fd, dtype=[('size','int8'),('value','int32')], count=vec_size)
     assert(vec[0]['size'] == 4) # int32 size,
     ans = vec[:]['value'] # values are in 2nd column,
   else: # ascii,
@@ -139,11 +149,11 @@ def write_vec_int(file_or_fd, v, key=''):
     fd.write('\0B') # we write binary!
     # dim,
     fd.write('\4') # int32 type,
-    fd.write(struct.pack('<i',v.shape[0]))
+    fd.write(struct.pack('int32',v.shape[0]))
     # data,
     for i in range(len(v)):
       fd.write('\4') # int32 type,
-      fd.write(struct.pack('<i',v[i])) # binary,
+      fd.write(struct.pack('int32',v[i])) # binary,
   finally:
     if fd is not file_or_fd : fd.close()
 
@@ -199,13 +209,14 @@ def read_vec_flt(file_or_fd):
   binary = fd.read(2)
   if binary == '\0B': # binary flag
     # Data type,
-    type = fd.read(3)
-    if type == 'FV ': sample_size = 4 # floats
-    if type == 'DV ': sample_size = 8 # doubles
+    header = fd.read(3)
+    if header == 'FV ': sample_size = 4 # floats
+    elif header == 'DV ': sample_size = 8 # doubles
+    else: raise UnknownVectorHeader("The header contained '%s'" % header)
     assert(sample_size > 0)
     # Dimension,
     assert(fd.read(1) == '\4'); # int-size
-    vec_size = struct.unpack('<i', fd.read(4))[0] # vector dim
+    vec_size = struct.unpack('int32', fd.read(4))[0] # vector dim
     # Read whole vector,
     buf = fd.read(vec_size * sample_size)
     if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
@@ -246,10 +257,10 @@ def write_vec_flt(file_or_fd, v, key=''):
     # Data-type,
     if v.dtype == 'float32': fd.write('FV ')
     elif v.dtype == 'float64': fd.write('DV ')
-    else: raise VectorDataTypeError
+    else: raise UnsupportedDataType("'%s', please use 'float32' or 'float64'" % v.dtype)
     # Dim,
     fd.write('\04')
-    fd.write(struct.pack('I',v.shape[0])) # dim
+    fd.write(struct.pack('uint32',v.shape[0])) # dim
     # Data,
     v.tofile(fd, sep="") # binary
   finally:
@@ -322,17 +333,18 @@ def read_mat(file_or_fd):
 
 def _read_mat_binary(fd):
   # Data type
-  dtype = fd.read(3)
+  header = fd.read(3)
   # 'CM', 'CM2', 'CM3' are possible values,
-  if dtype.startswith('CM'): return _read_compressed_mat(fd, dtype)
-  if dtype == 'FM ': sample_size = 4 # floats
-  if dtype == 'DM ': sample_size = 8 # doubles
+  if header.startswith('CM'): return _read_compressed_mat(fd, header)
+  elif header == 'FM ': sample_size = 4 # floats
+  elif header == 'DM ': sample_size = 8 # doubles
+  else: raise UnknownMatrixHeader("The header contained '%s'" % header)
   assert(sample_size > 0)
   # Dimensions
   fd.read(1)
-  rows = struct.unpack('<i', fd.read(4))[0]
+  rows = struct.unpack('int32', fd.read(4))[0]
   fd.read(1)
-  cols = struct.unpack('<i', fd.read(4))[0]
+  cols = struct.unpack('int32', fd.read(4))[0]
   # Read whole matrix
   buf = fd.read(rows * cols * sample_size)
   if sample_size == 4 : vec = np.frombuffer(buf, dtype='float32')
@@ -364,7 +376,7 @@ def _read_compressed_mat(fd, format):
   assert(format == 'CM ') # The formats CM2, CM3 are not supported...
 
   # Format of header 'struct',
-  global_header = np.dtype([('minvalue','float32'),('range','float32'),('num_rows','<i4'),('num_cols','<i4')]) # member '.format' is not written,
+  global_header = np.dtype([('minvalue','float32'),('range','float32'),('num_rows','int32'),('num_cols','int32')]) # member '.format' is not written,
   per_col_header = np.dtype([('percentile_0','uint16'),('percentile_25','uint16'),('percentile_75','uint16'),('percentile_100','uint16')])
 
   # Mapping for percentiles in col-headers,
@@ -427,12 +439,12 @@ def write_mat(file_or_fd, m, key=''):
     # Data-type,
     if m.dtype == 'float32': fd.write('FM ')
     elif m.dtype == 'float64': fd.write('DM ')
-    else: raise MatrixDataTypeError
+    else: raise UnsupportedDataType("'%s', please use 'float32' or 'float64'" % v.dtype)
     # Dims,
     fd.write('\04')
-    fd.write(struct.pack('I',m.shape[0])) # rows
+    fd.write(struct.pack('uint32',m.shape[0])) # rows
     fd.write('\04')
-    fd.write(struct.pack('I',m.shape[1])) # cols
+    fd.write(struct.pack('uint32',m.shape[1])) # cols
     # Data,
     m.tofile(fd, sep="") # binary
   finally:
@@ -489,24 +501,16 @@ def read_post(file_or_fd):
   ans=[]
   binary = fd.read(2); assert(binary == '\0B'); # binary flag
   assert(fd.read(1) == '\4'); # int-size
-  outer_vec_size = struct.unpack('<i', fd.read(4))[0] # number of frames (or bins)
+  outer_vec_size = struct.unpack('int32', fd.read(4))[0] # number of frames (or bins)
 
   # Loop over 'outer-vector',
   for i in range(outer_vec_size):
     assert(fd.read(1) == '\4'); # int-size
-    inner_vec_size = struct.unpack('<i', fd.read(4))[0] # number of records for frame (or bin)
-    id = np.zeros(inner_vec_size, dtype=int) # buffer for integer id's
-    post = np.zeros(inner_vec_size, dtype=float) # buffer for posteriors
-
-    # Loop over 'inner-vector',
-    for j in range(inner_vec_size):
-      assert(fd.read(1) == '\4'); # int-size
-      id[j] = struct.unpack('<i', fd.read(4))[0] # id
-      assert(fd.read(1) == '\4'); # float-size
-      post[j] = struct.unpack('<f', fd.read(4))[0] # post
-
-    # Append the 'inner-vector' of tuples into the 'outer-vector'
-    ans.append(zip(id,post))
+    inner_vec_size = struct.unpack('int32', fd.read(4))[0] # number of records for frame (or bin)
+    data = np.fromfile(fd, dtype=[('size_idx','int8'),('idx','int32'),('size_post','int8'),('post','float32')], count=inner_vec_size)
+    assert(data[0]['size_idx'] == 4)
+    assert(data[0]['size_post'] == 4)
+    ans.append(data[['idx','post']].tolist())
 
   if fd is not file_or_fd: fd.close()
   return ans
@@ -553,21 +557,15 @@ def read_cntime(file_or_fd):
   """
   fd = open_or_fd(file_or_fd)
   binary = fd.read(2); assert(binary == '\0B'); # assuming it's binary
+
   assert(fd.read(1) == '\4'); # int-size
-  # Get number of bins,
-  vec_size = struct.unpack('<i', fd.read(4))[0] # number of frames (or bins)
-  t_beg = np.zeros(vec_size, dtype=float)
-  t_end = np.zeros(vec_size, dtype=float)
+  vec_size = struct.unpack('int32', fd.read(4))[0] # number of frames (or bins)
 
-  # Loop over number of bins,
-  for i in range(vec_size):
-    assert(fd.read(1) == '\4'); # float-size
-    t_beg[i] = struct.unpack('<f', fd.read(4))[0] # begin-time of bin
-    assert(fd.read(1) == '\4'); # float-size
-    t_end[i] = struct.unpack('<f', fd.read(4))[0] # end-time of bin
+  data = np.fromfile(fd, dtype=[('size_beg','int8'),('t_beg','float32'),('size_end','int8'),('t_end','float32')], count=vec_size)
+  assert(data[0]['size_beg'] == 4)
+  assert(data[0]['size_end'] == 4)
+  ans = data[['t_beg','t_end']].tolist() # Return vector of tuples (t_beg,t_end),
 
-  # Return vector of tuples,
-  ans = zip(t_beg,t_end)
   if fd is not file_or_fd : fd.close()
   return ans
 
