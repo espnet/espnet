@@ -111,7 +111,7 @@ def read_vec_int(file_or_fd):
   binary = fd.read(2)
   if binary == '\0B': # binary flag
     assert(fd.read(1) == '\4'); # int-size
-    vec_size = struct.unpack('int32', fd.read(4))[0] # vector dim
+    vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # vector dim
     # Elements from int32 vector are sored in tuples: (sizeof(int32), value),
     vec = np.fromfile(fd, dtype=[('size','int8'),('value','int32')], count=vec_size)
     assert(vec[0]['size'] == 4) # int32 size,
@@ -149,11 +149,11 @@ def write_vec_int(file_or_fd, v, key=''):
     fd.write('\0B') # we write binary!
     # dim,
     fd.write('\4') # int32 type,
-    fd.write(struct.pack('int32',v.shape[0]))
+    fd.write(struct.pack(np.dtype('int32').char, v.shape[0]))
     # data,
     for i in range(len(v)):
       fd.write('\4') # int32 type,
-      fd.write(struct.pack('int32',v[i])) # binary,
+      fd.write(struct.pack(np.dtype('int32').char, v[i])) # binary,
   finally:
     if fd is not file_or_fd : fd.close()
 
@@ -216,7 +216,7 @@ def read_vec_flt(file_or_fd):
     assert(sample_size > 0)
     # Dimension,
     assert(fd.read(1) == '\4'); # int-size
-    vec_size = struct.unpack('int32', fd.read(4))[0] # vector dim
+    vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # vector dim
     # Read whole vector,
     buf = fd.read(vec_size * sample_size)
     if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
@@ -260,7 +260,7 @@ def write_vec_flt(file_or_fd, v, key=''):
     else: raise UnsupportedDataType("'%s', please use 'float32' or 'float64'" % v.dtype)
     # Dim,
     fd.write('\04')
-    fd.write(struct.pack('uint32',v.shape[0])) # dim
+    fd.write(struct.pack(np.dtype('uint32').char, v.shape[0])) # dim
     # Data,
     v.tofile(fd, sep="") # binary
   finally:
@@ -341,10 +341,7 @@ def _read_mat_binary(fd):
   else: raise UnknownMatrixHeader("The header contained '%s'" % header)
   assert(sample_size > 0)
   # Dimensions
-  fd.read(1)
-  rows = struct.unpack('int32', fd.read(4))[0]
-  fd.read(1)
-  cols = struct.unpack('int32', fd.read(4))[0]
+  s1, rows, s2, cols = np.fromfile(fd, dtype='int8,int32,int8,int32', count=1)[0]
   # Read whole matrix
   buf = fd.read(rows * cols * sample_size)
   if sample_size == 4 : vec = np.frombuffer(buf, dtype='float32')
@@ -442,9 +439,9 @@ def write_mat(file_or_fd, m, key=''):
     else: raise UnsupportedDataType("'%s', please use 'float32' or 'float64'" % v.dtype)
     # Dims,
     fd.write('\04')
-    fd.write(struct.pack('uint32',m.shape[0])) # rows
+    fd.write(struct.pack(np.dtype('uint32').char, m.shape[0])) # rows
     fd.write('\04')
-    fd.write(struct.pack('uint32',m.shape[1])) # cols
+    fd.write(struct.pack(np.dtype('uint32').char, m.shape[1])) # cols
     # Data,
     m.tofile(fd, sep="") # binary
   finally:
@@ -501,12 +498,12 @@ def read_post(file_or_fd):
   ans=[]
   binary = fd.read(2); assert(binary == '\0B'); # binary flag
   assert(fd.read(1) == '\4'); # int-size
-  outer_vec_size = struct.unpack('int32', fd.read(4))[0] # number of frames (or bins)
+  outer_vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # number of frames (or bins)
 
   # Loop over 'outer-vector',
   for i in range(outer_vec_size):
     assert(fd.read(1) == '\4'); # int-size
-    inner_vec_size = struct.unpack('int32', fd.read(4))[0] # number of records for frame (or bin)
+    inner_vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # number of records for frame (or bin)
     data = np.fromfile(fd, dtype=[('size_idx','int8'),('idx','int32'),('size_post','int8'),('post','float32')], count=inner_vec_size)
     assert(data[0]['size_idx'] == 4)
     assert(data[0]['size_post'] == 4)
@@ -559,7 +556,7 @@ def read_cntime(file_or_fd):
   binary = fd.read(2); assert(binary == '\0B'); # assuming it's binary
 
   assert(fd.read(1) == '\4'); # int-size
-  vec_size = struct.unpack('int32', fd.read(4))[0] # number of frames (or bins)
+  vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # number of frames (or bins)
 
   data = np.fromfile(fd, dtype=[('size_beg','int8'),('t_beg','float32'),('size_end','int8'),('t_end','float32')], count=vec_size)
   assert(data[0]['size_beg'] == 4)

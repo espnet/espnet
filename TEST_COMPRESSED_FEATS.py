@@ -4,11 +4,11 @@ import kaldi_io
 import timeit
 
 t_beg = timeit.default_timer()
-orig = {k:m for k,m in kaldi_io.read_mat_ark('float.ark')}
+orig = {k:m for k,m in kaldi_io.read_mat_ark('data/feats.ark')}
 print timeit.default_timer() - t_beg;
 
 t_beg = timeit.default_timer()
-comp = {k:m for k,m in kaldi_io.read_mat_ark('compressed.ark')}
+comp = {k:m for k,m in kaldi_io.read_mat_ark('data/feats_compressed.ark')}
 print timeit.default_timer() - t_beg;
 # ~8-10x slower, this is already reasonable,
 
