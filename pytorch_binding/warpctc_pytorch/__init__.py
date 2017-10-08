@@ -53,6 +53,7 @@ class CTCLoss(Module):
         act_lens: Tensor of size (batch) containing size of each output sequence from the network
         act_lens: Tensor of (batch) containing label length of each example
         """
+        assert len(labels.size()) == 1 # labels must be 1 dimensional
         _assert_no_grad(labels)
         _assert_no_grad(act_lens)
         _assert_no_grad(label_lens)
