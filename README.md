@@ -26,6 +26,12 @@ with open(ark_file,'wb') as f:
     kaldi_io.write_mat(f, mat, key=key)
 ```
 
+#### Install
+- run `git clone https://github.com/vesis84/kaldi-io-for-python.git <kaldi-io-dir>`
+- add `PYTHONPATH=${PYTHONPATH}:<kaldi-io-dir>` to `$HOME/.bashrc`
+- now the `import kaldi_io` will work from any location
+
+
 #### License
 Apache License, Version 2.0 ('LICENSE-2.0.txt')
 
