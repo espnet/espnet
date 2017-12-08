@@ -35,4 +35,16 @@ with kaldi_io.open_or_fd('data_re-saved/mat.ark','wb') as f:
 for k,m in kaldi_io.read_mat_ark('data_re-saved/mat.ark'):
   assert(np.array_equal(m, flt_mat3[k]))
 
+# I/O with pipes is supported only in python 2.x,
+import sys
+if sys.version_info[0] == 2:
+  print('testing i/o with pipes')
+  flt_mat4 = { k:m for k,m in kaldi_io.read_mat_ark('ark:copy-feats ark:data/feats.ark ark:- |') }
+  # - store,
+  with kaldi_io.open_or_fd('ark:| copy-feats ark:- ark:data_re-saved/mat_pipe.ark','wb') as f:
+    for k,m in flt_mat4.items(): kaldi_io.write_mat(f, m, k)
+  # - read and compare,
+  for k,m in kaldi_io.read_mat_ark('data_re-saved/mat_pipe.ark'):
+    assert(np.array_equal(m, flt_mat4[k]))
+
 print('all tests passed...')

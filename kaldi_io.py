@@ -3,7 +3,7 @@
 # Licensed under the Apache License, Version 2.0 (the "License")
 
 import numpy as np
-import os, re, gzip, struct
+import sys, os, re, gzip, struct
 
 #################################################
 # Adding kaldi tools to shell path,
@@ -45,10 +45,10 @@ def open_or_fd(file, mode='rb'):
       (file,offset) = file.rsplit(':',1)
     # input pipe?
     if file[-1] == '|':
-      fd = os.popen(file[:-1], 'rb')
+      fd = os.popen(file[:-1], 'r')
     # output pipe?
     elif file[0] == '|':
-      fd = os.popen(file[1:], 'wb')
+      fd = os.popen(file[1:], 'w')
     # is it gzipped?
     elif file.split('.')[-1] == 'gz':
       fd = gzip.open(file, mode)
@@ -144,7 +144,7 @@ def write_vec_int(file_or_fd, v, key=''):
        kaldi_io.write_vec_flt(f, vec, key=key)
   """
   fd = open_or_fd(file_or_fd, mode='wb')
-  assert(fd.mode == 'wb')
+  if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
     if key != '' : fd.write((key+' ').encode()) # ark-files have keys (utterance-id),
     fd.write('\0B'.encode()) # we write binary!
@@ -252,7 +252,7 @@ def write_vec_flt(file_or_fd, v, key=''):
        kaldi_io.write_vec_flt(f, vec, key=key)
   """
   fd = open_or_fd(file_or_fd, mode='wb')
-  assert(fd.mode == 'wb')
+  if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
     if key != '' : fd.write((key+' ').encode()) # ark-files have keys (utterance-id),
     fd.write('\0B'.encode()) # we write binary!
@@ -432,7 +432,7 @@ def write_mat(file_or_fd, m, key=''):
        kaldi_io.write_mat(f, mat, key=key)
   """
   fd = open_or_fd(file_or_fd, mode='wb')
-  assert(fd.mode == 'wb')
+  if sys.version_info[0] == 3: assert(fd.mode == 'wb')
   try:
     if key != '' : fd.write((key+' ').encode()) # ark-files have keys (utterance-id),
     fd.write('\0B'.encode()) # we write binary!
