@@ -26,6 +26,7 @@ class UnknownMatrixHeader(Exception): pass
 class BadSampleSize(Exception): pass
 class BadInputFormat(Exception): pass
 
+class SubprocessFailed(Exception): pass
 
 #################################################
 # Data-type independent helper functions,
@@ -45,10 +46,10 @@ def open_or_fd(file, mode='rb'):
       (file,offset) = file.rsplit(':',1)
     # input pipe?
     if file[-1] == '|':
-      fd = os.popen(file[:-1], 'r')
+      fd = popen(file[:-1], 'rb') # custom,
     # output pipe?
     elif file[0] == '|':
-      fd = os.popen(file[1:], 'w')
+      fd = popen(file[1:], 'wb') # custom,
     # is it gzipped?
     elif file.split('.')[-1] == 'gz':
       fd = gzip.open(file, mode)
@@ -61,6 +62,43 @@ def open_or_fd(file, mode='rb'):
   # Eventually seek to offset,
   if offset != None: fd.seek(int(offset))
   return fd
+
+# based on '/usr/local/lib/python3.4/os.py'
+def popen(cmd, mode="rb"):
+  if not isinstance(cmd, str):
+    raise TypeError("invalid cmd type (%s, expected string)" % type(cmd))
+
+  import subprocess, io, threading
+
+  # cleanup function for subprocesses,
+  def cleanup(proc, cmd):
+    ret = proc.wait()
+    if ret > 0:
+      raise SubprocessFailed('cmd %s returned %d !' % (cmd,ret))
+    return
+
+  # text-mode,
+  if mode == "r":
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    threading.Thread(target=cleanup,args=(proc,cmd)).start() # clean-up thread,
+    return io.TextIOWrapper(proc.stdout)
+  elif mode == "w":
+    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE)
+    threading.Thread(target=cleanup,args=(proc,cmd)).start() # clean-up thread,
+    return io.TextIOWrapper(proc.stdin)
+  # binary,
+  elif mode == "rb":
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    threading.Thread(target=cleanup,args=(proc,cmd)).start() # clean-up thread,
+    return proc.stdout
+  elif mode == "wb":
+    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE)
+    threading.Thread(target=cleanup,args=(proc,cmd)).start() # clean-up thread,
+    return proc.stdin
+  # sanity,
+  else:
+    raise ValueError("invalid mode %s" % mode)
+
 
 def read_key(fd):
   """ [key] = read_key(fd)
@@ -111,9 +149,9 @@ def read_vec_int(file_or_fd):
   binary = fd.read(2).decode()
   if binary == '\0B': # binary flag
     assert(fd.read(1).decode() == '\4'); # int-size
-    vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # vector dim
+    vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # vector dim
     # Elements from int32 vector are sored in tuples: (sizeof(int32), value),
-    vec = np.fromfile(fd, dtype=[('size','int8'),('value','int32')], count=vec_size)
+    vec = np.frombuffer(fd.read(vec_size*5), dtype=[('size','int8'),('value','int32')], count=vec_size)
     assert(vec[0]['size'] == 4) # int32 size,
     ans = vec[:]['value'] # values are in 2nd column,
   else: # ascii,
@@ -217,7 +255,7 @@ def read_vec_flt(file_or_fd):
     assert(sample_size > 0)
     # Dimension,
     assert(fd.read(1).decode() == '\4'); # int-size
-    vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # vector dim
+    vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # vector dim
     # Read whole vector,
     buf = fd.read(vec_size * sample_size)
     if sample_size == 4 : ans = np.frombuffer(buf, dtype='float32')
@@ -343,7 +381,7 @@ def _read_mat_binary(fd):
   else: raise UnknownMatrixHeader("The header contained '%s'" % header)
   assert(sample_size > 0)
   # Dimensions
-  s1, rows, s2, cols = np.fromfile(fd, dtype='int8,int32,int8,int32', count=1)[0]
+  s1, rows, s2, cols = np.frombuffer(fd.read(10), dtype='int8,int32,int8,int32', count=1)[0]
   # Read whole matrix
   buf = fd.read(rows * cols * sample_size)
   if sample_size == 4 : vec = np.frombuffer(buf, dtype='float32')
@@ -399,12 +437,12 @@ def _read_compressed_mat(fd, format):
     return ans
 
   # Read global header,
-  globmin, globrange, rows, cols = np.fromfile(fd, dtype=global_header, count=1)[0]
+  globmin, globrange, rows, cols = np.frombuffer(fd.read(16), dtype=global_header, count=1)[0]
 
   # The data is structed as [Colheader, ... , Colheader, Data, Data , .... ]
   #                         {           cols           }{     size         }
-  col_headers = np.fromfile(fd, dtype=per_col_header, count=cols)
-  data = np.reshape(np.fromfile(fd, dtype='uint8', count=cols*rows), newshape=(cols,rows)) # stored as col-major,
+  col_headers = np.frombuffer(fd.read(cols*8), dtype=per_col_header, count=cols)
+  data = np.reshape(np.frombuffer(fd.read(cols*rows), dtype='uint8', count=cols*rows), newshape=(cols,rows)) # stored as col-major,
 
   mat = np.empty((cols,rows), dtype='float32')
   for i, col_header in enumerate(col_headers):
@@ -501,13 +539,13 @@ def read_post(file_or_fd):
   ans=[]
   binary = fd.read(2).decode(); assert(binary == '\0B'); # binary flag
   assert(fd.read(1).decode() == '\4'); # int-size
-  outer_vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # number of frames (or bins)
+  outer_vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # number of frames (or bins)
 
   # Loop over 'outer-vector',
   for i in range(outer_vec_size):
     assert(fd.read(1).decode() == '\4'); # int-size
-    inner_vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # number of records for frame (or bin)
-    data = np.fromfile(fd, dtype=[('size_idx','int8'),('idx','int32'),('size_post','int8'),('post','float32')], count=inner_vec_size)
+    inner_vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # number of records for frame (or bin)
+    data = np.frombuffer(fd.read(inner_vec_size*10), dtype=[('size_idx','int8'),('idx','int32'),('size_post','int8'),('post','float32')], count=inner_vec_size)
     assert(data[0]['size_idx'] == 4)
     assert(data[0]['size_post'] == 4)
     ans.append(data[['idx','post']].tolist())
@@ -559,9 +597,9 @@ def read_cntime(file_or_fd):
   binary = fd.read(2).decode(); assert(binary == '\0B'); # assuming it's binary
 
   assert(fd.read(1).decode() == '\4'); # int-size
-  vec_size = np.fromfile(fd, dtype='int32', count=1)[0] # number of frames (or bins)
+  vec_size = np.frombuffer(fd.read(4), dtype='int32', count=1)[0] # number of frames (or bins)
 
-  data = np.fromfile(fd, dtype=[('size_beg','int8'),('t_beg','float32'),('size_end','int8'),('t_end','float32')], count=vec_size)
+  data = np.frombuffer(fd.read(vec_size*10), dtype=[('size_beg','int8'),('t_beg','float32'),('size_end','int8'),('t_end','float32')], count=vec_size)
   assert(data[0]['size_beg'] == 4)
   assert(data[0]['size_end'] == 4)
   ans = data[['t_beg','t_end']].tolist() # Return vector of tuples (t_beg,t_end),
