@@ -3,14 +3,22 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-ESPnet: End-to-end SPeach recognition neural network toolkit
-============================================================
-The purpose of this repository to build the end-to-end speech recognition system based on neural network. 
+espnet: end-to-end speech processing toolkit
+============================================
+espnet is an end-to-end speech processing toolkit.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Tutorial:
 
+   ./tutorial.md
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Reference Manual:
+
+   ./apis/nets.rst
 
 
 Indices and tables

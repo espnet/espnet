@@ -18,7 +18,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../src'))
+sys.path.insert(0, os.path.abspath('../src/'))
 
 
 # -- General configuration ------------------------------------------------
@@ -38,16 +38,35 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+# source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
+
+# enable to markdown
+from recommonmark.parser import CommonMarkParser
+
+source_parsers = {
+        '.md': CommonMarkParser,
+        }
+
+# AutoStructify setting ref: https://qiita.com/pashango2/items/d1b379b699af85b529ce
+from recommonmark.transform import AutoStructify
+
+github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
+
+def setup(app):
+    app.add_config_value('recommonmark_config', {
+        'url_resolver': lambda url: github_doc_root + url,
+        'auto_toc_tree_section': 'Contents',
+        }, True)
+    app.add_transform(AutoStructify)
 
 # The master toctree document.
 master_doc = 'index'
 
 # General information about the project.
 project = u'ESPnet'
-copyright = u'2017, Shinji Watanabe, Tomoki Hayashi'
-author = u'Shinji Watanabe, Tomoki Hayashi'
+copyright = u'2017, Shinji Watanabe'
+author = u'Shinji Watanabe'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -97,7 +116,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
