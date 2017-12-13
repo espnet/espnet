@@ -1,22 +1,11 @@
-nets package
-============
+espnet nets package
+===================
 
-Submodules
-----------
+nets\.e2e_asr_attctc module
+---------------------------
 
-nets\.e2e module
-----------------
-
-.. automodule:: nets.e2e
+.. automodule:: nets.e2e_asr_attctc
     :members:
     :undoc-members:
     :show-inheritance:
 
-
-Module contents
----------------
-
-.. automodule:: nets
-    :members:
-    :undoc-members:
-    :show-inheritance:
