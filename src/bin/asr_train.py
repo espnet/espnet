@@ -26,7 +26,7 @@ from chainer import function
 
 # spnet related
 from e2e_asr_attctc import E2E
-from e2e_asr_attctc import MTLLoss
+from e2e_asr_attctc import Loss
 
 # for kaldi io
 import kaldi_io
@@ -70,6 +70,7 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
                 x = converter_kaldi(batch[0], self.reader)
                 with function.no_backprop_mode():
                     eval_func(x)
+                    delete_feat(x)
 
             summary.add(observation)
 
@@ -110,6 +111,7 @@ class SeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.update()
+        delete_feat(x)
 
 
 # Custom trigger
@@ -201,6 +203,13 @@ def converter_kaldi(batch, reader):
     for data in batch:
         feat = reader[data[0].encode('ascii', 'ignore')]
         data[1]['feat'] = feat
+
+    return batch
+
+
+def delete_feat(batch):
+    for data in batch:
+        del data[1]['feat']
 
     return batch
 
@@ -398,7 +407,7 @@ def main():
 
     # specify model architecture
     e2e = E2E(idim, odim, args)
-    model = MTLLoss(e2e, args.mtlalpha)
+    model = Loss(e2e, args.mtlalpha)
 
     # write model config
     if not os.path.exists(args.outdir):
