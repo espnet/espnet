@@ -60,20 +60,6 @@ def linear_tensor(linear, x):
     return F.reshape(y, shapes)
 
 
-def sequence_embed(embed, xs):
-    '''
-
-    :param embed:
-    :param xs:
-    :return:
-    '''
-    x_len = [len(x) for x in xs]
-    x_section = np.cumsum(x_len[:-1])
-    ex = embed(F.concat(xs, axis=0))
-    exs = F.split_axis(ex, x_section, 0)
-    return exs
-
-
 # TODO merge Loss and E2E: there is no need to make these separately
 class Loss(chainer.Chain):
     def __init__(self, predictor, mtlalpha):
@@ -129,7 +115,7 @@ class E2E(chainer.Chain):
             for j in range(min(args.elayers + 1, len(ss))):
                 subsample[j] = int(ss[j])
         else:
-            logging.warning('Subsampling is not performed for vggblstmp. It is performed in max pooling layers at CNN.')
+            logging.warning('Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
