@@ -17,7 +17,7 @@ import chainer
 
 # spnet related
 from e2e_asr_attctc import E2E
-from e2e_asr_attctc import MTLLoss
+from e2e_asr_attctc import Loss
 
 # for kaldi io
 import kaldi_io
@@ -91,7 +91,7 @@ def main():
     # specify model architecture
     logging.info('reading model parameters from' + args.model)
     e2e = E2E(idim, odim, train_args)
-    model = MTLLoss(e2e, train_args.mtlalpha)
+    model = Loss(e2e, train_args.mtlalpha)
     chainer.serializers.load_npz(args.model, model)
 
     # prepare Kaldi reader

@@ -74,10 +74,10 @@ def sequence_embed(embed, xs):
     return exs
 
 
-# TODO merge MTLLoss and E2E: there is no need to make these separately
-class MTLLoss(chainer.Chain):
+# TODO merge Loss and E2E: there is no need to make these separately
+class Loss(chainer.Chain):
     def __init__(self, predictor, mtlalpha):
-        super(MTLLoss, self).__init__()
+        super(Loss, self).__init__()
         self.mtlalpha = mtlalpha
         self.loss = None
         self.accuracy = None
