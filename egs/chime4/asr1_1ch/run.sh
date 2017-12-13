@@ -48,7 +48,7 @@ epochs=15
 beam_size=20
 penalty=0
 maxlenratio=0.8
-minlenratio=0.0
+minlenratio=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
@@ -75,7 +75,9 @@ train_dev=dt05_multi_${enhan}
 recog_set="dt05_multi_${enhan} et05_multi_${enhan}"
 
 if [ ${stage} -le 0 ]; then
-    echo "stage 0: Data preparation"
+    ### Task dependent. You have to make data the following preparation part by yourself.
+    ### But you can utilize Kaldi recipes in most cases
+     echo "stage 0: Data preparation"
     wsj0_data=${chime4_data}/data/WSJ0
     local/clean_wsj0_data_prep.sh ${wsj0_data}
     local/clean_chime4_format_data.sh
@@ -89,7 +91,9 @@ fi
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ]; then
-    echo "stage 1: Feature Generation"
+    ### Task dependent. You have to design training and dev sets by yourself.
+    ### But you can utilize Kaldi recipes in most cases
+     echo "stage 1: Feature Generation"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     fbankdir=fbank
     tasks="tr05_real_noisy tr05_simu_noisy dt05_real_${enhan} dt05_simu_${enhan} et05_real_${enhan} et05_simu_${enhan}"
@@ -108,7 +112,17 @@ if [ ${stage} -le 1 ]; then
     compute-cmvn-stats scp:data-fbank/${train_set}/feats.scp data-fbank/${train_set}/cmvn.ark
 
     # dump features for training
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+	utils/create_split_dir.pl \
+	    /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+	    ${feat_tr_dir}/storage
+    fi
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+	utils/create_split_dir.pl \
+	    /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+	    ${feat_dt_dir}/storage
+    fi
+	dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data-fbank/${train_set}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
         data-fbank/${train_dev}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
@@ -117,17 +131,25 @@ fi
 dict=data/lang_1char/${train_set}_units.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
-    echo "stage 2: Dictionary and Json Data Preparation"
+    ### Task dependent. You have to check non-linguistic symbols used in the corpus.
+	echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data-fbank/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+
+    echo "make a non-linguistic symbol list"
+    nlsyms=data/lang_1char/non_lang_syms.txt
+    cut -f 2- data-fbank/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    cat ${nlsyms}
+
+    echo "make a dictionary"
+	echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    text2token.py -s 1 -n 1 -l ${nlsyms} data-fbank/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
 	| sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
-    # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    echo "make json files"
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
 		 data-fbank/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
 		 data-fbank/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
@@ -214,7 +236,7 @@ if [ ${stage} -le 4 ]; then
 			&
 	    wait
 
-	    score_sclite.sh ${expdir}/${decode_dir} ${dict}
+	    score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
 	) &
     done
