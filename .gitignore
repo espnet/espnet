@@ -1,0 +1,12 @@
+*~
+*.pyc
+\#*\#
+.\#*
+egs/*/*/data*
+egs/*/*/db
+egs/*/*/downloads
+egs/*/*/dump
+egs/*/*/exp
+egs/*/*/fbank
+egs/*/*/stft
+*DS_Store
