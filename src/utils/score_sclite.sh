@@ -5,6 +5,8 @@
 
 . ./path.sh
 
+nlsyms=""
+
 . utils/parse_options.sh
 
 if [ $# != 2 ]; then
@@ -18,6 +20,13 @@ dic=$2
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
 json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn ${dir}/hyp.trn
 
+if [ ! -z ${nlsyms} ]; then
+    cp ${dir}/ref.trn ${dir}/ref.trn.org
+    cp ${dir}/hyp.trn ${dir}/hyp.trn.org
+    filt.py -v $nlsyms ${dir}/ref.trn.org > ${dir}/ref.trn
+    filt.py -v $nlsyms ${dir}/hyp.trn.org > ${dir}/hyp.trn
+fi
+    
 sclite -r ${dir}/ref.trn trn -h ${dir}/hyp.trn trn -i rm -o all stdout > ${dir}/result.txt
 
 echo "write a result in ${dir}/result.txt"

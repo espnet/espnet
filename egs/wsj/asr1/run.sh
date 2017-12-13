@@ -221,7 +221,7 @@ if [ ${stage} -le 4 ]; then
 			&
 	    wait
 
-	    score_sclite.sh ${expdir}/${decode_dir} ${dict}
+	    score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
 	) &
     done
