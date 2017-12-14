@@ -388,7 +388,7 @@ class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
         super(Decoder, self).__init__()
         with self.init_scope():
-            self.add_link('emded', L.EmbedID(odim, dunits))
+            self.add_link('embed', L.EmbedID(odim, dunits))
             self.add_link('lstm0', L.StatelessLSTM(dunits + eprojs, dunits))
             for l in six.moves.range(1, dlayers):
                 self.add_link('lstm%d' % l, L.StatelessLSTM(dunits, dunits))
@@ -440,7 +440,7 @@ class Decoder(chainer.Chain):
         att_weight_all = []  # for debugging
 
         # pre-computation of embedding
-        eys = self['emded'](pad_ys_in)  # utt x olen x zdim
+        eys = self['embed'](pad_ys_in)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
