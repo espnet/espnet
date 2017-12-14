@@ -388,11 +388,11 @@ class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
         super(Decoder, self).__init__()
         with self.init_scope():
-            self.add_link('embed', L.EmbedID(odim, dunits))
+            self.embed = L.EmbedID(odim, dunits)
             self.add_link('lstm0', L.StatelessLSTM(dunits + eprojs, dunits))
             for l in six.moves.range(1, dlayers):
                 self.add_link('lstm%d' % l, L.StatelessLSTM(dunits, dunits))
-            self.add_link('output', L.Linear(dunits, odim))
+            self.output = L.Linear(dunits, odim)
 
         self.loss = None
         self.att = att
@@ -440,7 +440,7 @@ class Decoder(chainer.Chain):
         att_weight_all = []  # for debugging
 
         # pre-computation of embedding
-        eys = self['embed'](pad_ys_in)  # utt x olen x zdim
+        eys = self.embed(pad_ys_in)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
@@ -454,7 +454,7 @@ class Decoder(chainer.Chain):
 
         z_all = F.reshape(F.stack(z_all, axis=1), (batch * olength, self.dunits))
         # compute loss
-        y_all = self['output'](z_all)
+        y_all = self.output(z_all)
         self.loss = F.softmax_cross_entropy(y_all, F.concat(pad_ys_out, axis=0))
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
@@ -504,13 +504,13 @@ class Decoder(chainer.Chain):
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
         for i in six.moves.range(minlen, maxlen):
-            ey = self['embed'](y)           # utt list (1) x zdim
+            ey = self.embed(y)           # utt list (1) x zdim
             att_c, att_w = self.att([h], z_list[-1], att_w)
             ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
             c_list[0], z_list[0] = self['lstm0'](c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
-            y = self.xp.argmax(self['output'](z_list[-1]).data, axis=1).astype('i')
+            y = self.xp.argmax(self.output(z_list[-1]).data, axis=1).astype('i')
             y_seq.append(y)
 
             # terminate decoding
@@ -557,7 +557,7 @@ class Decoder(chainer.Chain):
 
             hyps_best_kept = []
             for hyp in hyps:
-                ey = self['embed'](hyp['yseq'][i])           # utt list (1) x zdim
+                ey = self.embed(hyp['yseq'][i])           # utt list (1) x zdim
                 att_c, att_w = self.att([h], hyp['z_prev'][-1], hyp['a_prev'])
                 ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
                 c_list[0], z_list[0] = self['lstm0'](hyp['c_prev'][0], hyp['z_prev'][0], ey)
@@ -569,7 +569,7 @@ class Decoder(chainer.Chain):
                 hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = F.log_softmax(self['output'](z_list[-1])).data
+                local_scores = F.log_softmax(self.output(z_list[-1])).data
                 local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
 
                 for j in six.moves.range(beam):
