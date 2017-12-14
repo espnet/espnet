@@ -563,7 +563,7 @@ class Decoder(chainer.Chain):
                 c_list[0], z_list[0] = self['lstm0'](hyp['c_prev'][0], hyp['z_prev'][0], ey)
                 for l in six.moves.range(1, self.dlayers):
                     c_list[l], z_list[l] = self['lstm%d' % l](
-                        hyp['c_prev'][l], hyp['z_prev'][l], hyp['z_prev'][l - 1])
+                        hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
                 hyp['c_prev'] = c_list
                 hyp['z_prev'] = z_list
                 hyp['a_prev'] = att_w
