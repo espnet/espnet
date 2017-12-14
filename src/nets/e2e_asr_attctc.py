@@ -388,13 +388,15 @@ class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
         super(Decoder, self).__init__()
         with self.init_scope():
-            self.embed = L.EmbedID(odim, dunits)
-            # TODO use multiple layers with dlayers option
-            self.decoder = L.StatelessLSTM(dunits + eprojs, dunits)  # 310s per 100 ite -> 240s from NStepLSTM
-            self.output = L.Linear(dunits, odim)
+            self.add_link('emded', L.EmbedID(odim, dunits))
+            self.add_link('lstm0', L.StatelessLSTM(dunits + eprojs, dunits))
+            for l in six.moves.range(1, dlayers):
+                self.add_link('lstm%d' % l, L.StatelessLSTM(dunits, dunits))
+            self.add_link('output', L.Linear(dunits, odim))
 
         self.loss = None
         self.att = att
+        self.dlayers = dlayers
         self.dunits = dunits
         self.sos = sos
         self.eos = eos
@@ -404,8 +406,8 @@ class Decoder(chainer.Chain):
     def __call__(self, hs, ys):
         '''
 
-        :param hs:
-        :param ys:
+        :param Variable hs:
+        :param Variable ys:
         :return:
         '''
         self.loss = None
@@ -427,27 +429,32 @@ class Decoder(chainer.Chain):
         logging.info(self.__class__.__name__ + ' output lengths: ' + str(self.xp.array([y.shape[0] for y in ys_out])))
 
         # initialization
-        c = None
-        z = None
+        c_list = []  # list of cell state of each layer
+        z_list = []  # list of hidden state of each layer
+        for l in six.moves.range(self.dlayers):
+            c_list.append(None)
+            z_list.append(None)
         att_w = None
         z_all = []
         self.att.reset()  # reset pre-computation of h
         att_weight_all = []  # for debugging
 
         # pre-computation of embedding
-        eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        eys = self['emded'](pad_ys_in)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs, z, att_w)
+            att_c, att_w = self.att(hs, z_list[-1], att_w)
             ey = F.hstack((eys[:, i, :], att_c))  # utt x (zdim + hdim)
-            c, z = self.decoder(c, z, ey)
-            z_all.append(z)
+            c_list[0], z_list[0] = self['lstm0'](c_list[0], z_list[0], ey)
+            for l in six.moves.range(1, self.dlayers):
+                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            z_all.append(z_list[-1])
             att_weight_all.append(att_w.data)  # for debugging
 
         z_all = F.reshape(F.stack(z_all, axis=1), (batch * olength, self.dunits))
         # compute loss
-        y_all = self.output(z_all)
+        y_all = self['output'](z_all)
         self.loss = F.softmax_cross_entropy(y_all, F.concat(pad_ys_out, axis=0))
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
@@ -481,8 +488,11 @@ class Decoder(chainer.Chain):
         '''
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
-        c = None
-        z = None
+        c_list = []  # list of cell state of each layer
+        z_list = []  # list of hidden state of each layer
+        for l in six.moves.range(self.dlayers):
+            c_list.append(None)
+            z_list.append(None)
         att_w = None
         y_seq = []
         self.att.reset()  # reset pre-computation of h
@@ -494,11 +504,13 @@ class Decoder(chainer.Chain):
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
         for i in six.moves.range(minlen, maxlen):
-            ey = self.embed(y)           # utt list (1) x zdim
-            att_c, att_w = self.att([h], z, att_w)
+            ey = self['embed'](y)           # utt list (1) x zdim
+            att_c, att_w = self.att([h], z_list[-1], att_w)
             ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
-            c, z = self.decoder(c, z, ey)
-            y = self.xp.argmax(self.output(z).data, axis=1).astype('i')
+            c_list[0], z_list[0] = self['lstm0'](c_list[0], z_list[0], ey)
+            for l in six.moves.range(1, self.dlayers):
+                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            y = self.xp.argmax(self['output'](z_list[-1]).data, axis=1).astype('i')
             y_seq.append(y)
 
             # terminate decoding
@@ -517,8 +529,11 @@ class Decoder(chainer.Chain):
         '''
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
-        c = None
-        z = None
+        c_list = []  # list of cell state of each layer
+        z_list = []  # list of hidden state of each layer
+        for l in six.moves.range(self.dlayers):
+            c_list.append(None)
+            z_list.append(None)
         a = None
         self.att.reset()  # reset pre-computation of h
 
@@ -534,7 +549,7 @@ class Decoder(chainer.Chain):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c, 'z_prev': z, 'a_prev': a}
+        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         hyps = [hyp]
         ended_hyps = []
         for i in six.moves.range(maxlen):
@@ -542,22 +557,25 @@ class Decoder(chainer.Chain):
 
             hyps_best_kept = []
             for hyp in hyps:
-                ey = self.embed(hyp['yseq'][i])           # utt list (1) x zdim
-                att_c, att_w = self.att([h], hyp['z_prev'], hyp['a_prev'])
+                ey = self['embed'](hyp['yseq'][i])           # utt list (1) x zdim
+                att_c, att_w = self.att([h], hyp['z_prev'][-1], hyp['a_prev'])
                 ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
-                c, z = self.decoder(hyp['c_prev'], hyp['z_prev'], ey)
-                hyp['c_prev'] = c
-                hyp['z_prev'] = z
+                c_list[0], z_list[0] = self['lstm0'](hyp['c_prev'][0], hyp['z_prev'][0], ey)
+                for l in six.moves.range(1, self.dlayers):
+                    c_list[l], z_list[l] = self['lstm%d' % l](
+                        hyp['c_prev'][l], hyp['z_prev'][l], hyp['z_prev'][l - 1])
+                hyp['c_prev'] = c_list
+                hyp['z_prev'] = z_list
                 hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = F.log_softmax(self.output(z)).data
+                local_scores = F.log_softmax(self['output'](z_list[-1])).data
                 local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
-                    new_hyp['z_prev'] = z
-                    new_hyp['c_prev'] = c
+                    new_hyp['z_prev'] = z_list
+                    new_hyp['c_prev'] = c_list
                     new_hyp['a_prev'] = att_w
                     new_hyp['score'] = hyp['score'] + local_scores[0, local_best_ids[j]]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
@@ -624,7 +642,7 @@ class Encoder(chainer.Chain):
     :param int epojs: number of projection units of encoder network
     :param str subsample: subsampling number e.g. 1_2_2_2_1
     :param float dropout: dropout rate
-    :return: 
+    :return:
 
     '''
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
