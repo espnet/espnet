@@ -527,6 +527,10 @@ def main():
     # Run the training
     trainer.run()
 
+    # close hdf5 dataset
+    train_reader.close()
+    valid_reader.close()
+
 
 if __name__ == '__main__':
     main()
