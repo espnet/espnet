@@ -376,16 +376,21 @@ def main():
         logging.info('chainer cudnn deterministic is disabled')
     else:
         chainer.config.cudnn_deterministic = True
+
     # load dictionary for debug log
-    if args.debugmode > 0 and args.dict is not None:
+    if args.dict is not None:
         with open(args.dict, 'r') as f:
             dictionary = f.readlines()
-        char_list = [d.split(' ')[0] for d in dictionary]
-        for i, char in enumerate(char_list):
+        char_list = [None] * (len(dictionary) + 2)  # "+2" indicates <blank> and <eos>
+        for entry in dictionary:
+            char = unicode(entry.split(' ')[0], 'utf_8')
+            i = int(entry.split(' ')[1])
             if char == '<space>':
                 char_list[i] = ' '
-        char_list.insert(0, '<sos>')
-        char_list.append('<eos>')
+            else:
+                char_list[i] = char
+        char_list[0] = '<blank>'
+        char_list[-1] = '<eos>'
         args.char_list = char_list
     else:
         args.char_list = None
