@@ -254,7 +254,7 @@ class CTC(torch.nn.Module):
         with self.init_scope():
             self.ctc_lo = L.Linear(eprojs, odim)
 
-    def __call__(self, hs, ys):
+    def forward(self, hs, ys):
         '''
 
         :param hs:
@@ -311,7 +311,7 @@ class AttDot(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
 
-    def __call__(self, enc_hs, dec_z, scaling=2.0):
+    def forward(self, enc_hs, dec_z, scaling=2.0):
         '''
 
         :param enc_hs:
@@ -370,7 +370,7 @@ class AttLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
 
-    def __call__(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''
 
         :param enc_hs:
@@ -782,7 +782,7 @@ class BLSTM(torch.nn.Module):
             self.nblstm = L.NStepBiLSTM(elayers, idim, cdim, dropout)
             self.l_last = L.Linear(cdim * 2, hdim)
 
-    def __call__(self, xs, ilens):
+    def forward(self, xs, ilens):
         '''
 
         :param xs:
@@ -816,7 +816,7 @@ class VGG2L(torch.nn.Module):
 
         self.in_channel = in_channel
 
-    def __call__(self, xs, ilens):
+    def forward(self, xs, ilens):
         '''
 
         :param xs:
