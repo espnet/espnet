@@ -4,15 +4,20 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """
-chainer result
-this epoch [###################...............................] 39.91%
-      5100 iter, 0 epoch / 15 epochs
-    0.6557 iters/sec. Estimated time to finish: 3 days, 7:02:16.346509.
+options (batch_size is only changed because of my poor GPU at home): --gpu -1 --outdir exp/train_si284_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/results --debugmode 1 --dict data/lang_1char/train_si284_units.txt --debugdir exp/train_si284_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150 --minibatches 0 --verbose 0 --train-feat scp:dump/train_si284/deltafalse/feats.scp --valid-feat scp:dump/test_dev93/deltafalse/feats.scp --train-label dump/train_si284/deltafalse/data.json --valid-label dump/test_dev93/deltafalse/data.json --etype blstmp --elayers 4 --eunits 320 --eprojs 320 --subsample 1_2_2_1_1 --dlayers 1 --dunits 300 --atype location --aconv-chans 10 --aconv-filts 100 --mtlalpha 0.5 --batch-size 5 --maxlen-in 800 --maxlen-out 150 --opt adadelta --epochs 15 --gpu 0 
 
-total [..................................................]  0.16%
+
+chainer result
+this epoch [#.................................................]  3.13%
+       400 iter, 0 epoch / 15 epochs
+   0.67657 iters/sec. Estimated time to finish: 3 days, 6:31:44.616061.
+
+
+pytorch result
 this epoch [#.................................................]  2.35%
        300 iter, 0 epoch / 15 epochs
     1.4973 iters/sec. Estimated time to finish: 1 day, 11:30:13.571661.
+
 """
 
 
@@ -502,15 +507,17 @@ def main():
                                          'epoch', file_name='acc.png'))
 
     # Save best models
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
+    torch_save = lambda path, obj : torch.save(obj, path.state_dict())
+    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
+    trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                    trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
+    torch_load = lambda path, obj : obj.load_state_dict(torch.load(path))
     if args.opt == 'adadelta':
         if args.criterion == 'acc':
-            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
                                lambda best_value, current_value: best_value > current_value))
@@ -519,7 +526,7 @@ def main():
                                'validation/main/acc',
                                lambda best_value, current_value: best_value > current_value))
         elif args.criterion == 'loss':
-            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best'),
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
