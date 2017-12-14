@@ -147,7 +147,7 @@ class E2E(chainer.Chain):
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
         # utt list of olen
-        ys = [self.xp.array(map(float, i[1]['tokenid'].split()), dtype=np.int32) for i in data]
+        ys = [self.xp.array(map(int, i[1]['tokenid'].split()), dtype=np.int32) for i in data]
         ys = [chainer.Variable(y) for y in ys]
 
         # subsample frame
