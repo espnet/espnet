@@ -12,3 +12,7 @@ export LC_ALL=C
 export PATH=$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$JQ_ROOT:$PATH
 source $MAIN_ROOT/tools/venv/bin/activate
 export PYTHONPATH=$SPNET_ROOT/nets/:$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH
+
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export OMP_NUM_THREADS=1
