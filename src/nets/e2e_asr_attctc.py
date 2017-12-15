@@ -389,7 +389,7 @@ class Decoder(chainer.Chain):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = L.EmbedID(odim, dunits)
-            self.add_link('lstm0', L.StatelessLSTM(dunits + eprojs, dunits))
+            self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
             for l in six.moves.range(1, dlayers):
                 self.add_link('lstm%d' % l, L.StatelessLSTM(dunits, dunits))
             self.output = L.Linear(dunits, odim)
@@ -429,9 +429,9 @@ class Decoder(chainer.Chain):
         logging.info(self.__class__.__name__ + ' output lengths: ' + str(self.xp.array([y.shape[0] for y in ys_out])))
 
         # initialization
-        c_list = []  # list of cell state of each layer
-        z_list = []  # list of hidden state of each layer
-        for l in six.moves.range(self.dlayers):
+        c_list = [None]  # list of cell state of each layer
+        z_list = [None]  # list of hidden state of each layer
+        for l in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         att_w = None
@@ -446,7 +446,7 @@ class Decoder(chainer.Chain):
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
             ey = F.hstack((eys[:, i, :], att_c))  # utt x (zdim + hdim)
-            c_list[0], z_list[0] = self['lstm0'](c_list[0], z_list[0], ey)
+            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
             z_all.append(z_list[-1])
@@ -488,9 +488,9 @@ class Decoder(chainer.Chain):
         '''
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
-        c_list = []  # list of cell state of each layer
-        z_list = []  # list of hidden state of each layer
-        for l in six.moves.range(self.dlayers):
+        c_list = [None]  # list of cell state of each layer
+        z_list = [None]  # list of hidden state of each layer
+        for l in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         att_w = None
@@ -507,7 +507,7 @@ class Decoder(chainer.Chain):
             ey = self.embed(y)           # utt list (1) x zdim
             att_c, att_w = self.att([h], z_list[0], att_w)
             ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
-            c_list[0], z_list[0] = self['lstm0'](c_list[0], z_list[0], ey)
+            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
             y = self.xp.argmax(self.output(z_list[-1]).data, axis=1).astype('i')
@@ -529,9 +529,9 @@ class Decoder(chainer.Chain):
         '''
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
-        c_list = []  # list of cell state of each layer
-        z_list = []  # list of hidden state of each layer
-        for l in six.moves.range(self.dlayers):
+        c_list = [None]  # list of cell state of each layer
+        z_list = [None]  # list of hidden state of each layer
+        for l in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         a = None
@@ -560,7 +560,7 @@ class Decoder(chainer.Chain):
                 ey = self.embed(hyp['yseq'][i])           # utt list (1) x zdim
                 att_c, att_w = self.att([h], hyp['z_prev'][0], hyp['a_prev'])
                 ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
-                c_list[0], z_list[0] = self['lstm0'](hyp['c_prev'][0], hyp['z_prev'][0], ey)
+                c_list[0], z_list[0] = self.lstm0(hyp['c_prev'][0], hyp['z_prev'][0], ey)
                 for l in six.moves.range(1, self.dlayers):
                     c_list[l], z_list[l] = self['lstm%d' % l](
                         hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
@@ -574,9 +574,9 @@ class Decoder(chainer.Chain):
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
-                    new_hyp['z_prev'] = []
-                    new_hyp['c_prev'] = []
-                    for l in six.moves.range(self.dlayers):
+                    new_hyp['z_prev'] = [z_list[0]]
+                    new_hyp['c_prev'] = [z_list[0]]
+                    for l in six.moves.range(1, self.dlayers):
                         new_hyp['z_prev'].append(z_list[l])
                         new_hyp['c_prev'].append(c_list[l])
                     new_hyp['a_prev'] = att_w
