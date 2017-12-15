@@ -23,7 +23,6 @@ from e2e_asr_attctc import Loss
 import lazy_io
 
 
-
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
