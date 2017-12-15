@@ -44,12 +44,10 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 ### Error due to matplotlib
 If you have the following error, 
 ```
-2017-12-15 04:11:19,121 (e2e_asr_attctc:118) WARNING: Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.
 RuntimeError: module compiled against API version 0xc but this version of numpy is 0xb
 Exception in main training loop: numpy.core.multiarray failed to import
 Traceback (most recent call last):
-File "/export/a08/shinji/201707e2e/espnet_hayashi/tools/venv/local/lib/python2.7/site-packages/chainer/training/trainer.py", line 302, in run
-:
+;
 :
 from . import _path, rcParams
 ImportError: numpy.core.multiarray failed to import
