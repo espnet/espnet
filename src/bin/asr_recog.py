@@ -20,7 +20,7 @@ from e2e_asr_attctc import E2E
 from e2e_asr_attctc import Loss
 
 # for kaldi io
-import kaldi_io
+import lazy_io
 
 
 def main():
@@ -95,14 +95,14 @@ def main():
     chainer.serializers.load_npz(args.model, model)
 
     # prepare Kaldi reader
-    reader = kaldi_io.SequentialBaseFloatMatrixReader(args.recog_feat)
+    reader = lazy_io.read_dict_scp(args.recog_feat)
 
     # read json data
     with open(args.recog_label, 'r') as f:
         recog_json = json.load(f)['utts']
 
     new_json = {}
-    for name, feat in reader:
+    for name, feat in reader.items():
         y_hat = e2e.recognize(feat, args, train_args.char_list)
         y_true = map(int, recog_json[name]['tokenid'].split())
 
