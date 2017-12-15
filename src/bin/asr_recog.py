@@ -110,8 +110,8 @@ def main():
         # print out decoding result
         seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
         seq_true = [train_args.char_list[int(idx)] for idx in y_true]
-        seq_hat_text = "".join(seq_hat)
-        seq_true_text = "".join(seq_true)
+        seq_hat_text = "".join(seq_hat).encode('utf-8')
+        seq_true_text = "".join(seq_true).encode('utf-8')
         logging.info("groundtruth[%s]: " + seq_true_text, name)
         logging.info("prediction [%s]: " + seq_hat_text, name)
 
@@ -120,7 +120,7 @@ def main():
 
         # added recognition results to json
         new_json[name]['rec_tokenid'] = " ".join([str(idx[0]) for idx in y_hat])
-        new_json[name]['rec_token'] = " ".join(seq_hat)
+        new_json[name]['rec_token'] = " ".join(seq_hat).encode('utf-8')
         new_json[name]['rec_text'] = seq_hat_text
 
     # TODO fix character coding problems when saving it
