@@ -444,7 +444,7 @@ class Decoder(chainer.Chain):
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs, z_list[-1], att_w)
+            att_c, att_w = self.att(hs, z_list[0], att_w)
             ey = F.hstack((eys[:, i, :], att_c))  # utt x (zdim + hdim)
             c_list[0], z_list[0] = self['lstm0'](c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
@@ -505,7 +505,7 @@ class Decoder(chainer.Chain):
         logging.info('min output length: ' + str(minlen))
         for i in six.moves.range(minlen, maxlen):
             ey = self.embed(y)           # utt list (1) x zdim
-            att_c, att_w = self.att([h], z_list[-1], att_w)
+            att_c, att_w = self.att([h], z_list[0], att_w)
             ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
             c_list[0], z_list[0] = self['lstm0'](c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
@@ -558,7 +558,7 @@ class Decoder(chainer.Chain):
             hyps_best_kept = []
             for hyp in hyps:
                 ey = self.embed(hyp['yseq'][i])           # utt list (1) x zdim
-                att_c, att_w = self.att([h], hyp['z_prev'][-1], hyp['a_prev'])
+                att_c, att_w = self.att([h], hyp['z_prev'][0], hyp['a_prev'])
                 ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
                 c_list[0], z_list[0] = self['lstm0'](hyp['c_prev'][0], hyp['z_prev'][0], ey)
                 for l in six.moves.range(1, self.dlayers):
