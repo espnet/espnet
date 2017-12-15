@@ -40,19 +40,19 @@ def _ilens_to_index(ilens):
     return x[1:]
 
 
-def _subsamplex(x, n):
-    x = [F.get_item(xx, (slice(None, None, n), slice(None))) for xx in x]
-    ilens = [xx.shape[0] for xx in x]
-    return x, ilens
-
-
 # get output dim for latter BLSTM
 def _get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     idim = idim / in_channel
     idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
     idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
-    idim = np.array(idim, dtype=np.int32)
-    return idim * out_channel  # numer of channels
+    return int(idim) * out_channel  # numer of channels
+
+
+# get output dim for latter BLSTM
+def _get_max_pooled_size(idim, out_channel=128, n_layers=2, ksize=2, stride=2):
+    for _ in range(n_layers):
+        idim = math.floor((idim - (ksize - 1) - 1) / stride)
+    return idim  # numer of channels
 
 
 def linear_tensor(linear, x):
@@ -105,12 +105,6 @@ class Loss(torch.nn.Module):
 
         if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
             self.reporter.report(loss_ctc, loss_att.data[0], acc, self.loss.data[0])
-            # reporter.report({'loss_ctc': loss_ctc}, self)
-            # reporter.report({'loss_att': loss_att}, self)
-            # reporter.report({'acc': acc}, self)
-
-            # logging.info('mtl loss:' + str(self.loss.data))
-            # reporter.report({'loss': self.loss}, self)
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -154,17 +148,17 @@ class E2E(torch.nn.Module):
         # encoder
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                            self.subsample, args.dropout_rate)
-            # # ctc
-            # self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
-            # # attention
-            # if args.atype == 'dot':
-            #     self.att = AttDot(args.eprojs, args.dunits, args.adim)
-            # elif args.atype == 'location':
-        self.att = AttLoc(args.eprojs, args.dunits, args.adim, args.aconv_chans, args.aconv_filts)
-            # else:
-            #     logging.error("Error: need to specify an appropriate attention archtecture")
-            #     sys.exit()
-            # # decoder
+        # ctc
+        self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+        # attention
+        if args.atype == 'dot':
+            self.att = AttDot(args.eprojs, args.dunits, args.adim)
+        elif args.atype == 'location':
+            self.att = AttLoc(args.eprojs, args.dunits, args.adim, args.aconv_chans, args.aconv_filts)
+        else:
+            logging.error("Error: need to specify an appropriate attention archtecture")
+            sys.exit()
+        # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list)
 
@@ -193,8 +187,7 @@ class E2E(torch.nn.Module):
         hpad, hlens = self.enc(xpad, ilens)
 
         # # 3. CTC loss
-        # loss_ctc = self.ctc(hs, ys)
-        loss_ctc = 0.0
+        loss_ctc = self.ctc(hpad, hlens, ys)
 
         # 4. attention loss
         loss_att, acc, att_w = self.dec(hpad, hlens, ys)
@@ -250,11 +243,11 @@ class CTC(torch.nn.Module):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
+        self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        from warpctc_pytorch import CTCLoss
+        self.loss_fn = CTCLoss()
 
-        with self.init_scope():
-            self.ctc_lo = L.Linear(eprojs, odim)
-
-    def forward(self, hs, ys):
+    def forward(self, hpad, ilens, ys):
         '''
 
         :param hs:
@@ -262,25 +255,25 @@ class CTC(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        ilens = [x.shape[0] for x in hs]
-        olens = [x.shape[0] for x in ys]
+        ilens = Variable(torch.from_numpy(np.fromiter(ilens, dtype=np.int32)))
+        olens = Variable(torch.from_numpy(np.fromiter((x.shape[0] for x in ys), dtype=np.int32)))
 
         # zero padding for hs
-        y_hat = linear_tensor(self.ctc_lo, F.dropout(F.pad_sequence(hs), ratio=self.dropout_rate))
-        y_hat = F.separate(y_hat, axis=1)  # ilen list of batch x hdim
+        y_hat = linear_tensor(self.ctc_lo, functional.dropout(hpad, p=self.dropout_rate))
 
         # zero padding for ys
-        y_true = F.pad_sequence(ys, padding=-1)  # batch x olen
+        y_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        input_length = chainer.Variable(self.xp.array(ilens, dtype=np.int32))
-        label_length = chainer.Variable(self.xp.array(olens, dtype=np.int32))
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(input_length.data))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str(label_length.data))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
 
         # get ctc loss
-        self.loss = F.connectionist_temporal_classification(y_hat, y_true, 0, input_length, label_length)
-        logging.info('ctc loss:' + str(self.loss.data))
+        # expected shape of seqLength x batchSize x alphabet_size
+        y_hat = y_hat.transpose(0, 1)
+        
+        self.loss = to_cuda(self, self.loss_fn(y_hat, y_true, ilens, olens))
+        logging.info('ctc loss:' + str(self.loss.data[0]))
 
         return self.loss
 
@@ -697,13 +690,16 @@ class Encoder(torch.nn.Module):
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
             self.enc1 = VGG2L(in_channel)
-            self.enc2 = BLSTMP(int(_get_vgg2l_odim(idim, in_channel=in_channel)),
+            self.enc2 = BLSTMP(_get_vgg2l_odim(idim, in_channel=in_channel),
+                               #_get_max_pooled_size(idim // in_channel) * 128,
                                elayers, eunits, eprojs,
                                subsample, dropout)
             logging.info('Use CNN-VGG + BLSTMP for encoder')
         elif etype == 'vggblstm':
             self.enc1 = VGG2L(in_channel)
-            self.enc2 = BLSTM(_get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+            self.enc2 = BLSTM(_get_vgg2l_odim(idim, in_channel=in_channel),
+                              #_get_max_pooled_size(idim // in_channel) * 128,
+                              elayers, eunits, eprojs, dropout)
             logging.info('Use CNN-VGG + BLSTM for encoder')
         else:
             logging.error("Error: need to specify an appropriate encoder archtecture")
@@ -834,20 +830,21 @@ class VGG2L(torch.nn.Module):
         # NOTE: max_pool1d ?
         xs = functional.relu(self.conv1_1(xs))
         xs = functional.relu(self.conv1_2(xs))
-        xs = functional.max_pool2d(xs, 2, stride=2)
+        xs = functional.max_pool2d(xs, 2, stride=2, ceil_mode=True)
 
         xs = functional.relu(self.conv2_1(xs))
         xs = functional.relu(self.conv2_2(xs))
-        xs = functional.max_pool2d(xs, 2, stride=2)
-
+        xs = functional.max_pool2d(xs, 2, stride=2, ceil_mode=True)
         # change ilens accordingly
-        ilens = [(i + 1) // 2 for i in ilens]
-        ilens = [(i + 1) // 2 for i in ilens]
+        # ilens = [_get_max_pooled_size(i) for i in ilens]
+        ilens = np.array(np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
+        ilens = np.array(np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
+
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = xs.transpose(1, 2)
         xs = xs.contiguous().view(xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3])
-        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+        xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens
 

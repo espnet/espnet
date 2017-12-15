@@ -7,6 +7,7 @@
 . ./cmd.sh
 
 # general configuration
+backend=chainer
 stage=0        # start from 0 if you need to start from data preparation
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
@@ -150,8 +151,14 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
+    if [[ ${backend} == chainer ]]; then
+        train_script=asr_train.py
+    else 
+        train_script=asr_train_th.py
+    fi
+
     ${cuda_cmd} ${expdir}/train.log \
-	    asr_train.py \
+	    ${train_script} \
 	    --gpu ${gpu} \
 	    --outdir ${expdir}/results \
 	    --debugmode ${debugmode} \
