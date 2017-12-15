@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2017 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 from kaldi_io_py import open_or_fd, read_mat
 
 
