@@ -29,7 +29,7 @@ from e2e_asr_attctc import E2E
 from e2e_asr_attctc import Loss
 
 # for kaldi io
-import kaldi_io
+import lazy_io
 
 # numpy related
 import numpy as np
@@ -397,7 +397,7 @@ def main():
     # get input and output dimension info
     with open(args.valid_label, 'r') as f:
         valid_json = json.load(f)['utts']
-    utts = valid_json.keys()
+    utts = list(valid_json.keys())
     idim = int(valid_json[utts[0]]['idim'])
     odim = int(valid_json[utts[0]]['odim'])
     logging.info('#input dims : ' + str(idim))
@@ -411,7 +411,7 @@ def main():
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
     model_conf = args.outdir + '/model.conf'
-    with open(model_conf, 'w') as f:
+    with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
         # TODO use others than pickle, possibly json, and save as a text
         pickle.dump((idim, odim, args), f)
@@ -456,8 +456,8 @@ def main():
     valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
 
     # prepare Kaldi reader
-    train_reader = kaldi_io.RandomAccessBaseFloatMatrixReader(args.train_feat)
-    valid_reader = kaldi_io.RandomAccessBaseFloatMatrixReader(args.valid_feat)
+    train_reader = lazy_io.read_dict_scp(args.train_feat)
+    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # Set up a trainer
     updater = SeqUpdaterKaldi(train_iter, optimizer, train_reader, gpu_id)

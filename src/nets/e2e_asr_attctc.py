@@ -147,7 +147,7 @@ class E2E(chainer.Chain):
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
         # utt list of olen
-        ys = [self.xp.array(map(int, i[1]['tokenid'].split()), dtype=np.int32) for i in data]
+        ys = [self.xp.array(list(map(int, i[1]['tokenid'].split())), dtype=np.int32) for i in data]
         ys = [chainer.Variable(y) for y in ys]
 
         # subsample frame
@@ -773,7 +773,7 @@ class VGG2L(chainer.Chain):
         xs = F.pad_sequence(xs)
 
         # x: utt x 1 (input channel num) x frame x dim
-        xs = F.swapaxes(F.reshape(xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] / self.in_channel)), 1, 2)
+        xs = F.swapaxes(F.reshape(xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
 
         xs = F.relu(self.conv1_1(xs))
         xs = F.relu(self.conv1_2(xs))
