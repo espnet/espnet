@@ -109,8 +109,8 @@ def main():
         # print out decoding result
         seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
         seq_true = [train_args.char_list[int(idx)] for idx in y_true]
-        seq_hat_text = "".join(seq_hat).encode('utf-8')
-        seq_true_text = "".join(seq_true).encode('utf-8')
+        seq_hat_text = "".join(seq_hat).encode('utf-8').replace('<space>', ' ')
+        seq_true_text = "".join(seq_true).encode('utf-8').replace('<space>', ' ')
         logging.info("groundtruth[%s]: " + seq_true_text, name)
         logging.info("prediction [%s]: " + seq_hat_text, name)
 

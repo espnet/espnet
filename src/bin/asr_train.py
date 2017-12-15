@@ -381,16 +381,9 @@ def main():
     if args.dict is not None:
         with open(args.dict, 'r') as f:
             dictionary = f.readlines()
-        char_list = [None] * (len(dictionary) + 2)  # "+2" indicates <blank> and <eos>
-        for entry in dictionary:
-            char = unicode(entry.split(' ')[0], 'utf_8')
-            i = int(entry.split(' ')[1])
-            if char == '<space>':
-                char_list[i] = ' '
-            else:
-                char_list[i] = char
-        char_list[0] = '<blank>'
-        char_list[-1] = '<eos>'
+        char_list = [unicode(entry.split(' ')[0], 'utf_8') for entry in dictionary] 
+        char_list.insert(0, '<blank>')
+        char_list.append('<eos>')
         args.char_list = char_list
     else:
         args.char_list = None
