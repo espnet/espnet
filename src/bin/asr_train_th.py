@@ -59,10 +59,11 @@ matplotlib.use('Agg')
 
 # Custom evaluater with Kaldi reader
 class SeqEvaluaterKaldi(extensions.Evaluator):
-    def __init__(self, iterator, target, reader, device):
+    def __init__(self, model, iterator, target, reader, device):
         super(SeqEvaluaterKaldi, self).__init__(
             iterator, target, device=device)
         self.reader = reader
+        self.model = model
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -88,9 +89,9 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
                 #    will be converted to chainer variable later
                 # batch only has one minibatch utterance, which is specified by batch[0]
                 x = converter_kaldi(batch[0], self.reader)
-                with function.no_backprop_mode():
-                    eval_func(x)
-                    delete_feat(x)
+                self.model.eval()
+                self.model(x)
+                delete_feat(x)
 
             summary.add(observation)
 
@@ -465,6 +466,8 @@ def main():
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", model.reporter)
+    setattr(optimizer, "serialize", lambda s: model.reporter.serialize(s))
+    
 
     # read json data
     with open(args.train_label, 'r') as f:
@@ -488,12 +491,14 @@ def main():
     updater = SeqUpdaterKaldi(model, args.grad_clip, train_iter, optimizer, train_reader, gpu_id)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
+    # TODO: fix this
     # Resume from a snapshot
     if args.resume:
+        raise NotImplementedError
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(SeqEvaluaterKaldi(valid_iter, model, valid_reader, device=gpu_id))
+    trainer.extend(SeqEvaluaterKaldi(model, valid_iter, model.reporter, valid_reader, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -507,14 +512,19 @@ def main():
                                          'epoch', file_name='acc.png'))
 
     # Save best models
-    torch_save = lambda path, obj : torch.save(obj, path.state_dict())
+    def torch_save(path, _):
+        torch.save(model.state_dict(), path)
+        torch.save(model, path + ".pkl")
+
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
     trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                    trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
-    torch_load = lambda path, obj : obj.load_state_dict(torch.load(path))
+    def torch_load(path, obj):
+        model.load_state_dict(torch.load(path))
+        return obj
     if args.opt == 'adadelta':
         if args.criterion == 'acc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),

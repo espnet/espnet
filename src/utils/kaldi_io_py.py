@@ -1,1 +1,1 @@
-/home/karita/work/repos/espnet/tools/kaldi-io-for-python/kaldi_io.py
+../../tools/kaldi-io-for-python/kaldi_io.py
