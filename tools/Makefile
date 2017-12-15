@@ -9,7 +9,6 @@ jq:
 
 kaldi-io-for-python.git:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
-	ln -s `pwd`/kaldi-io-for-python/kaldi_io.py ../src/utils/kaldi_io_py.py
 
 kaldi_python: kaldi venv
 	git clone https://github.com/dmitriy-serdyuk/kaldi-python.git kaldi_python
