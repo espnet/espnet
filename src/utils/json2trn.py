@@ -26,10 +26,13 @@ if __name__ == '__main__':
     logging.info("reading %s", args.dict)
     with open(args.dict, 'r') as f:
         dictionary = f.readlines()
-    char_list = [d.split(' ')[0].decode('utf-8') for d in dictionary]
-    char_list.insert(0, '<sos>')
-    char_list.append('<eos>')
-    print([x.encode('utf-8') for x in char_list])
+    char_list = [None] * (len(dictionary) + 2)  # "+2" indicates <blank> and <eos>
+    for entry in dictionary:
+        char = unicode(entry.split(' ')[0], 'utf_8')
+        i = int(entry.split(' ')[1])
+    char_list[0] = '<blank>'
+    char_list[-1] = '<eos>'
+    # print([x.encode('utf-8') for x in char_list])
 
     logging.info("writing hyp trn to %s", args.hyp)
     logging.info("writing ref trn to %s", args.ref)
