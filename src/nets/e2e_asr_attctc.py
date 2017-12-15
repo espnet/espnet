@@ -48,7 +48,7 @@ def linear_tensor(linear, x):
     :param Link linear: Linear link (M x N matrix)
     :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
     :return:
-    :param Variable x: Tensor (D_1 x D_2 x ... x N matrix)
+    :param Variable y: Tensor (D_1 x D_2 x ... x N matrix)
     '''
     dim = 1
     shapes = list(x.shape[:-1])
@@ -466,8 +466,8 @@ class Decoder(chainer.Chain):
                 idx_true = y_true_[y_true_ != -1]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
-                seq_hat = "".join(seq_hat).encode('utf-8')
-                seq_true = "".join(seq_true).encode('utf-8')
+                seq_hat = "".join(seq_hat).encode('utf-8').replace('<space>', ' ')
+                seq_true = "".join(seq_true).encode('utf-8').replace('<space>', ' ')
                 logging.info("groundtruth[%d]: " + seq_true, i)
                 logging.info("prediction [%d]: " + seq_hat, i)
 
@@ -571,7 +571,7 @@ class Decoder(chainer.Chain):
             # sort and get nbest
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothes: ' + str(len(hyps)))
-            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]).encode('utf-8'))
+            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]).encode('utf-8').replace('<space>', ' '))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -599,7 +599,7 @@ class Decoder(chainer.Chain):
                 break
 
             for hyp in hyps:
-                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]).encode('utf-8'))
+                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]).encode('utf-8').replace('<space>', ' '))
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
