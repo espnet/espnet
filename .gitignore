@@ -10,5 +10,3 @@ egs/*/*/exp
 egs/*/*/fbank
 egs/*/*/stft
 *DS_Store
-
-tools/
