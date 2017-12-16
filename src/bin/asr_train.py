@@ -29,6 +29,7 @@ from e2e_asr_attctc import E2E
 from e2e_asr_attctc import Loss
 
 # for kaldi io
+import kaldi_io
 import lazy_io
 
 # numpy related
@@ -379,9 +380,9 @@ def main():
 
     # load dictionary for debug log
     if args.dict is not None:
-        with open(args.dict, 'r') as f:
+        with open(args.dict, 'rb') as f:
             dictionary = f.readlines()
-        char_list = [unicode(entry.split(' ')[0], 'utf_8') for entry in dictionary] 
+        char_list = [entry.decode('utf-8').split(' ')[0] for entry in dictionary] 
         char_list.insert(0, '<blank>')
         char_list.append('<eos>')
         args.char_list = char_list
@@ -395,7 +396,7 @@ def main():
         logging.warning('cudnn is not available')
 
     # get input and output dimension info
-    with open(args.valid_label, 'r') as f:
+    with open(args.valid_label, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
     idim = int(valid_json[utts[0]]['idim'])
@@ -442,9 +443,9 @@ def main():
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
     # read json data
-    with open(args.train_label, 'r') as f:
+    with open(args.train_label, 'rb') as f:
         train_json = json.load(f)['utts']
-    with open(args.valid_label, 'r') as f:
+    with open(args.valid_label, 'rb') as f:
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
@@ -456,8 +457,11 @@ def main():
     valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
 
     # prepare Kaldi reader
-    train_reader = lazy_io.read_dict_scp(args.train_feat)
-    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
+    train_reader = kaldi_io.RandomAccessBaseFloatMatrixReader(args.train_feat)
+    valid_reader = kaldi_io.RandomAccessBaseFloatMatrixReader(args.valid_feat)
+
+    # train_reader = lazy_io.read_dict_scp(args.train_feat)
+    # valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # Set up a trainer
     updater = SeqUpdaterKaldi(train_iter, optimizer, train_reader, gpu_id)
