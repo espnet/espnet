@@ -29,7 +29,6 @@ from e2e_asr_attctc import E2E
 from e2e_asr_attctc import Loss
 
 # for kaldi io
-import kaldi_io
 import lazy_io
 
 # numpy related
@@ -457,11 +456,8 @@ def main():
     valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
 
     # prepare Kaldi reader
-    train_reader = kaldi_io.RandomAccessBaseFloatMatrixReader(args.train_feat)
-    valid_reader = kaldi_io.RandomAccessBaseFloatMatrixReader(args.valid_feat)
-
-    # train_reader = lazy_io.read_dict_scp(args.train_feat)
-    # valid_reader = lazy_io.read_dict_scp(args.valid_feat)
+    train_reader = lazy_io.read_dict_scp(args.train_feat)
+    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # Set up a trainer
     updater = SeqUpdaterKaldi(train_iter, optimizer, train_reader, gpu_id)
