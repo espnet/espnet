@@ -12,3 +12,5 @@ export LC_ALL=C
 export PATH=$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$JQ_ROOT:$MAIN_ROOT/tools/nkf/nkf-2.1.4/:$PATH
 source $MAIN_ROOT/tools/venv/bin/activate
 export PYTHONPATH=$SPNET_ROOT/nets/:$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH
+
+export OMP_NUM_THREADS=1

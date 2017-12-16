@@ -48,7 +48,7 @@ def linear_tensor(linear, x):
     :param Link linear: Linear link (M x N matrix)
     :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
     :return:
-    :param Variable x: Tensor (D_1 x D_2 x ... x N matrix)
+    :param Variable y: Tensor (D_1 x D_2 x ... x N matrix)
     '''
     dim = 1
     shapes = list(x.shape[:-1])
@@ -372,7 +372,8 @@ class AttLoc(chainer.Chain):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # TODO consider zero padding when compute w.
+        # TODO consider energy -infinity padding for e.
+        # TODO use batch_matmul
         e = F.squeeze(linear_tensor(self.gvec, F.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)), axis=2)
         w = F.softmax(scaling * e)
 
@@ -465,8 +466,8 @@ class Decoder(chainer.Chain):
                 idx_true = y_true_[y_true_ != -1]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
-                seq_hat = "".join(seq_hat)
-                seq_true = "".join(seq_true)
+                seq_hat = "".join(seq_hat).encode('utf-8').replace('<space>', ' ')
+                seq_true = "".join(seq_true).encode('utf-8').replace('<space>', ' ')
                 logging.info("groundtruth[%d]: " + seq_true, i)
                 logging.info("prediction [%d]: " + seq_hat, i)
 
@@ -570,7 +571,7 @@ class Decoder(chainer.Chain):
             # sort and get nbest
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothes: ' + str(len(hyps)))
-            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]))
+            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]).encode('utf-8').replace('<space>', ' '))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -598,7 +599,7 @@ class Decoder(chainer.Chain):
                 break
 
             for hyp in hyps:
-                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
+                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]).encode('utf-8').replace('<space>', ' '))
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
@@ -670,6 +671,7 @@ class Encoder(chainer.Chain):
         return xs, ilens
 
 
+# TODO explanation of BLSTMP 
 class BLSTMP(chainer.Chain):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
@@ -699,6 +701,7 @@ class BLSTMP(chainer.Chain):
         for layer in six.moves.range(self.elayers):
             hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
+            # TODO replace subsample and FC layer with CNN
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
             ys = self['bt' + str(layer)](F.vstack(ys))  # (sum _utt frame_utt) x dim
             xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
@@ -744,6 +747,7 @@ class BLSTM(chainer.Chain):
         return xs, ilens  # x: utt list of frame x dim
 
 
+# TODO explanation of VGG2L, VGG2B (Block) might be better
 class VGG2L(chainer.Chain):
     def __init__(self, in_channel=1):
         super(VGG2L, self).__init__()

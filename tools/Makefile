@@ -1,23 +1,8 @@
-all: kaldi kaldi_python jq venv venv/bin/activate nkf kaldi-io-for-python.git
-
-docker: kaldi kaldi_python_docker jq 
-
-jq:
-	mkdir -p jq
-	curl -o jq/jq -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
-	chmod +x -R jq
+all: kaldi venv venv/bin/activate nkf kaldi-io-for-python.git
 
 kaldi-io-for-python.git:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
-	ln -s `pwd`/kaldi-io-for-python/kaldi_io.py ../src/utils/kaldi_io_py.py
-
-kaldi_python: kaldi venv
-	git clone https://github.com/dmitriy-serdyuk/kaldi-python.git kaldi_python
-	. venv/bin/activate; cd kaldi_python; export KALDI_ROOT=`pwd`/../kaldi/; python setup.py install
-
-kaldi_python_docker: kaldi
-	git clone https://github.com/dmitriy-serdyuk/kaldi-python.git kaldi_python
-	cd kaldi_python; export KALDI_ROOT=`pwd`/../kaldi/; python setup.py install
+	cd ../src/utils; ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
 
 kaldi: kaldi_github
 	cd kaldi_github/tools; git checkout 9e7644cac682123de110ad6580e15f311b953c73; $(MAKE) all
@@ -40,5 +25,5 @@ nkf:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
 clean:
-	rm -fr kaldi_github kaldi kaldi_python jq venv nkf
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py
 	find -iname "*.pyc" -delete
