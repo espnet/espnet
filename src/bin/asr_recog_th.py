@@ -14,10 +14,11 @@ import json
 
 # chainer related
 import chainer
+import torch
 
 # spnet related
-from e2e_asr_attctc import E2E
-from e2e_asr_attctc import Loss
+from e2e_asr_attctc_th import E2E
+from e2e_asr_attctc_th import Loss
 
 # for kaldi io
 import kaldi_io_py
@@ -92,7 +93,10 @@ def main():
     logging.info('reading model parameters from' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
-    chainer.serializers.load_npz(args.model, model)
+    # chainer.serializers.load_npz(args.model, model)
+    def cpu_loader(storage, location):
+        return storage
+    model.load_state_dict(torch.load(args.model, map_location=cpu_loader))
 
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_ark(args.recog_feat)
@@ -103,7 +107,6 @@ def main():
 
     new_json = {}
     for name, feat in reader:
-        logging.info('decoding ' + name)
         y_hat = e2e.recognize(feat, args, train_args.char_list)
         y_true = map(int, recog_json[name]['tokenid'].split())
 
@@ -119,14 +122,17 @@ def main():
         new_json[name] = recog_json[name]
 
         # added recognition results to json
-        new_json[name]['rec_tokenid'] = " ".join([str(idx[0]) for idx in y_hat])
+        logging.debug("dump token id")
+        # TODO(karita) make consistent to chainer as idx[0] not idx
+        new_json[name]['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
+        logging.debug("dump token")
         new_json[name]['rec_token'] = " ".join(seq_hat)
+        logging.debug("dump text")
         new_json[name]['rec_text'] = seq_hat_text
 
     # TODO fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_json}, indent=4).encode('utf_8'))
-
 
 
 if __name__ == '__main__':
