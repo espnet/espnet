@@ -4,18 +4,25 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import sys
-sys.path.append("./src/nets")
-
+import pytest
 import numpy
 import chainer
 import chainer.functions as F
-import torch
-from warpctc_pytorch import CTCLoss
-from e2e_asr_attctc_th import pad_list
 
 
 def test_loss():
+    try:
+        import torch
+    except:
+        pytest.skip("pytorch is not installed")
+    try:
+        from warpctc_pytorch import CTCLoss
+    except:
+        pytest.skip("warpctc_pytorch is not installed")
+
+    from e2e_asr_attctc_th import pad_list
+
+
     n_out = 7
     n_batch = 3
     input_length = numpy.array([11, 17, 15], dtype=numpy.int32)

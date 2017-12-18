@@ -1,8 +1,8 @@
 # coding: utf-8
-import sys
-sys.path.append("./src/utils")
-
 import os
+import sys
+
+import pytest
 import numpy
 
 
@@ -13,14 +13,12 @@ def test_voxforge_feats():
     try:
         import kaldi_io
     except:
-        print("skip test_voxforge_feats because kaldi_io (kaldi-python) is not installed")
-        return
+        pytest.skip("kaldi_io (kaldi-python) is not installed")
 
 
     train_scp = "scp:egs/voxforge/asr1/data/tr_it/feats.scp"
     if not os.path.exists(train_scp):
-        print("skip test_voxforge_feats because voxforge scp has not been created")
-        return
+        pytest.skip("voxforge scp has not been created")
 
     r1 = kaldi_io_py.read_mat_scp(train_scp)
     r2 = kaldi_io.RandomAccessBaseFloatMatrixReader(train_scp)

@@ -4,15 +4,12 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import sys
+import importlib
 import argparse
-sys.path.append("./src/nets")
 
-
+import pytest
 import numpy
 
-import e2e_asr_attctc_th
-import e2e_asr_attctc
 
 args = argparse.Namespace(
     elayers = 4,
@@ -40,7 +37,14 @@ args = argparse.Namespace(
 
 
 def test_model_trainable_and_decodable():
-    for m in [e2e_asr_attctc, e2e_asr_attctc_th]:
+    for m_str in ["e2e_asr_attctc", "e2e_asr_attctc_th"]:
+        try:
+            import torch
+        except:
+            if m_str[-3:] == "_th":
+                pytest.skip("pytorch is not installed")
+
+        m = importlib.import_module(m_str)
         model = m.Loss(m.E2E(40, 5, args), 0.5)
         out_data = "1 2 3 4"
         data = [
