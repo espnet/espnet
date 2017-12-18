@@ -7,6 +7,7 @@
 . ./cmd.sh
 
 # general configuration
+backend=chainer
 stage=0        # start from 0 if you need to start from data preparation
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
@@ -114,6 +115,8 @@ if [ ${stage} -le 1 ]; then
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
+nlsyms=data/lang_1char/non_lang_syms.txt
+
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -121,7 +124,6 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    nlsyms=data/lang_1char/non_lang_syms.txt
     cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
     cat ${nlsyms}
 
@@ -150,8 +152,14 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
+    if [[ ${backend} == chainer ]]; then
+        train_script=asr_train.py
+    else 
+        train_script=asr_train_th.py
+    fi
+
     ${cuda_cmd} ${expdir}/train.log \
-	    asr_train.py \
+	    ${train_script} \
 	    --gpu ${gpu} \
 	    --outdir ${expdir}/results \
 	    --debugmode ${debugmode} \
@@ -182,7 +190,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ ${stage} -le 4 ]; then
-    echo "stage 4: Decoding"
+    echo "stage 4: Decoding data preparation"
     nj=32
 
     for rtask in ${recog_set}; do
@@ -192,22 +200,46 @@ if [ ${stage} -le 4 ]; then
 	    # split data
 	    data=data/${rtask}
 	    split_data.sh --per-utt ${data} ${nj};
+
+	    # make json labels for recognition
+	    data2json.sh ${data} ${dict} > ${data}/data.json
+
+	) &
+    done
+    wait
+    echo "Finished"
+fi
+
+
+if [ ${stage} -le 5 ]; then
+    echo "stage 5: Decoding"
+    nj=32
+
+    for rtask in ${recog_set}; do
+	(
+	    decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+
+	    # split data
+	    data=data/${rtask}
 	    sdata=${data}/split${nj}utt;
 
 	    # feature extraction
 	    feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
 	    if ${do_delta}; then
-		feats="$feats add-deltas ark:- ark:- |"
+		    feats="$feats add-deltas ark:- ark:- |"
 	    fi
-
-	    # make json labels for recognition
-	    data2json.sh ${data} ${dict} > ${data}/data.json
-
 	    #### use CPU for decoding
-	    gpu=-1
+	    gpu=0
+
+      if [[ ${backend} == chainer ]]; then
+          decode_script=asr_recog.py
+      else 
+          decode_script=asr_recog_th.py
+      fi
+      mkdir -p ${expdir}/${decode_dir}/log
 
 	    ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-			asr_recog.py \
+			${decode_script} \
 			--gpu ${gpu} \
 			--recog-feat "$feats" \
 			--recog-label ${data}/data.json \
@@ -218,9 +250,22 @@ if [ ${stage} -le 4 ]; then
 			--penalty ${penalty} \
 			--maxlenratio ${maxlenratio} \
 			--minlenratio ${minlenratio} \
+      --debugmode ${debugmode} \
+      --verbose ${verbose} \
 			&
 	    wait
+	) &
+    done
+    wait
+fi
 
+if [ ${stage} -le 6 ]; then
+    echo "stage 6: Evaluation"
+    nj=32
+
+    for rtask in ${recog_set}; do
+	(
+	    decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
 	    score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
 	) &
