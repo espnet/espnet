@@ -14,21 +14,22 @@ matrix:
 
 install:
   - pip install -U pip wheel
-  - python setup.py sdist
-  - pip install dist/*.tar.gz
   - pip install pytest hacking mock
   - pip install autopep8
-  - pip install -r tools/requirements.txt
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp36-cp27mu-linux_x86_64.whl; fi
-  - cd tools && make warp-ctc && cd -
+  # unable to install pytorch as https://github.com/pytorch/pytorch/issues/4178
+  # - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl; fi
+  # - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp36-cp36m-linux_x86_64.whl; fi
+  # - cd tools && make warp-ctc && cd -
+  - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
+  - cd tools && git clone https://github.com/vesis84/kaldi-io-for-python.git && cd -
 
 
 script:
+  # TODO test coding style?
   # - flake8
   # - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
   # - test ! -s check_autopep8
-  - cd tests
+  - export PYTHONPATH=`pwd`/src/nets:`pwd`/src/utils
   - pytest test
 
 sudo: false

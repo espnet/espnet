@@ -84,7 +84,7 @@ class Reporter(chainer.Chain):
 
 # TODO merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    def __init__(self, predictor, mtlalpha=0.0):
+    def __init__(self, predictor, mtlalpha):
         super(Loss, self).__init__()
         self.mtlalpha = mtlalpha
         self.loss = None
@@ -104,7 +104,7 @@ class Loss(torch.nn.Module):
         self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
         if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
-            self.reporter.report(loss_ctc, loss_att.data[0], acc, self.loss.data[0])
+            self.reporter.report(loss_ctc.data[0], loss_att.data[0], acc, self.loss.data[0])
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -847,49 +847,3 @@ class VGG2L(torch.nn.Module):
         xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens
-
-
-if __name__ == '__main__':
-    import numpy
-    from typing import NamedTuple
-    class args(NamedTuple):
-        elayers = 4
-        subsample = "1_2_2_1_1"
-        etype = "vggblstmp"
-        eunits = 100
-        eprojs = 100
-        dlayers=1
-        dunits=300
-        # attention related
-        atype="location"
-        aconv_chans=10
-        aconv_filts=100
-        mtlalpha=0.5
-        # defaults
-        adim=320
-        dropout_rate=0.0
-        beam_size=3
-        penalty=0.5
-
-        maxlenratio=1.0
-        minlenratio=0.0
-
-        verbose = True
-        char_list = ["a", "b", "c", "d", "e"]
-        outdir = None
-
-    model = Loss(E2E(40, 5, args))
-    model.cuda()
-    out_data = "1 2 3 4"
-    data = [
-        ("aaa", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid=out_data)),
-        ("bbb", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), tokenid=out_data))
-    ]
-    attn_loss = model(data)
-    print(attn_loss.data[0])
-    attn_loss.backward()
-
-    in_data = data[0][1]["feat"]
-    y = model.predictor.recognize(in_data, args, args.char_list)
-    print(y)
-    print("OK")
