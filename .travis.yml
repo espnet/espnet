@@ -1,0 +1,41 @@
+language: python
+
+cache:
+  - pip
+  - ccache
+
+matrix:
+  include:
+    - os: linux
+      python: "2.7"
+    - os: linux
+      python: "3.6"
+
+
+install:
+  - pip install -U pip wheel
+  - python setup.py sdist
+  - pip install dist/*.tar.gz
+  - pip install pytest hacking mock
+  - pip install autopep8
+  - pip install -r tools/requirements.txt
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp36-cp27mu-linux_x86_64.whl; fi
+  - cd tools && make warp-ctc && cd -
+
+
+script:
+  # - flake8
+  # - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
+  # - test ! -s check_autopep8
+  - cd tests
+  - pytest test
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - cmake
+      - python-dev
+      - python3-dev
