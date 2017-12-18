@@ -571,7 +571,7 @@ class Decoder(chainer.Chain):
             # sort and get nbest
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothes: ' + str(len(hyps)))
-            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]).encode('utf-8').replace('<space>', ' '))
+            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]).replace('<space>', ' '))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -599,7 +599,7 @@ class Decoder(chainer.Chain):
                 break
 
             for hyp in hyps:
-                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]).encode('utf-8').replace('<space>', ' '))
+                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]).replace('<space>', ' '))
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
