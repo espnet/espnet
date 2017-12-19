@@ -460,7 +460,7 @@ def main():
 
     # Setup an optimizer
     if args.opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(model.parameters(), eps=args.eps)
+        optimizer = torch.optim.Adadelta(model.parameters(), rho=0.95, eps=args.eps)
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters())
 
