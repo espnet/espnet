@@ -466,8 +466,8 @@ class Decoder(chainer.Chain):
                 idx_true = y_true_[y_true_ != -1]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
-                seq_hat = "".join(seq_hat).encode('utf-8').replace('<space>', ' ')
-                seq_true = "".join(seq_true).encode('utf-8').replace('<space>', ' ')
+                seq_hat = "".join(seq_hat).replace('<space>', ' ')
+                seq_true = "".join(seq_true).replace('<space>', ' ')
                 logging.info("groundtruth[%d]: " + seq_true, i)
                 logging.info("prediction [%d]: " + seq_hat, i)
 
