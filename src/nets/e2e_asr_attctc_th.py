@@ -474,6 +474,13 @@ class AttLoc(torch.nn.Module):
         return c, w
 
 
+def th_accuracy(y_all, pad_target, ignore_label):
+    acc = 0
+    pad_pred = y_all.data.view(pad_target.size(0), pad_target.size(1), y_all.size(1)).max(2)[1]
+    mask = pad_target.data != ignore_label
+    return torch.sum(pad_pred.masked_select(mask) == pad_target.data.masked_select(mask)) / torch.sum(mask)
+
+
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
@@ -551,11 +558,7 @@ class Decoder(torch.nn.Module):
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         # acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
-        acc = 0
-        pred_pad = y_all.data.view(len(ys), olength, y_all.size(1)).max(2)[1]
-        for i in range(len(ys)):
-            acc += torch.sum(pred_pad[i, :ys[i].size(0)] == ys[i].data)
-        acc /= sum(map(len, ys))
+        acc = th_accuracy(y_all, pad_ys_out, ignore_label=ignore_id)
         logging.info('att loss:' + str(self.loss.data))
 
         # show predicted character sequence for debug

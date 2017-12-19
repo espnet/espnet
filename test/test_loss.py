@@ -89,3 +89,45 @@ def test_attn_loss():
     # NOTE: warpctc_pytorch.CTCLoss does not normalize itself by batch-size while chainer's default setting does
 
     numpy.testing.assert_allclose(th_loss.data[0], ch_loss.data, 0.05)
+
+
+
+def test_train_acc():
+    try:
+        import torch
+    except:
+        pytest.skip("pytorch is not installed")
+    from e2e_asr_attctc_th import pad_list, th_accuracy
+
+    n_out = 7
+    _sos = n_out - 1
+    _eos = n_out - 1
+    n_batch = 3
+    label_length = numpy.array([4, 2, 3], dtype=numpy.int32)
+    np_pred = numpy.random.rand(n_batch, max(label_length) + 1, n_out).astype(numpy.float32)
+    # NOTE: 0 is only used for CTC, never appeared in attn target
+    np_target = [numpy.random.randint(1, n_out-1, size=ol, dtype=numpy.int32) for ol in label_length]
+
+    eos = numpy.array([_eos], 'i')
+    sos = numpy.array([_sos], 'i')
+    ys_in = [F.concat([sos, y], axis=0) for y in np_target]
+    ys_out = [F.concat([y, eos], axis=0) for y in np_target]
+
+    # padding for ys with -1
+    # pys: utt x olen
+    pad_ys_in = F.pad_sequence(ys_in, padding=_eos)
+    pad_ys_out = F.pad_sequence(ys_out, padding=-1)  # NOTE: -1 is default ignore index for chainer
+    y_all = F.reshape(np_pred, (n_batch * (max(label_length) + 1), n_out))
+    ch_acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
+
+    # NOTE: this index 0 is only for CTC not attn. so it can be ignored
+    # unfortunately, torch cross_entropy does not accept out-of-bound ids
+    th_ignore = 0
+    th_pred = torch.autograd.Variable(torch.from_numpy(y_all.data))
+    th_ys = [torch.autograd.Variable(torch.from_numpy(numpy.append(t, eos))).long()
+             for t in np_target]
+    th_target = pad_list(th_ys, th_ignore)
+    th_olen = torch.autograd.Variable(torch.from_numpy(label_length))
+    th_acc = th_accuracy(th_pred, th_target, th_ignore)
+
+    numpy.testing.assert_allclose(ch_acc.data, th_acc)
