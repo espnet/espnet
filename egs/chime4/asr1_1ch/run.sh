@@ -130,13 +130,13 @@ fi
 
 dict=data/lang_1char/${train_set}_units.txt
 echo "dictionary: ${dict}"
+nlsyms=data/lang_1char/non_lang_syms.txt
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
 	echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    nlsyms=data/lang_1char/non_lang_syms.txt
     cut -f 2- data-fbank/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
     cat ${nlsyms}
 
