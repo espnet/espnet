@@ -40,6 +40,29 @@ def _ilens_to_index(ilens):
     return x[1:]
 
 
+def lecun_normal_init_parameters(module):
+    for p in module.parameters():
+        data = p.data
+        if data.dim() == 1:
+            # bias
+            data.zero_()
+        elif data.dim() == 2:
+            # linear weight
+            n = data.size(1)
+            stdv = 1. / math.sqrt(n)
+            data.normal_(0, stdv)
+        elif data.dim() == 4:
+            # conv weight
+            n = data.size(1)
+            for k in data.size()[2:]:
+                n *= k
+            stdv = 1. / math.sqrt(n)
+            data.normal_(0, stdv)
+        else:
+            raise NotImplementedError
+        
+
+
 # get output dim for latter BLSTM
 def _get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     idim = idim / in_channel
@@ -161,6 +184,8 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list)
+        # maybe consistent to chainer
+        lecun_normal_init_parameters(self)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):
@@ -272,7 +297,7 @@ class CTC(torch.nn.Module):
         # expected shape of seqLength x batchSize x alphabet_size
         y_hat = y_hat.transpose(0, 1)
         
-        self.loss = to_cuda(self, self.loss_fn(y_hat, y_true, ilens, olens))
+        self.loss = to_cuda(self, self.loss_fn(y_hat, y_true, ilens, olens)) / len(ys)
         logging.info('ctc loss:' + str(self.loss.data[0]))
 
         return self.loss
