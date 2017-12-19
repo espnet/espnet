@@ -144,6 +144,12 @@ def pad_list(xs, pad_value=float("nan")):
     return pad
 
 
+def set_forget_bias_to_one(bias):
+    n = bias.size(0)
+    start, end = n//4, n//2
+    bias.data[start:end].fill_(1.)
+
+
 class E2E(torch.nn.Module):
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
@@ -184,8 +190,34 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list)
-        # maybe consistent to chainer
+
+        # weight initialization
+        self.init_like_chainer()
+        # additional forget-bias init in encoder ?
+        # for m in self.modules():
+        #     if isinstance(m, torch.nn.LSTM):
+        #         for name, p in m.named_parameters():
+        #             if "bias_ih" in name:
+        #                 set_forget_bias_to_one(p)
+    
+    def init_like_chainer(self):
+        """
+        chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
+        pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
+
+        however, there are two exceptions as far as I know.
+        - EmbedID.W ~ Normal(0, 1)
+        - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
+        """
         lecun_normal_init_parameters(self)
+
+        # exceptions
+        # embed weight ~ Normal(0, 1)
+        self.dec.embed.weight.data.normal_(0, 1)
+        # forget-bias = 1.0
+        # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
+        set_forget_bias_to_one(self.dec.decoder.bias_ih)
+
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):

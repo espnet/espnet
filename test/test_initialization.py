@@ -15,8 +15,8 @@ args = argparse.Namespace(
     elayers = 4,
     subsample = "1_2_2_1_1",
     etype = "vggblstmp",
-    eunits = 100,
-    eprojs = 100,
+    eunits = 320,
+    eprojs = 320,
     dlayers=1,
     dunits=300,
     atype="location",
@@ -50,6 +50,22 @@ def test_lecun_init_torch():
     numpy.testing.assert_allclose(w.mean(), 0.0, 1e-2, 1e-2)
     numpy.testing.assert_allclose(w.var(), 1.0 / w.shape[1], 1e-2, 1e-2)
 
+    for name, p in model.named_parameters():
+        print(name)
+        data = p.data.numpy()
+        if "embed" in name:
+            numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
+            numpy.testing.assert_allclose(data.var(), 1.0, 5e-2, 5e-2)
+        elif "predictor.dec.decoder.bias_ih" in name:
+            assert data.sum() == data.size // 4
+        elif data.ndim == 1:
+            assert numpy.all(data == 0.0)
+        else:
+            numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
+            numpy.testing.assert_allclose(data.var(), 1.0 / numpy.prod(data.shape[1:]), 5e-2, 5e-2)
+
+        
+        
 
 def test_lecun_init_chainer():
     import e2e_asr_attctc as m
@@ -59,4 +75,18 @@ def test_lecun_init_chainer():
     w = model.predictor.ctc.ctc_lo.W.data
     numpy.testing.assert_allclose(w.mean(), 0.0, 1e-2, 1e-2)
     numpy.testing.assert_allclose(w.var(), 1.0 / w.shape[1], 1e-2, 1e-2)
+
+    for name, p in model.namedparams():
+        print(name)
+        data = p.data
+        if "decoder/upward/b" in name:
+            assert data.sum() == data.size // 4
+        elif "embed" in name:
+            numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
+            numpy.testing.assert_allclose(data.var(), 1.0, 5e-2, 5e-2)
+        elif data.ndim == 1:
+            assert numpy.all(data == 0.0)
+        else:
+            numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
+            numpy.testing.assert_allclose(data.var(), 1.0 / numpy.prod(data.shape[1:]), 5e-2, 5e-2)
     
