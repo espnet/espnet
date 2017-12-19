@@ -30,4 +30,4 @@ fi
 sclite -r ${dir}/ref.trn trn -h ${dir}/hyp.trn trn -i rm -o all stdout > ${dir}/result.txt
 
 echo "write a result in ${dir}/result.txt"
-grep Avg ${dir}/result.txt
+grep -e Avg -e SPKR -m 2 ${dir}/result.txt
