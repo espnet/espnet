@@ -3,23 +3,6 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""
-options (batch_size is only changed because of my poor GPU at home): --gpu -1 --outdir exp/train_si284_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/results --debugmode 1 --dict data/lang_1char/train_si284_units.txt --debugdir exp/train_si284_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150 --minibatches 0 --verbose 0 --train-feat scp:dump/train_si284/deltafalse/feats.scp --valid-feat scp:dump/test_dev93/deltafalse/feats.scp --train-label dump/train_si284/deltafalse/data.json --valid-label dump/test_dev93/deltafalse/data.json --etype blstmp --elayers 4 --eunits 320 --eprojs 320 --subsample 1_2_2_1_1 --dlayers 1 --dunits 300 --atype location --aconv-chans 10 --aconv-filts 100 --mtlalpha 0.5 --batch-size 5 --maxlen-in 800 --maxlen-out 150 --opt adadelta --epochs 15 --gpu 0 
-
-
-chainer result
-this epoch [#.................................................]  3.13%
-       400 iter, 0 epoch / 15 epochs
-   0.67657 iters/sec. Estimated time to finish: 3 days, 6:31:44.616061.
-
-
-pytorch result
-this epoch [#.................................................]  2.35%
-       300 iter, 0 epoch / 15 epochs
-    1.4973 iters/sec. Estimated time to finish: 1 day, 11:30:13.571661.
-
-"""
-
 
 import os
 import copy
@@ -305,7 +288,7 @@ def main():
     # network archtecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['blstmp', 'vggblstmp', 'vggblstm'],
+                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
                         help='Type of encoder network architecture')
     parser.add_argument('--elayers', default=4, type=int,
                         help='Number of encoder layers')
