@@ -5,7 +5,7 @@ kaldi-io-for-python.git:
 	cd ../src/utils; ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
 
 kaldi: kaldi_github
-	cd kaldi_github/tools; git checkout 9e7644cac682123de110ad6580e15f311b953c73; $(MAKE) all
+	cd kaldi_github/tools; $(MAKE) all
 	cd kaldi_github/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
 	ln -s kaldi_github kaldi
 
@@ -14,9 +14,11 @@ kaldi_github:
 
 venv: venv/bin/activate
 
+# for some reason, including matplotlib in requirements.txt causes errors, and
+# matplotlib should be separately pip installed
 venv/bin/activate: requirements.txt
 	test -d venv || virtualenv -p /usr/bin/python2.7 venv
-	. venv/bin/activate; pip install -r requirements.txt
+	. venv/bin/activate; pip install -r requirements.txt; pip install matplotlib
 	touch venv/bin/activate
 
 nkf:
