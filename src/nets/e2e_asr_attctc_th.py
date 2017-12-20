@@ -335,15 +335,21 @@ class CTC(torch.nn.Module):
         return self.loss
 
 
+def mask_by_length(xs, length, fill=0):
+    assert xs.size(0) == len(length)
+    ret = Variable(xs.data.new(*xs.size()).fill_(fill))
+    for i, l in enumerate(length):
+        ret[i, :l] = xs[i, :l]
+    return ret
+        
+
 # ------------- Attention Network --------------------------------------------------------------------------------------
 # dot product based attention
 class AttDot(torch.nn.Module):
     def __init__(self, eprojs, dunits, att_dim):
-        raise NotImplementedError
         super(AttDot, self).__init__()
-        with self.init_scope():
-            self.mlp_enc = L.Linear(eprojs, att_dim)
-            self.mlp_dec = L.Linear(dunits, att_dim)
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim)
 
         self.dunits = dunits
         self.eprojs = eprojs
@@ -361,7 +367,7 @@ class AttDot(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
 
-    def forward(self, enc_hs, dec_z, scaling=2.0):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''
 
         :param enc_hs:
@@ -369,27 +375,28 @@ class AttDot(torch.nn.Module):
         :param scaling:
         :return:
         '''
-        batch = len(enc_hs)
+        batch = enc_hs_pad.size(0)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
-            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.enc_h = mask_by_length(enc_hs_pad, enc_hs_len)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_enc_h = F.tanh(linear_tensor(self.mlp_enc, self.enc_h))
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = chainer.Variable(self.xp.zeros((batch, self.dunits), dtype=np.float32))
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
         else:
-            dec_z = F.reshape(dec_z, (batch, self.dunits))
+            dec_z = dec_z.view(batch, self.dunits)
 
-        # <phi (h_t), psi (s)> for all t
-        e = F.sum(self.pre_compute_enc_h * F.tile(F.reshape(F.tanh(self.mlp_dec(dec_z)), (batch, 1, self.att_dim)),
-                                                  (1, self.h_length, 1)), axis=2)  # utt x frame
-        w = F.softmax(scaling * e)
+        e = torch.sum(self.pre_compute_enc_h *
+                      torch.tanh(self.mlp_dec(dec_z)).view(batch, 1, self.att_dim),
+                      dim=2)  # utt x frame
+        w = torch.nn.functional.softmax(scaling * e, dim=1)
+
         # weighted sum over flames
         # utt x hdim
-        c = F.sum(self.enc_h * F.tile(F.reshape(w, (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
-
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
         return c, w
 
 
@@ -489,6 +496,7 @@ class Decoder(torch.nn.Module):
         self.embed = torch.nn.Embedding(odim, dunits)
         # TODO use multiple layers with dlayers option
         self.decoder = torch.nn.LSTMCell(dunits + eprojs, dunits)  # 310s per 100 ite -> 240s from NStepLSTM
+        self.ignore_id = 0  # NOTE: 0 for CTC?
         self.output = torch.nn.Linear(dunits, odim)
 
         self.loss = None
@@ -520,8 +528,7 @@ class Decoder(torch.nn.Module):
         # pys: utt x olen
 
         pad_ys_in = pad_list(ys_in, self.eos)
-        ignore_id = 0  # NOTE: 0 for CTC?
-        pad_ys_out = pad_list(ys_out, ignore_id)
+        pad_ys_out = pad_list(ys_out, self.ignore_id)
 
         # get dim, length info
         batch = pad_ys_out.shape[0]
@@ -548,17 +555,17 @@ class Decoder(torch.nn.Module):
             z_all.append(z)
             att_weight_all.append(att_w.data)  # for debugging
 
-        z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)  # NOTE: maybe cat?
+        z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
         # NOTE: use size_average=True?
         self.loss = torch.nn.functional.cross_entropy(y_all, pad_ys_out.view(-1),
-                                                      ignore_index=ignore_id, size_average=True)
+                                                      ignore_index=self.ignore_id, size_average=True)
         # NOTE: is this length-scaling required?
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         # acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
-        acc = th_accuracy(y_all, pad_ys_out, ignore_label=ignore_id)
+        acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
         logging.info('att loss:' + str(self.loss.data))
 
         # show predicted character sequence for debug
@@ -745,7 +752,10 @@ class Encoder(torch.nn.Module):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
 
-        if etype == 'blstmp':
+        if etype == 'blstm':
+            self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
+            logging.info('BLSTM without projection for encoder')
+        elif etype == 'blstmp':
             self.enc1 = BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
@@ -774,7 +784,9 @@ class Encoder(torch.nn.Module):
         :param ilens:
         :return:
         '''
-        if self.etype == 'blstmp':
+        if self.etype == 'blstm':
+            xs, ilens = self.enc1(xs, ilens)
+        elif self.etype == 'blstmp':
             xs, ilens = self.enc1(xs, ilens)
         elif self.etype == 'vggblstmp':
             xs, ilens = self.enc1(xs, ilens)
@@ -832,13 +844,12 @@ class BLSTMP(torch.nn.Module):
 
 class BLSTM(torch.nn.Module):
     def __init__(self, idim, elayers, cdim, hdim, dropout):
-        raise NotImplementedError
         super(BLSTM, self).__init__()
-        with self.init_scope():
-            self.nblstm = L.NStepBiLSTM(elayers, idim, cdim, dropout)
-            self.l_last = L.Linear(cdim * 2, hdim)
+        self.nblstm = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
+                                    dropout=dropout, bidirectional=True)
+        self.l_last = torch.nn.Linear(cdim * 2, hdim)
 
-    def forward(self, xs, ilens):
+    def forward(self, xpad, ilens):
         '''
 
         :param xs:
@@ -846,19 +857,14 @@ class BLSTM(torch.nn.Module):
         :return:
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        hy, cy, ys = self.nblstm(None, None, xs)
-        ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
-        xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
+        xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
+        ys, (hy, cy) = self.nblstm(xpack)
         del hy, cy
-
-        # final tanh operation
-        xs = F.split_axis(F.tanh(F.vstack(xs)), _ilens_to_index(ilens), axis=0)
-
-        # 1 utterance case, it becomes an array, so need to make a utt tuple
-        if not isinstance(xs, tuple):
-            xs = [xs]
-
-        return xs, ilens  # x: utt list of frame x dim
+        # ys: utt list of frame x cdim x 2 (2: means bidirectional)
+        ypad, ilens = pad_packed_sequence(ys, batch_first=True)
+        projected = torch.tanh(self.l_last(ypad.contiguous().view(-1, ypad.size(2))))  # (sum _utt frame_utt) x dim
+        xpad = projected.view(ypad.size(0), ypad.size(1), -1)
+        return xpad, ilens  # x: utt list of frame x dim
 
 
 class VGG2L(torch.nn.Module):
