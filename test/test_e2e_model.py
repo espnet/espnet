@@ -12,7 +12,8 @@ import numpy
 import chainer
 
 
-args = argparse.Namespace(
+def make_arg(etype):
+    return argparse.Namespace(
     elayers = 4,
     subsample = "1_2_2_1_1",
     etype = "vggblstmp",
@@ -33,11 +34,12 @@ args = argparse.Namespace(
     verbose = 2,
     char_list = [u"あ", u"い", u"う", u"え", u"お"],
     outdir = None
-)
+    )
 
 
-
-def test_model_trainable_and_decodable():
+@pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
+def test_model_trainable_and_decodable(etype):
+    args = make_arg(etype)
     for m_str in ["e2e_asr_attctc", "e2e_asr_attctc_th"]:
         try:
             import torch
@@ -81,8 +83,10 @@ class Model(chainer.Chain):
     def __call__(self, x):
         return self.a(x)
 
-# def test_encoder_mask_equal():
-if __name__ == "__main__":
+
+@pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
+def test_loss_and_ctc_grad(etype):
+    args = make_arg(etype)
     import logging
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
     try:
