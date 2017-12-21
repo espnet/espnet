@@ -295,14 +295,40 @@ class E2E(torch.nn.Module):
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
+
+from warpctc_pytorch import CTCLoss, _CTC
+
+class _ChainerLikeCTC(_CTC):
+    def forward(self, acts, labels, act_lens, label_lens):
+        return super(_ChainerLikeCTC, self).forward(acts, labels, act_lens, label_lens) / acts.size(1)
+
+    def backward(self, grad_output):
+        return self.grads / self.grads.size(1), None, None, None
+
+
+def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
+    """
+    acts: Tensor of (seqLength x batch x outputDim) containing output from network
+    labels: 1 dimensional Tensor containing all the targets of the batch in one sequence
+    act_lens: Tensor of size (batch) containing size of each output sequence from the network
+    act_lens: Tensor of (batch) containing label length of each example
+    """
+    assert len(labels.size()) == 1 # labels must be 1 dimensional
+    from torch.nn.modules.loss import _assert_no_grad
+    _assert_no_grad(labels)
+    _assert_no_grad(act_lens)
+    _assert_no_grad(label_lens)
+    return _ChainerLikeCTC()(acts, labels, act_lens, label_lens)
+
+
+
 class CTC(torch.nn.Module):
     def __init__(self, odim, eprojs, dropout_rate):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        from warpctc_pytorch import CTCLoss
-        self.loss_fn = CTCLoss()
+        self.loss_fn = chainer_like_ctc_loss  # CTCLoss()
 
     def forward(self, hpad, ilens, ys):
         '''
@@ -328,8 +354,7 @@ class CTC(torch.nn.Module):
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
         y_hat = y_hat.transpose(0, 1)
-        
-        self.loss = to_cuda(self, self.loss_fn(y_hat, y_true, ilens, olens)) / len(ys)
+        self.loss = to_cuda(self, self.loss_fn(y_hat, y_true, ilens, olens))
         logging.info('ctc loss:' + str(self.loss.data[0]))
 
         return self.loss
@@ -341,7 +366,7 @@ def mask_by_length(xs, length, fill=0):
     for i, l in enumerate(length):
         ret[i, :l] = xs[i, :l]
     return ret
-        
+
 
 # ------------- Attention Network --------------------------------------------------------------------------------------
 # dot product based attention
@@ -378,7 +403,7 @@ class AttDot(torch.nn.Module):
         batch = enc_hs_pad.size(0)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
-            self.enc_h = mask_by_length(enc_hs_pad, enc_hs_len)  # utt x frame x hdim
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
@@ -517,6 +542,7 @@ class Decoder(torch.nn.Module):
         :param ys:
         :return:
         '''
+        hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
         eos = Variable(ys[0].data.new([self.eos]))
@@ -558,10 +584,8 @@ class Decoder(torch.nn.Module):
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
-        # NOTE: use size_average=True?
         self.loss = torch.nn.functional.cross_entropy(y_all, pad_ys_out.view(-1),
                                                       ignore_index=self.ignore_id, size_average=True)
-        # NOTE: is this length-scaling required?
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         # acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
@@ -836,7 +860,7 @@ class BLSTMP(torch.nn.Module):
                 ypad = ypad[:, ::sub]
                 ilens = [(i + 1) // sub for i in ilens]
             projected = getattr(self, 'bt' + str(layer))(ypad.contiguous().view(-1, ypad.size(2)))  # (sum _utt frame_utt) x dim
-            xpad = projected.view(ypad.size(0), ypad.size(1), -1)
+            xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
             del hy, cy
 
         return xpad, ilens  # x: utt list of frame x dim

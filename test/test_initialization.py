@@ -64,8 +64,6 @@ def test_lecun_init_torch():
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
             numpy.testing.assert_allclose(data.var(), 1.0 / numpy.prod(data.shape[1:]), 5e-2, 5e-2)
 
-        
-        
 
 def test_lecun_init_chainer():
     import e2e_asr_attctc as m
@@ -89,4 +87,4 @@ def test_lecun_init_chainer():
         else:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
             numpy.testing.assert_allclose(data.var(), 1.0 / numpy.prod(data.shape[1:]), 5e-2, 5e-2)
-    
+
