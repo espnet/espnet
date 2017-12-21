@@ -7,6 +7,7 @@
 . ./cmd.sh
 
 # general configuration
+backend=chainer
 stage=-1       # start from -1 if you need to start from data download
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
@@ -50,10 +51,6 @@ penalty=0
 maxlenratio=0.8
 minlenratio=0.0
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
-
-# data
-wsj0=/export/corpora5/LDC/LDC93S6B
-wsj1=/export/corpora5/LDC/LDC94S13B
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -145,8 +142,15 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
+
+    if [[ ${backend} == chainer ]]; then
+        train_script=asr_train.py
+    else 
+        train_script=asr_train_th.py
+    fi
+
     ${cuda_cmd} ${expdir}/train.log \
-	    asr_train.py \
+        ${train_script} \
 	    --gpu ${gpu} \
 	    --outdir ${expdir}/results \
 	    --debugmode ${debugmode} \
@@ -201,9 +205,17 @@ if [ ${stage} -le 4 ]; then
 	    #### use CPU for decoding
 	    gpu=-1
 
+        if [[ ${backend} == chainer ]]; then
+            decode_script=asr_recog.py
+        else 
+            decode_script=asr_recog_th.py
+        fi
+
 	    ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-			asr_recog.py \
+			${decode_script} \
 			--gpu ${gpu} \
+            --debugmode ${debugmode} \
+            --verbose ${verbose} \
 			--recog-feat "$feats" \
 			--recog-label ${data}/data.json \
 			--result-label ${expdir}/${decode_dir}/data.JOB.json \
