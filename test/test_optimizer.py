@@ -1,10 +1,8 @@
 import pytest
 import chainer
 import numpy
-try:
-    import torch
-except ImportError:
-    pytest.skip("torch not installed")
+pytest.importorskip('torch')
+import torch
 
 
 class ChModel(chainer.Chain):
