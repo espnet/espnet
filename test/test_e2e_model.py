@@ -122,12 +122,26 @@ def test_loss_and_ctc_grad(etype):
     numpy.testing.assert_allclose(ch_ctc.data, th_ctc.data.numpy())
     numpy.testing.assert_allclose(ch_att.data, th_att.data.numpy())
 
-    # test grads
+    # test ctc grads
     ch_ctc.backward()
     th_ctc.backward()
     numpy.testing.assert_allclose(ch_model.ctc.ctc_lo.W.grad,
                                   th_model.ctc.ctc_lo.weight.grad.data.numpy(), 1e-7, 1e-8)
+    numpy.testing.assert_allclose(ch_model.ctc.ctc_lo.b.grad,
+                                  th_model.ctc.ctc_lo.bias.grad.data.numpy(), 1e-5, 1e-6)
+    
 
-    numpy.testing.assert_allclose(ch_model.ctc.ctc_lo.W.grad,
-                                  th_model.ctc.ctc_lo.weight.grad.data.numpy(), 1e-7, 1e-8)
+    # test cross-entropy grads
+    ch_model.cleargrads()
+    th_model.zero_grad()
 
+    ch_ctc, ch_att, ch_acc = ch_model(data)
+    th_ctc, th_att, th_acc = th_model(data)
+    ch_att.backward()
+    th_att.backward()
+    numpy.testing.assert_allclose(ch_model.dec.output.W.grad,
+                                  th_model.dec.output.weight.grad.data.numpy(), 1e-7, 1e-8)
+    numpy.testing.assert_allclose(ch_model.dec.output.b.grad,
+                                  th_model.dec.output.bias.grad.data.numpy(), 1e-5, 1e-6)
+    
+    
