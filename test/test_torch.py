@@ -1,11 +1,6 @@
 import pytest
-
-try:
-    import torch
-    from torch.autograd import Variable
-except:
-    pytest.skip("pytorch is not installed")
-
+pytest.importorskip('torch')
+import torch
 from e2e_asr_attctc_th import pad_list, mask_by_length
 
 
