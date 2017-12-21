@@ -227,11 +227,13 @@ class E2E(torch.nn.Module):
         :return:
         '''
         # utt list of frame x dim
-        xs = [i[1]['feat'] for i in data]
-        sorted_index = sorted(range(len(xs)), key=lambda i: -len(xs[i]))
+        xs = [d[1]['feat'] for d in data]
+        tids = [d[1]['tokenid'].split() for d in data]
+        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         xs = [xs[i] for i in sorted_index]
         # utt list of olen
-        ys = [np.fromiter(map(int, data[i][1]['tokenid'].split()), dtype=np.int64) for i in sorted_index]
+        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64) for i in sorted_index]
         ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
 
         # subsample frame
