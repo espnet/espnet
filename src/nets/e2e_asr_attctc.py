@@ -146,8 +146,15 @@ class E2E(chainer.Chain):
         '''
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
+        tids = [d[1]['tokenid'].split() for d in data]
+        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
+        if len(sorted_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(sorted_index), len(xs)))
+        xs = [xs[i] for i in sorted_index]
         # utt list of olen
-        ys = [self.xp.array(list(map(int, i[1]['tokenid'].split())), dtype=np.int32) for i in data]
+        ys = [np.fromiter(map(int, tids[i]), dtype=np.int32) for i in sorted_index]
         ys = [chainer.Variable(y) for y in ys]
 
         # subsample frame
