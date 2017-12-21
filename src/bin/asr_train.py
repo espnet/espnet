@@ -381,7 +381,7 @@ def main():
     if args.dict is not None:
         with open(args.dict, 'rb') as f:
             dictionary = f.readlines()
-        char_list = [entry.decode('utf-8').split(' ')[0] for entry in dictionary] 
+        char_list = [entry.decode('utf-8').split(' ')[0] for entry in dictionary]
         char_list.insert(0, '<blank>')
         char_list.append('<eos>')
         args.char_list = char_list
