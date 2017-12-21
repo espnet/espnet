@@ -74,16 +74,6 @@ def init_chainer_weight_const(m, val):
             p.data[:] = val
 
 
-class Model(chainer.Chain):
-    def __init__(self, n_in, n_out):
-        super(Model, self).__init__()
-        with self.init_scope():
-            self.a = chainer.links.Linear(n_in, n_out)
-
-    def __call__(self, x):
-        return self.a(x)
-
-
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_loss_and_ctc_grad(etype):
     args = make_arg(etype)
@@ -145,3 +135,39 @@ def test_loss_and_ctc_grad(etype):
                                   th_model.dec.output.bias.grad.data.numpy(), 1e-5, 1e-6)
     
     
+
+
+@pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
+def test_zero_length_target(etype):
+    args = make_arg(etype)
+    import logging
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    try:
+        import torch
+    except:
+        pytest.skip("pytorch is not installed")
+    import e2e_asr_attctc as ch
+    import e2e_asr_attctc_th as th
+    ch_model = ch.E2E(40, 5, args)
+    ch_model.cleargrads()
+    th_model = th.E2E(40, 5, args)
+
+    out_data = ""
+    data = [
+        ("aaa", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), tokenid="1")),
+        ("bbb", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid="")),
+        ("cc", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid="1 2"))
+    ]
+
+    ch_ctc, ch_att, ch_acc = ch_model(data)
+    th_ctc, th_att, th_acc = th_model(data)
+
+    # NOTE: We ignore all zero length case because chainer also fails. Have a nice data-prep!
+    # out_data = ""
+    # data = [
+    #     ("aaa", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), tokenid="")),
+    #     ("bbb", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid="")),
+    #     ("cc", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid=""))
+    # ]
+    # ch_ctc, ch_att, ch_acc = ch_model(data)
+    # th_ctc, th_att, th_acc = th_model(data)
