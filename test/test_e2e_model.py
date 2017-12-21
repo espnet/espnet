@@ -9,6 +9,7 @@ import argparse
 
 import pytest
 import numpy
+import chainer
 
 
 args = argparse.Namespace(
@@ -29,7 +30,7 @@ args = argparse.Namespace(
     penalty=0.5,
     maxlenratio=1.0,
     minlenratio=0.0,
-    verbose = True,
+    verbose = 2,
     char_list = [u"あ", u"い", u"う", u"え", u"お"],
     outdir = None
 )
@@ -56,4 +57,73 @@ def test_model_trainable_and_decodable():
 
         in_data = data[0][1]["feat"]
         y = model.predictor.recognize(in_data, args, args.char_list) # decodable
+
+
+
+def init_torch_weight_const(m, val):
+    for p in m.parameters():
+        if p.dim() > 1:
+            p.data.fill_(val)
+
+
+def init_chainer_weight_const(m, val):
+    for p in m.params():
+        if p.data.ndim > 1:
+            p.data[:] = val
+
+
+class Model(chainer.Chain):
+    def __init__(self, n_in, n_out):
+        super(Model, self).__init__()
+        with self.init_scope():
+            self.a = chainer.links.Linear(n_in, n_out)
+
+    def __call__(self, x):
+        return self.a(x)
+
+# def test_encoder_mask_equal():
+if __name__ == "__main__":
+    import logging
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    try:
+        import torch
+    except:
+        pytest.skip("pytorch is not installed")
+    import e2e_asr_attctc as ch
+    import e2e_asr_attctc_th as th
+    ch_model = ch.E2E(40, 5, args)
+    ch_model.cleargrads()
+    th_model = th.E2E(40, 5, args)
+
+    const = 1e-4
+    init_torch_weight_const(th_model, const)
+    init_chainer_weight_const(ch_model, const)
+
+    out_data = "1 2 3 4"
+    data = [
+        ("aaa", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), tokenid=out_data)),
+        ("bbb", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid=out_data)),
+        ("cc", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid=out_data))
+    ]
+
+    ch_ctc, ch_att, ch_acc = ch_model(data)
+    th_ctc, th_att, th_acc = th_model(data)
+
+    # test masking
+    ch_ench = ch_model.att.pre_compute_enc_h.data
+    th_ench = th_model.att.pre_compute_enc_h.data.numpy()
+    numpy.testing.assert_equal(ch_ench == 0.0, th_ench == 0.0)
+
+    # test loss with constant weights (1.0) and bias (0.0) except for foget-bias (1.0)
+    numpy.testing.assert_allclose(ch_ctc.data, th_ctc.data.numpy())
+    numpy.testing.assert_allclose(ch_att.data, th_att.data.numpy())
+
+    # test grads
+    ch_ctc.backward()
+    th_ctc.backward()
+    numpy.testing.assert_allclose(ch_model.ctc.ctc_lo.W.grad,
+                                  th_model.ctc.ctc_lo.weight.grad.data.numpy(), 1e-7, 1e-8)
+
+    numpy.testing.assert_allclose(ch_model.ctc.ctc_lo.W.grad,
+                                  th_model.ctc.ctc_lo.weight.grad.data.numpy(), 1e-7, 1e-8)
 
