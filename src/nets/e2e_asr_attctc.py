@@ -625,7 +625,7 @@ class Encoder(chainer.Chain):
     :param int epojs: number of projection units of encoder network
     :param str subsample: subsampling number e.g. 1_2_2_2_1
     :param float dropout: dropout rate
-    :return: 
+    :return:
 
     '''
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
@@ -671,7 +671,7 @@ class Encoder(chainer.Chain):
         return xs, ilens
 
 
-# TODO explanation of BLSTMP 
+# TODO explanation of BLSTMP
 class BLSTMP(chainer.Chain):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
