@@ -469,7 +469,7 @@ class AttLoc(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_enc_h = torch.tanh(linear_tensor(self.mlp_enc, self.enc_h))
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
             dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
