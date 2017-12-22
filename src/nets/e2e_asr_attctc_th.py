@@ -40,6 +40,29 @@ def _ilens_to_index(ilens):
     return x[1:]
 
 
+def lecun_normal_init_parameters(module):
+    for p in module.parameters():
+        data = p.data
+        if data.dim() == 1:
+            # bias
+            data.zero_()
+        elif data.dim() == 2:
+            # linear weight
+            n = data.size(1)
+            stdv = 1. / math.sqrt(n)
+            data.normal_(0, stdv)
+        elif data.dim() == 4:
+            # conv weight
+            n = data.size(1)
+            for k in data.size()[2:]:
+                n *= k
+            stdv = 1. / math.sqrt(n)
+            data.normal_(0, stdv)
+        else:
+            raise NotImplementedError
+        
+
+
 # get output dim for latter BLSTM
 def _get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     idim = idim / in_channel
@@ -84,7 +107,7 @@ class Reporter(chainer.Chain):
 
 # TODO merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    def __init__(self, predictor, mtlalpha=0.0):
+    def __init__(self, predictor, mtlalpha):
         super(Loss, self).__init__()
         self.mtlalpha = mtlalpha
         self.loss = None
@@ -104,7 +127,7 @@ class Loss(torch.nn.Module):
         self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
         if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
-            self.reporter.report(loss_ctc, loss_att.data[0], acc, self.loss.data[0])
+            self.reporter.report(loss_ctc.data[0], loss_att.data[0], acc, self.loss.data[0])
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -119,6 +142,12 @@ def pad_list(xs, pad_value=float("nan")):
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
     return pad
+
+
+def set_forget_bias_to_one(bias):
+    n = bias.size(0)
+    start, end = n//4, n//2
+    bias.data[start:end].fill_(1.)
 
 
 class E2E(torch.nn.Module):
@@ -162,6 +191,34 @@ class E2E(torch.nn.Module):
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list)
 
+        # weight initialization
+        self.init_like_chainer()
+        # additional forget-bias init in encoder ?
+        # for m in self.modules():
+        #     if isinstance(m, torch.nn.LSTM):
+        #         for name, p in m.named_parameters():
+        #             if "bias_ih" in name:
+        #                 set_forget_bias_to_one(p)
+    
+    def init_like_chainer(self):
+        """
+        chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
+        pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
+
+        however, there are two exceptions as far as I know.
+        - EmbedID.W ~ Normal(0, 1)
+        - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
+        """
+        lecun_normal_init_parameters(self)
+
+        # exceptions
+        # embed weight ~ Normal(0, 1)
+        self.dec.embed.weight.data.normal_(0, 1)
+        # forget-bias = 1.0
+        # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
+        set_forget_bias_to_one(self.dec.decoder.bias_ih)
+
+
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):
         '''
@@ -170,11 +227,13 @@ class E2E(torch.nn.Module):
         :return:
         '''
         # utt list of frame x dim
-        xs = [i[1]['feat'] for i in data]
-        sorted_index = sorted(range(len(xs)), key=lambda i: -len(xs[i]))
+        xs = [d[1]['feat'] for d in data]
+        tids = [d[1]['tokenid'].split() for d in data]
+        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         xs = [xs[i] for i in sorted_index]
         # utt list of olen
-        ys = [np.fromiter(map(int, data[i][1]['tokenid'].split()), dtype=np.int64) for i in sorted_index]
+        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64) for i in sorted_index]
         ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
 
         # subsample frame
@@ -238,14 +297,40 @@ class E2E(torch.nn.Module):
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
+
+from warpctc_pytorch import CTCLoss, _CTC
+
+class _ChainerLikeCTC(_CTC):
+    def forward(self, acts, labels, act_lens, label_lens):
+        return super(_ChainerLikeCTC, self).forward(acts, labels, act_lens, label_lens) / acts.size(1)
+
+    def backward(self, grad_output):
+        return self.grads / self.grads.size(1), None, None, None
+
+
+def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
+    """
+    acts: Tensor of (seqLength x batch x outputDim) containing output from network
+    labels: 1 dimensional Tensor containing all the targets of the batch in one sequence
+    act_lens: Tensor of size (batch) containing size of each output sequence from the network
+    act_lens: Tensor of (batch) containing label length of each example
+    """
+    assert len(labels.size()) == 1 # labels must be 1 dimensional
+    from torch.nn.modules.loss import _assert_no_grad
+    _assert_no_grad(labels)
+    _assert_no_grad(act_lens)
+    _assert_no_grad(label_lens)
+    return _ChainerLikeCTC()(acts, labels, act_lens, label_lens)
+
+
+
 class CTC(torch.nn.Module):
     def __init__(self, odim, eprojs, dropout_rate):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        from warpctc_pytorch import CTCLoss
-        self.loss_fn = CTCLoss()
+        self.loss_fn = chainer_like_ctc_loss  # CTCLoss()
 
     def forward(self, hpad, ilens, ys):
         '''
@@ -271,22 +356,27 @@ class CTC(torch.nn.Module):
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
         y_hat = y_hat.transpose(0, 1)
-        
         self.loss = to_cuda(self, self.loss_fn(y_hat, y_true, ilens, olens))
         logging.info('ctc loss:' + str(self.loss.data[0]))
 
         return self.loss
 
 
+def mask_by_length(xs, length, fill=0):
+    assert xs.size(0) == len(length)
+    ret = Variable(xs.data.new(*xs.size()).fill_(fill))
+    for i, l in enumerate(length):
+        ret[i, :l] = xs[i, :l]
+    return ret
+
+
 # ------------- Attention Network --------------------------------------------------------------------------------------
 # dot product based attention
 class AttDot(torch.nn.Module):
     def __init__(self, eprojs, dunits, att_dim):
-        raise NotImplementedError
         super(AttDot, self).__init__()
-        with self.init_scope():
-            self.mlp_enc = L.Linear(eprojs, att_dim)
-            self.mlp_dec = L.Linear(dunits, att_dim)
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim)
 
         self.dunits = dunits
         self.eprojs = eprojs
@@ -304,7 +394,7 @@ class AttDot(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
 
-    def forward(self, enc_hs, dec_z, scaling=2.0):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''
 
         :param enc_hs:
@@ -312,27 +402,28 @@ class AttDot(torch.nn.Module):
         :param scaling:
         :return:
         '''
-        batch = len(enc_hs)
+        batch = enc_hs_pad.size(0)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
-            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_enc_h = F.tanh(linear_tensor(self.mlp_enc, self.enc_h))
+            self.pre_compute_enc_h = torch.tanh(linear_tensor(self.mlp_enc, self.enc_h))
 
         if dec_z is None:
-            dec_z = chainer.Variable(self.xp.zeros((batch, self.dunits), dtype=np.float32))
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
         else:
-            dec_z = F.reshape(dec_z, (batch, self.dunits))
+            dec_z = dec_z.view(batch, self.dunits)
 
-        # <phi (h_t), psi (s)> for all t
-        e = F.sum(self.pre_compute_enc_h * F.tile(F.reshape(F.tanh(self.mlp_dec(dec_z)), (batch, 1, self.att_dim)),
-                                                  (1, self.h_length, 1)), axis=2)  # utt x frame
-        w = F.softmax(scaling * e)
+        e = torch.sum(self.pre_compute_enc_h *
+                      torch.tanh(self.mlp_dec(dec_z)).view(batch, 1, self.att_dim),
+                      dim=2)  # utt x frame
+        w = torch.nn.functional.softmax(scaling * e, dim=1)
+
         # weighted sum over flames
         # utt x hdim
-        c = F.sum(self.enc_h * F.tile(F.reshape(w, (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
-
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
         return c, w
 
 
@@ -417,6 +508,14 @@ class AttLoc(torch.nn.Module):
         return c, w
 
 
+def th_accuracy(y_all, pad_target, ignore_label):
+    pad_pred = y_all.data.view(pad_target.size(0), pad_target.size(1), y_all.size(1)).max(2)[1]
+    mask = pad_target.data != ignore_label
+    numerator = torch.sum(pad_pred.masked_select(mask) == pad_target.data.masked_select(mask))
+    denominator = torch.sum(mask)
+    return float(numerator) / float(denominator)
+
+
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
@@ -425,6 +524,7 @@ class Decoder(torch.nn.Module):
         self.embed = torch.nn.Embedding(odim, dunits)
         # TODO use multiple layers with dlayers option
         self.decoder = torch.nn.LSTMCell(dunits + eprojs, dunits)  # 310s per 100 ite -> 240s from NStepLSTM
+        self.ignore_id = 0  # NOTE: 0 for CTC?
         self.output = torch.nn.Linear(dunits, odim)
 
         self.loss = None
@@ -445,6 +545,7 @@ class Decoder(torch.nn.Module):
         :param ys:
         :return:
         '''
+        hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
         eos = Variable(ys[0].data.new([self.eos]))
@@ -456,8 +557,7 @@ class Decoder(torch.nn.Module):
         # pys: utt x olen
 
         pad_ys_in = pad_list(ys_in, self.eos)
-        ignore_id = 0  # NOTE: 0 for CTC?
-        pad_ys_out = pad_list(ys_out, ignore_id)
+        pad_ys_out = pad_list(ys_out, self.ignore_id)
 
         # get dim, length info
         batch = pad_ys_out.shape[0]
@@ -484,21 +584,15 @@ class Decoder(torch.nn.Module):
             z_all.append(z)
             att_weight_all.append(att_w.data)  # for debugging
 
-        z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)  # NOTE: maybe cat?
+        z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
-        # NOTE: use size_average=True?
         self.loss = torch.nn.functional.cross_entropy(y_all, pad_ys_out.view(-1),
-                                                      ignore_index=ignore_id, size_average=True)
-        # NOTE: is this length-scaling required?
+                                                      ignore_index=self.ignore_id, size_average=True)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         # acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
-        acc = 0
-        pred_pad = y_all.data.view(len(ys), olength, y_all.size(1)).max(2)[1]
-        for i in range(len(ys)):
-            acc += torch.sum(pred_pad[i, :ys[i].size(0)] == ys[i].data)
-        acc /= sum(map(len, ys))
+        acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
         logging.info('att loss:' + str(self.loss.data))
 
         # show predicted character sequence for debug
@@ -508,8 +602,8 @@ class Decoder(torch.nn.Module):
             for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data.cpu().numpy()), y_true.data.cpu().numpy()):
                 if i == MAX_DECODER_OUTPUT:
                     break
-                idx_hat = np.argmax(y_hat_[y_true_ != -1], axis=1)
-                idx_true = y_true_[y_true_ != -1]
+                idx_hat = np.argmax(y_hat_[y_true_ != self.ignore_id], axis=1)
+                idx_true = y_true_[y_true_ != self.ignore_id]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
                 seq_hat = "".join(seq_hat)
@@ -685,7 +779,10 @@ class Encoder(torch.nn.Module):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
 
-        if etype == 'blstmp':
+        if etype == 'blstm':
+            self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
+            logging.info('BLSTM without projection for encoder')
+        elif etype == 'blstmp':
             self.enc1 = BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
@@ -714,7 +811,9 @@ class Encoder(torch.nn.Module):
         :param ilens:
         :return:
         '''
-        if self.etype == 'blstmp':
+        if self.etype == 'blstm':
+            xs, ilens = self.enc1(xs, ilens)
+        elif self.etype == 'blstmp':
             xs, ilens = self.enc1(xs, ilens)
         elif self.etype == 'vggblstmp':
             xs, ilens = self.enc1(xs, ilens)
@@ -764,7 +863,7 @@ class BLSTMP(torch.nn.Module):
                 ypad = ypad[:, ::sub]
                 ilens = [(i + 1) // sub for i in ilens]
             projected = getattr(self, 'bt' + str(layer))(ypad.contiguous().view(-1, ypad.size(2)))  # (sum _utt frame_utt) x dim
-            xpad = projected.view(ypad.size(0), ypad.size(1), -1)
+            xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
             del hy, cy
 
         return xpad, ilens  # x: utt list of frame x dim
@@ -772,13 +871,12 @@ class BLSTMP(torch.nn.Module):
 
 class BLSTM(torch.nn.Module):
     def __init__(self, idim, elayers, cdim, hdim, dropout):
-        raise NotImplementedError
         super(BLSTM, self).__init__()
-        with self.init_scope():
-            self.nblstm = L.NStepBiLSTM(elayers, idim, cdim, dropout)
-            self.l_last = L.Linear(cdim * 2, hdim)
+        self.nblstm = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
+                                    dropout=dropout, bidirectional=True)
+        self.l_last = torch.nn.Linear(cdim * 2, hdim)
 
-    def forward(self, xs, ilens):
+    def forward(self, xpad, ilens):
         '''
 
         :param xs:
@@ -786,19 +884,14 @@ class BLSTM(torch.nn.Module):
         :return:
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        hy, cy, ys = self.nblstm(None, None, xs)
-        ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
-        xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
+        xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
+        ys, (hy, cy) = self.nblstm(xpack)
         del hy, cy
-
-        # final tanh operation
-        xs = F.split_axis(F.tanh(F.vstack(xs)), _ilens_to_index(ilens), axis=0)
-
-        # 1 utterance case, it becomes an array, so need to make a utt tuple
-        if not isinstance(xs, tuple):
-            xs = [xs]
-
-        return xs, ilens  # x: utt list of frame x dim
+        # ys: utt list of frame x cdim x 2 (2: means bidirectional)
+        ypad, ilens = pad_packed_sequence(ys, batch_first=True)
+        projected = torch.tanh(self.l_last(ypad.contiguous().view(-1, ypad.size(2))))  # (sum _utt frame_utt) x dim
+        xpad = projected.view(ypad.size(0), ypad.size(1), -1)
+        return xpad, ilens  # x: utt list of frame x dim
 
 
 class VGG2L(torch.nn.Module):
@@ -847,49 +940,3 @@ class VGG2L(torch.nn.Module):
         xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens
-
-
-if __name__ == '__main__':
-    import numpy
-    from typing import NamedTuple
-    class args(NamedTuple):
-        elayers = 4
-        subsample = "1_2_2_1_1"
-        etype = "vggblstmp"
-        eunits = 100
-        eprojs = 100
-        dlayers=1
-        dunits=300
-        # attention related
-        atype="location"
-        aconv_chans=10
-        aconv_filts=100
-        mtlalpha=0.5
-        # defaults
-        adim=320
-        dropout_rate=0.0
-        beam_size=3
-        penalty=0.5
-
-        maxlenratio=1.0
-        minlenratio=0.0
-
-        verbose = True
-        char_list = ["a", "b", "c", "d", "e"]
-        outdir = None
-
-    model = Loss(E2E(40, 5, args))
-    model.cuda()
-    out_data = "1 2 3 4"
-    data = [
-        ("aaa", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid=out_data)),
-        ("bbb", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), tokenid=out_data))
-    ]
-    attn_loss = model(data)
-    print(attn_loss.data[0])
-    attn_loss.backward()
-
-    in_data = data[0][1]["feat"]
-    y = model.predictor.recognize(in_data, args, args.char_list)
-    print(y)
-    print("OK")
