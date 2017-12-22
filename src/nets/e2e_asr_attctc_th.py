@@ -408,7 +408,7 @@ class AttDot(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = torch.tanh(linear_tensor(self.mlp_enc, self.enc_h))
 
         if dec_z is None:
             dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
@@ -469,7 +469,7 @@ class AttLoc(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = torch.tanh(linear_tensor(self.mlp_enc, self.enc_h))
 
         if dec_z is None:
             dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
@@ -509,10 +509,11 @@ class AttLoc(torch.nn.Module):
 
 
 def th_accuracy(y_all, pad_target, ignore_label):
-    acc = 0
     pad_pred = y_all.data.view(pad_target.size(0), pad_target.size(1), y_all.size(1)).max(2)[1]
     mask = pad_target.data != ignore_label
-    return torch.sum(pad_pred.masked_select(mask) == pad_target.data.masked_select(mask)) / torch.sum(mask)
+    numerator = torch.sum(pad_pred.masked_select(mask) == pad_target.data.masked_select(mask))
+    denominator = torch.sum(mask)
+    return float(numerator) / float(denominator)
 
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
@@ -601,8 +602,8 @@ class Decoder(torch.nn.Module):
             for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data.cpu().numpy()), y_true.data.cpu().numpy()):
                 if i == MAX_DECODER_OUTPUT:
                     break
-                idx_hat = np.argmax(y_hat_[y_true_ != -1], axis=1)
-                idx_true = y_true_[y_true_ != -1]
+                idx_hat = np.argmax(y_hat_[y_true_ != self.ignore_id], axis=1)
+                idx_true = y_true_[y_true_ != self.ignore_id]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
                 seq_hat = "".join(seq_hat)
