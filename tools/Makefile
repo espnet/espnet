@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 
-all: kaldi venv venv/bin/activate nkf kaldi-io-for-python.git
+all: kaldi venv venv/bin/activate nkf kaldi-io-for-python.git pytorch warp-ctc
 
 kaldi-io-for-python.git:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
