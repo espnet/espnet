@@ -1,4 +1,7 @@
-all: kaldi venv venv/bin/activate nkf kaldi-io-for-python.git
+.PHONY: all clean
+
+
+all: kaldi venv venv/bin/activate nkf kaldi-io-for-python.git pytorch warp-ctc
 
 kaldi-io-for-python.git:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
@@ -29,3 +32,14 @@ nkf:
 clean:
 	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py
 	find -iname "*.pyc" -delete
+
+
+# optional deps for pytorch backends
+pytorch:
+	pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl
+
+warp-ctc:
+	git clone https://github.com/SeanNaren/warp-ctc.git
+	cd warp-ctc && mkdir build && cd build && cmake .. && make -j4
+	pip install cffi
+	cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev

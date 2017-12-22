@@ -278,7 +278,7 @@ class AttDot(chainer.Chain):
         self.enc_h = None
         self.pre_compute_enc_h = None
 
-    def __call__(self, enc_hs, dec_z, scaling=2.0):
+    def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
         '''
 
         :param enc_hs:
@@ -473,8 +473,8 @@ class Decoder(chainer.Chain):
                 idx_true = y_true_[y_true_ != -1]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
-                seq_hat = "".join(seq_hat).encode('utf-8').replace('<space>', ' ')
-                seq_true = "".join(seq_true).encode('utf-8').replace('<space>', ' ')
+                seq_hat = "".join(seq_hat).replace('<space>', ' ')
+                seq_true = "".join(seq_true).replace('<space>', ' ')
                 logging.info("groundtruth[%d]: " + seq_true, i)
                 logging.info("prediction [%d]: " + seq_hat, i)
 
@@ -638,7 +638,10 @@ class Encoder(chainer.Chain):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
         with self.init_scope():
-            if etype == 'blstmp':
+            if etype == 'blstm':
+                self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
+                logging.info('BLSTM without projection for encoder')
+            elif etype == 'blstmp':
                 self.enc1 = BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
@@ -663,7 +666,9 @@ class Encoder(chainer.Chain):
         :param ilens:
         :return:
         '''
-        if self.etype == 'blstmp':
+        if self.etype == 'blstm':
+            xs, ilens = self.enc1(xs, ilens)
+        elif self.etype == 'blstmp':
             xs, ilens = self.enc1(xs, ilens)
         elif self.etype == 'vggblstmp':
             xs, ilens = self.enc1(xs, ilens)

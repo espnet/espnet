@@ -10,3 +10,6 @@ egs/*/*/exp
 egs/*/*/fbank
 egs/*/*/stft
 *DS_Store
+
+
+src/utils/kaldi_io_py.py
