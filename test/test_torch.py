@@ -1,6 +1,7 @@
 import pytest
 pytest.importorskip('torch')
 import torch
+from torch.autograd import Variable
 from e2e_asr_attctc_th import pad_list, mask_by_length
 
 
