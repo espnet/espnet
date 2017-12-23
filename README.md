@@ -1,5 +1,7 @@
 # ESPnet: end-to-end speech processing toolkit
 
+[![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
+
 ESPnet is an end-to-end speech processing toolkit.
 ESPnet uses [chainer](https://chainer.org/) as a main deep learning engine, 
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
