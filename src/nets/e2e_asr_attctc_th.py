@@ -229,7 +229,7 @@ class E2E(torch.nn.Module):
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
             logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-                len(sorted_index), len(xs)))
+                len(xs), len(sorted_index)))
         xs = [xs[i] for i in sorted_index]
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64) for i in sorted_index]
