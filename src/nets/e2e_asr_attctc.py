@@ -146,15 +146,8 @@ class E2E(chainer.Chain):
         '''
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
-        tids = [d[1]['tokenid'].split() for d in data]
-        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
-        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
-        if len(sorted_index) != len(xs):
-            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-                len(xs), len(sorted_index)))
-        xs = [xs[i] for i in sorted_index]
         # utt list of olen
-        ys = [np.fromiter(map(int, tids[i]), dtype=np.int32) for i in sorted_index]
+        ys = [self.xp.array(list(map(int, i[1]['tokenid'].split())), dtype=np.int32) for i in data]
         ys = [chainer.Variable(y) for y in ys]
 
         # subsample frame
@@ -632,7 +625,7 @@ class Encoder(chainer.Chain):
     :param int epojs: number of projection units of encoder network
     :param str subsample: subsampling number e.g. 1_2_2_2_1
     :param float dropout: dropout rate
-    :return:
+    :return: 
 
     '''
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
@@ -683,7 +676,7 @@ class Encoder(chainer.Chain):
         return xs, ilens
 
 
-# TODO explanation of BLSTMP
+# TODO explanation of BLSTMP 
 class BLSTMP(chainer.Chain):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
