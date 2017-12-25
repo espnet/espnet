@@ -3,6 +3,7 @@
 
 all: kaldi venv/bin/activate nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc
 
+
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
 	cd ../src/utils; ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
@@ -39,4 +40,3 @@ warp-ctc: venv/lib/python2.7/site-packages/torch
 clean:
 	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc
 	find -iname "*.pyc" -delete
-

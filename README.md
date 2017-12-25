@@ -8,11 +8,17 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Installation
 
-Install Kaldi, Python libraries and other required tools
+Install Kaldi, Python libraries and other required tools using system python and virtualenv
 ```sh
 $ cd tools
 $ make -j
 ```
+or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+```sh
+$ cd tools
+$ make -f conda.mk -j
+```
+
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
 ```
