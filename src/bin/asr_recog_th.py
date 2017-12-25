@@ -60,12 +60,14 @@ def main():
 
     # logging info
     if args.verbose == 1:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
-    if args.verbose == 2:
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    elif args.verbose == 2:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
     else:
-        logging.basicConfig(level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        logging.basicConfig(
+            level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
         logging.warning("Skip DEBUG/INFO messages")
 
     # display PYTHONPATH
@@ -94,6 +96,7 @@ def main():
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
     # chainer.serializers.load_npz(args.model, model)
+
     def cpu_loader(storage, location):
         return storage
     model.load_state_dict(torch.load(args.model, map_location=cpu_loader))

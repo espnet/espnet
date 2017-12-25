@@ -11,7 +11,6 @@ import argparse
 import random
 import logging
 import collections
-import subprocess
 import json
 import pickle
 import math
@@ -23,7 +22,6 @@ from chainer.training import extensions
 from chainer import training
 
 from chainer import reporter as reporter_module
-from chainer import function
 
 import torch
 
@@ -51,7 +49,6 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
         iterator = self._iterators['main']
-        eval_func = self.eval_func or self._targets['main']
 
         if self.eval_hook:
             self.eval_hook(self)
@@ -84,7 +81,8 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
 # Custom updater with Kaldi reader
 class SeqUpdaterKaldi(training.StandardUpdater):
     def __init__(self, model, grad_clip_threshold, train_iter, optimizer, reader, device):
-        super(SeqUpdaterKaldi, self).__init__(train_iter, optimizer, device=None)
+        super(SeqUpdaterKaldi, self).__init__(
+            train_iter, optimizer, device=None)
         self.model = model
         self.reader = reader
         self.grad_clip_threshold = grad_clip_threshold
@@ -111,7 +109,8 @@ class SeqUpdaterKaldi(training.StandardUpdater):
         loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm(self.model.parameters(), self.grad_clip_threshold)
+        grad_norm = torch.nn.utils.clip_grad_norm(
+            self.model.parameters(), self.grad_clip_threshold)
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
@@ -131,6 +130,7 @@ class CompareValueTrigger(object):
         trigger: Trigger that decide the comparison interval
 
     '''
+
     def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
         self._key = key
         self._best_value = None
@@ -179,7 +179,8 @@ def _sum_sqnorm(arr):
 
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
     # sort it by input lengths (long to short)
-    sorted_data = sorted(data.items(), key=lambda data: int(data[1]['ilen']), reverse=True)
+    sorted_data = sorted(data.items(), key=lambda data: int(
+        data[1]['ilen']), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))
     # change batchsize depending on the input and output length
     minibatch = []
@@ -352,9 +353,11 @@ def main():
 
     # logging info
     if args.verbose > 0:
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        logging.basicConfig(
+            level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
     else:
-        logging.basicConfig(level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        logging.basicConfig(
+            level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
         logging.warning('Skip DEBUG/INFO messages')
 
     # display PYTHONPATH
@@ -436,14 +439,14 @@ def main():
 
     # Setup an optimizer
     if args.opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(model.parameters(), rho=0.95, eps=args.eps)
+        optimizer = torch.optim.Adadelta(
+            model.parameters(), rho=0.95, eps=args.eps)
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters())
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", model.reporter)
     setattr(optimizer, "serialize", lambda s: model.reporter.serialize(s))
-    
 
     # read json data
     with open(args.train_label, 'r') as f:
@@ -452,20 +455,25 @@ def main():
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
-    train = make_batchset(train_json, args.batch_size, args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid = make_batchset(valid_json, args.batch_size, args.maxlen_in, args.maxlen_out, args.minibatches)
+    train = make_batchset(train_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
+    valid = make_batchset(valid_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
     train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
+    valid_iter = chainer.iterators.SerialIterator(
+        valid, 1, repeat=False, shuffle=False)
 
     # prepare Kaldi reader
     train_reader = lazy_io.read_dict_scp(args.train_feat)
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # Set up a trainer
-    updater = SeqUpdaterKaldi(model, args.grad_clip, train_iter, optimizer, train_reader, gpu_id)
-    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
+    updater = SeqUpdaterKaldi(model, args.grad_clip,
+                              train_iter, optimizer, train_reader, gpu_id)
+    trainer = training.Trainer(
+        updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # TODO: fix this
     # Resume from a snapshot
@@ -474,7 +482,8 @@ def main():
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(SeqEvaluaterKaldi(model, valid_iter, model.reporter, valid_reader, device=gpu_id))
+    trainer.extend(SeqEvaluaterKaldi(model, valid_iter,
+                                     model.reporter, valid_reader, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -531,7 +540,8 @@ def main():
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(100, 'iteration'))
         report_keys.append('eps')
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(100, 'iteration'))
+    trainer.extend(extensions.PrintReport(
+        report_keys), trigger=(100, 'iteration'))
 
     trainer.extend(extensions.ProgressBar())
 

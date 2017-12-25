@@ -59,12 +59,14 @@ def main():
 
     # logging info
     if args.verbose == 1:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
-    if args.verbose == 2:
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    elif args.verbose == 2:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
     else:
-        logging.basicConfig(level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        logging.basicConfig(
+            level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
         logging.warning("Skip DEBUG/INFO messages")
 
     # display PYTHONPATH
@@ -119,14 +121,14 @@ def main():
         new_json[name] = recog_json[name]
 
         # added recognition results to json
-        new_json[name]['rec_tokenid'] = " ".join([str(idx[0]) for idx in y_hat])
+        new_json[name]['rec_tokenid'] = " ".join(
+            [str(idx[0]) for idx in y_hat])
         new_json[name]['rec_token'] = " ".join(seq_hat)
         new_json[name]['rec_text'] = seq_hat_text
 
     # TODO fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_json}, indent=4).encode('utf_8'))
-
 
 
 if __name__ == '__main__':
