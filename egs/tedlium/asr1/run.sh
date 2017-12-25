@@ -81,7 +81,7 @@ if [ ${stage} -le 0 ]; then
     echo "stage 0: Data preparation"
     local/prepare_data.sh
     for dset in dev test train; do
-	utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}.orig data/${dset}
+    utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}.orig data/${dset}
     done
 fi
 
@@ -120,14 +120,14 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-	| sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
-		 data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-		 data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
 if [ -z ${tag} ]; then
@@ -140,44 +140,46 @@ else
 fi
 mkdir -p ${expdir}
 
+# switch backend
+if [[ ${backend} == chainer ]]; then
+    train_script=asr_train.py
+    decode_script=asr_recog.py
+else
+    train_script=asr_train_th.py
+    decode_script=asr_recog_th.py
+fi
+
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
-
-    if [[ ${backend} == chainer ]]; then
-        train_script=asr_train.py
-    else 
-        train_script=asr_train_th.py
-    fi
-
     ${cuda_cmd} ${expdir}/train.log \
         ${train_script} \
-	    --gpu ${gpu} \
-	    --outdir ${expdir}/results \
-	    --debugmode ${debugmode} \
-	    --dict ${dict} \
-	    --debugdir ${expdir} \
-	    --minibatches ${N} \
-	    --verbose ${verbose} \
-	    --train-feat scp:${feat_tr_dir}/feats.scp \
-	    --valid-feat scp:${feat_dt_dir}/feats.scp \
-	    --train-label ${feat_tr_dir}/data.json \
-	    --valid-label ${feat_dt_dir}/data.json \
-	    --etype ${etype} \
-	    --elayers ${elayers} \
-	    --eunits ${eunits} \
-	    --eprojs ${eprojs} \
-	    --subsample ${subsample} \
-	    --dlayers ${dlayers} \
-	    --dunits ${dunits} \
-	    --atype ${atype} \
-	    --aconv-chans ${aconv_chans} \
-	    --aconv-filts ${aconv_filts} \
-	    --mtlalpha ${mtlalpha} \
-	    --batch-size ${batchsize} \
-	    --maxlen-in ${maxlen_in} \
-	    --maxlen-out ${maxlen_out} \
-	    --opt ${opt} \
-	    --epochs ${epochs}
+        --gpu ${gpu} \
+        --outdir ${expdir}/results \
+        --debugmode ${debugmode} \
+        --dict ${dict} \
+        --debugdir ${expdir} \
+        --minibatches ${N} \
+        --verbose ${verbose} \
+        --train-feat scp:${feat_tr_dir}/feats.scp \
+        --valid-feat scp:${feat_dt_dir}/feats.scp \
+        --train-label ${feat_tr_dir}/data.json \
+        --valid-label ${feat_dt_dir}/data.json \
+        --etype ${etype} \
+        --elayers ${elayers} \
+        --eunits ${eunits} \
+        --eprojs ${eprojs} \
+        --subsample ${subsample} \
+        --dlayers ${dlayers} \
+        --dunits ${dunits} \
+        --atype ${atype} \
+        --aconv-chans ${aconv_chans} \
+        --aconv-filts ${aconv_filts} \
+        --mtlalpha ${mtlalpha} \
+        --batch-size ${batchsize} \
+        --maxlen-in ${maxlen_in} \
+        --maxlen-out ${maxlen_out} \
+        --opt ${opt} \
+        --epochs ${epochs}
 fi
 
 if [ ${stage} -le 4 ]; then
@@ -185,52 +187,46 @@ if [ ${stage} -le 4 ]; then
     nj=32
 
     for rtask in ${recog_set}; do
-	(
-	    decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+    (
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
 
-	    # split data
-	    data=data/${rtask}
-	    split_data.sh --per-utt ${data} ${nj};
-	    sdata=${data}/split${nj}utt;
+        # split data
+        data=data/${rtask}
+        split_data.sh --per-utt ${data} ${nj};
+        sdata=${data}/split${nj}utt;
 
-	    # feature extraction
-	    feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-	    if ${do_delta}; then
-		feats="$feats add-deltas ark:- ark:- |"
-	    fi
-
-	    # make json labels for recognition
-	    data2json.sh ${data} ${dict} > ${data}/data.json
-
-	    #### use CPU for decoding
-	    gpu=-1
-
-        if [[ ${backend} == chainer ]]; then
-            decode_script=asr_recog.py
-        else 
-            decode_script=asr_recog_th.py
+        # feature extraction
+        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
+        if ${do_delta}; then
+        feats="$feats add-deltas ark:- ark:- |"
         fi
 
-	    ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-			${decode_script} \
-			--gpu ${gpu} \
+        # make json labels for recognition
+        data2json.sh ${data} ${dict} > ${data}/data.json
+
+        #### use CPU for decoding
+        gpu=-1
+
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            ${decode_script} \
+            --gpu ${gpu} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-			--recog-feat "$feats" \
-			--recog-label ${data}/data.json \
-			--result-label ${expdir}/${decode_dir}/data.JOB.json \
-			--model ${expdir}/results/model.${recog_model}  \
-			--model-conf ${expdir}/results/model.conf  \
-			--beam-size ${beam_size} \
-			--penalty ${penalty} \
-			--maxlenratio ${maxlenratio} \
-			--minlenratio ${minlenratio} \
-			&
-	    wait
+            --recog-feat "$feats" \
+            --recog-label ${data}/data.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/model.${recog_model}  \
+            --model-conf ${expdir}/results/model.conf  \
+            --beam-size ${beam_size} \
+            --penalty ${penalty} \
+            --maxlenratio ${maxlenratio} \
+            --minlenratio ${minlenratio} \
+            &
+        wait
 
-	    score_sclite.sh ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh ${expdir}/${decode_dir} ${dict}
 
-	) &
+    ) &
     done
     wait
     echo "Finished"
