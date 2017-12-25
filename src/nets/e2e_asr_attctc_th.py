@@ -514,9 +514,12 @@ class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
         super(Decoder, self).__init__()
         self.dunits = dunits
+        self.dlayers = dlayers
         self.embed = torch.nn.Embedding(odim, dunits)
-        # TODO use multiple layers with dlayers option
-        self.decoder = torch.nn.LSTMCell(dunits + eprojs, dunits)  # 310s per 100 ite -> 240s from NStepLSTM
+        self.decoder = torch.nn.ModuleList()
+        self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
+        for l in six.moves.range(1, self.dlayers):
+            self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
         self.ignore_id = 0  # NOTE: 0 for CTC?
         self.output = torch.nn.Linear(dunits, odim)
 
@@ -548,7 +551,6 @@ class Decoder(torch.nn.Module):
 
         # padding for ys with -1
         # pys: utt x olen
-
         pad_ys_in = pad_list(ys_in, self.eos)
         pad_ys_out = pad_list(ys_out, self.ignore_id)
 
@@ -559,8 +561,11 @@ class Decoder(torch.nn.Module):
         logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.shape[0] for y in ys_out]))
 
         # initialization
-        c = self.zero_state(hpad)
-        z = self.zero_state(hpad)
+        c_list = [self.zero_state(hpad)]
+        z_list = [self.zero_state(hpad)]
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(self.zero_state(hpad))
+            z_list.append(self.zero_state(hpad))
         att_w = None
         z_all = []
         self.att.reset()  # reset pre-computation of h
@@ -571,17 +576,21 @@ class Decoder(torch.nn.Module):
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hpad, hlen, z, att_w)
+            att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
-            z, c = self.decoder(ey, (z, c))
-            z_all.append(z)
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](
+                    z_list[l - 1], (z_list[l], c_list[l]))
+            z_all.append(z_list[-1])
             att_weight_all.append(att_w.data)  # for debugging
 
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
         self.loss = torch.nn.functional.cross_entropy(y_all, pad_ys_out.view(-1),
-                                                      ignore_index=self.ignore_id, size_average=True)
+                                                      ignore_index=self.ignore_id,
+                                                      size_average=True)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         # acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
@@ -615,8 +624,11 @@ class Decoder(torch.nn.Module):
         '''
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
-        c = self.zero_state(h.unsqueeze(0))
-        z = self.zero_state(h.unsqueeze(0))
+        c_list = [self.zero_state(h.unsqueeze(0))]
+        z_list = [self.zero_state(h.unsqueeze(0))]
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(self.zero_state(h.unsqueeze(0)))
+            z_list.append(self.zero_state(h.unsqueeze(0)))
         att_w = None
         y_seq = []
         self.att.reset()  # reset pre-computation of h
@@ -633,10 +645,13 @@ class Decoder(torch.nn.Module):
             vy.unsqueeze(1)
             ey = self.embed(vy)           # utt list (1) x zdim
             ey = ey.squeeze(1)
-            att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], z, att_w)
+            att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], z_list[0], att_w)
             ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
-            z, c = self.decoder(ey, (z, c))
-            y = self.output(z).data.max(1)[1][0]
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](
+                    z_list[l - 1], (z_list[l], c_list[l]))
+            y = self.output(z_list[-1]).data.max(1)[1][0]
             y_seq.append(y)
 
             # terminate decoding
@@ -655,8 +670,11 @@ class Decoder(torch.nn.Module):
         '''
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
-        c = self.zero_state(h.unsqueeze(0))
-        z = self.zero_state(h.unsqueeze(0))
+        c_list = [self.zero_state(h.unsqueeze(0))]
+        z_list = [self.zero_state(h.unsqueeze(0))]
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(self.zero_state(h.unsqueeze(0)))
+            z_list.append(self.zero_state(h.unsqueeze(0)))
         a = None
         self.att.reset()  # reset pre-computation of h
 
@@ -673,7 +691,7 @@ class Decoder(torch.nn.Module):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c, 'z_prev': z, 'a_prev': a}
+        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         hyps = [hyp]
         ended_hyps = []
         for i in six.moves.range(maxlen):
@@ -685,21 +703,27 @@ class Decoder(torch.nn.Module):
                 vy[0] = hyp['yseq'][i]
                 ey = self.embed(vy)           # utt list (1) x zdim
                 ey.unsqueeze(0)
-                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'], hyp['a_prev'])
+                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
-                z, c = self.decoder(ey, (hyp['z_prev'], hyp['c_prev']))
-                hyp['c_prev'] = c
-                hyp['z_prev'] = z
+                z_list[0], c_list[0] = self.decoder[0](ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
+                for l in six.moves.range(1, self.dlayers):
+                    z_list[l], c_list[l] = self.decoder[l](
+                            z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
+                hyp['c_prev'] = c_list
+                hyp['z_prev'] = z_list
                 hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = functional.log_softmax(self.output(z), dim=1).data
+                local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
                 local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
-                    new_hyp['z_prev'] = z
-                    new_hyp['c_prev'] = c
+                    new_hyp['z_prev'] = [z_list[0]]
+                    new_hyp['c_prev'] = [c_list[0]]
+                    for l in six.moves.range(1, self.dlayers):
+                        new_hyp['z_prev'].append(z_list[l])
+                        new_hyp['c_prev'].append(c_list[l])
                     new_hyp['a_prev'] = att_w
                     new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
