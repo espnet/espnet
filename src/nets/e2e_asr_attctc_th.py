@@ -3,11 +3,12 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
+from __future__ import division
 import torch
 from torch.nn import functional
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
+from warpctc_pytorch import _CTC
 import sys
 import logging
 import six
@@ -15,9 +16,6 @@ import math
 
 import numpy as np
 
-# import chainer
-# import chainer.functions as F
-# import chainer.links as L
 import chainer
 from chainer import reporter
 
@@ -60,7 +58,6 @@ def lecun_normal_init_parameters(module):
             data.normal_(0, stdv)
         else:
             raise NotImplementedError
-        
 
 
 # get output dim for latter BLSTM
@@ -146,7 +143,7 @@ def pad_list(xs, pad_value=float("nan")):
 
 def set_forget_bias_to_one(bias):
     n = bias.size(0)
-    start, end = n//4, n//2
+    start, end = n // 4, n // 2
     bias.data[start:end].fill_(1.)
 
 
@@ -199,7 +196,7 @@ class E2E(torch.nn.Module):
         #         for name, p in m.named_parameters():
         #             if "bias_ih" in name:
         #                 set_forget_bias_to_one(p)
-    
+
     def init_like_chainer(self):
         """
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
@@ -218,7 +215,6 @@ class E2E(torch.nn.Module):
         # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
         set_forget_bias_to_one(self.dec.decoder.bias_ih)
 
-
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):
         '''
@@ -231,6 +227,9 @@ class E2E(torch.nn.Module):
         tids = [d[1]['tokenid'].split() for d in data]
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
+        if len(sorted_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(sorted_index)))
         xs = [xs[i] for i in sorted_index]
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64) for i in sorted_index]
@@ -279,7 +278,6 @@ class E2E(torch.nn.Module):
         ilen = [x.shape[0]]
         h = to_cuda(self, Variable(torch.from_numpy(np.array(x, dtype=np.float32)), volatile=True))
 
-
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
         h, _ = self.enc(h.unsqueeze(0), ilen)
@@ -297,9 +295,6 @@ class E2E(torch.nn.Module):
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
-
-from warpctc_pytorch import CTCLoss, _CTC
-
 class _ChainerLikeCTC(_CTC):
     def forward(self, acts, labels, act_lens, label_lens):
         return super(_ChainerLikeCTC, self).forward(acts, labels, act_lens, label_lens) / acts.size(1)
@@ -315,13 +310,12 @@ def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
     act_lens: Tensor of size (batch) containing size of each output sequence from the network
     act_lens: Tensor of (batch) containing label length of each example
     """
-    assert len(labels.size()) == 1 # labels must be 1 dimensional
+    assert len(labels.size()) == 1  # labels must be 1 dimensional
     from torch.nn.modules.loss import _assert_no_grad
     _assert_no_grad(labels)
     _assert_no_grad(act_lens)
     _assert_no_grad(label_lens)
     return _ChainerLikeCTC()(acts, labels, act_lens, label_lens)
-
 
 
 class CTC(torch.nn.Module):
@@ -479,7 +473,6 @@ class AttLoc(torch.nn.Module):
         # initialize attention weight with uniform dist.
         if att_prev is None:
             att_prev = [Variable(enc_hs_pad.data.new(l).zero_() + (1.0 / l)) for l in enc_hs_len]
-            fmin = np.finfo(np.float32).min
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
 
@@ -858,11 +851,12 @@ class BLSTMP(torch.nn.Module):
             ys, (hy, cy) = getattr(self, 'bilstm' + str(layer))(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
-            sub = self.subsample[layer+1]
+            sub = self.subsample[layer + 1]
             if sub > 1:
                 ypad = ypad[:, ::sub]
                 ilens = [(i + 1) // sub for i in ilens]
-            projected = getattr(self, 'bt' + str(layer))(ypad.contiguous().view(-1, ypad.size(2)))  # (sum _utt frame_utt) x dim
+            # (sum _utt frame_utt) x dim
+            projected = getattr(self, 'bt' + str(layer))(ypad.contiguous().view(-1, ypad.size(2)))
             xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
             del hy, cy
 
@@ -932,7 +926,6 @@ class VGG2L(torch.nn.Module):
         # ilens = [_get_max_pooled_size(i) for i in ilens]
         ilens = np.array(np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
         ilens = np.array(np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
-
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = xs.transpose(1, 2)
