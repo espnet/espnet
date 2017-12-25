@@ -102,7 +102,7 @@ class Reporter(chainer.Chain):
         reporter.report({'loss': mtl_loss}, self)
 
 
-# TODO merge Loss and E2E: there is no need to make these separately
+# TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
     def __init__(self, predictor, mtlalpha):
         super(Loss, self).__init__()
@@ -492,7 +492,6 @@ class AttLoc(torch.nn.Module):
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
 
-        # TODO use <chainer variable>.reshpae(), instead of F.reshape()
         # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
         att_conv = self.loc_conv(att_prev.view(batch, 1, 1, self.h_length))
         # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
@@ -505,7 +504,7 @@ class AttLoc(torch.nn.Module):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # TODO consider zero padding when compute w.
+        # NOTE consider zero padding when compute w.
         e = linear_tensor(self.gvec, torch.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
         w = torch.nn.functional.softmax(scaling * e, dim=1)
@@ -534,7 +533,7 @@ class Decoder(torch.nn.Module):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.embed = torch.nn.Embedding(odim, dunits)
-        # TODO use multiple layers with dlayers option
+        # TODO(watanabe) use multiple layers with dlayers option
         # 310s per 100 ite -> 240s from NStepLSTM
         self.decoder = torch.nn.LSTMCell(dunits + eprojs, dunits)
         self.ignore_id = 0  # NOTE: 0 for CTC?
@@ -785,7 +784,6 @@ class Decoder(torch.nn.Module):
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
-# TODO avoid to use add_link
 class Encoder(torch.nn.Module):
     '''ENCODER NEWTWORK CLASS
 

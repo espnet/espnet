@@ -10,7 +10,7 @@ import pytest
 import numpy
 
 
-# TODO: use much smaller corpus like AN4 and download if it does not exists
+# TODO(karita): use much smaller corpus like AN4 and download if it does not exists
 def test_voxforge_feats():
     import kaldi_io_py
     import lazy_io

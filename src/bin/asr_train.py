@@ -200,7 +200,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
     return minibatch
 
 
-# TODO perform mean and variance normalization during the python program
+# TODO(watanabe) perform mean and variance normalization during the python program
 # and remove the data dump process in run.sh
 def converter_kaldi(batch, reader):
     for data in batch:
@@ -419,7 +419,7 @@ def main():
     model_conf = args.outdir + '/model.conf'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
-        # TODO use others than pickle, possibly json, and save as a text
+        # TODO(watanabe) use others than pickle, possibly json, and save as a text
         pickle.dump((idim, odim, args), f)
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
