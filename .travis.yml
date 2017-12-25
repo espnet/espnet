@@ -21,7 +21,7 @@ install:
   # - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp36-cp36m-linux_x86_64.whl; fi
   # - cd tools && make warp-ctc && cd -
   - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
-  - cd tools && make kaldi-io-for-python.git && cd -
+  - cd tools && make kaldi-io-for-python && cd -
 
 
 script:
