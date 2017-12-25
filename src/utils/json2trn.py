@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -26,10 +26,10 @@ if __name__ == '__main__':
     logging.info("reading %s", args.dict)
     with open(args.dict, 'r') as f:
         dictionary = f.readlines()
-    char_list = [d.split(' ')[0].decode('utf-8') for d in dictionary]
-    char_list.insert(0, '<sos>')
+    char_list = [unicode(entry.split(' ')[0], 'utf_8') for entry in dictionary] 
+    char_list.insert(0, '<blank>')
     char_list.append('<eos>')
-    print([x.encode('utf-8') for x in char_list])
+    # print([x.encode('utf-8') for x in char_list])
 
     logging.info("writing hyp trn to %s", args.hyp)
     logging.info("writing ref trn to %s", args.ref)

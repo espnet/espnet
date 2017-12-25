@@ -7,6 +7,7 @@
 . ./cmd.sh
 
 # general configuration
+backend=chainer
 stage=0        # start from 0 if you need to start from data preparation
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
@@ -98,14 +99,14 @@ if [ ${stage} -le 1 ]; then
 
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-	utils/create_split_dir.pl \
-	    /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
-	    ${feat_tr_dir}/storage
+    utils/create_split_dir.pl \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+        ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-	utils/create_split_dir.pl \
-	    /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
-	    ${feat_dt_dir}/storage
+    utils/create_split_dir.pl \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
@@ -114,6 +115,8 @@ if [ ${stage} -le 1 ]; then
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
+nlsyms=data/lang_1char/non_lang_syms.txt
+
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -121,21 +124,20 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    nlsyms=data/lang_1char/non_lang_syms.txt
     cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-	| sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-		 data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-		 data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
 if [ -z ${tag} ]; then
@@ -148,37 +150,47 @@ else
 fi
 mkdir -p ${expdir}
 
+# switch backend
+if [[ ${backend} == chainer ]]; then
+    train_script=asr_train.py
+    decode_script=asr_recog.py
+else
+    train_script=asr_train_th.py
+    decode_script=asr_recog_th.py
+fi
+
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
+
     ${cuda_cmd} ${expdir}/train.log \
-	    asr_train.py \
-	    --gpu ${gpu} \
-	    --outdir ${expdir}/results \
-	    --debugmode ${debugmode} \
-	    --dict ${dict} \
-	    --debugdir ${expdir} \
-	    --minibatches ${N} \
-	    --verbose ${verbose} \
-	    --train-feat scp:${feat_tr_dir}/feats.scp \
-	    --valid-feat scp:${feat_dt_dir}/feats.scp \
-	    --train-label ${feat_tr_dir}/data.json \
-	    --valid-label ${feat_dt_dir}/data.json \
-	    --etype ${etype} \
-	    --elayers ${elayers} \
-	    --eunits ${eunits} \
-	    --eprojs ${eprojs} \
-	    --subsample ${subsample} \
-	    --dlayers ${dlayers} \
-	    --dunits ${dunits} \
-	    --atype ${atype} \
-	    --aconv-chans ${aconv_chans} \
-	    --aconv-filts ${aconv_filts} \
-	    --mtlalpha ${mtlalpha} \
-	    --batch-size ${batchsize} \
-	    --maxlen-in ${maxlen_in} \
-	    --maxlen-out ${maxlen_out} \
-	    --opt ${opt} \
-	    --epochs ${epochs}
+        ${train_script} \
+        --gpu ${gpu} \
+        --outdir ${expdir}/results \
+        --debugmode ${debugmode} \
+        --dict ${dict} \
+        --debugdir ${expdir} \
+        --minibatches ${N} \
+        --verbose ${verbose} \
+        --train-feat scp:${feat_tr_dir}/feats.scp \
+        --valid-feat scp:${feat_dt_dir}/feats.scp \
+        --train-label ${feat_tr_dir}/data.json \
+        --valid-label ${feat_dt_dir}/data.json \
+        --etype ${etype} \
+        --elayers ${elayers} \
+        --eunits ${eunits} \
+        --eprojs ${eprojs} \
+        --subsample ${subsample} \
+        --dlayers ${dlayers} \
+        --dunits ${dunits} \
+        --atype ${atype} \
+        --aconv-chans ${aconv_chans} \
+        --aconv-filts ${aconv_filts} \
+        --mtlalpha ${mtlalpha} \
+        --batch-size ${batchsize} \
+        --maxlen-in ${maxlen_in} \
+        --maxlen-out ${maxlen_out} \
+        --opt ${opt} \
+        --epochs ${epochs}
 fi
 
 if [ ${stage} -le 4 ]; then
@@ -186,44 +198,44 @@ if [ ${stage} -le 4 ]; then
     nj=32
 
     for rtask in ${recog_set}; do
-	(
-	    decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+    (
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
 
-	    # split data
-	    data=data/${rtask}
-	    split_data.sh --per-utt ${data} ${nj};
-	    sdata=${data}/split${nj}utt;
+        # split data
+        data=data/${rtask}
+        split_data.sh --per-utt ${data} ${nj};
 
-	    # feature extraction
-	    feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-	    if ${do_delta}; then
-		feats="$feats add-deltas ark:- ark:- |"
-	    fi
+        # feature extraction
+        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
+        if ${do_delta}; then
+        feats="$feats add-deltas ark:- ark:- |"
+        fi
 
-	    # make json labels for recognition
-	    data2json.sh ${data} ${dict} > ${data}/data.json
+        # make json labels for recognition
+        data2json.sh ${data} ${dict} > ${data}/data.json
 
-	    #### use CPU for decoding
-	    gpu=-1
+        #### use CPU for decoding
+        gpu=-1
 
-	    ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-			asr_recog.py \
-			--gpu ${gpu} \
-			--recog-feat "$feats" \
-			--recog-label ${data}/data.json \
-			--result-label ${expdir}/${decode_dir}/data.JOB.json \
-			--model ${expdir}/results/model.${recog_model}  \
-			--model-conf ${expdir}/results/model.conf  \
-			--beam-size ${beam_size} \
-			--penalty ${penalty} \
-			--maxlenratio ${maxlenratio} \
-			--minlenratio ${minlenratio} \
-			&
-	    wait
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            ${decode_script} \
+            --gpu ${gpu} \
+            --recog-feat "$feats" \
+            --recog-label ${data}/data.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/model.${recog_model}  \
+            --model-conf ${expdir}/results/model.conf  \
+            --beam-size ${beam_size} \
+            --penalty ${penalty} \
+            --maxlenratio ${maxlenratio} \
+            --minlenratio ${minlenratio} \
+            --debugmode ${debugmode} \
+            --verbose ${verbose} &
+        wait
 
-	    score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-
-	) &
+        score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+            
+    ) &
     done
     wait
     echo "Finished"

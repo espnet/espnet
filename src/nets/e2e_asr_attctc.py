@@ -48,7 +48,7 @@ def linear_tensor(linear, x):
     :param Link linear: Linear link (M x N matrix)
     :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
     :return:
-    :param Variable x: Tensor (D_1 x D_2 x ... x N matrix)
+    :param Variable y: Tensor (D_1 x D_2 x ... x N matrix)
     '''
     dim = 1
     shapes = list(x.shape[:-1])
@@ -147,7 +147,7 @@ class E2E(chainer.Chain):
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
         # utt list of olen
-        ys = [self.xp.array(map(float, i[1]['tokenid'].split()), dtype=np.int32) for i in data]
+        ys = [self.xp.array(list(map(int, i[1]['tokenid'].split())), dtype=np.int32) for i in data]
         ys = [chainer.Variable(y) for y in ys]
 
         # subsample frame
@@ -271,7 +271,7 @@ class AttDot(chainer.Chain):
         self.enc_h = None
         self.pre_compute_enc_h = None
 
-    def __call__(self, enc_hs, dec_z, scaling=2.0):
+    def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
         '''
 
         :param enc_hs:
@@ -372,7 +372,8 @@ class AttLoc(chainer.Chain):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # TODO consider zero padding when compute w.
+        # TODO consider energy -infinity padding for e.
+        # TODO use batch_matmul
         e = F.squeeze(linear_tensor(self.gvec, F.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)), axis=2)
         w = F.softmax(scaling * e)
 
@@ -472,8 +473,8 @@ class Decoder(chainer.Chain):
                 idx_true = y_true_[y_true_ != -1]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
-                seq_hat = "".join(seq_hat)
-                seq_true = "".join(seq_true)
+                seq_hat = "".join(seq_hat).replace('<space>', ' ')
+                seq_true = "".join(seq_true).replace('<space>', ' ')
                 logging.info("groundtruth[%d]: " + seq_true, i)
                 logging.info("prediction [%d]: " + seq_hat, i)
 
@@ -592,7 +593,7 @@ class Decoder(chainer.Chain):
             # sort and get nbest
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothes: ' + str(len(hyps)))
-            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]))
+            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]).replace('<space>', ' '))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -620,7 +621,7 @@ class Decoder(chainer.Chain):
                 break
 
             for hyp in hyps:
-                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
+                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]).replace('<space>', ' '))
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
@@ -652,7 +653,10 @@ class Encoder(chainer.Chain):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
         with self.init_scope():
-            if etype == 'blstmp':
+            if etype == 'blstm':
+                self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
+                logging.info('BLSTM without projection for encoder')
+            elif etype == 'blstmp':
                 self.enc1 = BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
@@ -677,7 +681,9 @@ class Encoder(chainer.Chain):
         :param ilens:
         :return:
         '''
-        if self.etype == 'blstmp':
+        if self.etype == 'blstm':
+            xs, ilens = self.enc1(xs, ilens)
+        elif self.etype == 'blstmp':
             xs, ilens = self.enc1(xs, ilens)
         elif self.etype == 'vggblstmp':
             xs, ilens = self.enc1(xs, ilens)
@@ -692,6 +698,7 @@ class Encoder(chainer.Chain):
         return xs, ilens
 
 
+# TODO explanation of BLSTMP 
 class BLSTMP(chainer.Chain):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
@@ -721,6 +728,7 @@ class BLSTMP(chainer.Chain):
         for layer in six.moves.range(self.elayers):
             hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
+            # TODO replace subsample and FC layer with CNN
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
             ys = self['bt' + str(layer)](F.vstack(ys))  # (sum _utt frame_utt) x dim
             xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
@@ -766,6 +774,7 @@ class BLSTM(chainer.Chain):
         return xs, ilens  # x: utt list of frame x dim
 
 
+# TODO explanation of VGG2L, VGG2B (Block) might be better
 class VGG2L(chainer.Chain):
     def __init__(self, in_channel=1):
         super(VGG2L, self).__init__()
@@ -791,7 +800,7 @@ class VGG2L(chainer.Chain):
         xs = F.pad_sequence(xs)
 
         # x: utt x 1 (input channel num) x frame x dim
-        xs = F.swapaxes(F.reshape(xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] / self.in_channel)), 1, 2)
+        xs = F.swapaxes(F.reshape(xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
 
         xs = F.relu(self.conv1_1(xs))
         xs = F.relu(self.conv1_2(xs))
