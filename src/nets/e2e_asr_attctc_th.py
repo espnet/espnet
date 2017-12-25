@@ -224,7 +224,8 @@ class E2E(torch.nn.Module):
         self.dec.embed.weight.data.normal_(0, 1)
         # forget-bias = 1.0
         # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
-        set_forget_bias_to_one(self.dec.decoder.bias_ih)
+        for l in six.moves.range(len(self.dec.decoder)):
+            set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):
