@@ -4,9 +4,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import pytest
-import numpy
 import chainer.functions as F
+import numpy
+import pytest
 
 
 def test_ctc_loss():
@@ -14,6 +14,7 @@ def test_ctc_loss():
     pytest.importorskip("warpctc_pytorch")
     import torch
     from warpctc_pytorch import CTCLoss
+
     from e2e_asr_attctc_th import pad_list
 
     n_out = 7
@@ -46,6 +47,7 @@ def test_ctc_loss():
 def test_attn_loss():
     pytest.importorskip("torch")
     import torch
+
     from e2e_asr_attctc_th import pad_list
 
     n_out = 7
@@ -86,6 +88,7 @@ def test_attn_loss():
 def test_train_acc():
     pytest.importorskip("torch")
     import torch
+
     from e2e_asr_attctc_th import pad_list
     from e2e_asr_attctc_th import th_accuracy
 

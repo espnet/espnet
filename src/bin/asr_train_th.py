@@ -4,24 +4,23 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import os
-import copy
-import six
 import argparse
-import random
-import logging
 import collections
+import copy
 import json
-import pickle
+import logging
 import math
+import os
+import pickle
+import random
+import six
 
 # chainer related
 import chainer
 from chainer import cuda
-from chainer.training import extensions
-from chainer import training
-
 from chainer import reporter as reporter_module
+from chainer import training
+from chainer.training import extensions
 
 import torch
 
@@ -33,9 +32,9 @@ from e2e_asr_attctc_th import Loss
 import lazy_io
 
 # numpy related
-import numpy as np
 import matplotlib
 matplotlib.use('Agg')
+import numpy as np
 
 
 # Custom evaluater with Kaldi reader

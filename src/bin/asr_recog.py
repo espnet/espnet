@@ -4,16 +4,17 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import os
+
 import argparse
-import random
-import logging
-import numpy as np
-import pickle
 import json
+import logging
+import os
+import pickle
+import random
 
 # chainer related
 import chainer
+import numpy as np
 
 # spnet related
 from e2e_asr_attctc import E2E

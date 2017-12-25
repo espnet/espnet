@@ -6,8 +6,8 @@
 
 import argparse
 
-import pytest
 import numpy
+import pytest
 
 
 args = argparse.Namespace(

@@ -3,27 +3,27 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import os
-import copy
-import six
+
 import argparse
-import random
-import logging
 import collections
+import copy
 import json
-import pickle
+import logging
 import math
+import os
+import pickle
+import random
+import six
 
 # chainer related
 import chainer
 from chainer import cuda
-from chainer.training import extensions
-from chainer import training
-
-from chainer import reporter as reporter_module
 from chainer import function
+from chainer import reporter as reporter_module
+from chainer import training
+from chainer.training import extensions
 
-# spnet related
+# espnet related
 from e2e_asr_attctc import E2E
 from e2e_asr_attctc import Loss
 
@@ -31,8 +31,8 @@ from e2e_asr_attctc import Loss
 import lazy_io
 
 # numpy related
-import numpy as np
 import matplotlib
+import numpy as np
 matplotlib.use('Agg')
 
 
