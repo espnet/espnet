@@ -1,9 +1,9 @@
 .PHONY: all clean
 
 
-all: kaldi venv venv/bin/activate nkf kaldi-io-for-python.git pytorch warp-ctc
+all: venv/bin/activate nkf kaldi-io-for-python pytorch warp-ctc
 
-kaldi-io-for-python.git:
+kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
 	cd ../src/utils; ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
 
@@ -14,8 +14,6 @@ kaldi: kaldi_github
 
 kaldi_github:
 	git clone https://github.com/kaldi-asr/kaldi.git kaldi_github
-
-venv: venv/bin/activate
 
 # for some reason, including matplotlib in requirements.txt causes errors, and
 # matplotlib should be separately pip installed
@@ -38,7 +36,7 @@ clean:
 pytorch:
 	pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl
 
-warp-ctc:
+warp-ctc: pytorch
 	git clone https://github.com/SeanNaren/warp-ctc.git
 	cd warp-ctc && mkdir build && cd build && cmake .. && make -j4
 	pip install cffi
