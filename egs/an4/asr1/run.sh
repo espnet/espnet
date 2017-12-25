@@ -8,7 +8,7 @@
 
 # general configuration
 backend=chainer
-stage=0        # start from 0 if you need to start from data preparation
+stage=-1       # start from -1 if you need to start from data download
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -47,14 +47,15 @@ epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0
+penalty=0.2
 maxlenratio=0.8
-minlenratio=0.3
+minlenratio=0.1
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
-wsj0=/export/corpora5/LDC/LDC93S6B
-wsj1=/export/corpora5/LDC/LDC94S13B
+datadir=./downloads
+an4_root=${datadir}/an4
+data_url=http://www.speech.cs.cmu.edu/databases/an4/
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -70,16 +71,35 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_si284
-train_dev=test_dev93
-recog_set="test_dev93 test_eval92"
+train_set=train_nodev
+train_dev=train_dev
+recog_set="train_dev test"
+
+if [ ${stage} -le -1 ]; then
+    echo "stage -1: Data Download"
+    mkdir -p ${datadir}
+    local/download_and_untar.sh ${datadir} ${data_url}
+fi
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
-    local/wsj_format_data.sh
+    mkdir -p data/{train,test} exp
+
+    if [ ! -f ${an4_root}/README ]; then
+        echo Cannot find an4 root! Exiting...
+        exit 1
+    fi
+
+    python local/data_prep.py ${an4_root} ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
+
+    for x in test train; do
+        for f in text wav.scp utt2spk; do
+            sort data/${x}/${f} -o data/${x}/${f}
+        done
+        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
+    done
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -90,53 +110,40 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train_si284 test_dev93 test_eval92; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/${x} exp/make_fbank/${x} ${fbankdir}
+    for x in test train; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 data/${x} exp/make_fbank/${x} ${fbankdir}
     done
+
+    # make a dev set
+    utils/subset_data_dir.sh --first data/train 100 data/${train_dev}
+    n=$[`cat data/train/text | wc -l` - 100]
+    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
-        ${feat_tr_dir}/storage
-    fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
-        ${feat_dt_dir}/storage
-    fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
-nlsyms=data/lang_1char/non_lang_syms.txt
-
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
-
-    echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
-    cat ${nlsyms}
-
-    echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
-    echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+    # make json labels
+    data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
@@ -161,7 +168,6 @@ fi
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
-
     ${cuda_cmd} ${expdir}/train.log \
         ${train_script} \
         --gpu ${gpu} \
@@ -195,7 +201,7 @@ fi
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
-    nj=32
+    nj=8
 
     for rtask in ${recog_set}; do
     (
@@ -213,7 +219,7 @@ if [ ${stage} -le 4 ]; then
         fi
 
         # make json labels for recognition
-        data2json.sh --nlsyms ${nlsyms} ${data} ${dict} > ${data}/data.json
+        data2json.sh ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
         gpu=-1
@@ -221,6 +227,8 @@ if [ ${stage} -le 4 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             ${decode_script} \
             --gpu ${gpu} \
+            --debugmode ${debugmode} \
+            --verbose ${verbose} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
@@ -229,11 +237,12 @@ if [ ${stage} -le 4 ]; then
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} &
+            --minlenratio ${minlenratio} \
+            &
         wait
 
-        score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-            
+        score_sclite.sh ${expdir}/${decode_dir} ${dict}
+
     ) &
     done
     wait

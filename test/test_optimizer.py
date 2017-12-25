@@ -4,11 +4,12 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import pytest
 import chainer
 import numpy
+import pytest
+
 pytest.importorskip('torch')
-import torch
+import torch  # NOQA
 
 
 class ChModel(chainer.Chain):
@@ -52,7 +53,6 @@ def test_optimizer(ch_opt_t, th_opt_t):
     # forward
     ch_model.cleargrads()
     data = numpy.random.randn(2, 3).astype(numpy.float32)
-    v = chainer.Variable(data)
     ch_loss = ch_model(data)
     th_loss = th_model(torch.autograd.Variable(torch.from_numpy(data)))
     numpy.testing.assert_allclose(ch_loss.data, th_loss.data.numpy())
@@ -61,6 +61,7 @@ def test_optimizer(ch_opt_t, th_opt_t):
     th_loss.backward()
     ch_opt.update()
     th_opt.step()
-    numpy.testing.assert_allclose(ch_model.a.W.data, th_model.a.weight.data.numpy())
-    numpy.testing.assert_allclose(ch_model.a.b.data, th_model.a.bias.data.numpy())
-    
+    numpy.testing.assert_allclose(
+        ch_model.a.W.data, th_model.a.weight.data.numpy())
+    numpy.testing.assert_allclose(
+        ch_model.a.b.data, th_model.a.bias.data.numpy())

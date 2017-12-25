@@ -4,16 +4,17 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import os
+
 import argparse
-import random
-import logging
-import numpy as np
-import pickle
 import json
+import logging
+import os
+import pickle
+import random
 
 # chainer related
 import chainer
+import numpy as np
 import torch
 
 # spnet related
@@ -60,12 +61,14 @@ def main():
 
     # logging info
     if args.verbose == 1:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
-    if args.verbose == 2:
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    elif args.verbose == 2:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
     else:
-        logging.basicConfig(level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        logging.basicConfig(
+            level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
         logging.warning("Skip DEBUG/INFO messages")
 
     # display PYTHONPATH
@@ -94,6 +97,7 @@ def main():
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
     # chainer.serializers.load_npz(args.model, model)
+
     def cpu_loader(storage, location):
         return storage
     model.load_state_dict(torch.load(args.model, map_location=cpu_loader))
@@ -130,7 +134,7 @@ def main():
         logging.debug("dump text")
         new_json[name]['rec_text'] = seq_hat_text
 
-    # TODO fix character coding problems when saving it
+    # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_json}, indent=4).encode('utf_8'))
 

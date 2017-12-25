@@ -3,10 +3,12 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import sys
+
 import logging
-import six
 import math
+import sys
+
+import six
 
 import numpy as np
 
@@ -14,6 +16,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
+
 
 CTC_LOSS_THRESHOLD = 10000
 MAX_DECODER_OUTPUT = 5
@@ -42,8 +45,7 @@ def _get_vgg2l_odim(idim, in_channel=3, out_channel=128):
 
 
 def linear_tensor(linear, x):
-    '''
-    Apply linear matrix operation only for the last dimension of a tensor
+    '''Apply linear matrix operation only for the last dimension of a tensor
 
     :param Link linear: Linear link (M x N matrix)
     :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
@@ -60,7 +62,7 @@ def linear_tensor(linear, x):
     return F.reshape(y, shapes)
 
 
-# TODO merge Loss and E2E: there is no need to make these separately
+# TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(chainer.Chain):
     def __init__(self, predictor, mtlalpha):
         super(Loss, self).__init__()
@@ -72,7 +74,7 @@ class Loss(chainer.Chain):
             self.predictor = predictor
 
     def __call__(self, x):
-        '''
+        '''Loss forward
 
         :param x:
         :return:
@@ -109,13 +111,15 @@ class E2E(chainer.Chain):
         self.eos = odim - 1
 
         # subsample info
-        subsample = np.ones(args.elayers + 1, dtype=np.int)  # +1 means input (+1) and layers outputs (args.elayer)
+        # +1 means input (+1) and layers outputs (args.elayer)
+        subsample = np.ones(args.elayers + 1, dtype=np.int)
         if args.etype == 'blstmp':
             ss = args.subsample.split("_")
             for j in range(min(args.elayers + 1, len(ss))):
                 subsample[j] = int(ss[j])
         else:
-            logging.warning('Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
+            logging.warning(
+                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
@@ -129,9 +133,11 @@ class E2E(chainer.Chain):
             if args.atype == 'dot':
                 self.att = AttDot(args.eprojs, args.dunits, args.adim)
             elif args.atype == 'location':
-                self.att = AttLoc(args.eprojs, args.dunits, args.adim, args.aconv_chans, args.aconv_filts)
+                self.att = AttLoc(args.eprojs, args.dunits,
+                                  args.adim, args.aconv_chans, args.aconv_filts)
             else:
-                logging.error("Error: need to specify an appropriate attention archtecture")
+                logging.error(
+                    "Error: need to specify an appropriate attention archtecture")
                 sys.exit()
             # decoder
             self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
@@ -139,7 +145,7 @@ class E2E(chainer.Chain):
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def __call__(self, data):
-        '''
+        '''E2E forward
 
         :param data:
         :return:
@@ -147,13 +153,15 @@ class E2E(chainer.Chain):
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
         # utt list of olen
-        ys = [self.xp.array(list(map(int, i[1]['tokenid'].split())), dtype=np.int32) for i in data]
+        ys = [self.xp.array(
+            list(map(int, i[1]['tokenid'].split())), dtype=np.int32) for i in data]
         ys = [chainer.Variable(y) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = self.xp.array([xx.shape[0] for xx in xs], dtype=np.int32)
-        hs = [chainer.Variable(self.xp.array(xx, dtype=np.float32)) for xx in xs]
+        hs = [chainer.Variable(self.xp.array(xx, dtype=np.float32))
+              for xx in xs]
 
         # 1. encoder
         hs, ilens = self.enc(hs, ilens)
@@ -178,7 +186,7 @@ class E2E(chainer.Chain):
         return loss_ctc, loss_att, acc
 
     def recognize(self, x, recog_args, char_list):
-        '''
+        '''E2E greedy/beam search
 
         :param x:
         :param recog_args:
@@ -216,7 +224,7 @@ class CTC(chainer.Chain):
             self.ctc_lo = L.Linear(eprojs, odim)
 
     def __call__(self, hs, ys):
-        '''
+        '''CTC forward
 
         :param hs:
         :param ys:
@@ -227,7 +235,8 @@ class CTC(chainer.Chain):
         olens = [x.shape[0] for x in ys]
 
         # zero padding for hs
-        y_hat = linear_tensor(self.ctc_lo, F.dropout(F.pad_sequence(hs), ratio=self.dropout_rate))
+        y_hat = linear_tensor(self.ctc_lo, F.dropout(
+            F.pad_sequence(hs), ratio=self.dropout_rate))
         y_hat = F.separate(y_hat, axis=1)  # ilen list of batch x hdim
 
         # zero padding for ys
@@ -236,11 +245,14 @@ class CTC(chainer.Chain):
         # get length info
         input_length = chainer.Variable(self.xp.array(ilens, dtype=np.int32))
         label_length = chainer.Variable(self.xp.array(olens, dtype=np.int32))
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(input_length.data))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str(label_length.data))
+        logging.info(self.__class__.__name__ +
+                     ' input lengths:  ' + str(input_length.data))
+        logging.info(self.__class__.__name__ +
+                     ' output lengths: ' + str(label_length.data))
 
         # get ctc loss
-        self.loss = F.connectionist_temporal_classification(y_hat, y_true, 0, input_length, label_length)
+        self.loss = F.connectionist_temporal_classification(
+            y_hat, y_true, 0, input_length, label_length)
         logging.info('ctc loss:' + str(self.loss.data))
 
         return self.loss
@@ -263,7 +275,7 @@ class AttDot(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def reset(self):
-        '''
+        '''reset states
 
         :return:
         '''
@@ -272,7 +284,7 @@ class AttDot(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        '''
+        '''AttDot forward
 
         :param enc_hs:
         :param dec_z:
@@ -285,10 +297,12 @@ class AttDot(chainer.Chain):
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_enc_h = F.tanh(linear_tensor(self.mlp_enc, self.enc_h))
+            self.pre_compute_enc_h = F.tanh(
+                linear_tensor(self.mlp_enc, self.enc_h))
 
         if dec_z is None:
-            dec_z = chainer.Variable(self.xp.zeros((batch, self.dunits), dtype=np.float32))
+            dec_z = chainer.Variable(self.xp.zeros(
+                (batch, self.dunits), dtype=np.float32))
         else:
             dec_z = F.reshape(dec_z, (batch, self.dunits))
 
@@ -298,7 +312,8 @@ class AttDot(chainer.Chain):
         w = F.softmax(scaling * e)
         # weighted sum over flames
         # utt x hdim
-        c = F.sum(self.enc_h * F.tile(F.reshape(w, (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
+        c = F.sum(self.enc_h * F.tile(F.reshape(w,
+                                                (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
 
         return c, w
 
@@ -311,7 +326,8 @@ class AttLoc(chainer.Chain):
             self.mlp_enc = L.Linear(eprojs, att_dim)
             self.mlp_dec = L.Linear(dunits, att_dim, nobias=True)
             self.mlp_att = L.Linear(aconv_chans, att_dim, nobias=True)
-            self.loc_conv = L.Convolution2D(1, aconv_chans, ksize=(1, 2 * aconv_filts + 1), pad=(0, aconv_filts))
+            self.loc_conv = L.Convolution2D(1, aconv_chans, ksize=(
+                1, 2 * aconv_filts + 1), pad=(0, aconv_filts))
             self.gvec = L.Linear(att_dim, 1)
 
         self.dunits = dunits
@@ -323,7 +339,7 @@ class AttLoc(chainer.Chain):
         self.aconv_chans = aconv_chans
 
     def reset(self):
-        '''
+        '''reset states
 
         :return:
         '''
@@ -332,7 +348,7 @@ class AttLoc(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        '''
+        '''AttLoc forward
 
         :param enc_hs:
         :param dec_z:
@@ -349,37 +365,43 @@ class AttLoc(chainer.Chain):
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = chainer.Variable(self.xp.zeros((batch, self.dunits), dtype=np.float32))
+            dec_z = chainer.Variable(self.xp.zeros(
+                (batch, self.dunits), dtype=np.float32))
         else:
             dec_z = F.reshape(dec_z, (batch, self.dunits))
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [self.xp.ones(hh.shape[0], dtype=np.float32) * (1.0 / hh.shape[0]) for hh in enc_hs]
+            att_prev = [self.xp.ones(
+                hh.shape[0], dtype=np.float32) * (1.0 / hh.shape[0]) for hh in enc_hs]
             att_prev = [chainer.Variable(att) for att in att_prev]
             att_prev = F.pad_sequence(att_prev)
 
-        # TODO use <chainer variable>.reshpae(), instead of F.reshape()
+        # TODO(watanabe) use <chainer variable>.reshpae(), instead of F.reshape()
         # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
-        att_conv = self.loc_conv(F.reshape(att_prev, (batch, 1, 1, self.h_length)))
+        att_conv = self.loc_conv(
+            F.reshape(att_prev, (batch, 1, 1, self.h_length)))
         # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
         att_conv = F.swapaxes(F.squeeze(att_conv, axis=2), 1, 2)
         # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
         att_conv = linear_tensor(self.mlp_att, att_conv)
 
         # dec_z_tiled: utt x frame x att_dim
-        dec_z_tiled = F.tile(F.reshape(self.mlp_dec(dec_z), (batch, 1, self.att_dim)), (1, self.h_length, 1))
+        dec_z_tiled = F.tile(F.reshape(self.mlp_dec(
+            dec_z), (batch, 1, self.att_dim)), (1, self.h_length, 1))
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # TODO consider energy -infinity padding for e.
-        # TODO use batch_matmul
-        e = F.squeeze(linear_tensor(self.gvec, F.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)), axis=2)
+        # TODO(watanabe) consider energy -infinity padding for e.
+        # TODO(watanabe) use batch_matmul
+        e = F.squeeze(linear_tensor(self.gvec, F.tanh(
+            att_conv + self.pre_compute_enc_h + dec_z_tiled)), axis=2)
         w = F.softmax(scaling * e)
 
         # weighted sum over flames
         # utt x hdim
-        c = F.sum(self.enc_h * F.tile(F.reshape(w, (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
+        c = F.sum(self.enc_h * F.tile(F.reshape(w,
+                                                (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
 
         return c, w
 
@@ -405,7 +427,7 @@ class Decoder(chainer.Chain):
         self.char_list = char_list
 
     def __call__(self, hs, ys):
-        '''
+        '''Decoder forward
 
         :param Variable hs:
         :param Variable ys:
@@ -426,8 +448,10 @@ class Decoder(chainer.Chain):
         # get dim, length info
         batch = pad_ys_out.shape[0]
         olength = pad_ys_out.shape[1]
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(self.xp.array([h.shape[0] for h in hs])))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str(self.xp.array([y.shape[0] for y in ys_out])))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' +
+                     str(self.xp.array([h.shape[0] for h in hs])))
+        logging.info(self.__class__.__name__ + ' output lengths: ' +
+                     str(self.xp.array([y.shape[0] for y in ys_out])))
 
         # initialization
         c_list = [None]  # list of cell state of each layer
@@ -453,10 +477,12 @@ class Decoder(chainer.Chain):
             z_all.append(z_list[-1])
             att_weight_all.append(att_w.data)  # for debugging
 
-        z_all = F.reshape(F.stack(z_all, axis=1), (batch * olength, self.dunits))
+        z_all = F.reshape(F.stack(z_all, axis=1),
+                          (batch * olength, self.dunits))
         # compute loss
         y_all = self.output(z_all)
-        self.loss = F.softmax_cross_entropy(y_all, F.concat(pad_ys_out, axis=0))
+        self.loss = F.softmax_cross_entropy(
+            y_all, F.concat(pad_ys_out, axis=0))
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
@@ -481,7 +507,7 @@ class Decoder(chainer.Chain):
         return self.loss, acc, att_weight_all
 
     def recognize(self, h, recog_args):
-        '''
+        '''greedy search implementation
 
         :param h:
         :param recog_args:
@@ -521,7 +547,7 @@ class Decoder(chainer.Chain):
         return y_seq
 
     def recognize_beam(self, h, recog_args, char_list):
-        '''
+        '''beam search implementation
 
         :param h:
         :param recog_args:
@@ -544,7 +570,8 @@ class Decoder(chainer.Chain):
 
         # preprate sos
         y = self.xp.full(1, self.sos, 'i')
-        maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))  # maxlen >= 1
+        # maxlen >= 1
+        maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))
         minlen = int(recog_args.minlenratio * h.shape[0])
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
@@ -582,18 +609,23 @@ class Decoder(chainer.Chain):
                         new_hyp['z_prev'].append(z_list[l])
                         new_hyp['c_prev'].append(c_list[l])
                     new_hyp['a_prev'] = att_w
-                    new_hyp['score'] = hyp['score'] + local_scores[0, local_best_ids[j]]
+                    new_hyp['score'] = hyp['score'] + \
+                        local_scores[0, local_best_ids[j]]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
-                    new_hyp['yseq'][len(hyp['yseq'])] = self.xp.full(1, local_best_ids[j], 'i')
-                    hyps_best_kept.append(new_hyp)  # will be (2 x beam) hyps at most
+                    new_hyp['yseq'][len(hyp['yseq'])] = self.xp.full(
+                        1, local_best_ids[j], 'i')
+                    # will be (2 x beam) hyps at most
+                    hyps_best_kept.append(new_hyp)
 
-                hyps_best_kept = sorted(hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
+                hyps_best_kept = sorted(
+                    hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
 
             # sort and get nbest
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothes: ' + str(len(hyps)))
-            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]).replace('<space>', ' '))
+            logging.debug('best hypo: ' + ''.join([char_list[int(x)]
+                                                   for x in hyps[0]['yseq'][1:]]).replace('<space>', ' '))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -621,20 +653,23 @@ class Decoder(chainer.Chain):
                 break
 
             for hyp in hyps:
-                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]).replace('<space>', ' '))
+                logging.debug('hypo: ' + ''.join([char_list[int(x)]
+                                                  for x in hyp['yseq'][1:]]).replace('<space>', ' '))
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
-        best_hyp = sorted(ended_hyps, key=lambda x: x['score'], reverse=True)[0]
+        best_hyp = sorted(
+            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
         logging.info('total log probability: ' + str(best_hyp['score']))
-        logging.info('normalized log probability: ' + str(best_hyp['score'] / len(best_hyp['yseq'])))
+        logging.info('normalized log probability: ' +
+                     str(best_hyp['score'] / len(best_hyp['yseq'])))
 
         # remove sos
         return best_hyp['yseq'][1:]
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
-# TODO avoid to use add_link
+# TODO(watanabe) avoid to use add_link
 class Encoder(chainer.Chain):
     '''ENCODER NEWTWORK CLASS
 
@@ -650,6 +685,7 @@ class Encoder(chainer.Chain):
     :return:
 
     '''
+
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
         with self.init_scope():
@@ -657,7 +693,8 @@ class Encoder(chainer.Chain):
                 self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
                 logging.info('BLSTM without projection for encoder')
             elif etype == 'blstmp':
-                self.enc1 = BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)
+                self.enc1 = BLSTMP(idim, elayers, eunits,
+                                   eprojs, subsample, dropout)
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
                 self.enc1 = VGG2L(in_channel)
@@ -666,16 +703,18 @@ class Encoder(chainer.Chain):
                 logging.info('Use CNN-VGG + BLSTMP for encoder')
             elif etype == 'vggblstm':
                 self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTM(_get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
                 logging.info('Use CNN-VGG + BLSTM for encoder')
             else:
-                logging.error("Error: need to specify an appropriate encoder archtecture")
+                logging.error(
+                    "Error: need to specify an appropriate encoder archtecture")
                 sys.exit()
 
         self.etype = etype
 
     def __call__(self, xs, ilens):
-        '''
+        '''Encoder forward
 
         :param xs:
         :param ilens:
@@ -692,13 +731,14 @@ class Encoder(chainer.Chain):
             xs, ilens = self.enc1(xs, ilens)
             xs, ilens = self.enc2(xs, ilens)
         else:
-            logging.error("Error: need to specify an appropriate encoder archtecture")
+            logging.error(
+                "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
 
         return xs, ilens
 
 
-# TODO explanation of BLSTMP 
+# TODO(watanabe) explanation of BLSTMP
 class BLSTMP(chainer.Chain):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
@@ -708,7 +748,8 @@ class BLSTMP(chainer.Chain):
                     inputdim = idim
                 else:
                     inputdim = hdim
-                self.add_link("bilstm%d" % i, L.NStepBiLSTM(1, inputdim, cdim, dropout))
+                self.add_link("bilstm%d" % i, L.NStepBiLSTM(
+                    1, inputdim, cdim, dropout))
                 # bottleneck layer to merge
                 self.add_link("bt%d" % i, L.Linear(2 * cdim, hdim))
 
@@ -717,7 +758,7 @@ class BLSTMP(chainer.Chain):
         self.subsample = subsample
 
     def __call__(self, xs, ilens):
-        '''
+        '''BLSTMP forward
 
         :param xs:
         :param ilens:
@@ -728,9 +769,10 @@ class BLSTMP(chainer.Chain):
         for layer in six.moves.range(self.elayers):
             hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
-            # TODO replace subsample and FC layer with CNN
+            # TODO(watanabe) replace subsample and FC layer with CNN
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
-            ys = self['bt' + str(layer)](F.vstack(ys))  # (sum _utt frame_utt) x dim
+            # (sum _utt frame_utt) x dim
+            ys = self['bt' + str(layer)](F.vstack(ys))
             xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
             del hy, cy
 
@@ -752,7 +794,7 @@ class BLSTM(chainer.Chain):
             self.l_last = L.Linear(cdim * 2, hdim)
 
     def __call__(self, xs, ilens):
-        '''
+        '''BLSTM forward
 
         :param xs:
         :param ilens:
@@ -774,7 +816,7 @@ class BLSTM(chainer.Chain):
         return xs, ilens  # x: utt list of frame x dim
 
 
-# TODO explanation of VGG2L, VGG2B (Block) might be better
+# TODO(watanabe) explanation of VGG2L, VGG2B (Block) might be better
 class VGG2L(chainer.Chain):
     def __init__(self, in_channel=1):
         super(VGG2L, self).__init__()
@@ -788,7 +830,7 @@ class VGG2L(chainer.Chain):
         self.in_channel = in_channel
 
     def __call__(self, xs, ilens):
-        '''
+        '''VGG2L forward
 
         :param xs:
         :param ilens:
@@ -800,7 +842,8 @@ class VGG2L(chainer.Chain):
         xs = F.pad_sequence(xs)
 
         # x: utt x 1 (input channel num) x frame x dim
-        xs = F.swapaxes(F.reshape(xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
 
         xs = F.relu(self.conv1_1(xs))
         xs = F.relu(self.conv1_2(xs))
@@ -811,12 +854,15 @@ class VGG2L(chainer.Chain):
         xs = F.max_pooling_2d(xs, 2, stride=2)
 
         # change ilens accordingly
-        ilens = self.xp.array(self.xp.ceil(self.xp.array(ilens, dtype=np.float32) / 2), dtype=np.int32)
-        ilens = self.xp.array(self.xp.ceil(self.xp.array(ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = F.swapaxes(xs, 1, 2)
-        xs = F.reshape(xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
         xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
 
         return xs, ilens
