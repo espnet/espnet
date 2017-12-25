@@ -427,15 +427,8 @@ def main():
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
-    if args.gpu == 'jhu':
-        # TODO make this one controlled at conf/gpu.conf or whatever
-        # this is JHU CLSP cluster setup
-        cmd = '/home/gkumar/scripts/free-gpu'
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout_data, stderr_data = p.communicate()
-        gpu_id = int(stdout_data.rstrip())
-    else:
-        gpu_id = int(args.gpu)
+    # Set gpu
+    gpu_id = int(args.gpu)
     logging.info('gpu id: ' + str(gpu_id))
     if gpu_id >= 0:
         # Make a specified GPU current
