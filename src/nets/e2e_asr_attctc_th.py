@@ -7,7 +7,8 @@ from __future__ import division
 import torch
 from torch.nn import functional
 from torch.autograd import Variable
-from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
+from torch.nn.utils.rnn import pad_packed_sequence
+from torch.nn.utils.rnn import pack_padded_sequence
 from warpctc_pytorch import _CTC
 import sys
 import logging
@@ -76,8 +77,7 @@ def _get_max_pooled_size(idim, out_channel=128, n_layers=2, ksize=2, stride=2):
 
 
 def linear_tensor(linear, x):
-    '''
-    Apply linear matrix operation only for the last dimension of a tensor
+    '''Apply linear matrix operation only for the last dimension of a tensor
 
     :param Link linear: Linear link (M x N matrix)
     :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
@@ -113,7 +113,7 @@ class Loss(torch.nn.Module):
         self.reporter = Reporter()
 
     def forward(self, x):
-        '''
+        '''Loss forward
 
         :param x:
         :return:
@@ -204,7 +204,8 @@ class E2E(torch.nn.Module):
         #                 set_forget_bias_to_one(p)
 
     def init_like_chainer(self):
-        """
+        """Initialize weight like chainer
+
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
 
@@ -223,7 +224,7 @@ class E2E(torch.nn.Module):
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):
-        '''
+        '''E2E forward
 
         :param data:
         :return:
@@ -271,7 +272,7 @@ class E2E(torch.nn.Module):
         return loss_ctc, loss_att, acc
 
     def recognize(self, x, recog_args, char_list):
-        '''
+        '''E2E greedy/beam search
 
         :param x:
         :param recog_args:
@@ -312,7 +313,8 @@ class _ChainerLikeCTC(_CTC):
 
 
 def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
-    """
+    """Chainer like CTC Loss
+
     acts: Tensor of (seqLength x batch x outputDim) containing output from network
     labels: 1 dimensional Tensor containing all the targets of the batch in one sequence
     act_lens: Tensor of size (batch) containing size of each output sequence from the network
@@ -335,7 +337,7 @@ class CTC(torch.nn.Module):
         self.loss_fn = chainer_like_ctc_loss  # CTCLoss()
 
     def forward(self, hpad, ilens, ys):
-        '''
+        '''CTC forward
 
         :param hs:
         :param ys:
@@ -392,7 +394,7 @@ class AttDot(torch.nn.Module):
         self.pre_compute_enc_h = None
 
     def reset(self):
-        '''
+        '''reset states
 
         :return:
         '''
@@ -401,7 +403,7 @@ class AttDot(torch.nn.Module):
         self.pre_compute_enc_h = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        '''
+        '''AttDot
 
         :param enc_hs:
         :param dec_z:
@@ -455,7 +457,7 @@ class AttLoc(torch.nn.Module):
         self.aconv_chans = aconv_chans
 
     def reset(self):
-        '''
+        '''reset states
 
         :return:
         '''
@@ -464,7 +466,7 @@ class AttLoc(torch.nn.Module):
         self.pre_compute_enc_h = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        '''
+        '''AttLoc forward
 
         :param enc_hs:
         :param dec_z:
@@ -551,7 +553,7 @@ class Decoder(torch.nn.Module):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
 
     def forward(self, hpad, hlen, ys):
-        '''
+        '''Decoder forward
 
         :param hs:
         :param ys:
@@ -627,7 +629,7 @@ class Decoder(torch.nn.Module):
         return self.loss, acc, att_weight_all
 
     def recognize(self, h, recog_args):
-        '''
+        '''greedy search implementation
 
         :param h:
         :param recog_args:
@@ -666,7 +668,7 @@ class Decoder(torch.nn.Module):
         return y_seq
 
     def recognize_beam(self, h, recog_args, char_list):
-        '''
+        '''beam search implementation
 
         :param h:
         :param recog_args:
@@ -829,7 +831,7 @@ class Encoder(torch.nn.Module):
         self.etype = etype
 
     def forward(self, xs, ilens):
-        '''
+        '''Encoder forward
 
         :param xs:
         :param ilens:
@@ -871,7 +873,7 @@ class BLSTMP(torch.nn.Module):
         self.subsample = subsample
 
     def forward(self, xpad, ilens):
-        '''
+        '''BLSTMP forward
 
         :param xs:
         :param ilens:
@@ -904,7 +906,7 @@ class BLSTM(torch.nn.Module):
         self.l_last = torch.nn.Linear(cdim * 2, hdim)
 
     def forward(self, xpad, ilens):
-        '''
+        '''BLSTM forward
 
         :param xs:
         :param ilens:
@@ -935,7 +937,7 @@ class VGG2L(torch.nn.Module):
         self.in_channel = in_channel
 
     def forward(self, xs, ilens):
-        '''
+        '''VGG2L forward
 
         :param xs:
         :param ilens:

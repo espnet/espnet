@@ -218,9 +218,7 @@ def delete_feat(batch):
 
 
 def adadelta_eps_decay(eps_decay):
-    '''
-    Extension to perform adadelta eps decay
-    '''
+    '''Extension to perform adadelta eps decay'''
     @training.make_extension(trigger=(1, 'epoch'))
     def adadelta_eps_decay(trainer):
         _adadelta_eps_decay(trainer, eps_decay)
@@ -236,9 +234,7 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
-    '''
-    Extension to restore snapshot
-    '''
+    '''Extension to restore snapshot'''
     @training.make_extension(trigger=(1, 'epoch'))
     def restore_snapshot(trainer):
         _restore_snapshot(model, snapshot, load_fn)

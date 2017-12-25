@@ -86,7 +86,8 @@ def test_attn_loss():
 def test_train_acc():
     pytest.importorskip("torch")
     import torch
-    from e2e_asr_attctc_th import pad_list, th_accuracy
+    from e2e_asr_attctc_th import pad_list
+    from e2e_asr_attctc_th import th_accuracy
 
     n_out = 7
     _eos = n_out - 1
