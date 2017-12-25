@@ -13,7 +13,7 @@ Install Kaldi, Python libraries and other required tools using system python and
 $ cd tools
 $ make -j
 ```
-or using miniconda
+or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make -f conda.mk -j
