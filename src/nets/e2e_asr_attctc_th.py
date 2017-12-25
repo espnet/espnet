@@ -124,7 +124,8 @@ class Loss(torch.nn.Module):
         self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
         if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
-            self.reporter.report(loss_ctc.data[0], loss_att.data[0], acc, self.loss.data[0])
+            self.reporter.report(
+                loss_ctc.data[0], loss_att.data[0], acc, self.loss.data[0])
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -135,7 +136,8 @@ def pad_list(xs, pad_value=float("nan")):
     assert isinstance(xs[0], Variable)
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
-    pad = Variable(xs[0].data.new(n_batch, max_len, *xs[0].size()[1:]).zero_() + pad_value)
+    pad = Variable(xs[0].data.new(n_batch, max_len, *
+                                  xs[0].size()[1:]).zero_() + pad_value)
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
     return pad
@@ -161,13 +163,15 @@ class E2E(torch.nn.Module):
         self.eos = odim - 1
 
         # subsample info
-        subsample = np.ones(args.elayers + 1, dtype=np.int)  # +1 means input (+1) and layers outputs (args.elayer)
+        # +1 means input (+1) and layers outputs (args.elayer)
+        subsample = np.ones(args.elayers + 1, dtype=np.int)
         if args.etype == 'blstmp':
             ss = args.subsample.split("_")
             for j in range(min(args.elayers + 1, len(ss))):
                 subsample[j] = int(ss[j])
         else:
-            logging.warning('Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
+            logging.warning(
+                'Subsampling is not performed for vgg*. It is performed in max pooling layers at CNN.')
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
@@ -180,9 +184,11 @@ class E2E(torch.nn.Module):
         if args.atype == 'dot':
             self.att = AttDot(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'location':
-            self.att = AttLoc(args.eprojs, args.dunits, args.adim, args.aconv_chans, args.aconv_filts)
+            self.att = AttLoc(args.eprojs, args.dunits,
+                              args.adim, args.aconv_chans, args.aconv_filts)
         else:
-            logging.error("Error: need to specify an appropriate attention archtecture")
+            logging.error(
+                "Error: need to specify an appropriate attention archtecture")
             sys.exit()
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
@@ -232,7 +238,8 @@ class E2E(torch.nn.Module):
                 len(xs), len(sorted_index)))
         xs = [xs[i] for i in sorted_index]
         # utt list of olen
-        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64) for i in sorted_index]
+        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
+              for i in sorted_index]
         ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
 
         # subsample frame
@@ -276,7 +283,8 @@ class E2E(torch.nn.Module):
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
-        h = to_cuda(self, Variable(torch.from_numpy(np.array(x, dtype=np.float32)), volatile=True))
+        h = to_cuda(self, Variable(torch.from_numpy(
+            np.array(x, dtype=np.float32)), volatile=True))
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
@@ -335,17 +343,21 @@ class CTC(torch.nn.Module):
         '''
         self.loss = None
         ilens = Variable(torch.from_numpy(np.fromiter(ilens, dtype=np.int32)))
-        olens = Variable(torch.from_numpy(np.fromiter((x.shape[0] for x in ys), dtype=np.int32)))
+        olens = Variable(torch.from_numpy(np.fromiter(
+            (x.shape[0] for x in ys), dtype=np.int32)))
 
         # zero padding for hs
-        y_hat = linear_tensor(self.ctc_lo, functional.dropout(hpad, p=self.dropout_rate))
+        y_hat = linear_tensor(
+            self.ctc_lo, functional.dropout(hpad, p=self.dropout_rate))
 
         # zero padding for ys
         y_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
+        logging.info(self.__class__.__name__ +
+                     ' input lengths:  ' + str(ilens))
+        logging.info(self.__class__.__name__ +
+                     ' output lengths: ' + str(olens))
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
@@ -402,7 +414,8 @@ class AttDot(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_enc_h = torch.tanh(linear_tensor(self.mlp_enc, self.enc_h))
+            self.pre_compute_enc_h = torch.tanh(
+                linear_tensor(self.mlp_enc, self.enc_h))
 
         if dec_z is None:
             dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
@@ -410,7 +423,8 @@ class AttDot(torch.nn.Module):
             dec_z = dec_z.view(batch, self.dunits)
 
         e = torch.sum(self.pre_compute_enc_h *
-                      torch.tanh(self.mlp_dec(dec_z)).view(batch, 1, self.att_dim),
+                      torch.tanh(self.mlp_dec(dec_z)).view(
+                          batch, 1, self.att_dim),
                       dim=2)  # utt x frame
         w = torch.nn.functional.softmax(scaling * e, dim=1)
 
@@ -428,7 +442,8 @@ class AttLoc(torch.nn.Module):
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
         self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
-        self.loc_conv = torch.nn.Conv2d(1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
         self.gvec = torch.nn.Linear(att_dim, 1)
 
         self.dunits = dunits
@@ -472,7 +487,8 @@ class AttLoc(torch.nn.Module):
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [Variable(enc_hs_pad.data.new(l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            att_prev = [Variable(enc_hs_pad.data.new(
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
 
@@ -490,7 +506,8 @@ class AttLoc(torch.nn.Module):
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
         # TODO consider zero padding when compute w.
-        e = linear_tensor(self.gvec, torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        e = linear_tensor(self.gvec, torch.tanh(
+            att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
         w = torch.nn.functional.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -502,9 +519,11 @@ class AttLoc(torch.nn.Module):
 
 
 def th_accuracy(y_all, pad_target, ignore_label):
-    pad_pred = y_all.data.view(pad_target.size(0), pad_target.size(1), y_all.size(1)).max(2)[1]
+    pad_pred = y_all.data.view(pad_target.size(
+        0), pad_target.size(1), y_all.size(1)).max(2)[1]
     mask = pad_target.data != ignore_label
-    numerator = torch.sum(pad_pred.masked_select(mask) == pad_target.data.masked_select(mask))
+    numerator = torch.sum(pad_pred.masked_select(
+        mask) == pad_target.data.masked_select(mask))
     denominator = torch.sum(mask)
     return float(numerator) / float(denominator)
 
@@ -516,7 +535,8 @@ class Decoder(torch.nn.Module):
         self.dunits = dunits
         self.embed = torch.nn.Embedding(odim, dunits)
         # TODO use multiple layers with dlayers option
-        self.decoder = torch.nn.LSTMCell(dunits + eprojs, dunits)  # 310s per 100 ite -> 240s from NStepLSTM
+        # 310s per 100 ite -> 240s from NStepLSTM
+        self.decoder = torch.nn.LSTMCell(dunits + eprojs, dunits)
         self.ignore_id = 0  # NOTE: 0 for CTC?
         self.output = torch.nn.Linear(dunits, odim)
 
@@ -556,7 +576,8 @@ class Decoder(torch.nn.Module):
         batch = pad_ys_out.shape[0]
         olength = pad_ys_out.shape[1]
         logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlen))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.shape[0] for y in ys_out]))
+        logging.info(self.__class__.__name__ +
+                     ' output lengths: ' + str([y.shape[0] for y in ys_out]))
 
         # initialization
         c = self.zero_state(hpad)
@@ -667,13 +688,15 @@ class Decoder(torch.nn.Module):
         # preprate sos
         y = self.sos
         vy = Variable(h.data.new(1).zero_().long(), volatile=True)
-        maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))  # maxlen >= 1
+        # maxlen >= 1
+        maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))
         minlen = int(recog_args.minlenratio * h.shape[0])
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c, 'z_prev': z, 'a_prev': a}
+        hyp = {'score': 0.0, 'yseq': [y],
+               'c_prev': c, 'z_prev': z, 'a_prev': a}
         hyps = [hyp]
         ended_hyps = []
         for i in six.moves.range(maxlen):
@@ -685,7 +708,8 @@ class Decoder(torch.nn.Module):
                 vy[0] = hyp['yseq'][i]
                 ey = self.embed(vy)           # utt list (1) x zdim
                 ey.unsqueeze(0)
-                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'], hyp['a_prev'])
+                att_c, att_w = self.att(h.unsqueeze(
+                    0), [h.size(0)], hyp['z_prev'], hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
                 z, c = self.decoder(ey, (hyp['z_prev'], hyp['c_prev']))
                 hyp['c_prev'] = c
@@ -693,8 +717,10 @@ class Decoder(torch.nn.Module):
                 hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = functional.log_softmax(self.output(z), dim=1).data
-                local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
+                local_scores = functional.log_softmax(
+                    self.output(z), dim=1).data
+                local_best_scores, local_best_ids = torch.topk(
+                    local_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
@@ -705,14 +731,17 @@ class Decoder(torch.nn.Module):
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
-                    hyps_best_kept.append(new_hyp)  # will be (2 x beam) hyps at most
+                    # will be (2 x beam) hyps at most
+                    hyps_best_kept.append(new_hyp)
 
-                hyps_best_kept = sorted(hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
+                hyps_best_kept = sorted(
+                    hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
 
             # sort and get nbest
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothes: ' + str(len(hyps)))
-            logging.debug('best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]))
+            logging.debug(
+                'best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -740,13 +769,16 @@ class Decoder(torch.nn.Module):
                 break
 
             for hyp in hyps:
-                logging.debug('hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
+                logging.debug(
+                    'hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
-        best_hyp = sorted(ended_hyps, key=lambda x: x['score'], reverse=True)[0]
+        best_hyp = sorted(
+            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
         logging.info('total log probability: ' + str(best_hyp['score']))
-        logging.info('normalized log probability: ' + str(best_hyp['score'] / len(best_hyp['yseq'])))
+        logging.info('normalized log probability: ' +
+                     str(best_hyp['score'] / len(best_hyp['yseq'])))
 
         # remove sos
         return best_hyp['yseq'][1:]
@@ -769,6 +801,7 @@ class Encoder(torch.nn.Module):
     :return:
 
     '''
+
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
 
@@ -776,23 +809,23 @@ class Encoder(torch.nn.Module):
             self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
             logging.info('BLSTM without projection for encoder')
         elif etype == 'blstmp':
-            self.enc1 = BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)
+            self.enc1 = BLSTMP(idim, elayers, eunits,
+                               eprojs, subsample, dropout)
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
             self.enc1 = VGG2L(in_channel)
             self.enc2 = BLSTMP(_get_vgg2l_odim(idim, in_channel=in_channel),
-                               #_get_max_pooled_size(idim // in_channel) * 128,
                                elayers, eunits, eprojs,
                                subsample, dropout)
             logging.info('Use CNN-VGG + BLSTMP for encoder')
         elif etype == 'vggblstm':
             self.enc1 = VGG2L(in_channel)
             self.enc2 = BLSTM(_get_vgg2l_odim(idim, in_channel=in_channel),
-                              #_get_max_pooled_size(idim // in_channel) * 128,
                               elayers, eunits, eprojs, dropout)
             logging.info('Use CNN-VGG + BLSTM for encoder')
         else:
-            logging.error("Error: need to specify an appropriate encoder archtecture")
+            logging.error(
+                "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
 
         self.etype = etype
@@ -815,7 +848,8 @@ class Encoder(torch.nn.Module):
             xs, ilens = self.enc1(xs, ilens)
             xs, ilens = self.enc2(xs, ilens)
         else:
-            logging.error("Error: need to specify an appropriate encoder archtecture")
+            logging.error(
+                "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
 
         return xs, ilens
@@ -856,7 +890,8 @@ class BLSTMP(torch.nn.Module):
                 ypad = ypad[:, ::sub]
                 ilens = [(i + 1) // sub for i in ilens]
             # (sum _utt frame_utt) x dim
-            projected = getattr(self, 'bt' + str(layer))(ypad.contiguous().view(-1, ypad.size(2)))
+            projected = getattr(self, 'bt' + str(layer)
+                                )(ypad.contiguous().view(-1, ypad.size(2)))
             xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
             del hy, cy
 
@@ -883,7 +918,9 @@ class BLSTM(torch.nn.Module):
         del hy, cy
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ypad, ilens = pad_packed_sequence(ys, batch_first=True)
-        projected = torch.tanh(self.l_last(ypad.contiguous().view(-1, ypad.size(2))))  # (sum _utt frame_utt) x dim
+        # (sum _utt frame_utt) x dim
+        projected = torch.tanh(self.l_last(
+            ypad.contiguous().view(-1, ypad.size(2))))
         xpad = projected.view(ypad.size(0), ypad.size(1), -1)
         return xpad, ilens  # x: utt list of frame x dim
 
@@ -912,7 +949,8 @@ class VGG2L(torch.nn.Module):
         # xs = F.pad_sequence(xs)
 
         # x: utt x 1 (input channel num) x frame x dim
-        xs = xs.view(xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel).transpose(1, 2)
+        xs = xs.view(xs.shape[0], xs.shape[1], self.in_channel,
+                     xs.shape[2] // self.in_channel).transpose(1, 2)
 
         # NOTE: max_pool1d ?
         xs = functional.relu(self.conv1_1(xs))
@@ -924,12 +962,15 @@ class VGG2L(torch.nn.Module):
         xs = functional.max_pool2d(xs, 2, stride=2, ceil_mode=True)
         # change ilens accordingly
         # ilens = [_get_max_pooled_size(i) for i in ilens]
-        ilens = np.array(np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
-        ilens = np.array(np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
+        ilens = np.array(
+            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
+        ilens = np.array(
+            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = xs.transpose(1, 2)
-        xs = xs.contiguous().view(xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3])
+        xs = xs.contiguous().view(
+            xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3])
         xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens

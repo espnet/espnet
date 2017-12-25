@@ -4,7 +4,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import importlib
 import argparse
 
 import pytest
@@ -12,11 +11,11 @@ import numpy
 
 
 args = argparse.Namespace(
-    elayers = 4,
-    subsample = "1_2_2_1_1",
-    etype = "vggblstmp",
-    eunits = 320,
-    eprojs = 320,
+    elayers=4,
+    subsample="1_2_2_1_1",
+    etype="vggblstmp",
+    eunits=320,
+    eprojs=320,
     dlayers=1,
     dunits=300,
     atype="location",
@@ -29,19 +28,14 @@ args = argparse.Namespace(
     penalty=0.5,
     maxlenratio=1.0,
     minlenratio=0.0,
-    verbose = True,
-    char_list = [u"あ", u"い", u"う", u"え", u"お"],
-    outdir = None
+    verbose=True,
+    char_list=[u"あ", u"い", u"う", u"え", u"お"],
+    outdir=None
 )
 
 
-
 def test_lecun_init_torch():
-    try:
-        import torch
-    except ImportError:
-        pytest.skip("pytorch is not installed")
-
+    pytest.importorskip("torch")
     import e2e_asr_attctc_th as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.bias.data.numpy()
@@ -62,7 +56,8 @@ def test_lecun_init_torch():
             assert numpy.all(data == 0.0)
         else:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
-            numpy.testing.assert_allclose(data.var(), 1.0 / numpy.prod(data.shape[1:]), 5e-2, 5e-2)
+            numpy.testing.assert_allclose(
+                data.var(), 1.0 / numpy.prod(data.shape[1:]), 5e-2, 5e-2)
 
 
 def test_lecun_init_chainer():
@@ -86,5 +81,5 @@ def test_lecun_init_chainer():
             assert numpy.all(data == 0.0)
         else:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
-            numpy.testing.assert_allclose(data.var(), 1.0 / numpy.prod(data.shape[1:]), 5e-2, 5e-2)
-
+            numpy.testing.assert_allclose(
+                data.var(), 1.0 / numpy.prod(data.shape[1:]), 5e-2, 5e-2)

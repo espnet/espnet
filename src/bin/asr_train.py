@@ -10,7 +10,6 @@ import argparse
 import random
 import logging
 import collections
-import subprocess
 import json
 import pickle
 import math
@@ -80,7 +79,8 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
 # Custom updater with Kaldi reader
 class SeqUpdaterKaldi(training.StandardUpdater):
     def __init__(self, train_iter, optimizer, reader, device):
-        super(SeqUpdaterKaldi, self).__init__(train_iter, optimizer, device=device)
+        super(SeqUpdaterKaldi, self).__init__(
+            train_iter, optimizer, device=device)
         self.reader = reader
 
     # The core part of the update routine can be customized by overriding.
@@ -105,7 +105,8 @@ class SeqUpdaterKaldi(training.StandardUpdater):
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = np.sqrt(_sum_sqnorm([p.grad for p in optimizer.target.params(False)]))
+        grad_norm = np.sqrt(_sum_sqnorm(
+            [p.grad for p in optimizer.target.params(False)]))
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
@@ -124,6 +125,7 @@ class CompareValueTrigger(object):
         trigger: Trigger that decide the comparison interval
 
     '''
+
     def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
         self._key = key
         self._best_value = None
@@ -172,7 +174,8 @@ def _sum_sqnorm(arr):
 
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
     # sort it by input lengths (long to short)
-    sorted_data = sorted(data.items(), key=lambda data: int(data[1]['ilen']), reverse=True)
+    sorted_data = sorted(data.items(), key=lambda data: int(
+        data[1]['ilen']), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))
     # change batchsize depending on the input and output length
     minibatch = []
@@ -345,9 +348,11 @@ def main():
 
     # logging info
     if args.verbose > 0:
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        logging.basicConfig(
+            level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
     else:
-        logging.basicConfig(level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        logging.basicConfig(
+            level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
         logging.warning('Skip DEBUG/INFO messages')
 
     # display PYTHONPATH
@@ -381,7 +386,8 @@ def main():
     if args.dict is not None:
         with open(args.dict, 'rb') as f:
             dictionary = f.readlines()
-        char_list = [entry.decode('utf-8').split(' ')[0] for entry in dictionary]
+        char_list = [entry.decode('utf-8').split(' ')[0]
+                     for entry in dictionary]
         char_list.insert(0, '<blank>')
         char_list.append('<eos>')
         args.char_list = char_list
@@ -441,12 +447,15 @@ def main():
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
-    train = make_batchset(train_json, args.batch_size, args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid = make_batchset(valid_json, args.batch_size, args.maxlen_in, args.maxlen_out, args.minibatches)
+    train = make_batchset(train_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
+    valid = make_batchset(valid_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
     train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
+    valid_iter = chainer.iterators.SerialIterator(
+        valid, 1, repeat=False, shuffle=False)
 
     # prepare Kaldi reader
     train_reader = lazy_io.read_dict_scp(args.train_feat)
@@ -454,14 +463,16 @@ def main():
 
     # Set up a trainer
     updater = SeqUpdaterKaldi(train_iter, optimizer, train_reader, gpu_id)
-    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
+    trainer = training.Trainer(
+        updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(SeqEvaluaterKaldi(valid_iter, model, valid_reader, device=gpu_id))
+    trainer.extend(SeqEvaluaterKaldi(
+        valid_iter, model, valid_reader, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -511,7 +522,8 @@ def main():
             'eps', lambda trainer: trainer.updater.get_optimizer('main').eps),
             trigger=(100, 'iteration'))
         report_keys.append('eps')
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(100, 'iteration'))
+    trainer.extend(extensions.PrintReport(
+        report_keys), trigger=(100, 'iteration'))
 
     trainer.extend(extensions.ProgressBar())
 
