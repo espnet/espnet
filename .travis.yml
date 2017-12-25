@@ -14,8 +14,7 @@ matrix:
 
 install:
   - pip install -U pip wheel
-  - pip install pytest pytest-pythonpath hacking mock
-  - pip install autopep8
+  - pip install -r ./tools/test_requirements.txt
   # unable to install pytorch as https://github.com/pytorch/pytorch/issues/4178
   # - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl; fi
   # - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp36-cp36m-linux_x86_64.whl; fi
