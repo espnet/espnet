@@ -25,11 +25,10 @@ install:
 
 script:
   # TODO test coding style?
-  # - flake8
-  # - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
-  # - test ! -s check_autopep8
-  - export PYTHONPATH=`pwd`/src/nets:`pwd`/src/utils
-  - pytest test
+  - flake8 src test
+  - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff | tee check_autopep8
+  - test ! -s check_autopep8
+  - pytest
 
 sudo: false
 

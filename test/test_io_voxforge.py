@@ -5,21 +5,17 @@
 
 
 import os
-import sys
 
-import pytest
 import numpy
+import pytest
 
 
-# TODO: use much smaller corpus like AN4 and download if it does not exists
+# TODO(karita): use much smaller corpus like AN4 and download if it does not exists
 def test_voxforge_feats():
     import kaldi_io_py
     import lazy_io
-    try:
-        import kaldi_io
-    except:
-        pytest.skip("kaldi_io (kaldi-python) is not installed")
-
+    pytest.importorskip("kaldi_io")
+    import kaldi_io
 
     train_scp = "scp:egs/voxforge/asr1/data/tr_it/feats.scp"
     if not os.path.exists(train_scp):
@@ -38,4 +34,3 @@ def test_voxforge_feats():
         assert v1.shape == v3.shape
         numpy.testing.assert_allclose(v1, v2, atol=1e-5)
         numpy.testing.assert_allclose(v1, v3, atol=0)
-
