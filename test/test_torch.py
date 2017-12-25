@@ -6,9 +6,9 @@
 
 import pytest
 pytest.importorskip('torch')
-import torch
-from torch.autograd import Variable
-from e2e_asr_attctc_th import pad_list, mask_by_length
+import torch  # NOQA
+from torch.autograd import Variable  # NOQA
+from e2e_asr_attctc_th import pad_list, mask_by_length  # NOQA
 
 
 def test_pad_list():
@@ -17,7 +17,7 @@ def test_pad_list():
           [1, 2, 3, 4]]
     xs = list(map(lambda x: Variable(torch.LongTensor(x)), xs))
     xpad = pad_list(xs, -1)
-    
+
     es = [[1, 2, 3, -1],
           [1, 2, -1, -1],
           [1, 2, 3, 4]]
