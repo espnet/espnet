@@ -121,14 +121,14 @@ class SeqUpdaterKaldi(training.StandardUpdater):
 
 # Custom trigger
 class CompareValueTrigger(object):
-    '''\Trigger invoked when key value getting bigger or lower than before
+    '''Trigger invoked when key value getting bigger or lower than before
 
     Args:
         key (str): Key of value.
         compare_fn: Function to compare the values.
         trigger: Trigger that decide the comparison interval
 
-    '''\
+    '''
 
     def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
         self._key = key
