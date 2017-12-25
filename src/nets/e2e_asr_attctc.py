@@ -3,10 +3,12 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import sys
+
 import logging
-import six
 import math
+import sys
+
+import six
 
 import numpy as np
 
@@ -14,6 +16,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
+
 
 CTC_LOSS_THRESHOLD = 10000
 MAX_DECODER_OUTPUT = 5

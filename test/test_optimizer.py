@@ -4,9 +4,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import pytest
 import chainer
 import numpy
+import pytest
+
 pytest.importorskip('torch')
 import torch  # NOQA
 

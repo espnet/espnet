@@ -6,8 +6,8 @@
 
 import os
 
-import pytest
 import numpy
+import pytest
 
 
 # TODO(karita): use much smaller corpus like AN4 and download if it does not exists

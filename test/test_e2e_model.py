@@ -4,11 +4,11 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import importlib
 import argparse
+import importlib
 
-import pytest
 import numpy
+import pytest
 
 
 def make_arg(etype):

@@ -3,22 +3,26 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+
 from __future__ import division
-import torch
-from torch.nn import functional
-from torch.autograd import Variable
-from torch.nn.utils.rnn import pad_packed_sequence
-from torch.nn.utils.rnn import pack_padded_sequence
-from warpctc_pytorch import _CTC
-import sys
 import logging
-import six
 import math
+import sys
+
+import six
 
 import numpy as np
 
 import chainer
 from chainer import reporter
+
+import torch
+from torch.autograd import Variable
+from torch.nn import functional
+from torch.nn.utils.rnn import pack_padded_sequence
+from torch.nn.utils.rnn import pad_packed_sequence
+from warpctc_pytorch import _CTC
+
 
 CTC_LOSS_THRESHOLD = 10000
 MAX_DECODER_OUTPUT = 5
