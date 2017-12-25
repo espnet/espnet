@@ -47,7 +47,7 @@ epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0.1
+penalty=0.2
 maxlenratio=0.8
 minlenratio=0.1
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
