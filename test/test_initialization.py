@@ -16,7 +16,7 @@ args = argparse.Namespace(
     etype="vggblstmp",
     eunits=320,
     eprojs=320,
-    dlayers=1,
+    dlayers=2,
     dunits=300,
     atype="location",
     aconv_chans=10,
@@ -50,7 +50,9 @@ def test_lecun_init_torch():
         if "embed" in name:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
             numpy.testing.assert_allclose(data.var(), 1.0, 5e-2, 5e-2)
-        elif "predictor.dec.decoder.bias_ih" in name:
+        elif "predictor.dec.decoder.0.bias_ih" in name:
+            assert data.sum() == data.size // 4
+        elif "predictor.dec.decoder.1.bias_ih" in name:
             assert data.sum() == data.size // 4
         elif data.ndim == 1:
             assert numpy.all(data == 0.0)
@@ -72,7 +74,9 @@ def test_lecun_init_chainer():
     for name, p in model.namedparams():
         print(name)
         data = p.data
-        if "decoder/upward/b" in name:
+        if "decoder/lstm0/upward/b" in name:
+            assert data.sum() == data.size // 4
+        elif "decoder/lstm1/upward/b" in name:
             assert data.sum() == data.size // 4
         elif "embed" in name:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
