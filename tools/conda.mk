@@ -9,6 +9,8 @@ else
 	CONDA_URL = https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 endif
 
+.PHONY: all clean pytorch venv/lib/python2.7/site-packages/torch
+
 miniconda.sh:
 	wget $(CONDA_URL) -O miniconda.sh
 
@@ -23,3 +25,6 @@ venv/bin/activate: venv requirements.txt
 
 pytorch: venv/bin/activate
 	. venv/bin/activate && conda install pytorch -c pytorch
+
+venv/lib/python2.7/site-packages/torch: pytorch
+	echo "we pass this rule using pip because we use conda"
