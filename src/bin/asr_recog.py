@@ -126,7 +126,7 @@ def main():
         new_json[name]['rec_token'] = " ".join(seq_hat)
         new_json[name]['rec_text'] = seq_hat_text
 
-    # TODO fix character coding problems when saving it
+    # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_json}, indent=4).encode('utf_8'))
 

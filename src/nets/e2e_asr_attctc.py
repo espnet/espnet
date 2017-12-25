@@ -60,7 +60,7 @@ def linear_tensor(linear, x):
     return F.reshape(y, shapes)
 
 
-# TODO merge Loss and E2E: there is no need to make these separately
+# TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(chainer.Chain):
     def __init__(self, predictor, mtlalpha):
         super(Loss, self).__init__()
@@ -375,7 +375,7 @@ class AttLoc(chainer.Chain):
             att_prev = [chainer.Variable(att) for att in att_prev]
             att_prev = F.pad_sequence(att_prev)
 
-        # TODO use <chainer variable>.reshpae(), instead of F.reshape()
+        # TODO(watanabe) use <chainer variable>.reshpae(), instead of F.reshape()
         # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
         att_conv = self.loc_conv(
             F.reshape(att_prev, (batch, 1, 1, self.h_length)))
@@ -390,8 +390,8 @@ class AttLoc(chainer.Chain):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # TODO consider energy -infinity padding for e.
-        # TODO use batch_matmul
+        # TODO(watanabe) consider energy -infinity padding for e.
+        # TODO(watanabe) use batch_matmul
         e = F.squeeze(linear_tensor(self.gvec, F.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)), axis=2)
         w = F.softmax(scaling * e)
@@ -410,7 +410,7 @@ class Decoder(chainer.Chain):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = L.EmbedID(odim, dunits)
-            # TODO use multiple layers with dlayers option
+            # TODO(watanabe) use multiple layers with dlayers option
             # 310s per 100 ite -> 240s from NStepLSTM
             self.decoder = L.StatelessLSTM(dunits + eprojs, dunits)
             self.output = L.Linear(dunits, odim)
@@ -648,7 +648,7 @@ class Decoder(chainer.Chain):
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
-# TODO avoid to use add_link
+# TODO(watanabe) avoid to use add_link
 class Encoder(chainer.Chain):
     '''ENCODER NEWTWORK CLASS
 
@@ -717,7 +717,7 @@ class Encoder(chainer.Chain):
         return xs, ilens
 
 
-# TODO explanation of BLSTMP
+# TODO(watanabe) explanation of BLSTMP
 class BLSTMP(chainer.Chain):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
@@ -748,7 +748,7 @@ class BLSTMP(chainer.Chain):
         for layer in six.moves.range(self.elayers):
             hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
-            # TODO replace subsample and FC layer with CNN
+            # TODO(watanabe) replace subsample and FC layer with CNN
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
             # (sum _utt frame_utt) x dim
             ys = self['bt' + str(layer)](F.vstack(ys))
@@ -795,7 +795,7 @@ class BLSTM(chainer.Chain):
         return xs, ilens  # x: utt list of frame x dim
 
 
-# TODO explanation of VGG2L, VGG2B (Block) might be better
+# TODO(watanabe) explanation of VGG2L, VGG2B (Block) might be better
 class VGG2L(chainer.Chain):
     def __init__(self, in_channel=1):
         super(VGG2L, self).__init__()
