@@ -150,13 +150,17 @@ else
 fi
 mkdir -p ${expdir}
 
+# switch backend
+if [[ ${backend} == chainer ]]; then
+    train_script=asr_train.py
+    decode_script=asr_recog.py
+else
+    train_script=asr_train_th.py
+    decode_script=asr_recog_th.py
+fi
+
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
-    if [[ ${backend} == chainer ]]; then
-        train_script=asr_train.py
-    else 
-        train_script=asr_train_th.py
-    fi
 
     ${cuda_cmd} ${expdir}/train.log \
 	    ${train_script} \
@@ -190,7 +194,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ ${stage} -le 4 ]; then
-    echo "stage 4: Decoding data preparation"
+    echo "stage 4: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
@@ -201,42 +205,17 @@ if [ ${stage} -le 4 ]; then
 	    data=data/${rtask}
 	    split_data.sh --per-utt ${data} ${nj};
 
-	    # make json labels for recognition
-	    data2json.sh ${data} ${dict} > ${data}/data.json
-
-	) &
-    done
-    wait
-    echo "Finished"
-fi
-
-
-if [ ${stage} -le 5 ]; then
-    echo "stage 5: Decoding"
-    nj=32
-
-    for rtask in ${recog_set}; do
-	(
-	    decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
-
-	    # split data
-	    data=data/${rtask}
-	    sdata=${data}/split${nj}utt;
-
 	    # feature extraction
 	    feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
 	    if ${do_delta}; then
-		    feats="$feats add-deltas ark:- ark:- |"
+		feats="$feats add-deltas ark:- ark:- |"
 	    fi
-	    #### use CPU for decoding
-	    gpu=0
 
-      if [[ ${backend} == chainer ]]; then
-          decode_script=asr_recog.py
-      else 
-          decode_script=asr_recog_th.py
-      fi
-      mkdir -p ${expdir}/${decode_dir}/log
+	    # make json labels for recognition
+	    data2json.sh ${data} ${dict} > ${data}/data.json
+
+	    #### use CPU for decoding
+	    gpu=-1
 
 	    ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
 			${decode_script} \
@@ -250,24 +229,12 @@ if [ ${stage} -le 5 ]; then
 			--penalty ${penalty} \
 			--maxlenratio ${maxlenratio} \
 			--minlenratio ${minlenratio} \
-      --debugmode ${debugmode} \
-      --verbose ${verbose} \
-			&
+			--debugmode ${debugmode} \
+			--verbose ${verbose} &
 	    wait
-	) &
-    done
-    wait
-fi
 
-if [ ${stage} -le 6 ]; then
-    echo "stage 6: Evaluation"
-    nj=32
-
-    for rtask in ${recog_set}; do
-	(
-	    decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
 	    score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-
+			
 	) &
     done
     wait
