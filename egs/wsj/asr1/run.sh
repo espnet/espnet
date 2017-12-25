@@ -204,6 +204,7 @@ if [ ${stage} -le 4 ]; then
         # split data
         data=data/${rtask}
         split_data.sh --per-utt ${data} ${nj};
+        sdata=${data}/split${nj}utt;
 
         # feature extraction
         feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
@@ -212,7 +213,7 @@ if [ ${stage} -le 4 ]; then
         fi
 
         # make json labels for recognition
-        data2json.sh ${data} ${dict} > ${data}/data.json
+        data2json.sh --nlsyms ${nlsyms} ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
         gpu=-1
@@ -228,9 +229,7 @@ if [ ${stage} -le 4 ]; then
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --debugmode ${debugmode} \
-            --verbose ${verbose} &
+            --minlenratio ${minlenratio} &
         wait
 
         score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
