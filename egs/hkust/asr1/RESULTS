@@ -1,0 +1,5 @@
+$ grep -e Avg -e SPKR -m 2 exp/train_nodup_sp_a01/decode_*_beam20_eacc.best_p0_len0.0-0.8/result.txt
+exp/train_nodup_sp_a01/decode_dev_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR                              | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+exp/train_nodup_sp_a01/decode_dev_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg                           | 5413   56154 | 66.9   21.0   12.1    2.5   35.6   75.0 |
+exp/train_nodup_sp_a01/decode_train_dev_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR                              | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+exp/train_nodup_sp_a01/decode_train_dev_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg                           | 3999   47130 | 62.6   20.6   16.8    2.5   39.9   78.7 |
