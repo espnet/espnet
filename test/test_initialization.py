@@ -74,9 +74,9 @@ def test_lecun_init_chainer():
     for name, p in model.namedparams():
         print(name)
         data = p.data
-        if "decoder/lstm0/upward/b" in name:
+        if "lstm0/upward/b" in name:
             assert data.sum() == data.size // 4
-        elif "decoder/lstm1/upward/b" in name:
+        elif "lstm1/upward/b" in name:
             assert data.sum() == data.size // 4
         elif "embed" in name:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
