@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 
 ESPnet is an end-to-end speech processing toolkit.
-ESPnet uses [chainer](https://chainer.org/) as a main deep learning engine, 
+ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine, 
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
 ## Installation
@@ -31,16 +31,20 @@ The following directory is an example of performing ASR experiment with the VoxF
 ```sh
 $ cd egs/voxforge/asr1
 ```
-Once move to the directory, then, execute the following main script:
+Once move to the directory, then, execute the following main script with a chainer backend:
 ```sh
 $ ./run.sh
+```
+or execute the following main script with a pytorch backend:
+```sh
+$ ./run.sh --backend pytorch --etype blstmp
 ```
 With this main script, you can perform a full procedure of ASR experiments including
 - Data download
 - Data preparation (Kaldi style, see http://kaldi-asr.org/doc/data_prep.html)
 - Feature extraction (Kaldi style, see http://kaldi-asr.org/doc/feat.html)
 - Dictionary and JSON format data preparation
-- Training based on [chainer](https://chainer.org/).
+- Training based on [chainer](https://chainer.org/) or [pytorch](http://pytorch.org/).
 - Recognition and scoring
 
 ### Error due to matplotlib
