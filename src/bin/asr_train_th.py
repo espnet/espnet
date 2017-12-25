@@ -121,14 +121,14 @@ class SeqUpdaterKaldi(training.StandardUpdater):
 
 # Custom trigger
 class CompareValueTrigger(object):
-    '''Trigger invoked when key value getting bigger or lower than before
+    '''\Trigger invoked when key value getting bigger or lower than before
 
     Args:
         key (str): Key of value.
         compare_fn: Function to compare the values.
         trigger: Trigger that decide the comparison interval
 
-    '''
+    '''\
 
     def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
         self._key = key
@@ -222,9 +222,7 @@ def delete_feat(batch):
 
 
 def adadelta_eps_decay(eps_decay):
-    '''
-    Extension to perform adadelta eps decay
-    '''
+    '''Extension to perform adadelta eps decay'''
     @training.make_extension(trigger=(1, 'epoch'))
     def adadelta_eps_decay(trainer):
         _adadelta_eps_decay(trainer, eps_decay)
@@ -240,9 +238,7 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
-    '''
-    Extension to restore snapshot
-    '''
+    '''Extension to restore snapshot'''
     @training.make_extension(trigger=(1, 'epoch'))
     def restore_snapshot(trainer):
         _restore_snapshot(model, snapshot, load_fn)

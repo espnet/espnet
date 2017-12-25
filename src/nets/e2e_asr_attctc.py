@@ -42,8 +42,7 @@ def _get_vgg2l_odim(idim, in_channel=3, out_channel=128):
 
 
 def linear_tensor(linear, x):
-    '''
-    Apply linear matrix operation only for the last dimension of a tensor
+    '''Apply linear matrix operation only for the last dimension of a tensor
 
     :param Link linear: Linear link (M x N matrix)
     :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
@@ -72,7 +71,7 @@ class Loss(chainer.Chain):
             self.predictor = predictor
 
     def __call__(self, x):
-        '''
+        '''Loss forward
 
         :param x:
         :return:
@@ -143,7 +142,7 @@ class E2E(chainer.Chain):
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def __call__(self, data):
-        '''
+        '''E2E forward
 
         :param data:
         :return:
@@ -184,7 +183,7 @@ class E2E(chainer.Chain):
         return loss_ctc, loss_att, acc
 
     def recognize(self, x, recog_args, char_list):
-        '''
+        '''E2E greedy/beam search
 
         :param x:
         :param recog_args:
@@ -222,7 +221,7 @@ class CTC(chainer.Chain):
             self.ctc_lo = L.Linear(eprojs, odim)
 
     def __call__(self, hs, ys):
-        '''
+        '''CTC forward
 
         :param hs:
         :param ys:
@@ -273,7 +272,7 @@ class AttDot(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def reset(self):
-        '''
+        '''reset states
 
         :return:
         '''
@@ -282,7 +281,7 @@ class AttDot(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        '''
+        '''AttDot forward
 
         :param enc_hs:
         :param dec_z:
@@ -337,7 +336,7 @@ class AttLoc(chainer.Chain):
         self.aconv_chans = aconv_chans
 
     def reset(self):
-        '''
+        '''reset states
 
         :return:
         '''
@@ -346,7 +345,7 @@ class AttLoc(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        '''
+        '''AttLoc forward
 
         :param enc_hs:
         :param dec_z:
@@ -424,7 +423,7 @@ class Decoder(chainer.Chain):
         self.char_list = char_list
 
     def __call__(self, hs, ys):
-        '''
+        '''Decoder forward
 
         :param hs:
         :param ys:
@@ -499,7 +498,7 @@ class Decoder(chainer.Chain):
         return self.loss, acc, att_weight_all
 
     def recognize(self, h, recog_args):
-        '''
+        '''greedy search implementation
 
         :param h:
         :param recog_args:
@@ -534,7 +533,7 @@ class Decoder(chainer.Chain):
         return y_seq
 
     def recognize_beam(self, h, recog_args, char_list):
-        '''
+        '''beam search implementation
 
         :param h:
         :param recog_args:
@@ -693,7 +692,7 @@ class Encoder(chainer.Chain):
         self.etype = etype
 
     def __call__(self, xs, ilens):
-        '''
+        '''Encoder forward
 
         :param xs:
         :param ilens:
@@ -737,7 +736,7 @@ class BLSTMP(chainer.Chain):
         self.subsample = subsample
 
     def __call__(self, xs, ilens):
-        '''
+        '''BLSTMP forward
 
         :param xs:
         :param ilens:
@@ -773,7 +772,7 @@ class BLSTM(chainer.Chain):
             self.l_last = L.Linear(cdim * 2, hdim)
 
     def __call__(self, xs, ilens):
-        '''
+        '''BLSTM forward
 
         :param xs:
         :param ilens:
@@ -809,7 +808,7 @@ class VGG2L(chainer.Chain):
         self.in_channel = in_channel
 
     def __call__(self, xs, ilens):
-        '''
+        '''VGG2L forward
 
         :param xs:
         :param ilens:
