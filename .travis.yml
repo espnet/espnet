@@ -22,9 +22,9 @@ install:
           pip install http://download.pytorch.org/whl/cu75/torch-0.2.0.post2-cp36-cp36m-manylinux1_x86_64.whl;
     fi
   # install warp-ctc
-	- git clone https://github.com/SeanNaren/warp-ctc.git
-	- cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
-	- pip install cffi
+  - git clone https://github.com/SeanNaren/warp-ctc.git
+  - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
+  - pip install cffi
   - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
   # install chainer
   - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
