@@ -15,7 +15,7 @@ def make_arg(etype):
     return argparse.Namespace(
         elayers=4,
         subsample="1_2_2_1_1",
-        etype="vggblstmp",
+        etype=etype,
         eunits=100,
         eprojs=100,
         dlayers=1,

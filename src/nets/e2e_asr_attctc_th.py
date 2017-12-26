@@ -17,6 +17,8 @@ import chainer
 from chainer import reporter
 
 import torch
+is_torch02 = torch.__version__.startswith("0.2.")
+
 from torch.autograd import Variable
 from torch.nn import functional
 from torch.nn.utils.rnn import pack_padded_sequence
@@ -89,11 +91,11 @@ def linear_tensor(linear, x):
     :param Variable x: Tensor (D_1 x D_2 x ... x N matrix)
     '''
     dim = 1
-    shapes = list(x.shape[:-1])
+    shapes = list(x.size()[:-1])
     for d in shapes:
         dim = dim * d
-    y = linear(x.contiguous().view(dim, x.shape[-1]))
-    shapes.append(y.shape[-1])
+    y = linear(x.contiguous().view(dim, x.size()[-1]))
+    shapes.append(y.size()[-1])
     return y.view(shapes)
 
 
@@ -351,7 +353,7 @@ class CTC(torch.nn.Module):
         self.loss = None
         ilens = Variable(torch.from_numpy(np.fromiter(ilens, dtype=np.int32)))
         olens = Variable(torch.from_numpy(np.fromiter(
-            (x.shape[0] for x in ys), dtype=np.int32)))
+            (x.size(0) for x in ys), dtype=np.int32)))
 
         # zero padding for hs
         y_hat = linear_tensor(
@@ -419,7 +421,7 @@ class AttDot(torch.nn.Module):
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
-            self.h_length = self.enc_h.shape[1]
+            self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_enc_h = torch.tanh(
                 linear_tensor(self.mlp_enc, self.enc_h))
@@ -433,7 +435,11 @@ class AttDot(torch.nn.Module):
                       torch.tanh(self.mlp_dec(dec_z)).view(
                           batch, 1, self.att_dim),
                       dim=2)  # utt x frame
-        w = torch.nn.functional.softmax(scaling * e, dim=1)
+        # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
+        if is_torch02:
+            w = torch.nn.functional.softmax(scaling * e)
+        else:
+            w = torch.nn.functional.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -473,17 +479,17 @@ class AttLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
 
-        :param enc_hs:
-        :param dec_z:
-        :param att_prev:
-        :param scaling:
+        :param Variable enc_hs:
+        :param Variable dec_z:
+        :param Variable att_prev:
+        :param float scaling:
         :return:
         '''
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
-            self.h_length = self.enc_h.shape[1]
+            self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
@@ -514,7 +520,12 @@ class AttLoc(torch.nn.Module):
         # NOTE consider zero padding when compute w.
         e = linear_tensor(self.gvec, torch.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
-        w = torch.nn.functional.softmax(scaling * e, dim=1)
+
+        # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
+        if is_torch02:
+            w = torch.nn.functional.softmax(scaling * e)
+        else:
+            w = torch.nn.functional.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -580,11 +591,11 @@ class Decoder(torch.nn.Module):
         pad_ys_out = pad_list(ys_out, self.ignore_id)
 
         # get dim, length info
-        batch = pad_ys_out.shape[0]
-        olength = pad_ys_out.shape[1]
+        batch = pad_ys_out.size(0)
+        olength = pad_ys_out.size(1)
         logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlen))
         logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str([y.shape[0] for y in ys_out]))
+                     ' output lengths: ' + str([y.size(0) for y in ys_out]))
 
         # initialization
         c_list = [self.zero_state(hpad)]
@@ -644,11 +655,11 @@ class Decoder(torch.nn.Module):
     def recognize(self, h, recog_args):
         '''greedy search implementation
 
-        :param h:
-        :param recog_args:
+        :param Variable h:
+        :param Namespace recog_args:
         :return:
         '''
-        logging.info('input lengths: ' + str(h.shape[0]))
+        logging.info('input lengths: ' + str(h.size(0)))
         # initialization
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
@@ -662,8 +673,8 @@ class Decoder(torch.nn.Module):
         # preprate sos
         y = self.sos
         vy = Variable(h.data.new(1).zero_().long(), volatile=True)
-        maxlen = int(recog_args.maxlenratio * h.shape[0])
-        minlen = int(recog_args.minlenratio * h.shape[0])
+        maxlen = int(recog_args.maxlenratio * h.size(0))
+        minlen = int(recog_args.minlenratio * h.size(0))
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
         for i in six.moves.range(minlen, maxlen):
@@ -689,12 +700,12 @@ class Decoder(torch.nn.Module):
     def recognize_beam(self, h, recog_args, char_list):
         '''beam search implementation
 
-        :param h:
-        :param recog_args:
+        :param Variable h:
+        :param Namespace recog_args:
         :param char_list:
         :return:
         '''
-        logging.info('input lengths: ' + str(h.shape[0]))
+        logging.info('input lengths: ' + str(h.size(0)))
         # initialization
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
@@ -712,8 +723,8 @@ class Decoder(torch.nn.Module):
         y = self.sos
         vy = Variable(h.data.new(1).zero_().long(), volatile=True)
         # maxlen >= 1
-        maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))
-        minlen = int(recog_args.minlenratio * h.shape[0])
+        maxlen = max(1, int(recog_args.maxlenratio * h.size(0)))
+        minlen = int(recog_args.minlenratio * h.size(0))
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
 
@@ -741,7 +752,11 @@ class Decoder(torch.nn.Module):
                 hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
+                # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
+                if is_torch02:
+                    local_scores = functional.log_softmax(self.output(z_list[-1])).data
+                else:
+                    local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
                 local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
@@ -973,8 +988,8 @@ class VGG2L(torch.nn.Module):
         # xs = F.pad_sequence(xs)
 
         # x: utt x 1 (input channel num) x frame x dim
-        xs = xs.view(xs.shape[0], xs.shape[1], self.in_channel,
-                     xs.shape[2] // self.in_channel).transpose(1, 2)
+        xs = xs.view(xs.size(0), xs.size(1), self.in_channel,
+                     xs.size(2) // self.in_channel).transpose(1, 2)
 
         # NOTE: max_pool1d ?
         xs = functional.relu(self.conv1_1(xs))
@@ -994,7 +1009,7 @@ class VGG2L(torch.nn.Module):
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = xs.transpose(1, 2)
         xs = xs.contiguous().view(
-            xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3])
+            xs.size(0), xs.size(1), xs.size(2) * xs.size(3))
         xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens
