@@ -414,7 +414,7 @@ class Decoder(chainer.Chain):
             self.embed = L.EmbedID(odim, dunits)
             self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
             for l in six.moves.range(1, dlayers):
-                self.add_link('lstm%d' % l, L.StatelessLSTM(dunits, dunits))
+                setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
             self.output = L.Linear(dunits, odim)
 
         self.loss = None
@@ -669,7 +669,6 @@ class Decoder(chainer.Chain):
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
-# TODO(watanabe) avoid to use add_link
 class Encoder(chainer.Chain):
     '''ENCODER NEWTWORK CLASS
 
@@ -748,10 +747,10 @@ class BLSTMP(chainer.Chain):
                     inputdim = idim
                 else:
                     inputdim = hdim
-                self.add_link("bilstm%d" % i, L.NStepBiLSTM(
+                setattr(self, "bilstm%d" % i, L.NStepBiLSTM(
                     1, inputdim, cdim, dropout))
                 # bottleneck layer to merge
-                self.add_link("bt%d" % i, L.Linear(2 * cdim, hdim))
+                setattr(self, "bt%d" % i, L.Linear(2 * cdim, hdim))
 
         self.elayers = elayers
         self.cdim = cdim
