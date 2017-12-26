@@ -32,8 +32,8 @@ from e2e_asr_attctc_th import Loss
 import lazy_io
 
 # numpy related
-import numpy as np
 import matplotlib
+import numpy as np
 matplotlib.use('Agg')
 
 
