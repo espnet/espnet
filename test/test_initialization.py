@@ -7,9 +7,9 @@
 import argparse
 
 import numpy
-import random
 import os
 import pytest
+import random
 
 
 args = argparse.Namespace(
@@ -38,7 +38,12 @@ args = argparse.Namespace(
 
 
 def test_lecun_init_torch():
-    pytest.importorskip("torch")
+    torch = pytest.importorskip("torch")
+    nseed = args.seed
+    random.seed(nseed)
+    torch.manual_seed(nseed)
+    numpy.random.seed(nseed)
+    os.environ["CHAINER_SEED"] = str(nseed)
     import e2e_asr_attctc_th as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.bias.data.numpy()

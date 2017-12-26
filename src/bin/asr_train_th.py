@@ -32,9 +32,9 @@ from e2e_asr_attctc_th import Loss
 import lazy_io
 
 # numpy related
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-import numpy as np
 
 
 # Custom evaluater with Kaldi reader
@@ -364,6 +364,7 @@ def main():
     nseed = args.seed
     random.seed(nseed)
     np.random.seed(nseed)
+    torch.manual_seed(nseed)
     os.environ['CHAINER_SEED'] = str(nseed)
     logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
 
