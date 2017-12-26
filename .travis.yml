@@ -15,10 +15,18 @@ matrix:
 install:
   - pip install -U pip wheel
   - pip install -r ./tools/test_requirements.txt
-  # unable to install pytorch as https://github.com/pytorch/pytorch/issues/4178
-  # - if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl; fi
-  # - if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then pip install install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp36-cp36m-linux_x86_64.whl; fi
-  # - cd tools && make warp-ctc && cd -
+  # unable to install pytorch 0.3.0 as https://github.com/pytorch/pytorch/issues/4178
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+          pip install http://download.pytorch.org/whl/cu75/torch-0.2.0.post2-cp27-cp27mu-manylinux1_x86_64.whl;
+    else
+          pip install http://download.pytorch.org/whl/cu75/torch-0.2.0.post2-cp36-cp36m-manylinux1_x86_64.whl;
+    fi
+  # install warp-ctc
+  - git clone https://github.com/SeanNaren/warp-ctc.git
+  - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
+  - pip install cffi
+  - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
+  # install chainer
   - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
   - cd tools && make kaldi-io-for-python && cd -
 
