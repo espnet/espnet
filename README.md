@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 
-ESPnet is an end-to-end speech processing toolkit.
+ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine, 
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
@@ -37,11 +37,12 @@ The following directory is an example of performing ASR experiment with the VoxF
 ```sh
 $ cd egs/voxforge/asr1
 ```
-Once move to the directory, then, execute the following main script with a chainer backend:
+Once move to the directory, then, execute the following main script with a **chainer** backend:
 ```sh
 $ ./run.sh
 ```
-or execute the following main script with a pytorch backend:
+or execute the following main script with a **pytorch** backend 
+(currently the pytorch backend does not support VGG-like layers):
 ```sh
 $ ./run.sh --backend pytorch --etype blstmp
 ```
@@ -53,8 +54,21 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Training based on [chainer](https://chainer.org/) or [pytorch](http://pytorch.org/).
 - Recognition and scoring
 
+### Use of GPU
+If you use GPU in your experiment, set `--gpu` option in `run.sh` appropriately, e.g., 
+```sh
+$ ./run.sh --gpu 0
+```
+Default setup uses CPU (`--gpu -1`).
+
+### Setup in your cluster
+Change `cmd.sh` according to your cluster setup.
+If you run experiments with your local machine, please use default `cmd.sh`.
+For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
+It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
+
 ### Error due to matplotlib
-If you have the following error, 
+If you have the following error (or other numpy related errors), 
 ```
 RuntimeError: module compiled against API version 0xc but this version of numpy is 0xb
 Exception in main training loop: numpy.core.multiarray failed to import
@@ -70,19 +84,6 @@ $ cd egs/voxforge/asr1
 $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
-
-### Use of GPU
-If you use GPU in your experiment, set `--gpu` option in `run.sh` appropriately, e.g., 
-```sh
-$ ./run.sh --gpu 0
-```
-Default setup uses CPU (`--gpu -1`).
-
-### Setup in your cluster
-Change `cmd.sh` according to your cluster setup.
-If you run experiments with your local machine, you don't have to change it.
-For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
-It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
 
 ## Installation using Docker
 
