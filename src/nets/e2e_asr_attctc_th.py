@@ -17,7 +17,7 @@ import chainer
 from chainer import reporter
 
 import torch
-is_torch02 = "0.2." == torch.__version__[:3]
+is_torch02 = torch.__version__.startswith("0.2.")
 
 from torch.autograd import Variable
 from torch.nn import functional
