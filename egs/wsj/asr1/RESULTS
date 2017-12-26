@@ -4,3 +4,10 @@ exp/train_si284_a09/decode_test_dev93_beam20_eacc.best_p0_len0.3-0.8/result.txt:
 exp/train_si284_a09/decode_test_dev93_beam20_eacc.best_p0_len0.3-0.8/result.txt: | Sum/Avg |  503     49334  | 92.3     3.7     4.0      2.3    10.1    93.0  |
 exp/train_si284_a09/decode_test_eval92_beam20_eacc.best_p0_len0.3-0.8/result.txt:| SPKR    |  # Snt   # Wrd  | Corr      Sub     Del     Ins      Err   S.Err  |
 exp/train_si284_a09/decode_test_eval92_beam20_eacc.best_p0_len0.3-0.8/result.txt:| Sum/Avg |   333    33740  | 94.3      2.7     3.0     1.8      7.6    90.1  |
+
+# 6 -> 8 layers in the encoder network (now this is default)
+$ grep -e Avg -e SPKR -m 2 exp/train_si284_a03_ch_vggblstmp_e6/decode*/result.txt
+exp/train_si284_a03_ch_vggblstmp_e6/decode_test_dev93_beam20_eacc.best_p0_len0.3-0.8/result.txt:|  SPKR     |  # Snt     # Wrd   |  Corr       Sub       Del       Ins       Err     S.Err   |
+exp/train_si284_a03_ch_vggblstmp_e6/decode_test_dev93_beam20_eacc.best_p0_len0.3-0.8/result.txt:|  Sum/Avg  |   503      48634   |  94.1       3.4       2.5       2.6       8.5      92.0   |
+exp/train_si284_a03_ch_vggblstmp_e6/decode_test_eval92_beam20_eacc.best_p0_len0.3-0.8/result.txt:|  SPKR     |  # Snt     # Wrd   |  Corr        Sub       Del       Ins       Err     S.Err   |
+exp/train_si284_a03_ch_vggblstmp_e6/decode_test_eval92_beam20_eacc.best_p0_len0.3-0.8/result.txt:|  Sum/Avg  |   333      33341   |  95.8        2.5       1.7       1.7       5.9      85.9   |
