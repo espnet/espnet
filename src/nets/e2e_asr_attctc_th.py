@@ -735,7 +735,7 @@ class Decoder(torch.nn.Module):
                 z_list[0], c_list[0] = self.decoder[0](ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
                 for l in six.moves.range(1, self.dlayers):
                     z_list[l], c_list[l] = self.decoder[l](
-                            z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
+                        z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
                 hyp['c_prev'] = c_list
                 hyp['z_prev'] = z_list
                 hyp['a_prev'] = att_w
