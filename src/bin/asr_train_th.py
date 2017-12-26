@@ -33,8 +33,8 @@ import lazy_io
 
 # numpy related
 import matplotlib
-matplotlib.use('Agg')
 import numpy as np
+matplotlib.use('Agg')
 
 
 # Custom evaluater with Kaldi reader
@@ -364,6 +364,7 @@ def main():
     nseed = args.seed
     random.seed(nseed)
     np.random.seed(nseed)
+    torch.manual_seed(nseed)
     os.environ['CHAINER_SEED'] = str(nseed)
     logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
 

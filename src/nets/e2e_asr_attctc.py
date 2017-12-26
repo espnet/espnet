@@ -412,13 +412,14 @@ class Decoder(chainer.Chain):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = L.EmbedID(odim, dunits)
-            # TODO(watanabe) use multiple layers with dlayers option
-            # 310s per 100 ite -> 240s from NStepLSTM
-            self.decoder = L.StatelessLSTM(dunits + eprojs, dunits)
+            self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
+            for l in six.moves.range(1, dlayers):
+                setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
             self.output = L.Linear(dunits, odim)
 
         self.loss = None
         self.att = att
+        self.dlayers = dlayers
         self.dunits = dunits
         self.sos = sos
         self.eos = eos
@@ -428,8 +429,8 @@ class Decoder(chainer.Chain):
     def __call__(self, hs, ys):
         '''Decoder forward
 
-        :param hs:
-        :param ys:
+        :param Variable hs:
+        :param Variable ys:
         :return:
         '''
         self.loss = None
@@ -453,8 +454,11 @@ class Decoder(chainer.Chain):
                      str(self.xp.array([y.shape[0] for y in ys_out])))
 
         # initialization
-        c = None
-        z = None
+        c_list = [None]  # list of cell state of each layer
+        z_list = [None]  # list of hidden state of each layer
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(None)
+            z_list.append(None)
         att_w = None
         z_all = []
         self.att.reset()  # reset pre-computation of h
@@ -465,10 +469,12 @@ class Decoder(chainer.Chain):
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs, z, att_w)
+            att_c, att_w = self.att(hs, z_list[0], att_w)
             ey = F.hstack((eys[:, i, :], att_c))  # utt x (zdim + hdim)
-            c, z = self.decoder(c, z, ey)
-            z_all.append(z)
+            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
+            for l in six.moves.range(1, self.dlayers):
+                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            z_all.append(z_list[-1])
             att_weight_all.append(att_w.data)  # for debugging
 
         z_all = F.reshape(F.stack(z_all, axis=1),
@@ -509,8 +515,11 @@ class Decoder(chainer.Chain):
         '''
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
-        c = None
-        z = None
+        c_list = [None]  # list of cell state of each layer
+        z_list = [None]  # list of hidden state of each layer
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(None)
+            z_list.append(None)
         att_w = None
         y_seq = []
         self.att.reset()  # reset pre-computation of h
@@ -523,10 +532,12 @@ class Decoder(chainer.Chain):
         logging.info('min output length: ' + str(minlen))
         for i in six.moves.range(minlen, maxlen):
             ey = self.embed(y)           # utt list (1) x zdim
-            att_c, att_w = self.att([h], z, att_w)
+            att_c, att_w = self.att([h], z_list[0], att_w)
             ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
-            c, z = self.decoder(c, z, ey)
-            y = self.xp.argmax(self.output(z).data, axis=1).astype('i')
+            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
+            for l in six.moves.range(1, self.dlayers):
+                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            y = self.xp.argmax(self.output(z_list[-1]).data, axis=1).astype('i')
             y_seq.append(y)
 
             # terminate decoding
@@ -545,8 +556,11 @@ class Decoder(chainer.Chain):
         '''
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
-        c = None
-        z = None
+        c_list = [None]  # list of cell state of each layer
+        z_list = [None]  # list of hidden state of each layer
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(None)
+            z_list.append(None)
         a = None
         self.att.reset()  # reset pre-computation of h
 
@@ -563,8 +577,7 @@ class Decoder(chainer.Chain):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        hyp = {'score': 0.0, 'yseq': [y],
-               'c_prev': c, 'z_prev': z, 'a_prev': a}
+        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         hyps = [hyp]
         ended_hyps = []
         for i in six.moves.range(maxlen):
@@ -573,22 +586,28 @@ class Decoder(chainer.Chain):
             hyps_best_kept = []
             for hyp in hyps:
                 ey = self.embed(hyp['yseq'][i])           # utt list (1) x zdim
-                att_c, att_w = self.att([h], hyp['z_prev'], hyp['a_prev'])
+                att_c, att_w = self.att([h], hyp['z_prev'][0], hyp['a_prev'])
                 ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
-                c, z = self.decoder(hyp['c_prev'], hyp['z_prev'], ey)
-                hyp['c_prev'] = c
-                hyp['z_prev'] = z
+                c_list[0], z_list[0] = self.lstm0(hyp['c_prev'][0], hyp['z_prev'][0], ey)
+                for l in six.moves.range(1, self.dlayers):
+                    c_list[l], z_list[l] = self['lstm%d' % l](
+                        hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
+                hyp['c_prev'] = c_list
+                hyp['z_prev'] = z_list
                 hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = F.log_softmax(self.output(z)).data
-                local_best_ids = self.xp.argsort(local_scores, axis=1)[
-                    0, ::-1][:beam]
+                local_scores = F.log_softmax(self.output(z_list[-1])).data
+                local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
-                    new_hyp['z_prev'] = z
-                    new_hyp['c_prev'] = c
+                    # do not copy {z,c}_list directly
+                    new_hyp['z_prev'] = [z_list[0]]
+                    new_hyp['c_prev'] = [c_list[0]]
+                    for l in six.moves.range(1, self.dlayers):
+                        new_hyp['z_prev'].append(z_list[l])
+                        new_hyp['c_prev'].append(c_list[l])
                     new_hyp['a_prev'] = att_w
                     new_hyp['score'] = hyp['score'] + \
                         local_scores[0, local_best_ids[j]]
@@ -650,7 +669,6 @@ class Decoder(chainer.Chain):
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
-# TODO(watanabe) avoid to use add_link
 class Encoder(chainer.Chain):
     '''ENCODER NEWTWORK CLASS
 
@@ -729,10 +747,10 @@ class BLSTMP(chainer.Chain):
                     inputdim = idim
                 else:
                     inputdim = hdim
-                self.add_link("bilstm%d" % i, L.NStepBiLSTM(
+                setattr(self, "bilstm%d" % i, L.NStepBiLSTM(
                     1, inputdim, cdim, dropout))
                 # bottleneck layer to merge
-                self.add_link("bt%d" % i, L.Linear(2 * cdim, hdim))
+                setattr(self, "bt%d" % i, L.Linear(2 * cdim, hdim))
 
         self.elayers = elayers
         self.cdim = cdim

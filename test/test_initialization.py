@@ -7,7 +7,9 @@
 import argparse
 
 import numpy
+import os
 import pytest
+import random
 
 
 args = argparse.Namespace(
@@ -16,7 +18,7 @@ args = argparse.Namespace(
     etype="vggblstmp",
     eunits=320,
     eprojs=320,
-    dlayers=1,
+    dlayers=2,
     dunits=300,
     atype="location",
     aconv_chans=10,
@@ -30,12 +32,18 @@ args = argparse.Namespace(
     minlenratio=0.0,
     verbose=True,
     char_list=[u"あ", u"い", u"う", u"え", u"お"],
-    outdir=None
+    outdir=None,
+    seed=1
 )
 
 
 def test_lecun_init_torch():
-    pytest.importorskip("torch")
+    torch = pytest.importorskip("torch")
+    nseed = args.seed
+    random.seed(nseed)
+    torch.manual_seed(nseed)
+    numpy.random.seed(nseed)
+    os.environ["CHAINER_SEED"] = str(nseed)
     import e2e_asr_attctc_th as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.bias.data.numpy()
@@ -50,7 +58,9 @@ def test_lecun_init_torch():
         if "embed" in name:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
             numpy.testing.assert_allclose(data.var(), 1.0, 5e-2, 5e-2)
-        elif "predictor.dec.decoder.bias_ih" in name:
+        elif "predictor.dec.decoder.0.bias_ih" in name:
+            assert data.sum() == data.size // 4
+        elif "predictor.dec.decoder.1.bias_ih" in name:
             assert data.sum() == data.size // 4
         elif data.ndim == 1:
             assert numpy.all(data == 0.0)
@@ -61,6 +71,10 @@ def test_lecun_init_torch():
 
 
 def test_lecun_init_chainer():
+    nseed = args.seed
+    random.seed(nseed)
+    numpy.random.seed(nseed)
+    os.environ["CHAINER_SEED"] = str(nseed)
     import e2e_asr_attctc as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.b.data
@@ -72,7 +86,9 @@ def test_lecun_init_chainer():
     for name, p in model.namedparams():
         print(name)
         data = p.data
-        if "decoder/upward/b" in name:
+        if "lstm0/upward/b" in name:
+            assert data.sum() == data.size // 4
+        elif "lstm1/upward/b" in name:
             assert data.sum() == data.size // 4
         elif "embed" in name:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
