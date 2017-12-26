@@ -7,6 +7,8 @@
 import argparse
 
 import numpy
+import random
+import os
 import pytest
 
 
@@ -30,7 +32,8 @@ args = argparse.Namespace(
     minlenratio=0.0,
     verbose=True,
     char_list=[u"あ", u"い", u"う", u"え", u"お"],
-    outdir=None
+    outdir=None,
+    seed=1
 )
 
 
@@ -63,6 +66,10 @@ def test_lecun_init_torch():
 
 
 def test_lecun_init_chainer():
+    nseed = args.seed
+    random.seed(nseed)
+    numpy.random.seed(nseed)
+    os.environ["CHAINER_SEED"] = str(nseed)
     import e2e_asr_attctc as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.b.data
