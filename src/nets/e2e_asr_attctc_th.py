@@ -747,7 +747,7 @@ class Decoder(torch.nn.Module):
             maxlen = h.shape[0]
         else:
             # maxlen >= 1
-            maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))
+            maxlen = max(1, int(recog_args.maxlenratio * h.size(0)))
         minlen = int(recog_args.minlenratio * h.size(0))
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
