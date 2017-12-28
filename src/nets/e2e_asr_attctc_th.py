@@ -25,6 +25,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 from warpctc_pytorch import _CTC
 
+from e2e_asr_common import end_detect
 
 CTC_LOSS_THRESHOLD = 10000
 MAX_DECODER_OUTPUT = 5
@@ -722,8 +723,11 @@ class Decoder(torch.nn.Module):
         # preprate sos
         y = self.sos
         vy = Variable(h.data.new(1).zero_().long(), volatile=True)
-        # maxlen >= 1
-        maxlen = max(1, int(recog_args.maxlenratio * h.size(0)))
+        if recog_args.maxlenratio == 0:
+            maxlen = h.shape[0]
+        else:
+            # maxlen >= 1
+            maxlen = max(1, int(recog_args.maxlenratio * h.size(0)))
         minlen = int(recog_args.minlenratio * h.size(0))
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
@@ -801,6 +805,12 @@ class Decoder(torch.nn.Module):
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)
+
+            # end detection
+            if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
+                logging.info('end detected at %d', i)
+                break
+
             hyps = remained_hyps
             if len(hyps) > 0:
                 logging.debug('remeined hypothes: ' + str(len(hyps)))
