@@ -54,7 +54,6 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 
 # data
 swbd1_dir=/export/corpora3/LDC/LDC97S62
-fisher_dir="/export/corpora3/LDC/LDC2004T19/fe_03_p1_tran/ /export/corpora3/LDC/LDC2005T19/fe_03_p2_tran/"
 eval2000_dir="/export/corpora2/LDC/LDC2002S09/hub5e_00 /export/corpora2/LDC/LDC2002T43"
 rt03_dir=/export/corpora/LDC/LDC2007S10
 
@@ -72,16 +71,23 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_si284
-train_dev=test_dev93
-recog_set="test_dev93 test_eval92"
+train_set=train_nodup
+train_dev=train_dev
+recog_set="train_dev eval2000 rt03"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
-    local/wsj_format_data.sh
+    local/swbd1_data_download.sh ${swbd1_dir}
+    local/swbd1_prepare_dict.sh
+    local/swbd1_data_prep.sh ${swbd1_dir}
+    local/eval2000_data_prep.sh ${eval2000_dir}
+    local/rt03_data_prep.sh ${rt03_dir}
+    # upsample audio from 8k to 16k to make a recipe consistent with others
+    for x in train eval2000 rt03; do
+	sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+    done
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -92,27 +98,32 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train_si284 test_dev93 test_eval92; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/${x} exp/make_fbank/${x} ${fbankdir}
+    for x in train eval2000 rt03; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
+    utils/subset_data_dir.sh --first data/train 4000 data/${train_dev} # 5hr 6min
+    n=$[`cat data/train/segments | wc -l` - 4000]
+    utils/subset_data_dir.sh --last data/train $n data/train_nodev
+    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set} # 286hr
+    
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/swbd/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/swbd/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 fi
 
@@ -126,7 +137,7 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
