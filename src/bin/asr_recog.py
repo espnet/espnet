@@ -54,8 +54,8 @@ def main():
                         help='Incertion penalty')
     parser.add_argument('--maxlenratio', default=0.0, type=float,
                         help='Input length ratio to obtain max output length.'
-                                + 'If maxlenratio=0.0 (default), it uses a end-detect function'
-                                + 'to automatically find maximum hypothesis lengths')
+                        + 'If maxlenratio=0.0 (default), it uses a end-detect function'
+                        + 'to automatically find maximum hypothesis lengths')
     parser.add_argument('--minlenratio', default=0.0, type=float,
                         help='Input length ratio to obtain min output length')
     args = parser.parse_args()
