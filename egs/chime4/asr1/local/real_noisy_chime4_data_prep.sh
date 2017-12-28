@@ -37,8 +37,6 @@ dir=`pwd`/data/local/data
 local=`pwd`/local
 utils=`pwd`/utils
 
-. ./path.sh # Needed for KALDI_ROOT
-
 if ${eval_flag}; then
 list_set="tr05_real_noisy dt05_real_noisy et05_real_noisy"
 else

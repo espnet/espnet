@@ -96,11 +96,11 @@ if [ ${stage} -le 0 ]; then
     local/real_enhan_chime4_data_prep.sh isolated_1ch_track ${chime4_data}/data/audio/16kHz/isolated_1ch_track
     local/simu_enhan_chime4_data_prep.sh isolated_1ch_track ${chime4_data}/data/audio/16kHz/isolated_1ch_track
     echo "test data for 2ch track"
-    local/real_enhan_chime4_data_prep.sh beamformit_2mics enhan/beamformit_2mics
-    local/simu_enhan_chime4_data_prep.sh beamformit_2mics enhan/beamformit_2mics
+    local/real_enhan_chime4_data_prep.sh beamformit_2mics ${PWD}/enhan/beamformit_2mics
+    local/simu_enhan_chime4_data_prep.sh beamformit_2mics ${PWD}/enhan/beamformit_2mics
     echo "test data for 6ch track"
-    local/real_enhan_chime4_data_prep.sh beamformit_5mics enhan/beamformit_5mics
-    local/simu_enhan_chime4_data_prep.sh beamformit_5mics enhan/beamformit_5mics
+    local/real_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
+    local/simu_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
