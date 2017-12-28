@@ -17,6 +17,7 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
 
+from e2e_asr_common import end_detect
 
 CTC_LOSS_THRESHOLD = 10000
 MAX_DECODER_OUTPUT = 5
@@ -309,6 +310,9 @@ class AttDot(chainer.Chain):
         # <phi (h_t), psi (s)> for all t
         e = F.sum(self.pre_compute_enc_h * F.tile(F.reshape(F.tanh(self.mlp_dec(dec_z)), (batch, 1, self.att_dim)),
                                                   (1, self.h_length, 1)), axis=2)  # utt x frame
+        # Applying a minus-large-number filter to make a probability value zero for a padded area
+        # simply degrades the performance, and I gave up this implementation
+        # Apply a scaling to make an attention sharp
         w = F.softmax(scaling * e)
         # weighted sum over flames
         # utt x hdim
@@ -392,10 +396,12 @@ class AttLoc(chainer.Chain):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # TODO(watanabe) consider energy -infinity padding for e.
         # TODO(watanabe) use batch_matmul
         e = F.squeeze(linear_tensor(self.gvec, F.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)), axis=2)
+        # Applying a minus-large-number filter to make a probability value zero for a padded area
+        # simply degrades the performance, and I gave up this implementation
+        # Apply a scaling to make an attention sharp
         w = F.softmax(scaling * e)
 
         # weighted sum over flames
@@ -570,8 +576,11 @@ class Decoder(chainer.Chain):
 
         # preprate sos
         y = self.xp.full(1, self.sos, 'i')
-        # maxlen >= 1
-        maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))
+        if recog_args.maxlenratio == 0:
+            maxlen = h.shape[0]
+        else:
+            # maxlen >= 1
+            maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))
         minlen = int(recog_args.minlenratio * h.shape[0])
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
@@ -645,6 +654,12 @@ class Decoder(chainer.Chain):
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)
+
+            # end detection
+            if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
+                logging.info('end detected at %d', i)
+                break
+
             hyps = remained_hyps
             if len(hyps) > 0:
                 logging.debug('remeined hypothes: ' + str(len(hyps)))
