@@ -85,8 +85,10 @@ if [ ${stage} -le 0 ]; then
     local/clean_wsj0_data_prep.sh ${wsj0_data}
     local/clean_chime4_format_data.sh
     echo "beamforming for multichannel cases"
-    local/run_beamform_2ch_track.sh --cmd "${train_cmd}" --nj 20 ${chime4_data}/data/audio/16kHz/isolated_2ch_track enhan/beamformit_2mics
-    local/run_beamform_6ch_track.sh --cmd "${train_cmd}" --nj 20 ${chime4_data}/data/audio/16kHz/isolated_6ch_track enhan/beamformit_5mics
+    local/run_beamform_2ch_track.sh --cmd "${train_cmd}" --nj 20 \
+        ${chime4_data}/data/audio/16kHz/isolated_2ch_track enhan/beamformit_2mics
+    local/run_beamform_6ch_track.sh --cmd "${train_cmd}" --nj 20 \
+        ${chime4_data}/data/audio/16kHz/isolated_6ch_track enhan/beamformit_5mics
     echo "prepartion for chime4 data"
     local/real_noisy_chime4_data_prep.sh ${chime4_data}
     local/simu_noisy_chime4_data_prep.sh ${chime4_data}
