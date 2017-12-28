@@ -232,7 +232,7 @@ if [ ${stage} -le 4 ]; then
             --minlenratio ${minlenratio} &
         wait
 
-        score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
             
     ) &
     done

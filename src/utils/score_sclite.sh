@@ -6,6 +6,7 @@
 . ./path.sh
 
 nlsyms=""
+wer=false
 
 . utils/parse_options.sh
 
@@ -29,5 +30,14 @@ fi
     
 sclite -r ${dir}/ref.trn trn -h ${dir}/hyp.trn trn -i rm -o all stdout > ${dir}/result.txt
 
-echo "write a result in ${dir}/result.txt"
+echo "write a CER (or TER) result in ${dir}/result.txt"
 grep -e Avg -e SPKR -m 2 ${dir}/result.txt
+
+if ${wer}; then
+    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
+    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+    sclite -r ${dir}/ref.wrd.trn trn -h ${dir}/hyp.wrd.trn trn -i rm -o all stdout > ${dir}/result.wrd.txt
+
+    echo "write a WER result in ${dir}/result.wrd.txt"
+    grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.txt
+fi
