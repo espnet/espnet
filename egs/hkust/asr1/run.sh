@@ -21,7 +21,7 @@ do_delta=false # true when using CNN
 # network archtecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
-elayers=4
+elayers=8
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
@@ -47,7 +47,7 @@ epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0
+penalty=0.3
 maxlenratio=0.8
 minlenratio=0.0
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
