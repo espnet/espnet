@@ -22,6 +22,84 @@ import chainer.links as L
 from chainer.dataset import convert
 from chainer import serializers
 
+# for classifier link
+from chainer.functions.evaluation import accuracy
+from chainer.functions.loss import softmax_cross_entropy
+from chainer import link
+from chainer import reporter
+
+
+class ClassifierWithWtate(link.Chain):
+    compute_accuracy = True
+
+    def __init__(self, predictor,
+                 lossfun=softmax_cross_entropy.softmax_cross_entropy,
+                 accfun=accuracy.accuracy,
+                 label_key=-1):
+        if not (isinstance(label_key, (int, str))):
+            raise TypeError('label_key must be int or str, but is %s' %
+                            type(label_key))
+
+        super(ClassifierWithWtate, self).__init__()
+        self.lossfun = lossfun
+        self.accfun = accfun
+        self.y = None
+        self.loss = None
+        self.accuracy = None
+        self.label_key = label_key
+
+        with self.init_scope():
+            self.predictor = predictor
+
+    def __call__(self, *args, **kwargs):
+        """Computes the loss value for an input and label pair.
+
+        It also computes accuracy and stores it to the attribute.
+
+        Args:
+            args (list of ~chainer.Variable): Input minibatch.
+            kwargs (dict of ~chainer.Variable): Input minibatch.
+
+        When ``label_key`` is ``int``, the correpoding element in ``args``
+        is treated as ground truth labels. And when it is ``str``, the
+        element in ``kwargs`` is used.
+        The all elements of ``args`` and ``kwargs`` except the ground trush
+        labels are features.
+        It feeds features to the predictor and compare the result
+        with ground truth labels.
+
+        Returns:
+            ~chainer.Variable: Loss value.
+
+        """
+
+        if isinstance(self.label_key, int):
+            if not (-len(args) <= self.label_key < len(args)):
+                msg = 'Label key %d is out of bounds' % self.label_key
+                raise ValueError(msg)
+            t = args[self.label_key]
+            if self.label_key == -1:
+                args = args[:-1]
+            else:
+                args = args[:self.label_key] + args[self.label_key + 1:]
+        elif isinstance(self.label_key, str):
+            if self.label_key not in kwargs:
+                msg = 'Label key "%s" is not found' % self.label_key
+                raise ValueError(msg)
+            t = kwargs[self.label_key]
+            del kwargs[self.label_key]
+
+        self.y = None
+        self.loss = None
+        self.accuracy = None
+        self.y, state = self.predictor(*args, **kwargs)
+        self.loss = self.lossfun(self.y, t)
+        reporter.report({'loss': self.loss}, self)
+        if self.compute_accuracy:
+            self.accuracy = self.accfun(self.y, t)
+            reporter.report({'accuracy': self.accuracy}, self)
+        return self.loss, state
+
 
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
@@ -30,23 +108,20 @@ class RNNLM(chainer.Chain):
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = L.EmbedID(n_vocab, n_units)
-            self.l1 = L.LSTM(n_units, n_units)
-            self.l2 = L.LSTM(n_units, n_units)
+            self.l1 = L.StatelessLSTM(n_units, n_units)
+            self.l2 = L.StatelessLSTM(n_units, n_units)
             self.l3 = L.Linear(n_units, n_vocab)
 
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
 
-    def reset_state(self):
-        self.l1.reset_state()
-        self.l2.reset_state()
-
-    def __call__(self, x):
+    def __call__(self, x, state):
         h0 = self.embed(x)
-        h1 = self.l1(F.dropout(h0))
-        h2 = self.l2(F.dropout(h1))
+        c1, h1 = self.l1(state['c1'], state['h1'], F.dropout(h0))
+        c2, h2 = self.l2(state['c2'], state['h2'], F.dropout(h1))
         y = self.l3(F.dropout(h2))
-        return y
+        state = {'c1': c1, 'c2': c2, 'h1': h1, 'h2': h2}
+        return y, state
 
 
 # Dataset iterator to create a batch of sequences at different positions.
@@ -141,7 +216,7 @@ def main():
                         help='Output directory')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
-    parser.add_argument('--dict', required=True,
+    parser.add_argument('--dict', type=str, required=True,
                         help='Dictionary')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
@@ -226,13 +301,13 @@ def main():
         # Evaluation routine to be used for validation and test.
         model.predictor.train = False
         evaluator = model.copy()  # to use different state
-        evaluator.predictor.reset_state()  # initialize state
+        state = {'c1': None, 'c2': None, 'h1': None, 'h2': None}
         evaluator.predictor.train = False  # dropout does nothing
         sum_perp = 0
         data_count = 0
         for batch in copy.copy(iter):
             x, t = convert.concat_examples(batch, args.gpu)
-            loss = evaluator(x, t)
+            loss, state = evaluator(x, t, state)
             sum_perp += loss.data
             data_count += 1
         model.predictor.train = True
@@ -240,7 +315,7 @@ def main():
 
     # Load the Penn Tree Bank long word sequence dataset
     train, val, _ = chainer.datasets.get_ptb_words()
-    n_vocab = len(char_list)
+    n_vocab = len(args.char_list)
     logging.info('#vocab =', n_vocab)
 
     # Create the dataset iterators
@@ -264,6 +339,7 @@ def main():
     sum_perp = 0
     count = 0
     iteration = 0
+    state = {'c1': None, 'c2': None, 'h1': None, 'h2': None}
     while train_iter.epoch < args.epoch:
         loss = 0
         iteration += 1
@@ -276,7 +352,8 @@ def main():
             # (it is chainer.dataset.concat_examples by default)
             x, t = convert.concat_examples(batch, args.gpu)
             # Compute the loss at this time step and accumulate it
-            loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))
+            loss_batch, state = optimizer.target(chainer.Variable(x), chainer.Variable(t), state)
+            loss += loss_batch
             count += 1
 
         sum_perp += loss.data
@@ -309,3 +386,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
