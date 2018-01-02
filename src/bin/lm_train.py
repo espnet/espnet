@@ -13,14 +13,14 @@ import argparse
 import copy
 import logging
 import numpy as np
-import random
 import os
+import random
 
 import chainer
+from chainer import serializers
+from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
-from chainer.dataset import convert
-from chainer import serializers
 
 # for classifier link
 from chainer.functions.evaluation import accuracy
@@ -386,4 +386,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
