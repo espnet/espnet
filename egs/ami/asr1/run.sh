@@ -7,8 +7,8 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
-stage=0        # start from 0 if you need to start from data preparation
+backend=pytorch
+stage=-1       # start from -1 if you need to start from data download
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -20,7 +20,7 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
+etype=blstmp     # encoder architecture type
 elayers=8
 eunits=320
 eprojs=320
@@ -47,14 +47,21 @@ epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0.3
-maxlenratio=0.8
+penalty=0.2
+maxlenratio=0.0
 minlenratio=0.0
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
-# data
-hkust1=/export/corpora/LDC/LDC2005S15/
-hkust2=/export/corpora/LDC/LDC2005T32/
+# You may set 'mic' to:
+#  ihm [individual headset mic- the default which gives best results]
+#  sdm1 [single distant microphone- the current script allows you only to select
+#        the 1st of 8 microphones]
+#  mdm8 [multiple distant microphones-- currently we only support averaging over
+#       the 8 source microphones].
+# ... by calling this script as, for example,
+# ./run.sh --mic sdm1
+# ./run.sh --mic mdm8
+mic=ihm
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -70,26 +77,61 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodup_sp
-train_dev=train_dev
-recog_set="dev train_dev"
+base_mic=$(echo $mic | sed 's/[0-9]//g') # sdm, ihm or mdm
+nmics=$(echo $mic | sed 's/[a-z]//g') # e.g. 8 for mdm8.
+
+# Path where AMI gets downloaded (or where locally available):
+AMI_DIR=$PWD/wav_db # Default,
+case $(hostname -d) in
+    clsp.jhu.edu) AMI_DIR=/export/corpora4/ami/amicorpus ;; # JHU,
+esac
+
+train_set=${mic}_train
+train_dev=${mic}_dev
+recog_set="${mic}_dev ${mic}_eval"
+
+if [ ${stage} -le -1 ]; then
+    echo "stage -1: Data Download"
+    if [ -d $AMI_DIR ] && ! touch $AMI_DIR/.foo 2>/dev/null; then
+	echo "$0: directory $AMI_DIR seems to exist and not be owned by you."
+	echo " ... Assuming the data does not need to be downloaded.  Please use --stage 0 or more."
+	exit 1
+    fi
+    if [ -e data/local/downloads/wget_$mic.sh ]; then
+	echo "data/local/downloads/wget_$mic.sh already exists, better quit than re-download... (use --stage N)"
+	exit 1
+    fi
+    local/ami_download.sh $mic $AMI_DIR
+fi
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/hkust_data_prep.sh ${hkust1} ${hkust2}
-    local/hkust_format_data.sh
-    # upsample audio from 8k to 16k to make a recipe consistent with others
-    for x in train dev; do
-        sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
-    done
-    # remove space in text
-    for x in train dev; do
-        cp data/${x}/text data/${x}/text.org
-        paste -d " " <(cut -f 1 -d" " data/${x}/text.org) <(cut -f 2- -d" " data/${x}/text.org | tr -d " ") \
-            > data/${x}/text
-        rm data/${x}/text.org
+
+    # common data prep
+    if [ ! -d data/local/downloads ]; then
+	local/ami_text_prep.sh data/local/downloads
+    fi
+    
+    # beamforming
+    if [ "$base_mic" == "mdm" ]; then
+	PROCESSED_AMI_DIR=${PWD}/beamformed
+	if [ -z $BEAMFORMIT ] ; then
+	    export BEAMFORMIT=$KALDI_ROOT/tools/BeamformIt
+	fi
+	export PATH=${PATH}:$BEAMFORMIT
+	! hash BeamformIt && echo "Missing BeamformIt, run 'cd ../../../tools/kaldi/tools; extras/install_beamformit.sh; cd -;'" && exit 1
+	local/ami_beamform.sh --cmd "$train_cmd" --nj 20 $nmics $AMI_DIR $PROCESSED_AMI_DIR
+    else
+	PROCESSED_AMI_DIR=$AMI_DIR
+    fi
+    local/ami_${base_mic}_data_prep.sh $PROCESSED_AMI_DIR $mic
+    local/ami_${base_mic}_scoring_data_prep.sh $PROCESSED_AMI_DIR $mic dev
+    local/ami_${base_mic}_scoring_data_prep.sh $PROCESSED_AMI_DIR $mic eval
+    for dset in train dev eval; do
+	# changed the original AMI data structure in the Kaldi recipe to the following
+	utils/data/modify_speaker_info.sh --seconds-per-spk-max 30 data/${mic}/${dset}_orig data/${mic}_${dset}
     done
 fi
 
@@ -101,24 +143,9 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/train exp/make_fbank/train ${fbankdir}
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/dev exp/make_fbank/dev ${fbankdir}
-
-    # make a dev set
-    utils/subset_data_dir.sh --first data/train 4000 data/${train_dev}
-    n=$[`cat data/train/segments | wc -l` - 4000]
-    utils/subset_data_dir.sh --last data/train $n data/train_nodev
-
-    # make a training set
-    utils/data/remove_dup_utts.sh 300 data/train_nodev data/train_nodup
-
-    # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/train_nodup data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/train_nodup data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/train_nodup data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    for x in ${mic}_train ${mic}_dev ${mic}_eval; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${x} exp/make_fbank/${x} ${fbankdir}
+    done
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -126,12 +153,12 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/a{11,12,13,14}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/ami/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/a{11,12,13,14}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/ami/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -142,26 +169,19 @@ fi
 
 dict=data/lang_1char/${train_set}_units.txt
 echo "dictionary: ${dict}"
-nlsyms=data/lang_1char/non_lang_syms.txt
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
-
-    echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]' | sort | uniq > ${nlsyms}
-    cat ${nlsyms}
-
-    echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
-    echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+    # make json labels
+    data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
@@ -237,7 +257,7 @@ if [ ${stage} -le 4 ]; then
         fi
 
         # make json labels for recognition
-        data2json.sh --nlsyms ${nlsyms} ${data} ${dict} > ${data}/data.json
+        data2json.sh ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
         gpu=-1
@@ -259,7 +279,7 @@ if [ ${stage} -le 4 ]; then
             &
         wait
 
-        score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
