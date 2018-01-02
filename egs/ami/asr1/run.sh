@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
@@ -20,8 +20,8 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
-elayers=4
+etype=blstmp     # encoder architecture type
+elayers=8
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
@@ -47,9 +47,9 @@ epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0.1
-maxlenratio=0.8
-minlenratio=0.1
+penalty=0.2
+maxlenratio=0.0
+minlenratio=0.0
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # You may set 'mic' to:
