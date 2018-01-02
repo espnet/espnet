@@ -23,7 +23,7 @@ if __name__ == '__main__':
         with open(x, 'r') as f:
             j = json.load(f)
         ks = j['utts'].keys()
-        logging.info(x + ': has ' + str(len(ks)) + ' utterances')
+        logging.debug(x + ': has ' + str(len(ks)) + ' utterances')
         js.update(j['utts'])
     logging.info('new json has ' + str(len(js.keys())) + ' utterances')
         

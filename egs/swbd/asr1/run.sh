@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
@@ -20,7 +20,7 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
+etype=blstmp # encoder architecture type
 elayers=6
 eunits=320
 eprojs=320
@@ -47,9 +47,9 @@ epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0
-maxlenratio=0.8
-minlenratio=0.3
+penalty=0.1
+maxlenratio=0.0
+minlenratio=0.0
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
@@ -87,6 +87,19 @@ if [ ${stage} -le 0 ]; then
     # upsample audio from 8k to 16k to make a recipe consistent with others
     for x in train eval2000 rt03; do
 	sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+    done
+    # normalize eval2000 ant rt03 texts by
+    # 1) convert upper to lower
+    # 2) remove tags (%AH) (%HESITATION) (%UH)
+    # 3) remove <B_ASIDE> <E_ASIDE>
+    # 4) remove "(" or ")"
+    for x in eval2000 rt03; do
+        cp data/${x}/text data/${x}/text.org
+        paste -d "" \
+            <(cut -f 1 -d" " data/${x}/text.org) \
+            <(awk '{$1=""; print tolower($0)}' data/${x}/text.org | perl -pe 's| \(\%.*\)||g' | perl -pe 's| \<.*\>||g' | sed -e "s/(//g" -e "s/)//g") \
+            | sed -e 's/\s\+/ /g' > data/${x}/text
+        # rm data/${x}/text.org
     done
 fi
 
