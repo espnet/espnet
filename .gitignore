@@ -2,6 +2,9 @@
 *.pyc
 \#*\#
 .\#*
+*DS_Store
+
+# recipe related
 egs/*/*/data*
 egs/*/*/db
 egs/*/*/downloads
@@ -9,7 +12,14 @@ egs/*/*/dump
 egs/*/*/exp
 egs/*/*/fbank
 egs/*/*/stft
-*DS_Store
+egs/*/*/enhan
 
-
+# tools related
 src/utils/kaldi_io_py.py
+tools/kaldi
+tools/kaldi-io-for-python/
+tools/kaldi_github/
+tools/miniconda.sh
+tools/nkf/
+tools/venv/
+tools/warp-ctc/
