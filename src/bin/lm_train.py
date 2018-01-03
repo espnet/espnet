@@ -29,7 +29,7 @@ from chainer import link
 from chainer import reporter
 
 
-class ClassifierWithWtate(link.Chain):
+class ClassifierWithState(link.Chain):
     compute_accuracy = True
 
     def __init__(self, predictor,
@@ -40,7 +40,7 @@ class ClassifierWithWtate(link.Chain):
             raise TypeError('label_key must be int or str, but is %s' %
                             type(label_key))
 
-        super(ClassifierWithWtate, self).__init__()
+        super(ClassifierWithState, self).__init__()
         self.lossfun = lossfun
         self.accfun = accfun
         self.y = None
@@ -51,7 +51,7 @@ class ClassifierWithWtate(link.Chain):
         with self.init_scope():
             self.predictor = predictor
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
         It also computes accuracy and stores it to the attribute.
@@ -92,13 +92,13 @@ class ClassifierWithWtate(link.Chain):
         self.y = None
         self.loss = None
         self.accuracy = None
-        self.y, state = self.predictor(*args, **kwargs)
+        state, self.y = self.predictor(state, *args, **kwargs)
         self.loss = self.lossfun(self.y, t)
         reporter.report({'loss': self.loss}, self)
         if self.compute_accuracy:
             self.accuracy = self.accfun(self.y, t)
             reporter.report({'accuracy': self.accuracy}, self)
-        return self.loss, state
+        return state, self.loss
 
 
 # Definition of a recurrent net for language modeling
@@ -115,13 +115,13 @@ class RNNLM(chainer.Chain):
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
 
-    def __call__(self, x, state):
+    def __call__(self, state, x):
         h0 = self.embed(x)
         c1, h1 = self.l1(state['c1'], state['h1'], F.dropout(h0))
         c2, h2 = self.l2(state['c2'], state['h2'], F.dropout(h1))
         y = self.l3(F.dropout(h2))
         state = {'c1': c1, 'c2': c2, 'h1': h1, 'h2': h2}
-        return y, state
+        return state, y
 
 
 # Dataset iterator to create a batch of sequences at different positions.
@@ -210,7 +210,7 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
-    parser.add_argument('--gpu', '-g', default='-1', type=str,
+    parser.add_argument('--gpu', '-g', default='-1', type=int,
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--outdir', type=str, required=True,
                         help='Output directory')
@@ -280,16 +280,12 @@ def main():
         chainer.config.cudnn_deterministic = True
 
     # load dictionary for debug log
-    if args.dict is not None:
-        with open(args.dict, 'rb') as f:
-            dictionary = f.readlines()
-        char_list = [entry.decode('utf-8').split(' ')[0]
-                     for entry in dictionary]
-        char_list.insert(0, '<blank>')
-        char_list.append('<eos>')
-        args.char_list = char_list
-    else:
-        args.char_list = None
+    with open(args.dict, 'rb') as f:
+        dictionary = f.readlines()
+    char_list = [entry.decode('utf-8').split(' ')[0] for entry in dictionary]
+    char_list.insert(0, '<blank>')
+    char_list.append('<eos>')
+    char_list_dict = {x:i for i, x in enumerate(char_list)}
 
     # check cuda and cudnn availability
     if not chainer.cuda.available:
@@ -307,24 +303,33 @@ def main():
         data_count = 0
         for batch in copy.copy(iter):
             x, t = convert.concat_examples(batch, args.gpu)
-            loss, state = evaluator(x, t, state)
+            state, loss = evaluator(state, x, t)
             sum_perp += loss.data
             data_count += 1
         model.predictor.train = True
         return np.exp(float(sum_perp) / data_count)
 
-    # Load the Penn Tree Bank long word sequence dataset
-    train, val, _ = chainer.datasets.get_ptb_words()
-    n_vocab = len(args.char_list)
-    logging.info('#vocab =', n_vocab)
+    with open(args.train_label, 'rb') as f:
+        train = np.array([char_list_dict[char] if char_list_dict.has_key(char) else char_list_dict['<unk>']
+                          for char in f.readline().split()], dtype=np.int32)
+    with open(args.valid_label, 'rb') as f:
+        valid = np.array([char_list_dict[char] if char_list_dict.has_key(char) else char_list_dict['<unk>']
+                          for char in f.readline().split()], dtype=np.int32)
+    n_vocab = len(char_list)
+
+    # for debug
+    # train, valid, _ = chainer.datasets.get_ptb_words()
+    # n_vocab = max(train) + 1  # train is just an array of integers
+
+    logging.info('#vocab =' + str(n_vocab))
 
     # Create the dataset iterators
     train_iter = ParallelSequentialIterator(train, args.batchsize)
-    val_iter = ParallelSequentialIterator(val, 1, repeat=False)
+    valid_iter = ParallelSequentialIterator(valid, 1, repeat=False)
 
     # Prepare an RNNLM model
     rnn = RNNLM(n_vocab, args.unit)
-    model = L.Classifier(rnn)
+    model = ClassifierWithState(rnn)
     model.compute_accuracy = False  # we only want the perplexity
     if args.gpu >= 0:
         # Make the specified GPU current
@@ -352,7 +357,7 @@ def main():
             # (it is chainer.dataset.concat_examples by default)
             x, t = convert.concat_examples(batch, args.gpu)
             # Compute the loss at this time step and accumulate it
-            loss_batch, state = optimizer.target(chainer.Variable(x), chainer.Variable(t), state)
+            state, loss_batch = optimizer.target(state, chainer.Variable(x), chainer.Variable(t))
             loss += loss_batch
             count += 1
 
@@ -363,19 +368,19 @@ def main():
         optimizer.update()  # Update the parameters
 
         if iteration % 20 == 0:
-            logging.info('iteration: ', iteration)
-            logging.info('training perplexity: ', np.exp(float(sum_perp) / count))
+            logging.info('iteration: ' + str(iteration))
+            logging.info('training perplexity: ' + str(np.exp(float(sum_perp) / count)))
             sum_perp = 0
             count = 0
 
         if train_iter.is_new_epoch:
-            logging.info('epoch: ', train_iter.epoch)
-            logging.info('validation perplexity: ', evaluate(model, val_iter))
+            logging.info('epoch: ' + str(train_iter.epoch))
+            logging.info('validation perplexity: ' + str(evaluate(model, valid_iter)))
 
     # Evaluate on test dataset
     logging.info('test')
-    val_perp = evaluate(model, val_iter)
-    logging.info('validation perplexity:', val_perp)
+    valid_perp = evaluate(model, valid_iter)
+    logging.info('validation perplexity:' + str(valid_perp))
 
     # Save the model and the optimizer
     logging.info('save the model')

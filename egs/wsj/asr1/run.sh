@@ -160,7 +160,33 @@ else
 fi
 
 if [ ${stage} -le 3 ]; then
-    echo "stage 3: Network Training"
+    echo "stage 3: LM Preparation"
+    lmexpdir=exp/train_rnnlm
+    if false; then
+    mkdir -p ${lmexpdir}
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+        > ${lmexpdir}/train_trans.txt
+    zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
+        | text2token.py -n 1 | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' >> ${lmexpdir}/train_others.txt
+    cat ${lmexpdir}/train_trans.txt ${lmexpdir}/train_others.txt | tr '\n' ' ' > ${lmexpdir}/train.txt
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+        > ${lmexpdir}/valid.txt
+    fi
+
+    ${cuda_cmd} ${lmexpdir}/train.log \
+        lm_train.py \
+        --gpu ${gpu} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --train-label ${lmexpdir}/train.txt \
+        --valid-label ${lmexpdir}/valid.txt \
+        --dict ${dict}
+fi
+
+exit
+
+if [ ${stage} -le 4 ]; then
+    echo "stage 4: Network Training"
 
     ${cuda_cmd} ${expdir}/train.log \
         ${train_script} \
@@ -194,7 +220,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ ${stage} -le 4 ]; then
-    echo "stage 4: Decoding"
+    echo "stage 5: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
