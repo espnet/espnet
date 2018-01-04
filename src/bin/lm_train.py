@@ -310,10 +310,10 @@ def main():
         return np.exp(float(sum_perp) / data_count)
 
     with open(args.train_label, 'rb') as f:
-        train = np.array([char_list_dict[char] if char_list_dict.has_key(char) else char_list_dict['<unk>']
+        train = np.array([char_list_dict[char] if char in char_list_dict else char_list_dict['<unk>']
                           for char in f.readline().split()], dtype=np.int32)
     with open(args.valid_label, 'rb') as f:
-        valid = np.array([char_list_dict[char] if char_list_dict.has_key(char) else char_list_dict['<unk>']
+        valid = np.array([char_list_dict[char] if char in char_list_dict else char_list_dict['<unk>']
                           for char in f.readline().split()], dtype=np.int32)
     n_vocab = len(char_list)
 
