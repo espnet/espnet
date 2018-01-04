@@ -10,16 +10,20 @@ from warpctc_pytorch import CTCLoss
 ctc_loss = CTCLoss()
 places = 5
 
+use_cuda = torch.cuda.is_available()
 
 def run_grads(label_sizes, labels, probs, sizes):
     probs = Variable(probs, requires_grad=True)
     cost = ctc_loss(probs, labels, sizes, label_sizes)
     cost.backward()
     cpu_cost = cost.data[0]
-    probs = Variable(probs.data.cuda(), requires_grad=True)
-    cost = ctc_loss(probs, labels, sizes, label_sizes)
-    cost.backward()
-    gpu_cost = cost.data[0]
+    if use_cuda:
+        probs = Variable(probs.data.cuda(), requires_grad=True)
+        cost = ctc_loss(probs, labels, sizes, label_sizes)
+        cost.backward()
+        gpu_cost = cost.data[0]
+    else:
+        gpu_cost = cpu_cost
     grads = probs.grad
     print(grads.view(grads.size(0) * grads.size(1), grads.size(2)))
     return cpu_cost, gpu_cost
