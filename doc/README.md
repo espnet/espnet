@@ -1,11 +1,9 @@
 # ESPnet document generation
 
-## Install
+## Install related packages
 
 ```sh
-$ pip install sphinx
-$ pip install sphinx_rtd_theme
-$ pip install commonmark==0.5.4 recommonmark
+$ pip install -r requirements.txt
 ```
 
 ## Compile
@@ -19,22 +17,24 @@ $ make html
 ## Publish
 
 ```sh
-# <origin>: your fork repository
-# <upstream>: original repository
+# <fork>: your fork repository
 
 # better to make new clone
-$ git clone <origin> espnet_doc
+# (you don't need to do the following everytime)
+$ git clone <fork> espnet_doc
 $ cd espnet_doc
+$ git remote add upstream https://github.com/espnet/espnet.git
 
 # get changes from upstream master
-$ git fetch <upstream>
-$ git merge <upstream>/master
+$ git fetch upstream
+$ git merge upstream/master
 
 # compile html
 $ cd doc
 $ make html
 
 # upload html to github.io
+$ cd ../
 $ git checkout gh-pages
 $ cp -r doc/_build/html/* .
 $ git add *.html *.js *.inv _sources _static apis

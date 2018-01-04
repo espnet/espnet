@@ -4,6 +4,8 @@
 .\#*
 *DS_Store
 
+doc/_build
+
 # recipe related
 egs/*/*/data*
 egs/*/*/db
