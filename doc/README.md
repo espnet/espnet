@@ -19,12 +19,27 @@ $ make html
 ## Publish
 
 ```sh
+# <origin>: your fork repository
+# <upstream>: original repository
+
+# better to make new clone
+$ git clone <origin> espnet_doc
+$ cd espnet_doc
+
+# get changes from upstream master
+$ git fetch <upstream>
+$ git merge <upstream>/master
+
+# compile html
 $ cd doc
 $ make html
+
+# upload html to github.io
 $ git checkout gh-pages
 $ cp -r doc/_build/html/* .
-$ rm -r doc src 
-$ git add --all
+$ git add *.html *.js *.inv _sources _static apis
 $ git commit 
-$ git push <remote_name> gh-pages
+$ git push <origin> gh-pages
+
+# make pull request!
 ```
