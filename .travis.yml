@@ -38,7 +38,7 @@ script:
   - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
   - pytest
-  - travis-sphinx build --source=doc
+  - travis-sphinx build --source=doc --nowarn
 
 sudo: false
 
