@@ -13,6 +13,14 @@ $ pip install travis-sphinx
 
 ## Generate HTML
 
+You can generate local HTML manually using sphinx Makefile
+
+```sh
+$ cd <espnet_root>/doc
+$ make html
+```
+
+or using travis-sphinx
 
 ```sh
 $ cd <espnet_root>
