@@ -12,6 +12,7 @@ def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
 
     desribed in Eq. (50) of S. Watanabe et al
     "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition"
+
     :param ended_hyps:
     :param i:
     :param M:
