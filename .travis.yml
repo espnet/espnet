@@ -29,7 +29,8 @@ install:
   # install chainer
   - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
   - cd tools && make kaldi-io-for-python && cd -
-
+  # install doc deps
+  - pip install sphinx sphinx_rtd_theme commonmark==0.5.4 recommonmark travis-sphinx
 
 script:
   # TODO test coding style?
@@ -37,8 +38,13 @@ script:
   - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
   - pytest
+  - travis-sphinx build --source=doc --nowarn
 
 sudo: false
+
+
+after_success:
+    - travis-sphinx deploy
 
 addons:
   apt:
