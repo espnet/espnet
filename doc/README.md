@@ -5,10 +5,8 @@
 We use [travis-sphinx](https://github.com/Syntaf/travis-sphinx) to generate & deploy HTML documentation.
 
 ```sh
-$ pip install sphinx
-$ pip install sphinx_rtd_theme
-$ pip install commonmark==0.5.4 recommonmark
-$ pip install travis-sphinx
+$ cd <espnet_root>
+$ pip install -r doc/requirements.txt
 ```
 
 ## Generate HTML
@@ -17,7 +15,7 @@ You can generate local HTML manually using sphinx Makefile
 
 ```sh
 $ cd <espnet_root>/doc
-$ make html
+$ PYTHONPATH=`pwd`/../src/nets make html
 ```
 
 `index.html` will be created at `doc/_build/html/index.html`
@@ -27,7 +25,7 @@ or using travis-sphinx
 
 ```sh
 $ cd <espnet_root>
-$ travis-sphinx build --source=doc --nowarn
+$ PYTHONPATH=`pwd`/src/nets travis-sphinx build --source=doc --nowarn
 ```
 
 `index.html` will be created at `doc/build/index.html`
