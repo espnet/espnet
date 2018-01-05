@@ -109,8 +109,7 @@ class RNNLM(chainer.Chain):
         with self.init_scope():
             self.embed = L.EmbedID(n_vocab, n_units)
             self.l1 = L.StatelessLSTM(n_units, n_units)
-            self.l2 = L.StatelessLSTM(n_units, n_units)
-            self.l3 = L.Linear(n_units, n_vocab)
+            self.l2 = L.Linear(n_units, n_vocab)
 
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
@@ -118,9 +117,8 @@ class RNNLM(chainer.Chain):
     def __call__(self, state, x):
         h0 = self.embed(x)
         c1, h1 = self.l1(state['c1'], state['h1'], F.dropout(h0))
-        c2, h2 = self.l2(state['c2'], state['h2'], F.dropout(h1))
-        y = self.l3(F.dropout(h2))
-        state = {'c1': c1, 'c2': c2, 'h1': h1, 'h2': h2}
+        y = self.l2(F.dropout(h1))
+        state = {'c1': c1, 'h1': h1}
         return state, y
 
 
@@ -230,7 +228,7 @@ def main():
     parser.add_argument('--valid-label', type=str, required=True,
                         help='Filename of validation label data (json)')
     # LSTMLM training configuration
-    parser.add_argument('--batchsize', '-b', type=int, default=20,
+    parser.add_argument('--batchsize', '-b', type=int, default=100,
                         help='Number of examples in each mini-batch')
     parser.add_argument('--bproplen', '-l', type=int, default=35,
                         help='Number of words in each mini-batch '
@@ -297,7 +295,7 @@ def main():
         # Evaluation routine to be used for validation and test.
         model.predictor.train = False
         evaluator = model.copy()  # to use different state
-        state = {'c1': None, 'c2': None, 'h1': None, 'h2': None}
+        state = {'c1': None, 'h1': None}
         evaluator.predictor.train = False  # dropout does nothing
         sum_perp = 0
         data_count = 0
@@ -317,11 +315,15 @@ def main():
                           for char in f.readline().split()], dtype=np.int32)
     n_vocab = len(char_list)
 
-    # for debug
+    # for debug, ptb data
     # train, valid, _ = chainer.datasets.get_ptb_words()
     # n_vocab = max(train) + 1  # train is just an array of integers
 
-    logging.info('#vocab =' + str(n_vocab))
+    logging.info('#vocab = ' + str(n_vocab))
+    logging.info('#words in the training data = ' + str(len(train)))
+    logging.info('#words in the validation data = ' + str(len(valid)))
+    logging.info('#iterations per epoch = ' + str(len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#total iterations = ' + str(args.epoch * len(train) // (args.batchsize * args.bproplen)))
 
     # Create the dataset iterators
     train_iter = ParallelSequentialIterator(train, args.batchsize)
@@ -344,7 +346,8 @@ def main():
     sum_perp = 0
     count = 0
     iteration = 0
-    state = {'c1': None, 'c2': None, 'h1': None, 'h2': None}
+    epoch_now = 0
+    state = {'c1': None, 'h1': None}
     while train_iter.epoch < args.epoch:
         loss = 0
         iteration += 1
@@ -373,9 +376,10 @@ def main():
             sum_perp = 0
             count = 0
 
-        if train_iter.is_new_epoch:
+        if train_iter.epoch > epoch_now:
             logging.info('epoch: ' + str(train_iter.epoch))
             logging.info('validation perplexity: ' + str(evaluate(model, valid_iter)))
+            epoch_now = train_iter.epoch
 
     # Evaluate on test dataset
     logging.info('test')
