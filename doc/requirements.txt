@@ -1,5 +1,5 @@
-sphinx>=1.6.5
-sphinx_rtd_theme>=0.2.4
+Sphinx>=1.6.5
+sphinx-rtd-theme>=0.2.4
 commonmark==0.5.4
 recommonmark>=0.4.0
-chainer>=3.0.0
+travis-sphinx>=2.0.1

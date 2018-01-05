@@ -1,45 +1,34 @@
 # ESPnet document generation
 
-## Install related packages
+## Install
+
+We use [travis-sphinx](https://github.com/Syntaf/travis-sphinx) to generate & deploy HTML documentation.
 
 ```sh
-$ pip install -r requirements.txt
+$ cd <espnet_root>
+$ pip install -r doc/requirements.txt
 ```
 
-## Compile
+## Generate HTML
+
+You can generate local HTML manually using sphinx Makefile
 
 ```sh
+$ cd <espnet_root>/doc
 $ make html
 ```
 
-`index.html` will be created at `_build/html/index.html`
+`index.html` will be created at `doc/_build/html/index.html`
 
-## Publish
+or using travis-sphinx
 
 ```sh
-# <fork>: your fork repository
-
-# better to make new clone
-# (you don't need to do the following everytime)
-$ git clone <fork> espnet_doc
-$ cd espnet_doc
-$ git remote add upstream https://github.com/espnet/espnet.git
-
-# get changes from upstream master
-$ git fetch upstream
-$ git merge upstream/master
-
-# compile html
-$ cd doc
-$ make html
-
-# upload html to github.io
-$ cd ../
-$ git checkout gh-pages
-$ cp -r doc/_build/html/* .
-$ git add *.html *.js *.inv _sources _static apis
-$ git commit 
-$ git push <origin> gh-pages
-
-# make pull request!
+$ cd <espnet_root>
+$ travis-sphinx build --source=doc --nowarn
 ```
+
+`index.html` will be created at `doc/build/index.html`
+
+## Deploy
+
+When your PR is merged into `master` branch, our [Travis-CI](https://github.com/espnet/espnet/blob/master/.travis.yml) will automatically deploy your sphinx html into https://espnet.github.io/espnet/ by `travis-sphinx deploy`.
