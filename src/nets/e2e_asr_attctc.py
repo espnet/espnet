@@ -685,7 +685,7 @@ class Decoder(chainer.Chain):
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
 class Encoder(chainer.Chain):
-    '''ENCODER NEWTWORK CLASS
+    '''ENCODER NETWORK CLASS
 
     This is the example of docstring.
 

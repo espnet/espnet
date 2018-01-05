@@ -836,7 +836,7 @@ class Decoder(torch.nn.Module):
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
 class Encoder(torch.nn.Module):
-    '''ENCODER NEWTWORK CLASS
+    '''ENCODER NETWORK CLASS
 
     This is the example of docstring.
 
