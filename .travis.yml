@@ -30,7 +30,7 @@ install:
   - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
   - cd tools && make kaldi-io-for-python && cd -
   # install doc deps
-  - pip install sphinx sphinx_rtd_theme commonmark==0.5.4 recommonmark travis-sphinx
+  - pip install -r doc/requirements.txt
 
 script:
   # TODO test coding style?
