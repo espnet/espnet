@@ -392,5 +392,6 @@ def main():
 
             epoch_now = train_iter.epoch
 
+
 if __name__ == '__main__':
     main()
