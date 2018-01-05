@@ -29,7 +29,8 @@ install:
   # install chainer
   - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
   - cd tools && make kaldi-io-for-python && cd -
-  - pip install travis-sphinx
+  # install doc deps
+  - pip install sphinx sphinx_rtd_theme commonmark==0.5.4 recommonmark travis-sphinx
 
 script:
   # TODO test coding style?
