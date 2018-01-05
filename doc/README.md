@@ -20,6 +20,9 @@ $ cd <espnet_root>/doc
 $ make html
 ```
 
+`index.html` will be created at `doc/_build/html/index.html`
+
+
 or using travis-sphinx
 
 ```sh
