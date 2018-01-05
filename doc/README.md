@@ -15,7 +15,7 @@ You can generate local HTML manually using sphinx Makefile
 
 ```sh
 $ cd <espnet_root>/doc
-$ PYTHONPATH=`pwd`/../src/nets make html
+$ make html
 ```
 
 `index.html` will be created at `doc/_build/html/index.html`
@@ -25,7 +25,7 @@ or using travis-sphinx
 
 ```sh
 $ cd <espnet_root>
-$ PYTHONPATH=`pwd`/src/nets travis-sphinx build --source=doc --nowarn
+$ travis-sphinx build --source=doc --nowarn
 ```
 
 `index.html` will be created at `doc/build/index.html`
