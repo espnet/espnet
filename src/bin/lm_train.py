@@ -315,6 +315,10 @@ def main():
                           for char in f.readline().split()], dtype=np.int32)
     n_vocab = len(char_list)
 
+    # for debug, small data
+    # train = train[:500]
+    # valid = valid[:100]
+
     # for debug, ptb data
     # train, valid, _ = chainer.datasets.get_ptb_words()
     # n_vocab = max(train) + 1  # train is just an array of integers
@@ -370,7 +374,7 @@ def main():
         loss.unchain_backward()  # Truncate the graph
         optimizer.update()  # Update the parameters
 
-        if iteration % 20 == 0:
+        if iteration % 100 == 0:
             logging.info('iteration: ' + str(iteration))
             logging.info('training perplexity: ' + str(np.exp(float(sum_perp) / count)))
             sum_perp = 0
@@ -379,19 +383,14 @@ def main():
         if train_iter.epoch > epoch_now:
             logging.info('epoch: ' + str(train_iter.epoch))
             logging.info('validation perplexity: ' + str(evaluate(model, valid_iter)))
+
+            # Save the model and the optimizer
+            logging.info('save the model')
+            serializers.save_npz(args.outdir + '/rnnlm.model.' + str(epoch_now), model)
+            logging.info('save the optimizer')
+            serializers.save_npz(args.outdir + '/rnnlm.state.' + str(epoch_now), optimizer)
+
             epoch_now = train_iter.epoch
-
-    # Evaluate on test dataset
-    logging.info('test')
-    valid_perp = evaluate(model, valid_iter)
-    logging.info('validation perplexity:' + str(valid_perp))
-
-    # Save the model and the optimizer
-    logging.info('save the model')
-    serializers.save_npz(args.outdir + 'rnnlm.model', model)
-    logging.info('save the optimizer')
-    serializers.save_npz(args.outdir + 'rnnlm.state', optimizer)
-
 
 if __name__ == '__main__':
     main()
