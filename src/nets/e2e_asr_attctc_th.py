@@ -17,7 +17,6 @@ import chainer
 from chainer import reporter
 
 import torch
-is_torch02 = torch.__version__.startswith("0.2.")
 
 from torch.autograd import Variable
 from torch.nn import functional
@@ -26,6 +25,8 @@ from torch.nn.utils.rnn import pad_packed_sequence
 from warpctc_pytorch import _CTC
 
 from e2e_asr_common import end_detect
+
+is_torch02 = torch.__version__.startswith("0.2.")
 
 CTC_LOSS_THRESHOLD = 10000
 MAX_DECODER_OUTPUT = 5
@@ -190,6 +191,9 @@ class E2E(torch.nn.Module):
         # attention
         if args.atype == 'dot':
             self.att = AttDot(args.eprojs, args.dunits, args.adim)
+        elif args.atype == 'multi_head_dot':
+            self.att = AttMultiHeadDot(args.eprojs, args.dunits,
+                                       args.heads, args.adim_k, args.adim_v)
         elif args.atype == 'location':
             self.att = AttLoc(args.eprojs, args.dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
@@ -446,6 +450,91 @@ class AttDot(torch.nn.Module):
         # utt x hdim
         # NOTE use bmm instead of sum(*)
         c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+        return c, w
+
+
+# multi head dot product based attention
+class AttMultiHeadDot(torch.nn.Module):
+    def __init__(self, eprojs, dunits, heads, att_dim_k, att_dim_v):
+        super(AttMultiHeadDot, self).__init__()
+        self.mlp_q = torch.nn.ModuleList()
+        self.mlp_k = torch.nn.ModuleList()
+        self.mlp_v = torch.nn.ModuleList()
+        for h in six.moves.range(heads):
+            self.mlp_q += [torch.nn.Linear(dunits, att_dim_k, bias=False)]
+            self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
+            self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
+        self.mlp_o = torch.nn.Linear(heads * att_dim_v, eprojs, bias=False)
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.heads = heads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states
+
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+        '''AttDot
+
+        :param enc_hs:
+        :param dec_z:
+        :param scaling:
+        :return:
+        '''
+        batch = enc_hs_pad.size(0)
+        # pre-compute all k and v outside the decoder loop
+        if self.pre_compute_k is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                linear_tensor(self.mlp_k[h], self.enc_h) for h in six.moves.range(self.heads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.heads)]
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        c = []
+        for h in six.moves.range(self.heads):
+            e = torch.sum(self.pre_compute_k[h] *
+                          self.mlp_q[h](dec_z).view(
+                              batch, 1, self.att_dim_k),
+                          dim=2)  # utt x frame
+            # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
+            if is_torch02:
+                w = torch.nn.functional.softmax(self.scaling * e)
+            else:
+                w = torch.nn.functional.softmax(self.scaling * e, dim=1)
+
+            # weighted sum over flames
+            # utt x hdim
+            # NOTE use bmm instead of sum(*)
+            c += [torch.sum(self.pre_compute_v[h] * w.view(batch, self.h_length, 1), dim=1)]
+
+        # concat all of c
+        c = self.mlp_o(torch.cat(c, dim=1))
+
         return c, w
 
 
