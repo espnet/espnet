@@ -296,9 +296,15 @@ def main():
                              'every y frame at 2nd layer etc.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
-                        choices=['dot', 'location'],
+                        choices=['dot', 'location', 'multi_head_dot'],
                         help='Type of attention architecture')
     parser.add_argument('--adim', default=320, type=int,
+                        help='Number of attention transformation dimensions')
+    parser.add_argument('--heads', default=8, type=int,
+                        help='Number of attention transformation dimensions')
+    parser.add_argument('--adim_k', default=64, type=int,
+                        help='Number of attention transformation dimensions')
+    parser.add_argument('--adim_v', default=64, type=int,
                         help='Number of attention transformation dimensions')
     parser.add_argument('--aconv-chans', default=-1, type=int,
                         help='Number of attention convolution channels \
