@@ -487,7 +487,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.pre_compute_v = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        '''AttDot
+        '''AttMultiHeadDot
 
         :param enc_hs:
         :param dec_z:
