@@ -637,8 +637,8 @@ class Decoder(torch.nn.Module):
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
                 seq_hat = "".join(seq_hat)
                 seq_true = "".join(seq_true)
-                logging.info("groundtruth[%d]: " + seq_true, i)
-                logging.info("prediction [%d]: " + seq_hat, i)
+                logging.info("groundtruth[%d]: " % i + seq_true)
+                logging.info("prediction [%d]: " % i + seq_hat)
 
         return self.loss, acc, att_weight_all
 
