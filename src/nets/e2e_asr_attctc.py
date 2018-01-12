@@ -209,7 +209,7 @@ class E2E(chainer.Chain):
             if recog_args.beam_size == 1:
                 y = self.dec.recognize(h[0], recog_args, rnnlm)
             else:
-                y = self.dec.recognize_beam(h[0], recog_args, char_list)
+                y = self.dec.recognize_beam(h[0], recog_args, char_list, rnnlm)
 
             return y
 
@@ -547,8 +547,10 @@ class Decoder(chainer.Chain):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
             if rnnlm:
                 state, z_rnnlm = rnnlm.predictor(state, y)
-            final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
-                      + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+                final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
+                          + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+            else:
+                final_z = F.log_softmax(self.output(z_list[-1])).data
 
             y = self.xp.argmax(final_z, axis=1).astype('i')
             y_seq.append(y)
@@ -559,7 +561,7 @@ class Decoder(chainer.Chain):
 
         return y_seq
 
-    def recognize_beam(self, h, recog_args, char_list):
+    def recognize_beam(self, h, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
         :param h:
@@ -593,7 +595,11 @@ class Decoder(chainer.Chain):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+        if rnnlm:
+            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': state}
+        else:
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         hyps = [hyp]
         ended_hyps = []
         for i in six.moves.range(maxlen):
@@ -613,7 +619,13 @@ class Decoder(chainer.Chain):
                 hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = F.log_softmax(self.output(z_list[-1])).data
+                if rnnlm:
+                    rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], hyp['yseq'][i])
+                    hyp['rnnlm_prev'] = rnnlm_state
+                    local_scores = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
+                                  + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+                else:
+                    local_scores = F.log_softmax(self.output(z_list[-1])).data
                 local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
 
                 for j in six.moves.range(beam):
@@ -631,6 +643,8 @@ class Decoder(chainer.Chain):
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = self.xp.full(
                         1, local_best_ids[j], 'i')
+                    if rnnlm:
+                        new_hyp['rnnlm_prev'] = rnnlm_state
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
 
