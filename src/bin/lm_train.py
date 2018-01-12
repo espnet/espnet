@@ -109,7 +109,8 @@ class RNNLM(chainer.Chain):
         with self.init_scope():
             self.embed = L.EmbedID(n_vocab, n_units)
             self.l1 = L.StatelessLSTM(n_units, n_units)
-            self.l2 = L.Linear(n_units, n_vocab)
+            self.l2 = L.StatelessLSTM(n_units, n_units)
+            self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
@@ -117,8 +118,9 @@ class RNNLM(chainer.Chain):
     def __call__(self, state, x):
         h0 = self.embed(x)
         c1, h1 = self.l1(state['c1'], state['h1'], F.dropout(h0))
-        y = self.l2(F.dropout(h1))
-        state = {'c1': c1, 'h1': h1}
+        c2, h2 = self.l2(state['c2'], state['h2'], F.dropout(h1))
+        y = self.lo(F.dropout(h2))
+        state = {'c1': c1, 'h1': h1, 'c2': c2, 'h2': h2}
         return state, y
 
 
@@ -295,7 +297,7 @@ def main():
         # Evaluation routine to be used for validation and test.
         model.predictor.train = False
         evaluator = model.copy()  # to use different state
-        state = {'c1': None, 'h1': None}
+        state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
         evaluator.predictor.train = False  # dropout does nothing
         sum_perp = 0
         data_count = 0
@@ -351,7 +353,7 @@ def main():
     count = 0
     iteration = 0
     epoch_now = 0
-    state = {'c1': None, 'h1': None}
+    state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
     while train_iter.epoch < args.epoch:
         loss = 0
         iteration += 1
