@@ -186,7 +186,7 @@ class E2E(chainer.Chain):
 
         return loss_ctc, loss_att, acc
 
-    def recognize(self, x, recog_args, char_list):
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E greedy/beam search
 
         :param x:
@@ -207,7 +207,7 @@ class E2E(chainer.Chain):
             # 2. decoder
             # decode the first utterance
             if recog_args.beam_size == 1:
-                y = self.dec.recognize(h[0], recog_args)
+                y = self.dec.recognize(h[0], recog_args, rnnlm)
             else:
                 y = self.dec.recognize_beam(h[0], recog_args, char_list)
 
@@ -512,7 +512,7 @@ class Decoder(chainer.Chain):
 
         return self.loss, acc, att_weight_all
 
-    def recognize(self, h, recog_args):
+    def recognize(self, h, recog_args, rnnlm=None):
         '''greedy search implementation
 
         :param h:
@@ -523,6 +523,8 @@ class Decoder(chainer.Chain):
         # initialization
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
+        if rnnlm:
+            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
         for l in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
@@ -543,7 +545,12 @@ class Decoder(chainer.Chain):
             c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
-            y = self.xp.argmax(self.output(z_list[-1]).data, axis=1).astype('i')
+            if rnnlm:
+                state, z_rnnlm = rnnlm.predictor(state, y)
+            final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
+                      + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+
+            y = self.xp.argmax(final_z, axis=1).astype('i')
             y_seq.append(y)
 
             # terminate decoding

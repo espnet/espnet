@@ -45,6 +45,9 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 opt=adadelta
 epochs=15
 
+# rnnlm related
+lm_weight=0.1
+
 # decoding parameter
 beam_size=20
 penalty=0
@@ -159,31 +162,30 @@ else
     decode_script=asr_recog_th.py
 fi
 
+lmexpdir=exp/train_rnnlm_2layer
+mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    lmexpdir=exp/train_rnnlm
+    lmdatadir=data/local/lm_train
     if false; then
-    mkdir -p ${lmexpdir}
+    mkdir -p ${lmdatadir}
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmexpdir}/train_trans.txt
+        > ${lmdatadir}/train_trans.txt
     zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
-        | text2token.py -n 1 | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' >> ${lmexpdir}/train_others.txt
-    cat ${lmexpdir}/train_trans.txt ${lmexpdir}/train_others.txt | tr '\n' ' ' > ${lmexpdir}/train.txt
+        | text2token.py -n 1 | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' >> ${lmdatadir}/train_others.txt
+    cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmexpdir}/valid.txt
+        > ${lmdatadir}/valid.txt
     fi
-
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
         --gpu ${gpu} \
         --verbose 1 \
         --outdir ${lmexpdir} \
-        --train-label ${lmexpdir}/train.txt \
-        --valid-label ${lmexpdir}/valid.txt \
+        --train-label ${lmdatadir}/train.txt \
+        --valid-label ${lmdatadir}/valid.txt \
         --dict ${dict}
 fi
-
-exit
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
@@ -219,13 +221,13 @@ if [ ${stage} -le 4 ]; then
         --epochs ${epochs}
 fi
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_rnnlm${lm_weight}
 
         # split data
         data=data/${rtask}
@@ -255,7 +257,9 @@ if [ ${stage} -le 4 ]; then
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} &
+            --minlenratio ${minlenratio} \
+            --rnnlm ${lmexpdir}/rnnlm.model.7 \
+            --lm-weight ${lm_weight} &
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
