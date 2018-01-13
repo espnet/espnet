@@ -26,6 +26,7 @@ import kaldi_io_py
 # rnnlm
 import lm_train
 
+
 def main():
     parser = argparse.ArgumentParser()
     # general configuration

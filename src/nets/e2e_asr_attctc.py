@@ -548,7 +548,7 @@ class Decoder(chainer.Chain):
             if rnnlm:
                 state, z_rnnlm = rnnlm.predictor(state, y)
                 final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
-                          + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+                    + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
             else:
                 final_z = F.log_softmax(self.output(z_list[-1])).data
 
@@ -623,7 +623,7 @@ class Decoder(chainer.Chain):
                     rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], hyp['yseq'][i])
                     hyp['rnnlm_prev'] = rnnlm_state
                     local_scores = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
-                                  + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+                        + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
                 else:
                     local_scores = F.log_softmax(self.output(z_list[-1])).data
                 local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
