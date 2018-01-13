@@ -17,8 +17,6 @@ import chainer
 from chainer import reporter
 
 import torch
-is_torch02 = torch.__version__.startswith("0.2.")
-
 from torch.autograd import Variable
 from torch.nn import functional
 from torch.nn.utils.rnn import pack_padded_sequence
@@ -436,11 +434,7 @@ class AttDot(torch.nn.Module):
                       torch.tanh(self.mlp_dec(dec_z)).view(
                           batch, 1, self.att_dim),
                       dim=2)  # utt x frame
-        # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
-        if is_torch02:
-            w = torch.nn.functional.softmax(scaling * e)
-        else:
-            w = torch.nn.functional.softmax(scaling * e, dim=1)
+        w = torch.nn.functional.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -521,12 +515,7 @@ class AttLoc(torch.nn.Module):
         # NOTE consider zero padding when compute w.
         e = linear_tensor(self.gvec, torch.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
-
-        # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
-        if is_torch02:
-            w = torch.nn.functional.softmax(scaling * e)
-        else:
-            w = torch.nn.functional.softmax(scaling * e, dim=1)
+        w = torch.nn.functional.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -648,8 +637,8 @@ class Decoder(torch.nn.Module):
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
                 seq_hat = "".join(seq_hat)
                 seq_true = "".join(seq_true)
-                logging.info("groundtruth[%d]: " + seq_true, i)
-                logging.info("prediction [%d]: " + seq_hat, i)
+                logging.info("groundtruth[%d]: " % i + seq_true)
+                logging.info("prediction [%d]: " % i + seq_hat)
 
         return self.loss, acc, att_weight_all
 
@@ -756,11 +745,7 @@ class Decoder(torch.nn.Module):
                 hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
-                if is_torch02:
-                    local_scores = functional.log_softmax(self.output(z_list[-1])).data
-                else:
-                    local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
+                local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
                 local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
