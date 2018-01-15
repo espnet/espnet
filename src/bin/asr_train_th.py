@@ -300,12 +300,9 @@ def main():
                         help='Type of attention architecture')
     parser.add_argument('--adim', default=320, type=int,
                         help='Number of attention transformation dimensions')
-    parser.add_argument('--heads', default=8, type=int,
-                        help='Number of attention transformation dimensions')
-    parser.add_argument('--adim_k', default=40, type=int,
-                        help='Number of attention transformation dimensions')
-    parser.add_argument('--adim_v', default=40, type=int,
-                        help='Number of attention transformation dimensions')
+    parser.add_argument('--aheads', default=8, type=int,
+                        help='Number of multi head dot product attention \
+                        (only for atype = multi_head_dot)')
     parser.add_argument('--aconv-chans', default=-1, type=int,
                         help='Number of attention convolution channels \
                         (negative value indicates no location-aware attention)')
