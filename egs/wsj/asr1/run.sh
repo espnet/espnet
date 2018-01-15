@@ -53,6 +53,7 @@ beam_size=20
 penalty=0.1
 maxlenratio=0.0
 minlenratio=0.3
+ctc_weight=0.0
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
@@ -227,7 +228,7 @@ if [ ${stage} -le 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_rnnlm${lm_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
 
         # split data
         data=data/${rtask}
@@ -258,6 +259,7 @@ if [ ${stage} -le 5 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
+            --ctc-weight ${ctc_weight} \
             --rnnlm ${lmexpdir}/rnnlm.model.best \
             --lm-weight ${lm_weight} &
         wait
