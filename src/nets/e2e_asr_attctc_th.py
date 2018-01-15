@@ -197,6 +197,11 @@ class E2E(torch.nn.Module):
         elif args.atype == 'location':
             self.att = AttLoc(args.eprojs, args.dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'coverage':
+            self.att = AttCov(args.eprojs, args.dunits, args.adim)
+        elif args.atype == 'coverage_location':
+            self.att = AttCovLoc(args.eprojs, args.dunits,
+                                 args.adim, args.aconv_chans, args.aconv_filts)
         else:
             logging.error(
                 "Error: need to specify an appropriate attention archtecture")
@@ -268,18 +273,7 @@ class E2E(torch.nn.Module):
         loss_ctc = self.ctc(hpad, hlens, ys)
 
         # 4. attention loss
-        loss_att, acc, att_w = self.dec(hpad, hlens, ys)
-
-        # # get alignment
-        # '''
-        # if self.verbose > 0 and self.outdir is not None:
-        #     for i in six.moves.range(len(data)):
-        #         utt = data[i][0]
-        #         align_file = self.outdir + '/' + utt + '.ali'
-        #         with open(align_file, "w") as f:
-        #             logging.info('writing an alignment file to' + align_file)
-        #             pickle.dump((utt, att_w[i]), f)
-        # '''
+        loss_att, acc = self.dec(hpad, hlens, ys)
 
         return loss_ctc, loss_att, acc
 
@@ -625,6 +619,179 @@ class AttLoc(torch.nn.Module):
         return c, w
 
 
+# coverage mechanism based attention
+class AttCov(torch.nn.Module):
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttCov, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.wvec = torch.nn.Linear(1, att_dim)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def reset(self):
+        '''reset states
+
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
+        '''AttLoc forward
+
+        :param Variable enc_hs:
+        :param Variable dec_z:
+        :param list att_prev: list of Variable
+        :param float scaling:
+        :return:
+        '''
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        # initialize attention weight with uniform dist.
+        if att_prev_list is None:
+            att_prev = [Variable(enc_hs_pad.data.new(
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev_list = [pad_list(att_prev, 0)]
+
+        # att_prev_list: L' * [B x T] => cov_vec B x T
+        cov_vec = sum(att_prev_list)
+        # cov_vec: B x T => B x T x 1 => B x T x att_dim
+        cov_vec = linear_tensor(self.wvec, cov_vec.unsqueeze(-1))
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = linear_tensor(self.gvec, torch.tanh(
+            cov_vec + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
+        if is_torch02:
+            w = torch.nn.functional.softmax(scaling * e)
+        else:
+            w = torch.nn.functional.softmax(scaling * e, dim=1)
+        att_prev_list += [w]
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        return c, att_prev_list
+
+
+# coverage location based attention
+class AttCovLoc(torch.nn.Module):
+    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
+        super(AttCovLoc, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.aconv_chans = aconv_chans
+
+    def reset(self):
+        '''reset states
+
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
+        '''AttLoc forward
+
+        :param Variable enc_hs:
+        :param Variable dec_z:
+        :param list att_prev: list of Variable
+        :param float scaling:
+        :return:
+        '''
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        # initialize attention weight with uniform dist.
+        if att_prev_list is None:
+            att_prev = [Variable(enc_hs_pad.data.new(
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev_list = [pad_list(att_prev, 0)]
+
+        # att_prev_list: L' * [B x T] => att_prev B x T
+        att_prev = sum(att_prev_list)
+        # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
+        att_conv = self.loc_conv(att_prev.view(batch, 1, 1, self.h_length))
+        # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+        att_conv = att_conv.squeeze(2).transpose(1, 2)
+        # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+        att_conv = linear_tensor(self.mlp_att, att_conv)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = linear_tensor(self.gvec, torch.tanh(
+            att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
+        if is_torch02:
+            w = torch.nn.functional.softmax(scaling * e)
+        else:
+            w = torch.nn.functional.softmax(scaling * e, dim=1)
+        att_prev_list += [w]
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        return c, att_prev_list
+
+
 def th_accuracy(y_all, pad_target, ignore_label):
     pad_pred = y_all.data.view(pad_target.size(
         0), pad_target.size(1), y_all.size(1)).max(2)[1]
@@ -696,7 +863,6 @@ class Decoder(torch.nn.Module):
         att_w = None
         z_all = []
         self.att.reset()  # reset pre-computation of h
-        att_weight_all = []  # for debugging
 
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
@@ -710,7 +876,6 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             z_all.append(z_list[-1])
-            att_weight_all.append(att_w.data)  # for debugging
 
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
@@ -740,7 +905,7 @@ class Decoder(torch.nn.Module):
                 logging.info("groundtruth[%d]: " + seq_true, i)
                 logging.info("prediction [%d]: " + seq_hat, i)
 
-        return self.loss, acc, att_weight_all
+        return self.loss, acc
 
     def recognize(self, h, recog_args):
         '''greedy search implementation
