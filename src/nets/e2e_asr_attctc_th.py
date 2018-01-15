@@ -193,7 +193,7 @@ class E2E(torch.nn.Module):
             self.att = AttDot(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'multi_head_dot':
             self.att = AttMultiHeadDot(args.eprojs, args.dunits,
-                                       args.heads, args.adim_k, args.adim_v)
+                                       args.aheads, args.adim, args.adim)
         elif args.atype == 'location':
             self.att = AttLoc(args.eprojs, args.dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
@@ -455,22 +455,22 @@ class AttDot(torch.nn.Module):
 
 # multi head dot product based attention
 class AttMultiHeadDot(torch.nn.Module):
-    def __init__(self, eprojs, dunits, heads, att_dim_k, att_dim_v):
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
         super(AttMultiHeadDot, self).__init__()
         self.mlp_q = torch.nn.ModuleList()
         self.mlp_k = torch.nn.ModuleList()
         self.mlp_v = torch.nn.ModuleList()
-        for h in six.moves.range(heads):
-            self.mlp_q += [torch.nn.Linear(dunits, att_dim_k, bias=False)]
-            self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
-            self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
-        self.mlp_o = torch.nn.Linear(heads * att_dim_v, eprojs, bias=False)
+        for h in six.moves.range(aheads):
+            self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
+            self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k)]
+            self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v)]
+        self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
         self.dunits = dunits
         self.eprojs = eprojs
-        self.heads = heads
+        self.aheads = aheads
         self.att_dim_k = att_dim_k
         self.att_dim_v = att_dim_v
-        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        # self.scaling = 1.0 / math.sqrt(att_dim_k)
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -486,7 +486,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.pre_compute_k = None
         self.pre_compute_v = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttMultiHeadDot
 
         :param enc_hs:
@@ -501,14 +501,14 @@ class AttMultiHeadDot(torch.nn.Module):
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
-                linear_tensor(self.mlp_k[h], self.enc_h) for h in six.moves.range(self.heads)]
+                torch.tanh(linear_tensor(self.mlp_k[h], self.enc_h)) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_v = [
-                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.heads)]
+                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
@@ -516,16 +516,16 @@ class AttMultiHeadDot(torch.nn.Module):
             dec_z = dec_z.view(batch, self.dunits)
 
         c = []
-        for h in six.moves.range(self.heads):
+        for h in six.moves.range(self.aheads):
             e = torch.sum(self.pre_compute_k[h] *
-                          self.mlp_q[h](dec_z).view(
+                          torch.tanh(self.mlp_q[h](dec_z)).view(
                               batch, 1, self.att_dim_k),
                           dim=2)  # utt x frame
             # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
             if is_torch02:
-                w = torch.nn.functional.softmax(self.scaling * e)
+                w = torch.nn.functional.softmax(scaling * e)
             else:
-                w = torch.nn.functional.softmax(self.scaling * e, dim=1)
+                w = torch.nn.functional.softmax(scaling * e, dim=1)
 
             # weighted sum over flames
             # utt x hdim
