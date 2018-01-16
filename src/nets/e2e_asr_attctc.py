@@ -17,10 +17,11 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
 
-from e2e_asr_common import end_detect
 from ctc_prefix_score import CTCPrefixScore
+from e2e_asr_common import end_detect
 
 CTC_LOSS_THRESHOLD = 10000
+CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
@@ -679,10 +680,11 @@ class Decoder(chainer.Chain):
                     local_scores = F.log_softmax(self.output(z_list[-1])).data
 
                 if lpz is not None:
-                    local_att_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:int(beam * 1.5)]
+                    local_att_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:int(beam * CTC_SCORING_RATIO)]
                     ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_att_best_ids, hyp['ctc_prev'])
-                    joint_scores = (1. - ctc_weight) * (local_scores[0, local_att_best_ids] + hyp['score']) + ctc_weight * ctc_scores
-                    joint_best_ids = self.xp.argsort(joint_scores)[:-beam-1:-1]
+                    joint_scores = (1. - ctc_weight) * \
+                        (local_scores[0, local_att_best_ids] + hyp['score']) + ctc_weight * ctc_scores
+                    joint_best_ids = self.xp.argsort(joint_scores)[:-beam - 1:-1]
                     local_best_ids = local_att_best_ids[joint_best_ids]
                 else:
                     local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
