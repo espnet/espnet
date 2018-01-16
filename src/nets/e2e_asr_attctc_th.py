@@ -521,6 +521,10 @@ class AttLoc(torch.nn.Module):
         # NOTE consider zero padding when compute w.
         e = linear_tensor(self.gvec, torch.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+<<<<<<< HEAD
+=======
+
+>>>>>>> Remove some conflicts for merge
         w = torch.nn.functional.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
