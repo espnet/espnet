@@ -15,11 +15,10 @@ matrix:
 install:
   - pip install -U pip wheel
   - pip install -r ./tools/test_requirements.txt
-  # unable to install pytorch 0.3.0 as https://github.com/pytorch/pytorch/issues/4178
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-          pip install http://download.pytorch.org/whl/cu75/torch-0.2.0.post2-cp27-cp27mu-manylinux1_x86_64.whl;
+          pip install http://download.pytorch.org/whl/cpu/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl;
     else
-          pip install http://download.pytorch.org/whl/cu75/torch-0.2.0.post2-cp36-cp36m-manylinux1_x86_64.whl;
+          pip3 install http://download.pytorch.org/whl/cpu/torch-0.3.0.post4-cp36-cp36m-linux_x86_64.whl;
     fi
   # install warp-ctc
   - git clone https://github.com/SeanNaren/warp-ctc.git
@@ -29,7 +28,8 @@ install:
   # install chainer
   - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
   - cd tools && make kaldi-io-for-python && cd -
-
+  # install doc deps
+  - pip install -r doc/requirements.txt
 
 script:
   # TODO test coding style?
@@ -37,8 +37,13 @@ script:
   - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
   - pytest
+  - travis-sphinx build --source=doc --nowarn
 
 sudo: false
+
+
+after_success:
+    - travis-sphinx deploy
 
 addons:
   apt:
