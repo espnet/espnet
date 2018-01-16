@@ -25,8 +25,6 @@ from warpctc_pytorch import _CTC
 
 from e2e_asr_common import end_detect
 
-is_torch02 = torch.__version__.startswith("0.2.")
-
 CTC_LOSS_THRESHOLD = 10000
 MAX_DECODER_OUTPUT = 5
 
@@ -510,11 +508,7 @@ class AttMultiHeadDot(torch.nn.Module):
                           torch.tanh(self.mlp_q[h](dec_z)).view(
                               batch, 1, self.att_dim_k),
                           dim=2)  # utt x frame
-            # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
-            if is_torch02:
-                w = torch.nn.functional.softmax(scaling * e)
-            else:
-                w = torch.nn.functional.softmax(scaling * e, dim=1)
+            w = torch.nn.functional.softmax(scaling * e, dim=1)
 
             # weighted sum over flames
             # utt x hdim
@@ -677,11 +671,7 @@ class AttCov(torch.nn.Module):
         e = linear_tensor(self.gvec, torch.tanh(
             cov_vec + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
-        # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
-        if is_torch02:
-            w = torch.nn.functional.softmax(scaling * e)
-        else:
-            w = torch.nn.functional.softmax(scaling * e, dim=1)
+        w = torch.nn.functional.softmax(scaling * e, dim=1)
         att_prev_list += [w]
 
         # weighted sum over flames
@@ -767,11 +757,7 @@ class AttCovLoc(torch.nn.Module):
         e = linear_tensor(self.gvec, torch.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
-        # TODO(karita) remove this block when pytorch 0.3.0 is available in Travis-CI
-        if is_torch02:
-            w = torch.nn.functional.softmax(scaling * e)
-        else:
-            w = torch.nn.functional.softmax(scaling * e, dim=1)
+        w = torch.nn.functional.softmax(scaling * e, dim=1)
         att_prev_list += [w]
 
         # weighted sum over flames
