@@ -25,10 +25,11 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 from warpctc_pytorch import _CTC
 
-from e2e_asr_common import end_detect
 from ctc_prefix_score import CTCPrefixScore
+from e2e_asr_common import end_detect
 
 CTC_LOSS_THRESHOLD = 10000
+CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
@@ -786,10 +787,11 @@ class Decoder(torch.nn.Module):
                 else:
                     local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
                 if lpz is not None:
-                    local_att_best_scores, local_att_best_ids = torch.topk(local_scores, int(beam*1.5), dim=1)
+                    local_att_best_scores, local_att_best_ids = torch.topk(local_scores, int(beam * CTC_SCORING_RATIO), dim=1)
                     ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_att_best_ids[0], hyp['ctc_prev'])
-                    joint_scores = (1. - ctc_weight) * (local_att_best_scores[0].numpy() + hyp['score']) + ctc_weight * ctc_scores
-                    joint_best_ids = np.argsort(joint_scores)[:-beam-1:-1]
+                    joint_scores = (1. - ctc_weight) * \
+                        (local_att_best_scores[0].numpy() + hyp['score']) + ctc_weight * ctc_scores
+                    joint_best_ids = np.argsort(joint_scores)[:-beam - 1:-1]
                     local_best_ids = local_att_best_ids.numpy()[:, joint_best_ids]
                     local_best_scores = local_att_best_scores.numpy()[:, joint_best_ids]
                 else:

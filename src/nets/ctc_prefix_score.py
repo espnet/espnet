@@ -5,16 +5,15 @@
 
 import numpy as np
 import six
-import chainer
 
 
-class CTCPrefixScore:
+class CTCPrefixScore(object):
 
     def __init__(self, x, blank, eos, xp):
-        ''' :param x    : xp array of log_softmax (#frame x #label)
-            :param blank: blank id
-            :param eos  : eos id
-            :param xp   : array module
+        ''':param x    : xp array of log_softmax (#frame x #label)
+        :param blank: blank id
+        :param eos  : eos id
+        :param xp   : array module
         '''
         self.xp = xp
         self.logzero = -10000000000.0
@@ -24,23 +23,23 @@ class CTCPrefixScore:
         self.x = x
 
     def initial_state(self):
-        ''' Obtain an initial CTC state
+        '''Obtain an initial CTC state
 
-            :return: CTC state
+        :return: CTC state
         '''
         r = self.xp.full((self.input_length, 2), self.logzero, dtype=np.float32)
         r[0, 1] = self.x[0, self.blank]
         for i in six.moves.range(1, self.input_length):
-            r[i, 1] = r[i-1, 1] + self.x[i, self.blank]
+            r[i, 1] = r[i - 1, 1] + self.x[i, self.blank]
         return r
 
     def __call__(self, y, cs, r_prev):
-        ''' Compute CTC prefix scores for next labels
+        '''Compute CTC prefix scores for next labels
 
-            :param y     : prefix label sequence
-            :param cs    : array of next labels
-            :param r_prev: previous CTC state
-            :return ctc_scores, ctc_states
+        :param y     : prefix label sequence
+        :param cs    : array of next labels
+        :param r_prev: previous CTC state
+        :return ctc_scores, ctc_states
         '''
         # initialize CTC states
         output_length = len(y) - 1  # ignore sos
@@ -50,7 +49,7 @@ class CTCPrefixScore:
             r[0, 0] = xs[0]
             r[0, 1] = self.logzero
         else:
-            r[output_length-1] = self.logzero
+            r[output_length - 1] = self.logzero
 
         # prepare forward probabilities for the last label
         r_sum = self.xp.logaddexp(r_prev[:, 0], r_prev[:, 1])  # log(r_t^n(g) + r_t^b(g))
@@ -65,11 +64,11 @@ class CTCPrefixScore:
         # compute forward probabilities log(r_t^n(h)), log(r_t^b(h)),
         # and log prefix probabilites log(psi)
         start = max(output_length, 1)
-        log_psi = r[start-1, 0]
+        log_psi = r[start - 1, 0]
         for t in six.moves.range(start, self.input_length):
-            r[t, 0] = self.xp.logaddexp(r[t-1, 0], log_phi[t-1]) + xs[t]
-            r[t, 1] = self.xp.logaddexp(r[t-1, 0], r[t-1, 1]) + self.x[t, self.blank]
-            log_psi = self.xp.logaddexp(log_psi, log_phi[t-1] + xs[t])
+            r[t, 0] = self.xp.logaddexp(r[t - 1, 0], log_phi[t - 1]) + xs[t]
+            r[t, 1] = self.xp.logaddexp(r[t - 1, 0], r[t - 1, 1]) + self.x[t, self.blank]
+            log_psi = self.xp.logaddexp(log_psi, log_phi[t - 1] + xs[t])
 
         # get P(...eos|X) that ends with the prefix itself
         eos_pos = self.xp.where(cs == self.eos)[0]
