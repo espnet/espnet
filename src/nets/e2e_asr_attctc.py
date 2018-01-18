@@ -305,16 +305,16 @@ class AttDot(chainer.Chain):
             dec_z = F.reshape(dec_z, (batch, self.dunits))
 
         # <phi (h_t), psi (s)> for all t
-        e = F.sum(self.pre_compute_enc_h * F.tile(F.reshape(F.tanh(self.mlp_dec(dec_z)), (batch, 1, self.att_dim)),
-                                                  (1, self.h_length, 1)), axis=2)  # utt x frame
+        u = F.broadcast_to(F.expand_dims(F.tanh(self.mlp_dec(dec_z)), 1),
+                           self.pre_compute_enc_h.shape)
+        e = F.sum(self.pre_compute_enc_h * u, axis=2)  # utt x frame
         # Applying a minus-large-number filter to make a probability value zero for a padded area
         # simply degrades the performance, and I gave up this implementation
         # Apply a scaling to make an attention sharp
         w = F.softmax(scaling * e)
         # weighted sum over flames
         # utt x hdim
-        c = F.sum(self.enc_h * F.tile(F.reshape(w,
-                                                (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
+        c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
 
         return c, w
 
@@ -388,8 +388,8 @@ class AttLoc(chainer.Chain):
         att_conv = linear_tensor(self.mlp_att, att_conv)
 
         # dec_z_tiled: utt x frame x att_dim
-        dec_z_tiled = F.tile(F.reshape(self.mlp_dec(
-            dec_z), (batch, 1, self.att_dim)), (1, self.h_length, 1))
+        dec_z_tiled = F.broadcast_to(
+            F.expand_dims(self.mlp_dec(dec_z), 1), self.pre_compute_enc_h.shape)
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
@@ -403,8 +403,7 @@ class AttLoc(chainer.Chain):
 
         # weighted sum over flames
         # utt x hdim
-        c = F.sum(self.enc_h * F.tile(F.reshape(w,
-                                                (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
+        c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
 
         return c, w
 
