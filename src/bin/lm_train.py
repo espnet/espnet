@@ -29,7 +29,7 @@ from chainer import link
 from chainer import reporter
 
 
-class ClassifierWithWtate(link.Chain):
+class ClassifierWithState(link.Chain):
     compute_accuracy = True
 
     def __init__(self, predictor,
@@ -40,7 +40,7 @@ class ClassifierWithWtate(link.Chain):
             raise TypeError('label_key must be int or str, but is %s' %
                             type(label_key))
 
-        super(ClassifierWithWtate, self).__init__()
+        super(ClassifierWithState, self).__init__()
         self.lossfun = lossfun
         self.accfun = accfun
         self.y = None
@@ -51,7 +51,7 @@ class ClassifierWithWtate(link.Chain):
         with self.init_scope():
             self.predictor = predictor
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
         It also computes accuracy and stores it to the attribute.
@@ -92,13 +92,13 @@ class ClassifierWithWtate(link.Chain):
         self.y = None
         self.loss = None
         self.accuracy = None
-        self.y, state = self.predictor(*args, **kwargs)
+        state, self.y = self.predictor(state, *args, **kwargs)
         self.loss = self.lossfun(self.y, t)
         reporter.report({'loss': self.loss}, self)
         if self.compute_accuracy:
             self.accuracy = self.accfun(self.y, t)
             reporter.report({'accuracy': self.accuracy}, self)
-        return self.loss, state
+        return state, self.loss
 
 
 # Definition of a recurrent net for language modeling
@@ -110,18 +110,18 @@ class RNNLM(chainer.Chain):
             self.embed = L.EmbedID(n_vocab, n_units)
             self.l1 = L.StatelessLSTM(n_units, n_units)
             self.l2 = L.StatelessLSTM(n_units, n_units)
-            self.l3 = L.Linear(n_units, n_vocab)
+            self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
 
-    def __call__(self, x, state):
+    def __call__(self, state, x):
         h0 = self.embed(x)
         c1, h1 = self.l1(state['c1'], state['h1'], F.dropout(h0))
         c2, h2 = self.l2(state['c2'], state['h2'], F.dropout(h1))
-        y = self.l3(F.dropout(h2))
-        state = {'c1': c1, 'c2': c2, 'h1': h1, 'h2': h2}
-        return y, state
+        y = self.lo(F.dropout(h2))
+        state = {'c1': c1, 'h1': h1, 'c2': c2, 'h2': h2}
+        return state, y
 
 
 # Dataset iterator to create a batch of sequences at different positions.
@@ -210,7 +210,7 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
-    parser.add_argument('--gpu', '-g', default='-1', type=str,
+    parser.add_argument('--gpu', '-g', default='-1', type=int,
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--outdir', type=str, required=True,
                         help='Output directory')
@@ -230,12 +230,12 @@ def main():
     parser.add_argument('--valid-label', type=str, required=True,
                         help='Filename of validation label data (json)')
     # LSTMLM training configuration
-    parser.add_argument('--batchsize', '-b', type=int, default=20,
+    parser.add_argument('--batchsize', '-b', type=int, default=2048,
                         help='Number of examples in each mini-batch')
     parser.add_argument('--bproplen', '-l', type=int, default=35,
                         help='Number of words in each mini-batch '
                              '(= length of truncated BPTT)')
-    parser.add_argument('--epoch', '-e', type=int, default=39,
+    parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
@@ -280,16 +280,12 @@ def main():
         chainer.config.cudnn_deterministic = True
 
     # load dictionary for debug log
-    if args.dict is not None:
-        with open(args.dict, 'rb') as f:
-            dictionary = f.readlines()
-        char_list = [entry.decode('utf-8').split(' ')[0]
-                     for entry in dictionary]
-        char_list.insert(0, '<blank>')
-        char_list.append('<eos>')
-        args.char_list = char_list
-    else:
-        args.char_list = None
+    with open(args.dict, 'rb') as f:
+        dictionary = f.readlines()
+    char_list = [entry.decode('utf-8').split(' ')[0] for entry in dictionary]
+    char_list.insert(0, '<blank>')
+    char_list.append('<eos>')
+    char_list_dict = {x: i for i, x in enumerate(char_list)}
 
     # check cuda and cudnn availability
     if not chainer.cuda.available:
@@ -301,30 +297,47 @@ def main():
         # Evaluation routine to be used for validation and test.
         model.predictor.train = False
         evaluator = model.copy()  # to use different state
-        state = {'c1': None, 'c2': None, 'h1': None, 'h2': None}
+        state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
         evaluator.predictor.train = False  # dropout does nothing
         sum_perp = 0
         data_count = 0
         for batch in copy.copy(iter):
             x, t = convert.concat_examples(batch, args.gpu)
-            loss, state = evaluator(x, t, state)
+            state, loss = evaluator(state, x, t)
             sum_perp += loss.data
             data_count += 1
         model.predictor.train = True
         return np.exp(float(sum_perp) / data_count)
 
-    # Load the Penn Tree Bank long word sequence dataset
-    train, val, _ = chainer.datasets.get_ptb_words()
-    n_vocab = len(args.char_list)
-    logging.info('#vocab =', n_vocab)
+    with open(args.train_label, 'rb') as f:
+        train = np.array([char_list_dict[char] if char in char_list_dict else char_list_dict['<unk>']
+                          for char in f.readline().split()], dtype=np.int32)
+    with open(args.valid_label, 'rb') as f:
+        valid = np.array([char_list_dict[char] if char in char_list_dict else char_list_dict['<unk>']
+                          for char in f.readline().split()], dtype=np.int32)
+    n_vocab = len(char_list)
+
+    # for debug, small data
+    # train = train[:100000]
+    # valid = valid[:100]
+
+    # for debug, ptb data
+    # train, valid, _ = chainer.datasets.get_ptb_words()
+    # n_vocab = max(train) + 1  # train is just an array of integers
+
+    logging.info('#vocab = ' + str(n_vocab))
+    logging.info('#words in the training data = ' + str(len(train)))
+    logging.info('#words in the validation data = ' + str(len(valid)))
+    logging.info('#iterations per epoch = ' + str(len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#total iterations = ' + str(args.epoch * len(train) // (args.batchsize * args.bproplen)))
 
     # Create the dataset iterators
     train_iter = ParallelSequentialIterator(train, args.batchsize)
-    val_iter = ParallelSequentialIterator(val, 1, repeat=False)
+    valid_iter = ParallelSequentialIterator(valid, 1, repeat=False)
 
     # Prepare an RNNLM model
     rnn = RNNLM(n_vocab, args.unit)
-    model = L.Classifier(rnn)
+    model = ClassifierWithState(rnn)
     model.compute_accuracy = False  # we only want the perplexity
     if args.gpu >= 0:
         # Make the specified GPU current
@@ -339,7 +352,9 @@ def main():
     sum_perp = 0
     count = 0
     iteration = 0
-    state = {'c1': None, 'c2': None, 'h1': None, 'h2': None}
+    epoch_now = 0
+    best_valid = -100000000
+    state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
     while train_iter.epoch < args.epoch:
         loss = 0
         iteration += 1
@@ -352,7 +367,7 @@ def main():
             # (it is chainer.dataset.concat_examples by default)
             x, t = convert.concat_examples(batch, args.gpu)
             # Compute the loss at this time step and accumulate it
-            loss_batch, state = optimizer.target(chainer.Variable(x), chainer.Variable(t), state)
+            state, loss_batch = optimizer.target(state, chainer.Variable(x), chainer.Variable(t))
             loss += loss_batch
             count += 1
 
@@ -362,26 +377,31 @@ def main():
         loss.unchain_backward()  # Truncate the graph
         optimizer.update()  # Update the parameters
 
-        if iteration % 20 == 0:
-            logging.info('iteration: ', iteration)
-            logging.info('training perplexity: ', np.exp(float(sum_perp) / count))
+        if iteration % 100 == 0:
+            logging.info('iteration: ' + str(iteration))
+            logging.info('training perplexity: ' + str(np.exp(float(sum_perp) / count)))
             sum_perp = 0
             count = 0
 
-        if train_iter.is_new_epoch:
-            logging.info('epoch: ', train_iter.epoch)
-            logging.info('validation perplexity: ', evaluate(model, val_iter))
+        if train_iter.epoch > epoch_now:
+            valid_perp = evaluate(model, valid_iter)
+            logging.info('epoch: ' + str(train_iter.epoch))
+            logging.info('validation perplexity: ' + str(valid_perp))
 
-    # Evaluate on test dataset
-    logging.info('test')
-    val_perp = evaluate(model, val_iter)
-    logging.info('validation perplexity:', val_perp)
+            # Save the model and the optimizer
+            logging.info('save the model')
+            serializers.save_npz(args.outdir + '/rnnlm.model.' + str(epoch_now), model)
+            logging.info('save the optimizer')
+            serializers.save_npz(args.outdir + '/rnnlm.state.' + str(epoch_now), optimizer)
 
-    # Save the model and the optimizer
-    logging.info('save the model')
-    serializers.save_npz(args.outdir + 'rnnlm.model', model)
-    logging.info('save the optimizer')
-    serializers.save_npz(args.outdir + 'rnnlm.state', optimizer)
+            epoch_now = train_iter.epoch
+
+            if valid_perp > best_valid:
+                dest = args.outdir + '/rnnlm.model.best'
+                if os.path.lexists(dest):
+                    os.remove(dest)
+                os.symlink(args.outdir + '/rnnlm.model.' + str(epoch_now), dest)
+                best_valid = valid_perp
 
 
 if __name__ == '__main__':
