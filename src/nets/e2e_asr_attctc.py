@@ -469,11 +469,12 @@ class Decoder(chainer.Chain):
 
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        eys = F.separate(eys, axis=1)
 
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
-            ey = F.hstack((eys[:, i, :], att_c))  # utt x (zdim + hdim)
+            ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
             c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
