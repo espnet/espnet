@@ -6,6 +6,21 @@ ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end 
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine, 
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
+
+## Key Features
+
+- Hybrid CTC/attention based end-to-end ASR 
+  - Fast/accurate training with CTC/attention multitask training
+  - CTC/attention joint decoding to boost monotonic alignment decoding
+- Encoder: VGG-like CNN + BLSTM or pyramid BLSTM
+- Attention: Dot product or location-aware attention
+- Incorporate RNNLM/LSTMLM trained only with text data
+- Flexible network architecture thanks to chainer and pytorch
+- Kaldi style complete recipe 
+  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CJS, AMI, HKUST, Voxforge, etc.)
+- State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
+- Moderate performance in standard English benchmarks
+
 ## Installation
 
 Install Kaldi, Python libraries and other required tools using system python and virtualenv
