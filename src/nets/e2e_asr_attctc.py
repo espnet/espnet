@@ -373,8 +373,8 @@ class AttLoc(chainer.Chain):
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [self.xp.ones(
-                hh.shape[0], dtype=np.float32) * (1.0 / hh.shape[0]) for hh in enc_hs]
+            att_prev = [self.xp.full(
+                hh.shape[0], 1.0 / hh.shape[0], dtype=np.float32) for hh in enc_hs]
             att_prev = [chainer.Variable(att) for att in att_prev]
             att_prev = F.pad_sequence(att_prev)
 
