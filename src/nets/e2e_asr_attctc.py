@@ -614,15 +614,11 @@ class Decoder(chainer.Chain):
                 for l in six.moves.range(1, self.dlayers):
                     c_list[l], z_list[l] = self['lstm%d' % l](
                         hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
-                hyp['c_prev'] = c_list
-                hyp['z_prev'] = z_list
-                hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
                 if rnnlm:
                     rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], hyp['yseq'][i])
-                    hyp['rnnlm_prev'] = rnnlm_state
-                    local_scores = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
+                    local_scores = F.log_softmax(self.output(z_list[-1])).data \
                         + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
                 else:
                     local_scores = F.log_softmax(self.output(z_list[-1])).data
@@ -664,7 +660,7 @@ class Decoder(chainer.Chain):
                     hyp['yseq'].append(self.xp.full(1, self.eos, 'i'))
 
             # add ended hypothes to a final list, and removed them from current hypothes
-            # (this will be a probmlem, number of hyps < beam)
+            # (this will be a problem, number of hyps < beam)
             remained_hyps = []
             for hyp in hyps:
                 if hyp['yseq'][-1] == self.eos:

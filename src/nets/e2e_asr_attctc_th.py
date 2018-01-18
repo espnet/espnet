@@ -740,9 +740,6 @@ class Decoder(torch.nn.Module):
                 for l in six.moves.range(1, self.dlayers):
                     z_list[l], c_list[l] = self.decoder[l](
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
-                hyp['c_prev'] = c_list
-                hyp['z_prev'] = z_list
-                hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
                 local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
