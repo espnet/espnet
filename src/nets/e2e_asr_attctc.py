@@ -24,10 +24,7 @@ MAX_DECODER_OUTPUT = 5
 
 
 def _ilens_to_index(ilens):
-    x = np.zeros(len(ilens), dtype=np.int32)
-    for i in range(1, len(ilens)):
-        x[i] = x[i - 1] + ilens[i - 1]
-    return x[1:]
+    return np.cumsum(ilens[:-1])
 
 
 def _subsamplex(x, n):
