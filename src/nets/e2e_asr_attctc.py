@@ -474,17 +474,16 @@ class Decoder(chainer.Chain):
                           (batch * olength, self.dunits))
         # compute loss
         y_all = self.output(z_all)
-        self.loss = F.softmax_cross_entropy(
-            y_all, F.concat(pad_ys_out, axis=0))
+        self.loss = F.softmax_cross_entropy(y_all, F.flatten(pad_ys_out))
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
-        acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
+        acc = F.accuracy(y_all, F.flatten(pad_ys_out), ignore_label=-1)
         logging.info('att loss:' + str(self.loss.data))
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
             y_hat = F.reshape(y_all, (batch, olength, -1))
-            y_true = F.reshape(F.concat(pad_ys_out, axis=0), (batch, olength))
+            y_true = pad_ys_out
             for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data), y_true.data):
                 if i == MAX_DECODER_OUTPUT:
                     break
