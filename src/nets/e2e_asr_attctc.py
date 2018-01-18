@@ -23,10 +23,6 @@ CTC_LOSS_THRESHOLD = 10000
 MAX_DECODER_OUTPUT = 5
 
 
-def _ilens_to_index(ilens):
-    return np.cumsum(ilens[:-1])
-
-
 def _subsamplex(x, n):
     x = [F.get_item(xx, (slice(None, None, n), slice(None))) for xx in x]
     ilens = [xx.shape[0] for xx in x]
@@ -795,11 +791,11 @@ class BLSTMP(chainer.Chain):
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
             # (sum _utt frame_utt) x dim
             ys = self['bt' + str(layer)](F.vstack(ys))
-            xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
+            xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
             del hy, cy
 
         # final tanh operation
-        xs = F.split_axis(F.tanh(F.vstack(xs)), _ilens_to_index(ilens), axis=0)
+        xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), axis=0)
 
         # 1 utterance case, it becomes an array, so need to make a utt tuple
         if not isinstance(xs, tuple):
@@ -825,11 +821,11 @@ class BLSTM(chainer.Chain):
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         hy, cy, ys = self.nblstm(None, None, xs)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
-        xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
+        xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
         del hy, cy
 
         # final tanh operation
-        xs = F.split_axis(F.tanh(F.vstack(xs)), _ilens_to_index(ilens), axis=0)
+        xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), axis=0)
 
         # 1 utterance case, it becomes an array, so need to make a utt tuple
         if not isinstance(xs, tuple):

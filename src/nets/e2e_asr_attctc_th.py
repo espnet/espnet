@@ -37,13 +37,6 @@ def to_cuda(m, x):
     return x.cuda(device_id)
 
 
-def _ilens_to_index(ilens):
-    x = np.zeros(len(ilens), dtype=np.int32)
-    for i in range(1, len(ilens)):
-        x[i] = x[i - 1] + ilens[i - 1]
-    return x[1:]
-
-
 def lecun_normal_init_parameters(module):
     for p in module.parameters():
         data = p.data
@@ -89,13 +82,8 @@ def linear_tensor(linear, x):
     :return:
     :param Variable x: Tensor (D_1 x D_2 x ... x N matrix)
     '''
-    dim = 1
-    shapes = list(x.size()[:-1])
-    for d in shapes:
-        dim = dim * d
-    y = linear(x.contiguous().view(dim, x.size()[-1]))
-    shapes.append(y.size()[-1])
-    return y.view(shapes)
+    y = linear(x.contiguous().view((-1, x.size()[-1])))
+    return y.view((x.size()[:-1] + (-1,)))
 
 
 class Reporter(chainer.Chain):
