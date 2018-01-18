@@ -208,17 +208,6 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
                 self._previous_epoch_detail = -1.
 
 
-def symlink_force(target, link_name):
-    try:
-        os.symlink(target, link_name)
-    except OSError, e:
-        if e.errno == errno.EEXIST:
-            os.remove(link_name)
-            os.symlink(target, link_name)
-        else:
-            raise e
-
-
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
@@ -409,9 +398,12 @@ def main():
             epoch_now = train_iter.epoch
 
             if valid_perp > best_valid:
-                symlink_force(args.outdir + '/rnnlm.model.' + str(epoch_now),
-                    args.outdir + '/rnnlm.model.best')
-                best_balid = valid_perp
+                dest = args.outdir + '/rnnlm.model.best'
+                if os.path.lexists(dest):
+                    os.remove(dest)
+                os.symlink(args.outdir + '/rnnlm.model.' + str(epoch_now), dest)
+                best_valid = valid_perp
+
 
 if __name__ == '__main__':
     main()
