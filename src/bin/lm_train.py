@@ -11,6 +11,7 @@ from __future__ import print_function
 
 import argparse
 import copy
+import errno
 import logging
 import numpy as np
 import os
@@ -207,6 +208,17 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
                 self._previous_epoch_detail = -1.
 
 
+def symlink_force(target, link_name):
+    try:
+        os.symlink(target, link_name)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            os.remove(link_name)
+            os.symlink(target, link_name)
+        else:
+            raise e
+
+
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
@@ -230,12 +242,12 @@ def main():
     parser.add_argument('--valid-label', type=str, required=True,
                         help='Filename of validation label data (json)')
     # LSTMLM training configuration
-    parser.add_argument('--batchsize', '-b', type=int, default=100,
+    parser.add_argument('--batchsize', '-b', type=int, default=2048,
                         help='Number of examples in each mini-batch')
     parser.add_argument('--bproplen', '-l', type=int, default=35,
                         help='Number of words in each mini-batch '
                              '(= length of truncated BPTT)')
-    parser.add_argument('--epoch', '-e', type=int, default=39,
+    parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
@@ -318,7 +330,7 @@ def main():
     n_vocab = len(char_list)
 
     # for debug, small data
-    # train = train[:500]
+    # train = train[:100000]
     # valid = valid[:100]
 
     # for debug, ptb data
@@ -353,6 +365,7 @@ def main():
     count = 0
     iteration = 0
     epoch_now = 0
+    best_valid = -100000000
     state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
     while train_iter.epoch < args.epoch:
         loss = 0
@@ -383,8 +396,9 @@ def main():
             count = 0
 
         if train_iter.epoch > epoch_now:
+            valid_perp = evaluate(model, valid_iter)
             logging.info('epoch: ' + str(train_iter.epoch))
-            logging.info('validation perplexity: ' + str(evaluate(model, valid_iter)))
+            logging.info('validation perplexity: ' + str(valid_perp))
 
             # Save the model and the optimizer
             logging.info('save the model')
@@ -394,6 +408,10 @@ def main():
 
             epoch_now = train_iter.epoch
 
+            if valid_perp > best_valid:
+                symlink_force(args.outdir + '/rnnlm.model.' + str(epoch_now),
+                    args.outdir + '/rnnlm.model.best')
+                best_balid = valid_perp
 
 if __name__ == '__main__':
     main()

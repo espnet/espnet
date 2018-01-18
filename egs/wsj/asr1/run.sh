@@ -50,8 +50,8 @@ lm_weight=0.1
 
 # decoding parameter
 beam_size=20
-penalty=0
-maxlenratio=0.8
+penalty=0.1
+maxlenratio=0.0
 minlenratio=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
@@ -162,12 +162,11 @@ else
     decode_script=asr_recog_th.py
 fi
 
-lmexpdir=exp/train_rnnlm_2layer
+lmexpdir=exp/train_rnnlm_2layer_bs2048
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
-    if false; then
     mkdir -p ${lmdatadir}
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train_trans.txt
@@ -176,7 +175,6 @@ if [ ${stage} -le 3 ]; then
     cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
-    fi
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
         --gpu ${gpu} \
@@ -258,7 +256,7 @@ if [ ${stage} -le 5 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            --rnnlm ${lmexpdir}/rnnlm.model.7 \
+            --rnnlm ${lmexpdir}/rnnlm.model.best \
             --lm-weight ${lm_weight} &
         wait
 
