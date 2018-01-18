@@ -50,14 +50,8 @@ def linear_tensor(linear, x):
     :return:
     :param Variable y: Tensor (D_1 x D_2 x ... x N matrix)
     '''
-    dim = 1
-    shapes = list(x.shape[:-1])
-    for d in shapes:
-        dim = dim * d
-    y = linear(F.reshape(x, (dim, x.shape[-1])))
-    shapes.append(y.shape[-1])
-
-    return F.reshape(y, shapes)
+    y = linear(F.reshape(x, (-1, x.shape[-1])))
+    return F.reshape(y, (x.shape[:-1] + (-1,)))
 
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
