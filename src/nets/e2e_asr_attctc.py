@@ -427,7 +427,6 @@ class NoAtt(chainer.Chain):
         :param scaling:
         :return:
         '''
-        batch = len(enc_hs)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
