@@ -608,7 +608,6 @@ class Decoder(torch.nn.Module):
                                                       size_average=True)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
-        # acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
         logging.info('att loss:' + str(self.loss.data))
 
