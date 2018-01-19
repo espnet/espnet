@@ -179,6 +179,8 @@ class E2E(torch.nn.Module):
         elif args.atype == 'location':
             self.att = AttLoc(args.eprojs, args.dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'noatt':
+            self.att = NoAtt()
         else:
             logging.error(
                 "Error: need to specify an appropriate attention archtecture")
@@ -511,6 +513,50 @@ class AttLoc(torch.nn.Module):
         c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
 
         return c, w
+
+
+class NoAtt(torch.nn.Module):
+    def __init__(self):
+        super(NoAtt, self).__init__()
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def reset(self):
+        '''reset states
+
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+        '''AttLoc forward
+
+        :param Variable enc_hs:
+        :param Variable dec_z:
+        :param Variable att_prev:
+        :param float scaling:
+        :return:
+        '''
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            att_prev = [Variable(enc_hs_pad.data.new(
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev = pad_list(att_prev, 0)
+            self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
+
+        return self.c, att_prev
 
 
 def th_accuracy(y_all, pad_target, ignore_label):

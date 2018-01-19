@@ -162,6 +162,8 @@ else
     decode_script=asr_recog_th.py
 fi
 
+# It takes a few days. If you just want to end-to-end ASR without LM,
+# you can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs2048
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
