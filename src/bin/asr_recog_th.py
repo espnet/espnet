@@ -59,6 +59,11 @@ def main():
                         + 'to automatically find maximum hypothesis lengths')
     parser.add_argument('--minlenratio', default=0.0, type=float,
                         help='Input length ratio to obtain min output length')
+    # rnnlm related
+    parser.add_argument('--rnnlm', type=str, default=None,
+                        help='RNNLM model file to read')
+    parser.add_argument('--lm-weight', default=0.1, type=float,
+                        help='RNNLM weight.')
     args = parser.parse_args()
 
     # logging info
@@ -103,6 +108,10 @@ def main():
     def cpu_loader(storage, location):
         return storage
     model.load_state_dict(torch.load(args.model, map_location=cpu_loader))
+
+    # read rnnlm
+    if args.rnnlm:
+        logging.warning("rnnlm integration is not implemented in the pytorch backend")
 
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_ark(args.recog_feat)

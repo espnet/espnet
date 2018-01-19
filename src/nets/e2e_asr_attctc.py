@@ -123,6 +123,8 @@ class E2E(chainer.Chain):
             elif args.atype == 'location':
                 self.att = AttLoc(args.eprojs, args.dunits,
                                   args.adim, args.aconv_chans, args.aconv_filts)
+            elif args.atype == 'noatt':
+                self.att = NoAtt()
             else:
                 logging.error(
                     "Error: need to specify an appropriate attention archtecture")
@@ -396,6 +398,50 @@ class AttLoc(chainer.Chain):
         c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
 
         return c, w
+
+
+class NoAtt(chainer.Chain):
+    def __init__(self):
+        super(NoAtt, self).__init__()
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def reset(self):
+        '''reset states
+
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def __call__(self, enc_hs, dec_z, att_prev):
+        '''AttLoc forward
+
+        :param enc_hs:
+        :param dec_z:
+        :param att_prev:
+        :param scaling:
+        :return:
+        '''
+        batch = len(enc_hs)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            att_prev = [self.xp.full(
+                hh.shape[0], 1.0 / hh.shape[0], dtype=np.float32) for hh in enc_hs]
+            att_prev = [chainer.Variable(att) for att in att_prev]
+            att_prev = F.pad_sequence(att_prev)
+            self.c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(att_prev, 2), self.enc_h.shape), axis=1)
+
+        return self.c, att_prev
 
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
