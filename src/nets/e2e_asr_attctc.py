@@ -419,12 +419,11 @@ class NoAtt(chainer.Chain):
         self.c = None
 
     def __call__(self, enc_hs, dec_z, att_prev):
-        '''AttLoc forward
+        '''NoAtt forward
 
         :param enc_hs:
-        :param dec_z:
+        :param dec_z: dummy
         :param att_prev:
-        :param scaling:
         :return:
         '''
         # pre-compute all h outside the decoder loop
