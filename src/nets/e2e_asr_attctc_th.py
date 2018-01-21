@@ -534,12 +534,12 @@ class NoAtt(torch.nn.Module):
         self.c = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        '''AttLoc forward
+        '''NoAtt forward
 
-        :param Variable enc_hs:
-        :param Variable dec_z:
+        :param Variable enc_hs_pad:
+        :param Variable enc_hs_len:
+        :param Variable dec_z: dummy
         :param Variable att_prev:
-        :param float scaling:
         :return:
         '''
         batch = len(enc_hs_pad)
