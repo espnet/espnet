@@ -206,11 +206,7 @@ class E2E(chainer.Chain):
             if recog_args.beam_size == 1:
                 y = self.dec.recognize(h[0], recog_args, rnnlm)
             else:
-<<<<<<< HEAD
                 y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
-=======
-                y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list)
->>>>>>> be20e658422ec544080b473bdc1abec425132752
 
             return y
 
@@ -564,11 +560,7 @@ class Decoder(chainer.Chain):
         return self.loss, acc, att_weight_all
 
     # TODO(hori) incorporate CTC score
-<<<<<<< HEAD
     def recognize(self, h, recog_args, rnnlm=None):
-=======
-    def recognize(self, h, recog_args):
->>>>>>> be20e658422ec544080b473bdc1abec425132752
         '''greedy search implementation
 
         :param h:
@@ -617,11 +609,7 @@ class Decoder(chainer.Chain):
 
         return y_seq
 
-<<<<<<< HEAD
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
-=======
-    def recognize_beam(self, h, lpz, recog_args, char_list):
->>>>>>> be20e658422ec544080b473bdc1abec425132752
         '''beam search implementation
 
         :param h:
@@ -684,7 +672,6 @@ class Decoder(chainer.Chain):
                         hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
 
                 # get nbest local scores and their ids
-<<<<<<< HEAD
                 if rnnlm:
                     rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], hyp['yseq'][i])
                     local_scores = F.log_softmax(self.output(z_list[-1])).data \
@@ -692,9 +679,6 @@ class Decoder(chainer.Chain):
                 else:
                     local_scores = F.log_softmax(self.output(z_list[-1])).data
 
-=======
-                local_scores = F.log_softmax(self.output(z_list[-1])).data
->>>>>>> be20e658422ec544080b473bdc1abec425132752
                 if lpz is not None:
                     local_att_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:int(beam * CTC_SCORING_RATIO)]
                     ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_att_best_ids, hyp['ctc_prev'])
@@ -720,11 +704,8 @@ class Decoder(chainer.Chain):
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = self.xp.full(
                         1, local_best_ids[j], 'i')
-<<<<<<< HEAD
                     if rnnlm:
                         new_hyp['rnnlm_prev'] = rnnlm_state
-=======
->>>>>>> be20e658422ec544080b473bdc1abec425132752
                     if lpz is not None:
                         new_hyp['joint_score'] = joint_scores[joint_best_ids[j]]
                         new_hyp['ctc_prev'] = ctc_states[joint_best_ids[j]]

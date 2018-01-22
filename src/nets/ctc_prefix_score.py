@@ -10,11 +10,6 @@ import six
 class CTCPrefixScore(object):
 
     def __init__(self, x, blank, eos, xp):
-        ''':param x    : xp array of log_softmax (#frame x #label)
-        :param blank: blank id
-        :param eos  : eos id
-        :param xp   : array module
-        '''
         self.xp = xp
         self.logzero = -10000000000.0
         self.blank = blank

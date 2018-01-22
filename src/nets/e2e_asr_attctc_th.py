@@ -521,10 +521,6 @@ class AttLoc(torch.nn.Module):
         # NOTE consider zero padding when compute w.
         e = linear_tensor(self.gvec, torch.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
-<<<<<<< HEAD
-=======
-
->>>>>>> Remove some conflicts for merge
         w = torch.nn.functional.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -806,7 +802,8 @@ class Decoder(torch.nn.Module):
                 # get nbest local scores and their ids
                 local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
                 if lpz is not None:
-                    local_att_best_scores, local_att_best_ids = torch.topk(local_scores, int(beam * CTC_SCORING_RATIO), dim=1)
+                    local_att_best_scores, local_att_best_ids = torch.topk(
+                        local_scores, int(beam * CTC_SCORING_RATIO), dim=1)
                     ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_att_best_ids[0], hyp['ctc_prev'])
                     joint_scores = (1. - ctc_weight) * \
                         (local_att_best_scores[0].numpy() + hyp['score']) + ctc_weight * ctc_scores
