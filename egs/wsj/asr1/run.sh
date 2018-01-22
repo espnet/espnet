@@ -260,8 +260,12 @@ if [ ${stage} -le 5 ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
+<<<<<<< HEAD
             --rnnlm ${lmexpdir}/rnnlm.model.best \
             --lm-weight ${lm_weight} &
+=======
+            &
+>>>>>>> be20e658422ec544080b473bdc1abec425132752
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
