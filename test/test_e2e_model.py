@@ -30,6 +30,7 @@ def make_arg(etype):
         penalty=0.5,
         maxlenratio=1.0,
         minlenratio=0.0,
+        ctc_weight=0.2,
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None
