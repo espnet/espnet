@@ -806,10 +806,10 @@ class Decoder(torch.nn.Module):
                         local_scores, int(beam * CTC_SCORING_RATIO), dim=1)
                     ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_att_best_ids[0], hyp['ctc_prev'])
                     joint_scores = (1. - ctc_weight) * \
-                        (local_att_best_scores[0].numpy() + hyp['score']) + ctc_weight * ctc_scores
-                    joint_best_ids = np.argsort(joint_scores)[:-beam - 1:-1]
-                    local_best_ids = local_att_best_ids.numpy()[:, joint_best_ids]
-                    local_best_scores = local_att_best_scores.numpy()[:, joint_best_ids]
+                        (local_att_best_scores[0] + hyp['score']) + ctc_weight * torch.from_numpy(ctc_scores)
+                    joint_scores, joint_best_ids = torch.topk(joint_scores, beam, dim=0)
+                    local_best_ids = local_att_best_ids[:, joint_best_ids]
+                    local_best_scores = local_att_best_scores[:, joint_best_ids]
                 else:
                     local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
 
@@ -826,7 +826,7 @@ class Decoder(torch.nn.Module):
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
                     if lpz is not None:
-                        new_hyp['joint_score'] = joint_scores[joint_best_ids[j]]
+                        new_hyp['joint_score'] = joint_scores[j]
                         new_hyp['ctc_prev'] = ctc_states[joint_best_ids[j]]
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
