@@ -61,6 +61,8 @@ def main():
                         + 'to automatically find maximum hypothesis lengths')
     parser.add_argument('--minlenratio', default=0.0, type=float,
                         help='Input length ratio to obtain min output length')
+    parser.add_argument('--ctc-weight', default=0.0, type=float,
+                        help='CTC weight in joint decoding')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
@@ -111,6 +113,8 @@ def main():
     if args.rnnlm:
         rnnlm = lm_train.ClassifierWithState(lm_train.RNNLM(len(train_args.char_list), 650))
         chainer.serializers.load_npz(args.rnnlm, rnnlm)
+    else:
+        rnnlm = None
 
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_ark(args.recog_feat)
