@@ -113,6 +113,8 @@ def main():
     if args.rnnlm:
         rnnlm = lm_train.ClassifierWithState(lm_train.RNNLM(len(train_args.char_list), 650))
         chainer.serializers.load_npz(args.rnnlm, rnnlm)
+    else:
+        rnnlm = None
 
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_ark(args.recog_feat)

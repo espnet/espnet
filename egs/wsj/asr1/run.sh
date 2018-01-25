@@ -52,8 +52,8 @@ lm_weight=0.1
 beam_size=20
 penalty=0.1
 maxlenratio=0.0
-minlenratio=0.3
-ctc_weight=0.0
+minlenratio=0.0
+ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data

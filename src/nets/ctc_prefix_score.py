@@ -8,7 +8,13 @@ import six
 
 
 class CTCPrefixScore(object):
+    '''Compute CTC label sequence scores
 
+    which is based on Algorithm 2 in WATANABE et al.
+    "HYBRID CTC/ATTENTION ARCHITECTURE FOR END-TO-END SPEECH RECOGNITION,"
+    but extended to efficiently compute the probablities of multiple labels
+    simultaneously
+    '''
     def __init__(self, x, blank, eos, xp):
         self.xp = xp
         self.logzero = -10000000000.0
@@ -22,6 +28,9 @@ class CTCPrefixScore(object):
 
         :return: CTC state
         '''
+        # initial CTC state is made of a frame x 2 tonsor that corresponds to
+        # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
+        # superscripts n and b (non-blank and blank), respectively.
         r = self.xp.full((self.input_length, 2), self.logzero, dtype=np.float32)
         r[0, 1] = self.x[0, self.blank]
         for i in six.moves.range(1, self.input_length):
@@ -38,6 +47,8 @@ class CTCPrefixScore(object):
         '''
         # initialize CTC states
         output_length = len(y) - 1  # ignore sos
+        # new CTC states are prepared as a frame x (n or b) x n_labels tonsor
+        # that correspond to r_t^n(h) and r_t^b(h).
         r = self.xp.ndarray((self.input_length, 2, len(cs)), dtype=np.float32)
         xs = self.x[:, cs]
         if output_length == 0:
@@ -70,4 +81,6 @@ class CTCPrefixScore(object):
         if len(eos_pos) > 0:
             log_psi[eos_pos] = r_sum[-1]  # log(r_T^n(g) + r_T^b(g))
 
+        # return the log prefix probability and CTC states, where the label axis
+        # of the CTC states is moved to the first axis to slice it easily
         return log_psi, self.xp.rollaxis(r, 2)
