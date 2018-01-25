@@ -17,9 +17,11 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
 
+from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 
 CTC_LOSS_THRESHOLD = 10000
+CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
@@ -193,12 +195,18 @@ class E2E(chainer.Chain):
             # make a utt list (1) to use the same interface for encoder
             h, _ = self.enc([h], [ilen])
 
+            # calculate log P(z_t|X) for CTC scores
+            if recog_args.ctc_weight > 0.0:
+                lpz = self.ctc.log_softmax(h).data[0]
+            else:
+                lpz = None
+
             # 2. decoder
             # decode the first utterance
             if recog_args.beam_size == 1:
                 y = self.dec.recognize(h[0], recog_args, rnnlm)
             else:
-                y = self.dec.recognize_beam(h[0], recog_args, char_list, rnnlm)
+                y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
             return y
 
@@ -246,6 +254,15 @@ class CTC(chainer.Chain):
         logging.info('ctc loss:' + str(self.loss.data))
 
         return self.loss
+
+    def log_softmax(self, hs):
+        '''log_softmax of frame activations
+
+        :param hs:
+        :return:
+        '''
+        y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
+        return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
 
 # ------------- Attention Network --------------------------------------------------------------------------------------
@@ -542,6 +559,7 @@ class Decoder(chainer.Chain):
 
         return self.loss, acc, att_weight_all
 
+    # TODO(hori) incorporate CTC score
     def recognize(self, h, recog_args, rnnlm=None):
         '''greedy search implementation
 
@@ -591,7 +609,7 @@ class Decoder(chainer.Chain):
 
         return y_seq
 
-    def recognize_beam(self, h, recog_args, char_list, rnnlm=None):
+    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
         :param h:
@@ -612,6 +630,7 @@ class Decoder(chainer.Chain):
         # search parms
         beam = recog_args.beam_size
         penalty = recog_args.penalty
+        ctc_weight = recog_args.ctc_weight
 
         # preprate sos
         y = self.xp.full(1, self.sos, 'i')
@@ -630,8 +649,14 @@ class Decoder(chainer.Chain):
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': state}
         else:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+        if lpz is not None:
+            ctc_prefix_score = CTCPrefixScore(lpz, 0, self.eos, self.xp)
+            hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
+            hyp['ctc_score_prev'] = 0.0
+            ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
         hyps = [hyp]
         ended_hyps = []
+
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
@@ -646,13 +671,28 @@ class Decoder(chainer.Chain):
                         hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
 
                 # get nbest local scores and their ids
+                local_att_scores = F.log_softmax(self.output(z_list[-1])).data
                 if rnnlm:
                     rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], hyp['yseq'][i])
-                    local_scores = F.log_softmax(self.output(z_list[-1])).data \
-                        + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+                    local_lm_scores = F.log_softmax(z_rnnlm).data
+                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
-                    local_scores = F.log_softmax(self.output(z_list[-1])).data
-                local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_scores = local_att_scores
+
+                if lpz is not None:
+                    local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:ctc_beam]
+                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids, hyp['ctc_state_prev'])
+                    local_scores = \
+                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids] \
+                        + ctc_weight * (ctc_scores - hyp['ctc_score_prev'])
+                    if rnnlm:
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
+                    joint_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_best_scores = local_scores[:, joint_best_ids]
+                    local_best_ids = local_best_ids[joint_best_ids]
+                else:
+                    local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_best_scores = local_scores[:, local_best_ids]
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
@@ -663,14 +703,16 @@ class Decoder(chainer.Chain):
                         new_hyp['z_prev'].append(z_list[l])
                         new_hyp['c_prev'].append(c_list[l])
                     new_hyp['a_prev'] = att_w
-                    new_hyp['score'] = hyp['score'] + \
-                        local_scores[0, local_best_ids[j]]
+                    new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = self.xp.full(
                         1, local_best_ids[j], 'i')
                     if rnnlm:
                         new_hyp['rnnlm_prev'] = rnnlm_state
+                    if lpz is not None:
+                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[j]]
+                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[j]]
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
 
