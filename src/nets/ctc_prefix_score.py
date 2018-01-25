@@ -15,6 +15,7 @@ class CTCPrefixScore(object):
     but extended to efficiently compute the probablities of multiple labels
     simultaneously
     '''
+
     def __init__(self, x, blank, eos, xp):
         self.xp = xp
         self.logzero = -10000000000.0
