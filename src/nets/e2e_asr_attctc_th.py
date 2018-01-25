@@ -774,14 +774,13 @@ class Decoder(torch.nn.Module):
 
         # initialize hypothesis
         hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
-        hyps = [hyp]
-        ended_hyps = []
         if lpz is not None:
             ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
-            hyp['ctc_prev'] = ctc_prefix_score.initial_state()
-            score_type = 'joint_score'
-        else:
-            score_type = 'score'
+            hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
+            hyp['ctc_score_prev'] = 0.0
+            ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
+        hyps = [hyp]
+        ended_hyps = []
 
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
@@ -800,18 +799,18 @@ class Decoder(torch.nn.Module):
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
 
                 # get nbest local scores and their ids
-                local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
+                local_att_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
                 if lpz is not None:
-                    local_att_best_scores, local_att_best_ids = torch.topk(
-                        local_scores, int(beam * CTC_SCORING_RATIO), dim=1)
-                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_att_best_ids[0], hyp['ctc_prev'])
-                    joint_scores = (1. - ctc_weight) * \
-                        (local_att_best_scores[0] + hyp['score']) + ctc_weight * torch.from_numpy(ctc_scores)
-                    joint_scores, joint_best_ids = torch.topk(joint_scores, beam, dim=0)
-                    local_best_ids = local_att_best_ids[:, joint_best_ids]
-                    local_best_scores = local_att_best_scores[:, joint_best_ids]
+                    local_best_scores, local_best_ids = torch.topk(
+                        local_att_scores, ctc_beam, dim=1)
+                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                    local_scores = \
+                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
+                        + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
+                    local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
+                    local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
-                    local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
+                    local_best_scores, local_best_ids = torch.topk(local_att_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
@@ -826,13 +825,13 @@ class Decoder(torch.nn.Module):
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
                     if lpz is not None:
-                        new_hyp['joint_score'] = joint_scores[j]
-                        new_hyp['ctc_prev'] = ctc_states[joint_best_ids[j]]
+                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
+                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
 
                 hyps_best_kept = sorted(
-                    hyps_best_kept, key=lambda x: x[score_type], reverse=True)[:beam]
+                    hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
 
             # sort and get nbest
             hyps = hyps_best_kept
@@ -854,13 +853,13 @@ class Decoder(torch.nn.Module):
                     # only store the sequence that has more than minlen outputs
                     # also add penalty
                     if len(hyp['yseq']) > minlen:
-                        hyp[score_type] += (i + 1) * penalty
+                        hyp['score'] += (i + 1) * penalty
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)
 
             # end detection
-            if end_detect(ended_hyps, i, score_type=score_type) and recog_args.maxlenratio == 0.0:
+            if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
                 logging.info('end detected at %d', i)
                 break
 
@@ -878,10 +877,10 @@ class Decoder(torch.nn.Module):
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
         best_hyp = sorted(
-            ended_hyps, key=lambda x: x[score_type], reverse=True)[0]
-        logging.info('total log probability: ' + str(best_hyp[score_type]))
+            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
+        logging.info('total log probability: ' + str(best_hyp['score']))
         logging.info('normalized log probability: ' +
-                     str(best_hyp[score_type] / len(best_hyp['yseq'])))
+                     str(best_hyp['score'] / len(best_hyp['yseq'])))
 
         # remove sos
         return best_hyp['yseq'][1:]

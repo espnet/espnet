@@ -649,14 +649,13 @@ class Decoder(chainer.Chain):
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': state}
         else:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
-        hyps = [hyp]
-        ended_hyps = []
         if lpz is not None:
             ctc_prefix_score = CTCPrefixScore(lpz, 0, self.eos, self.xp)
-            hyp['ctc_prev'] = ctc_prefix_score.initial_state()
-            score_type = 'joint_score'
-        else:
-            score_type = 'score'
+            hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
+            hyp['ctc_score_prev'] = 0.0
+            ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
+        hyps = [hyp]
+        ended_hyps = []
 
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
@@ -672,22 +671,28 @@ class Decoder(chainer.Chain):
                         hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
 
                 # get nbest local scores and their ids
+                local_att_scores = F.log_softmax(self.output(z_list[-1])).data
                 if rnnlm:
                     rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], hyp['yseq'][i])
-                    local_scores = F.log_softmax(self.output(z_list[-1])).data \
-                        + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+                    local_lm_scores = F.log_softmax(z_rnnlm).data
+                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
-                    local_scores = F.log_softmax(self.output(z_list[-1])).data
+                    local_scores = local_att_scores
 
                 if lpz is not None:
-                    local_att_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:int(beam * CTC_SCORING_RATIO)]
-                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_att_best_ids, hyp['ctc_prev'])
-                    joint_scores = (1. - ctc_weight) * \
-                        (local_scores[0, local_att_best_ids] + hyp['score']) + ctc_weight * ctc_scores
-                    joint_best_ids = self.xp.argsort(joint_scores)[:-beam - 1:-1]
-                    local_best_ids = local_att_best_ids[joint_best_ids]
+                    local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:ctc_beam]
+                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids, hyp['ctc_state_prev'])
+                    local_scores = \
+                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids] \
+                        + ctc_weight * (ctc_scores - hyp['ctc_score_prev'])
+                    if rnnlm:
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
+                    joint_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_best_scores = local_scores[:, joint_best_ids]
+                    local_best_ids = local_best_ids[joint_best_ids]
                 else:
                     local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_best_scores = local_scores[:, local_best_ids]
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
@@ -698,8 +703,7 @@ class Decoder(chainer.Chain):
                         new_hyp['z_prev'].append(z_list[l])
                         new_hyp['c_prev'].append(c_list[l])
                     new_hyp['a_prev'] = att_w
-                    new_hyp['score'] = hyp['score'] + \
-                        local_scores[0, local_best_ids[j]]
+                    new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = self.xp.full(
@@ -707,13 +711,13 @@ class Decoder(chainer.Chain):
                     if rnnlm:
                         new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
-                        new_hyp['joint_score'] = joint_scores[joint_best_ids[j]]
-                        new_hyp['ctc_prev'] = ctc_states[joint_best_ids[j]]
+                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[j]]
+                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[j]]
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
 
                 hyps_best_kept = sorted(
-                    hyps_best_kept, key=lambda x: x[score_type], reverse=True)[:beam]
+                    hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
 
             # sort and get nbest
             hyps = hyps_best_kept
@@ -735,13 +739,13 @@ class Decoder(chainer.Chain):
                     # only store the sequence that has more than minlen outputs
                     # also add penalty
                     if len(hyp['yseq']) > minlen:
-                        hyp[score_type] += (i + 1) * penalty
+                        hyp['score'] += (i + 1) * penalty
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)
 
             # end detection
-            if end_detect(ended_hyps, i, score_type=score_type) and recog_args.maxlenratio == 0.0:
+            if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
                 logging.info('end detected at %d', i)
                 break
 
@@ -759,10 +763,10 @@ class Decoder(chainer.Chain):
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
         best_hyp = sorted(
-            ended_hyps, key=lambda x: x[score_type], reverse=True)[0]
-        logging.info('total log probability: ' + str(best_hyp[score_type]))
+            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
+        logging.info('total log probability: ' + str(best_hyp['score']))
         logging.info('normalized log probability: ' +
-                     str(best_hyp[score_type] / len(best_hyp['yseq'])))
+                     str(best_hyp['score'] / len(best_hyp['yseq'])))
 
         # remove sos
         return best_hyp['yseq'][1:]
