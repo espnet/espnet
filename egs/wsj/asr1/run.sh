@@ -46,11 +46,11 @@ opt=adadelta
 epochs=15
 
 # rnnlm related
-lm_weight=0.1
+lm_weight=1.0
 
 # decoding parameter
 beam_size=20
-penalty=0.1
+penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
@@ -260,12 +260,8 @@ if [ ${stage} -le 5 ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
-<<<<<<< HEAD
             --rnnlm ${lmexpdir}/rnnlm.model.best \
             --lm-weight ${lm_weight} &
-=======
-            &
->>>>>>> be20e658422ec544080b473bdc1abec425132752
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}

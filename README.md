@@ -116,6 +116,21 @@ The file builds and loads the information into the Docker container. If any addi
 
 To downgrade or use a private devel file, modify the name inside run_in_docker.sh
 
+## Results
+
+We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
+
+|           | CER  | WER  |
+|-----------|:----:|:----:|
+| WSJ dev93 |  5.5 | 13.1 |
+| WSJ eval92|  3.8 |  9.3 |
+| CSJ eval1 | 10.7 | N/A  |
+| CSJ eval2 |  8.0 | N/A  |
+| CSJ eval3 |  8.8 | N/A  |
+| HKUST train_dev | 33.9 | N/A  |
+| HKUST dev       | 31.9 | N/A  |
+
+
 ## References (Please cite the following articles)
 [1] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
 
