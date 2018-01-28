@@ -7,7 +7,7 @@ ENDIF()
 project(ctc_release)
 
 IF (NOT APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -O2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 ENDIF()
 
 IF (APPLE)
@@ -25,6 +25,10 @@ option(WITH_OMP "compile warp-ctc with openmp." ON)
 
 if(NOT WITH_OMP)
     add_definitions(-DCTC_DISABLE_OMP)
+endif()
+if (WITH_OMP)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler -fopenmp")
 endif()
 
 # need to be at least 30 or __shfl_down in reduce wont compile
@@ -46,7 +50,7 @@ ENDIF()
 
 if (NOT APPLE)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --std=c++11")
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler -fopenmp")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}")
 ENDIF()
 
 FIND_PACKAGE(Torch)
