@@ -1,5 +1,7 @@
 ![Baidu Logo](/doc/baidu-research-logo-small.png)
 
+This is a extension onto the original repo found [here](https://github.com/baidu-research/warp-ctc) which has PyTorch bindings.
+
 [In Chinese 中文版](README.zh_cn.md)
 
 # warp-ctc
