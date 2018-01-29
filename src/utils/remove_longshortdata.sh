@@ -35,9 +35,9 @@ text2token.py -s 1 -n 1 $sdir/text \
     | awk '{print $1}' > $odir/tmp/reclist2
 
 # extract common lines
-grep -x -f $odir/tmp/reclist1 $odir/tmp/reclist2 > $odir/tmp/reclist
+comm -12 <(sort $odir/tmp/reclist1) <(sort $odir/tmp/reclist2) > $odir/tmp/reclist
 
-local/reduce_data_dir.sh $sdir $odir/tmp/reclist $odir
+reduce_data_dir.sh $sdir $odir/tmp/reclist $odir
 utils/fix_data_dir.sh $odir
 
 oldnum=`wc -l $sdir/feats.scp | awk '{print $1}'`
