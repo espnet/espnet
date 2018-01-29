@@ -400,7 +400,7 @@ def main():
                 dest = args.outdir + '/rnnlm.model.best'
                 if os.path.lexists(dest):
                     os.remove(dest)
-                os.symlink(args.outdir + '/rnnlm.model.' + str(epoch_now), dest)
+                os.symlink('rnnlm.model.' + str(epoch_now), dest)
                 best_valid = valid_perp
 
 
