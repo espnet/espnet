@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=pytorch
+backend=chainer
 stage=-1       # start from -1 if you need to start from data download
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
@@ -20,7 +20,7 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=blstmp     # encoder architecture type
+etype=vggblstmp     # encoder architecture type
 elayers=6
 eunits=320
 eprojs=320
@@ -30,6 +30,7 @@ dlayers=1
 dunits=300
 # attention related
 atype=location
+adim=320
 aconv_chans=10
 aconv_filts=100
 
@@ -45,11 +46,15 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 opt=adadelta
 epochs=15
 
+# rnnlm related
+lm_weight=1.0
+
 # decoding parameter
 beam_size=20
 penalty=0.1
-maxlenratio=0.8
-minlenratio=0.1
+maxlenratio=0.0
+minlenratio=0.0
+ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # exp tag
@@ -131,7 +136,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_adim${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -149,7 +154,29 @@ else
     decode_script=asr_recog_th.py
 fi
 
+# It takes a few days. If you just want to end-to-end ASR without LM,
+# you can skip this and remove --rnnlm option in the recognition (stage 5)
+lmexpdir=exp/train_rnnlm_2layer_bs2048
+mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
+    echo "stage 3: LM Preparation"
+    lmdatadir=data/local/lm_train
+    mkdir -p ${lmdatadir}
+    gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py \
+        | text2token.py -n 1 | perl -pe 's/\n/ <eos> /g' > ${lmdatadir}/train.txt
+    text2token.py -s 1 -n 1 data/dev/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+        > ${lmdatadir}/valid.txt
+    ${cuda_cmd} ${lmexpdir}/train.log \
+        lm_train.py \
+        --gpu ${gpu} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --train-label ${lmdatadir}/train.txt \
+        --valid-label ${lmdatadir}/valid.txt \
+        --dict ${dict}
+fi
+
+if [ ${stage} -le 4 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} ${expdir}/train.log \
         ${train_script} \
@@ -172,6 +199,7 @@ if [ ${stage} -le 3 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
+        --adim ${adim} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
@@ -182,13 +210,13 @@ if [ ${stage} -le 3 ]; then
         --epochs ${epochs}
 fi
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 5 ]; then
     echo "stage 4: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
 
         # split data
         data=data/${rtask}
@@ -221,7 +249,9 @@ if [ ${stage} -le 4 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            &
+            --ctc-weight ${ctc_weight} \
+            --rnnlm ${lmexpdir}/rnnlm.model.best \
+            --lm-weight ${lm_weight} &
         wait
 
         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
