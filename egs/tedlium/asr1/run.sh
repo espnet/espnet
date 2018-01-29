@@ -99,8 +99,8 @@ if [ ${stage} -le 1 ]; then
 
     # remove utt having more than 2000 frames or less than 10 frames or
     # remove utt having more than 400 characters or no more than 0 characters
-    local/remove_longshortdata.sh --maxchars 400 data/train data/${train_set}
-    local/remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
+    remove_longshortdata.sh --maxchars 400 data/train data/${train_set}
+    remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
