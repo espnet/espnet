@@ -293,7 +293,7 @@ def main():
     if not chainer.cuda.cudnn_enabled:
         logging.warning('cudnn is not available')
 
-    def evaluate(model, iter):
+    def evaluate(model, iter, bproplen=100):
         # Evaluation routine to be used for validation and test.
         model.predictor.train = False
         evaluator = model.copy()  # to use different state
@@ -305,6 +305,8 @@ def main():
             x, t = convert.concat_examples(batch, args.gpu)
             state, loss = evaluator(state, x, t)
             sum_perp += loss.data
+            if data_count % bproplen == 0:
+                loss.unchain_backward()  # Truncate the graph
             data_count += 1
         model.predictor.train = True
         return np.exp(float(sum_perp) / data_count)
@@ -333,7 +335,7 @@ def main():
 
     # Create the dataset iterators
     train_iter = ParallelSequentialIterator(train, args.batchsize)
-    valid_iter = ParallelSequentialIterator(valid, 1, repeat=False)
+    valid_iter = ParallelSequentialIterator(valid, args.batchsize, repeat=False)
 
     # Prepare an RNNLM model
     rnn = RNNLM(n_vocab, args.unit)
@@ -353,7 +355,7 @@ def main():
     count = 0
     iteration = 0
     epoch_now = 0
-    best_valid = -100000000
+    best_valid = 100000000
     state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
     while train_iter.epoch < args.epoch:
         loss = 0
@@ -396,7 +398,7 @@ def main():
 
             epoch_now = train_iter.epoch
 
-            if valid_perp > best_valid:
+            if valid_perp < best_valid:
                 dest = args.outdir + '/rnnlm.model.best'
                 if os.path.lexists(dest):
                     os.remove(dest)
