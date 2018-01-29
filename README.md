@@ -120,7 +120,7 @@ To downgrade or use a private devel file, modify the name inside run_in_docker.s
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
 
-|           | CER  | WER  |
+|           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
 | WSJ dev93 |  5.5 | 13.1 |
 | WSJ eval92|  3.8 |  9.3 |
@@ -129,6 +129,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval3 |  8.8 | N/A  |
 | HKUST train_dev | 33.9 | N/A  |
 | HKUST dev       | 31.9 | N/A  |
+| Librispeech dev_clean  | 2.9 | 7.7 |
+| Librispeech test_clean | 2.7 | 7.7 |
 
 
 ## References (Please cite the following articles)
