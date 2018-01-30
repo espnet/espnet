@@ -477,7 +477,7 @@ def write_mat(file_or_fd, m, key=''):
     # Data-type,
     if m.dtype == 'float32': fd.write('FM '.encode())
     elif m.dtype == 'float64': fd.write('DM '.encode())
-    else: raise UnsupportedDataType("'%s', please use 'float32' or 'float64'" % v.dtype)
+    else: raise UnsupportedDataType("'%s', please use 'float32' or 'float64'" % m.dtype)
     # Dims,
     fd.write('\04'.encode())
     fd.write(struct.pack(np.dtype('uint32').char, m.shape[0])) # rows
