@@ -26,6 +26,16 @@ with open(ark_file,'wb') as f:
     kaldi_io.write_mat(f, mat, key=key)
 ```
 
+###### Writing features as 'ark,scp' by pipeline with 'copy-feats':
+```python
+import kaldi_io
+ark_scp_output='ark:| copy-feats --compress=true ark:- ark,scp:data/feats2.ark,data/feats2.scp'
+with kaldi_io.open_or_fd(ark_scp_output,'wb') as f:
+  for key,mat in dict.iteritems(): 
+    kaldi_io.write_mat(f, mat, key=key)
+```
+
+
 #### Install
 - run `git clone https://github.com/vesis84/kaldi-io-for-python.git <kaldi-io-dir>`
 - add `PYTHONPATH=${PYTHONPATH}:<kaldi-io-dir>` to `$HOME/.bashrc`
