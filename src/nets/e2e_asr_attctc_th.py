@@ -23,9 +23,11 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 from warpctc_pytorch import _CTC
 
+from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 
 CTC_LOSS_THRESHOLD = 10000
+CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
@@ -35,13 +37,6 @@ def to_cuda(m, x):
     if device_id == -1:
         return x
     return x.cuda(device_id)
-
-
-def _ilens_to_index(ilens):
-    x = np.zeros(len(ilens), dtype=np.int32)
-    for i in range(1, len(ilens)):
-        x[i] = x[i - 1] + ilens[i - 1]
-    return x[1:]
 
 
 def lecun_normal_init_parameters(module):
@@ -89,13 +84,8 @@ def linear_tensor(linear, x):
     :return:
     :param Variable x: Tensor (D_1 x D_2 x ... x N matrix)
     '''
-    dim = 1
-    shapes = list(x.size()[:-1])
-    for d in shapes:
-        dim = dim * d
-    y = linear(x.contiguous().view(dim, x.size()[-1]))
-    shapes.append(y.size()[-1])
-    return y.view(shapes)
+    y = linear(x.contiguous().view((-1, x.size()[-1])))
+    return y.view((x.size()[:-1] + (-1,)))
 
 
 class Reporter(chainer.Chain):
@@ -199,6 +189,8 @@ class E2E(torch.nn.Module):
         elif args.atype == 'coverage_location':
             self.att = AttCovLoc(args.eprojs, args.dunits,
                                  args.adim, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'noatt':
+            self.att = NoAtt()
         else:
             logging.error(
                 "Error: need to specify an appropriate attention archtecture")
@@ -294,12 +286,18 @@ class E2E(torch.nn.Module):
         # make a utt list (1) to use the same interface for encoder
         h, _ = self.enc(h.unsqueeze(0), ilen)
 
+        # calculate log P(z_t|X) for CTC scores
+        if recog_args.ctc_weight > 0.0:
+            lpz = self.ctc.log_softmax(h).data[0]
+        else:
+            lpz = None
+
         # 2. decoder
         # decode the first utterance
         if recog_args.beam_size == 1:
             y = self.dec.recognize(h[0], recog_args)
         else:
-            y = self.dec.recognize_beam(h[0], recog_args, char_list)
+            y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list)
 
         if prev:
             self.train()
@@ -371,6 +369,14 @@ class CTC(torch.nn.Module):
         logging.info('ctc loss:' + str(self.loss.data[0]))
 
         return self.loss
+
+    def log_softmax(self, hpad):
+        '''log_softmax of frame activations
+
+        :param hs:
+        :return:
+        '''
+        return functional.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
 
 
 def mask_by_length(xs, length, fill=0):
@@ -768,6 +774,48 @@ class AttCovLoc(torch.nn.Module):
         return c, att_prev_list
 
 
+class NoAtt(torch.nn.Module):
+    def __init__(self):
+        super(NoAtt, self).__init__()
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def reset(self):
+        '''reset states
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+        '''NoAtt forward
+        :param Variable enc_hs_pad:
+        :param Variable enc_hs_len:
+        :param Variable dec_z: dummy
+        :param Variable att_prev:
+        :return:
+        '''
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            att_prev = [Variable(enc_hs_pad.data.new(
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev = pad_list(att_prev, 0)
+            self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
+
+        return self.c, att_prev
+
+
 def th_accuracy(y_all, pad_target, ignore_label):
     pad_pred = y_all.data.view(pad_target.size(
         0), pad_target.size(1), y_all.size(1)).max(2)[1]
@@ -861,7 +909,6 @@ class Decoder(torch.nn.Module):
                                                       size_average=True)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
-        # acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
         logging.info('att loss:' + str(self.loss.data))
 
@@ -883,6 +930,7 @@ class Decoder(torch.nn.Module):
 
         return self.loss, acc
 
+    # TODO(hori) incorporate CTC score
     def recognize(self, h, recog_args):
         '''greedy search implementation
 
@@ -928,7 +976,7 @@ class Decoder(torch.nn.Module):
 
         return y_seq
 
-    def recognize_beam(self, h, recog_args, char_list):
+    def recognize_beam(self, h, lpz, recog_args, char_list):
         '''beam search implementation
 
         :param Variable h:
@@ -949,6 +997,7 @@ class Decoder(torch.nn.Module):
         # search parms
         beam = recog_args.beam_size
         penalty = recog_args.penalty
+        ctc_weight = recog_args.ctc_weight
 
         # preprate sos
         y = self.sos
@@ -964,8 +1013,14 @@ class Decoder(torch.nn.Module):
 
         # initialize hypothesis
         hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+        if lpz is not None:
+            ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
+            hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
+            hyp['ctc_score_prev'] = 0.0
+            ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
         hyps = [hyp]
         ended_hyps = []
+
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
@@ -981,13 +1036,20 @@ class Decoder(torch.nn.Module):
                 for l in six.moves.range(1, self.dlayers):
                     z_list[l], c_list[l] = self.decoder[l](
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
-                hyp['c_prev'] = c_list
-                hyp['z_prev'] = z_list
-                hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
-                local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
+                local_att_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
+                if lpz is not None:
+                    local_best_scores, local_best_ids = torch.topk(
+                        local_att_scores, ctc_beam, dim=1)
+                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                    local_scores = \
+                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
+                        + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
+                    local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
+                    local_best_ids = local_best_ids[:, joint_best_ids[0]]
+                else:
+                    local_best_scores, local_best_ids = torch.topk(local_att_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
@@ -999,6 +1061,9 @@ class Decoder(torch.nn.Module):
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
+                    if lpz is not None:
+                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
+                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
 

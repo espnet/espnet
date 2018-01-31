@@ -17,17 +17,12 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
 
+from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 
 CTC_LOSS_THRESHOLD = 10000
+CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
-
-
-def _ilens_to_index(ilens):
-    x = np.zeros(len(ilens), dtype=np.int32)
-    for i in range(1, len(ilens)):
-        x[i] = x[i - 1] + ilens[i - 1]
-    return x[1:]
 
 
 def _subsamplex(x, n):
@@ -53,14 +48,8 @@ def linear_tensor(linear, x):
     :return:
     :param Variable y: Tensor (D_1 x D_2 x ... x N matrix)
     '''
-    dim = 1
-    shapes = list(x.shape[:-1])
-    for d in shapes:
-        dim = dim * d
-    y = linear(F.reshape(x, (dim, x.shape[-1])))
-    shapes.append(y.shape[-1])
-
-    return F.reshape(y, shapes)
+    y = linear(F.reshape(x, (-1, x.shape[-1])))
+    return F.reshape(y, (x.shape[:-1] + (-1,)))
 
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
@@ -136,6 +125,8 @@ class E2E(chainer.Chain):
             elif args.atype == 'location':
                 self.att = AttLoc(args.eprojs, args.dunits,
                                   args.adim, args.aconv_chans, args.aconv_filts)
+            elif args.atype == 'noatt':
+                self.att = NoAtt()
             else:
                 logging.error(
                     "Error: need to specify an appropriate attention archtecture")
@@ -186,7 +177,7 @@ class E2E(chainer.Chain):
 
         return loss_ctc, loss_att, acc
 
-    def recognize(self, x, recog_args, char_list):
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E greedy/beam search
 
         :param x:
@@ -204,12 +195,18 @@ class E2E(chainer.Chain):
             # make a utt list (1) to use the same interface for encoder
             h, _ = self.enc([h], [ilen])
 
+            # calculate log P(z_t|X) for CTC scores
+            if recog_args.ctc_weight > 0.0:
+                lpz = self.ctc.log_softmax(h).data[0]
+            else:
+                lpz = None
+
             # 2. decoder
             # decode the first utterance
             if recog_args.beam_size == 1:
-                y = self.dec.recognize(h[0], recog_args)
+                y = self.dec.recognize(h[0], recog_args, rnnlm)
             else:
-                y = self.dec.recognize_beam(h[0], recog_args, char_list)
+                y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
             return y
 
@@ -257,6 +254,15 @@ class CTC(chainer.Chain):
         logging.info('ctc loss:' + str(self.loss.data))
 
         return self.loss
+
+    def log_softmax(self, hs):
+        '''log_softmax of frame activations
+
+        :param hs:
+        :return:
+        '''
+        y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
+        return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
 
 # ------------- Attention Network --------------------------------------------------------------------------------------
@@ -308,16 +314,16 @@ class AttDot(chainer.Chain):
             dec_z = F.reshape(dec_z, (batch, self.dunits))
 
         # <phi (h_t), psi (s)> for all t
-        e = F.sum(self.pre_compute_enc_h * F.tile(F.reshape(F.tanh(self.mlp_dec(dec_z)), (batch, 1, self.att_dim)),
-                                                  (1, self.h_length, 1)), axis=2)  # utt x frame
+        u = F.broadcast_to(F.expand_dims(F.tanh(self.mlp_dec(dec_z)), 1),
+                           self.pre_compute_enc_h.shape)
+        e = F.sum(self.pre_compute_enc_h * u, axis=2)  # utt x frame
         # Applying a minus-large-number filter to make a probability value zero for a padded area
         # simply degrades the performance, and I gave up this implementation
         # Apply a scaling to make an attention sharp
         w = F.softmax(scaling * e)
         # weighted sum over flames
         # utt x hdim
-        c = F.sum(self.enc_h * F.tile(F.reshape(w,
-                                                (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
+        c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
 
         return c, w
 
@@ -376,8 +382,8 @@ class AttLoc(chainer.Chain):
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [self.xp.ones(
-                hh.shape[0], dtype=np.float32) * (1.0 / hh.shape[0]) for hh in enc_hs]
+            att_prev = [self.xp.full(
+                hh.shape[0], 1.0 / hh.shape[0], dtype=np.float32) for hh in enc_hs]
             att_prev = [chainer.Variable(att) for att in att_prev]
             att_prev = F.pad_sequence(att_prev)
 
@@ -391,8 +397,8 @@ class AttLoc(chainer.Chain):
         att_conv = linear_tensor(self.mlp_att, att_conv)
 
         # dec_z_tiled: utt x frame x att_dim
-        dec_z_tiled = F.tile(F.reshape(self.mlp_dec(
-            dec_z), (batch, 1, self.att_dim)), (1, self.h_length, 1))
+        dec_z_tiled = F.broadcast_to(
+            F.expand_dims(self.mlp_dec(dec_z), 1), self.pre_compute_enc_h.shape)
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
@@ -406,10 +412,51 @@ class AttLoc(chainer.Chain):
 
         # weighted sum over flames
         # utt x hdim
-        c = F.sum(self.enc_h * F.tile(F.reshape(w,
-                                                (batch, self.h_length, 1)), (1, 1, self.eprojs)), axis=1)
+        c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
 
         return c, w
+
+
+class NoAtt(chainer.Chain):
+    def __init__(self):
+        super(NoAtt, self).__init__()
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def reset(self):
+        '''reset states
+
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def __call__(self, enc_hs, dec_z, att_prev):
+        '''NoAtt forward
+
+        :param enc_hs:
+        :param dec_z: dummy
+        :param att_prev:
+        :return:
+        '''
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            att_prev = [self.xp.full(
+                hh.shape[0], 1.0 / hh.shape[0], dtype=np.float32) for hh in enc_hs]
+            att_prev = [chainer.Variable(att) for att in att_prev]
+            att_prev = F.pad_sequence(att_prev)
+            self.c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(att_prev, 2), self.enc_h.shape), axis=1)
+
+        return self.c, att_prev
 
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
@@ -472,11 +519,12 @@ class Decoder(chainer.Chain):
 
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        eys = F.separate(eys, axis=1)
 
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
-            ey = F.hstack((eys[:, i, :], att_c))  # utt x (zdim + hdim)
+            ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
             c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
@@ -487,17 +535,16 @@ class Decoder(chainer.Chain):
                           (batch * olength, self.dunits))
         # compute loss
         y_all = self.output(z_all)
-        self.loss = F.softmax_cross_entropy(
-            y_all, F.concat(pad_ys_out, axis=0))
+        self.loss = F.softmax_cross_entropy(y_all, F.flatten(pad_ys_out))
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
-        acc = F.accuracy(y_all, F.concat(pad_ys_out, axis=0), ignore_label=-1)
+        acc = F.accuracy(y_all, F.flatten(pad_ys_out), ignore_label=-1)
         logging.info('att loss:' + str(self.loss.data))
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
             y_hat = F.reshape(y_all, (batch, olength, -1))
-            y_true = F.reshape(F.concat(pad_ys_out, axis=0), (batch, olength))
+            y_true = pad_ys_out
             for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data), y_true.data):
                 if i == MAX_DECODER_OUTPUT:
                     break
@@ -512,7 +559,8 @@ class Decoder(chainer.Chain):
 
         return self.loss, acc, att_weight_all
 
-    def recognize(self, h, recog_args):
+    # TODO(hori) incorporate CTC score
+    def recognize(self, h, recog_args, rnnlm=None):
         '''greedy search implementation
 
         :param h:
@@ -523,6 +571,8 @@ class Decoder(chainer.Chain):
         # initialization
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
+        if rnnlm:
+            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
         for l in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
@@ -543,7 +593,14 @@ class Decoder(chainer.Chain):
             c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
-            y = self.xp.argmax(self.output(z_list[-1]).data, axis=1).astype('i')
+            if rnnlm:
+                state, z_rnnlm = rnnlm.predictor(state, y)
+                final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
+                    + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
+            else:
+                final_z = F.log_softmax(self.output(z_list[-1])).data
+
+            y = self.xp.argmax(final_z, axis=1).astype('i')
             y_seq.append(y)
 
             # terminate decoding
@@ -552,7 +609,7 @@ class Decoder(chainer.Chain):
 
         return y_seq
 
-    def recognize_beam(self, h, recog_args, char_list):
+    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
         :param h:
@@ -573,6 +630,7 @@ class Decoder(chainer.Chain):
         # search parms
         beam = recog_args.beam_size
         penalty = recog_args.penalty
+        ctc_weight = recog_args.ctc_weight
 
         # preprate sos
         y = self.xp.full(1, self.sos, 'i')
@@ -586,9 +644,19 @@ class Decoder(chainer.Chain):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+        if rnnlm:
+            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': state}
+        else:
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+        if lpz is not None:
+            ctc_prefix_score = CTCPrefixScore(lpz, 0, self.eos, self.xp)
+            hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
+            hyp['ctc_score_prev'] = 0.0
+            ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
         hyps = [hyp]
         ended_hyps = []
+
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
@@ -601,13 +669,30 @@ class Decoder(chainer.Chain):
                 for l in six.moves.range(1, self.dlayers):
                     c_list[l], z_list[l] = self['lstm%d' % l](
                         hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
-                hyp['c_prev'] = c_list
-                hyp['z_prev'] = z_list
-                hyp['a_prev'] = att_w
 
                 # get nbest local scores and their ids
-                local_scores = F.log_softmax(self.output(z_list[-1])).data
-                local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                local_att_scores = F.log_softmax(self.output(z_list[-1])).data
+                if rnnlm:
+                    rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], hyp['yseq'][i])
+                    local_lm_scores = F.log_softmax(z_rnnlm).data
+                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                else:
+                    local_scores = local_att_scores
+
+                if lpz is not None:
+                    local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:ctc_beam]
+                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids, hyp['ctc_state_prev'])
+                    local_scores = \
+                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids] \
+                        + ctc_weight * (ctc_scores - hyp['ctc_score_prev'])
+                    if rnnlm:
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
+                    joint_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_best_scores = local_scores[:, joint_best_ids]
+                    local_best_ids = local_best_ids[joint_best_ids]
+                else:
+                    local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_best_scores = local_scores[:, local_best_ids]
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
@@ -615,12 +700,16 @@ class Decoder(chainer.Chain):
                     new_hyp['z_prev'] = z_list[:]
                     new_hyp['c_prev'] = c_list[:]
                     new_hyp['a_prev'] = att_w
-                    new_hyp['score'] = hyp['score'] + \
-                        local_scores[0, local_best_ids[j]]
+                    new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = self.xp.full(
                         1, local_best_ids[j], 'i')
+                    if rnnlm:
+                        new_hyp['rnnlm_prev'] = rnnlm_state
+                    if lpz is not None:
+                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[j]]
+                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[j]]
                     # will be (2 x beam) hyps at most
                     hyps_best_kept.append(new_hyp)
 
@@ -640,7 +729,7 @@ class Decoder(chainer.Chain):
                     hyp['yseq'].append(self.xp.full(1, self.eos, 'i'))
 
             # add ended hypothes to a final list, and removed them from current hypothes
-            # (this will be a probmlem, number of hyps < beam)
+            # (this will be a problem, number of hyps < beam)
             remained_hyps = []
             for hyp in hyps:
                 if hyp['yseq'][-1] == self.eos:
@@ -784,11 +873,11 @@ class BLSTMP(chainer.Chain):
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
             # (sum _utt frame_utt) x dim
             ys = self['bt' + str(layer)](F.vstack(ys))
-            xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
+            xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
             del hy, cy
 
         # final tanh operation
-        xs = F.split_axis(F.tanh(F.vstack(xs)), _ilens_to_index(ilens), axis=0)
+        xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), axis=0)
 
         # 1 utterance case, it becomes an array, so need to make a utt tuple
         if not isinstance(xs, tuple):
@@ -814,11 +903,11 @@ class BLSTM(chainer.Chain):
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         hy, cy, ys = self.nblstm(None, None, xs)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
-        xs = F.split_axis(ys, _ilens_to_index(ilens), axis=0)
+        xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
         del hy, cy
 
         # final tanh operation
-        xs = F.split_axis(F.tanh(F.vstack(xs)), _ilens_to_index(ilens), axis=0)
+        xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), axis=0)
 
         # 1 utterance case, it becomes an array, so need to make a utt tuple
         if not isinstance(xs, tuple):

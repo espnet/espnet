@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
@@ -20,8 +20,8 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
-elayers=4
+etype=blstmp     # encoder architecture type
+elayers=8
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
@@ -37,7 +37,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=30
+batchsize=50
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -47,9 +47,10 @@ epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0.1
-maxlenratio=0.8
-minlenratio=0.1
+penalty=0.0
+maxlenratio=0.0
+minlenratio=0.0
+ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # Set this to somewhere where you want to put your data, or where
@@ -112,8 +113,8 @@ if [ ${stage} -le 1 ]; then
 
     # remove utt having more than 2000 frames or less than 10 frames or
     # remove utt having more than 400 characters or no more than 0 characters
-    # local/remove_longshortdata.sh --maxchars 400 data/train data/${train_set}
-    # local/remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
+    # remove_longshortdata.sh --maxchars 400 data/train data/${train_set}
+    # remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -211,7 +212,7 @@ if [ ${stage} -le 4 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
 
         # split data
         data=data/${rtask}
@@ -233,8 +234,6 @@ if [ ${stage} -le 4 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             ${decode_script} \
             --gpu ${gpu} \
-            --debugmode ${debugmode} \
-            --verbose ${verbose} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
@@ -244,6 +243,7 @@ if [ ${stage} -le 4 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
+            --ctc-weight ${ctc_weight} \
             &
         wait
 
