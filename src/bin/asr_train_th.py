@@ -297,7 +297,7 @@ def main():
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['dot', 'location', 'multi_head_dot',
-                                 'coverage', 'coverage_location', 'noatt'],
+                                 'coverage', 'location2d', 'noatt'],
                         help='Type of attention architecture')
     parser.add_argument('--adim', default=320, type=int,
                         help='Number of attention transformation dimensions')
