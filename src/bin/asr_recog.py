@@ -23,6 +23,9 @@ from e2e_asr_attctc import Loss
 # for kaldi io
 import kaldi_io_py
 
+# rnnlm
+import lm_train
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -58,6 +61,13 @@ def main():
                         + 'to automatically find maximum hypothesis lengths')
     parser.add_argument('--minlenratio', default=0.0, type=float,
                         help='Input length ratio to obtain min output length')
+    parser.add_argument('--ctc-weight', default=0.0, type=float,
+                        help='CTC weight in joint decoding')
+    # rnnlm related
+    parser.add_argument('--rnnlm', type=str, default=None,
+                        help='RNNLM model file to read')
+    parser.add_argument('--lm-weight', default=0.1, type=float,
+                        help='RNNLM weight.')
     args = parser.parse_args()
 
     # logging info
@@ -99,6 +109,13 @@ def main():
     model = Loss(e2e, train_args.mtlalpha)
     chainer.serializers.load_npz(args.model, model)
 
+    # read rnnlm
+    if args.rnnlm:
+        rnnlm = lm_train.ClassifierWithState(lm_train.RNNLM(len(train_args.char_list), 650))
+        chainer.serializers.load_npz(args.rnnlm, rnnlm)
+    else:
+        rnnlm = None
+
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_ark(args.recog_feat)
 
@@ -109,7 +126,7 @@ def main():
     new_json = {}
     for name, feat in reader:
         logging.info('decoding ' + name)
-        y_hat = e2e.recognize(feat, args, train_args.char_list)
+        y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm)
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result

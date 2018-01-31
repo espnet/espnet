@@ -296,7 +296,8 @@ def main():
                              'every y frame at 2nd layer etc.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
-                        choices=['dot', 'location', 'multi_head_dot', 'coverage', 'coverage_location'],
+                        choices=['dot', 'location', 'multi_head_dot',
+                                 'coverage', 'coverage_location', 'noatt'],
                         help='Type of attention architecture')
     parser.add_argument('--adim', default=320, type=int,
                         help='Number of attention transformation dimensions')
@@ -385,14 +386,12 @@ def main():
     else:
         chainer.config.cudnn_deterministic = True
     # load dictionary for debug log
-    if args.debugmode > 0 and args.dict is not None:
-        with open(args.dict, 'r') as f:
+    if args.dict is not None:
+        with open(args.dict, 'rb') as f:
             dictionary = f.readlines()
-        char_list = [d.split(' ')[0] for d in dictionary]
-        for i, char in enumerate(char_list):
-            if char == '<space>':
-                char_list[i] = ' '
-        char_list.insert(0, '<sos>')
+        char_list = [entry.decode('utf-8').split(' ')[0]
+                     for entry in dictionary]
+        char_list.insert(0, '<blank>')
         char_list.append('<eos>')
         args.char_list = char_list
     else:
@@ -405,7 +404,7 @@ def main():
         logging.warning('cudnn is not available')
 
     # get input and output dimension info
-    with open(args.valid_label, 'r') as f:
+    with open(args.valid_label, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
     idim = int(valid_json[utts[0]]['idim'])
@@ -447,9 +446,9 @@ def main():
     setattr(optimizer, "serialize", lambda s: model.reporter.serialize(s))
 
     # read json data
-    with open(args.train_label, 'r') as f:
+    with open(args.train_label, 'rb') as f:
         train_json = json.load(f)['utts']
-    with open(args.valid_label, 'r') as f:
+    with open(args.valid_label, 'rb') as f:
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)

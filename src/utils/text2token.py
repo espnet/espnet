@@ -31,7 +31,7 @@ def main():
                         help='space symbol')
     parser.add_argument('--non-lang-syms', '-l', default=None, type=str,
                         help='list of non-linguistic symobles, e.g., <NOISE> etc.')
-    parser.add_argument('text', type=str,
+    parser.add_argument('text', type=str, default=False, nargs='?',
                         help='input text')
     args = parser.parse_args()
 

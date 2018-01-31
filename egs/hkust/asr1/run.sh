@@ -47,9 +47,10 @@ epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0.3
-maxlenratio=0.8
+penalty=0.0
+maxlenratio=0.0
 minlenratio=0.0
+ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
@@ -124,14 +125,15 @@ if [ ${stage} -le 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
+    split_dir=`echo $PWD | awk -F "/" '{print $NF "/" $(NF-1)}'`
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/a{11,12,13,14}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/a{11,12,13,14}/${USER}/espnet-data/egs/${split_dir}/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/a{11,12,13,14}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/a{11,12,13,14}/${USER}/espnet-data/egs/${split_dir}/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -223,7 +225,7 @@ if [ ${stage} -le 4 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
 
         # split data
         data=data/${rtask}
@@ -245,8 +247,6 @@ if [ ${stage} -le 4 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             ${decode_script} \
             --gpu ${gpu} \
-            --debugmode ${debugmode} \
-            --verbose ${verbose} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
@@ -256,6 +256,7 @@ if [ ${stage} -le 4 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
+            --ctc-weight ${ctc_weight} \
             &
         wait
 
