@@ -186,9 +186,9 @@ class E2E(torch.nn.Module):
                               args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'coverage':
             self.att = AttCov(args.eprojs, args.dunits, args.adim)
-        elif args.atype == 'coverage_location':
-            self.att = AttCovLoc(args.eprojs, args.dunits,
-                                 args.adim, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'location2d':
+            self.att = AttLoc2D(args.eprojs, args.dunits,
+                                args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'noatt':
             self.att = NoAtt()
         else:
@@ -390,6 +390,12 @@ def mask_by_length(xs, length, fill=0):
 # ------------- Attention Network --------------------------------------------------------------------------------------
 # dot product based attention
 class AttDot(torch.nn.Module):
+    '''Dot product attention
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    '''
     def __init__(self, eprojs, dunits, att_dim):
         super(AttDot, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
@@ -403,21 +409,23 @@ class AttDot(torch.nn.Module):
         self.pre_compute_enc_h = None
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        '''AttDot
+        '''AttDot forward
 
-        :param enc_hs:
-        :param dec_z:
-        :param scaling:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: dummy (does not use)
+        :param Variable att_prev: dummy (does not use)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weight (B x T_max)
+        :rtype: Variable
         '''
         batch = enc_hs_pad.size(0)
         # pre-compute all h outside the decoder loop
@@ -448,6 +456,15 @@ class AttDot(torch.nn.Module):
 
 # multi head dot product based attention
 class AttMultiHeadDot(torch.nn.Module):
+    '''Multi head dot product attention
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int ahead: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    '''
     def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
         super(AttMultiHeadDot, self).__init__()
         self.mlp_q = torch.nn.ModuleList()
@@ -470,22 +487,24 @@ class AttMultiHeadDot(torch.nn.Module):
         self.pre_compute_v = None
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        '''AttMultiHeadDot
+        '''AttMultiHeadDot forward
 
-        :param enc_hs:
-        :param dec_z:
-        :param scaling:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: dummy (does not use)
+        :param Variable att_prev: dummy (does not use)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weight (B x T_max)
+        :rtype: Variable
         '''
         batch = enc_hs_pad.size(0)
         # pre-compute all k and v outside the decoder loop
@@ -609,8 +628,14 @@ class AttLoc(torch.nn.Module):
         return c, w
 
 
-# coverage mechanism based attention
+# coverage mechanism attention
 class AttCov(torch.nn.Module):
+    '''Coverage mechanism attetion
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    '''
     def __init__(self, eprojs, dunits, att_dim):
         super(AttCov, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
@@ -626,22 +651,23 @@ class AttCov(torch.nn.Module):
         self.pre_compute_enc_h = None
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
-        '''AttLoc forward
+        '''AttCov forward
 
-        :param Variable enc_hs:
-        :param Variable dec_z:
-        :param list att_prev: list of Variable
-        :param float scaling:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param list att_prev_list: list of previous attetion weight
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weights
+        :rtype: list
         '''
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
@@ -688,15 +714,24 @@ class AttCov(torch.nn.Module):
         return c, att_prev_list
 
 
-# coverage location based attention
-class AttCovLoc(torch.nn.Module):
-    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
-        super(AttCovLoc, self).__init__()
+# 2d location-aware attention
+class AttLoc2D(torch.nn.Module):
+    '''2D location-aware attetion
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    :param int att_win: attention window size (default=5)
+    '''
+    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts, att_win=5):
+        super(AttLoc2D, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
         self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
         self.loc_conv = torch.nn.Conv2d(
-            1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+            1, aconv_chans, (att_win, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
         self.gvec = torch.nn.Linear(att_dim, 1)
 
         self.dunits = dunits
@@ -706,24 +741,26 @@ class AttCovLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.aconv_chans = aconv_chans
+        self.att_win = att_win
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
-        '''AttLoc forward
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
+        '''AttLoc2D forward
 
-        :param Variable enc_hs:
-        :param Variable dec_z:
-        :param list att_prev: list of Variable
-        :param float scaling:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param Variable att_prev: previous attetion weight (B x att_win x T_max)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weights (B x att_win x T_max)
+        :rtype: Variable
         '''
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
@@ -739,17 +776,16 @@ class AttCovLoc(torch.nn.Module):
             dec_z = dec_z.view(batch, self.dunits)
 
         # initialize attention weight with uniform dist.
-        if att_prev_list is None:
-            att_prev = [Variable(enc_hs_pad.data.new(
-                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+        if att_prev is None:
+            # B * [Li x att_win]
+            att_prev = [Variable(
+                enc_hs_pad.data.new(l, self.att_win).fill_(1.0 / l)) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
-            att_prev_list = [pad_list(att_prev, 0)]
+            att_prev = pad_list(att_prev, 0).transpose(1, 2)
 
-        # att_prev_list: L' * [B x T] => att_prev B x T
-        att_prev = sum(att_prev_list)
-        # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
-        att_conv = self.loc_conv(att_prev.view(batch, 1, 1, self.h_length))
-        # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+        # att_prev: B x att_win x Tmax -> B x 1 x att_win x Tmax -> B x C x 1 x Tmax
+        att_conv = self.loc_conv(att_prev.unsqueeze(1))
+        # att_conv: B x C x 1 x Tmax -> B x Tmax x C
         att_conv = att_conv.squeeze(2).transpose(1, 2)
         # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
         att_conv = linear_tensor(self.mlp_att, att_conv)
@@ -764,17 +800,22 @@ class AttCovLoc(torch.nn.Module):
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         w = torch.nn.functional.softmax(scaling * e, dim=1)
-        att_prev_list += [w]
 
         # weighted sum over flames
         # utt x hdim
         # NOTE use bmm instead of sum(*)
         c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
 
-        return c, att_prev_list
+        # update att_prev: B x att_win x Tmax -> B x att_win+1 x Tmax -> B x att_win x Tmax
+        att_prev = torch.cat([att_prev, w.unsqueeze(1)], dim=1)
+        att_prev = att_prev[:, 1:]
+
+        return c, att_prev
 
 
+# no attention
 class NoAtt(torch.nn.Module):
+    ''' No attention'''
     def __init__(self):
         super(NoAtt, self).__init__()
         self.h_length = None
@@ -783,9 +824,7 @@ class NoAtt(torch.nn.Module):
         self.c = None
 
     def reset(self):
-        '''reset states
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -793,11 +832,14 @@ class NoAtt(torch.nn.Module):
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''NoAtt forward
-        :param Variable enc_hs_pad:
-        :param Variable enc_hs_len:
-        :param Variable dec_z: dummy
-        :param Variable att_prev:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: dummy (does not use)
+        :param Variable att_prev: dummy (does not use)
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weights (B x att_win x T_max)
+        :rtype: Variable
         '''
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
