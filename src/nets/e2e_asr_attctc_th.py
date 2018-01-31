@@ -552,6 +552,15 @@ class AttMultiHeadDot(torch.nn.Module):
 
 # location based attention
 class AttLoc(torch.nn.Module):
+    '''2D location-aware attetion
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
     def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
         super(AttLoc, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
@@ -570,10 +579,7 @@ class AttLoc(torch.nn.Module):
         self.aconv_chans = aconv_chans
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -581,12 +587,17 @@ class AttLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
 
-        :param Variable enc_hs:
-        :param Variable dec_z:
-        :param Variable att_prev:
-        :param float scaling:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param Variable att_prev: previous attetion weight (B x T_max)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weights (B x T_max)
+        :rtype: Variable
         '''
+
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
