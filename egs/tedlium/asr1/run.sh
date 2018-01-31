@@ -161,9 +161,10 @@ mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
-    [ ! -e ${lmexpdir} ] && mkdir -p ${lmdatadir}
+    [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
     gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py \
-        | text2token.py -n 1 | perl -pe 's/\n/ <eos> /g' > ${lmdatadir}/train.txt
+        | text2token.py -n 1 | perl -pe 's/\n/ <eos> /g' \
+        > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 data/dev/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
     ${cuda_cmd} ${lmexpdir}/train.log \
