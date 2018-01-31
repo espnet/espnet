@@ -396,6 +396,7 @@ class AttDot(torch.nn.Module):
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
     '''
+
     def __init__(self, eprojs, dunits, att_dim):
         super(AttDot, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
@@ -427,6 +428,7 @@ class AttDot(torch.nn.Module):
         :return: previous attentioin weight (B x T_max)
         :rtype: Variable
         '''
+
         batch = enc_hs_pad.size(0)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -465,6 +467,7 @@ class AttMultiHeadDot(torch.nn.Module):
     :param int att_dim_k: dimension k in multi head attention
     :param int att_dim_v: dimension v in multi head attention
     '''
+
     def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
         super(AttMultiHeadDot, self).__init__()
         self.mlp_q = torch.nn.ModuleList()
@@ -506,6 +509,7 @@ class AttMultiHeadDot(torch.nn.Module):
         :return: previous attentioin weight (B x T_max)
         :rtype: Variable
         '''
+
         batch = enc_hs_pad.size(0)
         # pre-compute all k and v outside the decoder loop
         if self.pre_compute_k is None:
@@ -636,6 +640,7 @@ class AttCov(torch.nn.Module):
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
     '''
+
     def __init__(self, eprojs, dunits, att_dim):
         super(AttCov, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
@@ -669,6 +674,7 @@ class AttCov(torch.nn.Module):
         :return: list of previous attentioin weights
         :rtype: list
         '''
+
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -725,6 +731,7 @@ class AttLoc2D(torch.nn.Module):
     :param int aconv_filts: filter size of attention convolution
     :param int att_win: attention window size (default=5)
     '''
+
     def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts, att_win=5):
         super(AttLoc2D, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
@@ -762,6 +769,7 @@ class AttLoc2D(torch.nn.Module):
         :return: previous attentioin weights (B x att_win x T_max)
         :rtype: Variable
         '''
+
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -841,6 +849,7 @@ class NoAtt(torch.nn.Module):
         :return: previous attentioin weights (B x att_win x T_max)
         :rtype: Variable
         '''
+
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
