@@ -823,7 +823,8 @@ class AttLoc2D(torch.nn.Module):
 
 # no attention
 class NoAtt(torch.nn.Module):
-    ''' No attention'''
+    '''No attention'''
+
     def __init__(self):
         super(NoAtt, self).__init__()
         self.h_length = None
@@ -840,6 +841,7 @@ class NoAtt(torch.nn.Module):
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''NoAtt forward
+
         :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
         :param Variable dec_z: dummy (does not use)
