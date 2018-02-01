@@ -185,10 +185,13 @@ class E2E(torch.nn.Module):
             self.att = AttLoc(args.eprojs, args.dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'coverage':
-            self.att = AttCov(args.eprojs, args.dunits, args.adim)
+            self.att = AttCov(args.eprojs, args.dunits, args.adim, args.awin)
+        elif args.atype == 'coverage_location':
+            self.att = AttCovLoc(args.eprojs, args.dunits, args.adim, args.awin,
+                                 args.aconv_chans, args.aconv_filts)
         elif args.atype == 'location2d':
             self.att = AttLoc2D(args.eprojs, args.dunits,
-                                args.adim, args.aconv_chans, args.aconv_filts)
+                                args.adim, args.awin, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'location_recurrent':
             self.att = AttLocRec(args.eprojs, args.dunits,
                                  args.adim, args.aconv_chans, args.aconv_filts)
@@ -555,7 +558,7 @@ class AttMultiHeadDot(torch.nn.Module):
 
 # location based attention
 class AttLoc(torch.nn.Module):
-    '''2D location-aware attetion
+    '''location-aware attetion
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -653,9 +656,10 @@ class AttCov(torch.nn.Module):
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
+    :param int att_win: attention window size
     '''
 
-    def __init__(self, eprojs, dunits, att_dim):
+    def __init__(self, eprojs, dunits, att_dim, att_win):
         super(AttCov, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
@@ -665,6 +669,7 @@ class AttCov(torch.nn.Module):
         self.dunits = dunits
         self.eprojs = eprojs
         self.att_dim = att_dim
+        self.att_win = att_win
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -709,8 +714,12 @@ class AttCov(torch.nn.Module):
             # if no bias, 0 0-pad goes 0
             att_prev_list = [pad_list(att_prev, 0)]
 
-        # att_prev_list: L' * [B x T] => cov_vec B x T
-        cov_vec = sum(att_prev_list)
+        if self.att_win > 0:
+            # att_prev_list: att_win * [B x T] => cov_vec B x T
+            cov_vec = sum(att_prev_list[-self.att_win:])
+        else:
+            # att_prev_list: L' * [B x T] => cov_vec B x T
+            cov_vec = sum(att_prev_list)
         # cov_vec: B x T => B x T x 1 => B x T x att_dim
         cov_vec = linear_tensor(self.wvec, cov_vec.unsqueeze(-1))
 
@@ -722,6 +731,109 @@ class AttCov(torch.nn.Module):
         # NOTE consider zero padding when compute w.
         e = linear_tensor(self.gvec, torch.tanh(
             cov_vec + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        w = torch.nn.functional.softmax(scaling * e, dim=1)
+        att_prev_list += [w]
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        return c, att_prev_list
+
+
+# coverage mechanism location aware attention
+class AttCovLoc(torch.nn.Module):
+    '''Coverage mechanism location aware attetion
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int att_win: attention window size
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim, att_win, aconv_chans, aconv_filts):
+        super(AttCovLoc, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.aconv_chans = aconv_chans
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
+        '''AttCovLoc forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param list att_prev_list: list of previous attetion weight
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weights
+        :rtype: list
+        '''
+
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        # initialize attention weight with uniform dist.
+        if att_prev_list is None:
+            att_prev = [Variable(enc_hs_pad.data.new(
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev_list = [pad_list(att_prev, 0)]
+
+        if self.att_win > 0:
+            # att_prev_list: att_win * [B x T] => cov_vec B x T
+            cov_vec = sum(att_prev_list[-self.att_win:])
+        else:
+            # att_prev_list: L' * [B x T] => cov_vec B x T
+            cov_vec = sum(att_prev_list)
+
+        # cov_vec: B x T -> B x 1 x 1 x T -> B x C x 1 x T
+        att_conv = self.loc_conv(cov_vec.view(batch, 1, 1, self.h_length))
+        # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+        att_conv = att_conv.squeeze(2).transpose(1, 2)
+        # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+        att_conv = linear_tensor(self.mlp_att, att_conv)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = linear_tensor(self.gvec, torch.tanh(
+            att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         w = torch.nn.functional.softmax(scaling * e, dim=1)
         att_prev_list += [w]
@@ -746,7 +858,7 @@ class AttLoc2D(torch.nn.Module):
     :param int att_win: attention window size (default=5)
     '''
 
-    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts, att_win=5):
+    def __init__(self, eprojs, dunits, att_dim, att_win, aconv_chans, aconv_filts):
         super(AttLoc2D, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
@@ -801,7 +913,7 @@ class AttLoc2D(torch.nn.Module):
         if att_prev is None:
             # B * [Li x att_win]
             att_prev = [Variable(
-                enc_hs_pad.data.new(l, self.att_win).fill_(1.0 / l)) for l in enc_hs_len]
+                enc_hs_pad.data.new(l, self.att_win).zero_() + 1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0).transpose(1, 2)
 
@@ -842,6 +954,8 @@ class AttLocRec(torch.nn.Module):
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
     '''
 
     def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
@@ -877,7 +991,7 @@ class AttLocRec(torch.nn.Module):
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
         :rtype: Variable
-        :return: previous attention weights and lstm states
+        :return: previous attention weights and lstm states (w, (hx, cx))
                  ((B, T_max), ((B, att_dim), (B, att_dim)))
         :rtype: tuple
         '''
