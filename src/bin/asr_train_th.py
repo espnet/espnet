@@ -297,10 +297,12 @@ def main():
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'location', 'multi_head_dot',
-                                 'coverage', 'location2d', 'location_recurrent'],
+                                 'coverage', 'coverage_location', 'location2d', 'location_recurrent'],
                         help='Type of attention architecture')
     parser.add_argument('--adim', default=320, type=int,
                         help='Number of attention transformation dimensions')
+    parser.add_argument('--awin', default=5, type=int,
+                        help='Window size of location2d attention')
     parser.add_argument('--aheads', default=8, type=int,
                         help='Number of multi head dot product attention \
                         (only for atype = multi_head_dot)')
