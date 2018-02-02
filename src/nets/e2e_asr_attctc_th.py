@@ -466,6 +466,8 @@ class AttDot(torch.nn.Module):
 class AttMultiHeadDot(torch.nn.Module):
     '''Multi head dot product attention
 
+    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
@@ -652,6 +654,9 @@ class AttLoc(torch.nn.Module):
 # coverage mechanism attention
 class AttCov(torch.nn.Module):
     '''Coverage mechanism attetion
+
+    Reference: Get To The Point: Summarization with Pointer-Generator Network
+               (https://arxiv.org/abs/1704.04368)
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
