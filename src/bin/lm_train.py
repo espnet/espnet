@@ -396,14 +396,14 @@ def main():
             logging.info('save the optimizer')
             serializers.save_npz(args.outdir + '/rnnlm.state.' + str(epoch_now), optimizer)
 
-            epoch_now = train_iter.epoch
-
             if valid_perp < best_valid:
                 dest = args.outdir + '/rnnlm.model.best'
                 if os.path.lexists(dest):
                     os.remove(dest)
                 os.symlink('rnnlm.model.' + str(epoch_now), dest)
                 best_valid = valid_perp
+
+            epoch_now = train_iter.epoch
 
 
 if __name__ == '__main__':
