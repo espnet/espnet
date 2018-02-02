@@ -19,8 +19,7 @@ fi
 
 dir=$1
 dic=$2
-tmpdir=${dir}/tmp
-mkdir -p ${tmpdir}
+tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
 rm -f ${tmpdir}/*.scp
 
 # input, which is not necessary for decoding mode, and make it as an option
@@ -53,3 +52,4 @@ for x in ${dir}/text ${dir}/utt2spk ${tmpdir}/*.scp; do
     cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done
 mergejson.py ${tmpdir}/*.json 
+rm -fr ${tmpdir}
