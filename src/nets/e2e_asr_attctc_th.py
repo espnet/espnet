@@ -767,6 +767,7 @@ class AttCovLoc(torch.nn.Module):
         self.dunits = dunits
         self.eprojs = eprojs
         self.att_dim = att_dim
+        self.att_win = att_win
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
