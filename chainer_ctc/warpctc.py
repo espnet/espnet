@@ -2,7 +2,7 @@ import numpy as np
 from chainer import cuda
 from chainer import function
 
-from .src import warp_ctc
+from chainer_ctc.src import warp_ctc
 
 
 def _softmax(net_out):

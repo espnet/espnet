@@ -3,8 +3,8 @@ import numpy as np
 from chainer import function
 from chainer.utils import force_array, type_check
 
-from . import gpu_kernel as ctc_gpu
-from .src import ctc_cpu
+from chainer_ctc import gpu_kernel as ctc_gpu
+from chainer_ctc.src import ctc_cpu
 
 
 def _softmax(net_out):
