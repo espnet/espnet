@@ -291,6 +291,10 @@ def main():
     parser.add_argument('--subsample', default=1, type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
+    # loss
+    parser.add_argument('--ctc_type', default='chainer', type=str,
+                        choices=['chainer', 'fused'],
+                        help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['dot', 'location', 'noatt'],
