@@ -5,20 +5,6 @@ from chainer import function
 from chainer_ctc.src import warp_ctc
 
 
-def _softmax(net_out):
-    """ Calculates the softmax of a sequence
-
-    :param net_out: Output of the network
-    :return: softmax output
-    """
-    xp = cuda.get_array_module(net_out)
-    net_out_e = net_out - net_out.max(axis=2, keepdims=True)
-    xp.exp(net_out_e, out=net_out_e)
-    net_out_e /= net_out_e.sum(axis=2, keepdims=True)
-    xp.log(net_out_e, out=net_out_e)
-    return net_out_e
-
-
 class CTC(function.Function):
 
     def __init__(self, seq_lengths, labels):
@@ -29,7 +15,7 @@ class CTC(function.Function):
         pass
 
     def forward(self, inputs):
-        x = _softmax(inputs[0])
+        x = inputs[0].copy()  # make sure data is aligned
         xp = cuda.get_array_module(x)
         alphabet_size = x.shape[2]
         label_lengths = np.asarray([len(l.flatten()) for l in self.labels],
@@ -93,12 +79,11 @@ class CTC(function.Function):
         if np.any(np.isnan(loss)):
             raise ValueError
 
-        score = xp.full((1,), np.mean(loss), dtype=np.float32)
+        score = xp.full((1,), xp.mean(loss), dtype=np.float32)
         return score,
 
-    def backward_gpu(self, inputs, gy):
-        self.gradients *= gy[0]
-        return self.gradients,
+    def backward(self, inputs, gy):
+        return self.gradients * gy[0] / len(self.labels),
 
 
 def ctc(x, seq_lengths, labels):
