@@ -12,6 +12,7 @@ import pytest
 
 from chainer import cuda
 
+
 def make_arg(**kwargs):
     defaults = dict(
         elayers=4,
@@ -74,12 +75,6 @@ def init_chainer_weight_const(m, val):
     for p in m.params():
         if p.data.ndim > 1:
             p.data[:] = val
-
-
-def copy_weights(chainer_mdl, torch_mdl):
-    for ch_p, th_p in zip(chainer_mdl.params(), torch_mdl.parameters()):
-        assert ch_p.data.shape == th_p.shape
-        th_p.data.fill_(ch_p.data)
 
 
 @pytest.mark.parametrize("ctc_test_type", ["fused", "warpctc"])
