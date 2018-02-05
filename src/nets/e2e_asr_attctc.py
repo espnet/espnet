@@ -358,7 +358,7 @@ class WarpCTC(chainer.Chain):
                      ' output lengths: ' + str(olens))
 
         # get ctc loss
-        self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])
+        self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])[0]
         logging.info('ctc loss:' + str(self.loss.data))
 
         return self.loss
