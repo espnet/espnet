@@ -372,6 +372,7 @@ def main():
     np.random.seed(nseed)
     torch.manual_seed(nseed)
     os.environ['CHAINER_SEED'] = str(nseed)
+    torch.backends.cudnn.deterministic = True
     logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
 
     # debug mode setting
