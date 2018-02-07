@@ -77,8 +77,7 @@ def init_chainer_weight_const(m, val):
             p.data[:] = val
 
 
-@pytest.mark.parametrize("ctc_test_type", ["fused", "warpctc"])
-def test_chainer_ctc_type(ctc_test_type):
+def test_chainer_ctc_type():
     import logging
     logging.basicConfig(
         level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
@@ -100,7 +99,7 @@ def test_chainer_ctc_type(ctc_test_type):
             ctc_type=ctc_type, elayers=2, eunits=20, eprojs=20
         )
         numpy.random.seed(0)
-        model = (ch.E2E(40, 5, args))
+        model = ch.E2E(40, 5, args)
         ch_ctc, _, _ = model(data)
         ch_ctc.backward()
         W_grad = model.ctc.ctc_lo.W.grad
@@ -108,7 +107,7 @@ def test_chainer_ctc_type(ctc_test_type):
         return ch_ctc.data, W_grad, b_grad
 
     ref_loss, ref_W_grad, ref_b_grad = _propagate("chainer")
-    loss, W_grad, b_grad = _propagate(ctc_test_type)
+    loss, W_grad, b_grad = _propagate("warpctc")
     numpy.testing.assert_allclose(ref_loss, loss)
     numpy.testing.assert_allclose(ref_W_grad, W_grad)
     numpy.testing.assert_allclose(ref_b_grad, b_grad)
