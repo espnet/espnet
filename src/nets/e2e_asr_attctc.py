@@ -12,11 +12,10 @@ import numpy as np
 import six
 
 import chainer
+from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
-from chainer import cuda
 from chainer import reporter
-from chainer_ctc.ctc import ctc as fused_ctc
 from chainer_ctc.warpctc import ctc as warp_ctc
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
