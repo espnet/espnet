@@ -123,9 +123,6 @@ class E2E(chainer.Chain):
             if ctc_type == 'chainer':
                 logging.info("Using chainer CTC implementation")
                 self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
-            elif ctc_type == 'fused':
-                logging.info("Using fused CTC implementation")
-                self.ctc = FusedCTC(odim, args.eprojs, args.dropout_rate)
             elif ctc_type == 'warpctc':
                 logging.info("Using warpctc CTC implementation")
                 self.ctc = WarpCTC(odim, args.eprojs, args.dropout_rate)
@@ -261,57 +258,6 @@ class CTC(chainer.Chain):
         # get ctc loss
         self.loss = F.connectionist_temporal_classification(
             y_hat, y_true, 0, input_length, label_length)
-        logging.info('ctc loss:' + str(self.loss.data))
-
-        return self.loss
-
-    def log_softmax(self, hs):
-        '''log_softmax of frame activations
-
-        :param hs:
-        :return:
-        '''
-        y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
-        return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
-
-
-class FusedCTC(chainer.Chain):
-    def __init__(self, odim, eprojs, dropout_rate):
-        super(FusedCTC, self).__init__()
-        self.dropout_rate = dropout_rate
-        self.loss = None
-
-        with self.init_scope():
-            self.ctc_lo = L.Linear(eprojs, odim)
-
-    def __call__(self, hs, ys):
-        '''CTC forward
-
-        :param hs:
-        :param ys:
-        :return:
-        '''
-        self.loss = None
-        ilens = [x.shape[0] for x in hs]
-        olens = [x.shape[0] for x in ys]
-
-        # zero padding for hs
-        y_hat = linear_tensor(self.ctc_lo, F.dropout(
-            F.pad_sequence(hs), ratio=self.dropout_rate))
-        y_hat = F.transpose(y_hat, (1, 0, 2))  # batch x frames x hdim
-
-        # zero padding for ys
-        y_true = F.pad_sequence(ys, padding=-1)  # batch x olen
-
-        # get length info
-        input_length = np.array(ilens, dtype=np.int32)
-        logging.info(self.__class__.__name__ +
-                     ' input lengths:  ' + str(input_length))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str(olens))
-
-        # get ctc loss
-        self.loss = fused_ctc(y_hat, y_true, 0, input_length)
         logging.info('ctc loss:' + str(self.loss.data))
 
         return self.loss
