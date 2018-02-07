@@ -17,7 +17,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe 
-  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CJS, AMI, HKUST, Voxforge, etc.)
+  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
 - State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Moderate performance in standard English benchmarks
 
@@ -127,8 +127,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval1 | 10.7 | N/A  |
 | CSJ eval2 |  8.0 | N/A  |
 | CSJ eval3 |  8.8 | N/A  |
-| HKUST train_dev | 30.5 | N/A  |
-| HKUST dev       | 28.9 | N/A  |
+| HKUST train_dev | 29.7 | N/A  |
+| HKUST dev       | 28.3 | N/A  |
 | Librispeech dev_clean  | 2.9 | 7.7 |
 | Librispeech test_clean | 2.7 | 7.7 |
 
