@@ -10,8 +10,6 @@ import importlib
 import numpy
 import pytest
 
-from chainer import cuda
-
 
 def make_arg(**kwargs):
     defaults = dict(
