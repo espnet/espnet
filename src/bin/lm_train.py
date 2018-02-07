@@ -313,10 +313,10 @@ def main():
 
     with open(args.train_label, 'rb') as f:
         train = np.array([char_list_dict[char] if char in char_list_dict else char_list_dict['<unk>']
-                          for char in f.readline().split()], dtype=np.int32)
+                          for char in f.readline().decode('utf-8').split()], dtype=np.int32)
     with open(args.valid_label, 'rb') as f:
         valid = np.array([char_list_dict[char] if char in char_list_dict else char_list_dict['<unk>']
-                          for char in f.readline().split()], dtype=np.int32)
+                          for char in f.readline().decode('utf-8').split()], dtype=np.int32)
     n_vocab = len(char_list)
 
     # for debug, small data
