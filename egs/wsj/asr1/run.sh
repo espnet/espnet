@@ -147,25 +147,6 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
-if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_ctc${ctctype}
-    if ${do_delta}; then
-        expdir=${expdir}_delta
-    fi
-else
-    expdir=exp/${train_set}_${tag}
-fi
-mkdir -p ${expdir}
-
-# switch backend
-if [[ ${backend} == chainer ]]; then
-    train_script=asr_train.py
-    decode_script=asr_recog.py
-else
-    train_script=asr_train_th.py
-    decode_script=asr_recog_th.py
-fi
-
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs2048
@@ -189,6 +170,25 @@ if [ ${stage} -le 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --dict ${dict}
+fi
+
+if [ -z ${tag} ]; then
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_ctc${ctctype}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    if ${do_delta}; then
+        expdir=${expdir}_delta
+    fi
+else
+    expdir=exp/${train_set}_${tag}
+fi
+mkdir -p ${expdir}
+
+# switch backend
+if [[ ${backend} == chainer ]]; then
+    train_script=asr_train.py
+    decode_script=asr_recog.py
+else
+    train_script=asr_train_th.py
+    decode_script=asr_recog_th.py
 fi
 
 if [ ${stage} -le 4 ]; then

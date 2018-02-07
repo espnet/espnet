@@ -48,6 +48,10 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 opt=adadelta
 epochs=15
 
+# rnnlm related
+batchsize_lm=64
+lm_weight=0.2
+
 # decoding parameter
 beam_size=20
 penalty=0.0
@@ -170,6 +174,29 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
+# you can skip this and remove --rnnlm option in the recognition (stage 5)
+lmexpdir=exp/train_rnnlm_2layer_bs${batchsize_lm}
+mkdir -p ${lmexpdir}
+if [ ${stage} -le 3 ]; then
+    echo "stage 3: LM Preparation"
+    lmdatadir=data/local/lm_train
+    mkdir -p ${lmdatadir}
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/train_nodup/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+        > ${lmdatadir}/train_trans.txt
+    cat ${lmdatadir}/train_trans.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+        > ${lmdatadir}/valid.txt
+    ${cuda_cmd} ${lmexpdir}/train.log \
+        lm_train.py \
+        --gpu ${gpu} \
+        --verbose 1 \
+        --batchsize ${batchsize_lm} \
+        --outdir ${lmexpdir} \
+        --train-label ${lmdatadir}/train.txt \
+        --valid-label ${lmdatadir}/valid.txt \
+        --dict ${dict}
+fi
+
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_ctc${ctctype}
     if ${do_delta}; then
@@ -189,8 +216,8 @@ else
     decode_script=asr_recog_th.py
 fi
 
-if [ ${stage} -le 3 ]; then
-    echo "stage 3: Network Training"
+if [ ${stage} -le 4 ]; then
+    echo "stage 4: Network Training"
     ${cuda_cmd} ${expdir}/train.log \
         ${train_script} \
         --gpu ${gpu} \
@@ -224,13 +251,13 @@ if [ ${stage} -le 3 ]; then
         --resume ${resume}
 fi
 
-if [ ${stage} -le 4 ]; then
-    echo "stage 4: Decoding"
+if [ ${stage} -le 5 ]; then
+    echo "stage 5: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
 
         # split data
         data=data/${rtask}
@@ -262,7 +289,8 @@ if [ ${stage} -le 4 ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
-            &
+            --rnnlm ${lmexpdir}/rnnlm.model.best \
+            --lm-weight ${lm_weight} &
         wait
 
         score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
