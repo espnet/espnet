@@ -49,8 +49,7 @@ langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306
        401 402 403"
 seq_type="grapheme"
 stage=0
-phoneme_alignments=
-
+phoneme_alignments=/export/a15/MStuDy/Matthew/LORELEI/kaldi/egs/universal_acoustic_model/s5_all_babel_llp/data/train/text.ali.phn
 
 ######################### E2E PARAMATERS ######################################
 backend=chainer
@@ -109,8 +108,8 @@ tag="" # tag for managing experiments.
 
 
 ### TODO NEED TO ADD THE RECOG SET #### 
-train_set=train
-train_dev=dev
+train_set=train_e2e
+train_dev=dev_e2e
 recog_set=dev10h.hat.pem
 
 cwd=$(utils/make_absolute.sh `pwd`)
@@ -142,6 +141,7 @@ if [ $stage -le 0 ]; then
   done
 fi
 
+
 for l in ${langs}; do
   cd data/${l}
   #############################################################################
@@ -150,63 +150,10 @@ for l in ${langs}; do
   if [ $stage -le 1 ]; then
     if [ $seq_type = "phoneme" ]; then
       ./local/prepare_data.sh --extract-feats true
+      ./local/prepare_universal_dict.sh --dict data/dict_universal ${l} 
     else
       ./local/prepare_data.sh
     fi
-    
-    ###########################################################################
-    # Create dictionaries with split diphthongs and standardized tones
-    ###########################################################################
-    # In the lexicons provided by babel there are phonemes x_y, for which _y may
-    # or may not best be considered as a tag on phoneme x. In Lithuanian, for
-    # instance, there is a phoneme A_F for which _F or indicates failling tone.
-    # This same linguistic feature is represented in other languages as a "tag"
-    # (i.e. 判 pun3 p u: n _3), which means for the purposes of kaldi, that
-    # those phonemes share a root in the clustering decision tree, and the tag
-    # becomes an extra question. We may want to revisit this issue later.
-    echo "Dictionary ${l}"
-    dict=data/dict_universal
-    
-    mkdir -p $dict
-    # Create silence lexicon
-    echo -e "<silence>\tSIL\n<unk>\t<oov>\n<noise>\t<sss>\n<v-noise>\t<vns>" \
-      > ${dict}/silence_lexicon.txt
-    
-    # Create non-silence lexicon
-    grep -vFf ${dict}/silence_lexicon.txt data/local/lexicon.txt \
-      > data/local/nonsilence_lexicon.txt
-    
-    # Create split diphthong and standarized tone lexicons for nonsilence words
-    ./local/prepare_universal_lexicon.py \
-      ${dict}/nonsilence_lexicon.txt data/local/nonsilence_lexicon.txt \
-      local/phone_maps/${l} 
-    
-    cat ${dict}/{,non}silence_lexicon.txt | sort > ${dict}/lexicon.txt
-    
-    # Prepare the rest of the dictionary directory
-    # -----------------------------------------------
-    # The local/prepare_dict.py script, which is basically the same as
-    # prepare_unicode_lexicon.py used in the babel recipe to create the
-    # graphemic lexicons, is better suited for working with kaldi formatted
-    # lexicons and can be used for this task by only modifying optional input
-    # arguments. If we could modify local/prepare_lexicon.pl to accomodate this
-    # need it may be more intuitive.
-    ./local/prepare_dict.py \
-      --silence-lexicon ${dict}/silence_lexicon.txt ${dict}/lexicon.txt ${dict}
-
-    ###########################################################################
-    # Prepend language ID to all utterances to disambiguate between speakers
-    # of different languages sharing the same speaker id.
-    #
-    # The individual lang directories can be used for alignments, while a
-    # combined directory will be used for training. This probably has minimal
-    # impact on performance as only words repeated across languages will pose
-    # problems and even amongst these, the main concern is the <hes> marker.
-    ###########################################################################
-    echo "Prepend ${l} to data dir"
-    ./utils/copy_data_dir.sh --spk-prefix "${l}_" --utt-prefix "${l}_" \
-      data/train data/train_${l}
-      cd $cwd
   fi
   cd ${cwd}
 done
@@ -220,159 +167,72 @@ if [ $stage -le 2 ]; then
   dict_dirs=""
   for l in ${langs}; do
     train_dirs="data/${l}/data/train_${l} ${train_dirs}"
-    dict_dirs="data/${l}/data/dict_universal ${dict_dirs}"
+    if [ $seq_type = "phoneme" ]; then
+      dict_dirs="data/${l}/data/dict_universal ${dict_dirs}"
+    fi
   done
 
   ./utils/combine_data.sh data/train $train_dirs
 
-  # This script was made to mimic the utils/combine_data.sh script, but instead
-  # it merges the lexicons while reconciling the nonsilence_phones.txt,
-  # silence_phones.txt, and extra_questions.txt by basically just calling
-  # local/prepare_unicode_lexicon.py. As mentioned, it may be better to simply
-  # modify an existing script to automatically create the dictionary dir from
-  # a lexicon, rather than overuse the local/prepare_unicode_lexicon.py script.
-  ./local/combine_lexicons.sh data/dict_universal $dict_dirs
-
-  # Prepare lang directory
-  ./utils/prepare_lang.sh --share-silence-phones true \
-    data/dict_universal "<unk>" data/dict_universal/tmp.lang data/lang_universal
+  if [ $seq_type = "phoneme" ]; then
+    ./local/combine_lexicons.sh data/dict_universal $dict_dirs
+    # Prepare lang directory
+    ./utils/prepare_lang.sh --share-silence-phones true \
+      data/dict_universal "<unk>" data/dict_universal/tmp.lang data/lang_universal
+  fi
 fi
-
 
 ###############################################################################
 # TRAINING FOR PHONE ALIGNMENTS
 ###############################################################################
-if [ $seq_type = "phoneme" ] && [ $stage -le 3 ]; then  
-  if [ ! -f exp/mono/.done ]; then
-    echo ---------------------------------------------------------------------
-    echo "Starting (small) monophone training in exp/mono on" `date`
-    echo ---------------------------------------------------------------------
-    steps/train_mono.sh \
-      --boost-silence $boost_sil --nj 8 --cmd "$train_cmd" \
-      data/train_sub1 data/lang_universal exp/mono
-    touch exp/mono/.done
-  fi
-
-
-  if [ ! -f exp/tri1/.done ]; then
-    echo ---------------------------------------------------------------------
-    echo "Starting (small) triphone training in exp/tri1 on" `date`
-    echo ---------------------------------------------------------------------
-    steps/align_si.sh \
-      --boost-silence $boost_sil --nj 12 --cmd "$train_cmd" \
-      data/train_sub2 data/lang_universal exp/mono exp/mono_ali_sub2
-
-    steps/train_deltas.sh \
-      --boost-silence $boost_sil --cmd "$train_cmd" $numLeavesTri1 $numGaussTri1 \
-      data/train_sub2 data/lang_universal exp/mono_ali_sub2 exp/tri1
-
-    touch exp/tri1/.done
-  fi
-
-  echo ---------------------------------------------------------------------
-  echo "Starting (medium) triphone training in exp/tri2 on" `date`
-  echo ---------------------------------------------------------------------
-  if [ ! -f exp/tri2/.done ]; then
-    steps/align_si.sh \
-      --boost-silence $boost_sil --nj 24 --cmd "$train_cmd" \
-      data/train_sub3 data/lang_universal exp/tri1 exp/tri1_ali_sub3
-
-    steps/train_deltas.sh \
-      --boost-silence $boost_sil --cmd "$train_cmd" $numLeavesTri2 $numGaussTri2 \
-      data/train_sub3 data/lang_universal exp/tri1_ali_sub3 exp/tri2
-
-    local/reestimate_langp.sh --cmd "$train_cmd" --unk "$oovSymbol" \
-      data/train_sub3 data/lang_universal data/dict_universal \
-      exp/tri2 data/dict_universal/dictp/tri2 data/dict_universal/langp/tri2 data/lang_universalp/tri2
-
-    touch exp/tri2/.done
-  fi
-
-  echo ---------------------------------------------------------------------
-  echo "Starting (full) triphone training in exp/tri3 on" `date`
-  echo ---------------------------------------------------------------------
-  if [ ! -f exp/tri3/.done ]; then
-    steps/align_si.sh \
-      --boost-silence $boost_sil --nj $train_nj --cmd "$train_cmd" \
-      data/train data/lang_universalp/tri2 exp/tri2 exp/tri2_ali
-
-    steps/train_deltas.sh \
-      --boost-silence $boost_sil --cmd "$train_cmd" \
-      $numLeavesTri3 $numGaussTri3 data/train data/lang_universalp/tri2 exp/tri2_ali exp/tri3
-
-    local/reestimate_langp.sh --cmd "$train_cmd" --unk "$oovSymbol" \
-      data/train data/lang_universal data/dict_universal/ \
-      exp/tri3 data/dict_universal/dictp/tri3 data/dict_universal/langp/tri3 data/lang_universalp/tri3
-
-    touch exp/tri3/.done
-  fi
-
-
-  echo ---------------------------------------------------------------------
-  echo "Starting (lda_mllt) triphone training in exp/tri4 on" `date`
-  echo ---------------------------------------------------------------------
-  if [ ! -f exp/tri4/.done ]; then
-    steps/align_si.sh \
-      --boost-silence $boost_sil --nj $train_nj --cmd "$train_cmd" \
-      data/train data/lang_universalp/tri3 exp/tri3 exp/tri3_ali
-
-    steps/train_lda_mllt.sh \
-      --boost-silence $boost_sil --cmd "$train_cmd" \
-      $numLeavesMLLT $numGaussMLLT data/train data/lang_universalp/tri3 exp/tri3_ali exp/tri4
-
-    local/reestimate_langp.sh --cmd "$train_cmd" --unk "$oovSymbol" \
-      data/train data/lang_universal data/dict_universal \
-      exp/tri4 data/dict_universal/dictp/tri4 data/dict_universal/langp/tri4 data/lang_universalp/tri4
-
-    touch exp/tri4/.done
-  fi
-
-  echo ---------------------------------------------------------------------
-  echo "Starting (SAT) triphone training in exp/tri5 on" `date`
-  echo ---------------------------------------------------------------------
-
-  if [ ! -f exp/tri5/.done ]; then
-    steps/align_si.sh \
-      --boost-silence $boost_sil --nj $train_nj --cmd "$train_cmd" \
-      data/train data/lang_universalp/tri4 exp/tri4 exp/tri4_ali
-
-    steps/train_sat.sh \
-      --boost-silence $boost_sil --cmd "$train_cmd" \
-      $numLeavesSAT $numGaussSAT data/train data/lang_universalp/tri4 exp/tri4_ali exp/tri5
-
-    local/reestimate_langp.sh --cmd "$train_cmd" --unk "$oovSymbol" \
-      data/train data/lang_universal data/dict_universal \
-      exp/tri5 data/dict_universal/dictp/tri5 data/dict_universal/langp/tri5 data/lang_universalp/tri5
-
-    touch exp/tri5/.done
-  fi
-
-  if [ ! -f exp/tri5_ali/.done ]; then
-    echo ---------------------------------------------------------------------
-    echo "Starting exp/tri5_ali on" `date`
-    echo ---------------------------------------------------------------------
-    steps/align_fmllr.sh \
-      --boost-silence $boost_sil --nj $train_nj --cmd "$train_cmd" \
-      data/train data/lang_universalp/tri5 exp/tri5 exp/tri5_ali
-
-    local/reestimate_langp.sh --cmd "$train_cmd" --unk "$oovSymbol" \
-      data/train data/lang_universal data/dict_universal \
-      exp/tri5_ali data/dict_universal/dictp/tri5_ali data/dict_universal/langp/tri5_ali data/lang_universalp/tri5_ali
-
-    touch exp/tri5_ali/.done
-  fi
+if [ $seq_type = "phoneme" ] && [ $stage -le 3 ] && [ -z $phoneme_aligmnets ]; then  
+  # TODO Add the ali-to-phones part to local/get_alignments.sh
+  ./local/get_alignments.sh
+  phoneme_alignments=data/data.ali.phn
 fi
 
+###############################################################################
+# Create the train dev splits
+###############################################################################
+if [ $stage -le 4 ]; then
+  num_utts=`cat data/train/text | wc -l`
+  num_utts_dev=$(($num_utts / 10))
+  
+  trainlink=data/train_e2e/text
+  devlink=data/dev_e2e/text
+  
+  
+  # Deterministic "Random" Split
+  python -c "import random; random.seed(1); a=open('data/train/text').readlines(); random.shuffle(a); print((''.join(a[0:${num_utts_dev}])).strip())" | sort > data/dev_e2e.list
+  awk '(NR==FNR) {a[$1]=$0; next} !($1 in a){print $1}' data/dev_e2e.list data/train/text | sort > data/train_e2e.list
+  ./utils/subset_data_dir.sh --utt-list data/dev_e2e.list data/train data/dev_e2e
+  ./utils/subset_data_dir.sh --utt-list data/train_e2e.list data/train data/train_e2e 
+  
+  
+  if [ ${seq_type} = "phoneme" ]; then
+    awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print a[$1]}' $phoneme_alignments data/train_e2e.list \
+      > data/train_e2e/text.phn
+    awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print a[$1]}' $phoneme_alignments data/dev_e2e.list \
+      > data/dev_e2e/text.phn
+  
+    trainlink=data/train_e2e/text.phn
+    devlink=data/dev_e2e/text.phn
+  fi
 
+  ln -sF ${PWD}/${trainlink} ${PWD}/data/train_e2e/train.text
+  ln -sF ${PWD}/${devlink} ${PWD}/data/dev_e2e/dev.text
+fi
+
+# Extract features
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 5 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train dev dev10h.hat.pem; do
+    for x in train_e2e dev_e2e dev10h.hat.pem; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
@@ -396,9 +256,35 @@ if [ ${stage} -le 1 ]; then
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 fi
 
+exit
+dict=data/lang_1char/${train_set}_units.txt
+nlsyms=data/lang_1char/non_lang_syms.txt
+
+echo "dictionary: ${dict}"
+if [ ${stage} -le 2 ]; then
+    ### Task dependent. You have to check non-linguistic symbols used in the corpus.
+    echo "stage 2: Dictionary and Json Data Preparation"
+    mkdir -p data/lang_1char/
+
+    echo "make a non-linguistic symbol list"
+    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    cat ${nlsyms}
+
+    echo "make a dictionary"
+    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    wc -l ${dict}
+
+    echo "make json files"
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+fi
 
 
-
+exit 0;
 
 
 
