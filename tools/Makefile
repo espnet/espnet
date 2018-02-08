@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 
-all: kaldi venv/bin/activate nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc
+all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc
 
 
 kaldi-io-for-python:
@@ -37,6 +37,14 @@ warp-ctc: venv/lib/python2.7/site-packages/torch
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
+chainer_ctc: venv/bin/activate
+	git clone https://github.com/jheymann85/chainer_ctc.git
+	. venv/bin/activate; pip install cython
+	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
+	. venv/bin/activate; cd chainer_ctc && pip install .
+
 clean:
-	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc
-	find -iname "*.pyc" -delete
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc
+	rm miniconda.sh
+	rm chainer300_cudnn7.0_nossh.devel
+	find . -iname "*.pyc" -delete

@@ -262,7 +262,7 @@ def main():
                         help='Random seed')
     parser.add_argument('--debugdir', type=str,
                         help='Output directory for debugging')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', default='', nargs='?',
                         help='Resume the training from snapshot')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
@@ -291,6 +291,10 @@ def main():
     parser.add_argument('--subsample', default=1, type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
+    # loss
+    parser.add_argument('--ctc_type', default='chainer', type=str,
+                        choices=['chainer', 'warpctc'],
+                        help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['dot', 'location', 'noatt'],
