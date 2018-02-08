@@ -29,6 +29,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # loss related
 ctctype=chainer
 # decoder related
+decodertype=informed
 dlayers=1
 dunits=300
 # attention related
@@ -173,7 +174,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_ctc${ctctype}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -224,7 +225,8 @@ if [ ${stage} -le 4 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --ctc_type ${ctctype} \
-        --resume ${resume}
+        --resume ${resume} \
+        --decoder-type ${decodertype}
 fi
 
 if [ ${stage} -le 5 ]; then
