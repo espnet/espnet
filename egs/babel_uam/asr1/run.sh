@@ -119,6 +119,7 @@ if [ $seq_type = "grapheme" ] && [[ $langs = *"101"* ]]; then
   echo >&2 "         training an end-to-end system producing graphemes."
 fi 
 
+# TODO: Remove all conf files and create one giant unified file over all langs
 if [ $stage -le 1 ]; then
   echo "stage 1: Setting up individual languages"
   ./local/setup_languages.sh --langs ${langs} --seq-type ${seq_type} 

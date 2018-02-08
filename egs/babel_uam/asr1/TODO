@@ -1,0 +1,4 @@
+# TODO NEED TO ADD THE RECOG SET # 
+# TODO: Remove all conf files and create one giant unified file over all langs
+# TODO: Support phonetic expansion of text via lexicon lookup or g2p.  
+    # TODO Add in test data options and feature generation
