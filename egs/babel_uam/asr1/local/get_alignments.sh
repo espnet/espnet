@@ -18,7 +18,6 @@ set -o pipefail
 . ./conf/common_vars.sh
 
 
-
 if [ ! -f exp/mono/.done ]; then
   echo ---------------------------------------------------------------------
   echo "Starting (small) monophone training in exp/mono on" `date`
@@ -139,6 +138,8 @@ if [ ! -f exp/tri5_ali/.done ]; then
 fi
 
 
-
+ali-to-phones exp/tri5_ali/final.mdl ark:"gunzip -c exp/tri5_ali/ali.*.gz |" ark,t:- |\
+  sort | ./utils/int2sym.pl -f 2- data/lang_universalp/tri5_ali/phones.txt |\
+  sed 's/_[BISE] / /g' > data/data.ali.phn
 
 exit 0;
