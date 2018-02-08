@@ -35,7 +35,7 @@ class _CTC(Function):
                   minibatch_size,
                   costs)
         self.grads = grads
-        self.costs = torch.FloatTensor([costs.sum()])
+        self.costs = torch.FloatTensor(costs)
         return self.costs
 
     def backward(self, grad_output):
