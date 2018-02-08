@@ -29,7 +29,6 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # loss related
 ctctype=chainer
 # decoder related
-decodertype=informed
 dlayers=1
 dunits=300
 # attention related
