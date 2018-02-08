@@ -235,6 +235,7 @@ if [ ${stage} -le 4 ]; then
         --debugdir ${expdir} \
         --minibatches ${N} \
         --verbose ${verbose} \
+        --resume ${resume} \
         --train-feat scp:${feat_tr_dir}/feats.scp \
         --valid-feat scp:${feat_dt_dir}/feats.scp \
         --train-label ${feat_tr_dir}/data.json \
@@ -244,6 +245,7 @@ if [ ${stage} -le 4 ]; then
         --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
+        --ctc_type ${ctctype} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
@@ -254,9 +256,7 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --epochs ${epochs} \
-        --ctc_type ${ctctype} \
-        --resume ${resume}
+        --epochs ${epochs}
 fi
 
 wait # wait LM train to be finished
