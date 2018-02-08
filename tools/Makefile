@@ -42,9 +42,6 @@ chainer_ctc: venv/bin/activate
 	. venv/bin/activate; pip install cython
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
 	. venv/bin/activate; cd chainer_ctc && pip install .
-	@echo --------------------------------------------------------------------------------------
-	@echo Add $(shell pwd)/chainer_ctc/ext/warp-ctc/build to your LD_LIBRARY_PATH to use WarpCTC with Chainer.
-	@echo --------------------------------------------------------------------------------------
 
 clean:
 	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc
