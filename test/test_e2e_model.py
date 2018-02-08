@@ -93,9 +93,7 @@ def test_chainer_ctc_type():
     ]
 
     def _propagate(ctc_type):
-        args = make_arg(
-            ctc_type=ctc_type, elayers=2, eunits=20, eprojs=20
-        )
+        args = make_arg(ctc_type=ctc_type)
         numpy.random.seed(0)
         model = ch.E2E(40, 5, args)
         ch_ctc, _, _ = model(data)
@@ -106,7 +104,7 @@ def test_chainer_ctc_type():
 
     ref_loss, ref_W_grad, ref_b_grad = _propagate("chainer")
     loss, W_grad, b_grad = _propagate("warpctc")
-    numpy.testing.assert_allclose(ref_loss, loss)
+    numpy.testing.assert_allclose(ref_loss, loss, rtol=1e-5)
     numpy.testing.assert_allclose(ref_W_grad, W_grad)
     numpy.testing.assert_allclose(ref_b_grad, b_grad)
 
