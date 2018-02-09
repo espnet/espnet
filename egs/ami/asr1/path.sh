@@ -1,7 +1,6 @@
 MAIN_ROOT=$PWD/../../..
 KALDI_ROOT=$MAIN_ROOT/tools/kaldi
 SPNET_ROOT=$MAIN_ROOT/src
-LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/build
 
 [ -f $KALDI_ROOT/tools/env.sh ] && . $KALDI_ROOT/tools/env.sh
 export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin:$PWD:$PATH
@@ -10,6 +9,7 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin
 export LC_ALL=C
 
 export PATH=$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PATH
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 source $MAIN_ROOT/tools/venv/bin/activate
 export PYTHONPATH=$SPNET_ROOT/nets/:$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH
 
