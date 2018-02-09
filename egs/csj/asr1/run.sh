@@ -7,28 +7,28 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
-stage=0        # start from 0 if you need to start from data preparation
-gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
+backend=chainer # chainer or pytorch
+stage=0         # start from 0 if you need to start from data preparation
+gpu=-1          # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
-dumpdir=dump   # directory to dump full features
-N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=0      # verbose option
-resume=        # Resume the training from snapshot
-seed=1         # seed to generate random number 
+dumpdir=dump    # directory to dump full features
+N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
+verbose=0       # verbose option
+resume=         # Resume the training from snapshot
+seed=1          # seed to generate random number
 
 # feature configuration
 do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
+etype=vggblstmp # encoder architecture type
 elayers=6
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # loss related
-ctctype=chainer
+ctctype=chainer # chainer or warpctc
 # decoder related
 dlayers=1
 dunits=300
@@ -55,9 +55,9 @@ lm_weight=1.0
 
 # decoding parameter
 beam_size=20
-penalty=0.1
-maxlenratio=0.5
-minlenratio=0.1
+penalty=0.0
+maxlenratio=0.0
+minlenratio=0.0
 ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
