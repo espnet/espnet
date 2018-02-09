@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 
-all: kaldi venv/bin/activate nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc
+all: kaldi venv/bin/activate nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc subword-nmt
 
 
 kaldi-io-for-python:
@@ -37,6 +37,9 @@ warp-ctc: venv/lib/python2.7/site-packages/torch
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
+subword-nmt:
+    git clone https://github.com/rsennrich/subword-nmt.git
+
 clean:
-	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc subword-nmt
 	find -iname "*.pyc" -delete
