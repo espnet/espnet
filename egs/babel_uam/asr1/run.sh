@@ -41,13 +41,13 @@
 
 set -e
 set -o pipefail
+# TODO: Fix annoying problem of free-gpu not being seen when preparing data on a* machines.
 . ./path.sh
 . ./cmd.sh
 . ./conf/common_vars.sh
 
 ################### DATA SPECIFIC PARAMETERS ##################################
-langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306
-       401 402 403"
+langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
 seq_type="grapheme"
 stage=0
 phoneme_alignments=/export/a15/MStuDy/Matthew/LORELEI/kaldi/egs/universal_acoustic_model/s5_all_babel_llp/data/train/text.ali.phn
@@ -107,8 +107,7 @@ tag="" # tag for managing experiments.
 
 . ./utils/parse_options.sh
 
-
-# TODO NEED TO ADD THE RECOG SET # 
+# TODO: NEED TO ADD THE RECOG SET # 
 train_set=train_e2e
 train_dev=dev_e2e
 recog_set=dev10h.hat.pem
@@ -120,9 +119,11 @@ if [ $seq_type = "grapheme" ] && [[ $langs = *"101"* ]]; then
 fi 
 
 # TODO: Remove all conf files and create one giant unified file over all langs
+# TODO: Remove unnecessary L.fst creation when phoneme alignments are not needed
 if [ $stage -le 1 ]; then
   echo "stage 1: Setting up individual languages"
-  ./local/setup_languages.sh --langs ${langs} --seq-type ${seq_type} 
+  ./local/setup_languages.sh --langs "${langs}" --seq-type ${seq_type}\
+                             --phn-ali ${phoneme_alignments} 
 fi
 
 ###############################################################################
@@ -135,7 +136,7 @@ fi
 #
 # TODO: Support phonetic expansion of text via lexicon lookup or g2p.  
 ###############################################################################
-if [ $seq_type = "phoneme" ] && [ $stage -le 2 ] && [ -z $phoneme_aligmnets ]; then  
+if [ $seq_type = "phoneme" ] && [ $stage -le 2 ] && [ -z $phoneme_alignments ]; then  
   echo "stage 2: Generate alignments for phonetic experiments"
   ./local/get_alignments.sh
   phoneme_alignments=data/data.ali.phn
@@ -163,7 +164,6 @@ if [ $stage -le 3 ]; then
   [ ! -f $devlink ] && mv data/dev_e2e/text $devlink
 
   if [ ${seq_type} = "phoneme" ]; then
-    echo "HERE"
     awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print a[$1]}' $phoneme_alignments data/train_e2e.list \
       > data/train_e2e/text.phn
     awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print a[$1]}' $phoneme_alignments data/dev_e2e.list \
@@ -175,6 +175,12 @@ if [ $stage -le 3 ]; then
 
   ln -sf ${PWD}/${trainlink} ${PWD}/data/train_e2e/text
   ln -sf ${PWD}/${devlink} ${PWD}/data/dev_e2e/text
+
+  # When using forced alignments, some of the utterances may have failed to
+  # align and we have to remove these from the train and dev sets
+  ./utils/fix_data_dir.sh data/train_e2e
+  ./utils/fix_data_dir.sh data/dev_e2e
+
 fi
 
 # Extract features
@@ -186,7 +192,7 @@ if [ ${stage} -le 4 ]; then
     echo "stage 4: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    # TODO Add in test data options and feature generation
+# TODO: Add in test data options and feature generation
     for x in train_e2e dev_e2e; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/${x} exp/make_fbank/${x} ${fbankdir}
     done

@@ -9,19 +9,20 @@ set -o pipefail
 . ./cmd.sh
 . ./conf/common_vars.sh
 
-langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306
-       401 402 403"
+langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
 seq_type="grapheme"
+phn_ali=
 
 . ./utils/parse_options.sh
 
 cwd=$(utils/make_absolute.sh `pwd`)
-echo "stage 0: Setup language specific directories"
+echo "stage 1: Setup language specific directories"
 # Create a language specific directory for each language
+echo "Languages: ${langs}"
+echo "Target Sequence type: $seq_type"
 for l in ${langs}; do
   [ -d data/${l} ] || mkdir -p data/${l}
   cd data/${l}
-
   # Copy the main directories from the top level into
   # each language specific directory
   ln -sf ${cwd}/local .
@@ -30,8 +31,7 @@ for l in ${langs}; do
     ln -sf $link .
   done
 
-  conf_file=`find conf/lang -name "${l}-*limitedLP*.conf" \
-                         -o -name "${l}-*LLP*.conf" | head -1`
+  conf_file=`find conf/lang/ -name "${l}-*LLP*.conf" | head -1`
 
   echo "----------------------------------------------------"
   echo "Using language configurations: ${conf_file}"
@@ -40,8 +40,10 @@ for l in ${langs}; do
   cp ${conf_file} lang.conf
   cp ${cwd}/cmd.sh .
   cp ${cwd}/path_babel.sh path.sh
+  
   cd ${cwd}
 done
+
 
 for l in ${langs}; do
   cd data/${l}
@@ -49,7 +51,12 @@ for l in ${langs}; do
   # Prepare the data directories (train and dev10h) directories
   #############################################################################
   if [ $seq_type = "phoneme" ]; then
-    ./local/prepare_data.sh --extract-feats true
+    echo "ALI: $phn_ali"
+    if [ ! -z $phn_ali ]; then
+      ./local/prepare_data.sh --extract-feats false
+    else
+      ./local/prepare_data.sh --extract-feats true
+    fi
     ./local/prepare_universal_dict.sh --dict data/dict_universal ${l} 
   else
     ./local/prepare_data.sh

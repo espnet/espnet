@@ -1,4 +1,6 @@
-# TODO NEED TO ADD THE RECOG SET # 
+# TODO: Fix annoying problem of free-gpu not being seen when preparing data on a* machines.
+# TODO: NEED TO ADD THE RECOG SET # 
 # TODO: Remove all conf files and create one giant unified file over all langs
+# TODO: Remove unnecessary L.fst creation when phoneme alignments are not needed
 # TODO: Support phonetic expansion of text via lexicon lookup or g2p.  
-    # TODO Add in test data options and feature generation
+# TODO: Add in test data options and feature generation

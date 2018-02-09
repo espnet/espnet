@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright 2018 Johns Hopkins University (Matthew Wiesner)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 # This is not necessarily the top-level run.sh as it is in other directories.   see README.txt first.
 
 [ ! -f ./lang.conf ] && echo 'Language configuration does not exist! Use the configurations in conf/lang/* as a startup' && exit 1
@@ -72,8 +75,7 @@ if [[ ! -f data/train/wav.scp || data/train/wav.scp -ot "$train_data_dir" ]]; th
     $train_data_dir data/train > data/train/skipped_utts.log
 fi
 
-
-if [ $extract_feats == true ] && [ ! -f data/train/.plp.done ]; then
+if $extract_feats; then
   echo ---------------------------------------------------------------------
   echo "Starting plp feature extraction for data/train in plp on" `date`
   echo ---------------------------------------------------------------------
