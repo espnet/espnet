@@ -14,6 +14,13 @@
 extract_feats=false
 
 . ./utils/parse_options.sh
+if [ $# -ne 1 ]; then
+  echo >&2 "Usage: ./local/prepare_data.sh [opts] <lang_id>"
+  echo >&2 "       --extract-feats :  Extract plp features for train directory"
+  exit 1
+fi
+
+l=$1
 
 #set -e           #Exit on non-zero return code from any command
 #set -o pipefail  #Exit if any of the commands in the pipeline will
@@ -21,9 +28,6 @@ extract_feats=false
 #set -u           #Fail on an undefined variable
 
 lexicon=data/local/lexicon.txt
-if $extend_lexicon; then
-  lexicon=data/local/lexiconp.txt
-fi
 
 ./local/check_tools.sh || exit 1
 
@@ -55,15 +59,6 @@ if [[ ! -f $lexicon || $lexicon -ot "$lexicon_file" ]]; then
     $lexiconFlags data/local/filtered_lexicon.txt data/local
 fi
 
-mkdir -p data/lang
-if [[ ! -f data/lang/L.fst || data/lang/L.fst -ot $lexicon ]]; then
-  echo ---------------------------------------------------------------------
-  echo "Creating L.fst etc in data/lang on" `date`
-  echo ---------------------------------------------------------------------
-  utils/prepare_lang.sh \
-    --share-silence-phones true \
-    data/local $oovSymbol data/local/tmp.lang data/lang
-fi
 
 if [[ ! -f data/train/wav.scp || data/train/wav.scp -ot "$train_data_dir" ]]; then
   echo ---------------------------------------------------------------------
@@ -85,3 +80,17 @@ if $extract_feats; then
   utils/fix_data_dir.sh data/train
   touch data/train/.plp.done
 fi
+
+
+###########################################################################
+# Prepend language ID to all utterances to disambiguate between speakers
+# of different languages sharing the same speaker id.
+#
+# The individual lang directories can be used for alignments, while a
+# combined directory will be used for training. This probably has minimal
+# impact on performance as only words repeated across languages will pose
+# problems and even amongst these, the main concern is the <hes> marker.
+###########################################################################
+echo "Prepend ${l} to data dir"
+./utils/copy_data_dir.sh --spk-prefix "${l}_" --utt-prefix "${l}_" \
+  data/train data/train_${l}

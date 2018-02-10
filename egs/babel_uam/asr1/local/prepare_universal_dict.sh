@@ -50,15 +50,4 @@ cat ${dict}/{,non}silence_lexicon.txt | sort > ${dict}/lexicon.txt
 ./local/prepare_dict.py \
   --silence-lexicon ${dict}/silence_lexicon.txt ${dict}/lexicon.txt ${dict}
 
-###########################################################################
-# Prepend language ID to all utterances to disambiguate between speakers
-# of different languages sharing the same speaker id.
-#
-# The individual lang directories can be used for alignments, while a
-# combined directory will be used for training. This probably has minimal
-# impact on performance as only words repeated across languages will pose
-# problems and even amongst these, the main concern is the <hes> marker.
-###########################################################################
-echo "Prepend ${l} to data dir"
-./utils/copy_data_dir.sh --spk-prefix "${l}_" --utt-prefix "${l}_" \
-  data/train data/train_${l}
+

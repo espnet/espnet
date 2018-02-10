@@ -119,7 +119,6 @@ if [ $seq_type = "grapheme" ] && [[ $langs = *"101"* ]]; then
 fi 
 
 # TODO: Remove all conf files and create one giant unified file over all langs
-# TODO: Remove unnecessary L.fst creation when phoneme alignments are not needed
 if [ $stage -le 1 ]; then
   echo "stage 1: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --seq-type ${seq_type}\
@@ -193,7 +192,7 @@ if [ ${stage} -le 4 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
 # TODO: Add in test data options and feature generation
-    for x in train_e2e dev_e2e; do
+    for x in ${train_set} ${train_dev}; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
@@ -238,7 +237,7 @@ if [ ${stage} -le 5 ]; then
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     if [ $seq_type = "grapheme" ]; then
-      text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/train.text |\
+      text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text |\
         cut -f 2- -d" " | tr " " "\n" | sort | uniq |\
         grep -v -e '^\s*$' |\
         awk '{print $0 " " NR+1}' >> ${dict}

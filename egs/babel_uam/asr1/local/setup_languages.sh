@@ -53,13 +53,25 @@ for l in ${langs}; do
   if [ $seq_type = "phoneme" ]; then
     echo "ALI: $phn_ali"
     if [ ! -z $phn_ali ]; then
-      ./local/prepare_data.sh --extract-feats false
+      ./local/prepare_data.sh --extract-feats false ${l}
     else
-      ./local/prepare_data.sh --extract-feats true
+      ./local/prepare_data.sh --extract-feats true ${l}
+      mkdir -p data/lang
+      if [[ ! -f data/lang/L.fst || data/lang/L.fst -ot $lexicon ]]; then
+        echo ------------------------------------------------------------------
+        echo "Creating L.fst etc in data/lang on" `date`
+        echo ------------------------------------------------------------------
+        utils/prepare_lang.sh \
+          --share-silence-phones true \
+          data/local $oovSymbol data/local/tmp.lang data/lang
+      fi
+
     fi
+    # Make an attempt at merging shared phonemes across different languages
+    # including splitting diphthongs and triphthongs.
     ./local/prepare_universal_dict.sh --dict data/dict_universal ${l} 
   else
-    ./local/prepare_data.sh
+    ./local/prepare_data.sh ${l}
   fi
   cd ${cwd}
 done
