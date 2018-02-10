@@ -176,6 +176,7 @@ if [ ${stage} -le 3 ]; then
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
+        --epoch 50 \
         --dict ${dict}
 fi
 
