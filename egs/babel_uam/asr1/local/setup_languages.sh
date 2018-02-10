@@ -94,8 +94,11 @@ done
 
 if [ $seq_type = "phoneme" ]; then
   ./local/combine_lexicons.sh data/dict_universal $dict_dirs
+  
   # Prepare lang directory
-  ./utils/prepare_lang.sh --share-silence-phones true \
-    data/dict_universal "<unk>" data/dict_universal/tmp.lang data/lang_universal
+  if [ ! -z $phn_ali ]; then
+    ./utils/prepare_lang.sh --share-silence-phones true \
+      data/dict_universal "<unk>" data/dict_universal/tmp.lang data/lang_universal
+  fi
 fi
 
