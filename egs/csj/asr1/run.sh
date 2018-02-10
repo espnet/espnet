@@ -51,7 +51,7 @@ opt=adadelta
 epochs=15
 
 # rnnlm related
-lm_weight=1.0
+lm_weight=0.3
 
 # decoding parameter
 beam_size=20
