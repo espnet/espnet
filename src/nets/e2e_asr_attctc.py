@@ -629,7 +629,7 @@ class Decoder(chainer.Chain):
             if self.vlabeldist is None:
                 self.vlabeldist = chainer.Variable(self.xp.asarray(self.labeldist))
             loss_reg = - F.sum(F.scale(F.log_softmax(y_all), self.vlabeldist, axis=1)) / len(ys_in)
-            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight *loss_reg
+            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc, att_weight_all
 
