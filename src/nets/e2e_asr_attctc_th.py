@@ -706,7 +706,7 @@ class Decoder(torch.nn.Module):
             if self.vlabeldist is None:
                 self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
             loss_reg = - torch.sum((functional.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
-            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight *loss_reg
+            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc, att_weight_all
 
