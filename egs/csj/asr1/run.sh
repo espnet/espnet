@@ -159,7 +159,7 @@ fi
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
-lmexpdir=exp/train_rnnlm_2layer_bs2048
+lmexpdir=exp/train_rnnlm_2layer_bs256_ep50
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
@@ -177,6 +177,7 @@ if [ ${stage} -le 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --epoch 50 \
+        --batchsize 256 \
         --dict ${dict}
 fi
 
