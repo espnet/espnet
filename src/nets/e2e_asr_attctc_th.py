@@ -25,6 +25,7 @@ from warpctc_pytorch import _CTC
 
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
+from e2e_asr_common import label_smoothing_dist
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -170,6 +171,13 @@ class E2E(torch.nn.Module):
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
+        # label smoothing info
+        if args.lsm_type:
+            logging.info("Use label smoothing with " + args.lsm_type)
+            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_label)
+        else:
+            labeldist = None
+
         # encoder
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                            self.subsample, args.dropout_rate)
@@ -189,7 +197,8 @@ class E2E(torch.nn.Module):
             sys.exit()
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
-                           self.sos, self.eos, self.att, self.verbose, self.char_list)
+                           self.sos, self.eos, self.att, self.verbose, self.char_list,
+                           labeldist, args.lsm_weight)
 
         # weight initialization
         self.init_like_chainer()
@@ -587,7 +596,7 @@ def th_accuracy(y_all, pad_target, ignore_label):
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
+    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None, labeldist=None, lsm_weight=0.):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -606,6 +615,10 @@ class Decoder(torch.nn.Module):
         self.eos = eos
         self.verbose = verbose
         self.char_list = char_list
+        # for label smoothing
+        self.labeldist = labeldist
+        self.vlabeldist = None
+        self.lsm_weight = lsm_weight
 
     def zero_state(self, hpad):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
@@ -688,6 +701,12 @@ class Decoder(torch.nn.Module):
                 seq_true = "".join(seq_true)
                 logging.info("groundtruth[%d]: " % i + seq_true)
                 logging.info("prediction [%d]: " % i + seq_hat)
+
+        if self.labeldist is not None:
+            if self.vlabeldist is None:
+                self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
+            loss_reg = - torch.sum((functional.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
+            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight *loss_reg
 
         return self.loss, acc, att_weight_all
 

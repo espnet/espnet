@@ -3,6 +3,7 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import json
 import numpy as np
 import six
 
@@ -36,3 +37,35 @@ def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
         return True
     else:
         return False
+
+
+# TODO(takaaki-hori): add different smoothing methods
+def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
+    '''Obtain label distribution for loss smoothing
+
+    :param odim:
+    :param lsm_type:
+    :param blank:
+    :param transcript:
+    :return:
+    '''
+    if transcript is not None:
+        with open(transcript, 'rb') as f:
+            trans_json = json.load(f)['utts']
+
+    if lsm_type == 'unigram':
+        assert transcript is not None, 'transcript is required for %s label smoothing' % lsm_type
+        labelcount = np.zeros(odim)
+        for k, v in trans_json.items():
+            ids = np.array([int(n) for n in v['tokenid'].split()])
+            labelcount[ids] += 1
+        labelcount[odim-1] = len(transcript)  # count <eos>
+        labelcount[labelcount == 0] = 1  # flooring
+        labelcount[blank] = 0  # remove counts for blank
+        labeldist = labelcount.astype(np.float32) / np.sum(labelcount)
+    else:
+        logging.error(
+            "Error: unexpected label smoothing type: %s" % lsm_type)
+        sys.exit()
+
+    return labeldist

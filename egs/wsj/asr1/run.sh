@@ -39,6 +39,10 @@ aconv_filts=100
 # hybrid CTC/attention
 mtlalpha=0.5
 
+# label smoothing
+lsm_type=unigram
+lsm_weight=0.05
+
 # minibatch related
 batchsize=30
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
@@ -174,6 +178,9 @@ fi
 
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    if [ "${lsm_type}" != "" ]; then
+        expdir=${expdir}_lsm${lsm_type}${lsm_weight}
+    fi
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -220,6 +227,8 @@ if [ ${stage} -le 4 ]; then
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
+        --lsm-type ${lsm_type} \
+        --lsm-weight ${lsm_weight} \
         --batch-size ${batchsize} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \

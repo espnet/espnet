@@ -19,6 +19,7 @@ from chainer import reporter
 from chainer_ctc.warpctc import ctc as warp_ctc
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
+from e2e_asr_common import label_smoothing_dist
 
 import deterministic_embed_id as DL
 
@@ -115,6 +116,13 @@ class E2E(chainer.Chain):
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
+        # label smoothing info
+        if args.lsm_type:
+            logging.info("Use label smoothing with " + args.lsm_type)
+            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_label)
+        else:
+            labeldist = None
+
         with self.init_scope():
             # encoder
             self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
@@ -141,7 +149,8 @@ class E2E(chainer.Chain):
                 sys.exit()
             # decoder
             self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
-                               self.sos, self.eos, self.att, self.verbose, self.char_list)
+                               self.sos, self.eos, self.att, self.verbose, self.char_list,
+                               labeldist, args.lsm_weight)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def __call__(self, data):
@@ -516,7 +525,7 @@ class NoAtt(chainer.Chain):
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(chainer.Chain):
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
+    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None, labeldist=None, lsm_weight=0.):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(odim, dunits)
@@ -533,6 +542,10 @@ class Decoder(chainer.Chain):
         self.eos = eos
         self.verbose = verbose
         self.char_list = char_list
+        # for label smoothing
+        self.labeldist = labeldist
+        self.vlabeldist = None
+        self.lsm_weight = lsm_weight
 
     def __call__(self, hs, ys):
         '''Decoder forward
@@ -611,6 +624,12 @@ class Decoder(chainer.Chain):
                 seq_true = "".join(seq_true).replace('<space>', ' ')
                 logging.info("groundtruth[%d]: " % i + seq_true)
                 logging.info("prediction [%d]: " % i + seq_hat)
+
+        if self.labeldist is not None:
+            if self.vlabeldist is None:
+                self.vlabeldist = chainer.Variable(self.xp.asarray(self.labeldist))
+            loss_reg = - F.sum(F.scale(F.log_softmax(y_all), self.vlabeldist, axis=1)) / len(ys_in)
+            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight *loss_reg
 
         return self.loss, acc, att_weight_all
 
