@@ -187,6 +187,7 @@ def embed_id(x, W, ignore_label=None):
     """
     return EmbedIDFunction(ignore_label=ignore_label).apply((x, W))[0]
 
+
 #from chainer.functions.connection import embed_id
 from chainer.initializers import normal
 from chainer import link
