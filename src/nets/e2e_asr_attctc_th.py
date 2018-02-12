@@ -596,7 +596,8 @@ def th_accuracy(y_all, pad_target, ignore_label):
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None, labeldist=None, lsm_weight=0.):
+    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
+                 char_list=None, labeldist=None, lsm_weight=0.):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
