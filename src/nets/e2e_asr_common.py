@@ -4,8 +4,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import json
+import logging
 import numpy as np
 import six
+import sys
 
 
 def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
@@ -59,7 +61,7 @@ def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
         for k, v in trans_json.items():
             ids = np.array([int(n) for n in v['tokenid'].split()])
             labelcount[ids] += 1
-        labelcount[odim-1] = len(transcript)  # count <eos>
+        labelcount[odim - 1] = len(transcript)  # count <eos>
         labelcount[labelcount == 0] = 1  # flooring
         labelcount[blank] = 0  # remove counts for blank
         labeldist = labelcount.astype(np.float32) / np.sum(labelcount)
