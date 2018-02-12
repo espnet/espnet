@@ -20,6 +20,8 @@ from chainer_ctc.warpctc import ctc as warp_ctc
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 
+import deterministic_embed_id as DL
+
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -517,7 +519,7 @@ class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
         super(Decoder, self).__init__()
         with self.init_scope():
-            self.embed = L.EmbedID(odim, dunits)
+            self.embed = DL.EmbedID(odim, dunits)
             self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
             for l in six.moves.range(1, dlayers):
                 setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
