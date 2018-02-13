@@ -11,11 +11,11 @@ import numpy
 import pytest
 
 
-def make_arg(etype):
-    return argparse.Namespace(
+def make_arg(**kwargs):
+    defaults = dict(
         elayers=4,
         subsample="1_2_2_1_1",
-        etype=etype,
+        etype="blstmp",
         eunits=100,
         eprojs=100,
         dlayers=1,
@@ -33,13 +33,16 @@ def make_arg(etype):
         ctc_weight=0.2,
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
-        outdir=None
+        outdir=None,
+        ctc_type="chainer"
     )
+    defaults.update(kwargs)
+    return argparse.Namespace(**defaults)
 
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_model_trainable_and_decodable(etype):
-    args = make_arg(etype)
+    args = make_arg(etype=etype)
     for m_str in ["e2e_asr_attctc", "e2e_asr_attctc_th"]:
         if m_str[-3:] == "_th":
             pytest.importorskip('torch')
@@ -72,10 +75,44 @@ def init_chainer_weight_const(m, val):
             p.data[:] = val
 
 
+def test_chainer_ctc_type():
+    import logging
+    logging.basicConfig(
+        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    import e2e_asr_attctc as ch
+
+    out_data = "1 2 3 4"
+    numpy.random.seed(0)
+    data = [
+        ("aaa", dict(feat=numpy.random.randn(200, 40).astype(
+            numpy.float32), tokenid=out_data)),
+        ("bbb", dict(feat=numpy.random.randn(100, 40).astype(
+            numpy.float32), tokenid=out_data)),
+        ("cc", dict(feat=numpy.random.randn(100, 40).astype(
+            numpy.float32), tokenid=out_data))
+    ]
+
+    def _propagate(ctc_type):
+        args = make_arg(ctc_type=ctc_type)
+        numpy.random.seed(0)
+        model = ch.E2E(40, 5, args)
+        ch_ctc, _, _ = model(data)
+        ch_ctc.backward()
+        W_grad = model.ctc.ctc_lo.W.grad
+        b_grad = model.ctc.ctc_lo.b.grad
+        return ch_ctc.data, W_grad, b_grad
+
+    ref_loss, ref_W_grad, ref_b_grad = _propagate("chainer")
+    loss, W_grad, b_grad = _propagate("warpctc")
+    numpy.testing.assert_allclose(ref_loss, loss, rtol=1e-5)
+    numpy.testing.assert_allclose(ref_W_grad, W_grad)
+    numpy.testing.assert_allclose(ref_b_grad, b_grad)
+
+
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_loss_and_ctc_grad(etype):
     pytest.importorskip('torch')
-    args = make_arg(etype)
+    args = make_arg(etype=etype)
     import logging
     logging.basicConfig(
         level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
@@ -136,7 +173,7 @@ def test_loss_and_ctc_grad(etype):
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_zero_length_target(etype):
     pytest.importorskip('torch')
-    args = make_arg(etype)
+    args = make_arg(etype=etype)
     import logging
     logging.basicConfig(
         level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
