@@ -296,16 +296,17 @@ def main():
                              'every y frame at 2nd layer etc.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
-                        choices=['noatt', 'dot', 'location', 'multi_head_dot',
-                                 'coverage', 'coverage_location', 'location2d', 'location_recurrent'],
+                        choices=['noatt', 'dot', 'location', 'coverage',
+                                 'coverage_location', 'location2d', 'location_recurrent',
+                                 'multi_head_dot', 'multi_head_add', 'multi_head_loc'],
                         help='Type of attention architecture')
     parser.add_argument('--adim', default=320, type=int,
                         help='Number of attention transformation dimensions')
     parser.add_argument('--awin', default=5, type=int,
                         help='Window size of location2d attention')
-    parser.add_argument('--aheads', default=8, type=int,
+    parser.add_argument('--aheads', default=4, type=int,
                         help='Number of multi head dot product attention \
-                        (only for atype = multi_head_dot)')
+                        (only for atype = multi_head_*)')
     parser.add_argument('--aconv-chans', default=-1, type=int,
                         help='Number of attention convolution channels \
                         (negative value indicates no location-aware attention)')
