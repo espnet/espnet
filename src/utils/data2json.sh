@@ -9,6 +9,7 @@ nlsyms=""
 lang=""
 feat="" # feat.scp
 oov="<unk>"
+bpecode=""
 
 . utils/parse_options.sh
 
@@ -29,7 +30,9 @@ if [ ! -z ${feat} ]; then
 fi
 
 # output
-if [ ! -z ${nlsyms} ]; then
+if [ ! -z ${bpecode} ]; then
+    paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text | apply_bpe.py -c ${bpecode}) > ${tmpdir}/token.scp
+elif [ ! -z ${nlsyms} ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/token.scp
 else
     text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/token.scp

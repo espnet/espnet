@@ -1,8 +1,6 @@
 .PHONY: all clean
 
-
-all: kaldi venv/bin/activate nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc subword-nmt
-
+all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc subword-nmt
 
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
@@ -20,7 +18,7 @@ kaldi_github:
 # matplotlib should be separately pip installed
 venv/bin/activate: requirements.txt
 	test -d venv || virtualenv -p /usr/bin/python2.7 venv
-	. venv/bin/activate; pip install -r requirements.txt; pip install matplotlib
+	. venv/bin/activate; pip install pip --upgrade; pip install -r requirements.txt; pip install matplotlib
 	touch venv/bin/activate
 
 nkf:
@@ -37,9 +35,17 @@ warp-ctc: venv/lib/python2.7/site-packages/torch
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
+chainer_ctc: venv/bin/activate
+	git clone https://github.com/jheymann85/chainer_ctc.git
+	. venv/bin/activate; pip install cython
+	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
+	. venv/bin/activate; cd chainer_ctc && pip install .
+
 subword-nmt:
-    git clone https://github.com/rsennrich/subword-nmt.git
+	git clone https://github.com/rsennrich/subword-nmt.git
 
 clean:
-	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc subword-nmt
-	find -iname "*.pyc" -delete
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc subword-nmt
+	rm -f miniconda.sh
+	rm -f chainer300_cudnn7.0_nossh.devel
+	find . -iname "*.pyc" -delete
