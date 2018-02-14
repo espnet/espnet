@@ -29,7 +29,7 @@ class CTCPrefixScore(object):
 
         :return: CTC state
         '''
-        # initial CTC state is made of a frame x 2 tonsor that corresponds to
+        # initial CTC state is made of a frame x 2 tensor that corresponds to
         # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
         # superscripts n and b (non-blank and blank), respectively.
         r = self.xp.full((self.input_length, 2), self.logzero, dtype=np.float32)
@@ -48,8 +48,8 @@ class CTCPrefixScore(object):
         '''
         # initialize CTC states
         output_length = len(y) - 1  # ignore sos
-        # new CTC states are prepared as a frame x (n or b) x n_labels tonsor
-        # that correspond to r_t^n(h) and r_t^b(h).
+        # new CTC states are prepared as a frame x (n or b) x n_labels tensor
+        # that corresponds to r_t^n(h) and r_t^b(h).
         r = self.xp.ndarray((self.input_length, 2, len(cs)), dtype=np.float32)
         xs = self.x[:, cs]
         if output_length == 0:
