@@ -100,22 +100,6 @@ $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
 
-## Installation using Docker
-
-For GPU support nvidia-docker should be installed.
-
-For Execution use the command 
-```sh
-$ cd egs/voxforge/asr1
-$ ./run_in_docker.sh --gpu GPUID
-```
-
-If GPUID is set to -1, the program will run only CPU.
-
-The file builds and loads the information into the Docker container. If any additional application is required, modify the Docker devel-file located at the tools folder.
-
-To downgrade or use a private devel file, modify the name inside run_in_docker.sh
-
 ## Results
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
