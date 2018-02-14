@@ -157,8 +157,7 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
-# It takes a few days. If you just want to end-to-end ASR without LM,
-# you can skip this and remove --rnnlm option in the recognition (stage 5)
+# You can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs256
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
@@ -176,7 +175,7 @@ if [ ${stage} -le 3 ]; then
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-        --epoch 20 \
+        --epoch 40 \
         --batchsize 256 \
         --dict ${dict}
 fi
