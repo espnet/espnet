@@ -106,11 +106,11 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 |  5.5 | 13.1 |
-| WSJ eval92|  3.8 |  9.3 |
-| CSJ eval1 | 9.7 | N/A  |
-| CSJ eval2 |  6.9 | N/A  |
-| CSJ eval3 |  7.5 | N/A  |
+| WSJ dev93 | 5.5 | 13.1 |
+| WSJ eval92| 3.8 |  9.3 |
+| CSJ eval1 | 8.7 | N/A  |
+| CSJ eval2 | 6.2 | N/A  |
+| CSJ eval3 | 6.9 | N/A  |
 | HKUST train_dev | 29.7 | N/A  |
 | HKUST dev       | 28.3 | N/A  |
 | Librispeech dev_clean  | 2.9 | 7.7 |
