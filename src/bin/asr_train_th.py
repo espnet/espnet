@@ -265,7 +265,7 @@ def main():
                         help='Random seed')
     parser.add_argument('--debugdir', type=str,
                         help='Output directory for debugging')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', default='', nargs='?',
                         help='Resume the training from snapshot')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
