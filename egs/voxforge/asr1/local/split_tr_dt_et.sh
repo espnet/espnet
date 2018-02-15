@@ -56,9 +56,9 @@ cat $sdata/text | awk '{print $1}' | sort > $tmpdata/all.ids
 diff $tmpdata/all.ids $tmpdata/dtet.ids | awk '/^</{print $2}' | sort > $tmpdata/tr.ids
 echo "finished text extraction for dev set #utt = `wc -l $tmpdata/tr.ids | awk '{print $1}'`"
 
-local/reduce_data_dir.sh $sdata $tmpdata/dt.ids $dtdata
-local/reduce_data_dir.sh $sdata $tmpdata/et.ids $etdata
-local/reduce_data_dir.sh $sdata $tmpdata/tr.ids $trdata
+reduce_data_dir.sh $sdata $tmpdata/dt.ids $dtdata
+reduce_data_dir.sh $sdata $tmpdata/et.ids $etdata
+reduce_data_dir.sh $sdata $tmpdata/tr.ids $trdata
 
 utils/fix_data_dir.sh $dtdata
 utils/fix_data_dir.sh $etdata
