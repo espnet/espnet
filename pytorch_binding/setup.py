@@ -2,7 +2,7 @@
 import os
 import platform
 import sys
-from setuptools import setup
+from distutils.core import setup
 
 from torch.utils.ffi import create_extension
 
@@ -39,8 +39,7 @@ if not os.path.exists(os.path.join(warp_ctc_path, "libwarpctc" + lib_ext)):
 include_dirs = [os.path.realpath('../include')]
 
 ffi = create_extension(
-    name='warpctc_pytorch._warp_ctc',
-    package=True,
+    name='warp_ctc',
     language='c++',
     headers=headers,
     sources=['src/binding.cpp'],
@@ -51,6 +50,7 @@ ffi = create_extension(
     extra_link_args=['-Wl,-rpath,' + os.path.realpath(warp_ctc_path)],
     extra_compile_args=extra_compile_args)
 ffi = ffi.distutils_extension()
+ffi.name = 'warpctc_pytorch._warp_ctc'
 setup(
     name="warpctc_pytorch",
     version="0.1",
