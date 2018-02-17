@@ -158,3 +158,7 @@ def main():
         train(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")
+
+
+if __name__ == '__main__':
+    main()
