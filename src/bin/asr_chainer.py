@@ -4,49 +4,56 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
+import collections
 import copy
 import json
 import logging
 import math
 import os
 import pickle
+import six
 
 # chainer related
 import chainer
+from chainer import cuda
+from chainer import function
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 
-import torch
-
-# spnet related
-from asr_train_utils import CompareValueTrigger
-from asr_train_utils import converter_kaldi
-from asr_train_utils import delete_feat
-from asr_train_utils import make_batchset
-from asr_train_utils import restore_snapshot
-from e2e_asr_attctc_th import E2E
-from e2e_asr_attctc_th import Loss
+# espnet related
+from asr_utils import CompareValueTrigger
+from asr_utils import converter_kaldi
+from asr_utils import delete_feat
+from asr_utils import make_batchset
+from asr_utils import restore_snapshot
+from e2e_asr_attctc import E2E
+from e2e_asr_attctc import Loss
 
 # for kaldi io
+import kaldi_io_py
 import lazy_io
+
+# rnnlm
+import lm_train
 
 # numpy related
 import matplotlib
+import numpy as np
 matplotlib.use('Agg')
 
 
 class SeqEvaluaterKaldi(extensions.Evaluator):
     '''Custom evaluater with Kaldi reader'''
-    def __init__(self, model, iterator, target, reader, device):
+    def __init__(self, iterator, target, reader, device):
         super(SeqEvaluaterKaldi, self).__init__(
             iterator, target, device=device)
         self.reader = reader
-        self.model = model
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
         iterator = self._iterators['main']
+        eval_func = self.eval_func or self._targets['main']
 
         if self.eval_hook:
             self.eval_hook(self)
@@ -67,9 +74,9 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
                 #    will be converted to chainer variable later
                 # batch only has one minibatch utterance, which is specified by batch[0]
                 x = converter_kaldi(batch[0], self.reader)
-                self.model.eval()
-                self.model(x)
-                delete_feat(x)
+                with function.no_backprop_mode():
+                    eval_func(x)
+                    delete_feat(x)
 
             summary.add(observation)
 
@@ -78,12 +85,10 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
 
 class SeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater with Kaldi reader'''
-    def __init__(self, model, grad_clip_threshold, train_iter, optimizer, reader, device):
+    def __init__(self, train_iter, optimizer, reader, device):
         super(SeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, device=None)
-        self.model = model
+            train_iter, optimizer, device=device)
         self.reader = reader
-        self.grad_clip_threshold = grad_clip_threshold
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -102,19 +107,29 @@ class SeqUpdaterKaldi(training.StandardUpdater):
         x = converter_kaldi(batch[0], self.reader)
 
         # Compute the loss at this time step and accumulate it
-        loss = self.model(x)
-        optimizer.zero_grad()  # Clear the parameter gradients
+        loss = optimizer.target(x)
+        optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
-        loss.detach()  # Truncate the graph
+        loss.unchain_backward()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm(
-            self.model.parameters(), self.grad_clip_threshold)
+        grad_norm = np.sqrt(self._sum_sqnorm(
+            [p.grad for p in optimizer.target.params(False)]))
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
         else:
-            optimizer.step()
+            optimizer.update()
         delete_feat(x)
+
+    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
+    def _sum_sqnorm(self, arr):
+        sq_sum = collections.defaultdict(float)
+        for x in arr:
+            with cuda.get_device_from_array(x) as dev:
+                x = x.ravel()
+                s = x.dot(x)
+                sq_sum[int(dev)] += s
+        return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
 def adadelta_eps_decay(eps_decay):
@@ -128,15 +143,19 @@ def adadelta_eps_decay(eps_decay):
 
 def _adadelta_eps_decay(trainer, eps_decay):
     optimizer = trainer.updater.get_optimizer('main')
-    for p in optimizer.param_groups:
-        p["eps"] *= eps_decay
-        logging.info('adadelta eps decayed to ' + str(p["eps"]))
+    current_eps = optimizer.eps
+    setattr(optimizer, 'eps', current_eps * eps_decay)
+    logging.info('adadelta eps decayed to ' + str(optimizer.eps))
 
 
 def train(args):
+    # display chainer version
+    logging.info('chainer version = ' + chainer.__version__)
+
     # seed setting (chainer seed may not need it)
     nseed = args.seed
-    torch.manual_seed(nseed)
+    os.environ['CHAINER_SEED'] = str(nseed)
+    logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
 
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
@@ -144,17 +163,19 @@ def train(args):
     # revmoe type check
     if args.debugmode < 2:
         chainer.config.type_check = False
-        logging.info('torch type check is disabled')
+        logging.info('chainer type check is disabled')
     # use determinisitic computation or not
     if args.debugmode < 1:
-        torch.backends.cudnn.deterministic = False
-        logging.info('torch cudnn deterministic is disabled')
+        chainer.config.cudnn_deterministic = False
+        logging.info('chainer cudnn deterministic is disabled')
     else:
-        torch.backends.cudnn.deterministic = True
+        chainer.config.cudnn_deterministic = True
 
-    # check cuda availability
-    if not torch.cuda.is_available():
+    # check cuda and cudnn availability
+    if not chainer.cuda.available:
         logging.warning('cuda is not available')
+    if not chainer.cuda.cudnn_enabled:
+        logging.warning('cudnn is not available')
 
     # get input and output dimension info
     with open(args.valid_label, 'rb') as f:
@@ -169,34 +190,21 @@ def train(args):
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
 
-    # write model config
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    model_conf = args.outdir + '/model.conf'
-    with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to' + model_conf)
-        # TODO(watanabe) use others than pickle, possibly json, and save as a text
-        pickle.dump((idim, odim, args), f)
-    for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
-
     # Set gpu
     gpu_id = int(args.gpu)
     logging.info('gpu id: ' + str(gpu_id))
     if gpu_id >= 0:
         # Make a specified GPU current
-        model.cuda(gpu_id)  # Copy the model to the GPU
+        chainer.cuda.get_device_from_id(gpu_id).use()
+        model.to_gpu()  # Copy the model to the GPU
 
     # Setup an optimizer
     if args.opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps)
+        optimizer = chainer.optimizers.AdaDelta(eps=args.eps)
     elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters())
-
-    # FIXME: TOO DIRTY HACK
-    setattr(optimizer, "target", model.reporter)
-    setattr(optimizer, "serialize", lambda s: model.reporter.serialize(s))
+        optimizer = chainer.optimizers.Adam()
+    optimizer.setup(model)
+    optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
     # read json data
     with open(args.train_label, 'rb') as f:
@@ -220,19 +228,17 @@ def train(args):
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # Set up a trainer
-    updater = SeqUpdaterKaldi(model, args.grad_clip,
-                              train_iter, optimizer, train_reader, gpu_id)
+    updater = SeqUpdaterKaldi(train_iter, optimizer, train_reader, gpu_id)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
     if args.resume:
-        raise NotImplementedError
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(SeqEvaluaterKaldi(model, valid_iter,
-                                     model.reporter, valid_reader, device=gpu_id))
+    trainer.extend(SeqEvaluaterKaldi(
+        valid_iter, model, valid_reader, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -246,22 +252,15 @@ def train(args):
                                          'epoch', file_name='acc.png'))
 
     # Save best models
-    def torch_save(path, _):
-        torch.save(model.state_dict(), path)
-        torch.save(model, path + ".pkl")
-
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+    trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+    trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
                    trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
-    def torch_load(path, obj):
-        model.load_state_dict(torch.load(path))
-        return obj
     if args.opt == 'adadelta':
         if args.criterion == 'acc':
-            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
                                lambda best_value, current_value: best_value > current_value))
@@ -270,7 +269,7 @@ def train(args):
                                'validation/main/acc',
                                lambda best_value, current_value: best_value > current_value))
         elif args.criterion == 'loss':
-            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=torch_load),
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best'),
                            trigger=CompareValueTrigger(
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
@@ -286,7 +285,7 @@ def train(args):
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
-            'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
+            'eps', lambda trainer: trainer.updater.get_optimizer('main').eps),
             trigger=(100, 'iteration'))
         report_keys.append('eps')
     trainer.extend(extensions.PrintReport(
@@ -296,3 +295,68 @@ def train(args):
 
     # Run the training
     trainer.run()
+
+
+def recog(args):
+    # display chainer version
+    logging.info('chainer version = ' + chainer.__version__)
+
+    # seed setting (chainer seed may not need it)
+    nseed = args.seed
+    os.environ["CHAINER_SEED"] = str(nseed)
+    logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
+
+    # read training config
+    with open(args.model_conf, "rb") as f:
+        logging.info('reading a model config file from' + args.model_conf)
+        idim, odim, train_args = pickle.load(f)
+
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+
+    # specify model architecture
+    logging.info('reading model parameters from' + args.model)
+    e2e = E2E(idim, odim, train_args)
+    model = Loss(e2e, train_args.mtlalpha)
+    chainer.serializers.load_npz(args.model, model)
+
+    # read rnnlm
+    if args.rnnlm:
+        rnnlm = lm_train.ClassifierWithState(lm_train.RNNLM(len(train_args.char_list), 650))
+        chainer.serializers.load_npz(args.rnnlm, rnnlm)
+    else:
+        rnnlm = None
+
+    # prepare Kaldi reader
+    reader = kaldi_io_py.read_mat_ark(args.recog_feat)
+
+    # read json data
+    with open(args.recog_label, 'rb') as f:
+        recog_json = json.load(f)['utts']
+
+    new_json = {}
+    for name, feat in reader:
+        logging.info('decoding ' + name)
+        y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+        y_true = map(int, recog_json[name]['tokenid'].split())
+
+        # print out decoding result
+        seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
+        seq_true = [train_args.char_list[int(idx)] for idx in y_true]
+        seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+        seq_true_text = "".join(seq_true).replace('<space>', ' ')
+        logging.info("groundtruth[%s]: " + seq_true_text, name)
+        logging.info("prediction [%s]: " + seq_hat_text, name)
+
+        # copy old json info
+        new_json[name] = recog_json[name]
+
+        # added recognition results to json
+        new_json[name]['rec_tokenid'] = " ".join(
+            [str(idx[0]) for idx in y_hat])
+        new_json[name]['rec_token'] = " ".join(seq_hat)
+        new_json[name]['rec_text'] = seq_hat_text
+
+    # TODO(watanabe) fix character coding problems when saving it
+    with open(args.result_label, 'wb') as f:
+        f.write(json.dumps({'utts': new_json}, indent=4).encode('utf_8'))

@@ -151,10 +151,10 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from asr_train_ch import train
+        from asr_chainer import train
         train(args)
     elif args.backend == "pytorch":
-        from asr_train_th import train
+        from asr_pytorch import train
         train(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")
