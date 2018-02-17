@@ -18,6 +18,9 @@ def main():
     # general configuration
     parser.add_argument('--gpu', '-g', default='-1', type=str,
                         help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--backend', default='chainer', type=str,
+                        choices=['chainer', 'pytorch'],
+                        help='Backend library')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
     parser.add_argument('--seed', default=1, type=int,
