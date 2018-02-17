@@ -192,6 +192,17 @@ def train(args):
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
 
+    # write model config
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+    model_conf = args.outdir + '/model.conf'
+    with open(model_conf, 'wb') as f:
+        logging.info('writing a model config file to' + model_conf)
+        # TODO(watanabe) use others than pickle, possibly json, and save as a text
+        pickle.dump((idim, odim, args), f)
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+
     # Set gpu
     gpu_id = int(args.gpu)
     logging.info('gpu id: ' + str(gpu_id))
