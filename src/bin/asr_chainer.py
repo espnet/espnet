@@ -45,6 +45,7 @@ matplotlib.use('Agg')
 
 class SeqEvaluaterKaldi(extensions.Evaluator):
     '''Custom evaluater with Kaldi reader'''
+
     def __init__(self, iterator, target, reader, device):
         super(SeqEvaluaterKaldi, self).__init__(
             iterator, target, device=device)
@@ -85,6 +86,7 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
 
 class SeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater with Kaldi reader'''
+
     def __init__(self, train_iter, optimizer, reader, device):
         super(SeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, device=device)
