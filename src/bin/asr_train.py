@@ -131,10 +131,9 @@ def main():
     logging.info('python path = ' + os.environ['PYTHONPATH'])
 
     # set random seed
-    nseed = args.seed
-    random.seed(nseed)
-    np.random.seed(nseed)
-    logging.info('set random seed = %d' % nseed)
+    logging.info('random seed = %d' % args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
     # load dictionary for debug log
     if args.dict is not None:

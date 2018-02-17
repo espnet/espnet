@@ -11,51 +11,7 @@ import chainer
 from chainer import training
 
 
-class CompareValueTrigger(object):
-    '''Trigger invoked when key value getting bigger or lower than before
-
-    Args:
-        key (str): Key of value.
-        compare_fn: Function to compare the values.
-        trigger: Trigger that decide the comparison interval
-
-    '''
-
-    def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
-        self._key = key
-        self._best_value = None
-        self._interval_trigger = training.util.get_trigger(trigger)
-        self._init_summary()
-        self._compare_fn = compare_fn
-
-    def __call__(self, trainer):
-        observation = trainer.observation
-        summary = self._summary
-        key = self._key
-        if key in observation:
-            summary.add({key: observation[key]})
-
-        if not self._interval_trigger(trainer):
-            return False
-
-        stats = summary.compute_mean()
-        value = float(stats[key])  # copy to CPU
-        self._init_summary()
-
-        if self._best_value is None:
-            # initialize best value
-            self._best_value = value
-            return False
-        elif self._compare_fn(self._best_value, value):
-            return True
-        else:
-            self._best_value = value
-            return False
-
-    def _init_summary(self):
-        self._summary = chainer.reporter.DictSummary()
-
-
+# * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
@@ -101,6 +57,52 @@ def delete_feat(batch):
     return batch
 
 
+# * -------------------- chainer extension related -------------------- *
+class CompareValueTrigger(object):
+    '''Trigger invoked when key value getting bigger or lower than before
+
+    Args:
+        key (str): Key of value.
+        compare_fn: Function to compare the values.
+        trigger: Trigger that decide the comparison interval
+
+    '''
+
+    def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
+        self._key = key
+        self._best_value = None
+        self._interval_trigger = training.util.get_trigger(trigger)
+        self._init_summary()
+        self._compare_fn = compare_fn
+
+    def __call__(self, trainer):
+        observation = trainer.observation
+        summary = self._summary
+        key = self._key
+        if key in observation:
+            summary.add({key: observation[key]})
+
+        if not self._interval_trigger(trainer):
+            return False
+
+        stats = summary.compute_mean()
+        value = float(stats[key])  # copy to CPU
+        self._init_summary()
+
+        if self._best_value is None:
+            # initialize best value
+            self._best_value = value
+            return False
+        elif self._compare_fn(self._best_value, value):
+            return True
+        else:
+            self._best_value = value
+            return False
+
+    def _init_summary(self):
+        self._summary = chainer.reporter.DictSummary()
+
+
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
     '''Extension to restore snapshot'''
     @training.make_extension(trigger=(1, 'epoch'))
@@ -113,3 +115,26 @@ def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
 def _restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
     load_fn(snapshot, model)
     logging.info('restored from ' + str(snapshot))
+
+
+def adadelta_eps_decay(eps_decay):
+    '''Extension to perform adadelta eps decay'''
+    @training.make_extension(trigger=(1, 'epoch'))
+    def adadelta_eps_decay(trainer):
+        _adadelta_eps_decay(trainer, eps_decay)
+
+    return adadelta_eps_decay
+
+
+def _adadelta_eps_decay(trainer, eps_decay):
+    optimizer = trainer.updater.get_optimizer('main')
+    # for chainer
+    if hasattr(optimizer, 'eps'):
+        current_eps = optimizer.eps
+        setattr(optimizer, 'eps', current_eps * eps_decay)
+        logging.info('adadelta eps decayed to ' + str(optimizer.eps))
+    # pytorch
+    else:
+        for p in optimizer.param_groups:
+            p["eps"] *= eps_decay
+            logging.info('adadelta eps decayed to ' + str(p["eps"]))

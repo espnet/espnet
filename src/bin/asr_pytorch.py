@@ -20,6 +20,7 @@ from chainer.training import extensions
 import torch
 
 # spnet related
+from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
@@ -37,11 +38,11 @@ import matplotlib
 matplotlib.use('Agg')
 
 
-class SeqEvaluaterKaldi(extensions.Evaluator):
-    '''Custom evaluater with Kaldi reader'''
+class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
+    '''Custom evaluater with Kaldi reader for pytorch'''
 
     def __init__(self, model, iterator, target, reader, device):
-        super(SeqEvaluaterKaldi, self).__init__(
+        super(PytorchSeqEvaluaterKaldi, self).__init__(
             iterator, target, device=device)
         self.reader = reader
         self.model = model
@@ -78,11 +79,11 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
         return summary.compute_mean()
 
 
-class SeqUpdaterKaldi(training.StandardUpdater):
-    '''Custom updater with Kaldi reader'''
+class PytorchSeqUpdaterKaldi(training.StandardUpdater):
+    '''Custom updater with Kaldi reader for pytorch'''
 
     def __init__(self, model, grad_clip_threshold, train_iter, optimizer, reader, device):
-        super(SeqUpdaterKaldi, self).__init__(
+        super(PytorchSeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, device=None)
         self.model = model
         self.reader = reader
@@ -120,26 +121,10 @@ class SeqUpdaterKaldi(training.StandardUpdater):
         delete_feat(x)
 
 
-def adadelta_eps_decay(eps_decay):
-    '''Extension to perform adadelta eps decay'''
-    @training.make_extension(trigger=(1, 'epoch'))
-    def adadelta_eps_decay(trainer):
-        _adadelta_eps_decay(trainer, eps_decay)
-
-    return adadelta_eps_decay
-
-
-def _adadelta_eps_decay(trainer, eps_decay):
-    optimizer = trainer.updater.get_optimizer('main')
-    for p in optimizer.param_groups:
-        p["eps"] *= eps_decay
-        logging.info('adadelta eps decayed to ' + str(p["eps"]))
-
-
 def train(args):
+    '''Run training'''
     # seed setting
-    nseed = args.seed
-    torch.manual_seed(nseed)
+    torch.manual_seed(args.seed)
 
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
@@ -223,8 +208,8 @@ def train(args):
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # Set up a trainer
-    updater = SeqUpdaterKaldi(model, args.grad_clip,
-                              train_iter, optimizer, train_reader, gpu_id)
+    updater = PytorchSeqUpdaterKaldi(
+        model, args.grad_clip, train_iter, optimizer, train_reader, gpu_id)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -234,8 +219,8 @@ def train(args):
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(SeqEvaluaterKaldi(model, valid_iter,
-                                     model.reporter, valid_reader, device=gpu_id))
+    trainer.extend(PytorchSeqEvaluaterKaldi(
+        model, valid_iter, model.reporter, valid_reader, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -302,9 +287,9 @@ def train(args):
 
 
 def recog(args):
+    '''Run recognition'''
     # seed setting
-    nseed = args.seed
-    torch.manual_seed(nseed)
+    torch.manual_seed(args.seed)
 
     # read training config
     with open(args.model_conf, "rb") as f:
