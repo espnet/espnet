@@ -74,11 +74,10 @@ def main():
     # display PYTHONPATH
     logging.info('python path = ' + os.environ['PYTHONPATH'])
 
-    # seed setting (chainer seed may not need it)
-    nseed = args.seed
-    random.seed(nseed)
-    np.random.seed(nseed)
-    logging.info('set random seed = %d' % nseed)
+    # seed setting
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    logging.info('set random seed = %d' % args.seed)
 
     # recog
     logging.info('backend = ' + args.backend)
