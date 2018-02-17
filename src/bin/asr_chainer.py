@@ -22,6 +22,7 @@ from chainer import training
 from chainer.training import extensions
 
 # espnet related
+from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
@@ -43,16 +44,17 @@ import numpy as np
 matplotlib.use('Agg')
 
 
-class SeqEvaluaterKaldi(extensions.Evaluator):
-    '''Custom evaluater with Kaldi reader'''
+class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
+    '''Custom evaluater with Kaldi reader for chainer'''
 
     def __init__(self, iterator, target, reader, device):
-        super(SeqEvaluaterKaldi, self).__init__(
+        super(ChainerSeqEvaluaterKaldi, self).__init__(
             iterator, target, device=device)
         self.reader = reader
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
+        '''evaluate over iterator'''
         iterator = self._iterators['main']
         eval_func = self.eval_func or self._targets['main']
 
@@ -84,11 +86,11 @@ class SeqEvaluaterKaldi(extensions.Evaluator):
         return summary.compute_mean()
 
 
-class SeqUpdaterKaldi(training.StandardUpdater):
-    '''Custom updater with Kaldi reader'''
+class ChainerSeqUpdaterKaldi(training.StandardUpdater):
+    '''Custom updater with Kaldi reader for chainer'''
 
     def __init__(self, train_iter, optimizer, reader, device):
-        super(SeqUpdaterKaldi, self).__init__(
+        super(ChainerSeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, device=device)
         self.reader = reader
 
@@ -134,29 +136,13 @@ class SeqUpdaterKaldi(training.StandardUpdater):
         return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
-def adadelta_eps_decay(eps_decay):
-    '''Extension to perform adadelta eps decay'''
-    @training.make_extension(trigger=(1, 'epoch'))
-    def adadelta_eps_decay(trainer):
-        _adadelta_eps_decay(trainer, eps_decay)
-
-    return adadelta_eps_decay
-
-
-def _adadelta_eps_decay(trainer, eps_decay):
-    optimizer = trainer.updater.get_optimizer('main')
-    current_eps = optimizer.eps
-    setattr(optimizer, 'eps', current_eps * eps_decay)
-    logging.info('adadelta eps decayed to ' + str(optimizer.eps))
-
-
 def train(args):
+    '''Run training'''
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
     # seed setting (chainer seed may not need it)
-    nseed = args.seed
-    os.environ['CHAINER_SEED'] = str(nseed)
+    os.environ['CHAINER_SEED'] = str(args.seed)
     logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
 
     # debug mode setting
@@ -241,7 +227,8 @@ def train(args):
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # Set up a trainer
-    updater = SeqUpdaterKaldi(train_iter, optimizer, train_reader, gpu_id)
+    updater = ChainerSeqUpdaterKaldi(
+        train_iter, optimizer, train_reader, gpu_id)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -250,7 +237,7 @@ def train(args):
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(SeqEvaluaterKaldi(
+    trainer.extend(ChainerSeqEvaluaterKaldi(
         valid_iter, model, valid_reader, device=gpu_id))
 
     # Take a snapshot for each specified epoch
@@ -311,12 +298,12 @@ def train(args):
 
 
 def recog(args):
+    '''Run recognition'''
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
     # seed setting (chainer seed may not need it)
-    nseed = args.seed
-    os.environ["CHAINER_SEED"] = str(nseed)
+    os.environ["CHAINER_SEED"] = str(args.seed)
     logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
 
     # read training config
