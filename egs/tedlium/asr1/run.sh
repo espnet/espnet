@@ -148,14 +148,9 @@ else
 fi
 mkdir -p ${expdir}
 
-# switch backend
-if [[ ${backend} == chainer ]]; then
-    train_script=asr_train.py
-    decode_script=asr_recog.py
-else
-    train_script=asr_train_th.py
-    decode_script=asr_recog_th.py
-fi
+# set train and decode script
+train_script=asr_train.py
+decode_script=asr_recog.py
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
@@ -185,6 +180,7 @@ if [ ${stage} -le 4 ]; then
     ${cuda_cmd} ${expdir}/train.log \
         ${train_script} \
         --gpu ${gpu} \
+        --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
         --dict ${dict} \
@@ -244,6 +240,7 @@ if [ ${stage} -le 5 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             ${decode_script} \
             --gpu ${gpu} \
+            --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
             --recog-feat "$feats" \

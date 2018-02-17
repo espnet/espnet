@@ -207,20 +207,16 @@ else
 fi
 mkdir -p ${expdir}
 
-# switch backend
-if [[ ${backend} == chainer ]]; then
-    train_script=asr_train.py
-    decode_script=asr_recog.py
-else
-    train_script=asr_train_th.py
-    decode_script=asr_recog_th.py
-fi
+# set train and decode script
+train_script=asr_train.py
+decode_script=asr_recog.py
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} ${expdir}/train.log \
         ${train_script} \
         --gpu ${gpu} \
+        --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
         --dict ${dict} \
@@ -279,6 +275,7 @@ if [ ${stage} -le 5 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             ${decode_script} \
             --gpu ${gpu} \
+            --backend ${backend} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
