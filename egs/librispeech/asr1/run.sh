@@ -167,14 +167,10 @@ else
 fi
 mkdir -p ${expdir}
 
-# set train and decode script
-train_script=asr_train.py
-decode_script=asr_recog.py
-
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} ${expdir}/train.log \
-        ${train_script} \
+        asr_train.py \
         --gpu ${gpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -233,7 +229,7 @@ if [ ${stage} -le 4 ]; then
         gpu=-1
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            ${decode_script} \
+            asr_recog.py \
             --gpu ${gpu} \
             --backend ${backend} \
             --recog-feat "$feats" \

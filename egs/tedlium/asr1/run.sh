@@ -148,10 +148,6 @@ else
 fi
 mkdir -p ${expdir}
 
-# set train and decode script
-train_script=asr_train.py
-decode_script=asr_recog.py
-
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs2048
@@ -178,7 +174,7 @@ fi
 if [ ${stage} -le 4 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} ${expdir}/train.log \
-        ${train_script} \
+        asr_train.py \
         --gpu ${gpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -238,7 +234,7 @@ if [ ${stage} -le 5 ]; then
         gpu=-1
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            ${decode_script} \
+            asr_recog.py \
             --gpu ${gpu} \
             --backend ${backend} \
             --debugmode ${debugmode} \
