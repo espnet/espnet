@@ -1,6 +1,7 @@
 import torch
 import warpctc_pytorch as warp_ctc
 from torch.autograd import Function
+from torch.autograd import Variable
 from torch.nn import Module
 from torch.nn.modules.loss import _assert_no_grad
 from torch.utils.ffi import _wrap_function
@@ -20,7 +21,8 @@ _import_symbols(locals())
 
 
 class _CTC(Function):
-    def forward(self, acts, labels, act_lens, label_lens):
+    @staticmethod
+    def forward(ctx, acts, labels, act_lens, label_lens):
         is_cuda = True if acts.is_cuda else False
         acts = acts.contiguous()
         loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
@@ -34,17 +36,19 @@ class _CTC(Function):
                   act_lens,
                   minibatch_size,
                   costs)
-        self.grads = grads
-        self.costs = torch.FloatTensor([costs.sum()])
-        return self.costs
+        costs = torch.FloatTensor([costs.sum()])
+        ctx.grads = Variable(grads)
+        return costs
 
-    def backward(self, grad_output):
-        return self.grads, None, None, None
+    @staticmethod
+    def backward(ctx, grad_output):
+        return ctx.grads, None, None, None
 
 
 class CTCLoss(Module):
     def __init__(self):
         super(CTCLoss, self).__init__()
+        self.ctc = _CTC.apply
 
     def forward(self, acts, labels, act_lens, label_lens):
         """
@@ -53,8 +57,8 @@ class CTCLoss(Module):
         act_lens: Tensor of size (batch) containing size of each output sequence from the network
         act_lens: Tensor of (batch) containing label length of each example
         """
-        assert len(labels.size()) == 1 # labels must be 1 dimensional
+        assert len(labels.size()) == 1  # labels must be 1 dimensional
         _assert_no_grad(labels)
         _assert_no_grad(act_lens)
         _assert_no_grad(label_lens)
-        return _CTC()(acts, labels, act_lens, label_lens)
+        return self.ctc(acts, labels, act_lens, label_lens)
