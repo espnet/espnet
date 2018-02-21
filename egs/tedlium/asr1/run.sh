@@ -9,7 +9,7 @@
 # general configuration
 backend=chainer
 stage=-1       # start from -1 if you need to start from data download
-gpu=0         # use 0 when using GPU on slurm/grid engine, use "[0, 1]" when you want to use 2 cores, otherwise -1
+gpu=-1         # use 0 when using GPU on slurm/grid engine, use "[0, 1]" when you want to use 2 cores, otherwise -1
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
