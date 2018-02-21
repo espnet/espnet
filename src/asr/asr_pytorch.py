@@ -108,7 +108,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         # Compute the loss at this time step and accumulate it
         loss = self.model(x)
         optimizer.zero_grad()  # Clear the parameter gradients
-        loss.backward(torch.Tensor([1, 1]))  # Backprop
+        loss.sum().backward()# Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm(
@@ -169,6 +169,7 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # Set gpu
+    reporter = model.reporter
     try:
         gpu_id = int(args.gpu)
         logging.info('gpu id: ' + str(gpu_id))
@@ -178,7 +179,6 @@ def train(args):
     except:
         gpu_id = map(int,args.gpu[1:-1].split(','))
         logging.info('gpu id: ' + str(gpu_id))
-        reporter = model.reporter
         model = torch.nn.DataParallel(model, device_ids=gpu_id)
         model.cuda()
 
