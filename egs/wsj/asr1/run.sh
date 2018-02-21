@@ -14,6 +14,7 @@ debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
+resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false # true when using CNN
@@ -25,6 +26,8 @@ elayers=6
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+# loss related
+ctctype=chainer
 # decoder related
 dlayers=1
 dunits=300
@@ -35,6 +38,10 @@ aconv_filts=100
 
 # hybrid CTC/attention
 mtlalpha=0.5
+
+# label smoothing
+lsm_type=unigram
+lsm_weight=0.05
 
 # minibatch related
 batchsize=30
@@ -65,8 +72,8 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh 
-. ./cmd.sh 
+. ./path.sh
+. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -144,25 +151,6 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
-if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
-    if ${do_delta}; then
-        expdir=${expdir}_delta
-    fi
-else
-    expdir=exp/${train_set}_${tag}
-fi
-mkdir -p ${expdir}
-
-# switch backend
-if [[ ${backend} == chainer ]]; then
-    train_script=asr_train.py
-    decode_script=asr_recog.py
-else
-    train_script=asr_train_th.py
-    decode_script=asr_recog_th.py
-fi
-
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs2048
@@ -188,18 +176,33 @@ if [ ${stage} -le 3 ]; then
         --dict ${dict}
 fi
 
+if [ -z ${tag} ]; then
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    if [ "${lsm_type}" != "" ]; then
+        expdir=${expdir}_lsm${lsm_type}${lsm_weight}
+    fi
+    if ${do_delta}; then
+        expdir=${expdir}_delta
+    fi
+else
+    expdir=exp/${train_set}_${tag}
+fi
+mkdir -p ${expdir}
+
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} ${expdir}/train.log \
-        ${train_script} \
+        asr_train.py \
         --gpu ${gpu} \
+        --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
         --minibatches ${N} \
         --verbose ${verbose} \
+        --resume ${resume} \
         --train-feat scp:${feat_tr_dir}/feats.scp \
         --valid-feat scp:${feat_dt_dir}/feats.scp \
         --train-label ${feat_tr_dir}/data.json \
@@ -209,12 +212,15 @@ if [ ${stage} -le 4 ]; then
         --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
+        --ctc_type ${ctctype} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
+        --lsm-type ${lsm_type} \
+        --lsm-weight ${lsm_weight} \
         --batch-size ${batchsize} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
@@ -248,8 +254,9 @@ if [ ${stage} -le 5 ]; then
         gpu=-1
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            ${decode_script} \
+            asr_recog.py \
             --gpu ${gpu} \
+            --backend ${backend} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
@@ -265,7 +272,7 @@ if [ ${stage} -le 5 ]; then
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-            
+
     ) &
     done
     wait

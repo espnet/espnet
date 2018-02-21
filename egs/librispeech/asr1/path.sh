@@ -9,8 +9,9 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin
 export LC_ALL=C
 
 export PATH=$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PATH
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 source $MAIN_ROOT/tools/venv/bin/activate
-export PYTHONPATH=$SPNET_ROOT/nets/:$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH
+export PYTHONPATH=$SPNET_ROOT/asr/:$SPNET_ROOT/nets/:$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH
 
 export OMP_NUM_THREADS=1
 if [[ $(hostname -f) == *.clsp.jhu.edu ]] ; then

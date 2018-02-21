@@ -8,17 +8,20 @@ import logging
 import math
 import sys
 
+import numpy as np
 import six
 
-import numpy as np
-
 import chainer
+from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
-
+from chainer_ctc.warpctc import ctc as warp_ctc
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
+from e2e_asr_common import label_smoothing_dist
+
+import deterministic_embed_id as DL
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -113,12 +116,25 @@ class E2E(chainer.Chain):
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
+        # label smoothing info
+        if args.lsm_type:
+            logging.info("Use label smoothing with " + args.lsm_type)
+            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_label)
+        else:
+            labeldist = None
+
         with self.init_scope():
             # encoder
             self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                                self.subsample, args.dropout_rate)
             # ctc
-            self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+            ctc_type = vars(args).get("ctc_type", "chainer")
+            if ctc_type == 'chainer':
+                logging.info("Using chainer CTC implementation")
+                self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+            elif ctc_type == 'warpctc':
+                logging.info("Using warpctc CTC implementation")
+                self.ctc = WarpCTC(odim, args.eprojs, args.dropout_rate)
             # attention
             if args.atype == 'dot':
                 self.att = AttDot(args.eprojs, args.dunits, args.adim)
@@ -133,7 +149,8 @@ class E2E(chainer.Chain):
                 sys.exit()
             # decoder
             self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
-                               self.sos, self.eos, self.att, self.verbose, self.char_list)
+                               self.sos, self.eos, self.att, self.verbose, self.char_list,
+                               labeldist, args.lsm_weight)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def __call__(self, data):
@@ -251,6 +268,53 @@ class CTC(chainer.Chain):
         # get ctc loss
         self.loss = F.connectionist_temporal_classification(
             y_hat, y_true, 0, input_length, label_length)
+        logging.info('ctc loss:' + str(self.loss.data))
+
+        return self.loss
+
+    def log_softmax(self, hs):
+        '''log_softmax of frame activations
+
+        :param hs:
+        :return:
+        '''
+        y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
+        return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
+
+
+class WarpCTC(chainer.Chain):
+    def __init__(self, odim, eprojs, dropout_rate):
+        super(WarpCTC, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.loss = None
+
+        with self.init_scope():
+            self.ctc_lo = L.Linear(eprojs, odim)
+
+    def __call__(self, hs, ys):
+        '''CTC forward
+
+        :param hs:
+        :param ys:
+        :return:
+        '''
+        self.loss = None
+        ilens = [x.shape[0] for x in hs]
+        olens = [x.shape[0] for x in ys]
+
+        # zero padding for hs
+        y_hat = linear_tensor(self.ctc_lo, F.dropout(
+            F.pad_sequence(hs), ratio=self.dropout_rate))
+        y_hat = F.transpose(y_hat, (1, 0, 2))  # batch x frames x hdim
+
+        # get length info
+        logging.info(self.__class__.__name__ +
+                     ' input lengths:  ' + str(ilens))
+        logging.info(self.__class__.__name__ +
+                     ' output lengths: ' + str(olens))
+
+        # get ctc loss
+        self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])[0]
         logging.info('ctc loss:' + str(self.loss.data))
 
         return self.loss
@@ -461,10 +525,11 @@ class NoAtt(chainer.Chain):
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(chainer.Chain):
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
+    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
+                 char_list=None, labeldist=None, lsm_weight=0.):
         super(Decoder, self).__init__()
         with self.init_scope():
-            self.embed = L.EmbedID(odim, dunits)
+            self.embed = DL.EmbedID(odim, dunits)
             self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
             for l in six.moves.range(1, dlayers):
                 setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
@@ -478,6 +543,10 @@ class Decoder(chainer.Chain):
         self.eos = eos
         self.verbose = verbose
         self.char_list = char_list
+        # for label smoothing
+        self.labeldist = labeldist
+        self.vlabeldist = None
+        self.lsm_weight = lsm_weight
 
     def __call__(self, hs, ys):
         '''Decoder forward
@@ -556,6 +625,12 @@ class Decoder(chainer.Chain):
                 seq_true = "".join(seq_true).replace('<space>', ' ')
                 logging.info("groundtruth[%d]: " % i + seq_true)
                 logging.info("prediction [%d]: " % i + seq_hat)
+
+        if self.labeldist is not None:
+            if self.vlabeldist is None:
+                self.vlabeldist = chainer.Variable(self.xp.asarray(self.labeldist))
+            loss_reg = - F.sum(F.scale(F.log_softmax(y_all), self.vlabeldist, axis=1)) / len(ys_in)
+            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc, att_weight_all
 

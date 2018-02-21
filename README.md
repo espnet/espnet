@@ -17,7 +17,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe 
-  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CJS, AMI, HKUST, Voxforge, etc.)
+  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
 - State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Moderate performance in standard English benchmarks
 
@@ -100,35 +100,19 @@ $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
 
-## Installation using Docker
-
-For GPU support nvidia-docker should be installed.
-
-For Execution use the command 
-```sh
-$ cd egs/voxforge/asr1
-$ ./run_in_docker.sh --gpu GPUID
-```
-
-If GPUID is set to -1, the program will run only CPU.
-
-The file builds and loads the information into the Docker container. If any additional application is required, modify the Docker devel-file located at the tools folder.
-
-To downgrade or use a private devel file, modify the name inside run_in_docker.sh
-
 ## Results
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 |  5.5 | 13.1 |
-| WSJ eval92|  3.8 |  9.3 |
-| CSJ eval1 | 10.7 | N/A  |
-| CSJ eval2 |  8.0 | N/A  |
-| CSJ eval3 |  8.8 | N/A  |
-| HKUST train_dev | 30.5 | N/A  |
-| HKUST dev       | 28.9 | N/A  |
+| WSJ dev93 | 5.5 | 13.1 |
+| WSJ eval92| 3.8 |  9.3 |
+| CSJ eval1 | 8.7 | N/A  |
+| CSJ eval2 | 6.2 | N/A  |
+| CSJ eval3 | 6.9 | N/A  |
+| HKUST train_dev | 29.7 | N/A  |
+| HKUST dev       | 28.3 | N/A  |
 | Librispeech dev_clean  | 2.9 | 7.7 |
 | Librispeech test_clean | 2.7 | 7.7 |
 
