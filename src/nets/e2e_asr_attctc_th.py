@@ -5,22 +5,20 @@
 
 
 from __future__ import division
+
 import logging
 import math
 import sys
 
-import six
-
-import numpy as np
-
 import chainer
-from chainer import reporter
-
+import numpy as np
+import six
 import torch
+import torch.nn.functional as F
 import warpctc_pytorch as warp_ctc
 
+from chainer import reporter
 from torch.autograd import Variable
-from torch.nn import functional
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
@@ -380,7 +378,7 @@ class CTC(torch.nn.Module):
 
         # zero padding for hs
         y_hat = linear_tensor(
-            self.ctc_lo, functional.dropout(hpad, p=self.dropout_rate))
+            self.ctc_lo, F.dropout(hpad, p=self.dropout_rate))
 
         # zero padding for ys
         y_true = torch.cat(ys).cpu().int()  # batch x olen
@@ -405,7 +403,7 @@ class CTC(torch.nn.Module):
         :param hs:
         :return:
         '''
-        return functional.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
+        return F.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
 
 
 def mask_by_length(xs, length, fill=0):
@@ -466,7 +464,7 @@ class AttDot(torch.nn.Module):
                       torch.tanh(self.mlp_dec(dec_z)).view(
                           batch, 1, self.att_dim),
                       dim=2)  # utt x frame
-        w = torch.nn.functional.softmax(scaling * e, dim=1)
+        w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -547,7 +545,7 @@ class AttLoc(torch.nn.Module):
         # NOTE consider zero padding when compute w.
         e = linear_tensor(self.gvec, torch.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
-        w = torch.nn.functional.softmax(scaling * e, dim=1)
+        w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -696,9 +694,9 @@ class Decoder(torch.nn.Module):
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
-        self.loss = torch.nn.functional.cross_entropy(y_all, pad_ys_out.view(-1),
-                                                      ignore_index=self.ignore_id,
-                                                      size_average=True)
+        self.loss = F.cross_entropy(y_all, pad_ys_out.view(-1),
+                                    ignore_index=self.ignore_id,
+                                    size_average=True)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
@@ -723,7 +721,7 @@ class Decoder(torch.nn.Module):
         if self.labeldist is not None:
             if self.vlabeldist is None:
                 self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
-            loss_reg = - torch.sum((functional.log_softmax(y_all, dim=1) *
+            loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) *
                                     self.vlabeldist).view(-1), dim=0) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
@@ -837,7 +835,7 @@ class Decoder(torch.nn.Module):
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
 
                 # get nbest local scores and their ids
-                local_att_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
+                local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
                 if lpz is not None:
                     local_best_scores, local_best_ids = torch.topk(
                         local_att_scores, ctc_beam, dim=1)
@@ -1092,13 +1090,13 @@ class VGG2L(torch.nn.Module):
                      xs.size(2) // self.in_channel).transpose(1, 2)
 
         # NOTE: max_pool1d ?
-        xs = functional.relu(self.conv1_1(xs))
-        xs = functional.relu(self.conv1_2(xs))
-        xs = functional.max_pool2d(xs, 2, stride=2, ceil_mode=True)
+        xs = F.relu(self.conv1_1(xs))
+        xs = F.relu(self.conv1_2(xs))
+        xs = F.max_pool2d(xs, 2, stride=2, ceil_mode=True)
 
-        xs = functional.relu(self.conv2_1(xs))
-        xs = functional.relu(self.conv2_2(xs))
-        xs = functional.max_pool2d(xs, 2, stride=2, ceil_mode=True)
+        xs = F.relu(self.conv2_1(xs))
+        xs = F.relu(self.conv2_2(xs))
+        xs = F.max_pool2d(xs, 2, stride=2, ceil_mode=True)
         # change ilens accordingly
         # ilens = [_get_max_pooled_size(i) for i in ilens]
         ilens = np.array(
