@@ -14,6 +14,3 @@ source $MAIN_ROOT/tools/venv/bin/activate
 export PYTHONPATH=$SPNET_ROOT/asr/:$SPNET_ROOT/nets/:$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH
 
 export OMP_NUM_THREADS=1
-if [[ $(hostname -f) == *.clsp.jhu.edu ]] ; then
-    export CUDA_VISIBLE_DEVICES=$(/usr/local/bin/free-gpu)
-fi
