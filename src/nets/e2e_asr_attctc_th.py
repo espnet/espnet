@@ -355,7 +355,7 @@ def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
     _assert_no_grad(labels)
     _assert_no_grad(act_lens)
     _assert_no_grad(label_lens)
-    return _ChainerLikeCTC()(acts, labels, act_lens, label_lens)
+    return _ChainerLikeCTC.apply(acts, labels, act_lens, label_lens)
 
 
 class CTC(torch.nn.Module):
