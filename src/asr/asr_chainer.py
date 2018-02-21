@@ -174,6 +174,10 @@ def train(args):
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
+    # check attention type
+    if args.atype not in ['noatt', 'dot', 'location']:
+        raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
+
     # specify model architecture
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
