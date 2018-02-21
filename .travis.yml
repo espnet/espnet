@@ -30,6 +30,13 @@ install:
   - cd tools && make kaldi-io-for-python && cd -
   # install doc deps
   - pip install -r doc/requirements.txt
+  # install chainer_ctc
+  - pip install cython
+  - git clone https://github.com/jheymann85/chainer_ctc.git
+  - cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
+  - pip install . && cd ..
+  - export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`pwd`/chainer_ctc/ext/warp-ctc/build
+
 
 script:
   # TODO test coding style?

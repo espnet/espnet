@@ -5,26 +5,26 @@
 
 
 from __future__ import division
+
 import logging
 import math
 import sys
 
-import six
-
-import numpy as np
-
 import chainer
-from chainer import reporter
-
+import numpy as np
+import six
 import torch
+import torch.nn.functional as F
+import warpctc_pytorch as warp_ctc
+
+from chainer import reporter
 from torch.autograd import Variable
-from torch.nn import functional
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
-from warpctc_pytorch import _CTC
 
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
+from e2e_asr_common import label_smoothing_dist
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -170,6 +170,13 @@ class E2E(torch.nn.Module):
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
+        # label smoothing info
+        if args.lsm_type:
+            logging.info("Use label smoothing with " + args.lsm_type)
+            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_label)
+        else:
+            labeldist = None
+
         # encoder
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                            self.subsample, args.dropout_rate)
@@ -210,7 +217,8 @@ class E2E(torch.nn.Module):
             sys.exit()
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
-                           self.sos, self.eos, self.att, self.verbose, self.char_list)
+                           self.sos, self.eos, self.att, self.verbose, self.char_list,
+                           labeldist, args.lsm_weight)
 
         # weight initialization
         self.init_like_chainer()
@@ -318,12 +326,28 @@ class E2E(torch.nn.Module):
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
-class _ChainerLikeCTC(_CTC):
-    def forward(self, acts, labels, act_lens, label_lens):
-        return super(_ChainerLikeCTC, self).forward(acts, labels, act_lens, label_lens) / acts.size(1)
+class _ChainerLikeCTC(warp_ctc._CTC):
+    @staticmethod
+    def forward(ctx, acts, labels, act_lens, label_lens):
+        is_cuda = True if acts.is_cuda else False
+        acts = acts.contiguous()
+        loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
+        grads = torch.zeros(acts.size()).type_as(acts)
+        minibatch_size = acts.size(1)
+        costs = torch.zeros(minibatch_size).cpu()
+        loss_func(acts,
+                  grads,
+                  labels,
+                  label_lens,
+                  act_lens,
+                  minibatch_size,
+                  costs)
+        # modified only here from original
+        costs = torch.FloatTensor([costs.sum()]) / acts.size(1)
+        ctx.grads = Variable(grads)
+        ctx.grads /= ctx.grads.size(1)
 
-    def backward(self, grad_output):
-        return self.grads / self.grads.size(1), None, None, None
+        return costs
 
 
 def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
@@ -339,7 +363,7 @@ def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
     _assert_no_grad(labels)
     _assert_no_grad(act_lens)
     _assert_no_grad(label_lens)
-    return _ChainerLikeCTC()(acts, labels, act_lens, label_lens)
+    return _ChainerLikeCTC.apply(acts, labels, act_lens, label_lens)
 
 
 class CTC(torch.nn.Module):
@@ -364,7 +388,7 @@ class CTC(torch.nn.Module):
 
         # zero padding for hs
         y_hat = linear_tensor(
-            self.ctc_lo, functional.dropout(hpad, p=self.dropout_rate))
+            self.ctc_lo, F.dropout(hpad, p=self.dropout_rate))
 
         # zero padding for ys
         y_true = torch.cat(ys).cpu().int()  # batch x olen
@@ -389,7 +413,7 @@ class CTC(torch.nn.Module):
         :param hs:
         :return:
         '''
-        return functional.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
+        return F.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
 
 
 def mask_by_length(xs, length, fill=0):
@@ -508,7 +532,7 @@ class AttDot(torch.nn.Module):
                       torch.tanh(self.mlp_dec(dec_z)).view(
                           batch, 1, self.att_dim),
                       dim=2)  # utt x frame
-        w = torch.nn.functional.softmax(scaling * e, dim=1)
+        w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -600,7 +624,7 @@ class AttLoc(torch.nn.Module):
         # NOTE consider zero padding when compute w.
         e = linear_tensor(self.gvec, torch.tanh(
             att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
-        w = torch.nn.functional.softmax(scaling * e, dim=1)
+        w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -1344,7 +1368,8 @@ def th_accuracy(y_all, pad_target, ignore_label):
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0, char_list=None):
+    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
+                 char_list=None, labeldist=None, lsm_weight=0.):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -1363,6 +1388,10 @@ class Decoder(torch.nn.Module):
         self.eos = eos
         self.verbose = verbose
         self.char_list = char_list
+        # for label smoothing
+        self.labeldist = labeldist
+        self.vlabeldist = None
+        self.lsm_weight = lsm_weight
 
     def zero_state(self, hpad):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
@@ -1420,9 +1449,9 @@ class Decoder(torch.nn.Module):
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
-        self.loss = torch.nn.functional.cross_entropy(y_all, pad_ys_out.view(-1),
-                                                      ignore_index=self.ignore_id,
-                                                      size_average=True)
+        self.loss = F.cross_entropy(y_all, pad_ys_out.view(-1),
+                                    ignore_index=self.ignore_id,
+                                    size_average=True)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
@@ -1443,6 +1472,13 @@ class Decoder(torch.nn.Module):
                 seq_true = "".join(seq_true)
                 logging.info("groundtruth[%d]: " % i + seq_true)
                 logging.info("prediction [%d]: " % i + seq_hat)
+
+        if self.labeldist is not None:
+            if self.vlabeldist is None:
+                self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
+            loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) *
+                                    self.vlabeldist).view(-1), dim=0) / len(ys_in)
+            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc
 
@@ -1554,7 +1590,7 @@ class Decoder(torch.nn.Module):
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
 
                 # get nbest local scores and their ids
-                local_att_scores = functional.log_softmax(self.output(z_list[-1]), dim=1).data
+                local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
                 if lpz is not None:
                     local_best_scores, local_best_ids = torch.topk(
                         local_att_scores, ctc_beam, dim=1)
@@ -1807,13 +1843,13 @@ class VGG2L(torch.nn.Module):
                      xs.size(2) // self.in_channel).transpose(1, 2)
 
         # NOTE: max_pool1d ?
-        xs = functional.relu(self.conv1_1(xs))
-        xs = functional.relu(self.conv1_2(xs))
-        xs = functional.max_pool2d(xs, 2, stride=2, ceil_mode=True)
+        xs = F.relu(self.conv1_1(xs))
+        xs = F.relu(self.conv1_2(xs))
+        xs = F.max_pool2d(xs, 2, stride=2, ceil_mode=True)
 
-        xs = functional.relu(self.conv2_1(xs))
-        xs = functional.relu(self.conv2_2(xs))
-        xs = functional.max_pool2d(xs, 2, stride=2, ceil_mode=True)
+        xs = F.relu(self.conv2_1(xs))
+        xs = F.relu(self.conv2_2(xs))
+        xs = F.max_pool2d(xs, 2, stride=2, ceil_mode=True)
         # change ilens accordingly
         # ilens = [_get_max_pooled_size(i) for i in ilens]
         ilens = np.array(
