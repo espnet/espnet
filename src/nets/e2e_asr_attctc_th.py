@@ -15,12 +15,12 @@ import numpy as np
 import six
 import torch
 import torch.nn.functional as F
+import warpctc_pytorch as warp_ctc
 
 from chainer import reporter
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
-from warpctc_pytorch import _CTC
 
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
@@ -316,12 +316,28 @@ class E2E(torch.nn.Module):
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
-class _ChainerLikeCTC(_CTC):
-    def forward(self, acts, labels, act_lens, label_lens):
-        return super(_ChainerLikeCTC, self).forward(acts, labels, act_lens, label_lens) / acts.size(1)
+class _ChainerLikeCTC(warp_ctc._CTC):
+    @staticmethod
+    def forward(ctx, acts, labels, act_lens, label_lens):
+        is_cuda = True if acts.is_cuda else False
+        acts = acts.contiguous()
+        loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
+        grads = torch.zeros(acts.size()).type_as(acts)
+        minibatch_size = acts.size(1)
+        costs = torch.zeros(minibatch_size).cpu()
+        loss_func(acts,
+                  grads,
+                  labels,
+                  label_lens,
+                  act_lens,
+                  minibatch_size,
+                  costs)
+        # modified only here from original
+        costs = torch.FloatTensor([costs.sum()]) / acts.size(1)
+        ctx.grads = Variable(grads)
+        ctx.grads /= ctx.grads.size(1)
 
-    def backward(self, grad_output):
-        return self.grads / self.grads.size(1), None, None, None
+        return costs
 
 
 def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
@@ -337,7 +353,7 @@ def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
     _assert_no_grad(labels)
     _assert_no_grad(act_lens)
     _assert_no_grad(label_lens)
-    return _ChainerLikeCTC()(acts, labels, act_lens, label_lens)
+    return _ChainerLikeCTC.apply(acts, labels, act_lens, label_lens)
 
 
 class CTC(torch.nn.Module):
