@@ -57,12 +57,6 @@ lm_weight=0.3
 
 # decoding parameter
 beam_size=20
-penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
-
-# decoding parameter
-beam_size=20
 penalty=0.1
 maxlenratio=0.5
 minlenratio=0.1
