@@ -35,6 +35,8 @@ dunits=300
 # attention related
 atype=location
 adim=320
+awin=5
+aheads=4
 aconv_chans=10
 aconv_filts=100
 
@@ -58,6 +60,12 @@ beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
+
+# decoding parameter
+beam_size=20
+penalty=0.1
+maxlenratio=0.5
+minlenratio=0.1
 ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
@@ -70,8 +78,8 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh 
-. ./cmd.sh 
+. ./path.sh
+. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -218,6 +226,8 @@ if [ ${stage} -le 4 ]; then
         --dunits ${dunits} \
         --atype ${atype} \
         --adim ${adim} \
+        --awin ${awin} \
+        --aheads ${aheads} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
