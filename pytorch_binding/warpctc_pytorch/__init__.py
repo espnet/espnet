@@ -22,7 +22,7 @@ _import_symbols(locals())
 
 class _CTC(Function):
     @staticmethod
-    def forward(ctx, acts, labels, act_lens, label_lens):
+    def forward(ctx, acts, labels, act_lens, label_lens, size_average=False):
         is_cuda = True if acts.is_cuda else False
         acts = acts.contiguous()
         loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
@@ -36,19 +36,24 @@ class _CTC(Function):
                   act_lens,
                   minibatch_size,
                   costs)
-        costs = torch.FloatTensor([costs.sum()])
+        if size_average:
+            # Compute the avg. log-probability per frame and batch sample.
+            costs = torch.FloatTensor([costs.mean()])
+        else:
+            costs = torch.FloatTensor([costs.sum()])
         ctx.grads = Variable(grads)
         return costs
 
     @staticmethod
     def backward(ctx, grad_output):
-        return ctx.grads, None, None, None
+        return ctx.grads, None, None, None, None
 
 
 class CTCLoss(Module):
-    def __init__(self):
+    def __init__(self, size_average=False):
         super(CTCLoss, self).__init__()
         self.ctc = _CTC.apply
+        self.size_average = size_average
 
     def forward(self, acts, labels, act_lens, label_lens):
         """
@@ -61,4 +66,4 @@ class CTCLoss(Module):
         _assert_no_grad(labels)
         _assert_no_grad(act_lens)
         _assert_no_grad(label_lens)
-        return self.ctc(acts, labels, act_lens, label_lens)
+        return self.ctc(acts, labels, act_lens, label_lens, self.size_average)
