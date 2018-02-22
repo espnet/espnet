@@ -1,13 +1,17 @@
+#!/bin/bash
+
+# Copyright 2018 Johns Hopkins University (Matthew Wiesner)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 ###########################################################################
 # Create dictionaries with split diphthongs and standardized tones
+# This script recreates the dictionary directories by modifying the
+# the phonemic inventory of the languages (according to local/phone_maps).
+# All diphthongs and triphthongs are split into their constituent phones when
+# possible, all tone markings, which have no standard representation across
+# languages in the x-sampa phoneme set, are changed so as to be shared across
+# languages when possible.
 ###########################################################################
-# In the lexicons provided by babel there are phonemes x_y, for which _y may
-# or may not best be considered as a tag on phoneme x. In Lithuanian, for
-# instance, there is a phoneme A_F for which _F or indicates failling tone.
-# This same linguistic feature is represented in other languages as a "tag"
-# (i.e. 判 pun3 p u: n _3), which means for the purposes of kaldi, that
-# those phonemes share a root in the clustering decision tree, and the tag
-# becomes an extra question. We may want to revisit this issue later.
 
 dict=data/dict_universal
 
@@ -41,12 +45,6 @@ cat ${dict}/{,non}silence_lexicon.txt | sort > ${dict}/lexicon.txt
 
 # Prepare the rest of the dictionary directory
 # -----------------------------------------------
-# The local/prepare_dict.py script, which is basically the same as
-# prepare_unicode_lexicon.py used in the babel recipe to create the
-# graphemic lexicons, is better suited for working with kaldi formatted
-# lexicons and can be used for this task by only modifying optional input
-# arguments. If we could modify local/prepare_lexicon.pl to accomodate this
-# need it may be more intuitive.
 ./local/prepare_dict.py \
   --silence-lexicon ${dict}/silence_lexicon.txt ${dict}/lexicon.txt ${dict}
 

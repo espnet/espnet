@@ -15,8 +15,7 @@ set -e
 set -o pipefail
 . ./path.sh
 . ./cmd.sh
-. ./conf/common_vars.sh
-
+. ./conf/lang.conf
 
 if [ ! -f exp/mono/.done ]; then
   echo ---------------------------------------------------------------------

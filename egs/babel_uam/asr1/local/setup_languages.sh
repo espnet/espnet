@@ -7,9 +7,10 @@ set -e
 set -o pipefail
 . ./path.sh
 . ./cmd.sh
-. ./conf/common_vars.sh
+. ./conf/lang.conf
 
 langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
+recog="201"
 seq_type="grapheme"
 phn_ali=
 
@@ -31,20 +32,27 @@ for l in ${langs}; do
     ln -sf $link .
   done
 
-  conf_file=`find conf/lang/ -name "${l}-*LLP*.conf" | head -1`
-
-  echo "----------------------------------------------------"
-  echo "Using language configurations: ${conf_file}"
-  echo "----------------------------------------------------"
-
-  cp ${conf_file} lang.conf
   cp ${cwd}/cmd.sh .
   cp ${cwd}/path_babel.sh path.sh
   
   cd ${cwd}
 done
 
+# Set up recog lang
+[ -d data/${recog} ] || mkdir -p data/${recog}
+cd data/${recog}
+ln -sf ${cwd}/local .
+for f in ${cwd}/{utils,steps,conf}; do
+  link=`make_absolute.sh $f`
+  ln -sf $link .
+done
 
+cp ${cwd}/cmd.sh .
+cp ${cwd}/path_babel.sh path.sh
+cd ${cwd}
+
+
+# Prepare data
 for l in ${langs}; do
   cd data/${l}
   #############################################################################
@@ -57,7 +65,7 @@ for l in ${langs}; do
     else
       ./local/prepare_data.sh --extract-feats true ${l}
       mkdir -p data/lang
-      if [[ ! -f data/lang/L.fst || data/lang/L.fst -ot $lexicon ]]; then
+      if [[ ! -f data/lang/L.fst || data/lang/L.fst -ot data/local/lexicon.txt ]]; then
         echo ------------------------------------------------------------------
         echo "Creating L.fst etc in data/lang on" `date`
         echo ------------------------------------------------------------------
@@ -101,4 +109,8 @@ if [ $seq_type = "phoneme" ]; then
       data/dict_universal "<unk>" data/dict_universal/tmp.lang data/lang_universal
   fi
 fi
+
+cd data/${recog}
+./local/prepare_recog.sh ${recog}
+cd ${cwd}
 

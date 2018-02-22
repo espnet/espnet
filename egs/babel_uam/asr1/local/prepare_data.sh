@@ -5,11 +5,9 @@
 
 # This is not necessarily the top-level run.sh as it is in other directories.   see README.txt first.
 
-[ ! -f ./lang.conf ] && echo 'Language configuration does not exist! Use the configurations in conf/lang/* as a startup' && exit 1
-[ ! -f ./conf/common_vars.sh ] && echo 'the file conf/common_vars.sh does not exist!' && exit 1
-
-. conf/common_vars.sh || exit 1;
-. ./lang.conf || exit 1;
+. ./conf/lang.conf
+. ./path.sh
+. ./cmd.sh
 
 extract_feats=false
 
@@ -36,12 +34,13 @@ if [ ! -f data/raw_train_data/.done ]; then
     echo ---------------------------------------------------------------------
     echo "Subsetting the TRAIN set"
     echo ---------------------------------------------------------------------
-
-    local/make_corpus_subset.sh "$train_data_dir" "$train_data_list" ./data/raw_train_data
+    train_data_dir=train_data_dir_${l}
+    train_data_list=train_data_list_${l}
+    local/make_corpus_subset.sh "${!train_data_dir}" "${!train_data_list}" ./data/raw_train_data
     train_data_dir=`utils/make_absolute.sh ./data/raw_train_data`
     touch data/raw_train_data/.done
 fi
-nj_max=`cat $train_data_list | wc -l`
+nj_max=`cat ${!train_data_list} | wc -l`
 if [[ "$nj_max" -lt "$train_nj" ]] ; then
     echo "The maximum reasonable number of jobs is $nj_max (you have $train_nj)! (The training and decoding process has file-granularity)"
     exit 1;
@@ -50,13 +49,14 @@ fi
 train_data_dir=`utils/make_absolute.sh ./data/raw_train_data`
 
 mkdir -p data/local
-if [[ ! -f $lexicon || $lexicon -ot "$lexicon_file" ]]; then
+lexicon_file=lexicon_file_${l}
+lexiconFlags=lexiconFlags_${l}
+if [[ ! -f $lexicon || $lexicon -ot "${!lexicon_file}" ]]; then
   echo ---------------------------------------------------------------------
   echo "Preparing lexicon in data/local on" `date`
   echo ---------------------------------------------------------------------
-  local/make_lexicon_subset.sh $train_data_dir/transcription $lexicon_file data/local/filtered_lexicon.txt
-  local/prepare_lexicon.pl  --phonemap "$phoneme_mapping" \
-    $lexiconFlags data/local/filtered_lexicon.txt data/local
+  local/make_lexicon_subset.sh $train_data_dir/transcription ${!lexicon_file} data/local/filtered_lexicon.txt
+  local/prepare_lexicon.pl ${!lexiconFlags} data/local/filtered_lexicon.txt data/local
 fi
 
 

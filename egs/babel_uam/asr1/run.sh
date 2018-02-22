@@ -44,10 +44,11 @@ set -o pipefail
 # TODO: Fix annoying problem of free-gpu not being seen when preparing data on a* machines.
 . ./path.sh
 . ./cmd.sh
-. ./conf/common_vars.sh
+. ./conf/lang.conf
 
 ################### DATA SPECIFIC PARAMETERS ##################################
 langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
+recog="201"
 seq_type="grapheme"
 stage=0
 phoneme_alignments=/export/a15/MStuDy/Matthew/LORELEI/kaldi/egs/universal_acoustic_model/s5_all_babel_llp/data/train/text.ali.phn
@@ -101,6 +102,7 @@ maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+snapshot=""
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -110,7 +112,7 @@ tag="" # tag for managing experiments.
 # TODO: NEED TO ADD THE RECOG SET # 
 train_set=train_e2e
 train_dev=dev_e2e
-recog_set=dev10h.hat.pem
+recog_set=105/data/dev10h.pem
 
 
 if [ $seq_type = "grapheme" ] && [[ $langs = *"101"* ]]; then
@@ -118,11 +120,10 @@ if [ $seq_type = "grapheme" ] && [[ $langs = *"101"* ]]; then
   echo >&2 "         training an end-to-end system producing graphemes."
 fi 
 
-# TODO: Remove all conf files and create one giant unified file over all langs
 if [ $stage -le 1 ]; then
   echo "stage 1: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --seq-type ${seq_type}\
-                             --phn-ali ${phoneme_alignments} 
+                             --phn-ali ${phoneme_alignments} --recog "${recog}"
 fi
 
 ###############################################################################
@@ -312,6 +313,63 @@ if [ ${stage} -le 6 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --resume ${snapshot}
 fi
+
+
+if [ ${stage} -le 7 ]; then
+    echo "stage 5: Decoding"
+    nj=32
+
+    for rtask in ${recog_set}; do
+    (
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+
+        # split data
+        data=data/${rtask}
+        split_data.sh --per-utt ${data} ${nj};
+        sdata=${data}/split${nj}utt;
+
+        # feature extraction
+        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
+        if ${do_delta}; then
+        feats="$feats add-deltas ark:- ark:- |"
+        fi
+
+        # make json labels for recognition
+        data2json_cmd=data2json.sh
+        [ $seq_type = "phoneme" ] && data2json_cmd=local/data2jason_phn.sh
+
+        $data2json_cmd --nlsyms ${nlsyms} ${data} ${dict} > ${data}/data.json
+
+        #### use CPU for decoding
+        gpu=-1
+
+        
+        # --rnnlm ${lmexpdir}/rnnlm.model.best \
+        # --lm-weight ${lm_weight} &
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            ${decode_script} \
+            --gpu ${gpu} \
+            --recog-feat "$feats" \
+            --recog-label ${data}/data.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/model.${recog_model}  \
+            --model-conf ${expdir}/results/model.conf  \
+            --beam-size ${beam_size} \
+            --penalty ${penalty} \
+            --maxlenratio ${maxlenratio} \
+            --minlenratio ${minlenratio} \
+            --ctc-weight ${ctc_weight} &
+        wait
+
+        #score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+            
+    ) &
+    done
+    wait
+    echo "Finished"
+fi
+
 
