@@ -2,7 +2,7 @@
 import os
 import platform
 import sys
-from distutils.core import setup
+from setuptools import setup
 
 from torch.utils.ffi import create_extension
 
