@@ -170,16 +170,13 @@ def train(args):
 
     # Set gpu
     reporter = model.reporter
-    if args.gpu.isdigit():
-        gpu_id = int(args.gpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        if gpu_id >= 0:
-            # Make a specified GPU current
-            model.cuda(gpu_id)  # Copy the model to the GPU
-    else:
-        gpu_id = map(int, args.gpu.split(','))
-        logging.info('gpu id: ' + str(gpu_id))
-        model = torch.nn.DataParallel(model, device_ids=gpu_id)
+    ngpu     = int(args.gpu)
+    if ngpu == 1:
+        logging.info('gpu id: 0')
+        model.cuda()
+    elif ngpu > 1:
+        logging.info('gpu id: '+str(range(ngpu)))
+        model = torch.nn.DataParallel(model, device_ids=range(ngpu))
         model.cuda()
 
     # Setup an optimizer
