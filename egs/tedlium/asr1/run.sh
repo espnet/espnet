@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 #Multi-GPU configuration
-ngpu=-1         # use 0 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise -1 (CPU)
+ngpu=-1         # use 1 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise 0 or -1 (CPU)
 gpu=ngpu        # temp fix
 . ./path.sh $ngpu
 . ./cmd.sh $ngpu
