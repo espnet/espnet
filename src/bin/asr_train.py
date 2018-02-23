@@ -65,10 +65,10 @@ def main():
                         help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
-                        choices=['noatt', 'dot', 'location', 'coverage',
+                        choices=['noatt', 'dot', 'add', 'location', 'coverage',
                                  'coverage_location', 'location2d', 'location_recurrent',
                                  'multi_head_dot', 'multi_head_add', 'multi_head_loc',
-                                 'multi_head_loc_v2', 'multi_head_loc_v3', 'multi_head_loc_v4'],
+                                 'multi_head_multi_res_loc'],
                         help='Type of attention architecture')
     parser.add_argument('--adim', default=320, type=int,
                         help='Number of attention transformation dimensions')
