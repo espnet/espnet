@@ -73,10 +73,9 @@ def main():
     parser.add_argument('--adim', default=320, type=int,
                         help='Number of attention transformation dimensions')
     parser.add_argument('--awin', default=5, type=int,
-                        help='Window size of location2d attention')
+                        help='Window size for location2d attention')
     parser.add_argument('--aheads', default=4, type=int,
-                        help='Number of multi head dot product attention \
-                        (only for atype = multi_head_*)')
+                        help='Number of heads for multi head attention')
     parser.add_argument('--aconv-chans', default=-1, type=int,
                         help='Number of attention convolution channels \
                         (negative value indicates no location-aware attention)')
