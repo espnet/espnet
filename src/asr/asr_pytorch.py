@@ -172,11 +172,13 @@ def train(args):
     reporter = model.reporter
     ngpu = int(args.gpu)
     if ngpu == 1:
-        logging.info('gpu id: 0')
+        gpu_id = 0
+        logging.info('gpu id: ' + str(gpu_id))
         model.cuda()
     elif ngpu > 1:
-        logging.info('gpu id: '+str(range(ngpu)))
-        model = torch.nn.DataParallel(model, device_ids=range(ngpu))
+        gpu_id = range(ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        model = torch.nn.DataParallel(model, device_ids=gpu_id)
         model.cuda()
 
     # Setup an optimizer
