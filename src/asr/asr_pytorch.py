@@ -170,7 +170,7 @@ def train(args):
 
     # Set gpu
     reporter = model.reporter
-    ngpu     = int(args.gpu)
+    ngpu = int(args.gpu)
     if ngpu == 1:
         logging.info('gpu id: 0')
         model.cuda()
