@@ -3,12 +3,6 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-#Multi-GPU configuration
-ngpu=-1         # use 1 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise 0 or -1 (CPU)
-gpu=ngpu        # temp fix
-. ./path.sh $ngpu
-. ./cmd.sh $ngpu
-
 # general configuration
 backend=chainer
 stage=-1       # start from -1 if you need to start from data download
@@ -65,10 +59,13 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # exp tag
 tag="" # tag for managing experiments.
 
+#Multi-GPU configuration
+ngpu=-1         # use 1 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise 0 or -1 (CPU)
+gpu=ngpu        # temp fix
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh 
-. ./cmd.sh 
+. ./path.sh $ngpu
+. ./cmd.sh $ngpu
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
