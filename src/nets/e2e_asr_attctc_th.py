@@ -546,7 +546,7 @@ class AttDot(torch.nn.Module):
 
 
 class AttAdd(torch.nn.Module):
-    '''Additive attetion
+    '''Additive attention
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -618,7 +618,10 @@ class AttAdd(torch.nn.Module):
 
 
 class AttLoc(torch.nn.Module):
-    '''location-aware attetion
+    '''location-aware attention
+
+    Reference: Attention-Based Models for Speech Recognition
+        (https://arxiv.org/pdf/1506.07503.pdf)
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -710,10 +713,10 @@ class AttLoc(torch.nn.Module):
 
 
 class AttCov(torch.nn.Module):
-    '''Coverage mechanism attetion
+    '''Coverage mechanism attention
 
     Reference: Get To The Point: Summarization with Pointer-Generator Network
-               (https://arxiv.org/abs/1704.04368)
+       (https://arxiv.org/abs/1704.04368)
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -800,7 +803,10 @@ class AttCov(torch.nn.Module):
 
 
 class AttLoc2D(torch.nn.Module):
-    '''2D location-aware attetion
+    '''2D location-aware attention
+
+    This attention is an extended version of location aware attention.
+    It take not only one frame before attention weights, but also earlier frames into account.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -901,6 +907,9 @@ class AttLoc2D(torch.nn.Module):
 
 class AttLocRec(torch.nn.Module):
     '''location-aware recurrent attention
+
+    This attention is an extended version of location aware attention.
+    With the use of RNN, it take the effect of the history of attention weights into account.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1004,7 +1013,9 @@ class AttLocRec(torch.nn.Module):
 
 
 class AttCovLoc(torch.nn.Module):
-    '''Coverage mechanism location aware attetion
+    '''Coverage mechanism location aware attention
+
+    This attention is a combination of coverage and location-aware attentions.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1103,7 +1114,8 @@ class AttCovLoc(torch.nn.Module):
 class AttMultiHeadDot(torch.nn.Module):
     '''Multi head dot product attention
 
-    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1198,7 +1210,10 @@ class AttMultiHeadDot(torch.nn.Module):
 class AttMultiHeadAdd(torch.nn.Module):
     '''Multi head additive attention
 
-    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using additive attention for each head.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1238,7 +1253,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.pre_compute_v = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        '''AttMultiHeadDot forward
+        '''AttMultiHeadAdd forward
 
         :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
@@ -1296,7 +1311,10 @@ class AttMultiHeadAdd(torch.nn.Module):
 class AttMultiHeadLoc(torch.nn.Module):
     '''Multi head location based attention
 
-    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using location-aware attention for each head.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1343,7 +1361,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.pre_compute_v = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        '''AttMultiHeadDot forward
+        '''AttMultiHeadLoc forward
 
         :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
@@ -1412,9 +1430,13 @@ class AttMultiHeadLoc(torch.nn.Module):
 
 
 class AttMultiHeadMultiResLoc(torch.nn.Module):
-    '''Multi head multi resolution location based attention with scaling
+    '''Multi head multi resolution location based attention
 
-    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using location-aware attention for each head.
+    Furthermore, it uses different filter size for each head.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1464,7 +1486,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.pre_compute_v = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        '''AttMultiHeadDot forward
+        '''AttMultiHeadMultiResLoc forward
 
         :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
