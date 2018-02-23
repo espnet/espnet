@@ -15,6 +15,7 @@ dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
+seed=1
 
 # feature configuration
 do_delta=false # true when using CNN
@@ -33,6 +34,9 @@ dlayers=1
 dunits=300
 # attention related
 atype=location
+adim=320
+awin=5
+aheads=4
 aconv_chans=10
 aconv_filts=100
 
@@ -203,6 +207,7 @@ if [ ${stage} -le 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
+        --seed ${seed} \
         --train-feat scp:${feat_tr_dir}/feats.scp \
         --valid-feat scp:${feat_dt_dir}/feats.scp \
         --train-label ${feat_tr_dir}/data.json \
@@ -216,6 +221,9 @@ if [ ${stage} -le 4 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
+        --adim ${adim} \
+        --awin ${awin} \
+        --aheads ${aheads} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
