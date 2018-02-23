@@ -4,10 +4,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 #Multi-GPU configuration
-gpu=-1         # use 0 when using GPU on slurm/grid engine, use "0,1" when you want to use 2 cores, otherwise -1
-export num_gpu=`awk -F"," '{if($0=="-1")print 0;else print NF}' <<< "${gpu}"` # number of gpu cores to be used
-. ./path.sh
-. ./cmd.sh
+ngpu=-1         # use 0 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise -1 (CPU)
+gpu=ngpu        # temp fix
+. ./path.sh $ngpu
+. ./cmd.sh $ngpu
 
 # general configuration
 backend=chainer

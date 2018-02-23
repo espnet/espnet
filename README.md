@@ -70,11 +70,15 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Recognition and scoring
 
 ### Use of GPU
-If you use GPU in your experiment, set `--gpu` option in `run.sh` appropriately, e.g., 
+If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
 ```sh
-$ ./run.sh --gpu 0
+$ ./run.sh --ngpu 1
 ```
-Default setup uses CPU (`--gpu -1`).
+If you use two GPU cores:
+```sh
+$ ./run.sh --ngpu 2
+```
+Default setup uses CPU (`--ngpu 0`).
 
 ### Setup in your cluster
 Change `cmd.sh` according to your cluster setup.
