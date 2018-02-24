@@ -136,6 +136,84 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
+class ChainerParallelUpdaterKaldi(training.ParallelUpdater):
+    '''Custom parallel updater with Kaldi reader for chainer'''
+
+    def __init__(self, train_iter, optimizer, reader, devices):
+        super(ChainerParallelUpdaterKaldi, self).__init__(
+            train_iter, optimizer, devices=devices)
+        self.reader = reader
+
+    # The core part of the update routine can be customized by overriding.
+    def update_core(self):
+        # When we pass one iterator and optimizer to StandardUpdater.__init__,
+        # they are automatically named 'main'.
+        train_iter = self.get_iterator('main')
+        optimizer = self.get_optimizer('main')
+        model_main = optimizer.target
+        models_others = {k: v for k, v in self._models.items()
+                         if v is not model_main}
+
+        in_arrays_list = {}
+        for i, key in enumerate(six.iterkeys(self._models)):
+            # Get the next batch ( a list of json files)
+            batch = train_iter.__next__()
+            # read scp files
+            # x: original json with loaded features
+            #    will be converted to chainer variable later
+            # batch only has one minibatch utterance, which is specified by batch[0]
+            x = converter_kaldi(batch[0], self.reader)
+            in_arrays_list[key] = x
+
+        # For reducing memory
+        for model in six.itervalues(self._models):
+            model.cleargrads()
+
+        losses = []
+        for key, model in six.iteritems(self._models):
+            model.xp.cuda.Device(self._devices[key]).use()
+            in_arrays = in_arrays_list[key]
+            with function.force_backprop_mode():
+                loss = model(in_arrays)
+                losses += [loss]
+
+        # For _uninitialized_params
+        for model in six.itervalues(self._models):
+            model.cleargrads()
+
+        for loss in losses:
+            loss.backward()
+
+        for loss in losses:
+            loss.unchain_backward()
+
+        for model in six.itervalues(models_others):
+            model_main.addgrads(model)
+
+        grad_norm = np.sqrt(self._sum_sqnorm(
+            [p.grad for p in optimizer.target.params(False)]))
+        logging.info('grad norm={}'.format(grad_norm))
+        if math.isnan(grad_norm):
+            logging.warning('grad norm is nan. Do not update model.')
+        else:
+            optimizer.update()
+
+        for model in six.itervalues(models_others):
+            model.copyparams(model_main)
+
+        delete_feat(x)
+
+    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
+    def _sum_sqnorm(self, arr):
+        sq_sum = collections.defaultdict(float)
+        for x in arr:
+            with cuda.get_device_from_array(x) as dev:
+                x = x.ravel()
+                s = x.dot(x)
+                sq_sum[int(dev)] += s
+        return sum([float(i) for i in six.itervalues(sq_sum)])
+
+
 def train(args):
     '''Run training'''
     # display chainer version
@@ -194,12 +272,24 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # Set gpu
-    gpu_id = int(args.gpu)
-    logging.info('gpu id: ' + str(gpu_id))
-    if gpu_id >= 0:
+    ngpu = int(args.gpu)
+    if ngpu == 1:
+        gpu_id = 0
         # Make a specified GPU current
         chainer.cuda.get_device_from_id(gpu_id).use()
         model.to_gpu()  # Copy the model to the GPU
+        logging.info('single gpu calculatetion.')
+    elif ngpu > 1:
+        gpu_id = 0
+        args.batch_size /= ngpu
+        chainer.cuda.get_device_from_id(gpu_id).use()
+        devices = {'main': gpu_id}
+        for gid in six.moves.xrange(1, ngpu):
+            devices['sub_%d' % gid] = gid
+        logging.info('multi gpu calculatetion (#gpu = %d).' % ngpu)
+    else:
+        gpu_id = -1
+        logging.info('cpu calculation')
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -231,8 +321,12 @@ def train(args):
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # Set up a trainer
-    updater = ChainerSeqUpdaterKaldi(
-        train_iter, optimizer, train_reader, gpu_id)
+    if ngpu <= 1:
+        updater = ChainerSeqUpdaterKaldi(
+            train_iter, optimizer, train_reader, gpu_id)
+    else:
+        updater = ChainerParallelUpdaterKaldi(
+            train_iter, optimizer, train_reader, devices)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
