@@ -3,6 +3,7 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from __future__ import division
 
 import collections
 import copy
@@ -69,6 +70,8 @@ class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
 
         summary = reporter_module.DictSummary()
 
+        # for multi gpu calculation
+        chainer.cuda.get_device_from_id(self.device).use()
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
@@ -171,7 +174,8 @@ class ChainerParallelUpdaterKaldi(training.ParallelUpdater):
 
         losses = []
         for key, model in six.iteritems(self._models):
-            model.xp.cuda.Device(self._devices[key]).use()
+            # if not use this line, all model use gpu 0 to convert cupy variable
+            chainer.cuda.get_device_from_id(self._devices[key]).use()
             in_arrays = in_arrays_list[key]
             with function.force_backprop_mode():
                 loss = model(in_arrays)
@@ -190,14 +194,18 @@ class ChainerParallelUpdaterKaldi(training.ParallelUpdater):
         for model in six.itervalues(models_others):
             model_main.addgrads(model)
 
+        # check gradient value
         grad_norm = np.sqrt(self._sum_sqnorm(
             [p.grad for p in optimizer.target.params(False)]))
         logging.info('grad norm={}'.format(grad_norm))
+
+        # update
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.update()
 
+        # copy parameter to all models
         for model in six.itervalues(models_others):
             model.copyparams(model_main)
 
@@ -281,8 +289,9 @@ def train(args):
         logging.info('single gpu calculatetion.')
     elif ngpu > 1:
         gpu_id = 0
-        args.batch_size /= ngpu
-        chainer.cuda.get_device_from_id(gpu_id).use()
+        args.batch_size = math.ceil(args.batch_size / ngpu)
+        # Make a specified GPU current
+        # chainer.cuda.get_device_from_id(gpu_id).use()
         devices = {'main': gpu_id}
         for gid in six.moves.xrange(1, ngpu):
             devices['sub_%d' % gid] = gid
