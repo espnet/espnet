@@ -23,14 +23,13 @@ l=$1
                  #return non-zero return code
 #set -u           #Fail on an undefined variable
 
-lexicon=data/local/lexicon.txt
 
 ./local/check_tools.sh || exit 1
 
 #Preparing dev10 directories
 if [ ! -f data/raw_dev10h_data/.done ]; then
     echo ---------------------------------------------------------------------
-    echo "Subsetting the TRAIN set"
+    echo "Subsetting the Dev set"
     echo ---------------------------------------------------------------------
     dev10h_data_dir=dev10h_data_dir_${l}
     dev10h_data_list=dev10h_data_list_${l}
@@ -54,7 +53,7 @@ if [[ ! -f $lexicon || $lexicon -ot "${!lexicon_file}" ]]; then
   echo ---------------------------------------------------------------------
   echo "Preparing lexicon in data/local on" `date`
   echo ---------------------------------------------------------------------
-  local/prepare_lexicon.pl ${!lexiconFlags} ${!lexicon_file} data/local
+  local/prepare_lexicon.pl ${!lexiconFlags} ${!lexicon_file} data/dict_flp
 fi
 
 
@@ -64,7 +63,7 @@ if [[ ! -f data/dev10h.pem/wav.scp || data/dev10h.pem/wav.scp -ot "$dev10h_data_
   echo ---------------------------------------------------------------------
   mkdir -p data/dev10h.pem
   local/prepare_acoustic_training_data.pl \
-    --vocab $lexicon --fragmentMarkers \-\*\~ \
+    --vocab data/dict_flp --fragmentMarkers \-\*\~ \
     $dev10h_data_dir data/dev10h.pem > data/dev10h.pem/skipped_utts.log
 fi
 
