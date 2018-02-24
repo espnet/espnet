@@ -60,7 +60,9 @@ def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
         labelcount = np.zeros(odim)
         for k, v in trans_json.items():
             ids = np.array([int(n) for n in v['tokenid'].split()])
-            labelcount[ids] += 1
+            # to avoid an error when there is no text in an uttrance
+            if len(ids) > 0:
+                labelcount[ids] += 1
         labelcount[odim - 1] = len(transcript)  # count <eos>
         labelcount[labelcount == 0] = 1  # flooring
         labelcount[blank] = 0  # remove counts for blank

@@ -13,7 +13,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
 - Encoder: VGG-like CNN + BLSTM or pyramid BLSTM
-- Attention: Dot product or location-aware attention
+- Attention: Dot product, location-aware attention, variants of multhead (pytorch only)
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe 
@@ -116,6 +116,17 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Librispeech dev_clean  | 2.9 | 7.7 |
 | Librispeech test_clean | 2.7 | 7.7 |
 
+
+## Chainer and Pytorch backends
+
+|           | Chainer | Pytorch |
+|-----------|:----:|:----:|
+| Performance | ◎ | ○ |
+| Speed | ○ | ◎ |
+| Multiple GPUs | no support | supported |
+| VGG-like encoder | supported | no support |
+| RNNLM integration | supported | no support |
+| #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
 
 ## References (Please cite the following articles)
 [1] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
