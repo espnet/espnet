@@ -72,7 +72,7 @@ set -o pipefail
 
 train_set=train_li10
 train_dev=dev_li10
-recog_set="dt_* et_*"
+recog_set="dt_de dt_en dt_es dt_fr dt_it dt_ja dt_nl dt_pt dt_ru dt_zh et_de et_en et_es et_fr et_it et_ja_1 et_ja_2 et_ja_3 et_nl et_pt et_ru et_zh"
 
 if [ ${stage} -le 0 ]; then
     # HKUST Mandarin
