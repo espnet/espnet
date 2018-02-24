@@ -286,16 +286,14 @@ def train(args):
         # Make a specified GPU current
         chainer.cuda.get_device_from_id(gpu_id).use()
         model.to_gpu()  # Copy the model to the GPU
-        logging.info('single gpu calculatetion.')
+        logging.info('single gpu calculation.')
     elif ngpu > 1:
         gpu_id = 0
         args.batch_size = math.ceil(args.batch_size / ngpu)
-        # Make a specified GPU current
-        # chainer.cuda.get_device_from_id(gpu_id).use()
         devices = {'main': gpu_id}
         for gid in six.moves.xrange(1, ngpu):
             devices['sub_%d' % gid] = gid
-        logging.info('multi gpu calculatetion (#gpu = %d).' % ngpu)
+        logging.info('multi gpu calculation (#gpus = %d).' % ngpu)
     else:
         gpu_id = -1
         logging.info('cpu calculation')
