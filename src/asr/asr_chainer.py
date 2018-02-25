@@ -420,7 +420,8 @@ def train(args):
         maxlen = max([len(train_subset) for train_subset in train_subsets])
         for train_subset in train_subsets:
             if maxlen != len(train_subset):
-                train_subset += [train_subset[:maxlen - len(train_subset)]]
+                for i in six.moves.xrange(maxlen - len(train_subset)):
+                    train_subset += [train_subset[i]]
 
         # hack to make batchsze argument as 1
         # actual bathsize is included in a list
