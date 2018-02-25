@@ -10,17 +10,24 @@ import copy
 import json
 import logging
 import math
+import multiprocessing
 import os
 import pickle
 import six
 
 # chainer related
 import chainer
+import cupy
+
 from chainer import cuda
 from chainer import function
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
+from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
+from chainer.training.updaters.multiprocess_parallel_updater import gather_params
+from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
+from chainer.training.updaters.multiprocess_parallel_updater import scatter_params
 
 # espnet related
 from asr_utils import adadelta_eps_decay
@@ -139,77 +146,82 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
-class ChainerParallelUpdaterKaldi(training.ParallelUpdater):
+class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessParallelUpdater):
     '''Custom parallel updater with Kaldi reader for chainer'''
 
-    def __init__(self, train_iter, optimizer, reader, devices):
-        super(ChainerParallelUpdaterKaldi, self).__init__(
-            train_iter, optimizer, devices=devices)
+    def __init__(self, train_iters, optimizer, reader, devices):
+        super(ChainerMultiProcessParallelUpdaterKaldi, self).__init__(
+            train_iters, optimizer, devices=devices)
         self.reader = reader
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
-        # When we pass one iterator and optimizer to StandardUpdater.__init__,
-        # they are automatically named 'main'.
-        train_iter = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
-        model_main = optimizer.target
-        models_others = {k: v for k, v in self._models.items()
-                         if v is not model_main}
+        self.setup_workers()
 
-        in_arrays_list = {}
-        for i, key in enumerate(six.iterkeys(self._models)):
-            # Get the next batch ( a list of json files)
-            batch = train_iter.__next__()
-            # read scp files
-            # x: original json with loaded features
-            #    will be converted to chainer variable later
-            # batch only has one minibatch utterance, which is specified by batch[0]
+        self._send_message(('update', None))
+        with cuda.Device(self._devices[0]):
+            # For reducing memory
+            self._master.cleargrads()
+
+            optimizer = self.get_optimizer('main')
+            batch = self.get_iterator('main').next()
             x = converter_kaldi(batch[0], self.reader)
-            in_arrays_list[key] = x
 
-        # For reducing memory
-        for model in six.itervalues(self._models):
-            model.cleargrads()
+            loss = self._master(x)
 
-        losses = []
-        for key, model in six.iteritems(self._models):
-            # if not use this line, all model use gpu 0 to convert cupy variable
-            chainer.cuda.get_device_from_id(self._devices[key]).use()
-            in_arrays = in_arrays_list[key]
-            with function.force_backprop_mode():
-                loss = model(in_arrays)
-                losses += [loss]
-
-        # For _uninitialized_params
-        for model in six.itervalues(self._models):
-            model.cleargrads()
-
-        for loss in losses:
+            self._master.cleargrads()
             loss.backward()
-
-        for loss in losses:
             loss.unchain_backward()
 
-        for model in six.itervalues(models_others):
-            model_main.addgrads(model)
+            # NCCL: reduce grads
+            null_stream = cuda.Stream.null
+            if self.comm is not None:
+                gg = gather_grads(self._master)
+                self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
+                                 cupy.cuda.nccl.NCCL_FLOAT,
+                                 cupy.cuda.nccl.NCCL_SUM,
+                                 0, null_stream.ptr)
+                scatter_grads(self._master, gg)
+                del gg
 
-        # check gradient value
-        grad_norm = np.sqrt(self._sum_sqnorm(
-            [p.grad for p in optimizer.target.params(False)]))
-        logging.info('grad norm={}'.format(grad_norm))
+            # check gradient value
+            grad_norm = np.sqrt(self._sum_sqnorm(
+                [p.grad for p in optimizer.target.params(False)]))
+            logging.info('grad norm={}'.format(grad_norm))
 
-        # update
-        if math.isnan(grad_norm):
-            logging.warning('grad norm is nan. Do not update model.')
-        else:
-            optimizer.update()
+            # update
+            if math.isnan(grad_norm):
+                logging.warning('grad norm is nan. Do not update model.')
+            else:
+                optimizer.update()
 
-        # copy parameter to all models
-        for model in six.itervalues(models_others):
-            model.copyparams(model_main)
+            if self.comm is not None:
+                gp = gather_params(self._master)
+                self.comm.bcast(gp.data.ptr, gp.size, cupy.cuda.nccl.NCCL_FLOAT,
+                                0, null_stream.ptr)
 
-        delete_feat(x)
+            delete_feat(x)
+
+    def setup_workers(self):
+        if self._initialized:
+            return
+        self._initialized = True
+
+        self._master.cleargrads()
+        for i in six.moves.range(1, len(self._devices)):
+            pipe, worker_end = multiprocessing.Pipe()
+            worker = CustomWorker(i, worker_end, self)
+            worker.start()
+            self._workers.append(worker)
+            self._pipes.append(pipe)
+
+        with cuda.Device(self._devices[0]):
+            self._master.to_gpu(self._devices[0])
+            if len(self._devices) > 1:
+                comm_id = cupy.cuda.nccl.get_unique_id()
+                self._send_message(("set comm_id", comm_id))
+                self.comm = cupy.cuda.nccl.NcclCommunicator(len(self._devices),
+                                                            comm_id, 0)
 
     # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
     def _sum_sqnorm(self, arr):
@@ -220,6 +232,71 @@ class ChainerParallelUpdaterKaldi(training.ParallelUpdater):
                 s = x.dot(x)
                 sq_sum[int(dev)] += s
         return sum([float(i) for i in six.itervalues(sq_sum)])
+
+
+class CustomWorker(multiprocessing.Process):
+
+    def __init__(self, proc_id, pipe, master):
+        super(CustomWorker, self).__init__()
+        self.proc_id = proc_id
+        self.pipe = pipe
+        self.model = master._master
+        self.reader = master.reader
+        self.device = master._devices[proc_id]
+        self.iterator = master._mpu_iterators[proc_id]
+        self.n_devices = len(master._devices)
+
+    def setup(self):
+        _, comm_id = self.pipe.recv()
+        self.comm = cupy.cuda.nccl.NcclCommunicator(self.n_devices, comm_id,
+                                                    self.proc_id)
+
+        self.model.to_gpu(self.device)
+        self.reporter = reporter_module.Reporter()
+        self.reporter.add_observer('main', self.model)
+
+    def run(self):
+        dev = cuda.Device(self.device)
+        dev.use()
+        self.setup()
+        gp = None
+        while True:
+            job, data = self.pipe.recv()
+            if job == 'finalize':
+                dev.synchronize()
+                break
+            if job == 'update':
+                # For reducing memory
+                self.model.cleargrads()
+
+                batch = self.iterator.next()
+                x = converter_kaldi(batch[0], self.reader)
+                observation = {}
+                with self.reporter.scope(observation):
+                    loss = self.model(x)
+
+                self.model.cleargrads()
+                loss.backward()
+                loss.unchain_backward()
+
+                del loss
+
+                gg = gather_grads(self.model)
+                null_stream = cuda.Stream.null
+                self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
+                                 cupy.cuda.nccl.NCCL_FLOAT,
+                                 cupy.cuda.nccl.NCCL_SUM, 0,
+                                 null_stream.ptr)
+                del gg
+                self.model.cleargrads()
+                gp = gather_params(self.model)
+                self.comm.bcast(gp.data.ptr, gp.size,
+                                cupy.cuda.nccl.NCCL_FLOAT, 0,
+                                null_stream.ptr)
+                scatter_params(self.model, gp)
+                gp = None
+
+                delete_feat(x)
 
 
 def train(args):
@@ -312,34 +389,63 @@ def train(args):
     with open(args.valid_label, 'rb') as f:
         valid_json = json.load(f)['utts']
 
-    # make minibatch list (variable length)
-    train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
-    # hack to make batchsze argument as 1
-    # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
-
     # prepare Kaldi reader
     train_reader = lazy_io.read_dict_scp(args.train_feat)
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
-    # Set up a trainer
+    # set up training iterator and updater
     if ngpu <= 1:
+        # make minibatch list (variable length)
+        train = make_batchset(train_json, args.batch_size,
+                              args.maxlen_in, args.maxlen_out, args.minibatches)
+        # hack to make batchsze argument as 1
+        # actual bathsize is included in a list
+        train_iter = chainer.iterators.SerialIterator(train, 1)
+
+        # set up updater
         updater = ChainerSeqUpdaterKaldi(
             train_iter, optimizer, train_reader, gpu_id)
     else:
-        updater = ChainerParallelUpdaterKaldi(
-            train_iter, optimizer, train_reader, devices)
+        # set up minibatches
+        train_subsets = []
+        for gid in six.moves.xrange(ngpu):
+            # make subset
+            train_json_subset = {k: v for i, (k, v) in enumerate(train_json.viewitems())
+                                 if i % ngpu == gid}
+            # make minibatch list (variable length)
+            train_subsets += [make_batchset(train_json_subset, args.batch_size,
+                                            args.maxlen_in, args.maxlen_out, args.minibatches)]
+
+        # each subset must have same length for MultiprocessParallelUpdater
+        maxlen = max([len(train_subset) for train_subset in train_subsets])
+        for train_subset in train_subsets:
+            if maxlen != len(train_subset):
+                train_subset += [train_subset[:maxlen - len(train_subset)]]
+
+        # set up iterators
+        train_iters = []
+        for gid in six.moves.xrange(ngpu):
+            # hack to make batchsze argument as 1
+            # actual bathsize is included in a list
+            train_iters += [chainer.iterators.MultiprocessIterator(train_subset, 1)]
+
+        # set up updater
+        updater = ChainerMultiProcessParallelUpdaterKaldi(
+            train_iters, optimizer, train_reader, devices)
+
+    # Set up a trainer
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
+
+    # set up validation iterator
+    valid = make_batchset(valid_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
+    valid_iter = chainer.iterators.SerialIterator(
+        valid, 1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(ChainerSeqEvaluaterKaldi(
