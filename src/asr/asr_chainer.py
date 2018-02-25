@@ -422,12 +422,10 @@ def train(args):
             if maxlen != len(train_subset):
                 train_subset += [train_subset[:maxlen - len(train_subset)]]
 
-        # set up iterators
-        train_iters = []
-        for gid in six.moves.xrange(ngpu):
-            # hack to make batchsze argument as 1
-            # actual bathsize is included in a list
-            train_iters += [chainer.iterators.MultiprocessIterator(train_subset, 1)]
+        # hack to make batchsze argument as 1
+        # actual bathsize is included in a list
+        train_iters = [chainer.iterators.MultiprocessIterator(train_subsets[gid], 1)
+                       for gid in six.moves.xrange(ngpu)]
 
         # set up updater
         updater = ChainerMultiProcessParallelUpdaterKaldi(
