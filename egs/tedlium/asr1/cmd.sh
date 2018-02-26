@@ -10,7 +10,6 @@
 # conf/queue.conf in http://kaldi-asr.org/doc/queue.html for more information,
 # or search for the string 'default_config' in utils/queue.pl or utils/slurm.pl.
 
-num_gpu=$1
 export train_cmd="run.pl --mem 2G"
 export cuda_cmd="run.pl --mem 2G --gpu 1"
 export decode_cmd="run.pl --mem 4G"
