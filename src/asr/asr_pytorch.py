@@ -88,6 +88,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         self.model = model
         self.reader = reader
         self.grad_clip_threshold = grad_clip_threshold
+        self.num_gpu = len(device)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -108,7 +109,10 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         # Compute the loss at this time step and accumulate it
         loss = self.model(x)
         optimizer.zero_grad()  # Clear the parameter gradients
-        loss.sum().backward()  # Backprop
+        if self.num_gpu > 1:
+            loss.backward(torch.ones(self.num_gpu))  # Backprop
+        else:
+            loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm(
@@ -172,7 +176,7 @@ def train(args):
     reporter = model.reporter
     ngpu = int(args.gpu)
     if ngpu == 1:
-        gpu_id = 0
+        gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
         model.cuda()
     elif ngpu > 1:
