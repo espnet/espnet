@@ -3,6 +3,9 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+. ./path.sh
+. ./cmd.sh
+
 # general configuration
 backend=chainer
 stage=-1       # start from -1 if you need to start from data download
@@ -60,12 +63,15 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 tag="" # tag for managing experiments.
 
 #Multi-GPU configuration
-ngpu=-1         # use 1 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise 0 or -1 (CPU)
-gpu=ngpu        # temp fix
+num_gpu=0         # use 1 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise 0 (CPU)
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh $ngpu
-. ./cmd.sh $ngpu
+. ./path.sh
+. ./cmd.sh
+
+if [[ $(hostname -f) == *.clsp.jhu.edu ]] ; then
+    export CUDA_VISIBLE_DEVICES=$(/usr/local/bin/free-gpu -n $num_gpu)
+fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -162,7 +168,7 @@ if [ ${stage} -le 3 ]; then
         > ${lmdatadir}/valid.txt
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
-        --gpu ${gpu} \
+        --gpu ${num_gpu} \
         --verbose 1 \
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
@@ -174,7 +180,7 @@ if [ ${stage} -le 4 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} ${expdir}/train.log \
         asr_train.py \
-        --gpu ${gpu} \
+        --gpu ${num_gpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
@@ -230,11 +236,11 @@ if [ ${stage} -le 5 ]; then
         data2json.sh ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
-        gpu=-1
+        num_gpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
-            --gpu ${gpu} \
+            --gpu ${num_gpu} \
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
