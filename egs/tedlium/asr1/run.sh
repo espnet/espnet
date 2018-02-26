@@ -65,7 +65,6 @@ tag="" # tag for managing experiments.
 #Multi-GPU configuration
 num_gpu=0         # use 1 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise 0 (CPU)
 . utils/parse_options.sh || exit 1;
-
 . ./path.sh
 . ./cmd.sh
 
