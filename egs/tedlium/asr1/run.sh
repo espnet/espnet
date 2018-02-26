@@ -165,7 +165,7 @@ if [ ${stage} -le 3 ]; then
         > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 data/dev/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
-    ${cuda_cmd} ${lmexpdir}/train.log \
+    ${cuda_cmd} --gpu ${num_gpu} ${lmexpdir}/train.log \
         lm_train.py \
         --gpu ${num_gpu} \
         --verbose 1 \
@@ -177,7 +177,7 @@ fi
 
 if [ ${stage} -le 4 ]; then
     echo "stage 3: Network Training"
-    ${cuda_cmd} ${expdir}/train.log \
+    ${cuda_cmd} --gpu ${num_gpu} ${expdir}/train.log \
         asr_train.py \
         --gpu ${num_gpu} \
         --backend ${backend} \
