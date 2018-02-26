@@ -425,8 +425,9 @@ def train(args):
 
         # hack to make batchsze argument as 1
         # actual bathsize is included in a list
-        train_iters = [chainer.iterators.MultiprocessIterator(train_subsets[gid], 1)
-                       for gid in six.moves.xrange(ngpu)]
+        train_iters = [chainer.iterators.MultiprocessIterator(
+            train_subsets[gid], 1, n_processes=1)
+            for gid in six.moves.xrange(ngpu)]
 
         # set up updater
         updater = ChainerMultiProcessParallelUpdaterKaldi(
