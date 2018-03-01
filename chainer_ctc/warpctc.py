@@ -76,9 +76,6 @@ class CTC(function.Function):
                 except:
                     raise e
 
-        if np.any(np.isnan(loss)):
-            raise ValueError
-
         score = xp.full((1,), xp.mean(loss), dtype=np.float32)
         return score,
 
