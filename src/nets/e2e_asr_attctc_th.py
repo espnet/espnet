@@ -218,20 +218,30 @@ class E2E(torch.nn.Module):
                                                args.aheads, args.adim, args.adim,
                                                args.aconv_chans, args.aconv_filts)
         elif args.atype == 'multi_head':
-            self.att = AttMultiHead(args.eprojs, args.dunits,
-                                    args.aheads, args.adim, args.adim,
-                                    args.aconv_chans, args.aconv_filts, args.alist)
+            if args.dtype == 'multi_head_lstm':
+                self.att = AttMultiHead(args.eprojs, args.dunits,
+                                        args.aheads, args.adim, args.adim,
+                                        args.aconv_chans, args.aconv_filts, args.alist, False)
+            else:
+                self.att = AttMultiHead(args.eprojs, args.dunits,
+                                        args.aheads, args.adim, args.adim,
+                                        args.aconv_chans, args.aconv_filts, args.alist, True)
         else:
             logging.error(
                 "Error: need to specify an appropriate attention archtecture")
             sys.exit()
         # decoder
-        self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
-                           self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight)
+        if args.dtype == 'lstm':
+            self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
+                               self.sos, self.eos, self.att, self.verbose, self.char_list,
+                               labeldist, args.lsm_weight)
+        elif args.dtype == 'multi_head_lstm':
+            self.dec = MultiHeadDecoder(args.adim, odim, args.dlayers, args.dunits, args.aheads,
+                                        self.sos, self.eos, self.att, self.verbose, self.char_list,
+                                        labeldist, args.lsm_weight)
 
         # weight initialization
-        self.init_like_chainer()
+        self.init_like_chainer(args)
         # additional forget-bias init in encoder ?
         # for m in self.modules():
         #     if isinstance(m, torch.nn.LSTM):
@@ -239,7 +249,7 @@ class E2E(torch.nn.Module):
         #             if "bias_ih" in name:
         #                 set_forget_bias_to_one(p)
 
-    def init_like_chainer(self):
+    def init_like_chainer(self, args):
         """Initialize weight like chainer
 
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
@@ -251,13 +261,23 @@ class E2E(torch.nn.Module):
         """
         lecun_normal_init_parameters(self)
 
-        # exceptions
-        # embed weight ~ Normal(0, 1)
-        self.dec.embed.weight.data.normal_(0, 1)
-        # forget-bias = 1.0
-        # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
-        for l in six.moves.range(len(self.dec.decoder)):
-            set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
+        if args.dtype == 'lstm':
+            # exceptions
+            # embed weight ~ Normal(0, 1)
+            self.dec.embed.weight.data.normal_(0, 1)
+            # forget-bias = 1.0
+            # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
+            for l in six.moves.range(len(self.dec.decoder)):
+                set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
+        else:
+            for h in six.moves.range(args.aheads):
+                # exceptions
+                # embed weight ~ Normal(0, 1)
+                getattr(self.dec, 'head_%d_embed' % h).weight.data.normal_(0, 1)
+                # forget-bias = 1.0
+                # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
+                for l in six.moves.range(len(getattr(self.dec, 'head_%d_decoder' % h))):
+                    set_forget_bias_to_one(getattr(self.dec, 'head_%d_decoder' % h)[l].bias_ih)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):
@@ -1578,14 +1598,12 @@ class AttMultiHead(torch.nn.Module):
 
         self.scaling = 1.0 / math.sqrt(att_dim_k)
         self.h_length = None
-        self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
 
     def reset(self):
         '''reset states'''
         self.h_length = None
-        self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
 
@@ -1617,9 +1635,16 @@ class AttMultiHead(torch.nn.Module):
                 for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            if self.concat:
+                dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            else:
+                dec_z = [Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+                         for h in six.moves.range(self.aheads)]
         else:
-            dec_z = dec_z.view(batch, self.dunits)
+            if self.concat:
+                dec_z = dec_z.view(batch, self.dunits)
+            else:
+                dec_z = [z.view(batch, self.dunits) for z in dec_z]
 
         if att_prev is None:
             att_prev = []
@@ -1632,25 +1657,29 @@ class AttMultiHead(torch.nn.Module):
         c = []
         w = []
         for h, atype in enumerate(self.alist):
+            if self.concat:
+                dec_z_ = dec_z
+            else:
+                dec_z_ = dec_z[h]
             if atype == "dot":
                 c_, w_ = self._dot_forward(
-                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z,
+                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z_,
                     getattr(self, 'head_%d_mlp_q' % h))
             elif atype == "add":
                 c_, w_ = self._add_forward(
-                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z,
+                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z_,
                     getattr(self, 'head_%d_mlp_q' % h),
                     getattr(self, 'head_%d_gvec' % h))
             elif atype == "loc":
                 c_, w_ = self._loc_forward(
-                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z, att_prev[h],
+                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z_, att_prev[h],
                     getattr(self, 'head_%d_mlp_q' % h),
                     getattr(self, 'head_%d_gvec' % h),
                     getattr(self, 'head_%d_loc_conv' % h),
                     getattr(self, 'head_%d_mlp_att' % h))
             elif atype == "cov":
                 c_, w_ = self._cov_forward(
-                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z, att_prev[h],
+                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z_, att_prev[h],
                     getattr(self, 'head_%d_mlp_q' % h),
                     getattr(self, 'head_%d_gvec' % h),
                     getattr(self, 'head_%d_wvec' % h))
@@ -1972,6 +2001,359 @@ class Decoder(torch.nn.Module):
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
+                if lpz is not None:
+                    local_best_scores, local_best_ids = torch.topk(
+                        local_att_scores, ctc_beam, dim=1)
+                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                    local_scores = \
+                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
+                        + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
+                    local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
+                    local_best_ids = local_best_ids[:, joint_best_ids[0]]
+                else:
+                    local_best_scores, local_best_ids = torch.topk(local_att_scores, beam, dim=1)
+
+                for j in six.moves.range(beam):
+                    new_hyp = {}
+                    # [:] is needed!
+                    new_hyp['z_prev'] = z_list[:]
+                    new_hyp['c_prev'] = c_list[:]
+                    new_hyp['a_prev'] = att_w[:]
+                    new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
+                    new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
+                    new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
+                    new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
+                    if lpz is not None:
+                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
+                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
+                    # will be (2 x beam) hyps at most
+                    hyps_best_kept.append(new_hyp)
+
+                hyps_best_kept = sorted(
+                    hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
+
+            # sort and get nbest
+            hyps = hyps_best_kept
+            logging.debug('number of pruned hypothes: ' + str(len(hyps)))
+            logging.debug(
+                'best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]))
+
+            # add eos in the final loop to avoid that there are no ended hyps
+            if i == maxlen - 1:
+                logging.info('adding <eos> in the last postion in the loop')
+                for hyp in hyps:
+                    hyp['yseq'].append(self.eos)
+
+            # add ended hypothes to a final list, and removed them from current hypothes
+            # (this will be a probmlem, number of hyps < beam)
+            remained_hyps = []
+            for hyp in hyps:
+                if hyp['yseq'][-1] == self.eos:
+                    # only store the sequence that has more than minlen outputs
+                    # also add penalty
+                    if len(hyp['yseq']) > minlen:
+                        hyp['score'] += (i + 1) * penalty
+                        ended_hyps.append(hyp)
+                else:
+                    remained_hyps.append(hyp)
+
+            # end detection
+            if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
+                logging.info('end detected at %d', i)
+                break
+
+            hyps = remained_hyps
+            if len(hyps) > 0:
+                logging.debug('remeined hypothes: ' + str(len(hyps)))
+            else:
+                logging.info('no hypothesis. Finish decoding.')
+                break
+
+            for hyp in hyps:
+                logging.debug(
+                    'hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
+
+            logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
+
+        best_hyp = sorted(
+            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
+        logging.info('total log probability: ' + str(best_hyp['score']))
+        logging.info('normalized log probability: ' +
+                     str(best_hyp['score'] / len(best_hyp['yseq'])))
+
+        # remove sos
+        return best_hyp['yseq'][1:]
+
+
+class MultiHeadDecoder(torch.nn.Module):
+    def __init__(self, adim, odim, dlayers, dunits, aheads, sos, eos, att, verbose=0,
+                 char_list=None, labeldist=None, lsm_weight=0.):
+        super(MultiHeadDecoder, self).__init__()
+        self.dunits = dunits
+        self.dlayers = dlayers
+        self.aheads = aheads
+        for h in six.moves.range(aheads):
+            setattr(self, 'head_%d_embed' % h, torch.nn.Embedding(odim, dunits))
+            setattr(self, 'head_%d_decoder' % h, torch.nn.ModuleList())
+            getattr(self, 'head_%d_decoder' % h).append(torch.nn.LSTMCell(dunits + adim, dunits))
+            for l in six.moves.range(1, self.dlayers):
+                getattr(self, 'head_%d_decoder' % h).append(torch.nn.LSTMCell(dunits, dunits))
+            setattr(self, 'head_%d_output' % h, torch.nn.Linear(dunits, odim))
+        self.ignore_id = 0  # NOTE: 0 for CTC?
+        self.loss = None
+        self.att = att
+        self.dunits = dunits
+        self.sos = sos
+        self.eos = eos
+        self.verbose = verbose
+        self.char_list = char_list
+        # for label smoothing
+        self.labeldist = labeldist
+        self.vlabeldist = None
+        self.lsm_weight = lsm_weight
+
+    def zero_state(self, hpad):
+        return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
+
+    def forward(self, hpad, hlen, ys):
+        '''Decoder forward
+
+        :param hs:
+        :param ys:
+        :return:
+        '''
+        hpad = mask_by_length(hpad, hlen, 0)
+        self.loss = None
+        # prepare input and output word sequences with sos/eos IDs
+        eos = Variable(ys[0].data.new([self.eos]))
+        sos = Variable(ys[0].data.new([self.sos]))
+        ys_in = [torch.cat([sos, y], dim=0) for y in ys]
+        ys_out = [torch.cat([y, eos], dim=0) for y in ys]
+
+        # padding for ys with -1
+        # pys: utt x olen
+        pad_ys_in = pad_list(ys_in, self.eos)
+        pad_ys_out = pad_list(ys_out, self.ignore_id)
+
+        # get dim, length info
+        batch = pad_ys_out.size(0)
+        olength = pad_ys_out.size(1)
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlen))
+        logging.info(self.__class__.__name__ +
+                     ' output lengths: ' + str([y.size(0) for y in ys_out]))
+
+        # initialization
+        c_list = []
+        z_list = []
+        for h in six.moves.range(self.aheads):
+            c_list += [self.zero_state(hpad)]
+            z_list += [self.zero_state(hpad)]
+            for l in six.moves.range(1, self.dlayers):
+                c_list += [self.zero_state(hpad)]
+                z_list += [self.zero_state(hpad)]
+        att_w = None
+        z_all = []
+        self.att.reset()  # reset pre-computation of h
+
+        # pre-computation of embedding
+        eys = []
+        eys += [getattr(self, 'head_%d_embed' % h)(pad_ys_in)
+                for h in six.moves.range(self.aheads)]  # utt x olen x zdim
+
+        # loop for an output sequence
+        for i in six.moves.range(olength):
+            att_c, att_w = self.att(hpad, hlen, z_list[0::self.dlayers], att_w)
+            for h in six.moves.range(self.aheads):
+                ey = torch.cat((eys[h][:, i, :], att_c[h]), dim=1)  # utt x (zdim + hdim)
+                # get previous states
+                z_prev = z_list[0 + h * self.dlayers]
+                c_prev = c_list[0 + h * self.dlayers]
+                z, c = getattr(self, 'head_%d_decoder' % h)[0](ey, (z_prev, c_prev))
+                # update states
+                z_list[0 + h * self.dlayers] = z
+                c_list[0 + h * self.dlayers] = c
+                for l in six.moves.range(1, self.dlayers):
+                    # get previous states
+                    z_prev = z_list[l + h * self.dlayers]
+                    c_prev = c_list[l + h * self.dlayers]
+                    z, c = getattr(self, 'head_%d_decoder' % h)[l](z, (z_prev, c_prev))
+                    # update previous states
+                    z_list[l + h * self.dlayers] = z
+                    c_list[l + h * self.dlayers] = c
+            z_all.extend(z_list[self.dlayers - 1::self.dlayers])
+
+        # calculate each head output and then sum
+        y_all = []
+        for h in six.moves.range(self.aheads):
+            z = torch.stack(z_all[h::self.aheads], dim=1).view(batch * olength, self.dunits)
+            y_all += [getattr(self, 'head_%d_output' % h)(z)]
+        y_all = sum(y_all)
+
+        # compute loss
+        self.loss = F.cross_entropy(y_all, pad_ys_out.view(-1),
+                                    ignore_index=self.ignore_id,
+                                    size_average=True)
+        # -1: eos, which is removed in the loss computation
+        self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
+        acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
+        logging.info('att loss:' + str(self.loss.data))
+
+        # show predicted character sequence for debug
+        if self.verbose > 0 and self.char_list is not None:
+            y_hat = y_all.view(batch, olength, -1)
+            y_true = pad_ys_out
+            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data.cpu().numpy()), y_true.data.cpu().numpy()):
+                if i == MAX_DECODER_OUTPUT:
+                    break
+                idx_hat = np.argmax(y_hat_[y_true_ != self.ignore_id], axis=1)
+                idx_true = y_true_[y_true_ != self.ignore_id]
+                seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
+                seq_true = [self.char_list[int(idx)] for idx in idx_true]
+                seq_hat = "".join(seq_hat)
+                seq_true = "".join(seq_true)
+                logging.info("groundtruth[%d]: " % i + seq_true)
+                logging.info("prediction [%d]: " % i + seq_hat)
+
+        if self.labeldist is not None:
+            if self.vlabeldist is None:
+                self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
+            loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) *
+                                    self.vlabeldist).view(-1), dim=0) / len(ys_in)
+            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
+
+        return self.loss, acc
+
+    # TODO(hori) incorporate CTC score
+    def recognize(self, h, recog_args):
+        '''greedy search implementation
+
+        :param Variable h:
+        :param Namespace recog_args:
+        :return:
+        '''
+        raise NotImplementedError('Not yet implemented.')
+        logging.info('input lengths: ' + str(h.size(0)))
+        # initialization
+        c_list = [self.zero_state(h.unsqueeze(0))]
+        z_list = [self.zero_state(h.unsqueeze(0))]
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(self.zero_state(h.unsqueeze(0)))
+            z_list.append(self.zero_state(h.unsqueeze(0)))
+        att_w = None
+        y_seq = []
+        self.att.reset()  # reset pre-computation of h
+
+        # preprate sos
+        y = self.sos
+        vy = Variable(h.data.new(1).zero_().long(), volatile=True)
+        maxlen = int(recog_args.maxlenratio * h.size(0))
+        minlen = int(recog_args.minlenratio * h.size(0))
+        logging.info('max output length: ' + str(maxlen))
+        logging.info('min output length: ' + str(minlen))
+        for i in six.moves.range(minlen, maxlen):
+            vy[0] = y
+            vy.unsqueeze(1)
+            ey = self.embed(vy)           # utt list (1) x zdim
+            ey = ey.squeeze(1)
+            att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], z_list[0], att_w)
+            ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](
+                    z_list[l - 1], (z_list[l], c_list[l]))
+            y = self.output(z_list[-1]).data.max(1)[1][0]
+            y_seq.append(y)
+
+            # terminate decoding
+            if y == self.eos:
+                break
+
+        return y_seq
+
+    def recognize_beam(self, hs, lpz, recog_args, char_list):
+        '''beam search implementation
+
+        :param Variable h:
+        :param Namespace recog_args:
+        :param char_list:
+        :return:
+        '''
+        logging.info('input lengths: ' + str(hs.size(0)))
+        # initialization
+        c_list = []
+        z_list = []
+        for h in six.moves.range(self.aheads):
+            c_list += [self.zero_state(hs.unsqueeze(0))]
+            z_list += [self.zero_state(hs.unsqueeze(0))]
+            for l in six.moves.range(1, self.dlayers):
+                c_list += [self.zero_state(hs.unsqueeze(0))]
+                z_list += [self.zero_state(hs.unsqueeze(0))]
+        a = None
+        self.att.reset()  # reset pre-computation of h
+
+        # search parms
+        beam = recog_args.beam_size
+        penalty = recog_args.penalty
+        ctc_weight = recog_args.ctc_weight
+
+        # preprate sos
+        y = self.sos
+        vy = Variable(hs.data.new(1).zero_().long(), volatile=True)
+        if recog_args.maxlenratio == 0:
+            maxlen = hs.shape[0]
+        else:
+            # maxlen >= 1
+            maxlen = max(1, int(recog_args.maxlenratio * hs.size(0)))
+        minlen = int(recog_args.minlenratio * hs.size(0))
+        logging.info('max output length: ' + str(maxlen))
+        logging.info('min output length: ' + str(minlen))
+
+        # initialize hypothesis
+        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+        if lpz is not None:
+            ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
+            hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
+            hyp['ctc_score_prev'] = 0.0
+            ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
+        hyps = [hyp]
+        ended_hyps = []
+
+        for i in six.moves.range(maxlen):
+            logging.debug('position ' + str(i))
+
+            hyps_best_kept = []
+            for hyp in hyps:
+                vy.unsqueeze(1)
+                vy[0] = hyp['yseq'][i]
+                att_c, att_w = self.att(hs.unsqueeze(0), [hs.size(0)], hyp['z_prev'][0::self.dlayers], hyp['a_prev'])
+                y_all = []
+                for h in six.moves.range(self.aheads):
+                    ey = getattr(self, 'head_%d_embed' % h)(vy)
+                    ey.unsqueeze(0)
+                    ey = torch.cat((ey, att_c[h]), dim=1)   # utt(1) x (zdim + hdim)
+
+                    # get previous states
+                    z_prev = hyp['z_prev'][0 + h * self.dlayers]
+                    c_prev = hyp['c_prev'][0 + h * self.dlayers]
+                    z, c = getattr(self, 'head_%d_decoder' % h)[0](ey, (z_prev, c_prev))
+                    # update states
+                    z_list[0 + h * self.dlayers] = z
+                    c_list[0 + h * self.dlayers] = c
+                    for l in six.moves.range(1, self.dlayers):
+                        # get previous states
+                        z_prev = hyp['z_prev'][l + h * self.dlayers]
+                        c_prev = hyp['c_prev'][l + h * self.dlayers]
+                        z, c = getattr(self, 'head_%d_decoder' % h)[l](z, (z_prev, c_prev))
+                        # update previous states
+                        z_list[l + h * self.dlayers] = z
+                        c_list[l + h * self.dlayers] = c
+
+                    # add output
+                    y_all += [getattr(self, 'head_%d_output' % h)(z_list[(h + 1) * self.dlayers - 1])]
+
+                # get nbest local scores and their ids
+                local_att_scores = F.log_softmax(sum(y_all), dim=1).data
+
                 if lpz is not None:
                     local_best_scores, local_best_ids = torch.topk(
                         local_att_scores, ctc_beam, dim=1)
