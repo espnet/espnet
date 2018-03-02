@@ -68,7 +68,7 @@ def main():
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
                                  'coverage_location', 'location2d', 'location_recurrent',
                                  'multi_head_dot', 'multi_head_add', 'multi_head_loc',
-                                 'multi_head_multi_res_loc'],
+                                 'multi_head_multi_res_loc', 'multi_head'],
                         help='Type of attention architecture')
     parser.add_argument('--adim', default=320, type=int,
                         help='Number of attention transformation dimensions')
@@ -83,9 +83,11 @@ def main():
     parser.add_argument('--aconv-filts', default=100, type=int,
                         help='Number of attention convolution filters \
                         (negative value indicates no location-aware attention)')
+    parser.add_argument('--alist', default=None, nargs='*', type=str,
+                        help='list of attentions for the use in multi head')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
-                        choices=['lstm'],
+                        choices=['lstm', 'multi_head_lstm'],
                         help='Type of decoder network architecture')
     parser.add_argument('--dlayers', default=1, type=int,
                         help='Number of decoder layers')
