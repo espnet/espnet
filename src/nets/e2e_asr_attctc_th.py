@@ -217,6 +217,10 @@ class E2E(torch.nn.Module):
             self.att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
                                                args.aheads, args.adim, args.adim,
                                                args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'multi_head':
+            self.att = AttMultiHead(args.eprojs, args.dunits,
+                                    args.aheads, args.adim, args.adim,
+                                    args.aconv_chans, args.aconv_filts, args.alist)
         else:
             logging.error(
                 "Error: need to specify an appropriate attention archtecture")
@@ -1147,7 +1151,6 @@ class AttMultiHeadDot(torch.nn.Module):
         :param list enc_h_len: padded encoder hidden state lenght (B)
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: dummy (does not use)
-        :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
         :rtype: Variable
         :return: list of previous attentioin weight (B x T_max) * aheads
@@ -1244,7 +1247,6 @@ class AttMultiHeadAdd(torch.nn.Module):
         :param list enc_h_len: padded encoder hidden state lenght (B)
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: dummy (does not use)
-        :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
         :rtype: Variable
         :return: list of previous attentioin weight (B x T_max) * aheads
@@ -1342,14 +1344,13 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.pre_compute_k = None
         self.pre_compute_v = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadDot forward
 
         :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
-        :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
         :rtype: Variable
         :return: list of previous attentioin weight (B x T_max) * aheads
@@ -1398,7 +1399,7 @@ class AttMultiHeadLoc(torch.nn.Module):
                     self.pre_compute_k[h] +
                     att_conv +
                     self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
-            w += [F.softmax(scaling * e, dim=1)]
+            w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
             # utt x hdim
@@ -1470,7 +1471,6 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         :param list enc_h_len: padded encoder hidden state lenght (B)
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
-        :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
         :rtype: Variable
         :return: list of previous attentioin weight (B x T_max) * aheads
@@ -1530,6 +1530,211 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         c = self.mlp_o(torch.cat(c, dim=1))
 
         return c, w
+
+
+class AttMultiHead(torch.nn.Module):
+    '''Multi head attention using various attention
+
+    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int aheads: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    :param list alist: list of attentions to use in multi head
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v,
+                 aconv_chans=None, aconv_filts=None, alist=None, concat=True):
+        super(AttMultiHead, self).__init__()
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.aconv_chans = aconv_chans
+        self.aconv_filts = aconv_filts
+        self.concat = concat
+        if alist is None:
+            self.alist = ['dot'] * self.aheads
+        else:
+            self.alist = alist
+        assert len(self.alist) == self.aheads
+
+        for head, atype in enumerate(alist):
+            if atype == 'dot':
+                self._dot_init(head)
+            elif atype == 'add':
+                self._add_init(head)
+            elif atype == 'loc':
+                self._loc_init(head)
+            elif atype == 'cov':
+                self._cov_init(head)
+        if self.concat:
+            self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
+
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+        '''AttMultiHead forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :return: attentioin weighted encoder state (B x D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weight (B x T_max) * aheads
+        :rtype: list
+        '''
+
+        batch = enc_hs_pad.size(0)
+        # pre-compute all k and v outside the decoder loop
+        if self.pre_compute_k is None:
+            self.h_length = enc_hs_pad.size(1)
+            self.pre_compute_k = [
+                linear_tensor(getattr(self, 'head_%d_mlp_k' % h), enc_hs_pad)
+                for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.h_length = enc_hs_pad.size(1)
+            self.pre_compute_v = [
+                linear_tensor(getattr(self, 'head_%d_mlp_k' % h), enc_hs_pad)
+                for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        if att_prev is None:
+            att_prev = []
+            for h in six.moves.range(self.aheads):
+                att_prev += [[Variable(enc_hs_pad.data.new(
+                    l).zero_() + (1.0 / l)) for l in enc_hs_len]]
+                # if no bias, 0 0-pad goes 0
+                att_prev[h] = pad_list(att_prev[h], 0)
+
+        c = []
+        w = []
+        for h, atype in enumerate(self.alist):
+            if atype == "dot":
+                c_, w_ = self._dot_forward(
+                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z,
+                    getattr(self, 'head_%d_mlp_q' % h))
+            elif atype == "add":
+                c_, w_ = self._add_forward(
+                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z,
+                    getattr(self, 'head_%d_mlp_q' % h),
+                    getattr(self, 'head_%d_gvec' % h))
+            elif atype == "loc":
+                c_, w_ = self._loc_forward(
+                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z, att_prev[h],
+                    getattr(self, 'head_%d_mlp_q' % h),
+                    getattr(self, 'head_%d_gvec' % h),
+                    getattr(self, 'head_%d_loc_conv' % h),
+                    getattr(self, 'head_%d_mlp_att' % h))
+            elif atype == "cov":
+                c_, w_ = self._cov_forward(
+                    self.pre_compute_k[h], self.pre_compute_v[h], dec_z, att_prev[h],
+                    getattr(self, 'head_%d_mlp_q' % h),
+                    getattr(self, 'head_%d_gvec' % h),
+                    getattr(self, 'head_%d_wvec' % h))
+            else:
+                raise ValueError('Not supported attention.')
+            c += [c_]
+            w += [w_]
+
+        if self.concat:
+            # concat all of c
+            c = self.mlp_o(torch.cat(c, dim=1))
+
+        return c, w
+
+    def _dot_init(self, head):
+        setattr(self, 'head_%d_mlp_q' % head, torch.nn.Linear(self.dunits, self.att_dim_k))
+        setattr(self, 'head_%d_mlp_k' % head, torch.nn.Linear(self.eprojs, self.att_dim_k, bias=False))
+        setattr(self, 'head_%d_mlp_v' % head, torch.nn.Linear(self.eprojs, self.att_dim_v, bias=False))
+
+    def _add_init(self, head):
+        setattr(self, 'head_%d_mlp_q' % head, torch.nn.Linear(self.dunits, self.att_dim_k))
+        setattr(self, 'head_%d_mlp_k' % head, torch.nn.Linear(self.eprojs, self.att_dim_k, bias=False))
+        setattr(self, 'head_%d_mlp_v' % head, torch.nn.Linear(self.eprojs, self.att_dim_v, bias=False))
+        setattr(self, 'head_%d_gvec' % head, torch.nn.Linear(self.att_dim_k, 1))
+
+    def _loc_init(self, head):
+        setattr(self, 'head_%d_mlp_q' % head, torch.nn.Linear(self.dunits, self.att_dim_k))
+        setattr(self, 'head_%d_mlp_k' % head, torch.nn.Linear(self.eprojs, self.att_dim_k, bias=False))
+        setattr(self, 'head_%d_mlp_v' % head, torch.nn.Linear(self.eprojs, self.att_dim_v, bias=False))
+        setattr(self, 'head_%d_gvec' % head, torch.nn.Linear(self.att_dim_k, 1))
+        setattr(self, 'head_%d_loc_conv' % head, torch.nn.Conv2d(
+            1, self.aconv_chans, (1, 2 * self.aconv_filts + 1),
+            padding=(0, self.aconv_filts), bias=False))
+        setattr(self, 'head_%d_mlp_att' % head, torch.nn.Linear(self.aconv_chans, self.att_dim_k, bias=False))
+
+    def _cov_init(self, head):
+        setattr(self, 'head_%d_mlp_q' % head, torch.nn.Linear(self.dunits, self.att_dim_k))
+        setattr(self, 'head_%d_mlp_k' % head, torch.nn.Linear(self.eprojs, self.att_dim_k, bias=False))
+        setattr(self, 'head_%d_mlp_v' % head, torch.nn.Linear(self.eprojs, self.att_dim_v, bias=False))
+        setattr(self, 'head_%d_gvec' % head, torch.nn.Linear(self.att_dim_k, 1))
+        setattr(self, 'head_%d_wvec' % head, torch.nn.Linear(1, self.att_dim_k))
+
+    def _dot_forward(self, pre_compute_k, pre_compute_v, dec_z, mlp_q_fn):
+        '''dot product attention forward'''
+        batch = pre_compute_k.size(0)
+        e = torch.sum(pre_compute_k * torch.tanh(mlp_q_fn(dec_z)).view(
+            batch, 1, self.att_dim_k), dim=2)  # (B x T)
+        w = F.softmax(self.scaling * e, dim=1)  # (B x T)
+        c = torch.sum(pre_compute_v * w.view(batch, self.h_length, 1), dim=1)  # (B)
+        return c, w
+
+    def _add_forward(self, pre_compute_k, pre_compute_v, dec_z, mlp_q_fn, gvec_fn):
+        '''additive attention forward'''
+        batch = pre_compute_k.size(0)
+        e = linear_tensor(gvec_fn, torch.tanh(
+            pre_compute_k + mlp_q_fn(dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)  # (B x T)
+        w = F.softmax(self.scaling * e, dim=1)  # (B x T)
+        c = torch.sum(pre_compute_v * w.view(batch, self.h_length, 1), dim=1)  # (B)
+        return c, w
+
+    def _loc_forward(self, pre_compute_k, pre_compute_v, dec_z, att_prev,
+                     mlp_q_fn, gvec_fn, loc_conv_fn, mlp_att_fn):
+        '''locaiton-based attention forward'''
+        batch = pre_compute_k.size(0)
+        att_conv = loc_conv_fn(att_prev.view(batch, 1, 1, self.h_length))  # (B x C x 1 x T)
+        att_conv = att_conv.squeeze(2).transpose(1, 2)  # (B x T x C)
+        att_conv = linear_tensor(mlp_att_fn, att_conv)  # (B x T x D)
+        e = linear_tensor(gvec_fn, torch.tanh(
+            pre_compute_k + att_conv + mlp_q_fn(dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)  # (B x T)
+        w = F.softmax(self.scaling * e, dim=1)  # (B x T)
+        c = torch.sum(pre_compute_v * w.view(batch, self.h_length, 1), dim=1)  # (B)
+        return c, w
+
+    def _cov_forward(self, pre_compute_k, pre_compute_v, dec_z, att_prev_sum,
+                     mlp_q_fn, gvec_fn, wvec_fn):
+        '''coverage mechanism attention forward'''
+        batch = pre_compute_k.size(0)
+        cov_vec = linear_tensor(wvec_fn, att_prev_sum.unsqueeze(-1))
+
+        e = linear_tensor(gvec_fn, torch.tanh(
+            pre_compute_k + cov_vec + mlp_q_fn(dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)  # (B x T)
+        w = F.softmax(self.scaling * e, dim=1)  # (B x T)
+        c = torch.sum(pre_compute_v * w.view(batch, self.h_length, 1), dim=1)  # (B)
+        return c, att_prev_sum + w
 
 
 def th_accuracy(y_all, pad_target, ignore_label):
