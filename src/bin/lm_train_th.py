@@ -101,6 +101,8 @@ class RNNLM(nn.Module):
 
     def __init__(self, n_vocab, n_units):
         super(RNNLM, self).__init__()
+        self.n_vocab = n_vocab
+        self.n_units = n_units
         self.embed = torch.nn.Embedding(n_vocab, n_units)
         self.l1 = torch.nn.LSTMCell(n_units, n_units)
         self.l2 = torch.nn.LSTMCell(n_units, n_units)
@@ -113,6 +115,9 @@ class RNNLM(nn.Module):
         # set forget bias to 1.0
         set_forget_bias_to_one(self.l1.bias_ih)
         set_forget_bias_to_one(self.l2.bias_ih)
+
+    def zero_state(self, batchsize):
+        return Variable(torch.zeros(batchsize, self.n_units).zero_()).float()
 
     def forward(self, state, x):
         h0 = self.embed(x)
@@ -290,11 +295,12 @@ def main():
         # Evaluation routine to be used for validation and test.
         model.predictor.eval()
         evaluator = copy.deepcopy(model)  # to use different state
-        state = {}
-        state['c1'] = Variable(torch.zeros(args.batchsize, args.unit)).float()
-        state['h1'] = Variable(torch.zeros(args.batchsize, args.unit)).float()
-        state['c2'] = Variable(torch.zeros(args.batchsize, args.unit)).float()
-        state['h2'] = Variable(torch.zeros(args.batchsize, args.unit)).float()
+        state = {
+            'c1': model.predictor.zero_state(args.batchsize),
+            'h1': model.predictor.zero_state(args.batchsize),
+            'c2': model.predictor.zero_state(args.batchsize),
+            'h2': model.predictor.zero_state(args.batchsize)
+        }
         if args.gpu >= 0:
             for key in state.iterkeys():
                 state[key] = state[key].cuda(args.gpu)
@@ -360,11 +366,12 @@ def main():
     iteration = 0
     epoch_now = 0
     best_valid = 100000000
-    state = {}
-    state['c1'] = Variable(torch.zeros(args.batchsize, args.unit)).float()
-    state['h1'] = Variable(torch.zeros(args.batchsize, args.unit)).float()
-    state['c2'] = Variable(torch.zeros(args.batchsize, args.unit)).float()
-    state['h2'] = Variable(torch.zeros(args.batchsize, args.unit)).float()
+    state = {
+        'c1': model.predictor.zero_state(args.batchsize),
+        'h1': model.predictor.zero_state(args.batchsize),
+        'c2': model.predictor.zero_state(args.batchsize),
+        'h2': model.predictor.zero_state(args.batchsize)
+    }
     if args.gpu >= 0:
         for key in state.iterkeys():
             state[key] = state[key].cuda(args.gpu)
