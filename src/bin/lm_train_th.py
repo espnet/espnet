@@ -294,7 +294,6 @@ def main():
     def evaluate(model, iter, bproplen=100):
         # Evaluation routine to be used for validation and test.
         model.predictor.eval()
-        evaluator = copy.deepcopy(model)  # to use different state
         state = {
             'c1': model.predictor.zero_state(args.batchsize),
             'h1': model.predictor.zero_state(args.batchsize),
@@ -304,7 +303,6 @@ def main():
         if args.gpu >= 0:
             for key in state.iterkeys():
                 state[key] = state[key].cuda(args.gpu)
-        evaluator.predictor.eval()
         sum_perp = 0
         data_count = 0
         for batch in copy.copy(iter):
@@ -314,7 +312,7 @@ def main():
             if args.gpu >= 0:
                 x = x.cuda(args.gpu)
                 t = t.cuda(args.gpu)
-            state, loss = evaluator(state, x, t)
+            state, loss = model(state, x, t)
             sum_perp += loss.data
             if data_count % bproplen == 0:
                 # detach all states
