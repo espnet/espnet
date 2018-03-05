@@ -33,6 +33,9 @@ from e2e_asr_attctc_th import Loss
 import kaldi_io_py
 import lazy_io
 
+# rnnlm
+import lm_train_th
+
 # numpy related
 import matplotlib
 matplotlib.use('Agg')
@@ -310,7 +313,11 @@ def recog(args):
 
     # read rnnlm
     if args.rnnlm:
-        logging.warning("rnnlm integration is not implemented in the pytorch backend")
+        rnnlm = lm_train_th.ClassifierWithState(
+            lm_train_th.RNNLM(len(train_args.char_list), 650))
+        rnnlm.load_state_dict(torch.load(args.rnnlm))
+    else:
+        rnnlm = None
 
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_ark(args.recog_feat)
@@ -321,7 +328,7 @@ def recog(args):
 
     new_json = {}
     for name, feat in reader:
-        y_hat = e2e.recognize(feat, args, train_args.char_list)
+        y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result
