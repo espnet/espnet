@@ -307,8 +307,8 @@ def main():
         data_count = 0
         for batch in copy.copy(iter):
             batch = np.array(batch)
-            x = Variable(torch.from_numpy(batch[0]).long(), volatile=True)
-            t = Variable(torch.from_numpy(batch[1]).long(), volatile=True)
+            x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
+            t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
             if args.gpu >= 0:
                 x = x.cuda(args.gpu)
                 t = t.cuda(args.gpu)
@@ -331,8 +331,8 @@ def main():
     n_vocab = len(char_list)
 
     # for debug, small data
-    # train = train[:100000]
-    # valid = valid[:100]
+    train = train[:100000]
+    valid = valid[:100]
 
     # for debug, ptb data
     # train, valid, _ = chainer.datasets.get_ptb_words()
