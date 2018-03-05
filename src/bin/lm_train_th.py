@@ -331,8 +331,8 @@ def main():
     n_vocab = len(char_list)
 
     # for debug, small data
-    train = train[:100000]
-    valid = valid[:100]
+    # train = train[:100000]
+    # valid = valid[:100]
 
     # for debug, ptb data
     # train, valid, _ = chainer.datasets.get_ptb_words()
