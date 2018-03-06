@@ -35,6 +35,8 @@ dunits=300
 # attention related
 atype=location
 adim=320
+awin=5
+aheads=4
 aconv_chans=10
 aconv_filts=100
 
@@ -70,8 +72,8 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh 
-. ./cmd.sh 
+. ./path.sh
+. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -218,6 +220,8 @@ if [ ${stage} -le 4 ]; then
         --dunits ${dunits} \
         --atype ${atype} \
         --adim ${adim} \
+        --awin ${awin} \
+        --aheads ${aheads} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \

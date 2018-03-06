@@ -772,11 +772,8 @@ class Decoder(chainer.Chain):
                 for j in six.moves.range(beam):
                     new_hyp = {}
                     # do not copy {z,c}_list directly
-                    new_hyp['z_prev'] = [z_list[0]]
-                    new_hyp['c_prev'] = [c_list[0]]
-                    for l in six.moves.range(1, self.dlayers):
-                        new_hyp['z_prev'].append(z_list[l])
-                        new_hyp['c_prev'].append(c_list[l])
+                    new_hyp['z_prev'] = z_list[:]
+                    new_hyp['c_prev'] = c_list[:]
                     new_hyp['a_prev'] = att_w
                     new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))

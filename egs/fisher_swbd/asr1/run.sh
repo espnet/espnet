@@ -91,6 +91,7 @@ if [ ${stage} -le 0 ]; then
     # training data
     local/fisher_data_prep.sh ${fisher_dir}
     local/swbd1_data_download.sh ${swbd1_dir}
+    chmod 644 data/local/dict_nosp/lexicon0.txt
     local/fisher_swbd_prepare_dict.sh
     local/swbd1_data_prep.sh ${swbd1_dir}
     utils/combine_data.sh data/train_all data/train_fisher data/train_swbd
@@ -99,7 +100,7 @@ if [ ${stage} -le 0 ]; then
     local/eval2000_data_prep.sh ${eval2000_dir}
     local/rt03_data_prep.sh ${rt03_dir}
     # upsample audio from 8k to 16k to make a recipe consistent with others
-    for x in train eval2000 rt03; do
+    for x in train_all eval2000 rt03; do
 	sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
     done
     # normalize eval2000 ant rt03 texts by
