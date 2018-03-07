@@ -83,9 +83,10 @@ set -u
 set -o pipefail
 
 enhancement=beamformit
-train_set=train_worn_u200k
+#train_set=train_worn_u200k
+train_set=train_worn_uall
 train_dev=dev_${enhancement}_ref
-test_sets="dev_${enhancement}_ref eval_${enhancement}_ref"
+recog_set="dev_${enhancement}_ref eval_${enhancement}_ref"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -119,7 +120,8 @@ if [ ${stage} -le 0 ]; then
 
     utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
     utils/subset_data_dir.sh data/train_uall 200000 data/train_u200k
-    utils/combine_data.sh data/${train_set} data/train_worn data/train_u200k
+    utils/combine_data.sh data/train_worn_uall data/train_worn data/train_uall
+    utils/combine_data.sh data/train_worn_u200k data/train_worn data/train_u200k
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -130,7 +132,7 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in ${train_set} ${test_sets}; do
+    for x in ${train_set} ${recog_set}; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done

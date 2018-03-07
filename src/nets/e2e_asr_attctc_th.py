@@ -238,6 +238,7 @@ class E2E(torch.nn.Module):
         '''
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
+        # remove 0-output-length utterances
         tids = [d[1]['tokenid'].split() for d in data]
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
@@ -264,17 +265,6 @@ class E2E(torch.nn.Module):
 
         # 4. attention loss
         loss_att, acc, att_w = self.dec(hpad, hlens, ys)
-
-        # # get alignment
-        # '''
-        # if self.verbose > 0 and self.outdir is not None:
-        #     for i in six.moves.range(len(data)):
-        #         utt = data[i][0]
-        #         align_file = self.outdir + '/' + utt + '.ali'
-        #         with open(align_file, "w") as f:
-        #             logging.info('writing an alignment file to' + align_file)
-        #             pickle.dump((utt, att_w[i]), f)
-        # '''
 
         return loss_ctc, loss_att, acc
 

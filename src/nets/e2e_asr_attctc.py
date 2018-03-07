@@ -161,9 +161,16 @@ class E2E(chainer.Chain):
         '''
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
+        # remove 0-output-length utterances
+        tids = [d[1]['tokenid'].split() for d in data]
+        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        if len(filtered_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(filtered_index)))
+        xs = [xs[i] for i in filtered_index]
         # utt list of olen
-        ys = [self.xp.array(
-            list(map(int, i[1]['tokenid'].split())), dtype=np.int32) for i in data]
+        ys = [self.xp.array(np.fromiter(map(int, tids[i]), dtype=np.int32))
+              for i in filtered_index]
         ys = [chainer.Variable(y) for y in ys]
 
         # subsample frame
@@ -180,17 +187,6 @@ class E2E(chainer.Chain):
 
         # 4. attention loss
         loss_att, acc, att_w = self.dec(hs, ys)
-
-        # get alignment
-        '''
-        if self.verbose > 0 and self.outdir is not None:
-            for i in six.moves.range(len(data)):
-                utt = data[i][0]
-                align_file = self.outdir + '/' + utt + '.ali'
-                with open(align_file, "w") as f:
-                    logging.info('writing an alignment file to' + align_file)
-                    pickle.dump((utt, att_w[i]), f)
-        '''
 
         return loss_ctc, loss_att, acc
 
