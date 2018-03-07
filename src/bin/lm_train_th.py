@@ -104,8 +104,11 @@ class RNNLM(nn.Module):
         self.n_vocab = n_vocab
         self.n_units = n_units
         self.embed = torch.nn.Embedding(n_vocab, n_units)
+        self.d0 = torch.nn.Dropout()
         self.l1 = torch.nn.LSTMCell(n_units, n_units)
+        self.d1 = torch.nn.Dropout()
         self.l2 = torch.nn.LSTMCell(n_units, n_units)
+        self.d2 = torch.nn.Dropout()
         self.lo = torch.nn.Linear(n_units, n_vocab)
 
         # initialize parameters from uniform distribution
@@ -121,9 +124,9 @@ class RNNLM(nn.Module):
 
     def forward(self, state, x):
         h0 = self.embed(x)
-        h1, c1 = self.l1(F.dropout(h0), (state['h1'], state['c1']))
-        h2, c2 = self.l2(F.dropout(h1), (state['h2'], state['c2']))
-        y = self.lo(F.dropout(h2))
+        h1, c1 = self.l1(self.d0(h0), (state['h1'], state['c1']))
+        h2, c2 = self.l2(self.d1(h1), (state['h2'], state['c2']))
+        y = self.lo(self.d2(h2))
         state = {'c1': c1, 'h1': h1, 'c2': c2, 'h2': h2}
         return state, y
 
