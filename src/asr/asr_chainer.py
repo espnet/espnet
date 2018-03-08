@@ -341,9 +341,12 @@ def recog(args):
     new_json = {}
     for name, feat in reader:
         logging.info('decoding ' + name)
-        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-        # get 1best and revmoe sos
-        y_hat = nbest_hyps[0]['yseq'][1:]
+        if args.beam_size == 1:
+            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+        else:
+            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+            # get 1best and revmoe sos
+            y_hat = nbest_hyps[0]['yseq'][1:]
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result
@@ -364,21 +367,16 @@ def recog(args):
         new_json[name]['rec_text'] = seq_hat_text
 
         # add n-best recognition results with scores
-        if len(nbest_hyps) > 1:
+        if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):
                 y_hat = hyp['yseq'][1:]
                 seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
                 seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-                new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = " ".join([str(idx[0]) for idx in y_hat])
+                new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] \
+                    = " ".join([str(idx[0]) for idx in y_hat])
                 new_json[name]['rec_token' + '[' + '{:05d}'.format(i) + ']'] = " ".join(seq_hat)
                 new_json[name]['rec_text' + '[' + '{:05d}'.format(i) + ']'] = seq_hat_text
                 new_json[name]['score' + '[' + '{:05d}'.format(i) + ']'] = hyp['score']
-                '''
-                new_json[name]['rec_tokenid' + '[' + str(i) + ']'] = " ".join([str(idx[0]) for idx in y_hat])
-                new_json[name]['rec_token' + '[' + str(i) + ']'] = " ".join(seq_hat)
-                new_json[name]['rec_text' + '[' + str(i) + ']'] = seq_hat_text
-                new_json[name]['score' + '[' + str(i) + ']'] = hyp['score']
-                '''
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:

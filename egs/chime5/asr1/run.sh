@@ -83,8 +83,8 @@ set -u
 set -o pipefail
 
 enhancement=beamformit
-#train_set=train_worn_u200k
-train_set=train_worn_uall
+#train_set=train_worn_uall
+train_set=train_worn_u100k
 train_dev=dev_${enhancement}_ref
 # use the below once you obtain the evaluation data. Also remove the comment #eval# in the lines below
 #eval#recog_set="dev_${enhancement}_ref eval_${enhancement}_ref"
@@ -121,9 +121,9 @@ if [ ${stage} -le 0 ]; then
     done
 
     utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
-    utils/subset_data_dir.sh data/train_uall 200000 data/train_u200k
+    utils/subset_data_dir.sh data/train_uall 100000 data/train_u100k
     utils/combine_data.sh data/train_worn_uall data/train_worn data/train_uall
-    utils/combine_data.sh data/train_worn_u200k data/train_worn data/train_u200k
+    utils/combine_data.sh data/train_worn_u100k data/train_worn data/train_u100k
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}

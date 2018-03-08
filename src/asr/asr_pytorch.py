@@ -321,9 +321,12 @@ def recog(args):
 
     new_json = {}
     for name, feat in reader:
-        nbest_hyps = e2e.recognize(feat, args, train_args.char_list)
-        # get 1best and revmoe sos
-        y_hat = nbest_hyps[0]['yseq'][1:]
+        if args.beam_size == 1:
+            y_hat = e2e.recognize(feat, args, train_args.char_list)
+        else:
+            nbest_hyps = e2e.recognize(feat, args, train_args.char_list)
+            # get 1best and revmoe sos
+            y_hat = nbest_hyps[0]['yseq'][1:]
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result
@@ -347,7 +350,7 @@ def recog(args):
         new_json[name]['rec_text'] = seq_hat_text
 
         # add n-best recognition results with scores
-        if len(nbest_hyps) > 1:
+        if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):
                 y_hat = hyp['yseq'][1:]
                 seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
