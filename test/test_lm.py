@@ -1,5 +1,6 @@
 import chainer
 import torch
+import numpy
 
 import lm_train
 import lm_train_th
@@ -10,7 +11,8 @@ def transfer_lstm(ch_lstm, th_lstm):
     th_lstm.weight_ih.data[:] = torch.from_numpy(ch_lstm.upward.W.data)
     ch_lstm.upward.b.data[:] = 1
     th_lstm.bias_hh.data[:] = torch.from_numpy(ch_lstm.upward.b.data)
-    ch_lstm.lateral.W.data[:] = 1
+    # NOTE: only lateral weight can directly transfer
+    # rest of the weights and biases have quite different placements
     th_lstm.weight_hh.data[:] = torch.from_numpy(ch_lstm.lateral.W.data)
     th_lstm.bias_ih.data.zero_()
 
@@ -63,8 +65,8 @@ def test_lm():
             print(k)
             print(state_th[k].data.numpy())
             print(state_ch[k].data)
-            # numpy.testing.assert_allclose(state_th[k].data.numpy(), state_ch[k].data)
+            numpy.testing.assert_allclose(state_th[k].data.numpy(), state_ch[k].data, 1e-5)
         print("y")
         print(y_th.data.numpy())
         print(y_ch.data)
-        numpy.testing.assert_allclose(y_th.data.numpy(), y_ch.data)
+        numpy.testing.assert_allclose(y_th.data.numpy(), y_ch.data, 1e-5)
