@@ -1,6 +1,5 @@
 import chainer
 import torch
-import numpy
 
 import lm_train
 import lm_train_th
