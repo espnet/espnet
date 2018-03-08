@@ -24,8 +24,10 @@ def transfer_lm(ch_rnnlm, th_rnnlm):
 
 def test_lm():
     n_vocab = 52
-    rnnlm_ch = lm_train.ClassifierWithState(lm_train.RNNLM(n_vocab, 10))
-    rnnlm_th = lm_train_th.ClassifierWithState(lm_train_th.RNNLM(n_vocab, 10))
+    n_units = 100
+    batchsize = 5
+    rnnlm_ch = lm_train.ClassifierWithState(lm_train.RNNLM(n_vocab, n_units))
+    rnnlm_th = lm_train_th.ClassifierWithState(lm_train_th.RNNLM(n_vocab, n_units))
     transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
     import numpy
     # test transfer function
@@ -41,7 +43,7 @@ def test_lm():
 
     # test prediction equality
     x = torch.autograd.Variable(
-        torch.from_numpy(numpy.random.randint(n_vocab, size=(5))),
+        torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))),
         volatile=True).long()
     with chainer.no_backprop_mode(), chainer.using_config('train', False):
         rnnlm_th.predictor.eval()
@@ -52,12 +54,7 @@ def test_lm():
             'h2': rnnlm_th.predictor.zero_state(x.size(0))
         }
         state_th, y_th = rnnlm_th.predictor(state, x)
-        state = {
-            'c1': numpy.zeros((x.size(0), 10), dtype=numpy.float32),
-            'h1': numpy.zeros((x.size(0), 10), dtype=numpy.float32),
-            'c2': numpy.zeros((x.size(0), 10), dtype=numpy.float32),
-            'h2': numpy.zeros((x.size(0), 10), dtype=numpy.float32)
-        }
+        state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
         state_ch, y_ch = rnnlm_ch.predictor(state, x.data.numpy())
         for k in state_ch.iterkeys():
             numpy.testing.assert_allclose(state_th[k][0, :10].data.numpy(), state_ch[k][0, :10].data)
