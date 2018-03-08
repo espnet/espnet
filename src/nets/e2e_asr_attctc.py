@@ -164,6 +164,8 @@ class E2E(chainer.Chain):
         # remove 0-output-length utterances
         tids = [d[1]['tokenid'].split() for d in data]
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        if isinstance(filtered_index, (list,)):
+            filtered_index = [filtered_index]
         if len(filtered_index) != len(xs):
             logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
                 len(xs), len(filtered_index)))
