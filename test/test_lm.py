@@ -1,8 +1,8 @@
 import chainer
 import torch
 
-import lm_train
-import lm_train_th
+import lm_chainer
+import lm_pytorch
 
 
 def transfer_lstm(ch_lstm, th_lstm):
@@ -17,8 +17,8 @@ def transfer_lstm(ch_lstm, th_lstm):
 
 
 def transfer_lm(ch_rnnlm, th_rnnlm):
-    assert isinstance(ch_rnnlm, lm_train.RNNLM)
-    assert isinstance(th_rnnlm, lm_train_th.RNNLM)
+    assert isinstance(ch_rnnlm, lm_chainer.RNNLM)
+    assert isinstance(th_rnnlm, lm_pytorch.RNNLM)
     th_rnnlm.embed.weight.data = torch.from_numpy(ch_rnnlm.embed.W.data)
     transfer_lstm(ch_rnnlm.l1, th_rnnlm.l1)
     transfer_lstm(ch_rnnlm.l2, th_rnnlm.l2)
@@ -30,8 +30,8 @@ def test_lm():
     n_vocab = 3
     n_units = 2
     batchsize = 5
-    rnnlm_ch = lm_train.ClassifierWithState(lm_train.RNNLM(n_vocab, n_units))
-    rnnlm_th = lm_train_th.ClassifierWithState(lm_train_th.RNNLM(n_vocab, n_units))
+    rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_units))
+    rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_units))
     transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
     import numpy
     # test transfer function
