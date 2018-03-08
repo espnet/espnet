@@ -830,14 +830,13 @@ class Decoder(chainer.Chain):
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
-        best_hyp = sorted(
-            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
-        logging.info('total log probability: ' + str(best_hyp['score']))
+        nbest_hyps = sorted(
+            ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+        logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' +
-                     str(best_hyp['score'] / len(best_hyp['yseq'])))
+                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
-        # remove sos
-        return best_hyp['yseq'][1:]
+        return nbest_hyps
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------

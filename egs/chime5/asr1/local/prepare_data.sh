@@ -3,12 +3,13 @@
 # Copyright  2017  Johns Hopkins University (Author: Shinji Watanabe, Yenda Trmal)
 # Apache 2.0
 
-# To be run from one directory above this script.
-
+# Begin configuration section.
 mictype=worn # worn, ref or others
 cleanup=true
+# End configuration section
+. ./utils/parse_options.sh  # accept options.. you can run this run.sh with the
 
-. utils/parse_options.sh  # accept options.. you can run this run.sh with the
+. ./path.sh
 
 echo >&2 "$0" "$@"
 if [ $# -ne 3 ] ; then
@@ -28,7 +29,8 @@ echo "$0: Converting transcription to text"
 mkdir -p $dir
 for file in $jdir/*json; do
   ./local/json2text.py --mictype $mictype $file
-done | sed -e "s/\[inaudible[- 0-9]*\]/[inaudible]/g" |\
+done | \
+  sed -e "s/\[inaudible[- 0-9]*\]/[inaudible]/g" |\
   sed -e 's/ - / /g' |\
   sed -e 's/mm-/mm/g' > $dir/text.orig
 
@@ -72,7 +74,7 @@ elif [ $mictype == "ref" ]; then
 else
   # array mic case
   # convert the filenames to wav.scp format, use the basename of the file
-  # as a the wav.scp key  
+  # as a the wav.scp key
   find $adir -name "*.wav" -ipath "*${mictype}*" |\
     perl -ne '$p=$_;chomp $_;@F=split "/";$F[$#F]=~s/\.wav//;print "$F[$#F] $p";' |\
     sort -u > $dir/wav.scp
