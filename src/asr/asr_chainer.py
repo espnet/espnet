@@ -36,7 +36,7 @@ import kaldi_io_py
 import lazy_io
 
 # rnnlm
-import lm_train
+import lm_chainer
 
 # numpy related
 import matplotlib
@@ -326,7 +326,7 @@ def recog(args):
 
     # read rnnlm
     if args.rnnlm:
-        rnnlm = lm_train.ClassifierWithState(lm_train.RNNLM(len(train_args.char_list), 650))
+        rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(train_args.char_list), 650))
         chainer.serializers.load_npz(args.rnnlm, rnnlm)
     else:
         rnnlm = None
