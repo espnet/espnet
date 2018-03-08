@@ -315,7 +315,7 @@ def recog(args):
     if args.rnnlm:
         rnnlm = lm_train_th.ClassifierWithState(
             lm_train_th.RNNLM(len(train_args.char_list), 650))
-        rnnlm.load_state_dict(torch.load(args.rnnlm))
+        rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
     else:
         rnnlm = None
 
