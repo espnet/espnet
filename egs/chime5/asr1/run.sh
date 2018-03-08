@@ -56,17 +56,17 @@ epochs=15
 lm_weight=0.3
 
 # decoding parameter
-beam_size=20
+beam_size=30
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.3
+ctc_weight=0.1
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
-chime5_corpus=/home/shinji/work/201711chime5/chime5-prep
-json_dir=${chime5_corpus}/data/transcriptions_aligned.v2
-audio_dir=${chime5_corpus}/data/audio
+chime5_corpus=/export/corpora4/CHiME5
+json_dir=${chime5_corpus}/transcriptions
+audio_dir=${chime5_corpus}/audio
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -86,7 +86,9 @@ enhancement=beamformit
 #train_set=train_worn_u200k
 train_set=train_worn_uall
 train_dev=dev_${enhancement}_ref
-recog_set="dev_${enhancement}_ref eval_${enhancement}_ref"
+# use the below once you obtain the evaluation data. Also remove the comment #eval# in the lines below
+#eval#recog_set="dev_${enhancement}_ref eval_${enhancement}_ref"
+recog_set="dev_${enhancement}_ref"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.

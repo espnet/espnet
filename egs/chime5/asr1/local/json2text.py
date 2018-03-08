@@ -40,38 +40,39 @@ if __name__ == '__main__':
         j = json.load(f)
 
     for x in j:
-        session_id = x['session_id']
-        speaker_id = x['speaker']
-        if args.mictype == 'ref':
-            mictype = x['ref']
-        elif args.mictype == 'worn':
-            mictype = 'original'
-        else:
-            mictype = args.mictype.upper() # convert from u01 to U01
+        if '[redacted]' not in x['words']:
+            session_id = x['session_id']
+            speaker_id = x['speaker']
+            if args.mictype == 'ref':
+                mictype = x['ref']
+            elif args.mictype == 'worn':
+                mictype = 'original'
+            else:
+                mictype = args.mictype.upper() # convert from u01 to U01
 
-        start_time = x['start_time'][mictype]
-        end_time = x['end_time'][mictype]
+            start_time = x['start_time'][mictype]
+            end_time = x['end_time'][mictype]
         
-        # remove meta chars and convert to lower
-        words = x['words'].replace('"', '')\
-                          .replace('.', '')\
-                          .replace('?', '')\
-                          .replace(',', '')\
-                          .replace(':', '')\
-                          .replace(';', '')\
-                          .replace('!', '').lower()
+            # remove meta chars and convert to lower
+            words = x['words'].replace('"', '')\
+                              .replace('.', '')\
+                              .replace('?', '')\
+                              .replace(',', '')\
+                              .replace(':', '')\
+                              .replace(';', '')\
+                              .replace('!', '').lower()
 
-        # remove multiple spaces
-        words = " ".join(words.split())
+            # remove multiple spaces
+            words = " ".join(words.split())
 
-        # convert to seconds, e.g., 1:10:05.55 -> 3600 + 600 + 5.55 = 4205.55
-        start_time = hms_to_seconds(start_time)
-        end_time = hms_to_seconds(end_time)
+            # convert to seconds, e.g., 1:10:05.55 -> 3600 + 600 + 5.55 = 4205.55
+            start_time = hms_to_seconds(start_time)
+            end_time = hms_to_seconds(end_time)
 
-        if args.mictype == 'worn':
-            uttid = speaker_id + '_' + session_id + '-' + start_time + '-' + end_time
-        else:
-            uttid = speaker_id + '_' + session_id + '_' + mictype + '-' + start_time + '-' + end_time
+            if args.mictype == 'worn':
+                uttid = speaker_id + '_' + session_id + '-' + start_time + '-' + end_time
+            else:
+                uttid = speaker_id + '_' + session_id + '_' + mictype + '-' + start_time + '-' + end_time
 
-        if end_time > start_time:
-            sys.stdout.buffer.write((uttid + ' ' + words + '\n').encode("utf-8"))
+            if end_time > start_time:
+                sys.stdout.buffer.write((uttid + ' ' + words + '\n').encode("utf-8"))
