@@ -116,6 +116,8 @@ class RNNLM(chainer.Chain):
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
 
     def __call__(self, state, x):
+        if state is None:
+            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
         h0 = self.embed(x)
         c1, h1 = self.l1(state['c1'], state['h1'], F.dropout(h0))
         c2, h2 = self.l2(state['c2'], state['h2'], F.dropout(h1))
@@ -157,7 +159,7 @@ def train(args):
         # Evaluation routine to be used for validation and test.
         model.predictor.train = False
         evaluator = model.copy()  # to use different state
-        state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
+        state = None
         evaluator.predictor.train = False  # dropout does nothing
         sum_perp = 0
         data_count = 0
@@ -209,7 +211,7 @@ def train(args):
     iteration = 0
     epoch_now = 0
     best_valid = 100000000
-    state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
+    state = None
     while train_iter.epoch < args.epoch:
         loss = 0
         iteration += 1

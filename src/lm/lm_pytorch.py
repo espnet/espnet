@@ -121,6 +121,13 @@ class RNNLM(nn.Module):
         return Variable(torch.zeros(batchsize, self.n_units).zero_()).float()
 
     def forward(self, state, x):
+        if state is None:
+            state = {
+                'c1': self.zero_state(x.size(0)),
+                'h1': self.zero_state(x.size(0)),
+                'c2': self.zero_state(x.size(0)),
+                'h2': self.zero_state(x.size(0))
+            }
         h0 = self.embed(x)
         h1, c1 = self.l1(self.d0(h0), (state['h1'], state['c1']))
         h2, c2 = self.l2(self.d1(h1), (state['h2'], state['c2']))
@@ -155,12 +162,7 @@ def train(args):
     def evaluate(model, iter, bproplen=100):
         # Evaluation routine to be used for validation and test.
         model.predictor.eval()
-        state = {
-            'c1': model.predictor.zero_state(args.batchsize),
-            'h1': model.predictor.zero_state(args.batchsize),
-            'c2': model.predictor.zero_state(args.batchsize),
-            'h2': model.predictor.zero_state(args.batchsize)
-        }
+        state = None
         if args.gpu >= 0:
             for key in state.keys():
                 state[key] = state[key].cuda(args.gpu)
@@ -218,12 +220,7 @@ def train(args):
     iteration = 0
     epoch_now = 0
     best_valid = 100000000
-    state = {
-        'c1': model.predictor.zero_state(args.batchsize),
-        'h1': model.predictor.zero_state(args.batchsize),
-        'c2': model.predictor.zero_state(args.batchsize),
-        'h2': model.predictor.zero_state(args.batchsize)
-    }
+    state = None
     if args.gpu >= 0:
         for key in state.keys():
             state[key] = state[key].cuda(args.gpu)
