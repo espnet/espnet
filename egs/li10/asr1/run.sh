@@ -3,6 +3,10 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+# This is a task of 10 language-indepent ASR used in
+# S. Watanabe et al, "Language independent end-to-end architecture for
+# joint language identification and speech recognition," Proc. ASRU'17, pp. 265--269 (2017)
+
 . ./path.sh
 . ./cmd.sh
 
@@ -75,6 +79,8 @@ train_dev=dev_li10
 recog_set="dt_de dt_en dt_es dt_fr dt_it dt_ja dt_nl dt_pt dt_ru dt_zh et_de et_en et_es et_fr et_it et_ja_1 et_ja_2 et_ja_3 et_nl et_pt et_ru et_zh"
 
 if [ ${stage} -le 0 ]; then
+    # TODO
+    # add a check whether the following data preparation is completed or not
     # HKUST Mandarin
     lang_code=zh
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../hkust/asr1/data/train_nodup_sp data/tr_${lang_code}

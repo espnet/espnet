@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2018 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -56,7 +56,7 @@ epochs=15
 lm_weight=0.3
 
 # decoding parameter
-beam_size=30
+beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
@@ -83,43 +83,59 @@ set -u
 set -o pipefail
 
 enhancement=beamformit
+#train_set=train_worn_u200k
 #train_set=train_worn_uall
 train_set=train_worn_u100k
 train_dev=dev_${enhancement}_ref
 # use the below once you obtain the evaluation data. Also remove the comment #eval# in the lines below
-#eval#recog_set="dev_${enhancement}_ref eval_${enhancement}_ref"
-recog_set="dev_${enhancement}_ref"
+#eval#recog_set="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
+recog_set="dev_worn dev_${enhancement}_ref"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
     for mictype in worn u01 u02 u04 u05 u06; do
-	local/prepare_data.sh --mictype ${mictype} \
-			      ${audio_dir}/train ${json_dir}/train data/train_${mictype}
+        local/prepare_data.sh --mictype ${mictype} \
+	        ${audio_dir}/train ${json_dir}/train data/train_${mictype}
     done
-    for dataset in dev eval; do
-	for mictype in worn; do
-	    local/prepare_data.sh --mictype ${mictype} \
-				  ${audio_dir}/${dataset} ${json_dir}/${dataset} \
-				  data/${dataset}_${mictype}
-	done
+    #eval#for dset in dev eval; do
+    for dset in dev; do
+	    for mictype in worn; do
+	        local/prepare_data.sh --mictype ${mictype} \
+			    ${audio_dir}/${dset} ${json_dir}/${dset} \
+				data/${dset}_${mictype}
+	    done
     done
     enhandir=enhan
-    for dset in dev eval; do
-	for mictype in u01 u02 u03 u04 u05 u06; do
-	    local/run_beamformit.sh --cmd "$train_cmd" \
-				    ${audio_dir}/${dset} \
-				    ${enhandir}/${dset}_${enhancement}_${mictype} \
-				    ${mictype} &
-	done
+    #eval#for dset in dev eval; do
+    for dset in dev; do
+	    for mictype in u01 u02 u03 u04 u05 u06; do
+	        local/run_beamformit.sh --cmd "$train_cmd" \
+			    ${audio_dir}/${dset} \
+				${enhandir}/${dset}_${enhancement}_${mictype} \
+				${mictype} &
+	    done
     done
     wait
-    for dset in dev eval; do
-	local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
-			      ${json_dir}/${dset} data/${dset}_${enhancement}_ref
+    #eval#for dset in dev eval; do
+    for dset in dev; do
+	    local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
+	        ${json_dir}/${dset} data/${dset}_${enhancement}_ref
     done
 
+    # only use left channel for worn mic recognition
+    # you can use both left and right channels for training
+    #eval#for dset in train dev eval; do
+    for dset in train dev; do
+	    utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
+	    grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
+	    utils/fix_data_dir.sh data/${dset}_worn
+    done
+
+    # combine mix array and worn mics
+    # randomly extract first 100k utterances from all mics
+    # if you want to include more training data, you can increase the number of array mic utterances
     utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
     utils/subset_data_dir.sh data/train_uall 100000 data/train_u100k
     utils/combine_data.sh data/train_worn_uall data/train_worn data/train_uall
