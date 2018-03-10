@@ -647,7 +647,7 @@ class Decoder(chainer.Chain):
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
         if rnnlm:
-            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
+            state = None
         for l in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
@@ -720,8 +720,7 @@ class Decoder(chainer.Chain):
 
         # initialize hypothesis
         if rnnlm:
-            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
-            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': state}
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
         else:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         if lpz is not None:

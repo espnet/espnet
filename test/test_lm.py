@@ -34,7 +34,7 @@ def test_lm():
     rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_units))
     transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
     import numpy
-    # test transfer function
+    # TODO(karita) implement weight transfer
     # numpy.testing.assert_equal(rnnlm_ch.predictor.embed.W.data, rnnlm_th.predictor.embed.weight.data.numpy())
     # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.upward.b.data, rnnlm_th.predictor.l1.bias_ih.data.numpy())
     # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.upward.W.data, rnnlm_th.predictor.l1.weight_ih.data.numpy())
@@ -51,15 +51,8 @@ def test_lm():
         volatile=True).long()
     with chainer.no_backprop_mode(), chainer.using_config('train', False):
         rnnlm_th.predictor.eval()
-        state = {
-            'c1': rnnlm_th.predictor.zero_state(x.size(0)),
-            'h1': rnnlm_th.predictor.zero_state(x.size(0)),
-            'c2': rnnlm_th.predictor.zero_state(x.size(0)),
-            'h2': rnnlm_th.predictor.zero_state(x.size(0))
-        }
-        state_th, y_th = rnnlm_th.predictor(state, x.long())
-        state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
-        state_ch, y_ch = rnnlm_ch.predictor(state, x.data.numpy())
+        state_th, y_th = rnnlm_th.predictor(None, x.long())
+        state_ch, y_ch = rnnlm_ch.predictor(None, x.data.numpy())
         for k in state_ch.keys():
             print(k)
             print(state_th[k].data.numpy())

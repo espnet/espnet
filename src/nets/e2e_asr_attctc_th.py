@@ -1696,12 +1696,7 @@ class Decoder(torch.nn.Module):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
         if rnnlm:
-            state = {
-                'c1': rnnlm.predictor.zero_state(1),
-                'h1': rnnlm.predictor.zero_state(1),
-                'c2': rnnlm.predictor.zero_state(1),
-                'h2': rnnlm.predictor.zero_state(1)
-            }
+            state = None
         att_w = None
         y_seq = []
         self.att.reset()  # reset pre-computation of h
@@ -1777,14 +1772,8 @@ class Decoder(torch.nn.Module):
 
         # initialize hypothesis
         if rnnlm:
-            state = {
-                'c1': rnnlm.predictor.zero_state(1),
-                'h1': rnnlm.predictor.zero_state(1),
-                'c2': rnnlm.predictor.zero_state(1),
-                'h2': rnnlm.predictor.zero_state(1)
-            }
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list,
-                   'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': state}
+                   'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
         else:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         if lpz is not None:
