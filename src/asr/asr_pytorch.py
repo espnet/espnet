@@ -325,7 +325,7 @@ def recog(args):
             y_hat = e2e.recognize(feat, args, train_args.char_list)
         else:
             nbest_hyps = e2e.recognize(feat, args, train_args.char_list)
-            # get 1best and revmoe sos
+            # get 1best and remove sos
             y_hat = nbest_hyps[0]['yseq'][1:]
         y_true = map(int, recog_json[name]['tokenid'].split())
 
