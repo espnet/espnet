@@ -13,7 +13,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
 - Encoder: VGG-like CNN + BLSTM or pyramid BLSTM
-- Attention: Dot product, location-aware attention, variants of multhead (pytorch only)
+- Attention: Dot product, location-aware attention, variants of multihead (pytorch only)
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe 

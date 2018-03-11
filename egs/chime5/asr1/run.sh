@@ -27,7 +27,7 @@ eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # loss related
-ctctype=chainer
+ctctype=warpctc
 # decoder related
 dlayers=1
 dunits=300
@@ -83,9 +83,7 @@ set -u
 set -o pipefail
 
 enhancement=beamformit
-#train_set=train_worn_u200k
-#train_set=train_worn_uall
-train_set=train_worn_u100k
+train_set=train_worn_u200k
 train_dev=dev_${enhancement}_ref
 # use the below once you obtain the evaluation data. Also remove the comment #eval# in the lines below
 #eval#recog_set="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
@@ -127,7 +125,7 @@ if [ ${stage} -le 0 ]; then
     # only use left channel for worn mic recognition
     # you can use both left and right channels for training
     #eval#for dset in train dev eval; do
-    for dset in train dev; do
+    for dset in dev; do
 	utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
 	grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
 	utils/fix_data_dir.sh data/${dset}_worn
@@ -137,9 +135,9 @@ if [ ${stage} -le 0 ]; then
     # randomly extract first 100k utterances from all mics
     # if you want to include more training data, you can increase the number of array mic utterances
     utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
-    utils/subset_data_dir.sh data/train_uall 100000 data/train_u100k
+    utils/subset_data_dir.sh data/train_uall 200000 data/train_u200k
     utils/combine_data.sh data/train_worn_uall data/train_worn data/train_uall
-    utils/combine_data.sh data/train_worn_u100k data/train_worn data/train_u100k
+    utils/combine_data.sh data/train_worn_u200k data/train_worn data/train_u200k
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
