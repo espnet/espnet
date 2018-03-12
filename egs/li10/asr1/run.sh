@@ -3,12 +3,16 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+# This is a task of 10 language-indepent ASR used in
+# S. Watanabe et al, "Language independent end-to-end architecture for
+# joint language identification and speech recognition," Proc. ASRU'17, pp. 265--269 (2017)
+
 . ./path.sh
 . ./cmd.sh
 
 # general configuration
-backend=chainer
-stage=0        # start from 0 if you need to start from data preparation
+backend=pytorch
+stage=-1       # start from -1 if you need to start from data download
 gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -21,7 +25,7 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
+etype=blstmp     # encoder architecture type
 elayers=8
 eunits=320
 eprojs=320
@@ -40,17 +44,13 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=30
+batchsize=50
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
 epochs=15
-
-# rnnlm related
-batchsize_lm=64
-lm_weight=0.2
 
 # decoding parameter
 beam_size=20
@@ -59,10 +59,6 @@ maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
-
-# data
-hkust1=/export/corpora/LDC/LDC2005S15/
-hkust2=/export/corpora/LDC/LDC2005T32/
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -78,124 +74,99 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodup_sp
-train_dev=train_dev
-recog_set="dev train_dev"
+train_set=train_li10
+train_dev=dev_li10
+recog_set="dt_de dt_en dt_es dt_fr dt_it dt_ja dt_nl dt_pt dt_ru dt_zh et_de et_en et_es et_fr et_it et_ja_1 et_ja_2 et_ja_3 et_nl et_pt et_ru et_zh"
 
 if [ ${stage} -le 0 ]; then
-    ### Task dependent. You have to make data the following preparation part by yourself.
-    ### But you can utilize Kaldi recipes in most cases
-    echo "stage 0: Data preparation"
-    local/hkust_data_prep.sh ${hkust1} ${hkust2}
-    local/hkust_format_data.sh
-    # upsample audio from 8k to 16k to make a recipe consistent with others
-    for x in train dev; do
-        sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+    # TODO
+    # add a check whether the following data preparation is completed or not
+    # HKUST Mandarin
+    lang_code=zh
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../hkust/asr1/data/train_nodup_sp data/tr_${lang_code}
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../hkust/asr1/data/train_dev data/dt_${lang_code}
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../hkust/asr1/data/dev data/et_${lang_code}
+
+    # CSJ Japanese
+    lang_code=ja
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_nodup data/tr_${lang_code}
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_dev data/dt_${lang_code}
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval1 data/et_${lang_code}_1
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval2 data/et_${lang_code}_2
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval3 data/et_${lang_code}_3
+    # 1) change wide to narrow chars
+    # 2) lower to upper chars
+    for x in data/*_${lang_code}*; do
+        utils/copy_data_dir.sh ${x} ${x}_org
+        cat ${x}_org/text | nkf -Z |\
+            awk '{for(i=2;i<=NF;++i){$i = toupper($i)} print}' > ${x}/text
+        rm -fr ${x}_org
     done
-    # remove space in text
-    for x in train dev; do
-        cp data/${x}/text data/${x}/text.org
-        paste -d " " <(cut -f 1 -d" " data/${x}/text.org) <(cut -f 2- -d" " data/${x}/text.org | tr -d " ") \
-            > data/${x}/text
-        rm data/${x}/text.org
+
+    # WSJ English
+    lang_code=en
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../wsj/asr1/data/train_si284 data/tr_${lang_code}
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../wsj/asr1/data/test_dev93 data/dt_${lang_code}
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../wsj/asr1/data/test_eval92 data/et_${lang_code}
+
+    # Voxforge
+    for lang_code in de es fr it nl pt ru; do
+        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../voxforge/asr1/data/tr_${lang_code} data/tr_${lang_code}
+        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../voxforge/asr1/data/dt_${lang_code} data/dt_${lang_code}
+        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../voxforge/asr1/data/et_${lang_code} data/et_${lang_code}
     done
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ]; then
-    ### Task dependent. You have to design training and dev sets by yourself.
-    ### But you can utilize Kaldi recipes in most cases
-    echo "stage 1: Feature Generation"
-    fbankdir=fbank
-    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/train exp/make_fbank/train ${fbankdir}
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/dev exp/make_fbank/dev ${fbankdir}
 
-    # make a dev set
-    utils/subset_data_dir.sh --first data/train 4000 data/${train_dev}
-    utils/fix_data_dir.sh data/${train_dev}
-    n=$[`cat data/train/segments | wc -l` - 4000]
-    utils/subset_data_dir.sh --last data/train $n data/train_nodev
-
-    # make a training set
-    utils/data/remove_dup_utts.sh 300 data/train_nodev data/train_nodup
-
-    # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/train_nodup data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/train_nodup data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/train_nodup data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    utils/combine_data.sh data/${train_set} data/tr_*
+    utils/combine_data.sh data/${train_dev} data/dt_*
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    split_dir=`echo $PWD | awk -F "/" '{print $NF "/" $(NF-1)}'`
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/a{11,12,13,14}/${USER}/espnet-data/egs/${split_dir}/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/li10/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/a{11,12,13,14}/${USER}/espnet-data/egs/${split_dir}/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/li10/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
-echo "dictionary: ${dict}"
 nlsyms=data/lang_1char/non_lang_syms.txt
+
+echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]' | sort | uniq > ${nlsyms}
+    cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
-    echo "make json files"
+    # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-fi
-
-# you can skip this and remove --rnnlm option in the recognition (stage 5)
-lmexpdir=exp/train_rnnlm_2layer_bs${batchsize_lm}
-mkdir -p ${lmexpdir}
-if [ ${stage} -le 3 ]; then
-    echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train
-    mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/train_nodup/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmdatadir}/train_trans.txt
-    cat ${lmdatadir}/train_trans.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmdatadir}/valid.txt
-    ${cuda_cmd} ${lmexpdir}/train.log \
-        lm_train.py \
-        --gpu ${gpu} \
-        --verbose 1 \
-        --batchsize ${batchsize_lm} \
-        --outdir ${lmexpdir} \
-        --train-label ${lmdatadir}/train.txt \
-        --valid-label ${lmdatadir}/valid.txt \
-        --dict ${dict}
 fi
 
 if [ -z ${tag} ]; then
@@ -208,8 +179,8 @@ else
 fi
 mkdir -p ${expdir}
 
-if [ ${stage} -le 4 ]; then
-    echo "stage 4: Network Training"
+if [ ${stage} -le 3 ]; then
+    echo "stage 3: Network Training"
     ${cuda_cmd} ${expdir}/train.log \
         asr_train.py \
         --gpu ${gpu} \
@@ -244,13 +215,13 @@ if [ ${stage} -le 4 ]; then
         --epochs ${epochs}
 fi
 
-if [ ${stage} -le 5 ]; then
-    echo "stage 5: Decoding"
+if [ ${stage} -le 4 ]; then
+    echo "stage 4: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
 
         # split data
         data=data/${rtask}
@@ -283,11 +254,10 @@ if [ ${stage} -le 5 ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight} &
+            &
         wait
 
-        score_sclite.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
