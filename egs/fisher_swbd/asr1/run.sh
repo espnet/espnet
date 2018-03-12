@@ -206,6 +206,7 @@ if [ ${stage} -le 3 ]; then
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
         --gpu ${gpu} \
+        --backend ${backend} \
         --verbose 1 \
         --batchsize 256 \
         --outdir ${lmexpdir} \
