@@ -123,7 +123,6 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | Performance | ◎ | ○ |
 | Speed | ○ | ◎ |
-| Multiple GPUs | no support | supported |
 | VGG-like encoder | supported | no support |
 | RNNLM integration | supported | no support |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
