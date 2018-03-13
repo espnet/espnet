@@ -114,7 +114,7 @@ class RNNLM(nn.Module):
             param.data.uniform_(-0.1, 0.1)
 
     def zero_state(self, batchsize):
-        return Variable(torch.zeros(batchsize, self.n_units).zero_()).float()
+        return Variable(torch.zeros(batchsize, self.n_units)).float()
 
     def forward(self, state, x):
         if state is None:
