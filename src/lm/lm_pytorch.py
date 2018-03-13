@@ -21,7 +21,6 @@ import torch.nn.functional as F
 from chainer import reporter
 from torch.autograd import Variable
 
-from e2e_asr_attctc_th import set_forget_bias_to_one
 from e2e_asr_attctc_th import th_accuracy
 from e2e_asr_attctc_th import to_cuda
 from lm_utils import ParallelSequentialIterator
@@ -114,12 +113,8 @@ class RNNLM(nn.Module):
         for param in self.parameters():
             param.data.uniform_(-0.1, 0.1)
 
-        # set forget bias to 1.0
-        set_forget_bias_to_one(self.l1.bias_ih)
-        set_forget_bias_to_one(self.l2.bias_ih)
-
     def zero_state(self, batchsize):
-        return Variable(torch.zeros(batchsize, self.n_units).zero_()).float()
+        return Variable(torch.zeros(batchsize, self.n_units)).float()
 
     def forward(self, state, x):
         if state is None:
