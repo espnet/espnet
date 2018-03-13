@@ -23,6 +23,7 @@ from torch.autograd import Variable
 
 from e2e_asr_attctc_th import set_forget_bias_to_one
 from e2e_asr_attctc_th import th_accuracy
+from e2e_asr_attctc_th import to_cuda
 from lm_utils import ParallelSequentialIterator
 
 
@@ -123,10 +124,10 @@ class RNNLM(nn.Module):
     def forward(self, state, x):
         if state is None:
             state = {
-                'c1': self.zero_state(x.size(0)),
-                'h1': self.zero_state(x.size(0)),
-                'c2': self.zero_state(x.size(0)),
-                'h2': self.zero_state(x.size(0))
+                'c1': to_cuda(self, self.zero_state(x.size(0))),
+                'h1': to_cuda(self, self.zero_state(x.size(0))),
+                'c2': to_cuda(self, self.zero_state(x.size(0))),
+                'h2': to_cuda(self, self.zero_state(x.size(0)))
             }
         h0 = self.embed(x)
         h1, c1 = self.l1(self.d0(h0), (state['h1'], state['c1']))
@@ -163,9 +164,6 @@ def train(args):
         # Evaluation routine to be used for validation and test.
         model.predictor.eval()
         state = None
-        if args.gpu >= 0:
-            for key in state.keys():
-                state[key] = state[key].cuda(args.gpu)
         sum_perp = 0
         data_count = 0
         for batch in copy.copy(iter):
@@ -221,9 +219,6 @@ def train(args):
     epoch_now = 0
     best_valid = 100000000
     state = None
-    if args.gpu >= 0:
-        for key in state.keys():
-            state[key] = state[key].cuda(args.gpu)
     while train_iter.epoch < args.epoch:
         loss = 0
         iteration += 1
