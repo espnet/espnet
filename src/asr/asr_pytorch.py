@@ -33,6 +33,9 @@ from e2e_asr_attctc_th import Loss
 import kaldi_io_py
 import lazy_io
 
+# rnnlm
+import lm_pytorch
+
 # numpy related
 import matplotlib
 matplotlib.use('Agg')
@@ -310,7 +313,11 @@ def recog(args):
 
     # read rnnlm
     if args.rnnlm:
-        logging.warning("rnnlm integration is not implemented in the pytorch backend")
+        rnnlm = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(len(train_args.char_list), 650))
+        rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
+    else:
+        rnnlm = None
 
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_ark(args.recog_feat)
@@ -322,11 +329,12 @@ def recog(args):
     new_json = {}
     for name, feat in reader:
         if args.beam_size == 1:
-            y_hat = e2e.recognize(feat, args, train_args.char_list)
+            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         else:
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list)
+            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
             # get 1best and remove sos
             y_hat = nbest_hyps[0]['yseq'][1:]
+
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result
