@@ -11,11 +11,7 @@ import numpy as np
 
 import chainer
 import chainer.functions as F
-import chainer.links as L
-from chainer import reporter
 
-from e2e_asr_attctc import E2E
-from beamformer import NB_MVDR
 
 class LogMel(chainer.Chain):
 
@@ -194,7 +190,7 @@ class ME2E(chainer.Chain):
 
             # calculate log P(z_t|X) for CTC scores
             if recog_args.ctc_weight > 0.0:
-                lpz = self.ctc.log_softmax(h).data[0]
+                lpz = self.ctc.log_softmax(hs).data[0]
             else:
                 lpz = None
 

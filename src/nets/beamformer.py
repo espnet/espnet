@@ -13,7 +13,6 @@ import six
 import chainer
 import chainer.functions as F
 import chainer.links as L
-from chainer import reporter
 from chainer import cuda
 
 from e2e_asr_attctc import BLSTM, BLSTMP
@@ -27,9 +26,9 @@ def _flatten(outer_list):
 
 
 def _deflatten(flatten_list, flens):
-    flens = [0,] + flens
+    flens = [0, ] + flens
     flens = np.cumsum(flens)
-    deflatten_list = [flatten_list[flens[i]:flens[i+1]] for i in six.moves.range(len(flens)-1)]
+    deflatten_list = [flatten_list[flens[i]:flens[i + 1]] for i in six.moves.range(len(flens) - 1)]
     return deflatten_list
 
 
@@ -45,7 +44,7 @@ def _diag_zeros(x):
     E = np.triu(E, k=1) + np.tril(E, k=-1)
     E = chainer.Variable(xp.array(E, dtype=np.float32))
 
-    return F.scale(x, E, axis=len(x.shape)-2)
+    return F.scale(x, E, axis=len(x.shape) - 2)
 
 
 def _batch_matmul_complex(a, b, transa, transb):
@@ -55,26 +54,26 @@ def _batch_matmul_complex(a, b, transa, transb):
     b_real = b['real']
     b_imag = b['imag']
 
-    if (transa == False) and (transb == False):
+    if (transa is False) and (transb is False):
         o_real = F.batch_matmul(a_real, b_real, transa, transb) \
-                    - F.batch_matmul(a_imag, b_imag, transa, transb)
+            - F.batch_matmul(a_imag, b_imag, transa, transb)
         o_imag = F.batch_matmul(a_real, b_imag, transa, transb) \
-                    + F.batch_matmul(a_imag, b_real, transa, transb)
-    elif (transa == False) and (transb == True):
+            + F.batch_matmul(a_imag, b_real, transa, transb)
+    elif (transa is False) and (transb is True):
         o_real = F.batch_matmul(a_real, b_real, transa, transb) \
-                    + F.batch_matmul(a_imag, b_imag, transa, transb)
+            + F.batch_matmul(a_imag, b_imag, transa, transb)
         o_imag = -F.batch_matmul(a_real, b_imag, transa, transb) \
-                    + F.batch_matmul(a_imag, b_real, transa, transb)
-    elif (transa == True) and (transb == False):
+            + F.batch_matmul(a_imag, b_real, transa, transb)
+    elif (transa is True) and (transb is False):
         o_real = F.batch_matmul(a_real, b_real, transa, transb) \
-                    + F.batch_matmul(a_imag, b_imag, transa, transb)
+            + F.batch_matmul(a_imag, b_imag, transa, transb)
         o_imag = F.batch_matmul(a_real, b_imag, transa, transb) \
-                    - F.batch_matmul(a_imag, b_real, transa, transb)
-    elif (transa == True) and (transb == True):
+            - F.batch_matmul(a_imag, b_real, transa, transb)
+    elif (transa is True) and (transb is True):
         o_real = F.batch_matmul(a_real, b_real, transa, transb) \
-                    - F.batch_matmul(a_imag, b_imag, transa, transb)
+            - F.batch_matmul(a_imag, b_imag, transa, transb)
         o_imag = -F.batch_matmul(a_real, b_imag, transa, transb) \
-                    - F.batch_matmul(a_imag, b_real, transa, transb)
+            - F.batch_matmul(a_imag, b_real, transa, transb)
 
     # convert to dictionary for output
     o = {}
@@ -125,8 +124,8 @@ def _batch_trace_complex(a):
     o_imag = F.scale(a_imag, E, axis=1)
 
     # m
-    o_real = F.sum(o_real, axis=(1,2))
-    o_imag = F.sum(o_imag, axis=(1,2))
+    o_real = F.sum(o_real, axis=(1, 2))
+    o_imag = F.sum(o_imag, axis=(1, 2))
 
     # convert to dictionary for output
     o = {}
@@ -140,7 +139,7 @@ def _batch_divide_complex(a, b):
     # num : m x n x n
     a_real = a['real']
     a_imag = a['imag']
-    
+
     # den : m
     b_real = b['real']
     b_imag = b['imag']
@@ -150,11 +149,11 @@ def _batch_divide_complex(a, b):
     num_imag = -F.scale(a_real, b_imag, axis=0) + F.scale(a_imag, b_real, axis=0)
 
     # m
-    den = b_real*b_real + b_imag+b_imag
+    den = b_real * b_real + b_imag + b_imag
 
     # m x n x n
-    o_real = F.scale(num_real, 1/den, axis=0)    
-    o_imag = F.scale(num_imag, 1/den, axis=0)    
+    o_real = F.scale(num_real, 1 / den, axis=0)
+    o_imag = F.scale(num_imag, 1 / den, axis=0)
 
     # convert to dictionary for output
     o = {}
@@ -192,7 +191,6 @@ class NB_MVDR(chainer.Chain):
 
         return es
 
-
     def _get_psd_SN(self, xs, mask):
         # compute psd matrix for noisy
         # utt list of frame x freq x channel x channel
@@ -212,7 +210,7 @@ class NB_MVDR(chainer.Chain):
         # utt list of frame x freq
         sum_mask = [F.broadcast_to(utt, shape) for utt, shape in zip(sum_mask, shapes)]
         # utt list of frame x freq
-        mask = [num/den for num, den in zip(mask, sum_mask)]
+        mask = [num / den for num, den in zip(mask, sum_mask)]
 
         # store for split_axis
         ilens = [x.shape[0] for x in psd_Y_real]
@@ -243,7 +241,6 @@ class NB_MVDR(chainer.Chain):
 
         return psd
 
-
     def _get_psd_Y(self, xs):
         # utt list of channel list of frame x freq
         xs_real = xs['real']
@@ -264,8 +261,8 @@ class NB_MVDR(chainer.Chain):
         utdim, fdim, cdim = xs_real.shape
 
         # (utt * frame * freq) x channel
-        xs_real = F.reshape(xs_real, (utdim*fdim, cdim))
-        xs_imag = F.reshape(xs_imag, (utdim*fdim, cdim))
+        xs_real = F.reshape(xs_real, (utdim * fdim, cdim))
+        xs_imag = F.reshape(xs_imag, (utdim * fdim, cdim))
 
         # convert to dictionary for input
         xs = {}
@@ -355,13 +352,13 @@ class NB_MVDR(chainer.Chain):
         # utt x freq x channel
         u = F.broadcast_to(u, (udim, fdim, cdim))
         # (utt * freq) x channel
-        u = F.reshape(u, (udim*fdim, cdim))
+        u = F.reshape(u, (udim * fdim, cdim))
 
         # convert to dictionary for input
         us = {}
         us['real'] = u
         us['imag'] = chainer.Variable(self.xp.array(
-                        np.zeros(u.shape, dtype=np.float32), dtype=np.float32))
+            np.zeros(u.shape, dtype=np.float32), dtype=np.float32))
 
         # compute filter weight
         # (utt * freq) x channel x 1
@@ -415,8 +412,8 @@ class NB_MVDR(chainer.Chain):
         utdim, fdim, cdim = xs_real.shape
 
         # (utt * frame * freq) x channel
-        xs_real = F.reshape(xs_real, (utdim*fdim, cdim))
-        xs_imag = F.reshape(xs_imag, (utdim*fdim, cdim))
+        xs_real = F.reshape(xs_real, (utdim * fdim, cdim))
+        xs_imag = F.reshape(xs_imag, (utdim * fdim, cdim))
 
         # convert to dictionary for input
         xs = {}
@@ -428,8 +425,8 @@ class NB_MVDR(chainer.Chain):
         ws_imag = F.vstack(ws_imag)
 
         # (utt * frame * freq) x channel
-        ws_real = F.reshape(ws_real, (utdim*fdim, cdim))
-        ws_imag = F.reshape(ws_imag, (utdim*fdim, cdim))
+        ws_real = F.reshape(ws_real, (utdim * fdim, cdim))
+        ws_imag = F.reshape(ws_imag, (utdim * fdim, cdim))
 
         # convert to dictionary for input
         ws = {}
@@ -481,11 +478,11 @@ class MaskEstimator(chainer.Chain):
         super(MaskEstimator, self).__init__()
         with self.init_scope():
             if btype == 'blstm':
-                self.blstm = BLSTM(2*bidim, blayers, bunits, bprojs, dropout)
+                self.blstm = BLSTM(2 * bidim, blayers, bunits, bprojs, dropout)
                 logging.info('BLSTM without projection for mask estimator')
             elif btype == 'blstmp':
-                self.blstm = BLSTMP(2*bidim, blayers, bunits,
-                                   bprojs, subsample, dropout)
+                self.blstm = BLSTMP(2 * bidim, blayers, bunits,
+                                    bprojs, subsample, dropout)
                 logging.info('BLSTM with every-layer projection for mask estimator')
             else:
                 logging.error(
@@ -502,10 +499,10 @@ class MaskEstimator(chainer.Chain):
         '''
         # utt list of channel list of frame x 2 freq
         xs = [[F.hstack([ch_real, ch_imag]) for ch_real, ch_imag in zip(utt_real, utt_imag)]
-                 for utt_real, utt_imag in zip(xs['real'], xs['imag'])]
+              for utt_real, utt_imag in zip(xs['real'], xs['imag'])]
 
         # utt channel list of frame x 2 freq
-        xs,flens = _flatten(xs)
+        xs, flens = _flatten(xs)
         ilens = np.array([xx.shape[0] for xx in xs], dtype=np.int32)
         # utt channel list of frame x bprojs
         xs, ilens = self.blstm(xs, ilens)
@@ -516,7 +513,7 @@ class MaskEstimator(chainer.Chain):
         ms_S = F.sigmoid(self.lo_S(xs))  # (utt channel * frame) x freq
         ms_S = F.split_axis(ms_S, np.cumsum(ilens[:-1]), axis=0)  # utt channel list of frame x freq
         ms_S = _deflatten(ms_S, flens)  # utt list of channel list of frame x freq
-        # noise 
+        # noise
         ms_N = F.sigmoid(self.lo_N(xs))  # (utt channel * frame) x freq
         ms_N = F.split_axis(ms_N, np.cumsum(ilens[:-1]), axis=0)  # utt channel list of frame x freq
         ms_N = _deflatten(ms_N, flens)  # utt list of channel list of frame x freq
@@ -539,7 +536,7 @@ class AttRef(chainer.Chain):
     def __init__(self, bidim, bunits, bprojs, att_dim, dropout):
         super(AttRef, self).__init__()
         with self.init_scope():
-            self.mlp_psd = L.Linear(bidim*2, att_dim)
+            self.mlp_psd = L.Linear(2 * bidim, att_dim)
             self.mlp_state = L.Linear(bprojs, att_dim, nobias=True)
             self.gvec = L.Linear(att_dim, 1)
 

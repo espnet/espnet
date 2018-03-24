@@ -25,7 +25,6 @@ from chainer.training import extensions
 # espnet related
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
-from asr_utils import converter_kaldi
 from asr_utils import delete_feat
 from asr_utils import make_batchset
 from asr_utils import restore_snapshot
@@ -153,14 +152,14 @@ def me2e_converter_train(batch, readers):
         if mode == 'noisy':
             bidim = readers['noisy'][data[0].encode('ascii', 'ignore')].shape[1] / 2
             # separate real and imaginary part
-            feat_real = readers['noisy'][data[0].encode('ascii', 'ignore')][:,:bidim]
-            feat_imag = readers['noisy'][data[0].encode('ascii', 'ignore')][:,bidim:]
+            feat_real = readers['noisy'][data[0].encode('ascii', 'ignore')][:, :bidim]
+            feat_imag = readers['noisy'][data[0].encode('ascii', 'ignore')][:, bidim:]
         # enhancement mode
         elif mode == 'enhan':
             bidim = readers['enhan'][0][data[0].encode('ascii', 'ignore')].shape[1] / 2
             # separate real and imaginary part
-            feat_real = [reader[data[0].encode('ascii', 'ignore')][:,:bidim] for reader in readers['enhan']]
-            feat_imag = [reader[data[0].encode('ascii', 'ignore')][:,bidim:] for reader in readers['enhan']]
+            feat_real = [reader[data[0].encode('ascii', 'ignore')][:, :bidim] for reader in readers['enhan']]
+            feat_imag = [reader[data[0].encode('ascii', 'ignore')][:, bidim:] for reader in readers['enhan']]
         else:
             logging.error(
                 "Error: need to specify an appropriate training mode")
@@ -180,14 +179,14 @@ def me2e_converter_recog(name, readers, mode):
     if mode == 'noisy':
         bidim = readers[name].shape[1] / 2
         # separate real and imaginary part
-        feat_real = readers[name][:,:bidim]
-        feat_imag = readers[name][:,bidim:]
+        feat_real = readers[name][:, :bidim]
+        feat_imag = readers[name][:, bidim:]
     # enhancement mode
     elif mode == 'enhan':
         bidim = readers[0][name].shape[1] / 2
         # separate real and imaginary part
-        feat_real = [reader[name][:,:bidim] for reader in readers]
-        feat_imag = [reader[name][:,bidim:] for reader in readers]
+        feat_real = [reader[name][:, :bidim] for reader in readers]
+        feat_imag = [reader[name][:, bidim:] for reader in readers]
     else:
         logging.error(
             "Error: need to specify an appropriate decoding mode")
@@ -198,7 +197,7 @@ def me2e_converter_recog(name, readers, mode):
     feat['imag'] = feat_imag
 
     return feat
-        
+
 
 def train(args):
     '''Run training'''
@@ -249,8 +248,8 @@ def train(args):
     stats = kaldi_io_py.read_mat(args.cmvn)
     dim = len(stats[0]) - 1
     count = stats[0][dim]
-    cmvn_mean = stats[0][0:dim]/count
-    cmvn_std = np.sqrt(stats[1][0:dim]/count - cmvn_mean*cmvn_mean)
+    cmvn_mean = stats[0][0:dim] / count
+    cmvn_std = np.sqrt(stats[1][0:dim] / count - cmvn_mean * cmvn_mean)
     cmvn_stats = (cmvn_mean, cmvn_std)
 
     # set feature dims
@@ -329,7 +328,7 @@ def train(args):
         valid = valid_noisy
     elif args.mode == 'enhan':
         train = train_enhan
-        valid = valid_enhan        
+        valid = valid_enhan
 
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
@@ -446,8 +445,8 @@ def recog(args):
     stats = kaldi_io_py.read_mat(train_args.cmvn)
     dim = len(stats[0]) - 1
     count = stats[0][dim]
-    cmvn_mean = stats[0][0:dim]/count
-    cmvn_std = np.sqrt(stats[1][0:dim]/count - cmvn_mean*cmvn_mean)
+    cmvn_mean = stats[0][0:dim] / count
+    cmvn_std = np.sqrt(stats[1][0:dim] / count - cmvn_mean * cmvn_mean)
     cmvn_stats = (cmvn_mean, cmvn_std)
 
     # specify model architecture
@@ -467,10 +466,10 @@ def recog(args):
 
     # prepare Kaldi reader
     # noisy
-    names_noisy = [key for key,mat in lazy_io.read_mat_scp(args.recog_feat_noisy)]
+    names_noisy = [key for key, mat in lazy_io.read_mat_scp(args.recog_feat_noisy)]
     recog_reader_noisy = lazy_io.read_dict_scp(args.recog_feat_noisy)
     # enhan
-    names_enhan = [key for key,mat in lazy_io.read_mat_scp(args.recog_feat_enhan[0])]
+    names_enhan = [key for key, mat in lazy_io.read_mat_scp(args.recog_feat_enhan[0])]
     recog_reader_enhan = [lazy_io.read_dict_scp(feat) for feat in args.recog_feat_enhan]
 
     # read json data
