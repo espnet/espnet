@@ -11,11 +11,12 @@ import numpy as np
 import six
 
 import chainer
+from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
-from chainer import cuda
 
-from e2e_asr_attctc import BLSTM, BLSTMP
+from e2e_asr_attctc import BLSTM
+from e2e_asr_attctc import BLSTMP
 from e2e_asr_attctc import linear_tensor
 
 
