@@ -19,7 +19,7 @@ If you are not familiar with creating a Pull Request, here are some guides:
    https://help.github.com/articles/creating-a-pull-request/
 
 
-## Developing locally with PyTorch
+## Developing locally with ESPnet
 
 TBD
 
