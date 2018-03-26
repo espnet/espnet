@@ -52,6 +52,7 @@ $ test ! -s check_autopep8
 
 See [doc](doc/README.md).
 
-## Python2 and 3 compatibility tips
+## Python 2 and 3 portability tips
 
-TBD
+See matplotlib's guideline https://matplotlib.org/devel/portable_code.html
+We do not block your PR even if it is not portable.
