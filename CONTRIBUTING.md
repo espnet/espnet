@@ -54,6 +54,4 @@ See [doc](doc/README.md).
 
 ## Python2 and 3 compatibility tips
 
-First, we do not want your PR to be python 2 and 3 strictly. 
-
 TBD
