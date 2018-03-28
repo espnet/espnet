@@ -228,7 +228,10 @@ def train(args):
 
     # Resume from a snapshot
     if args.resume:
-        raise NotImplementedError
+        if args.criterion == 'acc':
+            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+        elif args.criterion == 'loss':
+            model.load_state_dict(torch.load(args.outdir + '/model.loss.best'))
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
