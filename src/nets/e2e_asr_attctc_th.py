@@ -183,13 +183,40 @@ class E2E(torch.nn.Module):
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
         # attention
-        if args.atype == 'dot':
+        if args.atype == 'noatt':
+            self.att = NoAtt()
+        elif args.atype == 'dot':
             self.att = AttDot(args.eprojs, args.dunits, args.adim)
+        elif args.atype == 'add':
+            self.att = AttAdd(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'location':
             self.att = AttLoc(args.eprojs, args.dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
-        elif args.atype == 'noatt':
-            self.att = NoAtt()
+        elif args.atype == 'location2d':
+            self.att = AttLoc2D(args.eprojs, args.dunits,
+                                args.adim, args.awin, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'location_recurrent':
+            self.att = AttLocRec(args.eprojs, args.dunits,
+                                 args.adim, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'coverage':
+            self.att = AttCov(args.eprojs, args.dunits, args.adim, args.awin)
+        elif args.atype == 'coverage_location':
+            self.att = AttCovLoc(args.eprojs, args.dunits, args.adim, args.awin,
+                                 args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'multi_head_dot':
+            self.att = AttMultiHeadDot(args.eprojs, args.dunits,
+                                       args.aheads, args.adim, args.adim)
+        elif args.atype == 'multi_head_add':
+            self.att = AttMultiHeadAdd(args.eprojs, args.dunits,
+                                       args.aheads, args.adim, args.adim)
+        elif args.atype == 'multi_head_loc':
+            self.att = AttMultiHeadLoc(args.eprojs, args.dunits,
+                                       args.aheads, args.adim, args.adim,
+                                       args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'multi_head_multi_res_loc':
+            self.att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
+                                               args.aheads, args.adim, args.adim,
+                                               args.aconv_chans, args.aconv_filts)
         else:
             logging.error(
                 "Error: need to specify an appropriate attention archtecture")
@@ -237,6 +264,7 @@ class E2E(torch.nn.Module):
         '''
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
+        # remove 0-output-length utterances
         tids = [d[1]['tokenid'].split() for d in data]
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
@@ -262,22 +290,11 @@ class E2E(torch.nn.Module):
         loss_ctc = self.ctc(hpad, hlens, ys)
 
         # 4. attention loss
-        loss_att, acc, att_w = self.dec(hpad, hlens, ys)
-
-        # # get alignment
-        # '''
-        # if self.verbose > 0 and self.outdir is not None:
-        #     for i in six.moves.range(len(data)):
-        #         utt = data[i][0]
-        #         align_file = self.outdir + '/' + utt + '.ali'
-        #         with open(align_file, "w") as f:
-        #             logging.info('writing an alignment file to' + align_file)
-        #             pickle.dump((utt, att_w[i]), f)
-        # '''
+        loss_att, acc = self.dec(hpad, hlens, ys)
 
         return loss_ctc, loss_att, acc
 
-    def recognize(self, x, recog_args, char_list):
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E greedy/beam search
 
         :param x:
@@ -306,9 +323,9 @@ class E2E(torch.nn.Module):
         # 2. decoder
         # decode the first utterance
         if recog_args.beam_size == 1:
-            y = self.dec.recognize(h[0], recog_args)
+            y = self.dec.recognize(h[0], recog_args, rnnlm)
         else:
-            y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list)
+            y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -415,8 +432,61 @@ def mask_by_length(xs, length, fill=0):
 
 
 # ------------- Attention Network --------------------------------------------------------------------------------------
-# dot product based attention
+class NoAtt(torch.nn.Module):
+    '''No attention'''
+
+    def __init__(self):
+        super(NoAtt, self).__init__()
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+        '''NoAtt forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: dummy (does not use)
+        :param Variable att_prev: dummy (does not use)
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weights
+        :rtype: Variable
+        '''
+
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            att_prev = [Variable(enc_hs_pad.data.new(
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev = pad_list(att_prev, 0)
+            self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
+
+        return self.c, att_prev
+
+
 class AttDot(torch.nn.Module):
+    '''Dot product attention
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    '''
+
     def __init__(self, eprojs, dunits, att_dim):
         super(AttDot, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
@@ -430,22 +500,25 @@ class AttDot(torch.nn.Module):
         self.pre_compute_enc_h = None
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        '''AttDot
+        '''AttDot forward
 
-        :param enc_hs:
-        :param dec_z:
-        :param scaling:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: dummy (does not use)
+        :param Variable att_prev: dummy (does not use)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weight (B x T_max)
+        :rtype: Variable
         '''
+
         batch = enc_hs_pad.size(0)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -473,8 +546,90 @@ class AttDot(torch.nn.Module):
         return c, w
 
 
-# location based attention
+class AttAdd(torch.nn.Module):
+    '''Additive attention
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttAdd, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
+        '''AttLoc forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param Variable att_prev: dummy (does not use)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weights (B x T_max)
+        :rtype: Variable
+        '''
+
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = linear_tensor(self.gvec, torch.tanh(
+            self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        w = F.softmax(scaling * e, dim=1)
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        return c, w
+
+
 class AttLoc(torch.nn.Module):
+    '''location-aware attention
+
+    Reference: Attention-Based Models for Speech Recognition
+        (https://arxiv.org/pdf/1506.07503.pdf)
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
     def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
         super(AttLoc, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
@@ -493,10 +648,7 @@ class AttLoc(torch.nn.Module):
         self.aconv_chans = aconv_chans
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -504,12 +656,17 @@ class AttLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
 
-        :param Variable enc_hs:
-        :param Variable dec_z:
-        :param Variable att_prev:
-        :param float scaling:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param Variable att_prev: previous attetion weight (B x T_max)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weights (B x T_max)
+        :rtype: Variable
         '''
+
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -555,48 +712,846 @@ class AttLoc(torch.nn.Module):
         return c, w
 
 
-class NoAtt(torch.nn.Module):
-    def __init__(self):
-        super(NoAtt, self).__init__()
+class AttCov(torch.nn.Module):
+    '''Coverage mechanism attention
+
+    Reference: Get To The Point: Summarization with Pointer-Generator Network
+       (https://arxiv.org/abs/1704.04368)
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttCov, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.wvec = torch.nn.Linear(1, att_dim)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
-        self.c = None
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
-        self.c = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        '''NoAtt forward
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
+        '''AttCov forward
 
-        :param Variable enc_hs_pad:
-        :param Variable enc_hs_len:
-        :param Variable dec_z: dummy
-        :param Variable att_prev:
-        :return:
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param list att_prev_list: list of previous attetion weight
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weights
+        :rtype: list
         '''
+
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
 
         # initialize attention weight with uniform dist.
-        if att_prev is None:
+        if att_prev_list is None:
             att_prev = [Variable(enc_hs_pad.data.new(
                 l).zero_() + (1.0 / l)) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
-            att_prev = pad_list(att_prev, 0)
-            self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
+            att_prev_list = [pad_list(att_prev, 0)]
 
-        return self.c, att_prev
+        # att_prev_list: L' * [B x T] => cov_vec B x T
+        cov_vec = sum(att_prev_list)
+        # cov_vec: B x T => B x T x 1 => B x T x att_dim
+        cov_vec = linear_tensor(self.wvec, cov_vec.unsqueeze(-1))
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = linear_tensor(self.gvec, torch.tanh(
+            cov_vec + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        w = F.softmax(scaling * e, dim=1)
+        att_prev_list += [w]
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        return c, att_prev_list
+
+
+class AttLoc2D(torch.nn.Module):
+    '''2D location-aware attention
+
+    This attention is an extended version of location aware attention.
+    It take not only one frame before attention weights, but also earlier frames into account.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    :param int att_win: attention window size (default=5)
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim, att_win, aconv_chans, aconv_filts):
+        super(AttLoc2D, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1, aconv_chans, (att_win, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.aconv_chans = aconv_chans
+        self.att_win = att_win
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
+        '''AttLoc2D forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param Variable att_prev: previous attetion weight (B x att_win x T_max)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attentioin weights (B x att_win x T_max)
+        :rtype: Variable
+        '''
+
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            # B * [Li x att_win]
+            att_prev = [Variable(
+                enc_hs_pad.data.new(l, self.att_win).zero_() + 1.0 / l) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev = pad_list(att_prev, 0).transpose(1, 2)
+
+        # att_prev: B x att_win x Tmax -> B x 1 x att_win x Tmax -> B x C x 1 x Tmax
+        att_conv = self.loc_conv(att_prev.unsqueeze(1))
+        # att_conv: B x C x 1 x Tmax -> B x Tmax x C
+        att_conv = att_conv.squeeze(2).transpose(1, 2)
+        # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+        att_conv = linear_tensor(self.mlp_att, att_conv)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = linear_tensor(self.gvec, torch.tanh(
+            att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        w = F.softmax(scaling * e, dim=1)
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        # update att_prev: B x att_win x Tmax -> B x att_win+1 x Tmax -> B x att_win x Tmax
+        att_prev = torch.cat([att_prev, w.unsqueeze(1)], dim=1)
+        att_prev = att_prev[:, 1:]
+
+        return c, att_prev
+
+
+class AttLocRec(torch.nn.Module):
+    '''location-aware recurrent attention
+
+    This attention is an extended version of location aware attention.
+    With the use of RNN, it take the effect of the history of attention weights into account.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
+        super(AttLocRec, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+        self.att_lstm = torch.nn.LSTMCell(aconv_chans, att_dim, bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_states, scaling=2.0):
+        '''AttLocRec forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param tuple att_prev_states: previous attetion weight and lstm states
+                                      ((B, T_max), ((B, att_dim), (B, att_dim)))
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: previous attention weights and lstm states (w, (hx, cx))
+                 ((B, T_max), ((B, att_dim), (B, att_dim)))
+        :rtype: tuple
+        '''
+
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        if att_prev_states is None:
+            # initialize attention weight with uniform dist.
+            att_prev = [Variable(
+                enc_hs_pad.data.new(l).fill_(1.0 / l)) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev = pad_list(att_prev, 0)
+
+            # initialize lstm states
+            att_h = Variable(enc_hs_pad.data.new(batch, self.att_dim).zero_())
+            att_c = Variable(enc_hs_pad.data.new(batch, self.att_dim).zero_())
+            att_states = (att_h, att_c)
+        else:
+            att_prev = att_prev_states[0]
+            att_states = att_prev_states[1]
+
+        # B x 1 x 1 x T -> B x C x 1 x T
+        att_conv = self.loc_conv(att_prev.view(batch, 1, 1, self.h_length))
+        # apply non-linear
+        att_conv = F.relu(att_conv)
+        # B x C x 1 x T -> B x C x 1 x 1 -> B x C
+        att_conv = F.max_pool2d(att_conv, (1, att_conv.size(3))).view(batch, -1)
+
+        att_h, att_c = self.att_lstm(att_conv, att_states)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = linear_tensor(self.gvec, torch.tanh(
+            att_h.unsqueeze(1) + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        w = F.softmax(scaling * e, dim=1)
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        return c, (att_prev, (att_h, att_c))
+
+
+class AttCovLoc(torch.nn.Module):
+    '''Coverage mechanism location aware attention
+
+    This attention is a combination of coverage and location-aware attentions.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
+        super(AttCovLoc, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.aconv_chans = aconv_chans
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
+        '''AttCovLoc forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param list att_prev_list: list of previous attetion weight
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weights
+        :rtype: list
+        '''
+
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        # initialize attention weight with uniform dist.
+        if att_prev_list is None:
+            att_prev = [Variable(enc_hs_pad.data.new(
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            # if no bias, 0 0-pad goes 0
+            att_prev_list = [pad_list(att_prev, 0)]
+
+        # att_prev_list: L' * [B x T] => cov_vec B x T
+        cov_vec = sum(att_prev_list)
+
+        # cov_vec: B x T -> B x 1 x 1 x T -> B x C x 1 x T
+        att_conv = self.loc_conv(cov_vec.view(batch, 1, 1, self.h_length))
+        # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+        att_conv = att_conv.squeeze(2).transpose(1, 2)
+        # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+        att_conv = linear_tensor(self.mlp_att, att_conv)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = linear_tensor(self.gvec, torch.tanh(
+            att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        w = F.softmax(scaling * e, dim=1)
+        att_prev_list += [w]
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        return c, att_prev_list
+
+
+class AttMultiHeadDot(torch.nn.Module):
+    '''Multi head dot product attention
+
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int ahead: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
+        super(AttMultiHeadDot, self).__init__()
+        self.mlp_q = torch.nn.ModuleList()
+        self.mlp_k = torch.nn.ModuleList()
+        self.mlp_v = torch.nn.ModuleList()
+        for h in six.moves.range(aheads):
+            self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
+            self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
+            self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
+        self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+        '''AttMultiHeadDot forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: dummy (does not use)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B x D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weight (B x T_max) * aheads
+        :rtype: list
+        '''
+
+        batch = enc_hs_pad.size(0)
+        # pre-compute all k and v outside the decoder loop
+        if self.pre_compute_k is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                torch.tanh(linear_tensor(self.mlp_k[h], self.enc_h)) for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        c = []
+        w = []
+        for h in six.moves.range(self.aheads):
+            e = torch.sum(self.pre_compute_k[h] *
+                          torch.tanh(self.mlp_q[h](dec_z)).view(
+                              batch, 1, self.att_dim_k),
+                          dim=2)  # utt x frame
+            w += [F.softmax(self.scaling * e, dim=1)]
+
+            # weighted sum over flames
+            # utt x hdim
+            # NOTE use bmm instead of sum(*)
+            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
+
+        # concat all of c
+        c = self.mlp_o(torch.cat(c, dim=1))
+
+        return c, w
+
+
+class AttMultiHeadAdd(torch.nn.Module):
+    '''Multi head additive attention
+
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using additive attention for each head.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int ahead: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
+        super(AttMultiHeadAdd, self).__init__()
+        self.mlp_q = torch.nn.ModuleList()
+        self.mlp_k = torch.nn.ModuleList()
+        self.mlp_v = torch.nn.ModuleList()
+        self.gvec = torch.nn.ModuleList()
+        for h in six.moves.range(aheads):
+            self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
+            self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
+            self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
+            self.gvec += [torch.nn.Linear(att_dim_k, 1)]
+        self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+        '''AttMultiHeadAdd forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: dummy (does not use)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weight (B x T_max) * aheads
+        :rtype: list
+        '''
+
+        batch = enc_hs_pad.size(0)
+        # pre-compute all k and v outside the decoder loop
+        if self.pre_compute_k is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                linear_tensor(self.mlp_k[h], self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        c = []
+        w = []
+        for h in six.moves.range(self.aheads):
+            e = linear_tensor(
+                self.gvec[h],
+                torch.tanh(
+                    self.pre_compute_k[h] +
+                    self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
+            w += [F.softmax(self.scaling * e, dim=1)]
+
+            # weighted sum over flames
+            # utt x hdim
+            # NOTE use bmm instead of sum(*)
+            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
+
+        # concat all of c
+        c = self.mlp_o(torch.cat(c, dim=1))
+
+        return c, w
+
+
+class AttMultiHeadLoc(torch.nn.Module):
+    '''Multi head location based attention
+
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using location-aware attention for each head.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int aheads: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts):
+        super(AttMultiHeadLoc, self).__init__()
+        self.mlp_q = torch.nn.ModuleList()
+        self.mlp_k = torch.nn.ModuleList()
+        self.mlp_v = torch.nn.ModuleList()
+        self.gvec = torch.nn.ModuleList()
+        self.loc_conv = torch.nn.ModuleList()
+        self.mlp_att = torch.nn.ModuleList()
+        for h in six.moves.range(aheads):
+            self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
+            self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
+            self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
+            self.gvec += [torch.nn.Linear(att_dim_k, 1)]
+            self.loc_conv += [torch.nn.Conv2d(
+                1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)]
+            self.mlp_att += [torch.nn.Linear(aconv_chans, att_dim_k, bias=False)]
+        self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
+        '''AttMultiHeadLoc forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B x D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weight (B x T_max) * aheads
+        :rtype: list
+        '''
+
+        batch = enc_hs_pad.size(0)
+        # pre-compute all k and v outside the decoder loop
+        if self.pre_compute_k is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                linear_tensor(self.mlp_k[h], self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        if att_prev is None:
+            att_prev = []
+            for h in six.moves.range(self.aheads):
+                att_prev += [[Variable(enc_hs_pad.data.new(
+                    l).zero_() + (1.0 / l)) for l in enc_hs_len]]
+                # if no bias, 0 0-pad goes 0
+                att_prev[h] = pad_list(att_prev[h], 0)
+
+        c = []
+        w = []
+        for h in six.moves.range(self.aheads):
+            att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
+            att_conv = att_conv.squeeze(2).transpose(1, 2)
+            att_conv = linear_tensor(self.mlp_att[h], att_conv)
+
+            e = linear_tensor(
+                self.gvec[h],
+                torch.tanh(
+                    self.pre_compute_k[h] +
+                    att_conv +
+                    self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
+            w += [F.softmax(scaling * e, dim=1)]
+
+            # weighted sum over flames
+            # utt x hdim
+            # NOTE use bmm instead of sum(*)
+            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
+
+        # concat all of c
+        c = self.mlp_o(torch.cat(c, dim=1))
+
+        return c, w
+
+
+class AttMultiHeadMultiResLoc(torch.nn.Module):
+    '''Multi head multi resolution location based attention
+
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using location-aware attention for each head.
+    Furthermore, it uses different filter size for each head.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int aheads: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    :param int aconv_chans: maximum # channels of attention convolution
+        each head use #ch = aconv_chans * (head + 1) / aheads
+        e.g. aheads=4, aconv_chans=100 => filter size = 25, 50, 75, 100
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts):
+        super(AttMultiHeadMultiResLoc, self).__init__()
+        self.mlp_q = torch.nn.ModuleList()
+        self.mlp_k = torch.nn.ModuleList()
+        self.mlp_v = torch.nn.ModuleList()
+        self.gvec = torch.nn.ModuleList()
+        self.loc_conv = torch.nn.ModuleList()
+        self.mlp_att = torch.nn.ModuleList()
+        for h in six.moves.range(aheads):
+            self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
+            self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
+            self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
+            self.gvec += [torch.nn.Linear(att_dim_k, 1)]
+            afilts = aconv_filts * (h + 1) // aheads
+            self.loc_conv += [torch.nn.Conv2d(
+                1, aconv_chans, (1, 2 * afilts + 1), padding=(0, afilts), bias=False)]
+            self.mlp_att += [torch.nn.Linear(aconv_chans, att_dim_k, bias=False)]
+        self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+        '''AttMultiHeadMultiResLoc forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B x D_enc)
+        :rtype: Variable
+        :return: list of previous attentioin weight (B x T_max) * aheads
+        :rtype: list
+        '''
+
+        batch = enc_hs_pad.size(0)
+        # pre-compute all k and v outside the decoder loop
+        if self.pre_compute_k is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                linear_tensor(self.mlp_k[h], self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        if att_prev is None:
+            att_prev = []
+            for h in six.moves.range(self.aheads):
+                att_prev += [[Variable(enc_hs_pad.data.new(
+                    l).zero_() + (1.0 / l)) for l in enc_hs_len]]
+                # if no bias, 0 0-pad goes 0
+                att_prev[h] = pad_list(att_prev[h], 0)
+
+        c = []
+        w = []
+        for h in six.moves.range(self.aheads):
+            att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
+            att_conv = att_conv.squeeze(2).transpose(1, 2)
+            att_conv = linear_tensor(self.mlp_att[h], att_conv)
+
+            e = linear_tensor(
+                self.gvec[h],
+                torch.tanh(
+                    self.pre_compute_k[h] +
+                    att_conv +
+                    self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
+            w += [F.softmax(self.scaling * e, dim=1)]
+
+            # weighted sum over flames
+            # utt x hdim
+            # NOTE use bmm instead of sum(*)
+            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
+
+        # concat all of c
+        c = self.mlp_o(torch.cat(c, dim=1))
+
+        return c, w
 
 
 def th_accuracy(y_all, pad_target, ignore_label):
@@ -675,7 +1630,6 @@ class Decoder(torch.nn.Module):
         att_w = None
         z_all = []
         self.att.reset()  # reset pre-computation of h
-        att_weight_all = []  # for debugging
 
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
@@ -689,7 +1643,6 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             z_all.append(z_list[-1])
-            att_weight_all.append(att_w.data)  # for debugging
 
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
@@ -725,10 +1678,10 @@ class Decoder(torch.nn.Module):
                                     self.vlabeldist).view(-1), dim=0) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
-        return self.loss, acc, att_weight_all
+        return self.loss, acc
 
     # TODO(hori) incorporate CTC score
-    def recognize(self, h, recog_args):
+    def recognize(self, h, recog_args, rnnlm=None):
         '''greedy search implementation
 
         :param Variable h:
@@ -742,6 +1695,8 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
+        if rnnlm:
+            state = None
         att_w = None
         y_seq = []
         self.att.reset()  # reset pre-computation of h
@@ -764,7 +1719,14 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
-            y = self.output(z_list[-1]).data.max(1)[1][0]
+            if rnnlm:
+                y = Variable(h.data.new(1, 1).fill_(y), volatile=True)
+                state, z_rnnlm = rnnlm.predictor(state, y)
+                final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])) \
+                    + recog_args.lm_weight * F.log_softmax(z_rnnlm)
+            else:
+                final_z = F.log_softmax(self.output(z_list[-1]))
+            y = final_z.data.max(1)[1][0]
             y_seq.append(y)
 
             # terminate decoding
@@ -773,7 +1735,7 @@ class Decoder(torch.nn.Module):
 
         return y_seq
 
-    def recognize_beam(self, h, lpz, recog_args, char_list):
+    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
         :param Variable h:
@@ -809,7 +1771,11 @@ class Decoder(torch.nn.Module):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+        if rnnlm:
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list,
+                   'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
+        else:
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         if lpz is not None:
             ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
@@ -836,13 +1802,23 @@ class Decoder(torch.nn.Module):
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
+                if rnnlm:
+                    rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], vy)
+                    local_lm_scores = F.log_softmax(z_rnnlm, dim=1).data
+                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                else:
+                    local_scores = local_att_scores
+
                 if lpz is not None:
                     local_best_scores, local_best_ids = torch.topk(
                         local_att_scores, ctc_beam, dim=1)
-                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                    ctc_scores, ctc_states = ctc_prefix_score(
+                        hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
                     local_scores = \
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
                         + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
+                    if rnnlm:
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
                     local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
@@ -850,16 +1826,16 @@ class Decoder(torch.nn.Module):
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
-                    new_hyp['z_prev'] = [z_list[0]]
-                    new_hyp['c_prev'] = [c_list[0]]
-                    for l in six.moves.range(1, self.dlayers):
-                        new_hyp['z_prev'].append(z_list[l])
-                        new_hyp['c_prev'].append(c_list[l])
-                    new_hyp['a_prev'] = att_w
+                    # [:] is needed!
+                    new_hyp['z_prev'] = z_list[:]
+                    new_hyp['c_prev'] = c_list[:]
+                    new_hyp['a_prev'] = att_w[:]
                     new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
+                    if rnnlm:
+                        new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
                         new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
                         new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
@@ -912,14 +1888,14 @@ class Decoder(torch.nn.Module):
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
-        best_hyp = sorted(
-            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
-        logging.info('total log probability: ' + str(best_hyp['score']))
+        nbest_hyps = sorted(
+            ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+        logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' +
-                     str(best_hyp['score'] / len(best_hyp['yseq'])))
+                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         # remove sos
-        return best_hyp['yseq'][1:]
+        return nbest_hyps
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------

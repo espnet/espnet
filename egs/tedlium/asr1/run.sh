@@ -167,7 +167,8 @@ if [ ${stage} -le 3 ]; then
         > ${lmdatadir}/valid.txt
     ${cuda_cmd} --gpu ${num_gpu} ${lmexpdir}/train.log \
         lm_train.py \
-        --gpu ${num_gpu} \
+        --gpu ${gpu} \
+        --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
