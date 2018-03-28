@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2018 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -15,7 +15,6 @@ dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
-seed=1
 
 # feature configuration
 do_delta=false # true when using CNN
@@ -28,15 +27,12 @@ eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # loss related
-ctctype=chainer
+ctctype=warpctc
 # decoder related
 dlayers=1
 dunits=300
 # attention related
 atype=location
-adim=320
-awin=5
-aheads=4
 aconv_chans=10
 aconv_filts=100
 
@@ -57,27 +53,28 @@ opt=adadelta
 epochs=15
 
 # rnnlm related
-lm_weight=1.0
+lm_weight=0.3
 
 # decoding parameter
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.3
+ctc_weight=0.1
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
-wsj0=/export/corpora5/LDC/LDC93S6B
-wsj1=/export/corpora5/LDC/LDC94S13B
+chime5_corpus=/export/corpora4/CHiME5
+json_dir=${chime5_corpus}/transcriptions
+audio_dir=${chime5_corpus}/audio
 
 # exp tag
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh
-. ./cmd.sh
+. ./path.sh 
+. ./cmd.sh 
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -85,16 +82,62 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_si284
-train_dev=test_dev93
-recog_set="test_dev93 test_eval92"
+enhancement=beamformit
+train_set=train_worn_u200k
+train_dev=dev_${enhancement}_ref
+# use the below once you obtain the evaluation data. Also remove the comment #eval# in the lines below
+#eval#recog_set="dev_worn dev_${enhancement}_ref eval_${enhancement}_ref"
+recog_set="dev_worn dev_${enhancement}_ref"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
-    local/wsj_format_data.sh
+    for mictype in worn u01 u02 u04 u05 u06; do
+        local/prepare_data.sh --mictype ${mictype} \
+			      ${audio_dir}/train ${json_dir}/train data/train_${mictype}
+    done
+    #eval#for dset in dev eval; do
+    for dset in dev; do
+	for mictype in worn; do
+	    local/prepare_data.sh --mictype ${mictype} \
+				  ${audio_dir}/${dset} ${json_dir}/${dset} \
+				  data/${dset}_${mictype}
+	done
+    done
+    enhandir=enhan
+    #eval#for dset in dev eval; do
+    for dset in dev; do
+	for mictype in u01 u02 u03 u04 u05 u06; do
+	    local/run_beamformit.sh --cmd "$train_cmd" \
+				    ${audio_dir}/${dset} \
+				    ${enhandir}/${dset}_${enhancement}_${mictype} \
+				    ${mictype} &
+	done
+    done
+    wait
+    #eval#for dset in dev eval; do
+    for dset in dev; do
+	local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
+			      ${json_dir}/${dset} data/${dset}_${enhancement}_ref
+    done
+
+    # only use left channel for worn mic recognition
+    # you can use both left and right channels for training
+    #eval#for dset in train dev eval; do
+    for dset in dev; do
+	utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
+	grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
+	utils/fix_data_dir.sh data/${dset}_worn
+    done
+
+    # combine mix array and worn mics
+    # randomly extract first 100k utterances from all mics
+    # if you want to include more training data, you can increase the number of array mic utterances
+    utils/combine_data.sh data/train_uall data/train_u01 data/train_u02 data/train_u04 data/train_u05 data/train_u06
+    utils/subset_data_dir.sh data/train_uall 200000 data/train_u200k
+    utils/combine_data.sh data/train_worn_uall data/train_worn data/train_uall
+    utils/combine_data.sh data/train_worn_u200k data/train_worn data/train_u200k
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -105,22 +148,22 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train_si284 test_dev93 test_eval92; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/${x} exp/make_fbank/${x} ${fbankdir}
+    for x in ${train_set} ${recog_set}; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
     done
-
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -128,7 +171,6 @@ if [ ${stage} -le 1 ]; then
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 fi
-
 dict=data/lang_1char/${train_set}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
@@ -139,7 +181,7 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
@@ -157,7 +199,7 @@ fi
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
-lmexpdir=exp/train_rnnlm_2layer_bs2048
+lmexpdir=exp/train_rnnlm_2layer_bs256
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
@@ -165,9 +207,7 @@ if [ ${stage} -le 3 ]; then
     mkdir -p ${lmdatadir}
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train_trans.txt
-    zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
-        | text2token.py -n 1 | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' >> ${lmdatadir}/train_others.txt
-    cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
+    cat ${lmdatadir}/train_trans.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
     ${cuda_cmd} ${lmexpdir}/train.log \
@@ -178,6 +218,7 @@ if [ ${stage} -le 3 ]; then
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
+        --batchsize 256 \
         --dict ${dict}
 fi
 
@@ -208,7 +249,6 @@ if [ ${stage} -le 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --seed ${seed} \
         --train-feat scp:${feat_tr_dir}/feats.scp \
         --valid-feat scp:${feat_dt_dir}/feats.scp \
         --train-label ${feat_tr_dir}/data.json \
@@ -222,9 +262,6 @@ if [ ${stage} -le 4 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
-        --adim ${adim} \
-        --awin ${awin} \
-        --aheads ${aheads} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
@@ -281,7 +318,7 @@ if [ ${stage} -le 5 ]; then
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-
+            
     ) &
     done
     wait

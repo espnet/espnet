@@ -27,12 +27,12 @@ nkf:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
 venv/lib/python2.7/site-packages/torch: venv/bin/activate
-	. venv/bin/activate; pip install pip --upgrade; pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl
+	. venv/bin/activate; pip install pip --upgrade; pip install http://download.pytorch.org/whl/cu80/torch-0.3.1-cp27-cp27mu-linux_x86_64.whl
 
 warp-ctc: venv/lib/python2.7/site-packages/torch
 	git clone https://github.com/SeanNaren/warp-ctc.git
-	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4
-	. venv/bin/activate; pip install cffi
+	. venv/bin/activate; cd warp-ctc && git checkout 9e5b238f8d9337b0c39b3fd01bbaff98ba523aa5 && mkdir build && cd build && cmake .. && make -j4
+	. venv/bin/activate; pip install cffi && 
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
 chainer_ctc: venv/bin/activate

@@ -33,6 +33,9 @@ from e2e_asr_attctc_th import Loss
 import kaldi_io_py
 import lazy_io
 
+# rnnlm
+import lm_pytorch
+
 # numpy related
 import matplotlib
 matplotlib.use('Agg')
@@ -320,7 +323,11 @@ def recog(args):
 
     # read rnnlm
     if args.rnnlm:
-        logging.warning("rnnlm integration is not implemented in the pytorch backend")
+        rnnlm = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(len(train_args.char_list), 650))
+        rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
+    else:
+        rnnlm = None
 
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_ark(args.recog_feat)
@@ -331,7 +338,13 @@ def recog(args):
 
     new_json = {}
     for name, feat in reader:
-        y_hat = e2e.recognize(feat, args, train_args.char_list)
+        if args.beam_size == 1:
+            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
+        else:
+            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
+            # get 1best and remove sos
+            y_hat = nbest_hyps[0]['yseq'][1:]
+
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result
@@ -354,6 +367,17 @@ def recog(args):
         logging.debug("dump text")
         new_json[name]['rec_text'] = seq_hat_text
 
+        # add n-best recognition results with scores
+        if args.beam_size > 1 and len(nbest_hyps) > 1:
+            for i, hyp in enumerate(nbest_hyps):
+                y_hat = hyp['yseq'][1:]
+                seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
+                seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+                new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = " ".join([str(idx) for idx in y_hat])
+                new_json[name]['rec_token' + '[' + '{:05d}'.format(i) + ']'] = " ".join(seq_hat)
+                new_json[name]['rec_text' + '[' + '{:05d}'.format(i) + ']'] = seq_hat_text
+                new_json[name]['score' + '[' + '{:05d}'.format(i) + ']'] = hyp['score']
+
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_json}, indent=4).encode('utf_8'))
+        f.write(json.dumps({'utts': new_json}, indent=4, sort_keys=True).encode('utf_8'))

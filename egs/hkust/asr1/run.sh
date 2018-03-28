@@ -114,6 +114,7 @@ if [ ${stage} -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 4000 data/${train_dev}
+    utils/fix_data_dir.sh data/${train_dev}
     n=$[`cat data/train/segments | wc -l` - 4000]
     utils/subset_data_dir.sh --last data/train $n data/train_nodev
 
@@ -189,6 +190,7 @@ if [ ${stage} -le 3 ]; then
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
         --gpu ${gpu} \
+        --backend ${backend} \
         --verbose 1 \
         --batchsize ${batchsize_lm} \
         --outdir ${lmexpdir} \
