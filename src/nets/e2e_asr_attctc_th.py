@@ -264,6 +264,7 @@ class E2E(torch.nn.Module):
         '''
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
+        # remove 0-output-length utterances
         tids = [d[1]['tokenid'].split() for d in data]
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
@@ -293,7 +294,7 @@ class E2E(torch.nn.Module):
 
         return loss_ctc, loss_att, acc
 
-    def recognize(self, x, recog_args, char_list):
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E greedy/beam search
 
         :param x:
@@ -322,9 +323,9 @@ class E2E(torch.nn.Module):
         # 2. decoder
         # decode the first utterance
         if recog_args.beam_size == 1:
-            y = self.dec.recognize(h[0], recog_args)
+            y = self.dec.recognize(h[0], recog_args, rnnlm)
         else:
-            y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list)
+            y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -546,15 +547,15 @@ class AttDot(torch.nn.Module):
 
 
 class AttAdd(torch.nn.Module):
-    '''Additive attetion
+    '''Additive attention
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
     :param int att_dim: attention dimension
     '''
 
-    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
-        super(AttLoc, self).__init__()
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttAdd, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
         self.gvec = torch.nn.Linear(att_dim, 1)
@@ -564,7 +565,6 @@ class AttAdd(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
-        self.aconv_chans = aconv_chans
 
     def reset(self):
         '''reset states'''
@@ -618,7 +618,10 @@ class AttAdd(torch.nn.Module):
 
 
 class AttLoc(torch.nn.Module):
-    '''location-aware attetion
+    '''location-aware attention
+
+    Reference: Attention-Based Models for Speech Recognition
+        (https://arxiv.org/pdf/1506.07503.pdf)
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -710,10 +713,10 @@ class AttLoc(torch.nn.Module):
 
 
 class AttCov(torch.nn.Module):
-    '''Coverage mechanism attetion
+    '''Coverage mechanism attention
 
     Reference: Get To The Point: Summarization with Pointer-Generator Network
-               (https://arxiv.org/abs/1704.04368)
+       (https://arxiv.org/abs/1704.04368)
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -800,7 +803,10 @@ class AttCov(torch.nn.Module):
 
 
 class AttLoc2D(torch.nn.Module):
-    '''2D location-aware attetion
+    '''2D location-aware attention
+
+    This attention is an extended version of location aware attention.
+    It take not only one frame before attention weights, but also earlier frames into account.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -901,6 +907,9 @@ class AttLoc2D(torch.nn.Module):
 
 class AttLocRec(torch.nn.Module):
     '''location-aware recurrent attention
+
+    This attention is an extended version of location aware attention.
+    With the use of RNN, it take the effect of the history of attention weights into account.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1004,7 +1013,9 @@ class AttLocRec(torch.nn.Module):
 
 
 class AttCovLoc(torch.nn.Module):
-    '''Coverage mechanism location aware attetion
+    '''Coverage mechanism location aware attention
+
+    This attention is a combination of coverage and location-aware attentions.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1103,7 +1114,8 @@ class AttCovLoc(torch.nn.Module):
 class AttMultiHeadDot(torch.nn.Module):
     '''Multi head dot product attention
 
-    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1198,7 +1210,10 @@ class AttMultiHeadDot(torch.nn.Module):
 class AttMultiHeadAdd(torch.nn.Module):
     '''Multi head additive attention
 
-    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using additive attention for each head.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1238,7 +1253,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.pre_compute_v = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        '''AttMultiHeadDot forward
+        '''AttMultiHeadAdd forward
 
         :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
@@ -1296,7 +1311,10 @@ class AttMultiHeadAdd(torch.nn.Module):
 class AttMultiHeadLoc(torch.nn.Module):
     '''Multi head location based attention
 
-    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using location-aware attention for each head.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1343,7 +1361,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.pre_compute_v = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        '''AttMultiHeadDot forward
+        '''AttMultiHeadLoc forward
 
         :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
@@ -1412,9 +1430,13 @@ class AttMultiHeadLoc(torch.nn.Module):
 
 
 class AttMultiHeadMultiResLoc(torch.nn.Module):
-    '''Multi head multi resolution location based attention with scaling
+    '''Multi head multi resolution location based attention
 
-    Reference: Attention is all you need (https://arxiv.org/abs/1706.03762)
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using location-aware attention for each head.
+    Furthermore, it uses different filter size for each head.
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -1464,7 +1486,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.pre_compute_v = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        '''AttMultiHeadDot forward
+        '''AttMultiHeadMultiResLoc forward
 
         :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
@@ -1659,7 +1681,7 @@ class Decoder(torch.nn.Module):
         return self.loss, acc
 
     # TODO(hori) incorporate CTC score
-    def recognize(self, h, recog_args):
+    def recognize(self, h, recog_args, rnnlm=None):
         '''greedy search implementation
 
         :param Variable h:
@@ -1673,6 +1695,8 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
+        if rnnlm:
+            state = None
         att_w = None
         y_seq = []
         self.att.reset()  # reset pre-computation of h
@@ -1695,7 +1719,14 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
-            y = self.output(z_list[-1]).data.max(1)[1][0]
+            if rnnlm:
+                y = Variable(h.data.new(1, 1).fill_(y), volatile=True)
+                state, z_rnnlm = rnnlm.predictor(state, y)
+                final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])) \
+                    + recog_args.lm_weight * F.log_softmax(z_rnnlm)
+            else:
+                final_z = F.log_softmax(self.output(z_list[-1]))
+            y = final_z.data.max(1)[1][0]
             y_seq.append(y)
 
             # terminate decoding
@@ -1704,7 +1735,7 @@ class Decoder(torch.nn.Module):
 
         return y_seq
 
-    def recognize_beam(self, h, lpz, recog_args, char_list):
+    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
         :param Variable h:
@@ -1740,7 +1771,11 @@ class Decoder(torch.nn.Module):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+        if rnnlm:
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list,
+                   'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
+        else:
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         if lpz is not None:
             ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
@@ -1767,13 +1802,23 @@ class Decoder(torch.nn.Module):
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
+                if rnnlm:
+                    rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], vy)
+                    local_lm_scores = F.log_softmax(z_rnnlm, dim=1).data
+                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                else:
+                    local_scores = local_att_scores
+
                 if lpz is not None:
                     local_best_scores, local_best_ids = torch.topk(
                         local_att_scores, ctc_beam, dim=1)
-                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                    ctc_scores, ctc_states = ctc_prefix_score(
+                        hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
                     local_scores = \
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
                         + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
+                    if rnnlm:
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
                     local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
@@ -1789,6 +1834,8 @@ class Decoder(torch.nn.Module):
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
+                    if rnnlm:
+                        new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
                         new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
                         new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
@@ -1841,14 +1888,14 @@ class Decoder(torch.nn.Module):
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
-        best_hyp = sorted(
-            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
-        logging.info('total log probability: ' + str(best_hyp['score']))
+        nbest_hyps = sorted(
+            ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+        logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' +
-                     str(best_hyp['score'] / len(best_hyp['yseq'])))
+                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         # remove sos
-        return best_hyp['yseq'][1:]
+        return nbest_hyps
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
