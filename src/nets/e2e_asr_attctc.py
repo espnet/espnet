@@ -161,9 +161,16 @@ class E2E(chainer.Chain):
         '''
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
+        # remove 0-output-length utterances
+        tids = [d[1]['tokenid'].split() for d in data]
+        filtered_index = list(filter(lambda i: len(tids[i]) > 0, range(len(xs))))
+        if len(filtered_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(filtered_index)))
+        xs = [xs[i] for i in filtered_index]
         # utt list of olen
-        ys = [self.xp.array(
-            list(map(int, i[1]['tokenid'].split())), dtype=np.int32) for i in data]
+        ys = [self.xp.array(np.fromiter(map(int, tids[i]), dtype=np.int32))
+              for i in filtered_index]
         ys = [chainer.Variable(y) for y in ys]
 
         # subsample frame
@@ -180,17 +187,6 @@ class E2E(chainer.Chain):
 
         # 4. attention loss
         loss_att, acc, att_w = self.dec(hs, ys)
-
-        # get alignment
-        '''
-        if self.verbose > 0 and self.outdir is not None:
-            for i in six.moves.range(len(data)):
-                utt = data[i][0]
-                align_file = self.outdir + '/' + utt + '.ali'
-                with open(align_file, "w") as f:
-                    logging.info('writing an alignment file to' + align_file)
-                    pickle.dump((utt, att_w[i]), f)
-        '''
 
         return loss_ctc, loss_att, acc
 
@@ -647,7 +643,7 @@ class Decoder(chainer.Chain):
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
         if rnnlm:
-            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
+            state = None
         for l in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
@@ -720,8 +716,7 @@ class Decoder(chainer.Chain):
 
         # initialize hypothesis
         if rnnlm:
-            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
-            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': state}
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
         else:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         if lpz is not None:
@@ -834,14 +829,13 @@ class Decoder(chainer.Chain):
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
-        best_hyp = sorted(
-            ended_hyps, key=lambda x: x['score'], reverse=True)[0]
-        logging.info('total log probability: ' + str(best_hyp['score']))
+        nbest_hyps = sorted(
+            ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+        logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' +
-                     str(best_hyp['score'] / len(best_hyp['yseq'])))
+                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
-        # remove sos
-        return best_hyp['yseq'][1:]
+        return nbest_hyps
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------

@@ -28,6 +28,7 @@ def make_arg(**kwargs):
         lsm_weight=0.0,
         adim=320,
         dropout_rate=0.0,
+        nbest=5,
         beam_size=3,
         penalty=0.5,
         maxlenratio=1.0,
