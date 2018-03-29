@@ -32,7 +32,7 @@ kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
 	cd ../src/utils; ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
 
-kaldi/: $(KALDI_BIN) $(BEAMFORMIT)
+kaldi: $(KALDI_BIN) $(BEAMFORMIT)
 	ln -s $(KALDI_ROOT) kaldi
 
 $(BEAMFORMIT): $(KALDI_ROOT) $(ACT)
