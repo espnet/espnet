@@ -1,5 +1,5 @@
 language: python
-
+sudo: false
 cache:
   - pip
   - ccache
@@ -11,46 +11,16 @@ matrix:
     - os: linux
       python: "3.6"
 
-
-install:
-  - pip install -U pip wheel
-  - pip install -r ./tools/test_requirements.txt
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-          pip install http://download.pytorch.org/whl/cpu/torch-0.3.1-cp27-cp27mu-linux_x86_64.whl ;
-    else
-          pip3 install http://download.pytorch.org/whl/cpu/torch-0.3.1-cp36-cp36m-linux_x86_64.whl ;
-    fi
-  # install warp-ctc
-  - git clone https://github.com/SeanNaren/warp-ctc.git 
-  - cd warp-ctc && git checkout 9e5b238f8d9337b0c39b3fd01bbaff98ba523aa5 && mkdir build && cd build && cmake .. && make -j4 && cd ..
-  - pip install cffi
-  - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
-  # install chainer
-  - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
-  - cd tools && make kaldi-io-for-python && cd -
-  # install doc deps
-  - pip install -r doc/requirements.txt
-  # install chainer_ctc
-  - pip install cython
-  - git clone https://github.com/jheymann85/chainer_ctc.git
-  - cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
-  - pip install . && cd ..
-  - export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`pwd`/chainer_ctc/ext/warp-ctc/build
-
-
 script:
-  # TODO test coding style?
-  - flake8 src test
-  - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
-  - test ! -s check_autopep8
-  - pytest
-  - travis-sphinx build --source=doc --nowarn
-
-sudo: false
-
+  - cd tools
+  - make PYTHON_VERSION="$TRAVIS_PYTHON_VERSION" PYTORCH="pytorch-cpu" KALDI_BIN="" BEAMFORMIT="" test
+  - cd -
 
 after_success:
-    - travis-sphinx deploy
+  - source tools/venv/bin/activate
+  - pip install -r doc/requirements.txt
+  - travis-sphinx build --source=doc --nowarn
+  - travis-sphinx deploy
 
 addons:
   apt:
