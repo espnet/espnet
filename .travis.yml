@@ -13,7 +13,7 @@ matrix:
 
 script:
   - cd tools
-  - make PYTHON_VERSION="$TRAVIS_PYTHON_VERSION" PYTORCH="pytorch-cpu" KALDI_BIN="" BEAMFORMIT="" test
+  - make PYTHON_VERSION="$TRAVIS_PYTHON_VERSION" PYTORCH="pytorch-cpu" KALDI_BIN="" BEAMFORMIT="" all test
   - cd -
 
 after_success:

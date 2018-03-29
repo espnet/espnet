@@ -99,7 +99,7 @@ clean:
 
 ## test ##
 venv/bin/pytest: $(ACT)
-	. $(ACT) && pip install -r test_requirements.txt
+	. $(ACT) && conda install pytest && pip install -r test_requirements.txt
 
 test: venv/bin/pytest
 	. $(ACT) && cd .. && pytest

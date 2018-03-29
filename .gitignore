@@ -3,6 +3,7 @@
 \#*\#
 .\#*
 *DS_Store
+check_autopep8
 
 doc/_build
 
