@@ -9,7 +9,8 @@
 # general configuration
 backend=chainer # chainer or pytorch
 stage=0         # start from 0 if you need to start from data preparation
-gpu=-1          # use 0 when using GPU on slurm/grid engine, otherwise -1
+gpu=            # will be deprecated, please use ngpu
+ngpu=0          # use 0 when using GPU on slurm/grid engine, otherwise -1
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -159,6 +160,17 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
+# check gpu option usage
+if [ ! -z $gpu ]; then
+    echo "WARNING: --gpu option will be deprecated."
+    echo "WARNING: please use --ngpu option."
+    if [ $gpu -eq -1 ]; then
+        ngpu=0
+    else
+        ngpu=1
+    fi
+fi
+
 # You can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs256
 mkdir -p ${lmexpdir}
@@ -170,9 +182,14 @@ if [ ${stage} -le 3 ]; then
         > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
+    # use only 1 gpu
+    if [ ${ngpu} -gt 1 ]; then
+        echo "LM training does not support multi-gpu. signle gpu will be used."
+        lm_ngpu=1
+    fi
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
-        --gpu ${gpu} \
+        --ngpu ${lm_ngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
@@ -195,9 +212,9 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
-    ${cuda_cmd} ${expdir}/train.log \
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
        asr_train.py \
-        --gpu ${gpu} \
+        --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
@@ -256,11 +273,11 @@ if [ ${stage} -le 5 ]; then
         data2json.sh ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
-        gpu=-1
+        ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
-            --gpu ${gpu} \
+            --ngpu ${ngpu} \
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
@@ -285,4 +302,3 @@ if [ ${stage} -le 5 ]; then
     wait
     echo "Finished"
 fi
-
