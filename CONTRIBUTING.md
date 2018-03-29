@@ -9,7 +9,7 @@ If you are interested in contributing to ESPnet, your contributions will fall in
 2. You want to implement a feature or bug-fix for an outstanding issue
    Look at the outstanding issues here: https://github.com/espnet/espnet/issues
    Pick an issue and comment on the task that you want to work on this feature
-   If you need more context on a particular issue, please ask and we shall provide.
+   If you need more context on a particular issue, please ask us and then we shall provide more information.
 
 Once you finish implementing a feature or bugfix, please send a Pull Request to https://github.com/espnet/espnet
 
@@ -25,10 +25,13 @@ TBD
 
 ## Unit testing
 
-ESPnet's testing is located under `test/`. Run the entire test suite with
-
+ESPnet's testing is located under `test/`.  You can install additional packages for testing as follows:
 ``` console
 $ pip install -r tools/test_requirements.txt
+```
+
+Then you can run the entire test suite with
+``` console
 $ pytest
 ```
 
