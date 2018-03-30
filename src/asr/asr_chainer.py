@@ -357,7 +357,7 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # Set gpu
-    ngpu = int(args.ngpu)
+    ngpu = args.ngpu
     if ngpu == 1:
         gpu_id = 0
         # Make a specified GPU current
