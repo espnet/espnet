@@ -154,22 +154,6 @@ if [ ${stage} -le 1 ]; then
     done
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-
-    # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_set}/delta${do_delta}/storage \
-        ${feat_tr_dir}/storage
-    fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_dev}/delta${do_delta}/storage \
-        ${feat_dt_dir}/storage
-    fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 fi
 dict=data/lang_1char/${train_set}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
@@ -190,6 +174,26 @@ if [ ${stage} -le 2 ]; then
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
+    # remove 1 or 0 length outputs
+    utils/copy_data_dir.sh data/train_worn_u200k data/train_worn_u200k_org
+    remove_longshortdata.sh -l ${nlsyms} --minchars 1 data/train_worn_u200k_org data/train_worn_u200k
+
+    # dump features for training
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_set}/delta${do_delta}/storage \
+        ${feat_tr_dir}/storage
+    fi
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        ${feat_dt_dir}/storage
+    fi
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
