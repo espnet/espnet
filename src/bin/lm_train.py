@@ -14,6 +14,7 @@ import logging
 import numpy as np
 import os
 import random
+import sys
 
 
 def main():
@@ -80,7 +81,8 @@ def main():
         if cvd is None:
             logging.warn("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
-            raise ValueError("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
+            logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
+            sys.exit(1)
 
     # display PYTHONPATH
     logging.info('python path = ' + os.environ['PYTHONPATH'])
