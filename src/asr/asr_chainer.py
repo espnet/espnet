@@ -421,8 +421,7 @@ def train(args):
         for train_subset in train_subsets:
             if maxlen != len(train_subset):
                 for i in six.moves.xrange(maxlen - len(train_subset)):
-                    # train_subset += [train_subset[i]]
-                    train_subset += [[]]
+                    train_subset += [train_subset[i]]
 
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
