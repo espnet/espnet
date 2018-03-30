@@ -179,7 +179,7 @@ def train(args):
     model = ClassifierWithState(rnn)
     model.compute_accuracy = False  # we only want the perplexity
     if args.ngpu > 1:
-        logging.warn("currently, multi-gpu is not supported.")
+        logging.warn("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:
         # Make the specified GPU current
         gpu_id = 0

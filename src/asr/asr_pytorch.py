@@ -173,7 +173,7 @@ def train(args):
 
     # Set gpu
     if args.ngpu > 1:
-        logging.warn("currently, pytorch does not support multi-gpu.")
+        logging.warn("currently, pytorch does not support multi-gpu. use single gpu.")
     if args.ngpu > 0:
         gpu_id = 0
         # Make a specified GPU current

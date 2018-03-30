@@ -398,8 +398,8 @@ def train(args):
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
                               args.maxlen_in, args.maxlen_out, args.minibatches)
-        # hack to make batchsze argument as 1
-        # actual bathsize is included in a list
+        # hack to make batchsize argument as 1
+        # actual batchsize is included in a list
         train_iter = chainer.iterators.SerialIterator(train, 1)
 
         # set up updater
@@ -421,10 +421,11 @@ def train(args):
         for train_subset in train_subsets:
             if maxlen != len(train_subset):
                 for i in six.moves.xrange(maxlen - len(train_subset)):
-                    train_subset += [train_subset[i]]
+                    # train_subset += [train_subset[i]]
+                    train_subset += [[]]
 
-        # hack to make batchsze argument as 1
-        # actual bathsize is included in a list
+        # hack to make batchsize argument as 1
+        # actual batchsize is included in a list
         train_iters = [chainer.iterators.MultiprocessIterator(
             train_subsets[gid], 1, n_processes=1)
             for gid in six.moves.xrange(ngpu)]
