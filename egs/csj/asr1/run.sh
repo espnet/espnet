@@ -10,7 +10,7 @@
 backend=chainer # chainer or pytorch
 stage=0         # start from 0 if you need to start from data preparation
 gpu=            # will be deprecated, please use ngpu
-ngpu=0          # use 0 when using GPU on slurm/grid engine, otherwise -1
+ngpu=0          # "0" uses cpu, otherwise use gpu
 debugmode=1
 dumpdir=dump    # directory to dump full features
 N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -185,11 +185,13 @@ if [ ${stage} -le 3 ]; then
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
-        lm_ngpu=1
+        lmngpu=1
+    else
+        lmngpu=0
     fi
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
-        --ngpu ${lm_ngpu} \
+        --ngpu ${lmngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
