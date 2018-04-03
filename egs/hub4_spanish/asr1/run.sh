@@ -67,10 +67,6 @@ minlenratio=0.0
 ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
-# data
-wsj0=/export/corpora5/LDC/LDC93S6B
-wsj1=/export/corpora5/LDC/LDC94S13B
-
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -86,6 +82,7 @@ train_set=train
 train_dev=dev
 recog_set="eval"
 
+# data
 audio_data=/export/corpora/LDC/LDC98S74
 transcript_data=/export/corpora/LDC/LDC98T29
 eval_data=/export/corpora/LDC/LDC2001S91
