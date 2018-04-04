@@ -59,10 +59,11 @@ epochs=15
 
 # decoding parameter
 beam_size=20
+nbest=1
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.3
+ctc_weight=0.1
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # exp tag
@@ -269,6 +270,7 @@ if [ ${stage} -le 5 ]; then
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
             --beam-size ${beam_size} \
+            --nbest ${nbest} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
