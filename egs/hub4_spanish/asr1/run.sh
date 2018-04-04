@@ -16,6 +16,7 @@ N=0            # number of minibatches to be used (mainly for debugging). "0" us
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 seed=1
+decode_nj=32
 
 # feature configuration
 do_delta=false # true when using CNN
@@ -56,9 +57,6 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 opt=adadelta
 epochs=15
 
-# rnnlm related
-lm_weight=1.0
-
 # decoding parameter
 beam_size=20
 penalty=0.0
@@ -86,6 +84,7 @@ recog_set="eval"
 audio_data=/export/corpora/LDC/LDC98S74
 transcript_data=/export/corpora/LDC/LDC98T29
 eval_data=/export/corpora/LDC/LDC2001S91
+dev_list=dev.list
 
 
 if [ $stage -le 0 ]; then
@@ -109,8 +108,11 @@ if [ $stage -le 0 ]; then
   mv data/train/text.clean data/train/text
   utils/fix_data_dir.sh data/train
 
-  num_dev=$(cat data/eval/segments | wc -l)
-  ./utils/subset_data_dir.sh data/train ${num_dev} data/dev
+  # For generating the dev set. Use provided utterance list otherwise
+  # num_dev=$(cat data/eval/segments | wc -l)
+  # ./utils/subset_data_dir.sh data/train ${num_dev} data/dev
+
+  ./utils/subset_data_dir.sh --utt-list $dev_list data/train data/dev
 
   mv data/train data/train.tmp
   mkdir -p data/train
@@ -235,16 +237,15 @@ fi
 
 if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
-
-    for rtask in ${recog_set}; do
+    gpu=-1 # Use CPU for decoding
+    for rtask in ${recog_set} ${train_dev}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
 
         # split data
         data=data/${rtask}
-        split_data.sh --per-utt ${data} ${nj};
-        sdata=${data}/split${nj}utt;
+        split_data.sh --per-utt ${data} ${decode_nj};
+        sdata=${data}/split${decode_nj}utt;
 
         # feature extraction
         feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
@@ -258,7 +259,7 @@ if [ ${stage} -le 5 ]; then
         #### use CPU for decoding
         gpu=-1
 
-        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+        ${decode_cmd} JOB=1:${decode_nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --gpu ${gpu} \
             --backend ${backend} \
