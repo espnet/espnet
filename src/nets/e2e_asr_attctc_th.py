@@ -554,8 +554,8 @@ class AttAdd(torch.nn.Module):
     :param int att_dim: attention dimension
     '''
 
-    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
-        super(AttLoc, self).__init__()
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttAdd, self).__init__()
         self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
         self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
         self.gvec = torch.nn.Linear(att_dim, 1)
@@ -565,7 +565,6 @@ class AttAdd(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
-        self.aconv_chans = aconv_chans
 
     def reset(self):
         '''reset states'''
@@ -1823,7 +1822,7 @@ class Decoder(torch.nn.Module):
                     local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
-                    local_best_scores, local_best_ids = torch.topk(local_att_scores, beam, dim=1)
+                    local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
