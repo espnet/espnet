@@ -176,7 +176,7 @@ if [ ${stage} -le 2 ]; then
 
     # remove 1 or 0 length outputs
     utils/copy_data_dir.sh data/train_worn_u200k data/train_worn_u200k_org
-    remove_longshortdata.sh -l ${nlsyms} --minchars 1 data/train_worn_u200k_org data/train_worn_u200k
+    remove_longshortdata.sh --nlsyms ${nlsyms} --minchars 1 data/train_worn_u200k_org data/train_worn_u200k
 
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
