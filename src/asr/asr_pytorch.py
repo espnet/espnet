@@ -22,9 +22,11 @@ import torch
 # spnet related
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
-from asr_utils import converter_kaldi, converter_augment
+from asr_utils import converter_augment
+from asr_utils import converter_kaldi
 from asr_utils import delete_feat
-from asr_utils import make_batchset, make_augment_batchset
+from asr_utils import make_augment_batchset
+from asr_utils import make_batchset
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss

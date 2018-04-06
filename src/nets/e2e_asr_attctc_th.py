@@ -188,7 +188,10 @@ class E2E(torch.nn.Module):
 
         # augment encoder
         if augment_idim > 0: 
-            self.aug_enc = AugmentEncoder(augment_idim, args.etype, idim, args.alayers, args.eunits, args.eprojs, args.dropout_rate)
+            self.aug_enc = AugmentEncoder(augment_idim, 
+                                        args.etype, idim, 
+                                        args.alayers, args.eunits, 
+                                        args.eprojs, args.dropout_rate)
         else:
             self.aug_enc = None
         # encoder
