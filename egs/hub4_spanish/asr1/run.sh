@@ -72,6 +72,17 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
+# check gpu option usage
+if [ ! -z $gpu ]; then
+    echo "WARNING: --gpu option will be deprecated."
+    echo "WARNING: please use --ngpu option."
+    if [ $gpu -eq -1 ]; then
+        ngpu=0
+    else
+        ngpu=1
+    fi
+fi
+
 # only for CLSP
 if [[ $(hostname -f) == *.clsp.jhu.edu ]] ; then
     export CUDA_VISIBLE_DEVICES=$(/usr/local/bin/free-gpu -n $ngpu)
@@ -183,17 +194,6 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-fi
-
-# check gpu option usage
-if [ ! -z $gpu ]; then
-    echo "WARNING: --gpu option will be deprecated."
-    echo "WARNING: please use --ngpu option."
-    if [ $gpu -eq -1 ]; then
-        ngpu=0
-    else
-        ngpu=1
-    fi
 fi
 
 if [ -z ${tag} ]; then
