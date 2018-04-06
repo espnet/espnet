@@ -129,6 +129,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
 
 class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
     '''Custom updated for kaldi reader with augment data support'''
+
     def __init__(self, model, grad_clip_threshold, train_iter,
                  train_augment_iter, augment_metadata, augment_ratio, optimizer, reader, device):
         super(PytorchSeqUpdaterKaldiWithAugment, self).__init__(model, grad_clip_threshold,
