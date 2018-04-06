@@ -37,7 +37,7 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.5
+mtlalpha=0.1
 
 # label smoothing
 lsm_type=unigram
