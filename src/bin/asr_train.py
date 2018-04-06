@@ -41,10 +41,10 @@ def main():
                         help='Portion of training data to keep')
     parser.add_argument('--augment-ratio', type=int, required=False, default=0,
                         help='Augment data ratio to be used')
-    parser.add_argument('--augment-limit', type=int, required=False, default=1, 
-                        choices=[0,1],
+    parser.add_argument('--augment-limit', type=int, required=False, default=1,
+                        choices=[0, 1],
                         help='whether to limit the augment data or loop over entire augment data')
-    parser.add_argument('--is-rep-aug', type=int, required=False, default=0, choices=[0,1],
+    parser.add_argument('--is-rep-aug', type=int, required=False, default=0, choices=[0, 1],
                         help='is the augment data repeated to reflect speech timing?')
     parser.add_argument('--train-feat', type=str, required=True,
                         help='Filename of train feature data (Kaldi scp)')

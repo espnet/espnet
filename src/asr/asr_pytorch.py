@@ -145,7 +145,7 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
     def update_core(self,):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
-        if (self.done_augment >= self.a2a_ratio):  # TODO: need a better way to switch between audio and augment
+        if (self.done_augment >= self.a2a_ratio):  # TODO(arendu): need a better way to switch between audio and augment
             batch = train_iter.__next__()
             # print(train_iter.is_new_epoch)
             logging.info('audio batch, new_epoch:' + str(train_iter.is_new_epoch))
