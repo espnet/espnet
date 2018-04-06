@@ -11,20 +11,21 @@ import chainer
 from chainer import training
 import numpy as np
 
+
 # * -------------------- agumenting data prep -------------------- *
-def make_augment_batchset(data, batch_size, 
-                        max_length_in, max_length_out,
-                        num_batches=0, is_rep_aug=0):
+def make_augment_batchset(data, batch_size,
+                          max_length_in, max_length_out,
+                          num_batches=0, is_rep_aug=0):
     # sort it by input lengths (long to short)
-    #data has keys ifilename, ofilename, sentences
+    # data has keys ifilename, ofilename, sentences
     # sentences has keys id, and values ilen, olen, ioffset, ooffset
-    #ifilename = data['ifilename']
-    #ofilename = data['ofilename']
-    #idict = data['idict']
-    #odict = data['odict']
-    meta = {'ifilename': data['ifilename'], 
-            'ofilename' : data['ofilename'], 
-            'idict' : data['idict'], 
+    # ifilename = data['ifilename']
+    # ofilename = data['ofilename']
+    # idict = data['idict']
+    # odict = data['odict']
+    meta = {'ifilename': data['ifilename'],
+            'ofilename': data['ofilename'],
+            'idict': data['idict'],
             'odict': data['odict']}
     assert '<unk>' in data['odict']
     sentences = data['sentences']
@@ -41,7 +42,7 @@ def make_augment_batchset(data, batch_size,
             ilen *= 4
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         b = max(1, int(batch_size / (1 + factor)))
-        end = start + b #(start + b) if (start + b < len(sorted_data)) else len(sorted_data)
+        end = start + b  # (start + b) if (start + b < len(sorted_data)) else len(sorted_data)
         minibatches.append(sorted_data[start:end])
         if end >= len(sorted_data):
             break
@@ -58,17 +59,17 @@ def converter_augment(batch, idict, odict, ifile, ofile):
         ofile.seek(b_obj['ooffset'])
         iline = ifile.readline()
         oline = ofile.readline()
-        iline = ['<s>'] + iline.strip().split() + ['</s>'] #BOS and EOS for output handled by decoder
+        iline = ['<s>'] + iline.strip().split() + ['</s>']  # BOS and EOS for output handled by decoder
         iline = [idict[i] for i in iline]
         assert len(iline) > 2
         iline = np.array(iline, dtype=np.int64)
-        #filter_oline = [i for i in oline.strip().split() if i in odict] #so that we can use the same aug files from OpenNMT
-        oline = oline.strip().split()[1:] #so that we can use the same aug files from OpenNMT, removed "aug"
+        oline = oline.strip().split()[1:]  # so that we can use the same aug files from OpenNMT, removed "aug"
         assert len(oline) > 0
         oline = ' '.join([str(odict.get(i, odict['<unk>'])) for i in oline])
         b_obj['feat'] = iline
         b_obj['tokenid'] = oline
     return batch
+
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):

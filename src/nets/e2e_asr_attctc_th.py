@@ -107,14 +107,14 @@ class Loss(torch.nn.Module):
         self.predictor = predictor
         self.reporter = Reporter()
 
-    def forward(self, x, is_aug = False):
+    def forward(self, x, is_aug=False):
         '''Loss forward
 
         :param x:
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x, is_aug = is_aug)
+        loss_ctc, loss_att, acc = self.predictor(x, is_aug=is_aug)
         alpha = self.mtlalpha
         self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
@@ -126,13 +126,15 @@ class Loss(torch.nn.Module):
 
         return self.loss
 
+
 def aug_pad_list(xs, pad_idx):
     max_len = xs[0].size(0)
     pad_xs = []
     for i in range(len(xs)):
-        padded_xx = torch.cat((xs[i], pad_idx + torch.zeros(max_len - xs[i].size(0)).type_as(xs[i])), dim=0).unsqueeze(0)
+        padded_xx = torch.cat((xs[i], pad_idx +
+                               torch.zeros(max_len - xs[i].size(0)).type_as(xs[i])), dim=0).unsqueeze(0)
         pad_xs.append(padded_xx)
-    padded = torch.cat(pad_xs, dim=0) #(batch_size, seq_len)
+    padded = torch.cat(pad_xs, dim=0)  # (batch_size, seq_len)
     return padded
 
 
@@ -154,7 +156,7 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args, augment_idim = 0):
+    def __init__(self, idim, odim, args, augment_idim=0):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -187,11 +189,11 @@ class E2E(torch.nn.Module):
             labeldist = None
 
         # augment encoder
-        if augment_idim > 0: 
-            self.aug_enc = AugmentEncoder(augment_idim, 
-                                        args.etype, idim, 
-                                        args.alayers, args.eunits, 
-                                        args.eprojs, args.dropout_rate)
+        if augment_idim > 0:
+            self.aug_enc = AugmentEncoder(augment_idim,
+                                          args.etype, idim,
+                                          args.alayers, args.eunits,
+                                          args.eprojs, args.dropout_rate)
         else:
             self.aug_enc = None
         # encoder
@@ -273,7 +275,7 @@ class E2E(torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
-    def forward(self, data, is_aug = False):
+    def forward(self, data, is_aug=False):
         '''E2E forward
 
         :param data:
@@ -309,7 +311,6 @@ class E2E(torch.nn.Module):
             padded_xs = aug_pad_list(xs, 0)
             xpad = to_cuda(self, Variable(padded_xs))
             hpad, hlens = self.aug_enc(xpad, ilens)
-
 
         # # 3. CTC loss
         loss_ctc = self.ctc(hpad, hlens, ys)
@@ -1995,7 +1996,8 @@ class Encoder(torch.nn.Module):
 
 class AugmentEncoder(Encoder):
     def __init__(self, aug_idim, etype, idim, elayers, eunits, eprojs, dropout, in_channel=1):
-        super(AugmentEncoder, self).__init__(etype, idim, elayers, eunits, eprojs, [1] *(1+ elayers), dropout, in_channel=1)
+        super(AugmentEncoder, self).__init__(etype, idim, elayers,
+                                             eunits, eprojs, [1] * (1 + elayers), dropout, in_channel=1)
         assert in_channel == 1
         self.embedding = torch.nn.Embedding(aug_idim, idim)
 

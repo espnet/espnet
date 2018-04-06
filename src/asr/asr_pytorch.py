@@ -126,43 +126,42 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             optimizer.step()
         delete_feat(x)
 
+
 class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
     '''Custom updated for kaldi reader with augment data support'''
-    def __init__(self, model, grad_clip_threshold, train_iter, 
-                train_augment_iter, augment_metadata, augment_ratio, optimizer, reader, device):
-        super(PytorchSeqUpdaterKaldiWithAugment, self).__init__(model, grad_clip_threshold, 
+    def __init__(self, model, grad_clip_threshold, train_iter,
+                 train_augment_iter, augment_metadata, augment_ratio, optimizer, reader, device):
+        super(PytorchSeqUpdaterKaldiWithAugment, self).__init__(model, grad_clip_threshold,
                                                                 train_iter, optimizer, reader, device=None)
         self.augment_metadata = augment_metadata
         self.train_augment_iter = train_augment_iter
-        self.a2a_ratio = augment_ratio #int(self.augment_metadata['a2a_ratio'])
+        self.a2a_ratio = augment_ratio   # int(self.augment_metadata['a2a_ratio'])
         self.done_augment = 0
         self.idict = self.augment_metadata['idict']
         self.odict = self.augment_metadata['odict']
         self.ifile = open(self.augment_metadata['ifilename'], 'r')
         self.ofile = open(self.augment_metadata['ofilename'], 'r')
 
-
     def update_core(self,):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
-        
-        if (self.done_augment >= self.a2a_ratio): #TODO: need a better way to switch between audio and augment
+        if (self.done_augment >= self.a2a_ratio):  # TODO: need a better way to switch between audio and augment
             batch = train_iter.__next__()
-            #print(train_iter.is_new_epoch)
+            # print(train_iter.is_new_epoch)
             logging.info('audio batch, new_epoch:' + str(train_iter.is_new_epoch))
             x = converter_kaldi(batch[0], self.reader)
             self.done_augment = 0
             is_aug = False
         else:
             batch = self.train_augment_iter.__next__()
-            #print(self.train_augment_iter.is_new_epoch)
+            # print(self.train_augment_iter.is_new_epoch)
             logging.info('augment batch, new_epoch:' + str(train_iter.is_new_epoch))
-            x = converter_augment(batch[0], self.idict, self.odict, self.ifile, self.ofile) 
+            x = converter_augment(batch[0], self.idict, self.odict, self.ifile, self.ofile)
             self.done_augment += 1
             is_aug = True
 
         # Compute the loss at this time step and accumulate it
-        loss = self.model(x, is_aug = is_aug)
+        loss = self.model(x, is_aug=is_aug)
         optimizer.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
@@ -226,13 +225,11 @@ def train(args):
         remove_num = int(len(train_json.keys()) * (1.0 - args.train_reduce_factor))
         train_keys = sorted(list(train_json.keys()))
         random.Random(1234).shuffle(train_keys)
-        for tk in train_keys[:remove_num]:# in range(remove_num):
-            train_json.pop(tk) #random.choice(train_json.keys()))
+        for tk in train_keys[:remove_num]:  # in range(remove_num):
+            train_json.pop(tk)  # random.choice(train_json.keys()))
         logging.warning("train instances now:" + str(len(train_json.keys())))
-
-
     # specify model architecture
-    e2e = E2E(idim, odim, args, augment_idim = augment_idim)
+    e2e = E2E(idim, odim, args, augment_idim=augment_idim)
     model = Loss(e2e, args.mtlalpha)
 
     # write model config
@@ -280,25 +277,27 @@ def train(args):
 
     if augment_json is not None:
         train_augment, meta = make_augment_batchset(augment_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                                                    args.maxlen_in,
+                                                    args.maxlen_out,
+                                                    args.minibatches)
         assert args.augment_ratio > 0
         if args.augment_limit:
             lim = int(len(train) * float(args.augment_ratio))
             assert lim > 0
             train_augment = train_augment[:lim]
         train_augment_iter = chainer.iterators.SerialIterator(train_augment, 1)
-        updater = PytorchSeqUpdaterKaldiWithAugment(model, 
-                    args.grad_clip, 
-                    train_iter, 
-                    train_augment_iter, 
-                    meta, 
-                    args.augment_ratio,
-                    optimizer, 
-                    train_reader, 
-                    gpu_id)
-        trainer = training.Trainer(updater, 
-                (args.epochs, 'epoch'), 
-                out=args.outdir)
+        updater = PytorchSeqUpdaterKaldiWithAugment(model,
+                                                    args.grad_clip,
+                                                    train_iter,
+                                                    train_augment_iter,
+                                                    meta,
+                                                    args.augment_ratio,
+                                                    optimizer,
+                                                    train_reader,
+                                                    gpu_id)
+        trainer = training.Trainer(updater,
+                                   (args.epochs, 'epoch'),
+                                   out=args.outdir)
     else:
         # Set up a trainer
         updater = PytorchSeqUpdaterKaldi(
@@ -382,7 +381,6 @@ def train(args):
         updater.ofile.close()
 
 
-
 def recog(args):
     '''Run recognition'''
     # seed setting
@@ -406,7 +404,7 @@ def recog(args):
         else:
             augment_json = None
             augment_idim = 0
-    e2e = E2E(idim, odim, train_args, augment_idim = augment_idim)
+    e2e = E2E(idim, odim, train_args, augment_idim=augment_idim)
     model = Loss(e2e, train_args.mtlalpha)
 
     def cpu_loader(storage, location):
