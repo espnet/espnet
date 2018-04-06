@@ -10,6 +10,7 @@ import logging
 import math
 import os
 import pickle
+import random
 
 # chainer related
 import chainer
@@ -127,8 +128,10 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
 
 class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
     '''Custom updated for kaldi reader with augment data support'''
-    def __init__(self, model, grad_clip_threshold, train_iter, train_augment_iter, augment_metadata, augment_ratio, optimizer, reader, device):
-        super(PytorchSeqUpdaterKaldiWithAugment, self).__init__(model, grad_clip_threshold, train_iter, optimizer, reader, device=None)
+    def __init__(self, model, grad_clip_threshold, train_iter, 
+                train_augment_iter, augment_metadata, augment_ratio, optimizer, reader, device):
+        super(PytorchSeqUpdaterKaldiWithAugment, self).__init__(model, grad_clip_threshold, 
+                                                                train_iter, optimizer, reader, device=None)
         self.augment_metadata = augment_metadata
         self.train_augment_iter = train_augment_iter
         self.a2a_ratio = augment_ratio #int(self.augment_metadata['a2a_ratio'])
