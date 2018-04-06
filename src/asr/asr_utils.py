@@ -12,7 +12,9 @@ from chainer import training
 import numpy as np
 
 # * -------------------- agumenting data prep -------------------- *
-def make_augment_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0, is_rep_aug=0):
+def make_augment_batchset(data, batch_size, 
+                        max_length_in, max_length_out,
+                        num_batches=0, is_rep_aug=0):
     # sort it by input lengths (long to short)
     #data has keys ifilename, ofilename, sentences
     # sentences has keys id, and values ilen, olen, ioffset, ooffset
@@ -20,7 +22,10 @@ def make_augment_batchset(data, batch_size, max_length_in, max_length_out, num_b
     #ofilename = data['ofilename']
     #idict = data['idict']
     #odict = data['odict']
-    meta = {'ifilename': data['ifilename'], 'ofilename' : data['ofilename'], 'idict' : data['idict'], 'odict': data['odict']}
+    meta = {'ifilename': data['ifilename'], 
+            'ofilename' : data['ofilename'], 
+            'idict' : data['idict'], 
+            'odict': data['odict']}
     assert '<unk>' in data['odict']
     sentences = data['sentences']
     sorted_data = sorted(sentences.items(), key=lambda data: int(
