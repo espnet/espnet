@@ -21,6 +21,12 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Moderate performance in standard English benchmarks
 
+## Requirements
+- Python2.7+  
+- Cuda 8.0 (for the use of GPU)  
+- Cudnn 6 (for the use of GPU)  
+- NCCL 2.0+ (for the use of multi-GPUs)
+
 ## Installation
 
 Install Kaldi, Python libraries and other required tools using system python and virtualenv
@@ -70,11 +76,20 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Recognition and scoring
 
 ### Use of GPU
-If you use GPU in your experiment, set `--gpu` option in `run.sh` appropriately, e.g., 
+If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
 ```sh
-$ ./run.sh --gpu 0
+# use single gpu
+$ ./run.sh --ngpu 1
+
+# use multi-gpu
+$ ./run.sh --ngpu 3
+
+# use cpu
+$ ./run.sh --ngpu 0
 ```
-Default setup uses CPU (`--gpu -1`).
+Default setup uses CPU (`--ngpu 0`).  
+
+Note that if you want to use multi-gpu, the installation of nccl is required before setup.
 
 ### Setup in your cluster
 Change `cmd.sh` according to your cluster setup.
@@ -123,6 +138,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | Performance | ◎ | ○ |
 | Speed | ○ | ◎ |
+| Multi-GPU | supported | no support |
 | VGG-like encoder | supported | no support |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
