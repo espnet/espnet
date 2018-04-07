@@ -55,7 +55,7 @@ maxlenratio=0.8
 minlenratio=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
-# me2e
+# e2e_mc
 cmvn=data-fbank/tr05_multi_noisy/cmvn.ark
 melmat=exp/make_melmat/melmat.ark
 trainmode="noisy+enhan" # training mode
@@ -87,23 +87,12 @@ if [ ${stage} -le 0 ]; then
     wsj0_data=${chime4_data}/data/WSJ0
     local/clean_wsj0_data_prep.sh ${wsj0_data}
     local/clean_chime4_format_data.sh
-    echo "beamforming for multichannel cases"
-    local/run_beamform_2ch_track.sh --cmd "${train_cmd}" --nj 20 \
-        ${chime4_data}/data/audio/16kHz/isolated_2ch_track enhan/beamformit_2mics
-    local/run_beamform_6ch_track.sh --cmd "${train_cmd}" --nj 20 \
-        ${chime4_data}/data/audio/16kHz/isolated_6ch_track enhan/beamformit_5mics
     echo "prepartion for chime4 data"
     local/real_noisy_chime4_data_prep.sh ${chime4_data}
     local/simu_noisy_chime4_data_prep.sh ${chime4_data}
     echo "test data for 1ch track"
     local/real_enhan_chime4_data_prep.sh isolated_1ch_track ${chime4_data}/data/audio/16kHz/isolated_1ch_track
     local/simu_enhan_chime4_data_prep.sh isolated_1ch_track ${chime4_data}/data/audio/16kHz/isolated_1ch_track
-    echo "test data for 2ch track"
-    local/real_enhan_chime4_data_prep.sh beamformit_2mics ${PWD}/enhan/beamformit_2mics
-    local/simu_enhan_chime4_data_prep.sh beamformit_2mics ${PWD}/enhan/beamformit_2mics
-    echo "test data for 6ch track"
-    local/real_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
-    local/simu_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
 fi
 
 if [ ${stage} -le 1 ]; then
@@ -288,21 +277,11 @@ fi
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
-#    nj=32
-    nj=8
+    nj=32
 
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${recogmode}_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
-
-        # noisy
-        # split data
-        data=data-stft/${rtask}_isolated_1ch_track
-        split_data.sh --per-utt ${data} ${nj};
-        # make json labels for recognition
-        data2json.sh ${data} ${dict} > ${data}/data.json
-        
-        recog_feat_noisy="scp:data-stft/${rtask}_isolated_1ch_track/split${nj}utt/JOB/feats.scp"
 
         # enhan
         # split_data
@@ -329,8 +308,6 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-feat-noisy ${recog_feat_noisy} \
-            --recog-label-noisy data-stft/${rtask}_isolated_1ch_track/data.json \
             --recog-feat-enhan ${recog_feat_enhan} \
             --recog-label-enhan data-stft/${rtask}_noisy_ch1/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \

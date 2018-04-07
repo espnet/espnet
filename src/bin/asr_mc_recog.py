@@ -30,11 +30,6 @@ def main():
     # task related
     parser.add_argument('--result-label', type=str, required=True,
                         help='Filename of result label data (json)')
-    # noisy
-    parser.add_argument('--recog-feat-noisy', type=str, required=True,
-                        help='Filename of recognition feature data (Kaldi scp) without enhancemet')
-    parser.add_argument('--recog-label-noisy', type=str, required=True,
-                        help='Filename of recognition label data (json) without enhancement')
     # enhan
     parser.add_argument('--recog-feat-enhan', type=str, nargs='*', required=True,
                         help='Filename of recognition feature data (Kaldi scp) with enhancemet')
@@ -63,9 +58,6 @@ def main():
                         help='RNNLM model file to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
-    # me2e
-    parser.add_argument('--mode', default=None, type=str, required=True,
-                        choices=['noisy', 'enhan'])
     args = parser.parse_args()
 
     # logging info

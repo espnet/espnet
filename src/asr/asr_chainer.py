@@ -47,10 +47,11 @@ matplotlib.use('Agg')
 class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
     '''Custom evaluater with Kaldi reader for chainer'''
 
-    def __init__(self, iterator, target, reader, device):
+    def __init__(self, iterator, target, reader, device, converter=converter_kaldi):
         super(ChainerSeqEvaluaterKaldi, self).__init__(
             iterator, target, device=device)
         self.reader = reader
+        self.converter = converter
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -76,7 +77,7 @@ class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
                 # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch[0], self.reader)
+                x = self.converter(batch[0], self.reader)
                 with function.no_backprop_mode():
                     eval_func(x)
                     delete_feat(x)
@@ -89,10 +90,11 @@ class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
 class ChainerSeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater with Kaldi reader for chainer'''
 
-    def __init__(self, train_iter, optimizer, reader, device):
+    def __init__(self, train_iter, optimizer, reader, device, converter=converter_kaldi):
         super(ChainerSeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, device=device)
         self.reader = reader
+        self.converter = converter
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -108,7 +110,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         # x: original json with loaded features
         #    will be converted to chainer variable later
         # batch only has one minibatch utterance, which is specified by batch[0]
-        x = converter_kaldi(batch[0], self.reader)
+        x = self.converter(batch[0], self.reader)
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(x)
@@ -130,9 +132,10 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         sq_sum = collections.defaultdict(float)
         for x in arr:
             with cuda.get_device_from_array(x) as dev:
-                x = x.ravel()
-                s = x.dot(x)
-                sq_sum[int(dev)] += s
+                if x is not None:
+                    x = x.ravel()
+                    s = x.dot(x)
+                    sq_sum[int(dev)] += s
         return sum([float(i) for i in six.itervalues(sq_sum)])
 
 

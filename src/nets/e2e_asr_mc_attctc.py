@@ -55,9 +55,9 @@ class CMVN(chainer.Chain):
         return cmvn_feats
 
 
-class ME2E(chainer.Chain):
+class E2E_MC(chainer.Chain):
     def __init__(self, enhan, asr, melmat, cmvn_stats):
-        super(ME2E, self).__init__()
+        super(E2E_MC, self).__init__()
 
         with self.init_scope():
             # enhan
@@ -70,15 +70,15 @@ class ME2E(chainer.Chain):
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def __call__(self, data):
-        '''ME2E forward
+        '''E2E_MC forward
 
         :param data:
         :return:
         '''
-        mode = data[0][1]['mode']
-        logging.info('mode: ' + mode)
+        utt_type = data[0][1]['utt_type']
+        logging.info('utt_type: ' + utt_type)
 
-        if mode == 'noisy':
+        if utt_type == 'noisy':
             # utt list of frame x dim
             xs_real = [i[1]['feat']['real'] for i in data]
             xs_imag = [i[1]['feat']['imag'] for i in data]
@@ -89,7 +89,7 @@ class ME2E(chainer.Chain):
             hs = {}
             hs['real'] = hs_real
             hs['imag'] = hs_imag
-        elif mode == 'enhan':
+        elif utt_type == 'enhan':
             # utt list of channel list of frame x dim
             xs_real = [i[1]['feat']['real'] for i in data]
             xs_imag = [i[1]['feat']['imag'] for i in data]
@@ -105,10 +105,6 @@ class ME2E(chainer.Chain):
 
             # 1. beamformer
             hs = self.enhan(hs)
-        else:
-            logging.error(
-                "Error: need to specify an appropriate training mode")
-            sys.exit()
 
         # utt list of olen
         ys = [self.xp.array(
@@ -118,6 +114,9 @@ class ME2E(chainer.Chain):
         # 2. feature extractor
         hs = self.logmel(hs, self.xp)
         hs = self.cmvn(hs, self.xp)
+
+        # subsample frame
+        hs, ilens = _subsamplex(hs, self.subsample[0])
 
         # 3. encoder
         hs, ilens = self.asr.enc(hs, ilens)
@@ -149,40 +148,28 @@ class ME2E(chainer.Chain):
         :param char_list:
         :return:
         '''
-        logging.info('mode: ' + recog_args.mode)
+        logging.info('utt_type: ' + recog_args.utt_type)
 
-        if recog_args.mode == 'noisy':
-            x_real = x['real']
-            x_imag = x['imag']
-            ilen = self.xp.array(x_real.shape[0], dtype=np.int32)
-            h_real = chainer.Variable(self.xp.array(x_real, dtype=np.float32))
-            h_imag = chainer.Variable(self.xp.array(x_imag, dtype=np.float32))
+        x_real = x['real']
+        x_imag = x['imag']
+        ilen = self.xp.array(x_real[0].shape[0], dtype=np.int32)
+        h_real = [chainer.Variable(self.xp.array(ch, dtype=np.float32)) for ch in x_real]
+        h_imag = [chainer.Variable(self.xp.array(ch, dtype=np.float32)) for ch in x_imag]
 
-            # make a utt list (1) to use the same interface for encoder
-            hs = {}
-            hs['real'] = [h_real]
-            hs['imag'] = [h_imag]
-        elif recog_args.mode == 'enhan':
-            x_real = x['real']
-            x_imag = x['imag']
-            ilen = self.xp.array(x_real[0].shape[0], dtype=np.int32)
-            h_real = [chainer.Variable(self.xp.array(ch, dtype=np.float32)) for ch in x_real]
-            h_imag = [chainer.Variable(self.xp.array(ch, dtype=np.float32)) for ch in x_imag]
+        # make a utt list (1) to use the same interface for encoder
+        hs = {}
+        hs['real'] = [h_real]
+        hs['imag'] = [h_imag]
 
-            # make a utt list (1) to use the same interface for encoder
-            hs = {}
-            hs['real'] = [h_real]
-            hs['imag'] = [h_imag]
-
-            # 1. beamformer
-            hs = self.enhan(hs)
-        else:
-            logging.error(
-                "Error: need to specify an appropriate training mode")
+        # 1. beamformer
+        hs = self.enhan(hs)
 
         # 2. feature extractor
         hs = self.logmel(hs, self.xp)
         hs = self.cmvn(hs, self.xp)
+
+        # subsample frame
+        hs, ilens = _subsamplex(hs, self.subsample[0])
 
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             # 1. encoder

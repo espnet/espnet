@@ -145,13 +145,11 @@ def main():
                         help='Number of maximum epochs')
     parser.add_argument('--grad-clip', default=5, type=float,
                         help='Gradient norm threshold to clip')
-    # me2e
+    # e2e_mc
     parser.add_argument('--melmat', type=str, required=True,
                         help='Filename of Mel-filterbank matrix data (Kaldi ark)')
     parser.add_argument('--cmvn', type=str, required=True,
                         help='Filename of cmvn statistics data (Kaldi ark)')
-    parser.add_argument('--mode', default='noisy+enhan', type=str,
-                        choices=['noisy+enhan', 'noisy', 'enhan'])
     args = parser.parse_args()
 
     # logging info

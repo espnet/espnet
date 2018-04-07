@@ -31,9 +31,11 @@ from asr_utils import restore_snapshot
 from e2e_asr_attctc import E2E
 from e2e_asr_attctc import Loss
 
-# for me2e
+# for e2e_mc
 from beamformer import NB_MVDR
-from me2e_asr_attctc import ME2E
+from e2e_asr_mc_attctc import E2E_MC
+from asr_chainer import ChainerSeqEvaluaterKaldi
+from asr_chainer import ChainerSeqUpdaterKaldi
 
 # for kaldi io
 import kaldi_io_py
@@ -48,122 +50,23 @@ import numpy as np
 matplotlib.use('Agg')
 
 
-class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
-    '''Custom evaluater with Kaldi reader for chainer'''
-
-    def __init__(self, iterator, target, reader, device, converter):
-        super(ChainerSeqEvaluaterKaldi, self).__init__(
-            iterator, target, device=device)
-        self.reader = reader
-        self.converter = converter
-
-    # The core part of the update routine can be customized by overriding.
-    def evaluate(self):
-        '''evaluate over iterator'''
-        iterator = self._iterators['main']
-        eval_func = self.eval_func or self._targets['main']
-
-        if self.eval_hook:
-            self.eval_hook(self)
-
-        if hasattr(iterator, 'reset'):
-            iterator.reset()
-            it = iterator
-        else:
-            it = copy.copy(iterator)
-
-        summary = reporter_module.DictSummary()
-
-        for batch in it:
-            observation = {}
-            with reporter_module.report_scope(observation):
-                # read scp files
-                # x: original json with loaded features
-                #    will be converted to chainer variable later
-                # batch only has one minibatch utterance, which is specified by batch[0]
-                x = self.converter(batch[0], self.reader)
-                with function.no_backprop_mode():
-                    eval_func(x)
-                    delete_feat(x)
-
-            summary.add(observation)
-
-        return summary.compute_mean()
-
-
-class ChainerSeqUpdaterKaldi(training.StandardUpdater):
-    '''Custom updater with Kaldi reader for chainer'''
-
-    def __init__(self, train_iter, optimizer, reader, device, converter):
-        super(ChainerSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, device=device)
-        self.reader = reader
-        self.converter = converter
-
-    # The core part of the update routine can be customized by overriding.
-    def update_core(self):
-        # When we pass one iterator and optimizer to StandardUpdater.__init__,
-        # they are automatically named 'main'.
-        train_iter = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
-
-        # Get the next batch ( a list of json files)
-        batch = train_iter.__next__()
-
-        # read scp files
-        # x: original json with loaded features
-        #    will be converted to chainer variable later
-        # batch only has one minibatch utterance, which is specified by batch[0]
-        x = self.converter(batch[0], self.reader)
-
-        # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(x)
-        optimizer.target.cleargrads()  # Clear the parameter gradients
-        loss.backward()  # Backprop
-        loss.unchain_backward()  # Truncate the graph
-        # compute the gradient norm to check if it is normal or not
-        grad_norm = np.sqrt(self._sum_sqnorm(
-            [p.grad for p in optimizer.target.params(False)]))
-        logging.info('grad norm={}'.format(grad_norm))
-        if math.isnan(grad_norm):
-            logging.warning('grad norm is nan. Do not update model.')
-        else:
-            optimizer.update()
-        delete_feat(x)
-
-    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-    def _sum_sqnorm(self, arr):
-        sq_sum = collections.defaultdict(float)
-        for x in arr:
-            with cuda.get_device_from_array(x) as dev:
-                if x is not None:
-                    x = x.ravel()
-                    s = x.dot(x)
-                    sq_sum[int(dev)] += s
-        return sum([float(i) for i in six.itervalues(sq_sum)])
-
-
-def me2e_converter_train(batch, readers):
+def e2e_mc_converter_train(batch, readers):
     data = batch[0]
-    mode = data[1]['mode']
+    utt_type = data[1]['utt_type']
 
     for data in batch:
-        # noisy mode
-        if mode == 'noisy':
+        # noisy
+        if utt_type == 'noisy':
             bidim = readers['noisy'][data[0].encode('ascii', 'ignore')].shape[1] / 2
             # separate real and imaginary part
             feat_real = readers['noisy'][data[0].encode('ascii', 'ignore')][:, :bidim]
             feat_imag = readers['noisy'][data[0].encode('ascii', 'ignore')][:, bidim:]
-        # enhancement mode
-        elif mode == 'enhan':
+        # enhancement
+        elif utt_type == 'enhan':
             bidim = readers['enhan'][0][data[0].encode('ascii', 'ignore')].shape[1] / 2
             # separate real and imaginary part
             feat_real = [reader[data[0].encode('ascii', 'ignore')][:, :bidim] for reader in readers['enhan']]
             feat_imag = [reader[data[0].encode('ascii', 'ignore')][:, bidim:] for reader in readers['enhan']]
-        else:
-            logging.error(
-                "Error: need to specify an appropriate training mode")
-            sys.exit()
 
         feat = {}
         feat['real'] = feat_real
@@ -174,23 +77,12 @@ def me2e_converter_train(batch, readers):
     return batch
 
 
-def me2e_converter_recog(name, readers, mode):
-    # noisy mode
-    if mode == 'noisy':
-        bidim = readers[name].shape[1] / 2
-        # separate real and imaginary part
-        feat_real = readers[name][:, :bidim]
-        feat_imag = readers[name][:, bidim:]
-    # enhancement mode
-    elif mode == 'enhan':
-        bidim = readers[0][name].shape[1] / 2
-        # separate real and imaginary part
-        feat_real = [reader[name][:, :bidim] for reader in readers]
-        feat_imag = [reader[name][:, bidim:] for reader in readers]
-    else:
-        logging.error(
-            "Error: need to specify an appropriate decoding mode")
-        sys.exit()
+def e2e_mc_converter_recog(name, readers):
+    # enhancement
+    bidim = readers[0][name].shape[1] / 2
+    # separate real and imaginary part
+    feat_real = [reader[name][:, :bidim] for reader in readers]
+    feat_imag = [reader[name][:, bidim:] for reader in readers]
 
     feat = {}
     feat['real'] = feat_real
@@ -259,8 +151,8 @@ def train(args):
     # specify model architecture
     enhan = NB_MVDR(bidim, args)
     asr = E2E(eidim, odim, args)
-    me2e = ME2E(enhan, asr, melmat, cmvn_stats)
-    model = Loss(me2e, args.mtlalpha)
+    e2e_mc = E2E_MC(enhan, asr, melmat, cmvn_stats)
+    model = Loss(e2e_mc, args.mtlalpha)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -299,15 +191,15 @@ def train(args):
     with open(args.valid_label_enhan, 'rb') as f:
         valid_json_enhan = json.load(f)['utts']
 
-    # add mode information to switch training_mode
+    # add utt_type information for multi condition training
     for key, value in train_json_noisy.items():
-        value['mode'] = 'noisy'
+        value['utt_type'] = 'noisy'
     for key, value in train_json_enhan.items():
-        value['mode'] = 'enhan'
+        value['utt_type'] = 'enhan'
     for key, value in valid_json_noisy.items():
-        value['mode'] = 'noisy'
+        value['utt_type'] = 'noisy'
     for key, value in valid_json_enhan.items():
-        value['mode'] = 'enhan'
+        value['utt_type'] = 'enhan'
 
     # make minibatch list (variable length)
     train_noisy = make_batchset(train_json_noisy, args.batch_size,
@@ -320,15 +212,8 @@ def train(args):
                                 args.maxlen_in, args.maxlen_out, args.minibatches)
 
     # merge noisy and enhancement data
-    if args.mode == 'noisy+enhan':
-        train = train_noisy + train_enhan
-        valid = valid_enhan
-    elif args.mode == 'noisy':
-        train = train_noisy
-        valid = valid_noisy
-    elif args.mode == 'enhan':
-        train = train_enhan
-        valid = valid_enhan
+    train = train_noisy + train_enhan
+    valid = valid_enhan
 
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
@@ -352,7 +237,7 @@ def train(args):
 
     # Set up a trainer
     updater = ChainerSeqUpdaterKaldi(
-        train_iter, optimizer, train_readers, gpu_id, me2e_converter_train)
+        train_iter, optimizer, train_readers, gpu_id, e2e_mc_converter_train)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -362,7 +247,7 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(ChainerSeqEvaluaterKaldi(
-        valid_iter, model, valid_readers, gpu_id, me2e_converter_train))
+        valid_iter, model, valid_readers, gpu_id, e2e_mc_converter_train))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -453,8 +338,8 @@ def recog(args):
     logging.info('reading model parameters from' + args.model)
     enhan = NB_MVDR(bidim, train_args)
     asr = E2E(eidim, odim, train_args)
-    me2e = ME2E(enhan, asr, melmat, cmvn_stats)
-    model = Loss(me2e, train_args.mtlalpha)
+    e2e_mc = E2E_MC(enhan, asr, melmat, cmvn_stats)
+    model = Loss(e2e_mc, train_args.mtlalpha)
     chainer.serializers.load_npz(args.model, model)
 
     # read rnnlm
@@ -465,33 +350,18 @@ def recog(args):
         rnnlm = None
 
     # prepare Kaldi reader
-    # noisy
-    names_noisy = [key for key, mat in lazy_io.read_mat_scp(args.recog_feat_noisy)]
-    recog_reader_noisy = lazy_io.read_dict_scp(args.recog_feat_noisy)
-    # enhan
-    names_enhan = [key for key, mat in lazy_io.read_mat_scp(args.recog_feat_enhan[0])]
-    recog_reader_enhan = [lazy_io.read_dict_scp(feat) for feat in args.recog_feat_enhan]
+    names = [key for key, mat in lazy_io.read_mat_scp(args.recog_feat_enhan[0])]
+    recog_reader = [lazy_io.read_dict_scp(feat) for feat in args.recog_feat_enhan]
 
     # read json data
-    with open(args.recog_label_noisy, 'rb') as f:
-        recog_json_noisy = json.load(f)['utts']
     with open(args.recog_label_enhan, 'rb') as f:
-        recog_json_enhan = json.load(f)['utts']
-
-    if args.mode == 'noisy':
-        names = names_noisy
-        recog_reader = recog_reader_noisy
-        recog_json = recog_json_noisy
-    elif args.mode == 'enhan':
-        names = names_enhan
-        recog_reader = recog_reader_enhan
-        recog_json = recog_json_enhan
+        recog_json = json.load(f)['utts']
 
     new_json = {}
     for name in names:
         logging.info('decoding ' + name)
-        feat = me2e_converter_recog(name, recog_reader, args.mode)
-        y_hat = me2e.recognize(feat, args, train_args.char_list, rnnlm)
+        feat = e2e_mc_converter_recog(name, recog_reader)
+        y_hat = e2e_mc.recognize(feat, args, train_args.char_list, rnnlm)
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result
