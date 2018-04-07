@@ -5,12 +5,12 @@
 
 
 import logging
-import sys
 
 import numpy as np
 
 import chainer
 import chainer.functions as F
+from e2e_asr_attctc import _subsamplex
 
 
 class LogMel(chainer.Chain):

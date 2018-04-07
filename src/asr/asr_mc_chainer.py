@@ -4,38 +4,29 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import collections
-import copy
 import json
 import logging
-import math
 import os
 import pickle
-import six
-import sys
 
 # chainer related
 import chainer
-from chainer import cuda
-from chainer import function
-from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 
 # espnet related
+from asr_chainer import ChainerSeqEvaluaterKaldi
+from asr_chainer import ChainerSeqUpdaterKaldi
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
-from asr_utils import delete_feat
 from asr_utils import make_batchset
 from asr_utils import restore_snapshot
-from e2e_asr_attctc import E2E
-from e2e_asr_attctc import Loss
 
 # for e2e_mc
 from beamformer import NB_MVDR
+from e2e_asr_attctc import E2E
+from e2e_asr_attctc import Loss
 from e2e_asr_mc_attctc import E2E_MC
-from asr_chainer import ChainerSeqEvaluaterKaldi
-from asr_chainer import ChainerSeqUpdaterKaldi
 
 # for kaldi io
 import kaldi_io_py
@@ -213,7 +204,7 @@ def train(args):
 
     # merge noisy and enhancement data
     train = train_noisy + train_enhan
-    valid = valid_enhan
+    valid = valid_noisy + valid_enhan
 
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
