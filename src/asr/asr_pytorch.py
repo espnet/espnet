@@ -172,11 +172,14 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # Set gpu
-    gpu_id = int(args.gpu)
-    logging.info('gpu id: ' + str(gpu_id))
-    if gpu_id >= 0:
+    if args.ngpu > 1:
+        logging.warn("currently, pytorch does not support multi-gpu. use single gpu.")
+    if args.ngpu > 0:
+        gpu_id = 0
         # Make a specified GPU current
         model.cuda(gpu_id)  # Copy the model to the GPU
+    else:
+        gpu_id = -1
 
     # Setup an optimizer
     if args.opt == 'adadelta':
