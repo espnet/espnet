@@ -41,6 +41,8 @@ def main():
     parser.add_argument('--model-conf', type=str, required=True,
                         help='Model config file')
     # search related
+    parser.add_argument('--nbest', type=int, default=1,
+                        help='Output N-best hypotheses')
     parser.add_argument('--beam-size', type=int, default=1,
                         help='Beam size')
     parser.add_argument('--penalty', default=0.0, type=float,

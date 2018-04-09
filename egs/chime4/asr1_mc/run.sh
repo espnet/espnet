@@ -58,8 +58,6 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # e2e_mc
 cmvn=data-fbank/tr05_multi_noisy/cmvn.ark
 melmat=exp/make_melmat/melmat.ark
-trainmode="noisy+enhan" # training mode
-recogmode="enhan" # decoding mode
 
 # data
 chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
@@ -204,7 +202,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${trainmode}_${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         echo "delta feature is not supported"
         exit
@@ -271,8 +269,7 @@ if [ ${stage} -le 3 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --melmat ${melmat} \
-        --cmvn ${cmvn} \
-        --mode ${trainmode}
+        --cmvn ${cmvn}
 fi
 
 if [ ${stage} -le 4 ]; then
@@ -281,7 +278,7 @@ if [ ${stage} -le 4 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${recogmode}_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
 
         # enhan
         # split_data
@@ -317,7 +314,6 @@ if [ ${stage} -le 4 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            --mode ${recogmode} \
             &
         wait
 

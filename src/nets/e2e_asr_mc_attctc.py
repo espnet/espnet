@@ -116,7 +116,7 @@ class E2E_MC(chainer.Chain):
         hs = self.cmvn(hs, self.xp)
 
         # subsample frame
-        hs, ilens = _subsamplex(hs, self.subsample[0])
+        hs, ilens = _subsamplex(hs, self.asr.subsample[0])
 
         # 3. encoder
         hs, ilens = self.asr.enc(hs, ilens)
@@ -148,8 +148,6 @@ class E2E_MC(chainer.Chain):
         :param char_list:
         :return:
         '''
-        logging.info('utt_type: ' + recog_args.utt_type)
-
         x_real = x['real']
         x_imag = x['imag']
         ilen = self.xp.array(x_real[0].shape[0], dtype=np.int32)
@@ -169,7 +167,7 @@ class E2E_MC(chainer.Chain):
         hs = self.cmvn(hs, self.xp)
 
         # subsample frame
-        hs, ilens = _subsamplex(hs, self.subsample[0])
+        hs, ilens = _subsamplex(hs, self.asr.subsample[0])
 
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             # 1. encoder
