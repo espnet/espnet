@@ -91,6 +91,20 @@ Default setup uses CPU (`--ngpu 0`).
 
 Note that if you want to use multi-gpu, the installation of nccl is required before setup.
 
+### Docker Container
+If you use docker, execute `run.sh` located inside the docker folder. It will build the container to execute the given egs.
+The minimal execution line is detailed as following: 
+```sh
+$ cd $ESPnet_Folder/docker
+$ ./run.sh --gpu 0 --backend chainer --egs voxforge --stage 0'
+```
+For some egs which required to use external corpus, you can use the option ` --corpus_dir $MY_CORPUS_DIR` to load the folder into the container.
+Do not forget to set the corpus folder inside the egs `run.sh` with the same name as the egs, e.g.,
+```sh
+chime5_corpus=/chime5
+```
+For specific arguments, employ the option `--egs_opts ''` to bypass additional configurations into the egs execution.
+
 ### Setup in your cluster
 Change `cmd.sh` according to your cluster setup.
 If you run experiments with your local machine, please use default `cmd.sh`.
