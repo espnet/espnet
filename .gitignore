@@ -3,6 +3,7 @@
 \#*\#
 .\#*
 *DS_Store
+check_autopep8
 
 doc/_build
 
@@ -21,7 +22,7 @@ src/utils/kaldi_io_py.py
 tools/kaldi
 tools/kaldi-io-for-python/
 tools/kaldi_github/
-tools/miniconda.sh
+tools/Miniconda*.sh
 tools/nkf/
 tools/venv/
 tools/warp-ctc/

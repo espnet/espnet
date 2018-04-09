@@ -29,15 +29,16 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Installation
 
-Install Kaldi, Python libraries and other required tools using system python and virtualenv
-```sh
+Install Kaldi, Python2 libraries and other required tools using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+``` console
 $ cd tools
-$ make -j
+$ make
 ```
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
-```sh
+
+If you prefer python3, prebuilt kaldi or latest CUDA9.1, you can install ESPnet as follows:
+``` console
 $ cd tools
-$ make -f conda.mk -j
+$ make -j PYTHON_VERSION=3.6 PYTORCH="pytorch cuda91" KALDI_ROOT=<your prebuilt kaldi path>
 ```
 
 
