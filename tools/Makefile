@@ -40,7 +40,7 @@ venv/lib/python2.7/site-packages/torch: venv/bin/activate
 warp-ctc: venv/lib/python2.7/site-packages/torch
 	git clone https://github.com/SeanNaren/warp-ctc.git
 	$(VENV) cd warp-ctc && git checkout 9e5b238f8d9337b0c39b3fd01bbaff98ba523aa5 && mkdir build && cd build && cmake .. && make -j4
-	$(VENV) pip install cffi && 
+	$(VENV) pip install cffi
 	$(VENV) cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
 chainer_ctc: venv/bin/activate

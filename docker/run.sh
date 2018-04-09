@@ -1,10 +1,13 @@
 #!/bin/bash
 
 gpu=0
-backend=chainer
-egs=voxforge
-stage=0
+backend=
+egs=
+stage=
 corpus_dir=
+#egs_opts bypasses the arguments for each specific egs
+egs_opts=
+
 while test $# -gt 0
 do
     case "$1" in
@@ -12,6 +15,7 @@ do
             exit 0;;
         --help) echo "Usage: `basename $0` [-h] gpu model rotation type"
               exit 0;;
+        --egs_opts) egs_opts="$2";;
         --*) ext=${1#--}
               frombreak=true
               for i in _ {a..z} {A..Z}; do
@@ -35,31 +39,53 @@ do
     shift
 done
 
-name="ch300_u1604_c90_cdnn7_nossh"
-image="espnet_chainer/3.x:9.0-cudnn7-16.04"
+if [ -z "$backend" ]; then
+  echo "Need to specify a backend"
+  exit 1
+fi
 
+if [ -z "$egs" ]; then
+  echo "Select a egs to work with"
+  exit 1
+fi
+
+image="espnet/1.0:9.0-cudnn7-16.04"
 docker_image=$( docker images -q $image ) 
 
 if ! [[ -n $docker_image  ]]; then
   echo "Building docker image..."
-  (docker build -f "$name".devel -t $image .) || exit 1
+  # If you have already run a egs it will take time to load all the data from the egs
+  # to avoid it, is better to copy the folders, rather that run from the parent folder
+  cp -r ../src ../test ../tools ./
+  (docker build -f espnet.devel -t $image .) || exit 1
+  rm -r ./src ./test ./tools
 fi
 
-vol1="$PWD/../src:/espnet/src"
-vol2="$PWD/../egs:/espnet/egs"
-vol3="$PWD/../test:/espnet/test"
-vol4="$corpus_dir:/$egs"
+vols="-v $PWD/../egs:/espnet/egs"
+if [ ! -z "$corpus_dir" ]; then
+  vols=$vols" -v $corpus_dir:/$egs"
+fi 
 
-cmd0="cd /espnet/src/utils; ln -s /espnet/tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py"
 cmd1="cd /espnet/egs/$egs/asr1"
-cmd2="./run.sh --gpu 0 --stage $stage"
-cmd3="chmod -R 777 /espnet/egs/$egs/asr1" #Required to access once the training if finished
+cmd2="./run.sh --backend $backend"
+if [ ! -z "$stage" ]; then
+  cmd2=$cmd2" --stage $stage"
+fi
+
+if [ ! -z "$egs_opts" ]; then
+  cmd2=$cmd2" $egs_opts"
+fi
+
+#Required to access to the folder once the training if finished
+cmd3="chmod -R 777 /espnet/egs/$egs/asr1"
 
 if [ ${gpu} -le -1 ]; then
-  cmd="docker run -i --rm --name spnet_nogpu -v $vol1 -v $vol2 -v $vol3 $image /bin/bash -c '$cmd1; $cmd2; $cmd3'"
+  cmd="docker run -i --rm --name espnet_nogpu $vols $image /bin/bash -c '$cmd1; $cmd2; $cmd3'"
 else
-  cmd="NV_GPU=$gpu nvidia-docker run -i --rm --name spnet$gpu -v $vol1 -v $vol2 -v $vol3 -v $vol4 $image /bin/bash -c '$cmd0; $cmd1; $cmd2; $cmd3'" 
-	# --rm erase the container when the training is finished.
+  #Current implementation only supportes single GPU, TODO: multiple GPUs
+  cmd2=$cmd2" --gpu 0" 
+  # --rm erase the container when the training is finished.
+  cmd="NV_GPU=$gpu nvidia-docker run -i --rm --name espnet_gpu$gpu $vols $image /bin/bash -c '$cmd1; $cmd2; $cmd3'"
 fi
 
 echo "Executing application in Docker"
