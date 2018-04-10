@@ -22,7 +22,7 @@ if [ $# -lt 2 ]; then
 e ../run.sh for example."
    exit 1;
 fi
-
+dataname=$3
 cdir=`pwd`
 dir=`pwd`/data/local/data
 local=`pwd`/local
@@ -41,37 +41,39 @@ cd $dir
 
 # Make directory of links to the WSJ disks such as 11-13.1.  This relies on the command
 # line arguments being absolute pathnames.
+links="links"$dataname
 #rm -r links/ 2>/dev/null
-mkdir -p links/
-ln -s $* links
+mkdir -p $links/
+ln -s $1 $links/
+ln -s $2 $links/
 
 # Basic spot checks to see if we got the data that we needed
-if [ ! -d links/LDC96S35 -o ! -d links/LDC96T17 ];
+if [ ! -d $links/LDC96S35 -o ! -d $links/LDC96T17 ];
 then
         echo "The speech and the data directories need to be named LDC96S35 and LDC96T17 respecti
 vely"
         exit 1;
 fi
 
-if [ ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST -o ! -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN ];
+if [ ! -d $links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o ! -d $links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST -o ! -d $links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN ];
 then
         echo "Dev, Eval or Train directories missing or not properly organised within the speech data dir"
         exit 1;
 fi
 
 #Check the transcripts directories as well to see if they exist
-if [ ! -d links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest -o ! -d links/LDC96T17/callhome_spanish_trans_970711/transcrp/evltest -o ! -d links/LDC96T17/callhome_spanish_trans_970711/transcrp/train ]
+if [ ! -d $links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest -o ! -d $links/LDC96T17/callhome_spanish_trans_970711/transcrp/evltest -o ! -d $links/LDC96T17/callhome_spanish_trans_970711/transcrp/train ]
 then
         echo "Transcript directories missing or not properly organised"
         exit 1;
 fi
 
-speech_train=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN
-speech_dev=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST
-speech_test=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST
-transcripts_train=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/train
-transcripts_dev=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest
-transcripts_test=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/evltest
+speech_train=$dir/$links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN
+speech_dev=$dir/$links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST
+speech_test=$dir/$links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST
+transcripts_train=$dir/$links/LDC96T17/callhome_spanish_trans_970711/transcrp/train
+transcripts_dev=$dir/$links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest
+transcripts_test=$dir/$links/LDC96T17/callhome_spanish_trans_970711/transcrp/evltest
 
 fcount_train=`find ${speech_train} -iname '*.SPH' | wc -l`
 fcount_dev=`find ${speech_dev} -iname '*.SPH' | wc -l`

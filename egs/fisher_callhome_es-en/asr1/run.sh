@@ -69,16 +69,10 @@ ctc_weight=0.0 #0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
+dataset='callhome' # options fisher or callhome
+task='ST' # options ASR or ST
 #wsj0=/export/corpora5/LDC/LDC93S6B
 #wsj1=/export/corpora5/LDC/LDC94S13B
-#sfisher_speech=/export/a16/gkumar/corpora/LDC2010S01
-#sfisher_transcripts=/export/b07/arenduc1/datasets/fisher-callhome-corpus/en/LDC2010T04
-#spanish_lexicon=/export/a16/gkumar/corpora/LDC96L16
-#split=local/splits/split_fisher
-callhome_speech=/export/a16/gkumar/corpora/LDC96S35
-callhome_transcripts=/export/b07/arenduc1/datasets/fisher-callhome-corpus/en/LDC96T17
-split_callhome=local/splits/split_callhome
-
 # aug data
 aug_path=/export/a08/mwiesner/MULTIWAY_E2E_SPEECH/newscrawl2007/aug_for_espnet/aug.small
 aug_use=false
@@ -98,15 +92,34 @@ set -e
 set -u
 set -o pipefail
 
-train_set=callhome_train
-#train_set=train
-#train_dev=dev
-train_dev=callhome_dev
-#train_dev2=dev2
-train_test=callhome_test
-#train_test=test
-recog_set="callhome_dev callhome_test"
-#recog_set="dev dev2 test"
+if [ $dataset == 'fisher' ]; then
+  speech_files=/export/a16/gkumar/corpora/LDC2010S01
+  if [ $task == 'ST' ]; then
+    transcript_files=/export/b07/arenduc1/datasets/fisher-callhome-corpus/en/LDC2010T04
+  else
+    transcript_files=/export/b07/arenduc1/datasets/fisher-callhome-corpus/LDC2010T04
+  fi
+  #spanish_lexicon=/export/a16/gkumar/corpora/LDC96L16
+  split=local/splits/split_fisher
+else
+  speech_files=/export/a16/gkumar/corpora/LDC96S35
+  if [ $task == 'ST' ]; then
+    transcript_files=/export/b07/arenduc1/datasets/fisher-callhome-corpus/en/LDC96T17
+  else
+    transcript_files=/export/b07/arenduc1/datasets/fisher-callhome-corpus/LDC96T17
+  fi
+  split=local/splits/split_callhome
+fi
+
+dataname=_${task}_${dataset}
+#train_set=callhome_train
+train_set=train${dataname}
+train_dev=dev${dataname}
+#train_dev=callhome_dev
+train_dev2=dev2${dataname}
+#train_test=callhome_test
+train_test=test${dataname}
+#recog_set="callhome_dev callhome_test"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -114,17 +127,26 @@ if [ ${stage} -le 0 ]; then
     echo "stage 0: Data preparation"
     #local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
     #local/wsj_format_data.sh
-    #local/fsp_data_prep.sh $sfisher_speech $sfisher_transcripts
-    local/callhome_data_prep.sh $callhome_speech $callhome_transcripts
-    #cp -r data/local/data/train_all data/train_all
-    cp -r data/local/data/callhome_train_all data/callhome_train_all
-    #local/create_splits.sh $split
-    local/callhome_create_splits.sh $split_callhome
+    train_all=data/train_all${dataname}
+    if [ ${dataset} == 'fisher' ]; then
+      local/fsp_data_prep.sh $speech_files $transcript_files $dataname
+      cp -r data/local/data/train_all $train_all
+      splitsets="train dev dev2 test"
+    else
+      local/callhome_data_prep.sh $speech_files $transcript_files $dataname
+      cp -r data/local/data/callhome_train_all $train_all
+      splitsets="train dev test"
+    fi
+    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" ${train_all}/wav.scp
+    local/create_splits.sh --dataname ${dataname} $split "${splitsets}" ${train_all}
     #local/fsp_format_data.sh
     #local/create_splits.sh $split_callhome
 fi
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+if [ $dataset == 'fisher' ]; then
+  feat_dt2_dir=${dumpdir}/${train_dev2}/delta${do_delta}; mkdir -p ${feat_dt2_dir}
+fi
 feat_test_dir=${dumpdir}/${train_test}/delta${do_delta}; mkdir -p ${feat_test_dir}
 if [ ${stage} -le 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
@@ -134,11 +156,20 @@ if [ ${stage} -le 1 ]; then
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     #for x in train_si284 test_dev93 test_eval92; do
     #for x in train dev dev2 test; do
-    for x in ${train_dev} ${train_set} ${train_test}; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 150 data/${x} exp/make_fbank/${x} ${fbankdir}
-        #remove_longshortdata.sh --maxframes 2000 --minchars 5 --maxchars 150 data/${x} data/${x}.tmp
-        #[ -d data/${x} ] && \rm -r data/${x}
-        #mv data/${x}.tmp data/${x}
+
+    sets="$train_dev $train_set $train_test"
+    if [ $dataset == 'fisher' ]; then 
+      sets="$sets $train_dev2"
+    fi
+    echo $sets "in stage 1 feature generation"
+    #for x in ${train_dev} ${train_set} ${train_test}; do
+    for x in $sets; do  
+      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 150 data/${x} exp/make_fbank/${x} ${fbankdir}
+        if [ ${dataset} == 'fisher' ]; then
+          remove_longshortdata.sh --maxframes 2000 data/${x} data/${x}.tmp
+          [ -d data/${x} ] && \rm -r data/${x}
+          mv data/${x}.tmp data/${x}
+        fi
     done
 
     # compute global CMVN
@@ -159,6 +190,10 @@ if [ ${stage} -le 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    if [ $dataset == 'fisher' ]; then
+      dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+          data/${train_dev2}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt2_dir}
+    fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_test}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_test_dir}
     #echo "fixing and backing up data"    
@@ -172,6 +207,7 @@ if [ ${stage} -le 1 ]; then
     #done
 
 fi
+exit
 dict=data/lang_1char/${train_set}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
@@ -224,7 +260,7 @@ if [ ${stage} -le 3 ] && [ ${do_lm} == true ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_ar${aug_ratio}_dropout${dropout}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_ar${aug_ratio}_dropout${dropout}_dataset${dataset}_task${task}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -292,6 +328,11 @@ if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
+
+    recog_set="${train_dev} ${train_test}"
+    if [ $dataset == 'fisher' ]; then
+      recog_set="${recog_set} ${train_dev2}"
+    fi
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
@@ -332,6 +373,11 @@ if [ ${stage} -le 5 ]; then
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        
+        awk '{for(i=0; i<NF-1; i++){printf("%s ", $i)} printf("%s\n", $(NF-1))}' ${expdir}/${decode_dir}/ref.wrd.trn > ${expdir}/${decode_dir}/ref.wrd.mt
+        awk '{for(i=0; i<NF-1; i++){printf("%s ", $i)} printf("%s\n", $(NF-1))}' ${expdir}/${decode_dir}/hyp.wrd.trn > ${expdir}/${decode_dir}/hyp.wrd.mt
+        ./local/multi_bleu.pl ${expdir}/${decode_dir}/ref.wrd.mt < ${expdir}/${decode_dir}/hyp.wrd.mt > ${expdir}/${decode_dir}/result.wrd.bleu
+
 
     ) &
     done
