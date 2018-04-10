@@ -18,11 +18,11 @@ export LC_ALL=C
 
 
 if [ $# -lt 2 ]; then
-   echo "Usage: $0 <LDC2010S01-location> <LDC2010T04-location>"
+   echo "Usage: $0 <LDC2010S01-location> <LDC2010T04-location> dataname"
    echo "e.g.: $0 /home/mpost/data/LDC/LDC2010S01 /home/mpost/data/LDC/LDC2010T04"
    exit 1;
 fi
-
+dataname=$3
 cdir=`pwd`
 dir=`pwd`/data/local/data
 lmdir=`pwd`/data/local/nist_lm
@@ -43,12 +43,14 @@ cd $dir
 
 # Make directory of links to the WSJ disks such as 11-13.1.  This relies on the command
 # line arguments being absolute pathnames.
-rm -r links/ 2>/dev/null
-mkdir links/
-ln -s $* links
+links="links"$dataname
+rm -r $links/ 2>/dev/null
+mkdir $links/
+ln -s $1 $links/
+ln -s $2 $links/
 
 # Basic spot checks to see if we got the data that we needed
-if [ ! -d links/LDC2010S01 -o ! -d links/LDC2010T04 ];
+if [ ! -d $links/LDC2010S01 -o ! -d $links/LDC2010T04 ];
 then
         echo "The speech and the data directories need to be named LDC2010S01 and LDC2010T04 respecti
 vely"
@@ -56,7 +58,7 @@ vely"
 fi
 echo "here"
 #if [ ! -d links/LDC2010S01/DISC1/data/speech -o ! -d links/LDC2010S01/DISC2/data/speech ];
-if [ ! -d links/LDC2010S01/data/speech ];
+if [ ! -d $links/LDC2010S01/data/speech ];
 then
         echo "Speech directories missing or not properly organised within the speech data dir"
         echo "Typical format is LDC2010S01/data/speech"
@@ -64,7 +66,7 @@ then
 fi
 
 #Check the transcripts directories as well to see if they exist
-if [ ! -d links/LDC2010T04/fisher_spa_tr/data/transcripts ];
+if [ ! -d $links/LDC2010T04/fisher_spa_tr/data/transcripts ];
 then
         echo "Transcript directories missing or not properly organised"
         echo "Typical format is LDC2010T04/fisher_spa_tr/data/transcripts"
@@ -73,8 +75,8 @@ fi
 
 #speech_d1=$dir/links/LDC2010S01/DISC1/data/speech
 #speech_d2=$dir/links/LDC2010S01/DISC2/data/speech
-speech=$dir/links/LDC2010S01/data/speech
-transcripts=$dir/links/LDC2010T04/fisher_spa_tr/data/transcripts
+speech=$dir/$links/LDC2010S01/data/speech
+transcripts=$dir/$links/LDC2010T04/fisher_spa_tr/data/transcripts
 
 #fcount_d1=`find ${speech_d1} -iname '*.sph' | wc -l`
 #fcount_d2=`find ${speech_d2} -iname '*.sph' | wc -l`
