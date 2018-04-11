@@ -51,6 +51,18 @@ export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
 
+If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl) 
+and set paths in your `.bashrc` or `.bash_profile` appropriately, for 
+```
+CUDAROOT=/path/to/cuda
+NCCL_ROOT=/path/to/nccl
+
+export CPATH=$NCCL_ROOT/include:$CPATH
+export LD_LIBRARY_PATH=$NCCL_ROOT/lib/:$CUDAROOT/lib64:$LD_LIBRARY_PATH
+export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
+export CUDA_HOME=$CUDAROOT
+export CUDA_PATH=$CUDAROOT
+```
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
 We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
@@ -89,21 +101,23 @@ $ ./run.sh --ngpu 0
 ```
 Default setup uses CPU (`--ngpu 0`).  
 
-Note that if you want to use multi-gpu, the installation of nccl is required before setup.
+Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) 
+is required before setup.
 
 ### Docker Container
 To work inside a docker container, execute `run.sh` located inside the docker directory.
 It will build a container and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
 ```sh
-$ cd $ESPnet_Folder/docker
+$ cd docker
 $ ./run.sh [--docker_gpu 0 --docker_egs chime4 --docker_folders /export/corpora4/CHiME4/CHiME3] --dlayers 1 --ngpu 1 
 ```
 The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
 Multiple GPUs should be specified with the following options:
 ```sh
-$ cd $ESPnet_Folder/docker
+$ cd docker
 $ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5 --docker_folders /export/corpora4/CHiME5 --ngpu 3
 ```
+Note that all experimental files and results are created under the normal example directories (`egs/<example>/asr1/`).
 
 ### Setup in your cluster
 Change `cmd.sh` according to your cluster setup.
