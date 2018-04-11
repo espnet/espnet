@@ -100,7 +100,7 @@ $ ./run.sh --gpu 0 --egs voxforge
 ```
 For some egs which required to use external corpus, you can use the option ` --folders $MY_CORPUS_DIR` to load the folder into the container. For multiple folders, just add a comma after each folder ` --folders $MY_CORPUS_DIR1,$MY_CORPUS_DIR2`. The folder will be mount in the container with the structure as the given folder.
 
-For specific arguments, employ the option `--egs_opts ''` to bypass additional configurations into the egs execution as following:
+For specific arguments, employ the option `--egs_opts $OPTIONS` to bypass additional configurations into the egs execution as following:
 ```sh
 $ ./run.sh --gpu 0 --egs voxforge --egs_opts stage:1,backend:python,$argsn:$valuen
 ```
