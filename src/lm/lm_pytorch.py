@@ -155,29 +155,6 @@ def train(args):
     if not torch.cuda.is_available():
         logging.warning('cuda is not available')
 
-    def evaluate(model, iter, bproplen=100):
-        # Evaluation routine to be used for validation and test.
-        model.predictor.eval()
-        state = None
-        sum_perp = 0
-        data_count = 0
-        for batch in copy.copy(iter):
-            batch = np.array(batch)
-            x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
-            t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
-            if args.gpu >= 0:
-                x = x.cuda(args.gpu)
-                t = t.cuda(args.gpu)
-            state, loss = model(state, x, t)
-            sum_perp += loss.data
-            if data_count % bproplen == 0:
-                # detach all states
-                for key in state.keys():
-                    state[key] = state[key].detach()
-            data_count += 1
-        model.predictor.train()
-        return np.exp(float(sum_perp) / data_count)
-
     with open(args.train_label, 'rb') as f:
         train = np.array([args.char_list_dict[char]
                           if char in args.char_list_dict else args.char_list_dict['<unk>']
@@ -201,12 +178,38 @@ def train(args):
     rnn = RNNLM(args.n_vocab, args.unit)
     model = ClassifierWithState(rnn)
     model.compute_accuracy = False  # we only want the perplexity
-    if args.gpu >= 0:
+    if args.ngpu > 1:
+        logging.warn("currently, multi-gpu is not supported. use single gpu.")
+    if args.ngpu > 0:
         # Make the specified GPU current
-        model.cuda(args.gpu)
+        gpu_id = 0
+        model.cuda(gpu_id)
 
     # Set up an optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
+
+    def evaluate(model, iter, bproplen=100):
+        # Evaluation routine to be used for validation and test.
+        model.predictor.eval()
+        state = None
+        sum_perp = 0
+        data_count = 0
+        for batch in copy.copy(iter):
+            batch = np.array(batch)
+            x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
+            t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
+            if args.ngpu > 0:
+                x = x.cuda(gpu_id)
+                t = t.cuda(gpu_id)
+            state, loss = model(state, x, t)
+            sum_perp += loss.data
+            if data_count % bproplen == 0:
+                # detach all states
+                for key in state.keys():
+                    state[key] = state[key].detach()
+            data_count += 1
+        model.predictor.train()
+        return np.exp(float(sum_perp) / data_count)
 
     sum_perp = 0
     count = 0
@@ -227,9 +230,9 @@ def train(args):
             batch = np.array(batch)
             x = Variable(torch.from_numpy(batch[:, 0]).long())
             t = Variable(torch.from_numpy(batch[:, 1]).long())
-            if args.gpu >= 0:
-                x = x.cuda(args.gpu)
-                t = t.cuda(args.gpu)
+            if args.ngpu > 0:
+                x = x.cuda(gpu_id)
+                t = t.cuda(gpu_id)
             # Compute the loss at this time step and accumulate it
             state, loss_batch = model(state, x, t)
             loss += loss_batch
