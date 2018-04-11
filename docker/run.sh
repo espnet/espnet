@@ -1,10 +1,8 @@
 #!/bin/bash
 
 gpu=0
-backend=
 egs=
-stage=
-corpus_dir=
+folders=
 #egs_opts bypasses the arguments for each specific egs
 egs_opts=
 
@@ -15,7 +13,6 @@ do
             exit 0;;
         --help) echo "Usage: `basename $0` [-h] gpu model rotation type"
               exit 0;;
-        --egs_opts) egs_opts="$2";;
         --*) ext=${1#--}
               frombreak=true
               for i in _ {a..z} {A..Z}; do
@@ -39,11 +36,6 @@ do
     shift
 done
 
-if [ -z "$backend" ]; then
-  echo "Need to specify a backend"
-  exit 1
-fi
-
 if [ -z "$egs" ]; then
   echo "Select a egs to work with"
   exit 1
@@ -62,18 +54,23 @@ if ! [[ -n $docker_image  ]]; then
 fi
 
 vols="-v $PWD/../egs:/espnet/egs"
-if [ ! -z "$corpus_dir" ]; then
-  vols=$vols" -v $corpus_dir:/$egs"
-fi 
-
-cmd1="cd /espnet/egs/$egs/asr1"
-cmd2="./run.sh --backend $backend"
-if [ ! -z "$stage" ]; then
-  cmd2=$cmd2" --stage $stage"
+if [ ! -z "$folders" ]; then
+  folders=$(echo $folders | tr "," "\n")
+  for i in ${folders[@]}
+  do
+    vols=$vols" -v $i:$i";
+  done
 fi
 
+cmd1="cd /espnet/egs/$egs/asr1"
+cmd2="./run.sh"
 if [ ! -z "$egs_opts" ]; then
-  cmd2=$cmd2" $egs_opts"
+  egs_opts=$(echo $egs_opts | tr "," "\n")
+  for i in ${egs_opts[@]}
+  do
+    opt=$(echo $i | tr ":" "\n")
+    cmd2=$cmd2" --$opt"
+  done
 fi
 
 #Required to access to the folder once the training if finished
@@ -83,7 +80,7 @@ if [ ${gpu} -le -1 ]; then
   cmd="docker run -i --rm --name espnet_nogpu $vols $image /bin/bash -c '$cmd1; $cmd2; $cmd3'"
 else
   #Current implementation only supportes single GPU, TODO: multiple GPUs
-  cmd2=$cmd2" --gpu 0" 
+  cmd2=$cmd2" --ngpu 1" 
   # --rm erase the container when the training is finished.
   cmd="NV_GPU=$gpu nvidia-docker run -i --rm --name espnet_gpu$gpu $vols $image /bin/bash -c '$cmd1; $cmd2; $cmd3'"
 fi
