@@ -92,16 +92,17 @@ Default setup uses CPU (`--ngpu 0`).
 Note that if you want to use multi-gpu, the installation of nccl is required before setup.
 
 ### Docker Container
-For working inside a docker container execute `run.sh` located inside the docker folder, it will builds a container and execute the given applicaiton. The execution line is detailed as following: 
+To work inside a docker container, execute `run.sh` located inside the docker directory.
+It will build a container and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
 ```sh
 $ cd $ESPnet_Folder/docker
 $ ./run.sh [--docker_gpu 0 --docker_egs chime4 --docker_folders /export/corpora4/CHiME4/CHiME3] --dlayers 1 --ngpu 1 
 ```
-The arguments required for the docker configuration are detailed inside brackets. DO NOT add brackets at execution. Any additional configuration should be included after the previous.
-Multiple GPUs should be declared as following:
+The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
+Multiple GPUs should be specified with the following options:
 ```sh
 $ cd $ESPnet_Folder/docker
-$ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5 --docker_folders /export/corpora4/CHiME5 --opt adam
+$ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5 --docker_folders /export/corpora4/CHiME5 --ngpu 3
 ```
 
 ### Setup in your cluster
