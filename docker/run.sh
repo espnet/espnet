@@ -35,7 +35,7 @@ do
 done
 
 if [ -z "$docker_egs" ]; then
-  echo "Select a example to work with froom the folder egs"
+  echo "Select an example to work with from the folder egs"
   exit 1
 fi
 
@@ -44,8 +44,8 @@ docker_image=$( docker images -q $image )
 
 if ! [[ -n $docker_image  ]]; then
   echo "Building docker image..."
-  # If you have already run a egs it will take time to load all the data from the egs
-  # to avoid it, is better to copy the folders, rather that run from the parent folder
+  # If you have already run a egs it will take time to load all the data from the egs.
+  # To avoid it, it is better to copy the folders, rather that run from the parent folder
   cp -r ../src ../test ../tools ./
   (docker build -f espnet.devel -t $image .) || exit 1
   rm -r ./src ./test ./tools
