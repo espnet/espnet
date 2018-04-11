@@ -45,6 +45,18 @@ export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
 
+If you want to use multiple GPUs, you should install [NCLL](https://developer.nvidia.com/nccl) 
+and set paths in your `.bashrc` or `.bash_profile` as follows
+```
+CUDAROOT=/path/to/cuda
+NCCL_ROOT=/path/to/nccl
+
+export CPATH=$NCCL_ROOT/include:$CPATH
+export LD_LIBRARY_PATH=$NCCL_ROOT/lib/:$CUDAROOT/lib64:$LD_LIBRARY_PATH
+export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
+export CUDA_HOME=$CUDAROOT
+export CUDA_PATH=$CUDAROOT
+```
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
 We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
