@@ -53,18 +53,18 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
-opt=adadelta
-dropout=0.3
-epochs=50
+opt=adam #adadelta
+dropout=0.2
+epochs=20
 
 # rnnlm related
 lm_weight=0.0 #1.0
 
 # decoding parameter
-beam_size=20
+beam_size=5
 penalty=0.0
-maxlenratio=0.8
-minlenratio=0.3
+maxlenratio=0.9
+minlenratio=0.1
 ctc_weight=0.0 #0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
@@ -73,11 +73,6 @@ dataset='callhome' # options fisher or callhome
 task='ST' # options ASR or ST
 #wsj0=/export/corpora5/LDC/LDC93S6B
 #wsj1=/export/corpora5/LDC/LDC94S13B
-# aug data
-aug_path=/export/a08/mwiesner/MULTIWAY_E2E_SPEECH/newscrawl2007/aug_for_espnet/aug.small
-aug_use=false
-aug_ratio=0
-
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -130,11 +125,11 @@ if [ ${stage} -le 0 ]; then
     train_all=data/train_all${dataname}
     if [ ${dataset} == 'fisher' ]; then
       local/fsp_data_prep.sh $speech_files $transcript_files $dataname
-      cp -r data/local/data/train_all $train_all
+      cp -r data/local/data/train_all$dataname $train_all
       splitsets="train dev dev2 test"
     else
       local/callhome_data_prep.sh $speech_files $transcript_files $dataname
-      cp -r data/local/data/callhome_train_all $train_all
+      cp -r data/local/data/train_all$dataname $train_all
       splitsets="train dev test"
     fi
     sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" ${train_all}/wav.scp
@@ -164,7 +159,7 @@ if [ ${stage} -le 1 ]; then
     echo $sets "in stage 1 feature generation"
     #for x in ${train_dev} ${train_set} ${train_test}; do
     for x in $sets; do  
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 150 data/${x} exp/make_fbank/${x} ${fbankdir}
+      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 data/${x} exp/make_fbank/${x} ${fbankdir}
         if [ ${dataset} == 'fisher' ]; then
           remove_longshortdata.sh --maxframes 2000 data/${x} data/${x}.tmp
           [ -d data/${x} ] && \rm -r data/${x}
@@ -207,15 +202,14 @@ if [ ${stage} -le 1 ]; then
     #done
 
 fi
-exit
-dict=data/lang_1char/${train_set}_units.txt
-nlsyms=data/lang_1char/non_lang_syms.txt
+dict=data/lang_1char${dataname}/${train_set}_units.txt
+nlsyms=data/lang_1char${dataname}/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
+    mkdir -p data/lang_1char$dataname/
 
     echo "make a non-linguistic symbol list"
     cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "[<\[]"  > ${nlsyms}
@@ -260,7 +254,7 @@ if [ ${stage} -le 3 ] && [ ${do_lm} == true ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_ar${aug_ratio}_dropout${dropout}_dataset${dataset}_task${task}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_dropout${dropout}_dataset${dataset}_task${task}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -273,13 +267,6 @@ fi
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
-    if [ ! -z "${aug_path}" ] && [ ${aug_use} == true ]; then
-      echo "updating ${feat_tr_dir}/data.json with augmenting data"
-      add2json.py -a ${aug_path} -d ${dict} -j ${feat_tr_dir}/data.json
-    else
-      echo "skipping augment data prep..."
-    fi
-
     echo "stage 4: Network Training"
 
     ${cuda_cmd} ${expdir}/train.log \
@@ -320,7 +307,6 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --augment-ratio ${aug_ratio} \
         --epochs ${epochs}
 fi
 
@@ -376,7 +362,7 @@ if [ ${stage} -le 5 ]; then
         
         awk '{for(i=0; i<NF-1; i++){printf("%s ", $i)} printf("%s\n", $(NF-1))}' ${expdir}/${decode_dir}/ref.wrd.trn > ${expdir}/${decode_dir}/ref.wrd.mt
         awk '{for(i=0; i<NF-1; i++){printf("%s ", $i)} printf("%s\n", $(NF-1))}' ${expdir}/${decode_dir}/hyp.wrd.trn > ${expdir}/${decode_dir}/hyp.wrd.mt
-        ./local/multi_bleu.pl ${expdir}/${decode_dir}/ref.wrd.mt < ${expdir}/${decode_dir}/hyp.wrd.mt > ${expdir}/${decode_dir}/result.wrd.bleu
+        ./local/multi_bleu.perl ${expdir}/${decode_dir}/ref.wrd.mt < ${expdir}/${decode_dir}/hyp.wrd.mt > ${expdir}/${decode_dir}/result.wrd.bleu
 
 
     ) &

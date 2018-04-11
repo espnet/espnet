@@ -109,8 +109,9 @@ fi
 if [ $stage -le 1 ]; then
   $local/fsp_make_trans.pl $tmpdir
   echo "tmp dir $tmpdir"
-  mkdir -p $dir/train_all
-  mv $tmpdir/reco2file_and_channel $dir/train_all/
+  train_all=train_all${dataname}
+  mkdir -p $dir/$train_all
+  mv $tmpdir/reco2file_and_channel $dir/$train_all/
 fi
 
 if [ $stage -le 2 ]; then
@@ -142,20 +143,20 @@ echo "in stage 2 in fsp perp"
   grep -v '()' | \
   #Now go after the non-printable characters and multiple spaces
   sed -r 's:¿::g'  | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $tmpdir/text.2
-  cp $tmpdir/text.2 $dir/train_all/text
+  cp $tmpdir/text.2 $dir/$train_all/text
 
   echo "text2 size:$(wc -l $tmpdir/text.2)"
-  echo "train_all/text size:$(wc -l $dir/train_all/text)"
+  echo "$train_all/text size:$(wc -l $dir/$train_all/text)"
   #Create segments file and utt2spk file
-  ! cat $dir/train_all/text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/train_all/utt2spk \
+  ! cat $dir/$train_all/text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/$train_all/utt2spk \
   && echo "Error producing utt2spk file" && exit 1;
 
   echo "in stage 2 in fsp perp(3)"
-  cat $dir/train_all/text | perl -ane 'm:((\S+-[AB])-(\d+)-(\d+))\s: || die; $utt = $1; $reco = $2;
-  $s = sprintf("%.2f", 0.01*$3); $e = sprintf("%.2f", 0.01*$4); if ($s != $e) {print "$utt $reco $s $e\n"}; ' >$dir/train_all/segments
+  cat $dir/$train_all/text | perl -ane 'm:((\S+-[AB])-(\d+)-(\d+))\s: || die; $utt = $1; $reco = $2;
+  $s = sprintf("%.2f", 0.01*$3); $e = sprintf("%.2f", 0.01*$4); if ($s != $e) {print "$utt $reco $s $e\n"}; ' >$dir/$train_all/segments
   echo "in stage 2 in fsp perp(4)"
 
-  $utils/utt2spk_to_spk2utt.pl <$dir/train_all/utt2spk > $dir/train_all/spk2utt
+  $utils/utt2spk_to_spk2utt.pl <$dir/$train_all/utt2spk > $dir/$train_all/spk2utt
 fi
 
 if [ $stage -le 3 ]; then
@@ -167,21 +168,21 @@ if [ $stage -le 3 ]; then
 
   cat $tmpdir/train_sph_abs.flist | perl -ane 'm:/([^/]+)\.sph$: || die "bad line $_; ";  print "$1 $_"; ' > $tmpdir/sph.scp
   cat $tmpdir/sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2); printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
-  sort -k1,1 -u  > $dir/train_all/wav.scp || exit 1;
+  sort -k1,1 -u  > $dir/$train_all/wav.scp || exit 1;
 fi
 
 if [ $stage -le 4 ]; then
   echo "in stage 4 in fsp perp"
   # Build the speaker to gender map, the temporary file with the speaker in gender information is already created by fsp_make_trans.pl.
   cd $cdir
-  $local/fsp_make_spk2gender.sh > $dir/train_all/spk2gender
+  $local/fsp_make_spk2gender.sh > $dir/$train_all/spk2gender
   echo "done stage 4 in fsp perp"
 fi
 
 echo "fix_data_dir in fsp perp"
-fix_data_dir.sh $dir/train_all || exit 1
+fix_data_dir.sh $dir/$train_all || exit 1
 echo "validate_data_dir fsp perp"
-validate_data_dir.sh --no-feats $dir/train_all || exit 1
+validate_data_dir.sh --no-feats $dir/$train_all || exit 1
 
 echo "Fisher Spanish Data preparation succeeded."
 

@@ -110,21 +110,22 @@ fi
 
 if [ $stage -le 1 ]; then
   $local/callhome_make_trans.pl $tmpdir
-  mkdir -p $dir/callhome_train_all
-  mv $tmpdir/callhome_reco2file_and_channel $dir/callhome_train_all/
+  train_all=train_all$dataname
+  mkdir -p $dir/$train_all
+  mv $tmpdir/callhome_reco2file_and_channel $dir/$train_all/
 fi
 
 if [ $stage -le 2 ]; then
-  sort $tmpdir/callhome.text.1 | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $dir/callhome_train_all/callhome.text
+  sort $tmpdir/callhome.text.1 | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $dir/$train_all/callhome.text
 
   #Create segments file and utt2spk file
-  ! cat $dir/callhome_train_all/callhome.text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/callhome_train_all/callhome_utt2spk \
+  ! cat $dir/$train_all/callhome.text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/$train_all/callhome_utt2spk \
   && echo "Error producing utt2spk file" && exit 1;
 
-  cat $dir/callhome_train_all/callhome.text | perl -ane 'm:((\S+-[AB])-(\d+)-(\d+))\s: || die; $utt = $1; $reco = $2;
- $s = sprintf("%.2f", 0.01*$3); $e = sprintf("%.2f", 0.01*$4); print "$utt $reco $s $e\n"; ' >$dir/callhome_train_all/callhome_segments
+  cat $dir/$train_all/callhome.text | perl -ane 'm:((\S+-[AB])-(\d+)-(\d+))\s: || die; $utt = $1; $reco = $2;
+ $s = sprintf("%.2f", 0.01*$3); $e = sprintf("%.2f", 0.01*$4); print "$utt $reco $s $e\n"; ' >$dir/$train_all/callhome_segments
 
-  $utils/utt2spk_to_spk2utt.pl <$dir/callhome_train_all/callhome_utt2spk > $dir/callhome_train_all/callhome_spk2utt
+  $utils/utt2spk_to_spk2utt.pl <$dir/$train_all/callhome_utt2spk > $dir/$train_all/callhome_spk2utt
 fi
 
 if [ $stage -le 3 ]; then
@@ -135,19 +136,19 @@ if [ $stage -le 3 ]; then
 
   cat $tmpdir/callhome_train_sph_abs.flist | perl -ane 'm:/([^/]+)\.SPH$: || die "bad line $_; ";  print lc($1)," $_"; ' > $tmpdir/callhome_sph.scp
   cat $tmpdir/callhome_sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2); printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
-  sort -k1,1 -u  > $dir/callhome_train_all/callhome_wav.scp || exit 1;
+  sort -k1,1 -u  > $dir/$train_all/callhome_wav.scp || exit 1;
 fi
 
 if [ $stage -le 4 ]; then
   # Build the speaker to gender map, the temporary file with the speaker in gender information is already created by fsp_make_trans.pl.
   cd $cdir
   #TODO: needs to be rewritten
-  $local/callhome_make_spk2gender.sh > $dir/callhome_train_all/callhome_spk2gender
+  $local/callhome_make_spk2gender.sh > $dir/$train_all/callhome_spk2gender
 fi
 
 # Rename files from the callhome directory
 if [ $stage -le 5 ]; then
-    cd $dir/callhome_train_all
+    cd $dir/$train_all
     mv callhome.text text
     mv callhome_segments segments
     mv callhome_spk2utt spk2utt
@@ -158,8 +159,8 @@ if [ $stage -le 5 ]; then
     cd $cdir
 fi
 
-fix_data_dir.sh $dir/callhome_train_all || exit 1
-utils/validate_data_dir.sh --no-feats $dir/callhome_train_all || exit 1
+fix_data_dir.sh $dir/$train_all || exit 1
+utils/validate_data_dir.sh --no-feats $dir/$train_all || exit 1
 
 echo "CALLHOME spanish Data preparation succeeded."
 
