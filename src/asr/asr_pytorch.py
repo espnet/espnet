@@ -155,6 +155,7 @@ def train(args):
     odim = int(valid_json[utts[0]]['odim'])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
+
     # specify model architecture
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
@@ -171,11 +172,14 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # Set gpu
-    gpu_id = int(args.gpu)
-    logging.info('gpu id: ' + str(gpu_id))
-    if gpu_id >= 0:
+    if args.ngpu > 1:
+        logging.warn("currently, pytorch does not support multi-gpu. use single gpu.")
+    if args.ngpu > 0:
+        gpu_id = 0
         # Make a specified GPU current
         model.cuda(gpu_id)  # Copy the model to the GPU
+    else:
+        gpu_id = -1
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -194,6 +198,7 @@ def train(args):
     with open(args.valid_label, 'rb') as f:
         valid_json = json.load(f)['utts']
 
+    # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     valid = make_batchset(valid_json, args.batch_size,

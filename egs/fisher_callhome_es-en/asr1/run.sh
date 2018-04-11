@@ -53,18 +53,18 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
-opt=adam #adadelta
-dropout=0.2
+opt=adadelta
+dropout=0.3
 epochs=20
 
 # rnnlm related
 lm_weight=0.0 #1.0
 
 # decoding parameter
-beam_size=5
+beam_size=10
 penalty=0.0
-maxlenratio=0.9
-minlenratio=0.1
+maxlenratio=0.8
+minlenratio=0.3
 ctc_weight=0.0 #0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
