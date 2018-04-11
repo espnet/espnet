@@ -153,12 +153,60 @@ class E2E(chainer.Chain):
                                labeldist, args.lsm_weight)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
-    def __call__(self, data):
+    def __call__(self, data, preprocess=None):
         '''E2E forward
 
         :param data:
         :return:
         '''
+        if preprocess == None:
+            preprocess = self.pre_call
+        hs, ys, ilens = preprocess(data)
+
+        # 1. encoder
+        hs, ilens = self.enc(hs, ilens)
+
+        # 3. CTC loss
+        loss_ctc = self.ctc(hs, ys)
+
+        # 4. attention loss
+        loss_att, acc, att_w = self.dec(hs, ys)
+
+        return loss_ctc, loss_att, acc
+
+    def recognize(self, x, recog_args, char_list, rnnlm=None, preprocess=None):
+        '''E2E greedy/beam search
+
+        :param x:
+        :param recog_args:
+        :param char_list:
+        :return:
+        '''
+        if preprocess == None:
+            preprocess = self.pre_recognize
+        h, ilen = preprocess(x)
+
+        with chainer.no_backprop_mode(), chainer.using_config('train', False):
+            # 1. encoder
+            # make a utt list (1) to use the same interface for encoder
+            h, _ = self.enc(h, ilen)
+
+            # calculate log P(z_t|X) for CTC scores
+            if recog_args.ctc_weight > 0.0:
+                lpz = self.ctc.log_softmax(h).data[0]
+            else:
+                lpz = None
+
+            # 2. decoder
+            # decode the first utterance
+            if recog_args.beam_size == 1:
+                y = self.dec.recognize(h[0], recog_args, rnnlm)
+            else:
+                y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+
+            return y
+
+    def _pre_call(self, data):
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
         # remove 0-output-length utterances
@@ -179,49 +227,15 @@ class E2E(chainer.Chain):
         hs = [chainer.Variable(self.xp.array(xx, dtype=np.float32))
               for xx in xs]
 
-        # 1. encoder
-        hs, ilens = self.enc(hs, ilens)
+        return hs, ys, ilens
 
-        # 3. CTC loss
-        loss_ctc = self.ctc(hs, ys)
-
-        # 4. attention loss
-        loss_att, acc, att_w = self.dec(hs, ys)
-
-        return loss_ctc, loss_att, acc
-
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
-        '''E2E greedy/beam search
-
-        :param x:
-        :param recog_args:
-        :param char_list:
-        :return:
-        '''
+    def _pre_recognize(self, x):
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = self.xp.array(x.shape[0], dtype=np.int32)
         h = chainer.Variable(self.xp.array(x, dtype=np.float32))
 
-        with chainer.no_backprop_mode(), chainer.using_config('train', False):
-            # 1. encoder
-            # make a utt list (1) to use the same interface for encoder
-            h, _ = self.enc([h], [ilen])
-
-            # calculate log P(z_t|X) for CTC scores
-            if recog_args.ctc_weight > 0.0:
-                lpz = self.ctc.log_softmax(h).data[0]
-            else:
-                lpz = None
-
-            # 2. decoder
-            # decode the first utterance
-            if recog_args.beam_size == 1:
-                y = self.dec.recognize(h[0], recog_args, rnnlm)
-            else:
-                y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
-
-            return y
+        return [h], [ilen]
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------

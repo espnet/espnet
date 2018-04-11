@@ -75,6 +75,19 @@ class E2E_MC(chainer.Chain):
         :param data:
         :return:
         '''
+        return self.asr(data, self._pre_call)
+
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
+        '''E2E greedy/beam search
+
+        :param x:
+        :param recog_args:
+        :param char_list:
+        :return:
+        '''
+        return self.asr.recognize(x, recog_args, char_list, rnnlm, self._pre_recognize)
+
+    def _pre_call(self, data):
         utt_type = data[0][1]['utt_type']
         logging.info('utt_type: ' + utt_type)
 
@@ -118,36 +131,9 @@ class E2E_MC(chainer.Chain):
         # subsample frame
         hs, ilens = _subsamplex(hs, self.asr.subsample[0])
 
-        # 3. encoder
-        hs, ilens = self.asr.enc(hs, ilens)
+        return hs, ys, ilens
 
-        # 4. CTC loss
-        loss_ctc = self.asr.ctc(hs, ys)
-
-        # 5. attention loss
-        loss_att, acc, att_w = self.asr.dec(hs, ys)
-
-        # get alignment
-        '''
-        if self.verbose > 0 and self.outdir is not None:
-            for i in six.moves.range(len(data)):
-                utt = data[i][0]
-                align_file = self.outdir + '/' + utt + '.ali'
-                with open(align_file, "w") as f:
-                    logging.info('writing an alignment file to' + align_file)
-                    pickle.dump((utt, att_w[i]), f)
-        '''
-
-        return loss_ctc, loss_att, acc
-
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
-        '''E2E greedy/beam search
-
-        :param x:
-        :param recog_args:
-        :param char_list:
-        :return:
-        '''
+    def _pre_recognize(self, x):
         x_real = x['real']
         x_imag = x['imag']
         ilen = self.xp.array(x_real[0].shape[0], dtype=np.int32)
@@ -169,21 +155,4 @@ class E2E_MC(chainer.Chain):
         # subsample frame
         hs, ilens = _subsamplex(hs, self.asr.subsample[0])
 
-        with chainer.no_backprop_mode(), chainer.using_config('train', False):
-            # 1. encoder
-            hs, _ = self.asr.enc(hs, ilen)
-
-            # calculate log P(z_t|X) for CTC scores
-            if recog_args.ctc_weight > 0.0:
-                lpz = self.ctc.log_softmax(hs).data[0]
-            else:
-                lpz = None
-
-            # 2. decoder
-            # decode the first utterance
-            if recog_args.beam_size == 1:
-                y = self.asr.dec.recognize(hs[0], recog_args, rnnlm)
-            else:
-                y = self.asr.dec.recognize_beam(hs[0], lpz, recog_args, char_list, rnnlm)
-
-            return y
+        return hs, ilens
