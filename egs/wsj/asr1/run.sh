@@ -57,6 +57,13 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 opt=adadelta
 epochs=15
 
+# aug data
+aug_path=/export/b07/arenduc1/e2e-speech/data/wsjchars/rep_phones_div/wsjchars.aug.train
+aug_use=false
+aug_ratio=1
+aug_lim=0
+aug_rep=1
+
 # rnnlm related
 lm_weight=1.0
 
@@ -206,7 +213,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_ar${aug_ratio}_al${aug_lim}_au${aug_use}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -219,6 +226,12 @@ fi
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
+    if [ ! -z "${aug_path}" ] && [ ${aug_use} == true ]; then
+      echo "updating ${feat_tr_dir}/data.json with augmenting data"
+      add2json.py -a ${aug_path} -d ${dict} -j ${feat_tr_dir}/data.json
+    else
+      echo "skipping data augmentation..."
+    fi
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
@@ -258,6 +271,9 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
+        --augment-ratio ${aug_ratio} \
+        --augment-limit ${aug_lim} \
+        --is-rep-aug ${aug_rep} \
         --epochs ${epochs}
 fi
 
