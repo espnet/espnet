@@ -51,8 +51,8 @@ export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
 
-If you want to use multiple GPUs, you should install [NCLL](https://developer.nvidia.com/nccl) 
-and set paths in your `.bashrc` or `.bash_profile` as follows
+If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl) 
+and set paths in your `.bashrc` or `.bash_profile` appropriately, for 
 ```
 CUDAROOT=/path/to/cuda
 NCCL_ROOT=/path/to/nccl
@@ -101,7 +101,8 @@ $ ./run.sh --ngpu 0
 ```
 Default setup uses CPU (`--ngpu 0`).  
 
-Note that if you want to use multi-gpu, the installation of nccl is required before setup.
+Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) 
+is required before setup.
 
 ### Setup in your cluster
 Change `cmd.sh` according to your cluster setup.
