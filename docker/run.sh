@@ -1,19 +1,17 @@
 #!/bin/bash
 
-gpu=0
-egs=
-folders=
-#egs_opts bypasses the arguments for each specific egs
-egs_opts=
+docker_gpu=0
+docker_egs=
+docker_folders=
 
 while test $# -gt 0
 do
     case "$1" in
-        -h) echo "Usage: `basename $0` [-h] gpu model rotation type"
+        -h) echo "Usage: `basename $0` [-h] docker_gpu docker_egs docker_folders options"
             exit 0;;
-        --help) echo "Usage: `basename $0` [-h] gpu model rotation type"
+        --help) echo "Usage: `basename $0` [-h] ] docker_gpu docker_egs docker_folders options"
               exit 0;;
-        --*) ext=${1#--}
+        --docker*) ext=${1#--}
               frombreak=true
               for i in _ {a..z} {A..Z}; do
                 for var in `eval echo "\\${!$i@}"`; do
@@ -29,15 +27,15 @@ do
                 exit 1
               fi
               ;;
-        *) echo "argument $1 does not exit"
-            exit 1;;
+        --*) break
+              ;;
     esac
     shift
     shift
 done
 
-if [ -z "$egs" ]; then
-  echo "Select a egs to work with"
+if [ -z "$docker_egs" ]; then
+  echo "Select a example to work with froom the folder egs"
   exit 1
 fi
 
@@ -54,40 +52,28 @@ if ! [[ -n $docker_image  ]]; then
 fi
 
 vols="-v $PWD/../egs:/espnet/egs"
-if [ ! -z "$folders" ]; then
-  folders=$(echo $folders | tr "," "\n")
-  for i in ${folders[@]}
+if [ ! -z "$docker_folders" ]; then
+  docker_folders=$(echo $docker_folders | tr "," "\n")
+  for i in ${docker_folders[@]}
   do
     vols=$vols" -v $i:$i";
   done
 fi
 
-cmd1="cd /espnet/egs/$egs/asr1"
-cmd2="./run.sh"
-if [ ! -z "$egs_opts" ]; then
-  egs_opts=$(echo $egs_opts | tr "," "\n")
-  for i in ${egs_opts[@]}
-  do
-    opt=$(echo $i | tr ":" "\n")
-    cmd2=$cmd2" --$opt"
-  done
-fi
-
+cmd1="cd /espnet/egs/$docker_egs/asr1"
+cmd2="./run.sh $@"
 #Required to access to the folder once the training if finished
-cmd3="chmod -R 777 /espnet/egs/$egs/asr1"
+cmd3="chmod -R 777 /espnet/egs/$docker_egs/asr1"
 
 if [ ${gpu} -le -1 ]; then
   cmd="docker run -i --rm --name espnet_nogpu $vols $image /bin/bash -c '$cmd1; $cmd2; $cmd3'"
 else
-  #Current implementation only supportes single GPU, TODO: multiple GPUs
-  cmd2=$cmd2" --ngpu 1" 
   # --rm erase the container when the training is finished.
-  cmd="NV_GPU=$gpu nvidia-docker run -i --rm --name espnet_gpu$gpu $vols $image /bin/bash -c '$cmd1; $cmd2; $cmd3'"
+  cmd="NV_GPU='$docker_gpu' nvidia-docker run -i --rm --name espnet_gpu$$docker_gpu $vols $image /bin/bash -c '$cmd1; $cmd2; $cmd3'"
 fi
 
 echo "Executing application in Docker"
 echo $cmd
 eval $cmd
-
 
 echo "`basename $0` done."
