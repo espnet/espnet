@@ -1,0 +1,56 @@
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+
+ENV CUDA_HOME /usr/local/cuda
+RUN apt-get update && apt-get install -y \
+        cmake \
+        wget \
+        build-essential \
+        curl \
+        git \
+        libfreetype6-dev \
+        libpng12-dev \
+        libzmq3-dev \
+        pkg-config \
+        python-dev \
+        python3.6 \
+        python3.6-dev \
+        software-properties-common \
+        swig \
+        zip \
+        zlib1g-dev \
+        libcurl3-dev \
+        libhdf5-dev \  
+        libsndfile-dev \
+        libasound2-dev \
+        python-numpy-dev \ 
+        python-tk \
+        pciutils \
+        libatlas3-base \
+        automake \
+        autoconf \
+        libtool \
+        subversion \
+        flac \
+        bc \
+        gawk \
+        sox \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py && \
+    rm get-pip.py
+
+RUN pip install virtualenv
+
+RUN mkdir -p /espnet/tools
+COPY ./tools /espnet/tools
+COPY ./src /espnet/src
+COPY ./test /espnet/test
+
+WORKDIR /espnet/tools
+RUN make all
+RUN cd kaldi/tools && ./extras/install_beamformit.sh
+WORKDIR /
+
