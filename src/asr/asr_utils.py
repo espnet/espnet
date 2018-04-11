@@ -10,6 +10,7 @@ import logging
 import chainer
 from chainer import training
 
+
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
     # sort it by input lengths (long to short)

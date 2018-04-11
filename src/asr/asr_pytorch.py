@@ -156,7 +156,7 @@ def train(args):
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
     # specify model architecture
-    e2e = E2E(idim, odim, args) , augment_idim=augment_idim)
+    e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
 
     # write model config
@@ -188,7 +188,7 @@ def train(args):
     setattr(optimizer, "target", model.reporter)
     setattr(optimizer, "serialize", lambda s: model.reporter.serialize(s))
 
-    #read json data
+    # read json data
     with open(args.train_label, 'rb') as f:
         train_json = json.load(f)['utts']
     with open(args.valid_label, 'rb') as f:
@@ -285,6 +285,7 @@ def train(args):
 
     # Run the training
     trainer.run()
+
 
 def recog(args):
     '''Run recognition'''
