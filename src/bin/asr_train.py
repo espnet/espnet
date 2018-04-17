@@ -48,6 +48,18 @@ def main():
                         help='Filename of train label data (json)')
     parser.add_argument('--valid-label', type=str, required=True,
                         help='Filename of validation label data (json)')
+    # aug related
+    parser.add_argument('--train-aug', type=str, required=True,
+                        help='Filename of aug data (json)')
+    parser.add_argument('--aug-ratio', default=1, type=int,
+                        help='real data to aug data ratio')
+    parser.add_argument('--aug-vocab-size', default=40, type=int,
+                        help='augment input symbol embedding size')
+    parser.add_argument('--aug-layers', default=1, type=int,
+                        help='number of layers in the AugmentEncoder')
+    parser.add_argument('--aug-idim', default=83, type=int,
+                        help='augment symbol embedding dim')
+
     # network archtecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,

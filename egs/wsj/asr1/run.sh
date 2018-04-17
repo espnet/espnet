@@ -72,6 +72,13 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 wsj0=/export/corpora5/LDC/LDC93S6B
 wsj1=/export/corpora5/LDC/LDC94S13B
 
+# aug data
+aug_path=/export/b07/arenduc1/e2e-speech/data/wsjchars/rep_phones_div/wsjchars.aug.train
+aug_use=false
+aug_ratio=1
+aug_lim=0
+aug_rep=1
+
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -172,11 +179,23 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
+if [ $stage -le 3 ]; then
+    if [ ! -z "${aug_path}" ] && [ ${aug_use} == true ]; then
+      echo "creating ${feat_tr_dir}/aug.json with augmenting data"
+      aug2json.py -a ${aug_path} -d ${dict} -j ${feat_tr_dir}/aug.json
+      aug_json=${feat_tr_dir}/aug.json
+    else
+      aug_json=""
+      echo "skipping data augmentation..."
+    fi
+fi
+
+
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs2048
 mkdir -p ${lmexpdir}
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 4 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
@@ -210,6 +229,9 @@ if [ -z ${tag} ]; then
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
+    if [ "${aug_use}" == true ]; then
+      expdir=${expdir}_aug
+    fi
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -218,7 +240,7 @@ else
 fi
 mkdir -p ${expdir}
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 5 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
@@ -236,6 +258,7 @@ if [ ${stage} -le 4 ]; then
         --train-feat scp:${feat_tr_dir}/feats.scp \
         --valid-feat scp:${feat_dt_dir}/feats.scp \
         --train-label ${feat_tr_dir}/data.json \
+        --train-aug ${aug_json} \
         --valid-label ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
@@ -261,7 +284,7 @@ if [ ${stage} -le 4 ]; then
         --epochs ${epochs}
 fi
 
-if [ ${stage} -le 5 ]; then
+if [ ${stage} -le 6 ]; then
     echo "stage 5: Decoding"
     nj=32
 
@@ -292,6 +315,7 @@ if [ ${stage} -le 5 ]; then
             --backend ${backend} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \
+            --train-aug ${aug_json} \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
