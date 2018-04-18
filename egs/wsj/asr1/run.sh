@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
@@ -23,7 +23,7 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
+etype=blstmp     # encoder architecture type
 elayers=6
 eunits=320
 eprojs=320
@@ -74,7 +74,7 @@ wsj1=/export/corpora5/LDC/LDC94S13B
 
 # aug data
 aug_path=/export/b07/arenduc1/e2e-speech/data/wsjchars/rep_phones_div/wsjchars.aug.train
-aug_use=false
+aug_use=1
 aug_ratio=1
 aug_lim=0
 aug_rep=1
@@ -179,23 +179,12 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
-if [ $stage -le 3 ]; then
-    if [ ! -z "${aug_path}" ] && [ ${aug_use} == true ]; then
-      echo "creating ${feat_tr_dir}/aug.json with augmenting data"
-      aug2json.py -a ${aug_path} -d ${dict} -j ${feat_tr_dir}/aug.json
-      aug_json=${feat_tr_dir}/aug.json
-    else
-      aug_json=""
-      echo "skipping data augmentation..."
-    fi
-fi
-
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs2048
 mkdir -p ${lmexpdir}
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
@@ -223,13 +212,21 @@ if [ ${stage} -le 4 ]; then
         --valid-label ${lmdatadir}/valid.txt \
         --dict ${dict}
 fi
-
+dict_aug=data/lang_1char/aug_input_units.txt
+if [ $stage -le 4 ]; then
+    if [ ! -z "${aug_path}" ] && [ ${aug_use} -eq 1 ]; then
+      echo "creating ${feat_tr_dir}/aug.json with augmenting data"
+      aug2json.py -a ${aug_path} -d ${dict} -j ${feat_tr_dir}/aug.json > $dict_aug
+    else
+      echo "skipping data augmentation..."
+    fi
+fi
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
-    if [ "${aug_use}" == true ]; then
+    if [ "${aug_use}" -eq 1 ]; then
       expdir=${expdir}_aug
     fi
     if ${do_delta}; then
@@ -243,8 +240,8 @@ mkdir -p ${expdir}
 if [ ${stage} -le 5 ]; then
     echo "stage 4: Network Training"
 
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_train.py \
+    #${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -258,7 +255,9 @@ if [ ${stage} -le 5 ]; then
         --train-feat scp:${feat_tr_dir}/feats.scp \
         --valid-feat scp:${feat_dt_dir}/feats.scp \
         --train-label ${feat_tr_dir}/data.json \
-        --train-aug ${aug_json} \
+        --use_aug ${aug_use} \
+        --train-aug ${feat_tr_dir}/aug.json \
+        --dict-aug ${dict_aug} \
         --valid-label ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
@@ -283,6 +282,7 @@ if [ ${stage} -le 5 ]; then
         --opt ${opt} \
         --epochs ${epochs}
 fi
+exit
 
 if [ ${stage} -le 6 ]; then
     echo "stage 5: Decoding"
@@ -315,7 +315,8 @@ if [ ${stage} -le 6 ]; then
             --backend ${backend} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \
-            --train-aug ${aug_json} \
+            --use_aug ${aug_use} \
+            --dict-aug ${dict_aug} \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

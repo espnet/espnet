@@ -8,6 +8,7 @@ from __future__ import division
 
 import logging
 import math
+import os
 import sys
 
 import chainer
@@ -25,6 +26,8 @@ from torch.nn.utils.rnn import pad_packed_sequence
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
+
+import pdb
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -107,14 +110,14 @@ class Loss(torch.nn.Module):
         self.predictor = predictor
         self.reporter = Reporter()
 
-    def forward(self, x):
+    def forward(self, x, is_aug=False):
         '''Loss forward
 
         :param x:
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, acc = self.predictor(x, is_aug)
         alpha = self.mtlalpha
         self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
@@ -189,7 +192,7 @@ class E2E(torch.nn.Module):
             labeldist = None
 
         # augment encoder
-        if args.train_aug != '':
+        if args.use_aug:
             self.aug_enc = AugmentEncoder(args.aug_vocab_size,
                                           args.etype, args.aug_idim,
                                           args.aug_layers, args.eunits,

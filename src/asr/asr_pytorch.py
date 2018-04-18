@@ -265,7 +265,8 @@ def train(args):
     # prepare Kaldi reader
     train_reader = lazy_io.read_dict_scp(args.train_feat)
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
-    if args.train_aug != '':
+    if os.path.exists(args.train_aug) and args.use_aug:
+        print('args.train_aug', args.train_aug)
         with open(args.train_aug, 'rb') as f:
             augment_json = json.load(f)['aug']
         train_augment, meta = make_augment_batchset(augment_json, args.batch_size,
@@ -279,7 +280,7 @@ def train(args):
                                                     train_iter,
                                                     train_augment_iter,
                                                     meta,
-                                                    args.augment_ratio,
+                                                    args.aug_ratio,
                                                     optimizer,
                                                     train_reader,
                                                     gpu_id)

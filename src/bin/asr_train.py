@@ -49,12 +49,14 @@ def main():
     parser.add_argument('--valid-label', type=str, required=True,
                         help='Filename of validation label data (json)')
     # aug related
-    parser.add_argument('--train-aug', type=str, required=True,
+    parser.add_argument('--use_aug', type=int, choices=set([0, 1]), default=0,
+                        help='enables or disables augment based training')
+    parser.add_argument('--train-aug', type=str, required=False, default='', nargs='?',
                         help='Filename of aug data (json)')
+    parser.add_argument('--dict-aug', type=str, required=False, default='', nargs='?',
+                        help='Filename of aug input dictionary')
     parser.add_argument('--aug-ratio', default=1, type=int,
                         help='real data to aug data ratio')
-    parser.add_argument('--aug-vocab-size', default=40, type=int,
-                        help='augment input symbol embedding size')
     parser.add_argument('--aug-layers', default=1, type=int,
                         help='number of layers in the AugmentEncoder')
     parser.add_argument('--aug-idim', default=83, type=int,
@@ -185,6 +187,13 @@ def main():
         args.char_list = char_list
     else:
         args.char_list = None
+
+    if args.dict_aug is not None:
+        with open(args.dict_aug, 'r') as f:
+            aug_dictionary = f.readlines()
+        args.aug_vocab_size = len(aug_dictionary)
+    else:
+        args.aug_vocab_size = None
 
     # train
     logging.info('backend = ' + args.backend)

@@ -55,6 +55,8 @@ def main():
     aug_json['aug']['idict'] = idict  # input side dictionary with <pad> symbol
     with open(args.json, "w") as f:
         json.dump(aug_json, f, indent=4)
+    for k, v in idict.items():
+        print(k + ' ' + str(v))
 
 
 if __name__ == "__main__":
