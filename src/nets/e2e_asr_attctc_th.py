@@ -8,7 +8,6 @@ from __future__ import division
 
 import logging
 import math
-import os
 import sys
 
 import chainer
@@ -26,8 +25,6 @@ from torch.nn.utils.rnn import pad_packed_sequence
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
-
-import pdb
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
