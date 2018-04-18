@@ -177,6 +177,7 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
         delete_feat(x)
         logging.info('commpleted batch')
 
+
 def train(args):
     '''Run training'''
     # seed setting
