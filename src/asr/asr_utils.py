@@ -35,7 +35,7 @@ def make_augment_batchset(data, batch_size,
     if subsample == 1:
         len_fac = 1
     else:
-        len_fac = prod([int(i) for i in subsample.split('_')])
+        len_fac = np.prod([int(i) for i in subsample.split('_')])
     # change batchsize depending on the input and output length
     minibatches = []
     start = 0
