@@ -177,7 +177,7 @@ def train(args):
 
     # Set gpu
     reporter = model.reporter
-    ngpu = int(args.ngpu)
+    ngpu = args.ngpu
     if ngpu == 1:
         gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
