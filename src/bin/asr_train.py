@@ -149,7 +149,7 @@ def main():
     # check CUDA_VISIBLE_DEVICES
     if args.ngpu > 0:
         if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
-            cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)])
+            cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
         else:
             cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
