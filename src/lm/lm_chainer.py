@@ -155,24 +155,6 @@ def train(args):
     if not chainer.cuda.cudnn_enabled:
         logging.warning('cudnn is not available')
 
-    def evaluate(model, iter, bproplen=100):
-        # Evaluation routine to be used for validation and test.
-        model.predictor.train = False
-        evaluator = model.copy()  # to use different state
-        state = None
-        evaluator.predictor.train = False  # dropout does nothing
-        sum_perp = 0
-        data_count = 0
-        for batch in copy.copy(iter):
-            x, t = convert.concat_examples(batch, args.gpu)
-            state, loss = evaluator(state, x, t)
-            sum_perp += loss.data
-            if data_count % bproplen == 0:
-                loss.unchain_backward()  # Truncate the graph
-            data_count += 1
-        model.predictor.train = True
-        return np.exp(float(sum_perp) / data_count)
-
     with open(args.train_label, 'rb') as f:
         train = np.array([args.char_list_dict[char]
                           if char in args.char_list_dict else args.char_list_dict['<unk>']
@@ -196,15 +178,36 @@ def train(args):
     rnn = RNNLM(args.n_vocab, args.unit)
     model = ClassifierWithState(rnn)
     model.compute_accuracy = False  # we only want the perplexity
-    if args.gpu >= 0:
+    if args.ngpu > 1:
+        logging.warn("currently, multi-gpu is not supported. use single gpu.")
+    if args.ngpu > 0:
         # Make the specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        gpu_id = 0
+        chainer.cuda.get_device_from_id(gpu_id).use()
         model.to_gpu()
 
     # Set up an optimizer
     optimizer = chainer.optimizers.SGD(lr=1.0)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
+
+    def evaluate(model, iter, bproplen=100):
+        # Evaluation routine to be used for validation and test.
+        model.predictor.train = False
+        evaluator = model.copy()  # to use different state
+        state = None
+        evaluator.predictor.train = False  # dropout does nothing
+        sum_perp = 0
+        data_count = 0
+        for batch in copy.copy(iter):
+            x, t = convert.concat_examples(batch, gpu_id)
+            state, loss = evaluator(state, x, t)
+            sum_perp += loss.data
+            if data_count % bproplen == 0:
+                loss.unchain_backward()  # Truncate the graph
+            data_count += 1
+        model.predictor.train = True
+        return np.exp(float(sum_perp) / data_count)
 
     sum_perp = 0
     count = 0
@@ -222,7 +225,7 @@ def train(args):
             # Concatenate the word IDs to matrices and send them to the device
             # self.converter does this job
             # (it is chainer.dataset.concat_examples by default)
-            x, t = convert.concat_examples(batch, args.gpu)
+            x, t = convert.concat_examples(batch, gpu_id)
             # Compute the loss at this time step and accumulate it
             state, loss_batch = optimizer.target(state, chainer.Variable(x), chainer.Variable(t))
             loss += loss_batch

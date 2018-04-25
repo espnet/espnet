@@ -9,7 +9,8 @@
 # general configuration
 backend=chainer
 stage=0        # start from 0 if you need to start from data preparation
-gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
+gpu=            # will be deprecated, please use ngpu
+ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -37,7 +38,7 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.5
+mtlalpha=0.1
 
 # label smoothing
 lsm_type=unigram
@@ -53,7 +54,7 @@ opt=adadelta
 epochs=15
 
 # rnnlm related
-lm_weight=0.3
+lm_weight=0.1
 
 # decoding parameter
 beam_size=20
@@ -73,8 +74,24 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh 
-. ./cmd.sh 
+. ./path.sh
+. ./cmd.sh
+
+# check gpu option usage
+if [ ! -z $gpu ]; then
+    echo "WARNING: --gpu option will be deprecated."
+    echo "WARNING: please use --ngpu option."
+    if [ $gpu -eq -1 ]; then
+        ngpu=0
+    else
+        ngpu=1
+    fi
+fi
+
+# only for CLSP
+if [[ $(hostname -f) == *.clsp.jhu.edu ]] ; then
+    export CUDA_VISIBLE_DEVICES=$(/usr/local/bin/free-gpu -n $ngpu)
+fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -154,22 +171,6 @@ if [ ${stage} -le 1 ]; then
     done
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-
-    # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_set}/delta${do_delta}/storage \
-        ${feat_tr_dir}/storage
-    fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_dev}/delta${do_delta}/storage \
-        ${feat_dt_dir}/storage
-    fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 fi
 dict=data/lang_1char/${train_set}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
@@ -189,6 +190,26 @@ if [ ${stage} -le 2 ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
+
+    # remove 1 or 0 length outputs
+    utils/copy_data_dir.sh data/train_worn_u200k data/train_worn_u200k_org
+    remove_longshortdata.sh --nlsyms ${nlsyms} --minchars 1 data/train_worn_u200k_org data/train_worn_u200k
+
+    # dump features for training
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_set}/delta${do_delta}/storage \
+        ${feat_tr_dir}/storage
+    fi
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        ${feat_dt_dir}/storage
+    fi
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
@@ -210,9 +231,16 @@ if [ ${stage} -le 3 ]; then
     cat ${lmdatadir}/train_trans.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
+    # use only 1 gpu
+    if [ ${ngpu} -gt 1 ]; then
+        echo "LM training does not support multi-gpu. signle gpu will be used."
+        lmngpu=1
+    else
+        lmngpu=0
+    fi
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
-        --gpu ${gpu} \
+        --ngpu ${lmngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
@@ -238,9 +266,9 @@ mkdir -p ${expdir}
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
 
-    ${cuda_cmd} ${expdir}/train.log \
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
-        --gpu ${gpu} \
+        --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
@@ -297,11 +325,11 @@ if [ ${stage} -le 5 ]; then
         data2json.sh --nlsyms ${nlsyms} ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
-        gpu=-1
+        ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
-            --gpu ${gpu} \
+            --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \
@@ -318,7 +346,7 @@ if [ ${stage} -le 5 ]; then
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-            
+
     ) &
     done
     wait
