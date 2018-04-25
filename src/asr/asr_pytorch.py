@@ -228,8 +228,8 @@ def train(args):
 
     # Resume from a snapshot
     if args.resume:
-        raise NotImplementedError
         chainer.serializers.load_npz(args.resume, trainer)
+        model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(

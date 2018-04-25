@@ -1822,7 +1822,7 @@ class Decoder(torch.nn.Module):
                     local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
-                    local_best_scores, local_best_ids = torch.topk(local_att_scores, beam, dim=1)
+                    local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
                     new_hyp = {}

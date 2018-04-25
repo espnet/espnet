@@ -9,6 +9,8 @@
 # general configuration
 backend=chainer
 stage=-1       # start from -1 if you need to start from data download
+gpu=            # will be deprecated, please use ngpu
+ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -62,14 +64,25 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # exp tag
 tag="" # tag for managing experiments.
 
-#Multi-GPU configuration
-num_gpu=0         # use 1 when using GPU on slurm/grid engine, use 2 when you want to use 2 cores, otherwise 0 (CPU)
 . utils/parse_options.sh || exit 1;
+
 . ./path.sh
 . ./cmd.sh
 
+# check gpu option usage
+if [ ! -z $gpu ]; then
+    echo "WARNING: --gpu option will be deprecated."
+    echo "WARNING: please use --ngpu option."
+    if [ $gpu -eq -1 ]; then
+        ngpu=0
+    else
+        ngpu=1
+    fi
+fi
+
+# only for CLSP
 if [[ $(hostname -f) == *.clsp.jhu.edu ]] ; then
-    export CUDA_VISIBLE_DEVICES=$(/usr/local/bin/free-gpu -n $num_gpu)
+    export CUDA_VISIBLE_DEVICES=$(/usr/local/bin/free-gpu -n $ngpu)
 fi
 
 # Set bash to 'debug' mode, it will exit on :
@@ -165,9 +178,16 @@ if [ ${stage} -le 3 ]; then
         > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 data/dev/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
-    ${cuda_cmd} --gpu ${num_gpu} ${lmexpdir}/train.log \
+    # use only 1 gpu
+    if [ ${ngpu} -gt 1 ]; then
+        echo "LM training does not support multi-gpu. signle gpu will be used."
+        lmngpu=1
+    else
+        lmngpu=0
+    fi
+    ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
-        --gpu ${gpu} \
+        --ngpu ${lmngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
@@ -177,10 +197,10 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ ${stage} -le 4 ]; then
-    echo "stage 3: Network Training"
-    ${cuda_cmd} --gpu ${num_gpu} ${expdir}/train.log \
+    echo "stage 4: Network Training"
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
-        --gpu ${num_gpu} \
+        --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
@@ -214,7 +234,7 @@ if [ ${stage} -le 4 ]; then
 fi
 
 if [ ${stage} -le 5 ]; then
-    echo "stage 4: Decoding"
+    echo "stage 5: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
@@ -236,11 +256,11 @@ if [ ${stage} -le 5 ]; then
         data2json.sh ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
-        num_gpu=0
+        ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
-            --gpu ${num_gpu} \
+            --ngpu ${ngpu} \
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
