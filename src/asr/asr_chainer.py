@@ -17,7 +17,6 @@ import six
 
 # chainer related
 import chainer
-import cupy
 
 from chainer import cuda
 from chainer import function
@@ -406,6 +405,8 @@ def train(args):
         updater = ChainerSeqUpdaterKaldi(
             train_iter, optimizer, train_reader, gpu_id)
     else:
+        # import cupy only when multiple GPUs
+        import cupy
         # set up minibatches
         train_subsets = []
         for gid in six.moves.xrange(ngpu):
