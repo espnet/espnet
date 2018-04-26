@@ -150,8 +150,10 @@ def main():
     if args.ngpu > 0:
         if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
             cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
-        else:
-            cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
+            logging.info('CLSP: use gpu' + cvd)
+            os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+
+        cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
             logging.warn("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
