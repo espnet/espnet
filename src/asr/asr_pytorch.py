@@ -187,6 +187,8 @@ def train(args):
         logging.info('gpu id: ' + str(gpu_id))
         model = torch.nn.DataParallel(model, device_ids=gpu_id)
         model.cuda()
+    else:
+        gpu_id = [-1]
 
     # Setup an optimizer
     if args.opt == 'adadelta':
