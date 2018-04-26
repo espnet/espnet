@@ -17,6 +17,7 @@ import six
 
 # chainer related
 import chainer
+from cupy.cuda import nccl
 
 from chainer import cuda
 from chainer import function
@@ -177,8 +178,8 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             if self.comm is not None:
                 gg = gather_grads(self._master)
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 cupy.cuda.nccl.NCCL_FLOAT,
-                                 cupy.cuda.nccl.NCCL_SUM,
+                                 nccl.NCCL_FLOAT,
+                                 nccl.NCCL_SUM,
                                  0, null_stream.ptr)
                 scatter_grads(self._master, gg)
                 del gg
@@ -196,7 +197,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
 
             if self.comm is not None:
                 gp = gather_params(self._master)
-                self.comm.bcast(gp.data.ptr, gp.size, cupy.cuda.nccl.NCCL_FLOAT,
+                self.comm.bcast(gp.data.ptr, gp.size, nccl.NCCL_FLOAT,
                                 0, null_stream.ptr)
 
             delete_feat(x)
@@ -217,10 +218,10 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
         with cuda.Device(self._devices[0]):
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:
-                comm_id = cupy.cuda.nccl.get_unique_id()
+                comm_id = nccl.get_unique_id()
                 self._send_message(("set comm_id", comm_id))
-                self.comm = cupy.cuda.nccl.NcclCommunicator(len(self._devices),
-                                                            comm_id, 0)
+                self.comm = nccl.NcclCommunicator(len(self._devices),
+                                                  comm_id, 0)
 
     # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
     def _sum_sqnorm(self, arr):
@@ -247,8 +248,8 @@ class CustomWorker(multiprocessing.Process):
 
     def setup(self):
         _, comm_id = self.pipe.recv()
-        self.comm = cupy.cuda.nccl.NcclCommunicator(self.n_devices, comm_id,
-                                                    self.proc_id)
+        self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
+                                          self.proc_id)
 
         self.model.to_gpu(self.device)
         self.reporter = reporter_module.Reporter()
@@ -283,14 +284,14 @@ class CustomWorker(multiprocessing.Process):
                 gg = gather_grads(self.model)
                 null_stream = cuda.Stream.null
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 cupy.cuda.nccl.NCCL_FLOAT,
-                                 cupy.cuda.nccl.NCCL_SUM, 0,
+                                 nccl.NCCL_FLOAT,
+                                 nccl.NCCL_SUM, 0,
                                  null_stream.ptr)
                 del gg
                 self.model.cleargrads()
                 gp = gather_params(self.model)
                 self.comm.bcast(gp.data.ptr, gp.size,
-                                cupy.cuda.nccl.NCCL_FLOAT, 0,
+                                nccl.NCCL_FLOAT, 0,
                                 null_stream.ptr)
                 scatter_params(self.model, gp)
                 gp = None
@@ -405,8 +406,6 @@ def train(args):
         updater = ChainerSeqUpdaterKaldi(
             train_iter, optimizer, train_reader, gpu_id)
     else:
-        # import cupy only when multiple GPUs
-        import cupy
         # set up minibatches
         train_subsets = []
         for gid in six.moves.xrange(ngpu):
