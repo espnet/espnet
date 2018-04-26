@@ -8,8 +8,8 @@ import argparse
 import logging
 import os
 import random
-import sys
 import subprocess
+import sys
 
 import numpy as np
 
