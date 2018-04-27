@@ -370,6 +370,8 @@ def train(args):
         for gid in six.moves.xrange(1, ngpu):
             devices['sub_%d' % gid] = gid
         logging.info('multi gpu calculation (#gpus = %d).' % ngpu)
+        logging.info('batch size is automatically increased (%d -> %d)' % (
+            args.batch_size, args.batch_size * args.ngpu))
     else:
         gpu_id = -1
         logging.info('cpu calculation')
