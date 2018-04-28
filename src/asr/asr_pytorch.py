@@ -187,6 +187,9 @@ def train(args):
         logging.info('gpu id: ' + str(gpu_id))
         model = torch.nn.DataParallel(model, device_ids=gpu_id)
         model.cuda()
+        logging.info('batch size is automatically increased (%d -> %d)' % (
+            args.batch_size, args.batch_size * args.ngpu))
+        args.batch_size *= args.ngpu
     else:
         gpu_id = [-1]
 
