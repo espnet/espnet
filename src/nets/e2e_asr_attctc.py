@@ -66,15 +66,15 @@ class ModuleList(chainer.Chain):
 
     def stack(self, module):
         with self.init_scope():
-            name = '{}{}'.format(self.tag, self._i+1)
+            name = '{}{}'.format(self.tag , self._i + 1)
             setattr(self, name, module)
             self._forward.append(name)
 
     def __call__(self, i):
-        name = '{}{}'.format(self.tag,i+1)
+        name = '{}{}'.format(self.tag , i + 1)
         return getattr(self, name)
 
-            
+
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(chainer.Chain):
     def __init__(self, predictor, mtlalpha):
@@ -505,7 +505,7 @@ class AttAdd(chainer.Chain):
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: dummy
         :param float scaling: scaling parameter before applying softmax
-        :return: ``(c, w)``, where ``c`` represents attention weighted encoder 
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
          state (B, D_enc), and ``w`` is previous attention weights (B x T_max)
         :rtype: tuple of (~chainer.Variable)
         '''
@@ -541,7 +541,7 @@ class AttAdd(chainer.Chain):
 
         return c, w
 
-        
+
 # location based attention
 class AttLoc(chainer.Chain):
     def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
@@ -647,7 +647,7 @@ class AttMultiHeadDot(chainer.Chain):
     def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
         super(AttMultiHeadDot, self).__init__()
         with self.init_scope():
-            self.mlp_q = ModuleList('mlp_q') 
+            self.mlp_q = ModuleList('mlp_q')
             self.mlp_k = ModuleList('mlp_k')
             self.mlp_v = ModuleList('mlp_v')
             for h in six.moves.range(aheads):
@@ -666,7 +666,7 @@ class AttMultiHeadDot(chainer.Chain):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
-        
+
     def reset(self):
         '''reset states'''
         self.h_length = None
@@ -680,8 +680,8 @@ class AttMultiHeadDot(chainer.Chain):
         :param Variable enc_hs: padded encoder hidden state (B x T_max x D_enc)
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: dummy (does not use)
-        :return: ``(c, w)``, where ``c`` represents attention weighted encoder 
-         state (B, D_enc), and ``w`` is a list of previous attention 
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is a list of previous attention
          weights (B x T_max) * aheads
         :rtype: tuple of (~chainer.Variable)
         '''
@@ -690,15 +690,15 @@ class AttMultiHeadDot(chainer.Chain):
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_k = [ 
-                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads) ]
+            self.pre_compute_k = [
+                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_v = [ 
-                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads) ]
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = chainer.Variable(self.xp.zeros(
@@ -710,8 +710,8 @@ class AttMultiHeadDot(chainer.Chain):
         w = list()
         for h in six.moves.range(self.aheads):
             u = F.broadcast_to(F.expand_dims(F.tanh(self.mlp_q(h)(dec_z)), 1),
-                           self.pre_compute_k[h].shape)
-            e = F.sum(self.pre_compute_k[h] * u, axis=2) # utt x frame
+                self.pre_compute_k[h].shape)
+            e = F.sum(self.pre_compute_k[h] * u, axis=2)  # utt x frame
             w += [F.softmax(self.scaling * e)]
 
             # weighted sum over flames
@@ -741,7 +741,7 @@ class AttMultiHeadAdd(object):
     def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
         super(AttMultiHeadAdd, self).__init__()
         with self.init_scope():
-            self.mlp_q = ModuleList('mlp_q') 
+            self.mlp_q = ModuleList('mlp_q')
             self.mlp_k = ModuleList('mlp_k')
             self.mlp_v = ModuleList('mlp_v')
             self.gvec = ModuleList('gvec')
@@ -762,7 +762,7 @@ class AttMultiHeadAdd(object):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
-        
+
     def reset(self):
         '''reset states'''
         self.h_length = None
@@ -778,25 +778,26 @@ class AttMultiHeadAdd(object):
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
-        :return: ``(c, w)``, where ``c`` represents attention weighted encoder 
-         state (B, D_enc), and ``w`` is a list of previous attention 
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is a list of previous attention
          weights (B x T_max) * aheads
         :rtype: tuple of (~chainer.Variable)
-        '''    
+        '''
+
         batch = len(enc_hs)
         if self.pre_compute_k is None:
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_k = [ 
-                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads) ]
+            self.pre_compute_k = [
+                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_v = [ 
-                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads) ]
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = chainer.Variable(self.xp.zeros(
@@ -808,7 +809,7 @@ class AttMultiHeadAdd(object):
         w = list()
         for h in six.moves.range(self.aheads):
             u = F.broadcast_to(F.expand_dims(self.mlp_q(h)(dec_z), 1),
-                           self.pre_compute_k[h].shape)
+                self.pre_compute_k[h].shape)
             e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
                 self.pre_compute_k[h] + u)), axis=2)
             w += [F.softmax(self.scaling * e)]
@@ -843,7 +844,7 @@ class AttMultiHeadLoc(object):
     def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts):
         super(AttMultiHeadLoc, self).__init__()
         with self.init_scope():
-            self.mlp_q = ModuleList('mlp_q') 
+            self.mlp_q = ModuleList('mlp_q')
             self.mlp_k = ModuleList('mlp_k')
             self.mlp_v = ModuleList('mlp_v')
             self.gvec = ModuleList('gvec')
@@ -869,7 +870,7 @@ class AttMultiHeadLoc(object):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
-        
+
     def reset(self):
         '''reset states'''
         self.h_length = None
@@ -884,7 +885,7 @@ class AttMultiHeadLoc(object):
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
         :param float scaling: scaling parameter before applying softmax
-        :return: ``(c, w)``, where ``c`` represents attention weighted encoder 
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
          state (B, D_enc), and ``w`` is a list of previous attention 
          weights (B x T_max) * aheads
         :rtype: tuple of (~chainer.Variable)
@@ -895,15 +896,15 @@ class AttMultiHeadLoc(object):
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_k = [ 
-                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads) ]
+            self.pre_compute_k = [
+                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_v = [ 
-                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads) ]
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = chainer.Variable(self.xp.zeros(
@@ -921,12 +922,11 @@ class AttMultiHeadLoc(object):
                 # if no bias, 0 0-pad goes 0
                 att_prev += [F.pad_sequence(_att_prev)]
 
-
         c = list()
         w = list()
         for h in six.moves.range(self.aheads):
             # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
-            att_conv = self.loc_conv(i)(att_prev[h].reshape(batch, 1, 1, self.h_length))
+            att_conv = self.loc_conv(h)(att_prev[h].reshape(batch, 1, 1, self.h_length))
             # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
             att_conv = F.swapaxes(F.squeeze(att_conv, axis=2), 1, 2)
             # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
@@ -934,7 +934,7 @@ class AttMultiHeadLoc(object):
             # dec_z_tiled: utt x frame x att_dim
 
             u = F.broadcast_to(F.expand_dims(self.mlp_q(h)(dec_z), 1),
-                           self.pre_compute_k[h].shape)
+                self.pre_compute_k[h].shape)
             e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
                 self.pre_compute_k[h] + att_conv + u)), axis=2)
             w += [F.softmax(scaling * e)]
@@ -947,7 +947,7 @@ class AttMultiHeadLoc(object):
         c = self.mlp_o(F.concat(c, axis=1))
 
         return c, w
-        
+
 
 class AttMultiHeadMultiResLoc(object):
     '''Multi head multi resolution location based attention
@@ -972,7 +972,7 @@ class AttMultiHeadMultiResLoc(object):
     def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts):
         super(AttMultiHeadMultiResLoc, self).__init__()
         with self.init_scope():
-            self.mlp_q = ModuleList('mlp_q') 
+            self.mlp_q = ModuleList('mlp_q')
             self.mlp_k = ModuleList('mlp_k')
             self.mlp_v = ModuleList('mlp_v')
             self.gvec = ModuleList('gvec')
@@ -999,7 +999,7 @@ class AttMultiHeadMultiResLoc(object):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
-        
+
     def reset(self):
         '''reset states'''
         self.h_length = None
@@ -1014,8 +1014,8 @@ class AttMultiHeadMultiResLoc(object):
         :param Variable dec_z: decoder hidden state (B x D_dec)
         :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
         :param float scaling: scaling parameter before applying softmax
-        :return: ``(c, w)``, where ``c`` represents attention weighted encoder 
-         state (B, D_enc), and ``w`` is a list of previous attention 
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is a list of previous attention
          weights (B x T_max) * aheads
         :rtype: tuple of (~chainer.Variable)
         '''
@@ -1025,15 +1025,15 @@ class AttMultiHeadMultiResLoc(object):
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_k = [ 
-                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads) ]
+            self.pre_compute_k = [
+                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
-            self.pre_compute_v = [ 
-                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads) ]
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = chainer.Variable(self.xp.zeros(
@@ -1051,12 +1051,11 @@ class AttMultiHeadMultiResLoc(object):
                 # if no bias, 0 0-pad goes 0
                 att_prev += [F.pad_sequence(_att_prev)]
 
-
         c = list()
         w = list()
         for h in six.moves.range(self.aheads):
             # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
-            att_conv = self.loc_conv(i)(att_prev[h].reshape(batch, 1, 1, self.h_length))
+            att_conv = self.loc_conv(h)(att_prev[h].reshape(batch, 1, 1, self.h_length))
             # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
             att_conv = F.swapaxes(F.squeeze(att_conv, axis=2), 1, 2)
             # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
@@ -1064,7 +1063,7 @@ class AttMultiHeadMultiResLoc(object):
             # dec_z_tiled: utt x frame x att_dim
 
             u = F.broadcast_to(F.expand_dims(self.mlp_q(h)(dec_z), 1),
-                           self.pre_compute_k[h].shape)
+                self.pre_compute_k[h].shape)
             e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
                 self.pre_compute_k[h] + att_conv + u)), axis=2)
             w += [F.softmax(self.scaling * e)]
@@ -1077,7 +1076,7 @@ class AttMultiHeadMultiResLoc(object):
         c = self.mlp_o(F.concat(c, axis=1))
 
         return c, w
-        
+
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(chainer.Chain):
