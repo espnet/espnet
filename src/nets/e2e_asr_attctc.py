@@ -66,12 +66,12 @@ class ModuleList(chainer.Chain):
 
     def stack(self, module):
         with self.init_scope():
-            name = '{}{}'.format(self.tag , self._i + 1)
+            name = '{}{}'.format(self.tag, self._i + 1)
             setattr(self, name, module)
             self._forward.append(name)
 
     def __call__(self, i):
-        name = '{}{}'.format(self.tag , i + 1)
+        name = '{}{}'.format(self.tag, i + 1)
         return getattr(self, name)
 
 
@@ -709,8 +709,8 @@ class AttMultiHeadDot(chainer.Chain):
         c = list()
         w = list()
         for h in six.moves.range(self.aheads):
-            u = F.broadcast_to(F.expand_dims(F.tanh(self.mlp_q(h)(dec_z)), 1),
-                self.pre_compute_k[h].shape)
+            u = F.broadcast_to(F.expand_dims(F.tanh(
+                self.mlp_q(h)(dec_z)), 1), self.pre_compute_k[h].shape)
             e = F.sum(self.pre_compute_k[h] * u, axis=2)  # utt x frame
             w += [F.softmax(self.scaling * e)]
 
@@ -808,8 +808,8 @@ class AttMultiHeadAdd(object):
         c = list()
         w = list()
         for h in six.moves.range(self.aheads):
-            u = F.broadcast_to(F.expand_dims(self.mlp_q(h)(dec_z), 1),
-                self.pre_compute_k[h].shape)
+            u = F.broadcast_to(F.expand_dims(
+                self.mlp_q(h)(dec_z), 1), self.pre_compute_k[h].shape)
             e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
                 self.pre_compute_k[h] + u)), axis=2)
             w += [F.softmax(self.scaling * e)]
@@ -886,7 +886,7 @@ class AttMultiHeadLoc(object):
         :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
         :param float scaling: scaling parameter before applying softmax
         :return: ``(c, w)``, where ``c`` represents attention weighted encoder
-         state (B, D_enc), and ``w`` is a list of previous attention 
+         state (B, D_enc), and ``w`` is a list of previous attention
          weights (B x T_max) * aheads
         :rtype: tuple of (~chainer.Variable)
         '''
@@ -933,8 +933,8 @@ class AttMultiHeadLoc(object):
             att_conv = linear_tensor(self.mlp_att(h), att_conv)
             # dec_z_tiled: utt x frame x att_dim
 
-            u = F.broadcast_to(F.expand_dims(self.mlp_q(h)(dec_z), 1),
-                self.pre_compute_k[h].shape)
+            u = F.broadcast_to(F.expand_dims(
+                self.mlp_q(h)(dec_z), 1), self.pre_compute_k[h].shape)
             e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
                 self.pre_compute_k[h] + att_conv + u)), axis=2)
             w += [F.softmax(scaling * e)]
@@ -1062,8 +1062,8 @@ class AttMultiHeadMultiResLoc(object):
             att_conv = linear_tensor(self.mlp_att(h), att_conv)
             # dec_z_tiled: utt x frame x att_dim
 
-            u = F.broadcast_to(F.expand_dims(self.mlp_q(h)(dec_z), 1),
-                self.pre_compute_k[h].shape)
+            u = F.broadcast_to(F.expand_dims(
+                self.mlp_q(h)(dec_z), 1), self.pre_compute_k[h].shape)
             e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
                 self.pre_compute_k[h] + att_conv + u)), axis=2)
             w += [F.softmax(self.scaling * e)]
