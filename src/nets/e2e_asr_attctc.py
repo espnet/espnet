@@ -56,7 +56,12 @@ def linear_tensor(linear, x):
 
 
 class ModuleList(chainer.Chain):
-    """ModuleList"""
+    '''ModuleList
+
+    :param data:
+    :return:
+    '''
+
     def __init__(self, tag='List'):
         super(ModuleList, self).__init__()
         with self.init_scope():
@@ -738,6 +743,7 @@ class AttMultiHeadAdd(object):
     :param int att_dim_k: dimension k in multi head attention
     :param int att_dim_v: dimension v in multi head attention
     '''
+
     def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
         super(AttMultiHeadAdd, self).__init__()
         with self.init_scope():
