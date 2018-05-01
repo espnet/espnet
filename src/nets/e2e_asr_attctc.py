@@ -74,6 +74,7 @@ class ModuleList(chainer.Chain):
             name = '{}{}'.format(self.tag, self._i + 1)
             setattr(self, name, module)
             self._forward.append(name)
+            self._i += 1
 
     def __call__(self, i):
         name = '{}{}'.format(self.tag, i + 1)
@@ -721,7 +722,8 @@ class AttMultiHeadDot(chainer.Chain):
 
             # weighted sum over flames
             # utt x hdim
-            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(F.expand_dims(w[h], 2), self.enc_h.shape), axis=1)]
+            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(
+                F.expand_dims(w[h], 2), self.pre_compute_v[h].shape), axis=1)]
 
         # concat all of c
         c = self.mlp_o(F.concat(c, axis=1))
@@ -822,7 +824,8 @@ class AttMultiHeadAdd(object):
 
             # weighted sum over flames
             # utt x hdim
-            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(F.expand_dims(w[h], 2), self.enc_h.shape), axis=1)]
+            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(
+                F.expand_dims(w[h], 2), self.pre_compute_v[h].shape), axis=1)]
 
         # concat all of c
         c = self.mlp_o(F.concat(c, axis=1))
@@ -947,7 +950,8 @@ class AttMultiHeadLoc(object):
 
             # weighted sum over flames
             # utt x hdim
-            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(F.expand_dims(w[h], 2), self.enc_h.shape), axis=1)]
+            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(
+                F.expand_dims(w[h], 2), self.pre_compute_v[h].shape), axis=1)]
 
         # concat all of c
         c = self.mlp_o(F.concat(c, axis=1))
@@ -1076,7 +1080,8 @@ class AttMultiHeadMultiResLoc(object):
 
             # weighted sum over flames
             # utt x hdim
-            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(F.expand_dims(w[h], 2), self.enc_h.shape), axis=1)]
+            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(
+                F.expand_dims(w[h], 2), self.pre_compute_v[h].shape), axis=1)]
 
         # concat all of c
         c = self.mlp_o(F.concat(c, axis=1))
@@ -1159,7 +1164,11 @@ class Decoder(chainer.Chain):
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
             z_all.append(z_list[-1])
-            att_weight_all.append(att_w.data)  # for debugging
+            if isinstance(att_w, list):
+                _att_w = [x.data for x in att_w]
+            else:
+                _att_w = att_w.data
+            att_weight_all.append(_att_w)  # for debugging
 
         z_all = F.reshape(F.stack(z_all, axis=1),
                           (batch * olength, self.dunits))

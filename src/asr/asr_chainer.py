@@ -337,9 +337,11 @@ def train(args):
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
+    att_supported = ['noatt', 'dot', 'location', 'add', 'multi_head_dot',
+                     'multi_head_add', 'multi_head_loc', 'multi_head_multi_res_loc']
     # check attention type
-    if args.atype not in ['noatt', 'dot', 'location']:
-        raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
+    if args.atype not in att_supported:
+        raise NotImplementedError('chainer supports only', ', '.join(att_supported), 'attention.')
 
     # specify model architecture
     e2e = E2E(idim, odim, args)
