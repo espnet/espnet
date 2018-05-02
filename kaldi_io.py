@@ -112,7 +112,7 @@ def read_key(fd):
     key += char
   key = key.strip()
   if key == '': return None # end of file,
-  assert(re.match('^[\.a-zA-Z0-9_-]+$',key) != None) # check format,
+  assert(re.match('^[\.\/a-zA-Z0-9_-]+$',key) != None) # check format,
   return key
 
 
