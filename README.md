@@ -34,11 +34,20 @@ Install Kaldi, Python libraries and other required tools using system python and
 $ cd tools
 $ make -j
 ```
+
 or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make -f conda.mk -j
 ```
+
+For higher version (>4.9) of gcc and cuda 9.1 use following command:
+```sh
+$ cd tools
+$ make -j -f Makefile.cuda91.gcc6
+```
+
+You can compare Makefile and Makefile.cuda91.gcc6 to change makefile accordingly for other version of gcc/cuda.
 
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
