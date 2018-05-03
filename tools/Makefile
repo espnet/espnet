@@ -9,7 +9,6 @@ kaldi-io-for-python:
 kaldi: kaldi_github
 	cd kaldi_github/tools; $(MAKE) all
 	cd kaldi_github/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
-	cd kaldi_github/tools; ./extras/install_beamformit.sh
 	ln -s kaldi_github kaldi
 
 kaldi_github:
@@ -33,7 +32,7 @@ venv/lib/python2.7/site-packages/torch: venv/bin/activate
 warp-ctc: venv/lib/python2.7/site-packages/torch
 	git clone https://github.com/SeanNaren/warp-ctc.git
 	. venv/bin/activate; cd warp-ctc && git checkout 9e5b238f8d9337b0c39b3fd01bbaff98ba523aa5 && mkdir build && cd build && cmake .. && make -j4
-	. venv/bin/activate; pip install cffi && 
+	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
 chainer_ctc: venv/bin/activate

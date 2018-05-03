@@ -160,7 +160,7 @@ class E2E(chainer.Chain):
         :return:
         '''
         if preprocess == None:
-            preprocess = self.pre_call
+            preprocess = self._pre_call
         hs, ys, ilens = preprocess(data)
 
         # 1. encoder
@@ -183,7 +183,7 @@ class E2E(chainer.Chain):
         :return:
         '''
         if preprocess == None:
-            preprocess = self.pre_recognize
+            preprocess = self._pre_recognize
         h, ilen = preprocess(x)
 
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
