@@ -9,7 +9,8 @@
 # general configuration
 backend=chainer
 stage=0        # start from 0 if you need to start from data preparation
-gpu=-1         # use 0 when using GPU on slurm/grid engine, otherwise -1
+gpu=            # will be deprecated, please use ngpu
+ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -70,6 +71,17 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
+
+# check gpu option usage
+if [ ! -z $gpu ]; then
+    echo "WARNING: --gpu option will be deprecated."
+    echo "WARNING: please use --ngpu option."
+    if [ $gpu -eq -1 ]; then
+        ngpu=0
+    else
+        ngpu=1
+    fi
+fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -179,7 +191,6 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
-
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
@@ -193,12 +204,12 @@ else
 fi
 mkdir -p ${expdir}
 
-if [ ${stage} -le 4 ]; then
-    echo "stage 4: Network Training"
+if [ ${stage} -le 3 ]; then
+    echo "stage 3: Network Training"
 
-    ${cuda_cmd} ${expdir}/train.log \
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
-        --gpu ${gpu} \
+        --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
@@ -236,8 +247,8 @@ if [ ${stage} -le 4 ]; then
         --epochs ${epochs}
 fi
 
-if [ ${stage} -le 5 ]; then
-    echo "stage 5: Decoding"
+if [ ${stage} -le 4 ]; then
+    echo "stage 4: Decoding"
     gpu=-1 # Use CPU for decoding
     for rtask in ${recog_set} ${train_dev}; do
     (
@@ -258,11 +269,11 @@ if [ ${stage} -le 5 ]; then
         data2json.sh --nlsyms ${nlsyms} ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
-        gpu=-1
+        ngpu=0
 
         ${decode_cmd} JOB=1:${decode_nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
-            --gpu ${gpu} \
+            --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-feat "$feats" \
             --recog-label ${data}/data.json \

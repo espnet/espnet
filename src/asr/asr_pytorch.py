@@ -91,6 +91,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         self.model = model
         self.reader = reader
         self.grad_clip_threshold = grad_clip_threshold
+        self.num_gpu = len(device)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -111,7 +112,10 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         # Compute the loss at this time step and accumulate it
         loss = self.model(x)
         optimizer.zero_grad()  # Clear the parameter gradients
-        loss.backward()  # Backprop
+        if self.num_gpu > 1:
+            loss.backward(torch.ones(self.num_gpu))  # Backprop
+        else:
+            loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm(
@@ -172,11 +176,22 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # Set gpu
-    gpu_id = int(args.gpu)
-    logging.info('gpu id: ' + str(gpu_id))
-    if gpu_id >= 0:
-        # Make a specified GPU current
-        model.cuda(gpu_id)  # Copy the model to the GPU
+    reporter = model.reporter
+    ngpu = args.ngpu
+    if ngpu == 1:
+        gpu_id = range(ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        model.cuda()
+    elif ngpu > 1:
+        gpu_id = range(ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        model = torch.nn.DataParallel(model, device_ids=gpu_id)
+        model.cuda()
+        logging.info('batch size is automatically increased (%d -> %d)' % (
+            args.batch_size, args.batch_size * args.ngpu))
+        args.batch_size *= args.ngpu
+    else:
+        gpu_id = [-1]
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -186,8 +201,8 @@ def train(args):
         optimizer = torch.optim.Adam(model.parameters())
 
     # FIXME: TOO DIRTY HACK
-    setattr(optimizer, "target", model.reporter)
-    setattr(optimizer, "serialize", lambda s: model.reporter.serialize(s))
+    setattr(optimizer, "target", reporter)
+    setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # read json data
     with open(args.train_label, 'rb') as f:
@@ -223,7 +238,7 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, valid_iter, model.reporter, valid_reader, device=gpu_id))
+        model, valid_iter, reporter, valid_reader, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -328,12 +343,9 @@ def recog(args):
 
     new_json = {}
     for name, feat in reader:
-        if args.beam_size == 1:
-            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
-        else:
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
-            # get 1best and remove sos
-            y_hat = nbest_hyps[0]['yseq'][1:]
+        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
+        # get 1best and remove sos
+        y_hat = nbest_hyps[0]['yseq'][1:]
 
         y_true = map(int, recog_json[name]['tokenid'].split())
 
