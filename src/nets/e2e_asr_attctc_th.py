@@ -295,7 +295,7 @@ class E2E(torch.nn.Module):
         return loss_ctc, loss_att, acc
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
-        '''E2E greedy/beam search
+        '''E2E beam search
 
         :param x:
         :param recog_args:
@@ -322,10 +322,7 @@ class E2E(torch.nn.Module):
 
         # 2. decoder
         # decode the first utterance
-        if recog_args.beam_size == 1:
-            y = self.dec.recognize(h[0], recog_args, rnnlm)
-        else:
-            y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -1679,61 +1676,6 @@ class Decoder(torch.nn.Module):
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc
-
-    # TODO(hori) incorporate CTC score
-    def recognize(self, h, recog_args, rnnlm=None):
-        '''greedy search implementation
-
-        :param Variable h:
-        :param Namespace recog_args:
-        :return:
-        '''
-        logging.info('input lengths: ' + str(h.size(0)))
-        # initialization
-        c_list = [self.zero_state(h.unsqueeze(0))]
-        z_list = [self.zero_state(h.unsqueeze(0))]
-        for l in six.moves.range(1, self.dlayers):
-            c_list.append(self.zero_state(h.unsqueeze(0)))
-            z_list.append(self.zero_state(h.unsqueeze(0)))
-        if rnnlm:
-            state = None
-        att_w = None
-        y_seq = []
-        self.att.reset()  # reset pre-computation of h
-
-        # preprate sos
-        y = self.sos
-        vy = Variable(h.data.new(1).zero_().long(), volatile=True)
-        maxlen = int(recog_args.maxlenratio * h.size(0))
-        minlen = int(recog_args.minlenratio * h.size(0))
-        logging.info('max output length: ' + str(maxlen))
-        logging.info('min output length: ' + str(minlen))
-        for i in six.moves.range(minlen, maxlen):
-            vy[0] = y
-            vy.unsqueeze(1)
-            ey = self.embed(vy)           # utt list (1) x zdim
-            ey = ey.squeeze(1)
-            att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], z_list[0], att_w)
-            ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
-            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-            if rnnlm:
-                y = Variable(h.data.new(1, 1).fill_(y), volatile=True)
-                state, z_rnnlm = rnnlm.predictor(state, y)
-                final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])) \
-                    + recog_args.lm_weight * F.log_softmax(z_rnnlm)
-            else:
-                final_z = F.log_softmax(self.output(z_list[-1]))
-            y = final_z.data.max(1)[1][0]
-            y_seq.append(y)
-
-            # terminate decoding
-            if y == self.eos:
-                break
-
-        return y_seq
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation

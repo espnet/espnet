@@ -343,12 +343,9 @@ def recog(args):
 
     new_json = {}
     for name, feat in reader:
-        if args.beam_size == 1:
-            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
-        else:
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
-            # get 1best and remove sos
-            y_hat = nbest_hyps[0]['yseq'][1:]
+        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
+        # get 1best and remove sos
+        y_hat = nbest_hyps[0]['yseq'][1:]
 
         y_true = map(int, recog_json[name]['tokenid'].split())
 
