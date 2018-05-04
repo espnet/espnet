@@ -2032,13 +2032,15 @@ class VGG2L(torch.nn.Module):
         xs = pad_list(xs, 0.0)
         return xs, ilens
 
+
 class DataParallel(torch.nn.DataParallel):
     def scatter(self, inputs, kwargs, device_ids, dim):
         r"""Scatter with support for kwargs dictionary"""
-        if len(inputs)==1:
+        if len(inputs) == 1:
             inputs = inputs[0]
         avg = int(math.ceil(len(inputs) / len(device_ids)))
-        inputs = [[inputs[i:i+avg]] for i in xrange(0, len(inputs), avg)]#scatter(inputs, device_ids, dim) if inputs else []
+        # inputs = scatter(inputs, device_ids, dim) if inputs else []
+        inputs = [[inputs[i:i+avg]] for i in xrange(0, len(inputs), avg)]
         kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
         if len(inputs) < len(kwargs):
             inputs.extend([() for _ in range(len(kwargs) - len(inputs))])
@@ -2047,7 +2049,7 @@ class DataParallel(torch.nn.DataParallel):
         inputs = tuple(inputs)
         kwargs = tuple(kwargs)
         return inputs, kwargs
-    
+
     def forward(self, *inputs, **kwargs):
         if not self.device_ids:
             return self.module(*inputs, **kwargs)
