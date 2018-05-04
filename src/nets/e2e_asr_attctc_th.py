@@ -2031,5 +2031,3 @@ class VGG2L(torch.nn.Module):
         xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens
-
-
