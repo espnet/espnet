@@ -2040,7 +2040,7 @@ class DataParallel(torch.nn.DataParallel):
             inputs = inputs[0]
         avg = int(math.ceil(len(inputs) / len(device_ids)))
         # inputs = scatter(inputs, device_ids, dim) if inputs else []
-        inputs = [[inputs[i:i+avg]] for i in xrange(0, len(inputs), avg)]
+        inputs = [[inputs[i:i + avg]] for i in xrange(0, len(inputs), avg)]
         kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
         if len(inputs) < len(kwargs):
             inputs.extend([() for _ in range(len(kwargs) - len(inputs))])
