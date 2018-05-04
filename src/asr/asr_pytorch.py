@@ -26,7 +26,8 @@ from asr_utils import converter_kaldi
 from asr_utils import delete_feat
 from asr_utils import make_batchset
 from asr_utils import restore_snapshot
-from e2e_asr_attctc_th import E2E, DataParallel
+from e2e_asr_attctc_th import DataParallel
+from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss
 
 # for kaldi io
