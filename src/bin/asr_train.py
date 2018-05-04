@@ -41,14 +41,10 @@ def main():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--train-feat', type=str, required=True,
-                        help='Filename of train feature data (Kaldi scp)')
-    parser.add_argument('--valid-feat', type=str, required=True,
-                        help='Filename of validation feature data (Kaldi scp)')
-    parser.add_argument('--train-label', type=str, required=True,
-                        help='Filename of train label data (json)')
-    parser.add_argument('--valid-label', type=str, required=True,
-                        help='Filename of validation label data (json)')
+    parser.add_argument('--train-json', type=str, required=True,
+                        help='Filename of train data (json)')
+    parser.add_argument('--valid-json', type=str, required=True,
+                        help='Filename of validation data (json)')
     # network archtecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
