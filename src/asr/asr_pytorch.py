@@ -26,7 +26,7 @@ from asr_utils import converter_kaldi
 from asr_utils import delete_feat
 from asr_utils import make_batchset
 from asr_utils import restore_snapshot
-from e2e_asr_attctc_th import E2E
+from e2e_asr_attctc_th import E2E, DataParallel
 from e2e_asr_attctc_th import Loss
 
 # for kaldi io
@@ -110,7 +110,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         x = converter_kaldi(batch[0], self.reader)
 
         # Compute the loss at this time step and accumulate it
-        loss = self.model(x)
+        loss = 1. / self.num_gpu * self.model(x)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.num_gpu > 1:
             loss.backward(torch.ones(self.num_gpu))  # Backprop
@@ -185,7 +185,7 @@ def train(args):
     elif ngpu > 1:
         gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
-        model = torch.nn.DataParallel(model, device_ids=gpu_id)
+        model = DataParallel(model, device_ids=gpu_id)
         model.cuda()
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
