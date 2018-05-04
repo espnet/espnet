@@ -1937,7 +1937,9 @@ class BLSTMP(torch.nn.Module):
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         for layer in six.moves.range(self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
-            ys, (hy, cy) = getattr(self, 'bilstm' + str(layer))(xpack)
+            bilstm = getattr(self, 'bilstm' + str(layer))
+            bilstm.flatten_parameters()
+            ys, (hy, cy) = bilstm(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
             sub = self.subsample[layer + 1]
@@ -2029,3 +2031,29 @@ class VGG2L(torch.nn.Module):
         xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens
+
+class DataParallel(torch.nn.DataParallel):
+    def scatter(self, inputs, kwargs, device_ids, dim):
+        r"""Scatter with support for kwargs dictionary"""
+        if len(inputs)==1:
+            inputs = inputs[0]
+        avg = int(math.ceil(len(inputs) / len(device_ids)))
+        inputs = [[inputs[i:i+avg]] for i in xrange(0, len(inputs), avg)]#scatter(inputs, device_ids, dim) if inputs else []
+        kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
+        if len(inputs) < len(kwargs):
+            inputs.extend([() for _ in range(len(kwargs) - len(inputs))])
+        elif len(kwargs) < len(inputs):
+            kwargs.extend([{} for _ in range(len(inputs) - len(kwargs))])
+        inputs = tuple(inputs)
+        kwargs = tuple(kwargs)
+        return inputs, kwargs
+    
+    def forward(self, *inputs, **kwargs):
+        if not self.device_ids:
+            return self.module(*inputs, **kwargs)
+        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids, self.dim)
+        if len(self.device_ids) == 1:
+            return self.module(*inputs[0], **kwargs[0])
+        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        outputs = self.parallel_apply(replicas, inputs, kwargs)
+        return self.gather(outputs, self.output_device)
