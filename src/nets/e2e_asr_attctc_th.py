@@ -2033,29 +2033,3 @@ class VGG2L(torch.nn.Module):
         return xs, ilens
 
 
-class DataParallel(torch.nn.DataParallel):
-    def scatter(self, inputs, kwargs, device_ids, dim):
-        r"""Scatter with support for kwargs dictionary"""
-        if len(inputs) == 1:
-            inputs = inputs[0]
-        avg = int(math.ceil(len(inputs) / len(device_ids)))
-        # inputs = scatter(inputs, device_ids, dim) if inputs else []
-        inputs = [[inputs[i:i + avg]] for i in six.moves.range(0, len(inputs), avg)]
-        kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
-        if len(inputs) < len(kwargs):
-            inputs.extend([() for _ in six.moves.range(len(kwargs) - len(inputs))])
-        elif len(kwargs) < len(inputs):
-            kwargs.extend([{} for _ in six.moves.range(len(inputs) - len(kwargs))])
-        inputs = tuple(inputs)
-        kwargs = tuple(kwargs)
-        return inputs, kwargs
-
-    def forward(self, *inputs, **kwargs):
-        if not self.device_ids:
-            return self.module(*inputs, **kwargs)
-        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids, self.dim)
-        if len(self.device_ids) == 1:
-            return self.module(*inputs[0], **kwargs[0])
-        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
-        outputs = self.parallel_apply(replicas, inputs, kwargs)
-        return self.gather(outputs, self.output_device)
