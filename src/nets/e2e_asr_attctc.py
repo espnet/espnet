@@ -216,10 +216,7 @@ class E2E(chainer.Chain):
 
             # 2. decoder
             # decode the first utterance
-            if recog_args.beam_size == 1:
-                y = self.dec.recognize(h[0], recog_args, rnnlm)
-            else:
-                y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+            y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
             return y
 
@@ -629,56 +626,6 @@ class Decoder(chainer.Chain):
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc, att_weight_all
-
-    # TODO(hori) incorporate CTC score
-    def recognize(self, h, recog_args, rnnlm=None):
-        '''greedy search implementation
-
-        :param h:
-        :param recog_args:
-        :return:
-        '''
-        logging.info('input lengths: ' + str(h.shape[0]))
-        # initialization
-        c_list = [None]  # list of cell state of each layer
-        z_list = [None]  # list of hidden state of each layer
-        if rnnlm:
-            state = None
-        for l in six.moves.range(1, self.dlayers):
-            c_list.append(None)
-            z_list.append(None)
-        att_w = None
-        y_seq = []
-        self.att.reset()  # reset pre-computation of h
-
-        # preprate sos
-        y = self.xp.full(1, self.sos, 'i')
-        maxlen = int(recog_args.maxlenratio * h.shape[0])
-        minlen = int(recog_args.minlenratio * h.shape[0])
-        logging.info('max output length: ' + str(maxlen))
-        logging.info('min output length: ' + str(minlen))
-        for i in six.moves.range(minlen, maxlen):
-            ey = self.embed(y)           # utt list (1) x zdim
-            att_c, att_w = self.att([h], z_list[0], att_w)
-            ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
-            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
-            for l in six.moves.range(1, self.dlayers):
-                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
-            if rnnlm:
-                state, z_rnnlm = rnnlm.predictor(state, y)
-                final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
-                    + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
-            else:
-                final_z = F.log_softmax(self.output(z_list[-1])).data
-
-            y = self.xp.argmax(final_z, axis=1).astype('i')
-            y_seq.append(y)
-
-            # terminate decoding
-            if y == self.eos:
-                break
-
-        return y_seq
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation

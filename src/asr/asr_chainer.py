@@ -17,7 +17,6 @@ import six
 
 # chainer related
 import chainer
-from cupy.cuda import nccl
 
 from chainer import cuda
 from chainer import function
@@ -157,6 +156,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
 
         self._send_message(('update', None))
         with cuda.Device(self._devices[0]):
+            from cupy.cuda import nccl
             # For reducing memory
             self._master.cleargrads()
 
@@ -213,6 +213,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             self._pipes.append(pipe)
 
         with cuda.Device(self._devices[0]):
+            from cupy.cuda import nccl
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:
                 comm_id = nccl.get_unique_id()
@@ -243,6 +244,7 @@ class CustomWorker(multiprocessing.Process):
         self.n_devices = len(master._devices)
 
     def setup(self):
+        from cupy.cuda import nccl
         _, comm_id = self.pipe.recv()
         self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
                                           self.proc_id)
@@ -252,6 +254,7 @@ class CustomWorker(multiprocessing.Process):
         self.reporter.add_observer('main', self.model)
 
     def run(self):
+        from cupy.cuda import nccl
         dev = cuda.Device(self.device)
         dev.use()
         self.setup()
@@ -539,12 +542,9 @@ def recog(args):
     for name in recog_json.keys():
         feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
         logging.info('decoding ' + name)
-        if args.beam_size == 1:
-            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-        else:
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-            # get 1best and remove sos
-            y_hat = nbest_hyps[0]['yseq'][1:]
+        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+        # get 1best and remove sos
+        y_hat = nbest_hyps[0]['yseq'][1:]
         y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
 
         # print out decoding result
