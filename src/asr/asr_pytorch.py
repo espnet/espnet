@@ -234,6 +234,7 @@ def train(args):
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
+        trainer.updater.model = torch.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -253,6 +254,8 @@ def train(args):
 
     # Save best models
     def torch_save(path, _):
+        if model.state_dict().keys()[0].startswith("module."):
+            model = model.module
         torch.save(model.state_dict(), path)
         torch.save(model, path + ".pkl")
 
