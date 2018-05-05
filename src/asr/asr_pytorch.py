@@ -255,9 +255,11 @@ def train(args):
     # Save best models
     def torch_save(path, _):
         if model.state_dict().keys()[0].startswith("module."):
-            model = model.module
-        torch.save(model.state_dict(), path)
-        torch.save(model, path + ".pkl")
+            torch.save(model.module.state_dict(), path)
+            torch.save(model.module, path + ".pkl")
+        else:
+            torch.save(model.state_dict(), path)
+            torch.save(model, path + ".pkl")
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
