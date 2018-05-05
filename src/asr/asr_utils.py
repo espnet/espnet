@@ -15,6 +15,12 @@ import kaldi_io_py
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
+    # TODO remove in future
+    if not data.values()[0].has_key('input'):
+        print data[1].has_key('input')
+        logging.error("input file format (json) is modified, please redo \"stage 2: Dictionary and Json Data Preparation\"")
+        sys.exit(1)
+
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
         data[1]['input'][0]['shape'][0]), reverse=True)
@@ -44,7 +50,8 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
 
 # TODO(watanabe) perform mean and variance normalization during the python program
 # and remove the data dump process in run.sh
-def converter_kaldi(batch):
+def converter_kaldi(batch, device=None):
+    batch = batch[0]
     for data in batch:
         feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])
         data[1]['feat'] = feat

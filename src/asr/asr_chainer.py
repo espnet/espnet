@@ -399,8 +399,8 @@ def train(args):
         train_iter = chainer.iterators.SerialIterator(train, 1)
 
         # set up updater
-        updater = ChainerSeqUpdaterKaldi(
-            train_iter, optimizer, gpu_id)
+        updater = training.StandardUpdater(
+            train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -426,8 +426,8 @@ def train(args):
             for gid in six.moves.xrange(ngpu)]
 
         # set up updater
-        updater = ChainerMultiProcessParallelUpdaterKaldi(
-            train_iters, optimizer, devices)
+        updater = training.updaters.MultiprocessParallelUpdater(
+            train_iters, optimizer, converter=converter_kaldi, devices=devices)
 
     # Set up a trainer
     trainer = training.Trainer(
@@ -444,8 +444,8 @@ def train(args):
         valid, 1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(ChainerSeqEvaluaterKaldi(
-        valid_iter, model, device=gpu_id))
+    trainer.extend(extensions.Evaluator(
+        valid_iter, model, converter=converter_kaldi, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
