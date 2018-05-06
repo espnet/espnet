@@ -70,8 +70,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 # read scp files
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
-                # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch[0])
+                x = converter_kaldi(batch)
                 self.model.eval()
                 self.model(x)
                 delete_feat(x)
@@ -104,8 +103,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
-        # batch only has one minibatch utterance, which is specified by batch[0]
-        x = converter_kaldi(batch[0])
+        x = converter_kaldi(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = self.model(x)

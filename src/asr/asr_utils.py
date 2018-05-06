@@ -51,6 +51,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
 # TODO(watanabe) perform mean and variance normalization during the python program
 # and remove the data dump process in run.sh
 def converter_kaldi(batch, device=None):
+    # batch only has one minibatch utterance, which is specified by batch[0]
     batch = batch[0]
     for data in batch:
         feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])

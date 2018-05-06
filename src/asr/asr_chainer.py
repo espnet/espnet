@@ -83,8 +83,7 @@ class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
                 # read scp files
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
-                # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch[0])
+                x = converter_kaldi(batch)
                 with function.no_backprop_mode():
                     eval_func(x)
                     delete_feat(x)
@@ -114,8 +113,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
-        # batch only has one minibatch utterance, which is specified by batch[0]
-        x = converter_kaldi(batch[0])
+        x = converter_kaldi(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(x)
@@ -162,7 +160,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
 
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
-            x = converter_kaldi(batch[0])
+            x = converter_kaldi(batch)
 
             loss = self._master(x)
 
@@ -269,7 +267,7 @@ class CustomWorker(multiprocessing.Process):
                 self.model.cleargrads()
 
                 batch = self.iterator.next()
-                x = converter_kaldi(batch[0])
+                x = converter_kaldi(batch)
                 observation = {}
                 with self.reporter.scope(observation):
                     loss = self.model(x)
