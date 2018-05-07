@@ -1937,7 +1937,9 @@ class BLSTMP(torch.nn.Module):
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         for layer in six.moves.range(self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
-            ys, (hy, cy) = getattr(self, 'bilstm' + str(layer))(xpack)
+            bilstm = getattr(self, 'bilstm' + str(layer))
+            bilstm.flatten_parameters()
+            ys, (hy, cy) = bilstm(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
             sub = self.subsample[layer + 1]
