@@ -119,12 +119,12 @@ is required before setup.
 
 ### Docker Container
 To work inside a docker container, execute `run.sh` located inside the docker directory.
-It will build a container* and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
+It will build a container and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
 ```sh
 $ cd docker
 $ ./run.sh [--docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpora4/CHiME4/CHiME3] --dlayers 1 --ngpu 1 
 ```
-*The container is built based on the CUDA and CUDNN version installed in your computer.
+The docker container is built based on the CUDA and CUDNN version installed in your computer.
 The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
 Multiple GPUs should be specified with the following options:
 ```sh
