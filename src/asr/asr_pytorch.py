@@ -110,7 +110,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         x = converter_kaldi(batch[0], self.reader)
 
         # Compute the loss at this time step and accumulate it
-        loss = self.model(x)
+        loss = 1. / self.num_gpu * self.model(x)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.num_gpu > 1:
             loss.backward(torch.ones(self.num_gpu))  # Backprop
@@ -126,6 +126,34 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         else:
             optimizer.step()
         delete_feat(x)
+
+
+class DataParallel(torch.nn.DataParallel):
+    def scatter(self, inputs, kwargs, device_ids, dim):
+        r"""Scatter with support for kwargs dictionary"""
+        if len(inputs) == 1:
+            inputs = inputs[0]
+        avg = int(math.ceil(len(inputs) / len(device_ids)))
+        # inputs = scatter(inputs, device_ids, dim) if inputs else []
+        inputs = [[inputs[i:i + avg]] for i in range(0, len(inputs), avg)]
+        kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
+        if len(inputs) < len(kwargs):
+            inputs.extend([() for _ in range(len(kwargs) - len(inputs))])
+        elif len(kwargs) < len(inputs):
+            kwargs.extend([{} for _ in range(len(inputs) - len(kwargs))])
+        inputs = tuple(inputs)
+        kwargs = tuple(kwargs)
+        return inputs, kwargs
+
+    def forward(self, *inputs, **kwargs):
+        if not self.device_ids:
+            return self.module(*inputs, **kwargs)
+        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids, self.dim)
+        if len(self.device_ids) == 1:
+            return self.module(*inputs[0], **kwargs[0])
+        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        outputs = self.parallel_apply(replicas, inputs, kwargs)
+        return self.gather(outputs, self.output_device)
 
 
 def train(args):
@@ -185,7 +213,7 @@ def train(args):
     elif ngpu > 1:
         gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
-        model = torch.nn.DataParallel(model, device_ids=gpu_id)
+        model = DataParallel(model, device_ids=gpu_id)
         model.cuda()
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
