@@ -35,7 +35,7 @@ do
 done
 
 if [ -z "${docker_egs}" ]; then
-  echo "Select an example to work with from the folder egs"
+  echo "Select an example to work with from the egs folder."
   exit 1
 fi
 
@@ -58,7 +58,7 @@ if [ ! "${docker_gpu}" == "-1" ]; then
       image_label="espnet:cuda${cuda_ver}-ubuntu16.04"
     fi
   else
-    echo "CUDA version was not found, selecting CPU image. For GPU image, install NVIDIA-DOCKER, CUDA and NVCC"
+    echo "CUDA version was not found, selecting CPU image. For GPU image, install NVIDIA-DOCKER, CUDA and NVCC."
   fi
 fi
 echo "Using image ${from_image}."

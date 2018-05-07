@@ -1,6 +1,6 @@
 ARG FROM_IMAGE
 
-#For cuda-based images, The distribution will includes cuda, cudnn, nccl
+#For cuda-based images, The distribution will include cuda, cudnn, nccl
 FROM ${FROM_IMAGE}
 
 ARG WITH_PROXY
