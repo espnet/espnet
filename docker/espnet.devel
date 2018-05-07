@@ -1,56 +1,80 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+ARG FROM_IMAGE
 
+#For cuda-based images, The distribution will include cuda, cudnn, nccl
+FROM ${FROM_IMAGE}
+
+ARG WITH_PROXY
+ENV HTTP_PROXY ${WITH_PROXY}
+ENV HTTPS_PROXY ${WITH_PROXY}
 ENV CUDA_HOME /usr/local/cuda
-RUN apt-get update && apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-install-recommends \ 
+        automake \
+        autoconf \
+        apt-utils \
+        bc \
+        build-essential \ 
         cmake \
-        wget \
-        build-essential \
         curl \
+        flac \  
+        gawk \ 
         git \
+        libasound2-dev \
+        libatlas3-base \
+        libcurl3-dev \
         libfreetype6-dev \
+        libperl-dev \ 
         libpng12-dev \
-        libzmq3-dev \
+        libsndfile1 \
+        libsndfile-dev \
+        libtool \
+        libzmq3-dev \ 
+        perl \
+        pciutils \
         pkg-config \
         python-dev \
-        python3.6 \
-        python3.6-dev \
+        python-tk \
+        python-numpy-dev \ 
         software-properties-common \
+        sox \
+        subversion \
+        wget \ 
         swig \
         zip \
         zlib1g-dev \
-        libcurl3-dev \
-        libhdf5-dev \  
-        libsndfile-dev \
-        libasound2-dev \
-        python-numpy-dev \ 
-        python-tk \
-        pciutils \
-        libatlas3-base \
-        automake \
-        autoconf \
-        libtool \
-        subversion \
-        flac \
-        bc \
-        gawk \
-        sox \
+        && \
+    apt-get -y install --reinstall \
+        libc6-dev \
+        linux-libc-dev \
+        libgcc-5-dev \
+        libstdc++-5-dev \
+        && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && apt-get -y install --no-install-recommends \
+        python3.6 \
+        python3.6-dev \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install pip
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python get-pip.py && \
     rm get-pip.py
+RUN pip install -U soundfile
 
-RUN pip install virtualenv
-
-RUN mkdir -p /espnet/tools
+# Install espnet
+RUN mkdir -p /espnet
 COPY ./tools /espnet/tools
-COPY ./src /espnet/src
-COPY ./test /espnet/test
 
 WORKDIR /espnet/tools
-RUN make all
-RUN cd kaldi/tools && ./extras/install_beamformit.sh
+RUN make kaldi USE_VENV=OFF && \
+    rm -r ./kaldi/tools/openfst-1.6.5/src && \
+    find ./kaldi/src -name "*.o" -exec rm -f {} \; && \
+    find ./kaldi/src -name "*.o" -exec rm -f {} \; && \
+    cd kaldi/tools && ./extras/install_beamformit.sh
+
+RUN make nkf USE_VENV=OFF && make kaldi-io-for-python USE_VENV=OFF
+RUN make venv/lib/python2.7/site-packages/torch USE_VENV=OFF && make warp-ctc USE_VENV=OFF
+RUN make chainer_ctc USE_VENV=OFF && make subword-nmt USE_VENV=OFF
 WORKDIR /
 
