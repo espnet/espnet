@@ -55,6 +55,45 @@ def linear_tensor(linear, x):
     return F.reshape(y, (x.shape[:-1] + (-1,)))
 
 
+def squash(ss):
+    ss_norm2 = F.sum(ss ** 2, axis=1, keepdims=True)
+    """
+    # ss_norm2 = F.broadcast_to(ss_norm2, ss.shape)
+    # vs = ss_norm2 / (1. + ss_norm2) * ss / F.sqrt(ss_norm2): naive
+    """
+    norm_div_1pnorm2 = F.sqrt(ss_norm2) / (1. + ss_norm2)
+    norm_div_1pnorm2 = F.broadcast_to(norm_div_1pnorm2, ss.shape)
+    vs = norm_div_1pnorm2 * ss  # :efficient
+    # (batchsize, 16, 10)
+    return vs
+
+
+class ModuleList(chainer.Chain):
+    '''ModuleList
+
+    :param data:
+    :return:
+    '''
+
+    def __init__(self, tag='List'):
+        super(ModuleList, self).__init__()
+        with self.init_scope():
+            self._forward = []
+            self._i = 0
+            self.tag = tag
+
+    def stack(self, module):
+        with self.init_scope():
+            name = '{}{}'.format(self.tag, self._i + 1)
+            setattr(self, name, module)
+            self._forward.append(name)
+            self._i += 1
+
+    def __call__(self, i):
+        name = '{}{}'.format(self.tag, i + 1)
+        return getattr(self, name)
+
+
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(chainer.Chain):
     def __init__(self, predictor, mtlalpha):
@@ -138,9 +177,25 @@ class E2E(chainer.Chain):
             # attention
             if args.atype == 'dot':
                 self.att = AttDot(args.eprojs, args.dunits, args.adim)
+            elif args.atype == 'add':
+                self.att = AttAdd(args.eprojs, args.dunits, args.adim)
             elif args.atype == 'location':
                 self.att = AttLoc(args.eprojs, args.dunits,
                                   args.adim, args.aconv_chans, args.aconv_filts)
+            elif args.atype == 'multi_head_dot':
+                self.att = AttMultiHeadDot(args.eprojs, args.dunits,
+                                           args.aheads, args.adim, args.adim)
+            elif args.atype == 'multi_head_add':
+                self.att = AttMultiHeadAdd(args.eprojs, args.dunits,
+                                           args.aheads, args.adim, args.adim)
+            elif args.atype == 'multi_head_loc':
+                self.att = AttMultiHeadLoc(args.eprojs, args.dunits,
+                                           args.aheads, args.adim, args.adim,
+                                           args.aconv_chans, args.aconv_filts)
+            elif args.atype == 'multi_head_multi_res_loc':
+                self.att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
+                                                   args.aheads, args.adim, args.adim,
+                                                   args.aconv_chans, args.aconv_filts)
             elif args.atype == 'noatt':
                 self.att = NoAtt()
             else:
@@ -323,7 +378,50 @@ class WarpCTC(chainer.Chain):
 
 
 # ------------- Attention Network --------------------------------------------------------------------------------------
-# dot product based attention
+class NoAtt(chainer.Chain):
+    '''No attention'''
+
+    def __init__(self):
+        super(NoAtt, self).__init__()
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def reset(self):
+        '''reset states
+
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.c = None
+
+    def __call__(self, enc_hs, dec_z, att_prev):
+        '''NoAtt forward
+
+        :param enc_hs:
+        :param dec_z: dummy
+        :param att_prev:
+        :return:
+        '''
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            att_prev = [self.xp.full(
+                hh.shape[0], 1.0 / hh.shape[0], dtype=np.float32) for hh in enc_hs]
+            att_prev = [chainer.Variable(att) for att in att_prev]
+            att_prev = F.pad_sequence(att_prev)
+            self.c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(att_prev, 2), self.enc_h.shape), axis=1)
+
+        return self.c, att_prev
+
+
 class AttDot(chainer.Chain):
     def __init__(self, eprojs, dunits, att_dim):
         super(AttDot, self).__init__()
@@ -380,6 +478,81 @@ class AttDot(chainer.Chain):
         w = F.softmax(scaling * e)
         # weighted sum over flames
         # utt x hdim
+        c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
+
+        return c, w
+
+
+class AttAdd(chainer.Chain):
+    '''Additive attention
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttAdd, self).__init__()
+        with self.init_scope():
+            self.mlp_enc = L.Linear(eprojs, att_dim)
+            self.mlp_dec = L.Linear(dunits, att_dim, nobias=True)
+            self.gvec = L.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def reset(self):
+        '''reset states
+
+        :return:
+        '''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
+        '''AttLoc forward
+
+        :param Variable enc_hs: padded encoder hidden state (B x T_max x D_enc)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: dummy
+        :param float scaling: scaling parameter before applying softmax
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is previous attention weights (B x T_max)
+        :rtype: tuple of (~chainer.Variable)
+        '''
+        batch = len(enc_hs)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+
+        if dec_z is None:
+            dec_z = chainer.Variable(self.xp.zeros(
+                (batch, self.dunits), dtype=np.float32))
+        else:
+            dec_z = F.reshape(dec_z, (batch, self.dunits))
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = F.broadcast_to(
+            F.expand_dims(self.mlp_dec(dec_z), 1), self.pre_compute_enc_h.shape)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = F.squeeze(linear_tensor(self.gvec, F.tanh(
+            self.pre_compute_enc_h + dec_z_tiled)), axis=2)
+        w = F.softmax(scaling * e)
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
         c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
 
         return c, w
@@ -474,46 +647,456 @@ class AttLoc(chainer.Chain):
         return c, w
 
 
-class NoAtt(chainer.Chain):
-    def __init__(self):
-        super(NoAtt, self).__init__()
+class AttMultiHeadDot(chainer.Chain):
+    '''Multi head dot product attention
+
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int ahead: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
+        super(AttMultiHeadDot, self).__init__()
+        with self.init_scope():
+            self.mlp_q = ModuleList('mlp_q')
+            self.mlp_k = ModuleList('mlp_k')
+            self.mlp_v = ModuleList('mlp_v')
+            for h in six.moves.range(aheads):
+                self.mlp_q.stack(L.Linear(dunits, att_dim_k))
+                self.mlp_k.stack(L.Linear(eprojs, att_dim_k, nobias=True))
+                self.mlp_v.stack(L.Linear(eprojs, att_dim_v, nobias=True))
+            self.mlp_o = L.Linear(aheads * att_dim_v, eprojs, nobias=True)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
         self.h_length = None
         self.enc_h = None
-        self.pre_compute_enc_h = None
-        self.c = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
 
     def reset(self):
-        '''reset states
-
-        :return:
-        '''
+        '''reset states'''
         self.h_length = None
         self.enc_h = None
-        self.pre_compute_enc_h = None
-        self.c = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
 
     def __call__(self, enc_hs, dec_z, att_prev):
-        '''NoAtt forward
+        '''AttMultiHeadDot forward
 
-        :param enc_hs:
-        :param dec_z: dummy
-        :param att_prev:
-        :return:
+        :param Variable enc_hs: padded encoder hidden state (B x T_max x D_enc)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: dummy (does not use)
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is a list of previous attention
+         weights (B x T_max) * aheads
+        :rtype: tuple of (~chainer.Variable)
         '''
-        # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
+        batch = len(enc_hs)
+        if self.pre_compute_k is None:
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
             self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = chainer.Variable(self.xp.zeros(
+                (batch, self.dunits), dtype=np.float32))
+        else:
+            dec_z = F.reshape(dec_z, (batch, self.dunits))
+
+        c = list()
+        w = list()
+        for h in six.moves.range(self.aheads):
+            u = F.broadcast_to(F.expand_dims(F.tanh(
+                self.mlp_q(h)(dec_z)), 1), self.pre_compute_k[h].shape)
+            e = F.sum(self.pre_compute_k[h] * u, axis=2)  # utt x frame
+            w += [F.softmax(self.scaling * e)]
+
+            # weighted sum over flames
+            # utt x hdim
+            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(
+                F.expand_dims(w[h], 2), self.pre_compute_v[h].shape), axis=1)]
+
+        # concat all of c
+        c = self.mlp_o(F.concat(c, axis=1))
+
+        return c, w
+
+
+class AttMultiHeadAdd(chainer.Chain):
+    '''Multi head additive attention
+
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using additive attention for each head.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int ahead: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v):
+        super(AttMultiHeadAdd, self).__init__()
+        with self.init_scope():
+            self.mlp_q = ModuleList('mlp_q')
+            self.mlp_k = ModuleList('mlp_k')
+            self.mlp_v = ModuleList('mlp_v')
+            self.gvec = ModuleList('gvec')
+            for h in six.moves.range(aheads):
+                self.mlp_q.stack(L.Linear(dunits, att_dim_k))
+                self.mlp_k.stack(L.Linear(eprojs, att_dim_k, nobias=True))
+                self.mlp_v.stack(L.Linear(eprojs, att_dim_v, nobias=True))
+                self.gvec.stack(L.Linear(att_dim_k, 1))
+            self.mlp_o = L.Linear(aheads * att_dim_v, eprojs, nobias=True)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def __call__(self, enc_hs, dec_z, att_prev):
+        '''AttMultiHeadAdd forward
+
+        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: dummy (does not use)
+        :param float scaling: scaling parameter before applying softmax
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is a list of previous attention
+         weights (B x T_max) * aheads
+        :rtype: tuple of (~chainer.Variable)
+        '''
+
+        batch = len(enc_hs)
+        if self.pre_compute_k is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = chainer.Variable(self.xp.zeros(
+                (batch, self.dunits), dtype=np.float32))
+        else:
+            dec_z = dec_z.reshape(batch, self.dunits)
+
+        c = list()
+        w = list()
+        for h in six.moves.range(self.aheads):
+            u = F.broadcast_to(F.expand_dims(
+                self.mlp_q(h)(dec_z), 1), self.pre_compute_k[h].shape)
+            e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
+                self.pre_compute_k[h] + u)), axis=2)
+            w += [F.softmax(self.scaling * e)]
+
+            # weighted sum over flames
+            # utt x hdim
+            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(
+                F.expand_dims(w[h], 2), self.pre_compute_v[h].shape), axis=1)]
+
+        # concat all of c
+        c = self.mlp_o(F.concat(c, axis=1))
+
+        return c, w
+
+
+class AttMultiHeadLoc(chainer.Chain):
+    '''Multi head location based attention
+
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using location-aware attention for each head.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int aheads: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts):
+        super(AttMultiHeadLoc, self).__init__()
+        with self.init_scope():
+            self.mlp_q = ModuleList('mlp_q')
+            self.mlp_k = ModuleList('mlp_k')
+            self.mlp_v = ModuleList('mlp_v')
+            self.gvec = ModuleList('gvec')
+            self.loc_conv = ModuleList('loc_conv')
+            self.mlp_att = ModuleList('mlp_att')
+            for h in six.moves.range(aheads):
+                self.mlp_q.stack(L.Linear(dunits, att_dim_k))
+                self.mlp_k.stack(L.Linear(eprojs, att_dim_k, nobias=True))
+                self.mlp_v.stack(L.Linear(eprojs, att_dim_v, nobias=True))
+                self.gvec.stack(L.Linear(att_dim_k, 1))
+                self.loc_conv.stack(L.Convolution2D(1, aconv_chans, ksize=(
+                    1, 2 * aconv_filts + 1), pad=(0, aconv_filts), nobias=True))
+                self.mlp_att.stack(L.Linear(aconv_chans, att_dim_k, nobias=True))
+            self.mlp_o = L.Linear(aheads * att_dim_v, eprojs, nobias=True)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
+        '''AttMultiHeadLoc forward
+
+        :param Variable enc_hs: padded encoder hidden state (B x T_max x D_enc)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :param float scaling: scaling parameter before applying softmax
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is a list of previous attention
+         weights (B x T_max) * aheads
+        :rtype: tuple of (~chainer.Variable)
+        '''
+
+        batch = len(enc_hs)
+        if self.pre_compute_k is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = chainer.Variable(self.xp.zeros(
+                (batch, self.dunits), dtype=np.float32))
+        else:
+            dec_z = F.reshape(dec_z, (batch, self.dunits))
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [self.xp.full(
-                hh.shape[0], 1.0 / hh.shape[0], dtype=np.float32) for hh in enc_hs]
-            att_prev = [chainer.Variable(att) for att in att_prev]
-            att_prev = F.pad_sequence(att_prev)
-            self.c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(att_prev, 2), self.enc_h.shape), axis=1)
+            att_prev = list()
+            for h in six.moves.range(self.aheads):
+                _att_prev = [self.xp.full(
+                    hh.shape[0], 1.0 / hh.shape[0], dtype=np.float32) for hh in enc_hs]
+                _att_prev = [chainer.Variable(att) for att in _att_prev]
+                # if no bias, 0 0-pad goes 0
+                att_prev += [F.pad_sequence(_att_prev)]
 
-        return self.c, att_prev
+        c = list()
+        w = list()
+        for h in six.moves.range(self.aheads):
+            # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
+            att_conv = self.loc_conv(h)(att_prev[h].reshape(batch, 1, 1, self.h_length))
+            # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+            att_conv = F.swapaxes(F.squeeze(att_conv, axis=2), 1, 2)
+            # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+            att_conv = linear_tensor(self.mlp_att(h), att_conv)
+            # dec_z_tiled: utt x frame x att_dim
+
+            u = F.broadcast_to(F.expand_dims(
+                self.mlp_q(h)(dec_z), 1), self.pre_compute_k[h].shape)
+            e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
+                self.pre_compute_k[h] + att_conv + u)), axis=2)
+            w += [F.softmax(scaling * e)]
+
+            # weighted sum over flames
+            # utt x hdim
+            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(
+                F.expand_dims(w[h], 2), self.pre_compute_v[h].shape), axis=1)]
+
+        # concat all of c
+        c = self.mlp_o(F.concat(c, axis=1))
+
+        return c, w
+
+
+class AttMultiHeadMultiResLoc(chainer.Chain):
+    '''Multi head multi resolution location based attention
+
+    Reference: Attention is all you need
+        (https://arxiv.org/abs/1706.03762)
+
+    This attention is multi head attention using location-aware attention for each head.
+    Furthermore, it uses different filter size for each head.
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int aheads: # heads of multi head attention
+    :param int att_dim_k: dimension k in multi head attention
+    :param int att_dim_v: dimension v in multi head attention
+    :param int aconv_chans: maximum # channels of attention convolution
+        each head use #ch = aconv_chans * (head + 1) / aheads
+        e.g. aheads=4, aconv_chans=100 => filter size = 25, 50, 75, 100
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
+    def __init__(self, eprojs, dunits, aheads, att_dim_k, att_dim_v, aconv_chans, aconv_filts):
+        super(AttMultiHeadMultiResLoc, self).__init__()
+        with self.init_scope():
+            self.mlp_q = ModuleList('mlp_q')
+            self.mlp_k = ModuleList('mlp_k')
+            self.mlp_v = ModuleList('mlp_v')
+            self.gvec = ModuleList('gvec')
+            self.loc_conv = ModuleList('loc_conv')
+            self.mlp_att = ModuleList('mlp_att')
+            for h in six.moves.range(aheads):
+                self.mlp_q.stack(L.Linear(dunits, att_dim_k))
+                self.mlp_k.stack(L.Linear(eprojs, att_dim_k, nobias=True))
+                self.mlp_v.stack(L.Linear(eprojs, att_dim_v, nobias=True))
+                self.gvec.stack(L.Linear(att_dim_k, 1))
+                afilts = aconv_filts * (h + 1) // aheads
+                self.loc_conv.stack(L.Convolution2D(1, aconv_chans, ksize=(
+                    1, 2 * afilts + 1), pad=(0, afilts), nobias=True))
+                self.mlp_att.stack(L.Linear(aconv_chans, att_dim_k, nobias=True))
+            self.mlp_o = L.Linear(aheads * att_dim_v, eprojs, nobias=True)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.aheads = aheads
+        self.att_dim_k = att_dim_k
+        self.att_dim_v = att_dim_v
+        self.scaling = 1.0 / math.sqrt(att_dim_k)
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_k = None
+        self.pre_compute_v = None
+
+    def __call__(self, enc_hs, dec_z, att_prev):
+        '''AttMultiHeadMultiResLoc forward
+
+        :param Variable enc_hs: padded encoder hidden state (B x T_max x D_enc)
+        :param Variable dec_z: decoder hidden state (B x D_dec)
+        :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :param float scaling: scaling parameter before applying softmax
+        :return: ``(c, w)``, where ``c`` represents attention weighted encoder
+         state (B, D_enc), and ``w`` is a list of previous attention
+         weights (B x T_max) * aheads
+        :rtype: tuple of (~chainer.Variable)
+        '''
+
+        batch = len(enc_hs)
+        if self.pre_compute_k is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_k = [
+                F.tanh(linear_tensor(self.mlp_k(h), self.enc_h)) for h in six.moves.range(self.aheads)]
+
+        if self.pre_compute_v is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+            self.h_length = self.enc_h.shape[1]
+            # utt x frame x att_dim
+            self.pre_compute_v = [
+                linear_tensor(self.mlp_v(h), self.enc_h) for h in six.moves.range(self.aheads)]
+
+        if dec_z is None:
+            dec_z = chainer.Variable(self.xp.zeros(
+                (batch, self.dunits), dtype=np.float32))
+        else:
+            dec_z = dec_z.reshape(batch, self.dunits)
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            att_prev = list()
+            for h in six.moves.range(self.aheads):
+                _att_prev = [self.xp.full(
+                    hh.shape[0], 1.0 / hh.shape[0], dtype=np.float32) for hh in enc_hs]
+                _att_prev = [chainer.Variable(att) for att in _att_prev]
+                # if no bias, 0 0-pad goes 0
+                att_prev += [F.pad_sequence(_att_prev)]
+
+        c = list()
+        w = list()
+        for h in six.moves.range(self.aheads):
+            # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
+            att_conv = self.loc_conv(h)(att_prev[h].reshape(batch, 1, 1, self.h_length))
+            # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+            att_conv = F.swapaxes(F.squeeze(att_conv, axis=2), 1, 2)
+            # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+            att_conv = linear_tensor(self.mlp_att(h), att_conv)
+            # dec_z_tiled: utt x frame x att_dim
+
+            u = F.broadcast_to(F.expand_dims(
+                self.mlp_q(h)(dec_z), 1), self.pre_compute_k[h].shape)
+            e = F.squeeze(linear_tensor(self.gvec(h), F.tanh(
+                self.pre_compute_k[h] + att_conv + u)), axis=2)
+            w += [F.softmax(self.scaling * e)]
+
+            # weighted sum over flames
+            # utt x hdim
+            c += [F.sum(self.pre_compute_v[h] * F.broadcast_to(
+                F.expand_dims(w[h], 2), self.pre_compute_v[h].shape), axis=1)]
+
+        # concat all of c
+        c = self.mlp_o(F.concat(c, axis=1))
+
+        return c, w
 
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
@@ -591,7 +1174,11 @@ class Decoder(chainer.Chain):
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
             z_all.append(z_list[-1])
-            att_weight_all.append(att_w.data)  # for debugging
+            if isinstance(att_w, list):
+                _att_w = [x.data for x in att_w]
+            else:
+                _att_w = att_w.data
+            att_weight_all.append(_att_w)  # for debugging
 
         z_all = F.reshape(F.stack(z_all, axis=1),
                           (batch * olength, self.dunits))
@@ -822,6 +1409,26 @@ class Encoder(chainer.Chain):
                 self.enc2 = BLSTM(_get_vgg2l_odim(
                     idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
                 logging.info('Use CNN-VGG + BLSTM for encoder')
+            elif etype == 'resblstmp':
+                self.enc1 = RESNET(in_channel)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                logging.info('Use CNN-ResNet + BLSTM for encoder')
+            elif etype == 'wideresblstmp':
+                self.enc1 = WIDERESNET(in_channel)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                logging.info('Use CNN-WideResNet + BLSTM for encoder')
+            elif etype == 'rexblstmp':
+                self.enc1 = RESNEXT(in_channel)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                logging.info('Use CNN-ResNext + BLSTM for encoder')
+            elif etype == 'capsblstmp':
+                self.enc1 = CAPSNET(in_channel)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                logging.info('Use CapsuleNet + BLSTM for encoder')
             else:
                 logging.error(
                     "Error: need to specify an appropriate encoder archtecture")
@@ -844,6 +1451,18 @@ class Encoder(chainer.Chain):
             xs, ilens = self.enc1(xs, ilens)
             xs, ilens = self.enc2(xs, ilens)
         elif self.etype == 'vggblstm':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'resblstmp':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'wideresblstmp':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'rexblstmp':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'capsblstmp':
             xs, ilens = self.enc1(xs, ilens)
             xs, ilens = self.enc2(xs, ilens)
         else:
@@ -968,6 +1587,292 @@ class VGG2L(chainer.Chain):
         xs = F.relu(self.conv2_1(xs))
         xs = F.relu(self.conv2_2(xs))
         xs = F.max_pooling_2d(xs, 2, stride=2)
+
+        # change ilens accordingly
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs = F.swapaxes(xs, 1, 2)
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+
+        return xs, ilens
+
+
+class ResBlock(chainer.Chain):
+    def __init__(self, in_channel, out_channel):
+        super(ResBlock, self).__init__()
+        with self.init_scope():
+            self.shortcut = L.Convolution2D(in_channel, out_channel, 1, stride=1, nobias=True)
+            self.conv1 = L.Convolution2D(in_channel, out_channel, 3, stride=1, pad=1, nobias=True)
+            self.conv2 = L.Convolution2D(out_channel, out_channel, 3, stride=1, pad=1, nobias=True)
+
+    def __call__(self, x):
+        res_x = F.relu(self.conv1(x))
+        res_x = self.conv2(res_x)
+        x = self.shortcut(x)
+        return F.relu(x + res_x)
+        
+
+class RESNET(chainer.Chain):
+    def __init__(self, in_channel=1):
+        super(RESNET, self).__init__()
+        with self.init_scope():
+            # CNN layer (RESNET motivated)
+            self.conv0 = L.Convolution2D(in_channel, 16, 1, stride=1, nobias=True)
+            self.resblock1 = ResBlock(16, 64)
+            self.resblock2 = ResBlock(64, 128)
+
+        self.in_channel = in_channel
+
+    def __call__(self, xs, ilens):
+        '''RESNET forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        xs = F.pad_sequence(xs)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+
+        xs = self.conv0(xs)
+        xs = self.resblock1(xs)
+        xs = F.max_pooling_2d(xs, 2, stride=2)
+
+        xs = self.resblock2(xs)
+        xs = F.max_pooling_2d(xs, 2, stride=2)
+
+        # change ilens accordingly
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs = F.swapaxes(xs, 1, 2)
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+
+        return xs, ilens
+
+
+class WideBlock(chainer.Chain):
+    def __init__(self, in_channel, out_channel):
+        super(WideBlock, self).__init__()
+        with self.init_scope():
+            self.shortcut = L.Convolution2D(in_channel, out_channel, 1, stride=1, nobias=True)
+            self.conv1 = L.Convolution2D(in_channel, out_channel, 3, stride=1, pad=1, nobias=True)
+            self.conv2 = L.Convolution2D(out_channel, out_channel, 3, stride=1, pad=1, nobias=True)
+
+    def __call__(self, x):
+        res_x = self.conv1(F.relu(x))
+        res_x = self.conv2(F.relu(res_x))
+        x = self.shortcut(x) + res_x
+        return x
+        
+
+class WIDERESNET(chainer.Chain):
+    def __init__(self, in_channel=1):
+        super(WIDERESNET, self).__init__()
+        k = 10 # Widen Factor
+        with self.init_scope():
+            # CNN layer (WIDERESNET motivated)
+            self.conv0 = L.Convolution2D(in_channel, 16, 3, stride=1, pad=1, nobias=True)
+            self.wide1 = WideBlock(16, 16*k)
+            self.wide2 = WideBlock(16*k, 32*k)
+            
+        self.in_channel = in_channel
+
+    def __call__(self, xs, ilens):
+        '''WIDERESNET forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        xs = F.pad_sequence(xs)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+
+        xs = self.conv0(xs)
+        xs = self.wide1(xs)
+        xs = F.max_pooling_2d(F.relu(xs), 2, stride=2)
+
+        xs = self.wide2(xs)
+        xs = F.max_pooling_2d(F.relu(xs), 2, stride=2)
+
+        # change ilens accordingly
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs = F.swapaxes(xs, 1, 2)
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+
+        return xs, ilens
+
+
+class SinglePath(chainer.Chain):
+    def __init__(self, in_channel, channels):
+        super(SinglePath, self).__init__()
+        with self.init_scope():
+            self.conv1 = L.Convolution2D(in_channels, channel, 1, stride=1, nobias=True)
+            self.conv2 = L.Convolution2D(channel, channel, 3, stride=1, pad=1, nobias=True)
+
+    def __call__(self, x):
+        x = self.conv1(F.relu(x))
+        x = self.conv2(F.relu(x))
+        return x
+
+
+class ResxBlock(chainer.Chain):
+    def __init__(self, in_channel, out_channel, mid_channel=4, paths=32):
+        super(ResxBlock, self).__init__()
+        with self.init_scope():
+            for i in range(paths):
+                setattr(self, 'path_{:02d}'.format(i+1), SinglePath(in_channel, mid_channel))
+            self.shortcut = L.Convolution2D(in_channels, out_channel, 1, stride=1, nobias=True)
+            self.concated = L.Convolution2D(mid_channel*paths, out_channel, 1, stride=1, nobias=True)
+        self.paths = paths
+
+    def __call__(self, x):
+        paths = list()
+        for i in range(self.paths):
+            path = getattr(self, 'path_{:02d}'.format(i+1))
+            paths.append(path(x))
+        res_x = F.concat(paths, axis=1)
+        x = F.relu(self.concated(res_x)) + self.shortcut(x)
+        return x
+
+
+class RESNEXT(chainer.Chain):
+    def __init__(self, in_channel=1):
+        super(RESNEXT, self).__init__()
+        k = 10 # Widen Factor
+        with self.init_scope():
+            # CNN layer (RESNEXT motivated)
+            self.conv0 = L.Convolution2D(in_channel, 32, 3, stride=1, pad=1, nobias=True)
+            self.resx1 = ResxBlock(32, 64)
+            self.resx2 = ResxBlock(64, 128)
+        self.in_channel = in_channel
+
+    def __call__(self, xs, ilens):
+        '''RESNEXT forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        xs = F.pad_sequence(xs)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+
+        xs = self.conv0(xs)
+        xs = self.resx1(xs)
+        xs = F.max_pooling_2d(F.relu(xs), 2, stride=2)
+
+        xs = self.resx2(xs)
+        xs = F.max_pooling_2d(F.relu(xs), 2, stride=2)
+
+        # change ilens accordingly
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs = F.swapaxes(xs, 1, 2)
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+
+        return xs, ilens
+
+
+class CAPSNET(chainer.Chain):
+    def __init__(self, in_channel=1):
+        super(CAPSNET, self).__init__()
+        self.n_iterations = 3  # dynamic routing
+        self.n_grids = 6  # grid width of primary capsules layer
+        self.n_raw_grids = self.n_grids
+        self.out_channels = 128
+        with self.init_scope():
+            # CNN layer (CAPSNETT motivated)
+            self.conv1 = L.Convolution2D(in_channel, 256, 9, stride=1)
+            self.conv2 = L.Convolution2D(256, 32 * 8, 9, stride=2)
+            self.Ws = chainer.ChainList(
+                *[L.Convolution2D(8, 22 * self.out_channels, ksize=1, stride=1)
+                for i in six.moves.range(32)])
+
+    def __call__(self, xs, ilens):
+        '''CAPSNET forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        batchsize = xs.shape[0]
+        n_iters = self.n_iterations
+        gg = self.n_grids * self.n_grids
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        xs = F.pad_sequence(xs)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+
+        xs = F.leaky_relu(self.conv1(xs), 0.05)
+        pr_caps = F.split_axis(self.conv2(xs), 32, axis=1)
+
+        Preds = []
+        for i in six.maoves.range(32):
+            pred = self.Ws[i](pr_caps[i])
+            Pred = pred.reshape((batchsize, 16, self.out_channels, gg))
+            Preds.append(Pred)
+        Preds = F.stack(Preds, axis=3)
+        assert(Preds.shape == (batchsize, 16, self.out_channels, 32, gg))
+
+        bs = self.xp.zeros((batchsize, self.out_channels, 32, gg), dtype='f')
+        for i_iter in six.moves.range(n_iters):
+            cs = F.softmax(bs, axis=1)
+            Cs = F.broadcast_to(cs[:, None], Preds.shape)
+            assert(Cs.shape == (batchsize, 16, self.out_channels, 32, gg))
+            ss = F.sum(Cs * Preds, axis=(3, 4))
+            vs = squash(ss)
+            assert(vs.shape == (batchsize, 16, self.out_channels))
+
+            if i_iter != n_iters - 1:
+                Vs = F.broadcast_to(vs[:, :, :, None, None], Preds.shape)
+                assert(Vs.shape == (batchsize, 16, 10, 32, gg))
+                bs = bs + F.sum(Vs * Preds, axis=1)
+                assert(bs.shape == (batchsize, 10, 32, gg))
 
         # change ilens accordingly
         ilens = self.xp.array(self.xp.ceil(self.xp.array(
