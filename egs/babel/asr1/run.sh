@@ -60,6 +60,7 @@ epochs=15
 
 # rnnlm related
 lm_weight=1.0
+use_lm=false
 
 # decoding parameter
 beam_size=20
@@ -94,8 +95,14 @@ set -e
 set -u
 set -o pipefail
 
+# Train Directories
 train_set=train
 train_dev=dev
+
+# LM Directories
+lmexpdir=exp/train_rnnlm_2layer_bs2048
+lm_train_set=data/local/train.txt
+lm_valid_set=data/local/dev.txt
 
 recog_set=""
 for l in ${recog}; do
@@ -171,6 +178,44 @@ if [ ${stage} -le 2 ]; then
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
+
+if $use_lm; then
+  lm_train_set=data/local/train.txt
+  lm_valid_set=data/local/dev.txt
+ 
+  # Make train and valid
+  text2token.py --nchar 1 \
+                --space "<space>" \
+                --non-lang-syms data/lang_1char/non_lang_syms.txt \
+                <(cut -d' ' -f2- data/${train_set}/text | head -100) |\
+                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_train_set} 
+
+  text2token.py --nchar 1 \
+                --space "<space>" \
+                --non-lang-syms data/lang_1char/non_lang_syms.txt \
+                <(cut -d' ' -f2- data/${train_dev}/text | head -100) |\
+                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_valid_set} 
+
+  if [ ${ngpu} -gt 1 ]; then
+        echo "LM training does not support multi-gpu. signle gpu will be used."
+        lmngpu=1
+  else
+        lmngpu=0
+  fi
+
+  
+  ${cuda_cmd} ${lmexpdir}/train.log \
+          lm_train.py \
+          --ngpu ${lmngpu} \
+          --backend ${backend} \
+          --verbose 1 \
+          --outdir ${lmexpdir} \
+          --train-label ${lm_train_set} \
+          --valid-label ${lm_valid_set} \
+          --dict ${dict}
+fi
+
+
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
@@ -228,6 +273,11 @@ fi
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32
+    
+    extra_opts=""
+    if $use_lm; then
+      extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
+    fi
 
     for rtask in ${recog_set}; do
     (
@@ -263,7 +313,8 @@ if [ ${stage} -le 4 ]; then
             --penalty ${penalty} \
             --ctc-weight ${ctc_weight} \
             --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} &
+            --minlenratio ${minlenratio} \
+            ${extra_opts} &
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
