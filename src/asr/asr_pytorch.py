@@ -234,7 +234,10 @@ def train(args):
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
-        trainer.updater.model = torch.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+        else:
+            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -254,7 +257,7 @@ def train(args):
 
     # Save best models
     def torch_save(path, _):
-        if model.state_dict().keys()[0].startswith("module."):
+        if ngpu > 1:
             torch.save(model.module.state_dict(), path)
             torch.save(model.module, path + ".pkl")
         else:
@@ -268,7 +271,10 @@ def train(args):
 
     # epsilon decay in the optimizer
     def torch_load(path, obj):
-        model.load_state_dict(torch.load(path))
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(path))
+        else:
+            model.load_state_dict(torch.load(path))
         return obj
     if args.opt == 'adadelta':
         if args.criterion == 'acc':
