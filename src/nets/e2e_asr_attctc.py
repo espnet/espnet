@@ -55,6 +55,19 @@ def linear_tensor(linear, x):
     return F.reshape(y, (x.shape[:-1] + (-1,)))
 
 
+def squash(ss):
+    ss_norm2 = F.sum(ss ** 2, axis=1, keepdims=True)
+    """
+    # ss_norm2 = F.broadcast_to(ss_norm2, ss.shape)
+    # vs = ss_norm2 / (1. + ss_norm2) * ss / F.sqrt(ss_norm2): naive
+    """
+    norm_div_1pnorm2 = F.sqrt(ss_norm2) / (1. + ss_norm2)
+    norm_div_1pnorm2 = F.broadcast_to(norm_div_1pnorm2, ss.shape)
+    vs = norm_div_1pnorm2 * ss  # :efficient
+    # (batchsize, 16, 10)
+    return vs
+
+
 class ModuleList(chainer.Chain):
     '''ModuleList
 
@@ -728,7 +741,7 @@ class AttMultiHeadDot(chainer.Chain):
         return c, w
 
 
-class AttMultiHeadAdd(object):
+class AttMultiHeadAdd(chainer.Chain):
     '''Multi head additive attention
 
     Reference: Attention is all you need
@@ -830,7 +843,7 @@ class AttMultiHeadAdd(object):
         return c, w
 
 
-class AttMultiHeadLoc(object):
+class AttMultiHeadLoc(chainer.Chain):
     '''Multi head location based attention
 
     Reference: Attention is all you need
@@ -956,7 +969,7 @@ class AttMultiHeadLoc(object):
         return c, w
 
 
-class AttMultiHeadMultiResLoc(object):
+class AttMultiHeadMultiResLoc(chainer.Chain):
     '''Multi head multi resolution location based attention
 
     Reference: Attention is all you need
@@ -1396,6 +1409,26 @@ class Encoder(chainer.Chain):
                 self.enc2 = BLSTM(_get_vgg2l_odim(
                     idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
                 logging.info('Use CNN-VGG + BLSTM for encoder')
+            elif etype == 'resblstmp':
+                self.enc1 = RESNET(in_channel)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                logging.info('Use CNN-ResNet + BLSTM for encoder')
+            elif etype == 'wideresblstmp':
+                self.enc1 = WIDERESNET(in_channel)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                logging.info('Use CNN-WideResNet + BLSTM for encoder')
+            elif etype == 'rexblstmp':
+                self.enc1 = RESNEXT(in_channel)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                logging.info('Use CNN-ResNext + BLSTM for encoder')
+            elif etype == 'capsblstmp':
+                self.enc1 = CAPSNET(in_channel)
+                self.enc2 = BLSTM(_get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                logging.info('Use CapsuleNet + BLSTM for encoder')
             else:
                 logging.error(
                     "Error: need to specify an appropriate encoder archtecture")
@@ -1418,6 +1451,18 @@ class Encoder(chainer.Chain):
             xs, ilens = self.enc1(xs, ilens)
             xs, ilens = self.enc2(xs, ilens)
         elif self.etype == 'vggblstm':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'resblstmp':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'wideresblstmp':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'rexblstmp':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'capsblstmp':
             xs, ilens = self.enc1(xs, ilens)
             xs, ilens = self.enc2(xs, ilens)
         else:
@@ -1542,6 +1587,292 @@ class VGG2L(chainer.Chain):
         xs = F.relu(self.conv2_1(xs))
         xs = F.relu(self.conv2_2(xs))
         xs = F.max_pooling_2d(xs, 2, stride=2)
+
+        # change ilens accordingly
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs = F.swapaxes(xs, 1, 2)
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+
+        return xs, ilens
+
+
+class ResBlock(chainer.Chain):
+    def __init__(self, in_channel, out_channel):
+        super(ResBlock, self).__init__()
+        with self.init_scope():
+            self.shortcut = L.Convolution2D(in_channel, out_channel, 1, stride=1, nobias=True)
+            self.conv1 = L.Convolution2D(in_channel, out_channel, 3, stride=1, pad=1, nobias=True)
+            self.conv2 = L.Convolution2D(out_channel, out_channel, 3, stride=1, pad=1, nobias=True)
+
+    def __call__(self, x):
+        res_x = F.relu(self.conv1(x))
+        res_x = self.conv2(res_x)
+        x = self.shortcut(x)
+        return F.relu(x + res_x)
+        
+
+class RESNET(chainer.Chain):
+    def __init__(self, in_channel=1):
+        super(RESNET, self).__init__()
+        with self.init_scope():
+            # CNN layer (RESNET motivated)
+            self.conv0 = L.Convolution2D(in_channel, 16, 1, stride=1, nobias=True)
+            self.resblock1 = ResBlock(16, 64)
+            self.resblock2 = ResBlock(64, 128)
+
+        self.in_channel = in_channel
+
+    def __call__(self, xs, ilens):
+        '''RESNET forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        xs = F.pad_sequence(xs)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+
+        xs = self.conv0(xs)
+        xs = self.resblock1(xs)
+        xs = F.max_pooling_2d(xs, 2, stride=2)
+
+        xs = self.resblock2(xs)
+        xs = F.max_pooling_2d(xs, 2, stride=2)
+
+        # change ilens accordingly
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs = F.swapaxes(xs, 1, 2)
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+
+        return xs, ilens
+
+
+class WideBlock(chainer.Chain):
+    def __init__(self, in_channel, out_channel):
+        super(WideBlock, self).__init__()
+        with self.init_scope():
+            self.shortcut = L.Convolution2D(in_channel, out_channel, 1, stride=1, nobias=True)
+            self.conv1 = L.Convolution2D(in_channel, out_channel, 3, stride=1, pad=1, nobias=True)
+            self.conv2 = L.Convolution2D(out_channel, out_channel, 3, stride=1, pad=1, nobias=True)
+
+    def __call__(self, x):
+        res_x = self.conv1(F.relu(x))
+        res_x = self.conv2(F.relu(res_x))
+        x = self.shortcut(x) + res_x
+        return x
+        
+
+class WIDERESNET(chainer.Chain):
+    def __init__(self, in_channel=1):
+        super(WIDERESNET, self).__init__()
+        k = 10 # Widen Factor
+        with self.init_scope():
+            # CNN layer (WIDERESNET motivated)
+            self.conv0 = L.Convolution2D(in_channel, 16, 3, stride=1, pad=1, nobias=True)
+            self.wide1 = WideBlock(16, 16*k)
+            self.wide2 = WideBlock(16*k, 32*k)
+            
+        self.in_channel = in_channel
+
+    def __call__(self, xs, ilens):
+        '''WIDERESNET forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        xs = F.pad_sequence(xs)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+
+        xs = self.conv0(xs)
+        xs = self.wide1(xs)
+        xs = F.max_pooling_2d(F.relu(xs), 2, stride=2)
+
+        xs = self.wide2(xs)
+        xs = F.max_pooling_2d(F.relu(xs), 2, stride=2)
+
+        # change ilens accordingly
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs = F.swapaxes(xs, 1, 2)
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+
+        return xs, ilens
+
+
+class SinglePath(chainer.Chain):
+    def __init__(self, in_channel, channels):
+        super(SinglePath, self).__init__()
+        with self.init_scope():
+            self.conv1 = L.Convolution2D(in_channels, channel, 1, stride=1, nobias=True)
+            self.conv2 = L.Convolution2D(channel, channel, 3, stride=1, pad=1, nobias=True)
+
+    def __call__(self, x):
+        x = self.conv1(F.relu(x))
+        x = self.conv2(F.relu(x))
+        return x
+
+
+class ResxBlock(chainer.Chain):
+    def __init__(self, in_channel, out_channel, mid_channel=4, paths=32):
+        super(ResxBlock, self).__init__()
+        with self.init_scope():
+            for i in range(paths):
+                setattr(self, 'path_{:02d}'.format(i+1), SinglePath(in_channel, mid_channel))
+            self.shortcut = L.Convolution2D(in_channels, out_channel, 1, stride=1, nobias=True)
+            self.concated = L.Convolution2D(mid_channel*paths, out_channel, 1, stride=1, nobias=True)
+        self.paths = paths
+
+    def __call__(self, x):
+        paths = list()
+        for i in range(self.paths):
+            path = getattr(self, 'path_{:02d}'.format(i+1))
+            paths.append(path(x))
+        res_x = F.concat(paths, axis=1)
+        x = F.relu(self.concated(res_x)) + self.shortcut(x)
+        return x
+
+
+class RESNEXT(chainer.Chain):
+    def __init__(self, in_channel=1):
+        super(RESNEXT, self).__init__()
+        k = 10 # Widen Factor
+        with self.init_scope():
+            # CNN layer (RESNEXT motivated)
+            self.conv0 = L.Convolution2D(in_channel, 32, 3, stride=1, pad=1, nobias=True)
+            self.resx1 = ResxBlock(32, 64)
+            self.resx2 = ResxBlock(64, 128)
+        self.in_channel = in_channel
+
+    def __call__(self, xs, ilens):
+        '''RESNEXT forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        xs = F.pad_sequence(xs)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+
+        xs = self.conv0(xs)
+        xs = self.resx1(xs)
+        xs = F.max_pooling_2d(F.relu(xs), 2, stride=2)
+
+        xs = self.resx2(xs)
+        xs = F.max_pooling_2d(F.relu(xs), 2, stride=2)
+
+        # change ilens accordingly
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        ilens = self.xp.array(self.xp.ceil(self.xp.array(
+            ilens, dtype=np.float32) / 2), dtype=np.int32)
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs = F.swapaxes(xs, 1, 2)
+        xs = F.reshape(
+            xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3]))
+        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+
+        return xs, ilens
+
+
+class CAPSNET(chainer.Chain):
+    def __init__(self, in_channel=1):
+        super(CAPSNET, self).__init__()
+        self.n_iterations = 3  # dynamic routing
+        self.n_grids = 6  # grid width of primary capsules layer
+        self.n_raw_grids = self.n_grids
+        self.out_channels = 128
+        with self.init_scope():
+            # CNN layer (CAPSNETT motivated)
+            self.conv1 = L.Convolution2D(in_channel, 256, 9, stride=1)
+            self.conv2 = L.Convolution2D(256, 32 * 8, 9, stride=2)
+            self.Ws = chainer.ChainList(
+                *[L.Convolution2D(8, 22 * self.out_channels, ksize=1, stride=1)
+                for i in six.moves.range(32)])
+
+    def __call__(self, xs, ilens):
+        '''CAPSNET forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        batchsize = xs.shape[0]
+        n_iters = self.n_iterations
+        gg = self.n_grids * self.n_grids
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        xs = F.pad_sequence(xs)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs = F.swapaxes(F.reshape(
+            xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
+
+        xs = F.leaky_relu(self.conv1(xs), 0.05)
+        pr_caps = F.split_axis(self.conv2(xs), 32, axis=1)
+
+        Preds = []
+        for i in six.maoves.range(32):
+            pred = self.Ws[i](pr_caps[i])
+            Pred = pred.reshape((batchsize, 16, self.out_channels, gg))
+            Preds.append(Pred)
+        Preds = F.stack(Preds, axis=3)
+        assert(Preds.shape == (batchsize, 16, self.out_channels, 32, gg))
+
+        bs = self.xp.zeros((batchsize, self.out_channels, 32, gg), dtype='f')
+        for i_iter in six.moves.range(n_iters):
+            cs = F.softmax(bs, axis=1)
+            Cs = F.broadcast_to(cs[:, None], Preds.shape)
+            assert(Cs.shape == (batchsize, 16, self.out_channels, 32, gg))
+            ss = F.sum(Cs * Preds, axis=(3, 4))
+            vs = squash(ss)
+            assert(vs.shape == (batchsize, 16, self.out_channels))
+
+            if i_iter != n_iters - 1:
+                Vs = F.broadcast_to(vs[:, :, :, None, None], Preds.shape)
+                assert(Vs.shape == (batchsize, 16, 10, 32, gg))
+                bs = bs + F.sum(Vs * Preds, axis=1)
+                assert(bs.shape == (batchsize, 10, 32, gg))
 
         # change ilens accordingly
         ilens = self.xp.array(self.xp.ceil(self.xp.array(
