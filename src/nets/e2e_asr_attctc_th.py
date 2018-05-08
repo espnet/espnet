@@ -131,8 +131,7 @@ def pad_list(xs, pad_value=float("nan")):
     assert isinstance(xs[0], Variable)
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
-    pad = Variable(xs[0].data.new(n_batch, max_len, *
-                                  xs[0].size()[1:]).zero_() + pad_value)
+    pad = Variable(xs[0].data.new(n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value)
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
     return pad
@@ -398,10 +397,8 @@ class CTC(torch.nn.Module):
         y_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        logging.info(self.__class__.__name__ +
-                     ' input lengths:  ' + str(ilens))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str(olens))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
@@ -530,9 +527,7 @@ class AttDot(torch.nn.Module):
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
-        e = torch.sum(self.pre_compute_enc_h *
-                      torch.tanh(self.mlp_dec(dec_z)).view(
-                          batch, 1, self.att_dim),
+        e = torch.sum(self.pre_compute_enc_h * torch.tanh(self.mlp_dec(dec_z)).view(batch, 1, self.att_dim),
                       dim=2)  # utt x frame
         w = F.softmax(scaling * e, dim=1)
 
@@ -1187,10 +1182,8 @@ class AttMultiHeadDot(torch.nn.Module):
         c = []
         w = []
         for h in six.moves.range(self.aheads):
-            e = torch.sum(self.pre_compute_k[h] *
-                          torch.tanh(self.mlp_q[h](dec_z)).view(
-                              batch, 1, self.att_dim_k),
-                          dim=2)  # utt x frame
+            e = torch.sum(self.pre_compute_k[h] * torch.tanh(self.mlp_q[h](dec_z)).view(
+                batch, 1, self.att_dim_k), dim=2)  # utt x frame
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1290,8 +1283,7 @@ class AttMultiHeadAdd(torch.nn.Module):
             e = linear_tensor(
                 self.gvec[h],
                 torch.tanh(
-                    self.pre_compute_k[h] +
-                    self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
+                    self.pre_compute_k[h] + self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1410,9 +1402,8 @@ class AttMultiHeadLoc(torch.nn.Module):
             e = linear_tensor(
                 self.gvec[h],
                 torch.tanh(
-                    self.pre_compute_k[h] +
-                    att_conv +
-                    self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
+                    self.pre_compute_k[h] + att_conv + self.mlp_q[h](dec_z).view(
+                        batch, 1, self.att_dim_k))).squeeze(2)
             w += [F.softmax(scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1535,9 +1526,8 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
             e = linear_tensor(
                 self.gvec[h],
                 torch.tanh(
-                    self.pre_compute_k[h] +
-                    att_conv +
-                    self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
+                    self.pre_compute_k[h] + att_conv + self.mlp_q[h](dec_z).view(
+                        batch, 1, self.att_dim_k))).squeeze(2)
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1615,8 +1605,7 @@ class Decoder(torch.nn.Module):
         batch = pad_ys_out.size(0)
         olength = pad_ys_out.size(1)
         logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlen))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str([y.size(0) for y in ys_out]))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
 
         # initialization
         c_list = [self.zero_state(hpad)]
@@ -1671,8 +1660,7 @@ class Decoder(torch.nn.Module):
         if self.labeldist is not None:
             if self.vlabeldist is None:
                 self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
-            loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) *
-                                    self.vlabeldist).view(-1), dim=0) / len(ys_in)
+            loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc
@@ -1833,8 +1821,7 @@ class Decoder(torch.nn.Module):
         nbest_hyps = sorted(
             ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
-        logging.info('normalized log probability: ' +
-                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
+        logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         # remove sos
         return nbest_hyps

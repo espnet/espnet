@@ -253,10 +253,8 @@ class CTC(chainer.Chain):
         # get length info
         input_length = chainer.Variable(self.xp.array(ilens, dtype=np.int32))
         label_length = chainer.Variable(self.xp.array(olens, dtype=np.int32))
-        logging.info(self.__class__.__name__ +
-                     ' input lengths:  ' + str(input_length.data))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str(label_length.data))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(input_length.data))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(label_length.data))
 
         # get ctc loss
         self.loss = F.connectionist_temporal_classification(
@@ -301,10 +299,8 @@ class WarpCTC(chainer.Chain):
         y_hat = F.transpose(y_hat, (1, 0, 2))  # batch x frames x hdim
 
         # get length info
-        logging.info(self.__class__.__name__ +
-                     ' input lengths:  ' + str(ilens))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str(olens))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
 
         # get ctc loss
         self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])[0]
@@ -563,10 +559,8 @@ class Decoder(chainer.Chain):
         # get dim, length info
         batch = pad_ys_out.shape[0]
         olength = pad_ys_out.shape[1]
-        logging.info(self.__class__.__name__ + ' input lengths:  ' +
-                     str(self.xp.array([h.shape[0] for h in hs])))
-        logging.info(self.__class__.__name__ + ' output lengths: ' +
-                     str(self.xp.array([y.shape[0] for y in ys_out])))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(self.xp.array([h.shape[0] for h in hs])))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(self.xp.array([y.shape[0] for y in ys_out])))
 
         # initialization
         c_list = [None]  # list of cell state of each layer
@@ -779,8 +773,7 @@ class Decoder(chainer.Chain):
         nbest_hyps = sorted(
             ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
-        logging.info('normalized log probability: ' +
-                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
+        logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         return nbest_hyps
 
