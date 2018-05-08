@@ -340,8 +340,8 @@ def train(args):
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
-    att_supported = ['noatt', 'dot', 'location', 'add', 'multi_head_dot', 'multi_head_add',
-        'multi_head_loc', 'multi_head_multi_res_loc']
+    att_supported = ['noatt', 'dot', 'location', 'add', 'multi_head_dot', 
+                     'multi_head_add', 'multi_head_loc', 'multi_head_multi_res_loc']
     # check attention type
     if args.atype not in att_supported:
         raise NotImplementedError('chainer supports only', ', '.join(att_supported), 'attention.')

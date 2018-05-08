@@ -784,8 +784,8 @@ class AttMultiHeadLoc(chainer.Chain):
             self.gvec = chainer.ChainList(
                 *[L.Linear(att_dim_k, 1) for i in six.moves.range(aheads)])
             self.loc_conv = chainer.ChainList(
-                *[L.Convolution2D(1, aconv_chans, ksize=(1, 2 * aconv_filts + 1),
-                pad=(0, aconv_filts), nobias=True) for i in six.moves.range(aheads)])
+                *[L.Convolution2D(1, aconv_chans, ksize=(1, 2 * aconv_filts + 1), pad=(0, aconv_filts),
+                                  nobias=True) for i in six.moves.range(aheads)])
             self.mlp_att = chainer.ChainList(
                 *[L.Linear(aconv_chans, att_dim_k, nobias=True) for i in six.moves.range(aheads)])
             self.mlp_o = L.Linear(aheads * att_dim_v, eprojs, nobias=True)
@@ -913,8 +913,8 @@ class AttMultiHeadMultiResLoc(chainer.Chain):
             self.gvec = chainer.ChainList(
                 *[L.Linear(att_dim_k, 1) for i in six.moves.range(aheads)])
             self.loc_conv = chainer.ChainList(
-                *[L.Convolution2D(1, aconv_chans, ksize=(
-                1, 2 * afilts[i] + 1), pad=(0, afilts[i]), nobias=True) for i in six.moves.range(aheads)])
+                *[L.Convolution2D(1, aconv_chans, ksize=(1, 2 * afilts[i] + 1), pad=(0, afilts[i]),
+                                  nobias=True) for i in six.moves.range(aheads)])
             self.mlp_att = chainer.ChainList(
                 *[L.Linear(aconv_chans, att_dim_k, nobias=True) for i in six.moves.range(aheads)])
             self.mlp_o = L.Linear(aheads * att_dim_v, eprojs, nobias=True)
