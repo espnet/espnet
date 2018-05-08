@@ -214,6 +214,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                 self.comm = nccl.NcclCommunicator(len(self._devices),
                                                   comm_id, 0)
 
+                
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
 def sum_sqnorm(arr):
     sq_sum = collections.defaultdict(float)
@@ -343,7 +344,7 @@ def train(args):
         logging.info('Pure attention mode')
     else:
         mtl_mode = 'mtl'
-        
+
     # specify model architecture
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
