@@ -125,7 +125,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = np.sqrt(self._sum_sqnorm(
+        grad_norm = np.sqrt(sum_sqnorm(
             [p.grad for p in optimizer.target.params(False)]))
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
@@ -133,16 +133,6 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         else:
             optimizer.update()
         delete_feat(x)
-
-    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-    def _sum_sqnorm(self, arr):
-        sq_sum = collections.defaultdict(float)
-        for x in arr:
-            with cuda.get_device_from_array(x) as dev:
-                x = x.ravel()
-                s = x.dot(x)
-                sq_sum[int(dev)] += s
-        return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
 class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessParallelUpdater):
@@ -185,7 +175,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                 del gg
 
             # check gradient value
-            grad_norm = np.sqrt(self._sum_sqnorm(
+            grad_norm = np.sqrt(sum_sqnorm(
                 [p.grad for p in optimizer.target.params(False)]))
             logging.info('grad norm={}'.format(grad_norm))
 
@@ -224,15 +214,16 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                 self.comm = nccl.NcclCommunicator(len(self._devices),
                                                   comm_id, 0)
 
-    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-    def _sum_sqnorm(self, arr):
-        sq_sum = collections.defaultdict(float)
-        for x in arr:
-            with cuda.get_device_from_array(x) as dev:
+# copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
+def sum_sqnorm(arr):
+    sq_sum = collections.defaultdict(float)
+    for x in arr:
+        with cuda.get_device_from_array(x) as dev:
+            if x is not None:
                 x = x.ravel()
                 s = x.dot(x)
                 sq_sum[int(dev)] += s
-        return sum([float(i) for i in six.itervalues(sq_sum)])
+    return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
 class CustomWorker(multiprocessing.Process):
@@ -344,6 +335,15 @@ def train(args):
     if args.atype not in ['noatt', 'dot', 'location']:
         raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
 
+    if args.mtlalpha == 1.0:
+        mtl_mode = 'ctc'
+        logging.info('Pure CTC mode')
+    elif args.mtlalpha == 0.0:
+        mtl_mode = 'att'
+        logging.info('Pure attention mode')
+    else:
+        mtl_mode = 'mtl'
+        
     # specify model architecture
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
@@ -469,12 +469,13 @@ def train(args):
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
-                   trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
+    if mtl_mode is not 'ctc':
+        trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
+                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc':
+        if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
