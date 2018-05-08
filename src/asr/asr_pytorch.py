@@ -107,6 +107,9 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         # x: original json with loaded features
         #    will be converted to chainer variable later
         # batch only has one minibatch utterance, which is specified by batch[0]
+        if len(batch[0]) < self.num_gpu:
+            logging.warning('batch size is less than number of gpus. Ignored')
+            return
         x = converter_kaldi(batch[0], self.reader)
 
         # Compute the loss at this time step and accumulate it
