@@ -157,6 +157,23 @@ $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
 
+## CTC, attention, and hybrid CTC/attention
+ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
+
+```sh
+# hybrid CTC/attention (default)
+#  --mtlalpha 0.5 and --ctc_weight 0.3 in most cases
+$ ./run.sh
+
+# CTC mode
+$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0
+
+# attention mode
+$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
+```
+
+About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
+
 ## Results
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
@@ -172,7 +189,6 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | HKUST dev       | 28.3 | N/A  |
 | Librispeech dev_clean  | 2.9 | 7.7 |
 | Librispeech test_clean | 2.7 | 7.7 |
-
 
 ## Chainer and Pytorch backends
 
