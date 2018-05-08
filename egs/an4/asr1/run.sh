@@ -193,7 +193,6 @@ if [ ${stage} -le 3 ]; then
         --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
-        --ctc_type ${ctctype} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \

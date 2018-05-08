@@ -214,7 +214,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                 self.comm = nccl.NcclCommunicator(len(self._devices),
                                                   comm_id, 0)
 
-                
+
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
 def sum_sqnorm(arr):
     sq_sum = collections.defaultdict(float)
@@ -336,6 +336,7 @@ def train(args):
     if args.atype not in ['noatt', 'dot', 'location']:
         raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
 
+    # specify attention, CTC, hybrid mode
     if args.mtlalpha == 1.0:
         mtl_mode = 'ctc'
         logging.info('Pure CTC mode')
