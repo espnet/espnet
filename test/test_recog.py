@@ -72,7 +72,7 @@ def test_recognition_results(etype, m_str, text_idx1):
 
     for text_idx2, ctc_weight in enumerate([0.0, 0.5, 1.0]):
         seq_true_text = seq_true_texts[text_idx1][text_idx2]
-        
+
         args = make_arg(etype=etype, ctc_weight=ctc_weight)
         m = importlib.import_module(m_str)
         model = m.Loss(m.E2E(40, 5, args), 0.5)
@@ -107,13 +107,13 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
     seq_true_texts = [["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
-                     ["o", "uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"],
-                     ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
-                     ["o", "uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"]]
+                      ["o", "uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"],
+                      ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                      ["o", "uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"]]
 
     for text_idx2, ctc_weight in enumerate([0.0, 0.5, 1.0]):
         seq_true_text = seq_true_texts[text_idx1][text_idx2]
-        
+
         args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
                         lm_weight=0.3)
         m = importlib.import_module(m_str)
