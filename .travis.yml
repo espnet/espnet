@@ -1,7 +1,7 @@
 language: python
 
 services:
-  -docker
+  - docker
 
 cache:
   - pip
