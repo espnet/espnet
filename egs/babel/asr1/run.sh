@@ -198,7 +198,7 @@ if $use_lm; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
         lmngpu=1
   else
-        lmngpu=0
+        lmngpu=${ngpu}
   fi
 
   
