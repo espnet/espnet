@@ -9,8 +9,8 @@ import lm_chainer
 
 import argparse
 import importlib
-
 import numpy
+
 import pytest
 
 
@@ -56,79 +56,90 @@ def init_chainer_weight_const(m, val):
         p.data[:] = val
 
 
-@pytest.mark.parametrize(("etype", "m_str", "txt_idx"), [
+@pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
     ("blstmp", "e2e_asr_attctc", 0),
     ("blstmp", "e2e_asr_attctc_th", 1),
     ("vggblstmp", "e2e_asr_attctc", 2),
     ("vggblstmp", "e2e_asr_attctc_th", 3),
 ])
-def test_recognition_results(etype, m_str, txt_idx):
+def test_recognition_results(etype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
-    seq_true_text = (["iuiuiuiuiuiuiuiuo", "uiuiuiuiuiuiuiuio",
-                      "iuiuiuiuiuiuiuiuo", "uiuiuiuiuiuiuiuio"])[txt_idx]
+    seq_true_texts = ([["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                       ["o", "uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"]])
 
-    args = make_arg(etype=etype)
-    m = importlib.import_module(m_str)
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    for text_idx2, ctc_weight in enumerate([0.0, 0.5, 1.0]):
+        seq_true_text = seq_true_texts[text_idx1][text_idx2]
+        
+        args = make_arg(etype=etype, ctc_weight=ctc_weight)
+        m = importlib.import_module(m_str)
+        model = m.Loss(m.E2E(40, 5, args), 0.5)
 
-    if "_th" in m_str:
-        init_torch_weight_const(model, const)
-    else:
-        init_chainer_weight_const(model, const)
+        if "_th" in m_str:
+            init_torch_weight_const(model, const)
+        else:
+            init_chainer_weight_const(model, const)
 
-    data = [
-        ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), token=seq_true_text))
-    ]
+        data = [
+            ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
+                numpy.float32), token=seq_true_text))
+        ]
 
-    in_data = data[0][1]["feat"]
-    nbest_hyps = model.predictor.recognize(in_data, args, args.char_list)
-    y_hat = nbest_hyps[0]['yseq'][1:]
-    seq_hat = [args.char_list[int(idx)] for idx in y_hat]
-    seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-    seq_true_text = data[0][1]["token"]
+        in_data = data[0][1]["feat"]
+        nbest_hyps = model.predictor.recognize(in_data, args, args.char_list)
+        y_hat = nbest_hyps[0]['yseq'][1:]
+        seq_hat = [args.char_list[int(idx)] for idx in y_hat]
+        seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+        seq_true_text = data[0][1]["token"]
 
-    assert seq_hat_text == seq_true_text
+        assert seq_hat_text == seq_true_text
 
 
-@pytest.mark.parametrize(("etype", "m_str", "txt_idx"), [
+@pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
     ("blstmp", "e2e_asr_attctc", 0),
     ("blstmp", "e2e_asr_attctc_th", 1),
     ("vggblstmp", "e2e_asr_attctc", 2),
     ("vggblstmp", "e2e_asr_attctc_th", 3),
 ])
-def test_recognition_results_with_lm(etype, m_str, txt_idx):
+def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
-    seq_true_text = (["iuiuiuiuiuiuiuiuo", "uiuiuiuiuiuiuiuio",
-                      "iuiuiuiuiuiuiuiuo", "uiuiuiuiuiuiuiuio"])[txt_idx]
+    seq_true_texts = [["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                     ["o", "uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"],
+                     ["o", "iuiuiuiuiuiuiuiuo", "iuiuiuiuiuiuiuiuo"],
+                     ["o", "uiuiuiuiuiuiuiuio", "uiuiuiuiuiuiuiuio"]]
 
-    args = make_arg(etype=etype, rnnlm="dummy", lm_weight=0.3)
-    m = importlib.import_module(m_str)
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    for text_idx2, ctc_weight in enumerate([0.0, 0.5, 1.0]):
+        seq_true_text = seq_true_texts[text_idx1][text_idx2]
+        
+        args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
+                        lm_weight=0.3)
+        m = importlib.import_module(m_str)
+        model = m.Loss(m.E2E(40, 5, args), 0.5)
 
-    if "_th" in m_str:
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(len(args.char_list), 10))
-        init_torch_weight_const(model, const)
-        init_torch_weight_const(rnnlm, const)
-    else:
-        rnnlm = lm_chainer.ClassifierWithState(
-            lm_chainer.RNNLM(len(args.char_list), 10))
-        init_chainer_weight_const(model, const)
-        init_chainer_weight_const(rnnlm, const)
+        if "_th" in m_str:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                lm_pytorch.RNNLM(len(args.char_list), 10))
+            init_torch_weight_const(model, const)
+            init_torch_weight_const(rnnlm, const)
+        else:
+            rnnlm = lm_chainer.ClassifierWithState(
+                lm_chainer.RNNLM(len(args.char_list), 10))
+            init_chainer_weight_const(model, const)
+            init_chainer_weight_const(rnnlm, const)
 
-    data = [
-        ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), token=seq_true_text))
-    ]
+        data = [
+            ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
+                numpy.float32), token=seq_true_text))
+        ]
 
-    in_data = data[0][1]["feat"]
-    nbest_hyps = model.predictor.recognize(in_data, args, args.char_list, rnnlm)
-    y_hat = nbest_hyps[0]['yseq'][1:]
-    seq_hat = [args.char_list[int(idx)] for idx in y_hat]
-    seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-    seq_true_text = data[0][1]["token"]
+        in_data = data[0][1]["feat"]
+        nbest_hyps = model.predictor.recognize(in_data, args, args.char_list, rnnlm)
+        y_hat = nbest_hyps[0]['yseq'][1:]
+        seq_hat = [args.char_list[int(idx)] for idx in y_hat]
+        seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+        seq_true_text = data[0][1]["token"]
 
-    assert seq_hat_text == seq_true_text
+        assert seq_hat_text == seq_true_text
