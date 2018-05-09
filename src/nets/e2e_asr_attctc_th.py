@@ -118,14 +118,19 @@ class Loss(torch.nn.Module):
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
+            loss_att_data = loss_att.data[0]
+            loss_ctc_data = None
         elif alpha == 1:
             self.loss = loss_ctc
+            loss_att_data = None
+            loss_ctc_data = loss_ctc.data[0]
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+            loss_att_data = loss_att.data[0]
+            loss_ctc_data = loss_ctc.data[0]
 
         if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
-            self.reporter.report(
-                loss_ctc.data[0], loss_att.data[0], acc, self.loss.data[0])
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, self.loss.data[0])
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 

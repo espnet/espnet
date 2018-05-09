@@ -166,12 +166,14 @@ ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attent
 $ ./run.sh
 
 # CTC mode
-$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0
+$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model loss.best
 
 # attention mode
 $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
 ```
 
+The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value 
+(i.e., `--recog_model loss.best`).
 About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
 
 ## Results
