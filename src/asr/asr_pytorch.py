@@ -31,7 +31,6 @@ from e2e_asr_attctc_th import Loss
 
 # for kaldi io
 import kaldi_io_py
-import lazy_io
 
 # rnnlm
 import lm_pytorch
@@ -42,12 +41,11 @@ matplotlib.use('Agg')
 
 
 class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
-    '''Custom evaluater with Kaldi reader for pytorch'''
+    '''Custom evaluater for pytorch'''
 
-    def __init__(self, model, iterator, target, reader, device):
+    def __init__(self, model, iterator, target, device):
         super(PytorchSeqEvaluaterKaldi, self).__init__(
             iterator, target, device=device)
-        self.reader = reader
         self.model = model
 
     # The core part of the update routine can be customized by overriding.
@@ -72,7 +70,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
                 # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch[0], self.reader)
+                x = converter_kaldi(batch)
                 self.model.eval()
                 self.model(x)
                 delete_feat(x)
@@ -83,13 +81,12 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
 
 class PytorchSeqUpdaterKaldi(training.StandardUpdater):
-    '''Custom updater with Kaldi reader for pytorch'''
+    '''Custom updater for pytorch'''
 
-    def __init__(self, model, grad_clip_threshold, train_iter, optimizer, reader, device):
+    def __init__(self, model, grad_clip_threshold, train_iter, optimizer, device):
         super(PytorchSeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, device=None)
         self.model = model
-        self.reader = reader
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
 
@@ -110,7 +107,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         if len(batch[0]) < self.num_gpu:
             logging.warning('batch size is less than number of gpus. Ignored')
             return
-        x = converter_kaldi(batch[0], self.reader)
+        x = converter_kaldi(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = 1. / self.num_gpu * self.model(x)
@@ -183,11 +180,11 @@ def train(args):
         logging.warning('cuda is not available')
 
     # get input and output dimension info
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['idim'])
-    odim = int(valid_json[utts[0]]['odim'])
+    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
+    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
@@ -247,9 +244,9 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # read json data
-    with open(args.train_label, 'rb') as f:
+    with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
@@ -263,13 +260,9 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(
         valid, 1, repeat=False, shuffle=False)
 
-    # prepare Kaldi reader
-    train_reader = lazy_io.read_dict_scp(args.train_feat)
-    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
-
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, train_reader, gpu_id)
+        model, args.grad_clip, train_iter, optimizer, gpu_id)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -280,7 +273,7 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, valid_iter, reporter, valid_reader, device=gpu_id))
+        model, valid_iter, reporter, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -377,20 +370,18 @@ def recog(args):
     else:
         rnnlm = None
 
-    # prepare Kaldi reader
-    reader = kaldi_io_py.read_mat_ark(args.recog_feat)
-
     # read json data
-    with open(args.recog_label, 'rb') as f:
+    with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
     new_json = {}
-    for name, feat in reader:
+    for name in recog_json.keys():
+        feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
         y_hat = nbest_hyps[0]['yseq'][1:]
 
-        y_true = map(int, recog_json[name]['tokenid'].split())
+        y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
 
         # print out decoding result
         seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
@@ -401,7 +392,8 @@ def recog(args):
         logging.info("prediction [%s]: " + seq_hat_text, name)
 
         # copy old json info
-        new_json[name] = recog_json[name]
+        new_json[name] = recog_json[name]['output'][0]
+        new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
         # added recognition results to json
         logging.debug("dump token id")

@@ -40,7 +40,6 @@ from e2e_asr_attctc import Loss
 
 # for kaldi io
 import kaldi_io_py
-import lazy_io
 
 # rnnlm
 import lm_chainer
@@ -51,57 +50,12 @@ import numpy as np
 matplotlib.use('Agg')
 
 
-class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
-    '''Custom evaluater with Kaldi reader for chainer'''
-
-    def __init__(self, iterator, target, reader, device):
-        super(ChainerSeqEvaluaterKaldi, self).__init__(
-            iterator, target, device=device)
-        self.reader = reader
-
-    # The core part of the update routine can be customized by overriding.
-    def evaluate(self):
-        '''evaluate over iterator'''
-        iterator = self._iterators['main']
-        eval_func = self.eval_func or self._targets['main']
-
-        if self.eval_hook:
-            self.eval_hook(self)
-
-        if hasattr(iterator, 'reset'):
-            iterator.reset()
-            it = iterator
-        else:
-            it = copy.copy(iterator)
-
-        summary = reporter_module.DictSummary()
-
-        # for multi gpu calculation
-        chainer.cuda.get_device_from_id(self.device).use()
-        for batch in it:
-            observation = {}
-            with reporter_module.report_scope(observation):
-                # read scp files
-                # x: original json with loaded features
-                #    will be converted to chainer variable later
-                # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch[0], self.reader)
-                with function.no_backprop_mode():
-                    eval_func(x)
-                    delete_feat(x)
-
-            summary.add(observation)
-
-        return summary.compute_mean()
-
-
 class ChainerSeqUpdaterKaldi(training.StandardUpdater):
-    '''Custom updater with Kaldi reader for chainer'''
+    '''Custom updater for chainer'''
 
-    def __init__(self, train_iter, optimizer, reader, device):
+    def __init__(self, train_iter, optimizer, device):
         super(ChainerSeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, device=device)
-        self.reader = reader
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -116,8 +70,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
-        # batch only has one minibatch utterance, which is specified by batch[0]
-        x = converter_kaldi(batch[0], self.reader)
+        x = converter_kaldi(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(x)
@@ -136,12 +89,11 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
 
 
 class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessParallelUpdater):
-    '''Custom parallel updater with Kaldi reader for chainer'''
+    '''Custom parallel updater for chainer'''
 
-    def __init__(self, train_iters, optimizer, reader, devices):
+    def __init__(self, train_iters, optimizer, devices):
         super(ChainerMultiProcessParallelUpdaterKaldi, self).__init__(
             train_iters, optimizer, devices=devices)
-        self.reader = reader
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -155,7 +107,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
 
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
-            x = converter_kaldi(batch[0], self.reader)
+            x = converter_kaldi(batch)
 
             loss = self._master(x)
 
@@ -234,7 +186,6 @@ class CustomWorker(multiprocessing.Process):
         self.proc_id = proc_id
         self.pipe = pipe
         self.model = master._master
-        self.reader = master.reader
         self.device = master._devices[proc_id]
         self.iterator = master._mpu_iterators[proc_id]
         self.n_devices = len(master._devices)
@@ -265,7 +216,7 @@ class CustomWorker(multiprocessing.Process):
                 self.model.cleargrads()
 
                 batch = self.iterator.next()
-                x = converter_kaldi(batch[0], self.reader)
+                x = converter_kaldi(batch)
                 observation = {}
                 with self.reporter.scope(observation):
                     loss = self.model(x)
@@ -324,11 +275,11 @@ def train(args):
         logging.warning('cudnn is not available')
 
     # get input and output dimension info
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['idim'])
-    odim = int(valid_json[utts[0]]['odim'])
+    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
+    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
@@ -391,14 +342,10 @@ def train(args):
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
     # read json data
-    with open(args.train_label, 'rb') as f:
+    with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
-
-    # prepare Kaldi reader
-    train_reader = lazy_io.read_dict_scp(args.train_feat)
-    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # set up training iterator and updater
     if ngpu <= 1:
@@ -411,7 +358,7 @@ def train(args):
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
-            train_iter, optimizer, train_reader, gpu_id)
+            train_iter, optimizer, gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -438,7 +385,7 @@ def train(args):
 
         # set up updater
         updater = ChainerMultiProcessParallelUpdaterKaldi(
-            train_iters, optimizer, train_reader, devices)
+            train_iters, optimizer, devices)
 
     # Set up a trainer
     trainer = training.Trainer(
@@ -455,8 +402,8 @@ def train(args):
         valid, 1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(ChainerSeqEvaluaterKaldi(
-        valid_iter, model, valid_reader, device=gpu_id))
+    trainer.extend(extensions.Evaluator(
+        valid_iter, model, converter=converter_kaldi, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -546,20 +493,18 @@ def recog(args):
     else:
         rnnlm = None
 
-    # prepare Kaldi reader
-    reader = kaldi_io_py.read_mat_ark(args.recog_feat)
-
     # read json data
-    with open(args.recog_label, 'rb') as f:
+    with open(args.recog_jsonl, 'rb') as f:
         recog_json = json.load(f)['utts']
 
     new_json = {}
-    for name, feat in reader:
+    for name in recog_json.keys():
+        feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
         logging.info('decoding ' + name)
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
         # get 1best and remove sos
         y_hat = nbest_hyps[0]['yseq'][1:]
-        y_true = map(int, recog_json[name]['tokenid'].split())
+        y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
 
         # print out decoding result
         seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
@@ -570,7 +515,8 @@ def recog(args):
         logging.info("prediction [%s]: " + seq_hat_text, name)
 
         # copy old json info
-        new_json[name] = recog_json[name]
+        new_json[name] = recog_json[name]['output'][0]
+        new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
         # add 1-best recognition results to json
         new_json[name]['rec_tokenid'] = " ".join(
