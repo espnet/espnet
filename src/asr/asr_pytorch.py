@@ -136,7 +136,7 @@ class DataParallel(torch.nn.DataParallel):
         r"""Scatter with support for kwargs dictionary"""
         if len(inputs) == 1:
             inputs = inputs[0]
-        avg = int(math.floor(len(inputs) / len(device_ids)))
+        avg = int(math.ceil(len(inputs) * 1. / len(device_ids)))
         # inputs = scatter(inputs, device_ids, dim) if inputs else []
         inputs = [[inputs[i:i + avg]] for i in range(0, len(inputs), avg)]
         kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
