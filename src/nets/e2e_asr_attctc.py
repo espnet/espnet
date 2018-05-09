@@ -75,7 +75,12 @@ class Loss(chainer.Chain):
         self.loss = None
         loss_ctc, loss_att, acc = self.predictor(x)
         alpha = self.mtlalpha
-        self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+        if alpha == 0:
+            self.loss = loss_att
+        elif alpha == 1:
+            self.loss = loss_ctc
+        else:
+            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
         if self.loss.data < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data):
             reporter.report({'loss_ctc': loss_ctc}, self)
@@ -97,6 +102,7 @@ class E2E(chainer.Chain):
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
+        self.mtlalpha = args.mtlalpha
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -183,10 +189,17 @@ class E2E(chainer.Chain):
         hs, ilens = self.enc(hs, ilens)
 
         # 3. CTC loss
-        loss_ctc = self.ctc(hs, ys)
+        if self.mtlalpha == 0:
+            loss_ctc = None
+        else:
+            loss_ctc = self.ctc(hs, ys)
 
         # 4. attention loss
-        loss_att, acc, att_w = self.dec(hs, ys)
+        if self.mtlalpha == 1:
+            loss_att = None
+            acc = None
+        else:
+            loss_att, acc, att_w = self.dec(hs, ys)
 
         return loss_ctc, loss_att, acc
 
