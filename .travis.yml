@@ -1,5 +1,8 @@
 language: python
 
+services:
+  -docker
+
 cache:
   - pip
   - ccache
@@ -36,10 +39,13 @@ install:
   - cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
   - pip install . && cd ..
   - export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`pwd`/chainer_ctc/ext/warp-ctc/build
+  - docker build --build-arg FROM_IMAGE=nvidia/cuda:9.1-cudnn7-devel-ubuntu16.04 -f docker/espnet.devel -t espnet .
+  - docker run -d --name espnet espnet /bin/bash -c 'ls /'
 
 
 script:
   # TODO test coding style?
+  - docker ps | grep -q espnet
   - flake8 src test
   - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
