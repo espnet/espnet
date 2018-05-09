@@ -31,8 +31,6 @@ elayers=8
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# loss related
-ctctype=chainer
 # decoder related
 dlayers=1
 dunits=300
@@ -182,7 +180,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -213,7 +211,6 @@ if [ ${stage} -le 3 ]; then
         --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
-        --ctc_type ${ctctype} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
