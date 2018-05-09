@@ -345,6 +345,7 @@ def train(args):
         logging.info('Pure attention mode')
     else:
         mtl_mode = 'mtl'
+        logging.info('Multitask learning mode')
 
     # specify model architecture
     e2e = E2E(idim, odim, args)
