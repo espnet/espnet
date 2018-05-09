@@ -36,7 +36,7 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.9
+mtlalpha=0.5
 
 # minibatch related
 batchsize=30
@@ -52,7 +52,7 @@ beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.9
+ctc_weight=0.5
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
