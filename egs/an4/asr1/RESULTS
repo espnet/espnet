@@ -4,3 +4,17 @@ exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_locat
 exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_test_beam20_eacc.best_p0.2_len0.1-0.8/result.txt:|        Sum/Avg        |         130                 2565         |        37.0                 22.7                  40.3                  7.6                  70.6                 90.8         |
 exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_train_dev_beam20_eacc.best_p0.2_len0.1-0.8/result.txt:|        SPKR           |        # Snt                # Wrd         |        Corr                    Sub                   Del                   Ins                   Err                 S.Err         |
 exp/train_nodev_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_train_dev_beam20_eacc.best_p0.2_len0.1-0.8/result.txt:|        Sum/Avg        |         100                  1915         |        36.6                   23.9                  39.5                   8.0                  71.5                  91.0         |
+
+# ./run.sh --stage 3 --ngpu 1 --tag debug_alpha0.5_pt
+# grep -e Avg -e SPKR -m 2 exp/train_nodev_debug_alpha0.5_pt/decode_*_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5/result.txt
+exp/train_nodev_debug_alpha0.5_pt/decode_test_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5/result.txt:|  SPKR     |   # Snt    # Wrd   |  Corr        Sub       Del       Ins        Err     S.Err   |
+exp/train_nodev_debug_alpha0.5_pt/decode_test_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5/result.txt:|  Sum/Avg  |    130      2565   |  85.5        5.2       9.3       0.8       15.3      68.5   |
+exp/train_nodev_debug_alpha0.5_pt/decode_train_dev_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5/result.txt:|   SPKR     |   # Snt     # Wrd   |   Corr       Sub        Del        Ins        Err      S.Err   |
+exp/train_nodev_debug_alpha0.5_pt/decode_train_dev_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5/result.txt:|   Sum/Avg  |    100       1915   |   78.9       7.2       13.9        1.1       22.2       78.0   |
+
+# ./run.sh --stage 3 --ngpu 1 --tag debug_alpha1.0_pt --ctc_weight 1.0 --mtlalpha 1.0 --recog_model loss.best (only CTC)
+# grep -e Avg -e SPKR -m 2 exp/train_nodev_debug_alpha1.0_pt/decode_*_beam20_eloss.best_p0.0_len0.0-0.0_ctcw1.0/result.txt
+exp/train_nodev_debug_alpha1.0_pt/decode_test_beam20_eloss.best_p0.0_len0.0-0.0_ctcw1.0/result.txt:|  SPKR     |   # Snt    # Wrd   |   Corr       Sub        Del       Ins        Err     S.Err   |
+exp/train_nodev_debug_alpha1.0_pt/decode_test_beam20_eloss.best_p0.0_len0.0-0.0_ctcw1.0/result.txt:|  Sum/Avg  |    130      2565   |   88.9       3.6        7.5       1.5       12.6      76.2   |
+exp/train_nodev_debug_alpha1.0_pt/decode_train_dev_beam20_eloss.best_p0.0_len0.0-0.0_ctcw1.0/result.txt:|   SPKR     |   # Snt     # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
+exp/train_nodev_debug_alpha1.0_pt/decode_train_dev_beam20_eloss.best_p0.0_len0.0-0.0_ctcw1.0/result.txt:|   Sum/Avg  |    100       1915   |   82.0        4.9       13.1        1.0       19.0       81.0   |
