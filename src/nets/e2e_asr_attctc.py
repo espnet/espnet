@@ -677,7 +677,11 @@ class Decoder(chainer.Chain):
             ctc_prefix_score = CTCPrefixScore(lpz, 0, self.eos, self.xp)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
             hyp['ctc_score_prev'] = 0.0
-            ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
+            if ctc_weight != 1.0:
+                # pre-pruning based on attention scores
+                ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
+            else:
+                ctc_beam = lpz.shape[-1]
         hyps = [hyp]
         ended_hyps = []
 
