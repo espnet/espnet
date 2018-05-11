@@ -6,7 +6,6 @@
 from __future__ import division
 
 import collections
-import copy
 import json
 import logging
 import math
@@ -19,7 +18,6 @@ import six
 import chainer
 
 from chainer import cuda
-from chainer import function
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
