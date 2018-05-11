@@ -276,6 +276,10 @@ def train(args):
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+        else:
+            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -295,8 +299,12 @@ def train(args):
 
     # Save best models
     def torch_save(path, _):
-        torch.save(model.state_dict(), path)
-        torch.save(model, path + ".pkl")
+        if ngpu > 1:
+            torch.save(model.module.state_dict(), path)
+            torch.save(model.module, path + ".pkl")
+        else:
+            torch.save(model.state_dict(), path)
+            torch.save(model, path + ".pkl")
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
@@ -306,7 +314,10 @@ def train(args):
 
     # epsilon decay in the optimizer
     def torch_load(path, obj):
-        model.load_state_dict(torch.load(path))
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(path))
+        else:
+            model.load_state_dict(torch.load(path))
         return obj
     if args.opt == 'adadelta':
         if args.criterion == 'acc' and mtl_mode is not 'ctc':
@@ -367,7 +378,17 @@ def recog(args):
 
     def cpu_loader(storage, location):
         return storage
-    model.load_state_dict(torch.load(args.model, map_location=cpu_loader))
+
+    def remove_dataparallel(state_dict):
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            if k.startswith("module."):
+                name = k[7:]
+                new_state_dict[name] = v
+        return new_state_dict
+
+    model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
 
     # read rnnlm
     if args.rnnlm:
