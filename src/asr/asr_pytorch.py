@@ -384,8 +384,8 @@ def recog(args):
         new_state_dict = OrderedDict()
         for k, v in state_dict.items():
             if k.startswith("module."):
-                name = k[7:]
-                new_state_dict[name] = v
+                k = k[7:]
+            new_state_dict[k] = v
         return new_state_dict
 
     model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))

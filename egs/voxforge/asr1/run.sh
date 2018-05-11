@@ -27,6 +27,8 @@ elayers=4
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+# ctc related
+ctype=warpctc
 # decoder related
 dlayers=1
 dunits=300
@@ -190,6 +192,7 @@ if [ ${stage} -le 3 ]; then
         --elayers ${elayers} \
         --eunits ${eunits} \
         --eprojs ${eprojs} \
+        --ctype ${ctype} \
         --subsample ${subsample} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
