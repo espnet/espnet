@@ -64,7 +64,7 @@ def main():
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
     # loss
-    parser.add_argument('--ctc_type', default='chainer', type=str,
+    parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['chainer', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
     # attention

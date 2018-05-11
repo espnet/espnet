@@ -8,6 +8,7 @@
 nlsyms=""
 wer=false
 bpe=false
+remove_blank=true
 
 . utils/parse_options.sh
 
@@ -25,6 +26,9 @@ json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn ${dir}/hyp.trn
 if $bpe; then
     sed -i.bak -r 's/(@@ )|(@@ ?$)//g' ${dir}/ref.trn
     sed -i.bak -r 's/(@@ )|(@@ ?$)//g' ${dir}/hyp.trn
+fi
+if $remove_blank; then
+    sed -i.bak -r 's/<blank> //g' ${dir}/hyp.trn
 fi
 if [ ! -z ${nlsyms} ]; then
     cp ${dir}/ref.trn ${dir}/ref.trn.org

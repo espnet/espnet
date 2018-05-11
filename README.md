@@ -61,7 +61,7 @@ export CUDA_PATH=$CUDAROOT
 ```
 
 If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl) 
-and set paths in your `.bashrc` or `.bash_profile` appropriately, for 
+and set paths in your `.bashrc` or `.bash_profile` appropriately, for example:
 ```
 CUDAROOT=/path/to/cuda
 NCCL_ROOT=/path/to/nccl
@@ -122,7 +122,7 @@ To work inside a docker container, execute `run.sh` located inside the docker di
 It will build a container and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
 ```sh
 $ cd docker
-$ ./run.sh [--docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpora4/CHiME4/CHiME3] --dlayers 1 --ngpu 1 
+$ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpora4/CHiME4/CHiME3 --dlayers 1 --ngpu 1 
 ```
 The docker container is built based on the CUDA and CUDNN version installed in your computer.
 The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
@@ -157,6 +157,25 @@ $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
 
+## CTC, attention, and hybrid CTC/attention
+ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
+
+```sh
+# hybrid CTC/attention (default)
+#  --mtlalpha 0.5 and --ctc_weight 0.3 in most cases
+$ ./run.sh
+
+# CTC mode
+$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model loss.best
+
+# attention mode
+$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
+```
+
+The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value 
+(i.e., `--recog_model loss.best`).
+About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
+
 ## Results
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
@@ -172,7 +191,6 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | HKUST dev       | 28.3 | N/A  |
 | Librispeech dev_clean  | 2.9 | 7.7 |
 | Librispeech test_clean | 2.7 | 7.7 |
-
 
 ## Chainer and Pytorch backends
 

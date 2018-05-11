@@ -107,6 +107,9 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         # x: original json with loaded features
         #    will be converted to chainer variable later
         # batch only has one minibatch utterance, which is specified by batch[0]
+        if len(batch[0]) < self.num_gpu:
+            logging.warning('batch size is less than number of gpus. Ignored')
+            return
         x = converter_kaldi(batch[0], self.reader)
 
         # Compute the loss at this time step and accumulate it
@@ -133,7 +136,7 @@ class DataParallel(torch.nn.DataParallel):
         r"""Scatter with support for kwargs dictionary"""
         if len(inputs) == 1:
             inputs = inputs[0]
-        avg = int(math.ceil(len(inputs) / len(device_ids)))
+        avg = int(math.ceil(len(inputs) * 1. / len(device_ids)))
         # inputs = scatter(inputs, device_ids, dim) if inputs else []
         inputs = [[inputs[i:i + avg]] for i in range(0, len(inputs), avg)]
         kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
@@ -187,6 +190,17 @@ def train(args):
     odim = int(valid_json[utts[0]]['odim'])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
+
+    # specify attention, CTC, hybrid mode
+    if args.mtlalpha == 1.0:
+        mtl_mode = 'ctc'
+        logging.info('Pure CTC mode')
+    elif args.mtlalpha == 0.0:
+        mtl_mode = 'att'
+        logging.info('Pure attention mode')
+    else:
+        mtl_mode = 'mtl'
+        logging.info('Multitask learning mode')
 
     # specify model architecture
     e2e = E2E(idim, odim, args)
@@ -262,6 +276,10 @@ def train(args):
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+        else:
+            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -281,20 +299,28 @@ def train(args):
 
     # Save best models
     def torch_save(path, _):
-        torch.save(model.state_dict(), path)
-        torch.save(model, path + ".pkl")
+        if ngpu > 1:
+            torch.save(model.module.state_dict(), path)
+            torch.save(model.module, path + ".pkl")
+        else:
+            torch.save(model.state_dict(), path)
+            torch.save(model, path + ".pkl")
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
-                   trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
+    if mtl_mode is not 'ctc':
+        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
     def torch_load(path, obj):
-        model.load_state_dict(torch.load(path))
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(path))
+        else:
+            model.load_state_dict(torch.load(path))
         return obj
     if args.opt == 'adadelta':
-        if args.criterion == 'acc':
+        if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -352,7 +378,17 @@ def recog(args):
 
     def cpu_loader(storage, location):
         return storage
-    model.load_state_dict(torch.load(args.model, map_location=cpu_loader))
+
+    def remove_dataparallel(state_dict):
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            if k.startswith("module."):
+                name = k[7:]
+                new_state_dict[name] = v
+        return new_state_dict
+
+    model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
 
     # read rnnlm
     if args.rnnlm:
