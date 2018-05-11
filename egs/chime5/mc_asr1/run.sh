@@ -209,11 +209,6 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-
-echo "convert json file to new format"
-    convertjson.py ${feat_tr_dir}/data.json.tmp ${feat_tr_dir}/feats.scp > ${feat_tr_dir}/data.json && rm ${feat_tr_dir}/data.json.tmp 
-    convertjson.py ${feat_dt_dir}/data.json.tmp ${feat_dt_dir}/feats.scp > ${feat_dt_dir}/data.json && rm ${feat_dt_dir}/data.json.tmp
-
 fi
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
@@ -275,8 +270,10 @@ if [ ${stage} -le 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
+        --train-feat scp:${feat_tr_dir}/feats.scp \
+        --valid-feat scp:${feat_dt_dir}/feats.scp \
+        --train-label ${feat_tr_dir}/data.json \
+        --valid-label ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -310,13 +307,14 @@ if [ ${stage} -le 5 ]; then
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-        # make json files for recognition
-        for j in `seq 1 ${nj}`; do
-            data2json.sh --feat ${sdata}/${j}/feats.scp --nlsyms ${nlsyms} \
-                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json.tmp
-            convertjson.py ${sdata}/${j}/data.json.tmp ${sdata}/${j}/feats.scp > ${sdata}/${j}/data.json
-            rm ${sdata}/${j}/data.json.tmp
-        done
+        # feature extraction
+        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
+        if ${do_delta}; then
+        feats="$feats add-deltas ark:- ark:- |"
+        fi
+
+        # make json labels for recognition
+        data2json.sh --nlsyms ${nlsyms} ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -325,7 +323,8 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${data}/data.json \
+            --recog-feat "$feats" \
+            --recog-label ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

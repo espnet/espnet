@@ -175,9 +175,14 @@ if [ ${stage} -le 2 ]; then
 
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data-fbank/${train_set} ${dict} > ${feat_tr_dir}/data.json
+         data-fbank/${train_set} ${dict} > ${feat_tr_dir}/data.json.tmp
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data-fbank/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data-fbank/${train_dev} ${dict} > ${feat_dt_dir}/data.json.tmp
+         
+    echo "convert json file to new format"
+    convertjson.py ${feat_tr_dir}/data.json.tmp ${feat_tr_dir}/feats.scp > ${feat_tr_dir}/data.json && rm ${feat_tr_dir}/data.json.tmp 
+    convertjson.py ${feat_dt_dir}/data.json.tmp ${feat_dt_dir}/feats.scp > ${feat_dt_dir}/data.json && rm ${feat_dt_dir}/data.json.tmp
+    
 fi
 
 if [ -z ${tag} ]; then
@@ -203,10 +208,8 @@ if [ ${stage} -le 3 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-feat scp:${feat_tr_dir}/feats.scp \
-        --valid-feat scp:${feat_dt_dir}/feats.scp \
-        --train-label ${feat_tr_dir}/data.json \
-        --valid-label ${feat_dt_dir}/data.json \
+        --train-json ${feat_tr_dir}/data.json \
+        --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -234,18 +237,17 @@ if [ ${stage} -le 4 ]; then
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
 
         # split data
-        data=data-fbank/${rtask}
+        data=data/${rtask} # TODO: Need to be declared(?)
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-        # feature extraction
-        feats="ark,s,cs:apply-cmvn --norm-vars=true data-fbank/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-        if ${do_delta}; then
-        feats="$feats add-deltas ark:- ark:- |"
-        fi
-
-        # make json labels for recognition
-        data2json.sh ${data} ${dict} > ${data}/data.json
+        # make json files for recognition
+        for j in `seq 1 ${nj}`; do
+            data2json.sh --feat ${sdata}/${j}/feats.scp --nlsyms ${nlsyms} \
+                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json.tmp
+            convertjson.py ${sdata}/${j}/data.json.tmp ${sdata}/${j}/feats.scp > ${sdata}/${j}/data.json
+            rm ${sdata}/${j}/data.json.tmp
+        done
 
         #### use CPU for decoding
         ngpu=0
@@ -256,8 +258,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
+            --recog-json ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
