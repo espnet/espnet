@@ -335,7 +335,7 @@ def recog(args):
 
     def cpu_loader(storage, location):
         return storage
-    
+
     def remove_dataparallel(state_dict):
         from collections import OrderedDict
         new_state_dict = OrderedDict()
