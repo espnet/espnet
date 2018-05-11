@@ -335,7 +335,17 @@ def recog(args):
 
     def cpu_loader(storage, location):
         return storage
-    model.load_state_dict(torch.load(args.model, map_location=cpu_loader))
+    
+    def remove_dataparallel(state_dict):
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            if k.startswith("module."):
+                name = k[7:]
+                new_state_dict[name] = v
+        return new_state_dict
+
+    model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
 
     # read rnnlm
     if args.rnnlm:
