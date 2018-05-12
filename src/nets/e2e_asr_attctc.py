@@ -141,7 +141,7 @@ class E2E(chainer.Chain):
                 logging.info("Using chainer CTC implementation")
                 self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
             elif args.ctype == 'blstm':
-                logging.info("Using BLSTM + warpctc CTC implementation")
+                logging.info("Using warpctc CTC implementation with non-shared BLSTM layers")
                 self.ctc = WarpCTC_BLSTM(odim, args.eprojs, args.clayers, args.cunits, args.cprojs, args.dropout_rate)
             else:
                 logging.error(
@@ -337,6 +337,7 @@ class WarpCTC(chainer.Chain):
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
 
+# WarpCTC with non-shared BLSTM layers
 class WarpCTC_BLSTM(chainer.Chain):
     def __init__(self, odim, eprojs, clayers, cunits, cprojs, dropout_rate):
         super(WarpCTC_BLSTM, self).__init__()

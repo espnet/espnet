@@ -192,8 +192,10 @@ class E2E(torch.nn.Module):
                            self.subsample, args.dropout_rate)
         # ctc
         if hasattr(args, 'ctype') is False or args.ctype == 'warpctc':
+            logging.info("Using warpctc CTC implementation")
             self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
         elif args.ctype == 'blstm':
+            logging.info("Using warpctc CTC implementation with non-shared BLSTM layers")
             self.ctc = CTC_BLSTM(odim, args.eprojs, args.clayers, args.cunits, args.cprojs, args.dropout_rate)
         else:
             logging.error(
@@ -442,6 +444,7 @@ class CTC(torch.nn.Module):
         return F.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
 
 
+# CTC with non-shared BLSTM layers
 class CTC_BLSTM(torch.nn.Module):
     def __init__(self, odim, eprojs, clayers, cunits, cprojs, dropout_rate):
         super(CTC_BLSTM, self).__init__()
