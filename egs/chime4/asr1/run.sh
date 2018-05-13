@@ -237,7 +237,7 @@ if [ ${stage} -le 4 ]; then
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
 
         # split data
-        data=data/${rtask} # TODO: Need to be declared(?)
+        data=data-fbank/${rtask} # TODO: Need to be declared(?)
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
@@ -258,7 +258,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-json ${data}/data.json \
+            --recog-json ${sdata}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

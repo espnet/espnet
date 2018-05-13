@@ -492,7 +492,7 @@ def recog(args):
         rnnlm = None
 
     # read json data
-    with open(args.recog_jsonl, 'rb') as f:
+    with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
     new_json = {}
