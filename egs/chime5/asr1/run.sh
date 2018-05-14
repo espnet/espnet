@@ -206,13 +206,15 @@ if [ ${stage} -le 2 ]; then
 
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json.mp
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json.tmp
 
 echo "convert json file to new format"
-    convertjson.py ${feat_tr_dir}/data.json.tmp ${feat_tr_dir}/feats.scp > ${feat_tr_dir}/data.json && rm ${feat_tr_dir}/data.json.tmp 
-    convertjson.py ${feat_dt_dir}/data.json.tmp ${feat_dt_dir}/feats.scp > ${feat_dt_dir}/data.json && rm ${feat_dt_dir}/data.json.tmp
+    convertjson.py ${feat_tr_dir}/data.json.tmp \
+        ${feat_tr_dir}/feats.scp > ${feat_tr_dir}/data.json && rm ${feat_tr_dir}/data.json.tmp 
+    convertjson.py ${feat_dt_dir}/data.json.tmp \
+        ${feat_dt_dir}/feats.scp > ${feat_dt_dir}/data.json && rm ${feat_dt_dir}/data.json.tmp
 
 fi
 
@@ -325,7 +327,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${data}/data.json \
+            --recog-json ${data}/JOB/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
