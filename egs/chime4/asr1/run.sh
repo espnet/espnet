@@ -180,8 +180,10 @@ if [ ${stage} -le 2 ]; then
          data-fbank/${train_dev} ${dict} > ${feat_dt_dir}/data.json.tmp
          
     echo "convert json file to new format"
-    convertjson.py ${feat_tr_dir}/data.json.tmp ${feat_tr_dir}/feats.scp > ${feat_tr_dir}/data.json && rm ${feat_tr_dir}/data.json.tmp 
-    convertjson.py ${feat_dt_dir}/data.json.tmp ${feat_dt_dir}/feats.scp > ${feat_dt_dir}/data.json && rm ${feat_dt_dir}/data.json.tmp
+    convertjson.py ${feat_tr_dir}/data.json.tmp \
+        ${feat_tr_dir}/feats.scp > ${feat_tr_dir}/data.json && rm ${feat_tr_dir}/data.json.tmp 
+    convertjson.py ${feat_dt_dir}/data.json.tmp \
+        ${feat_dt_dir}/feats.scp > ${feat_dt_dir}/data.json && rm ${feat_dt_dir}/data.json.tmp
     
 fi
 
