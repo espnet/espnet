@@ -5,11 +5,13 @@
 
 
 import copy
+import codecs
 import json
 import logging
 import math
 import os
 import pickle
+import pdb
 
 # chainer related
 import chainer
@@ -147,14 +149,12 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
         optimizer = self.get_optimizer('main')
         if (self.done_augment >= self.a2a_ratio):  # TODO(arendu): need a better way to switch between audio and augment
             batch = train_iter.__next__()
-            # print(train_iter.is_new_epoch)
             logging.info('audio batch, new_epoch:' + str(train_iter.is_new_epoch))
             x = converter_kaldi(batch[0], self.reader)
             self.done_augment = 0
             is_aug = False
         else:
             batch = self.train_augment_iter.__next__()
-            # print(self.train_augment_iter.is_new_epoch)
             logging.info('augment batch, new_epoch:' + str(train_iter.is_new_epoch))
             x = converter_augment(batch[0], self.idict, self.odict, self.ifile, self.ofile)
             self.done_augment += 1
@@ -267,8 +267,9 @@ def train(args):
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
     if os.path.exists(args.train_aug) and args.use_aug:
         print('args.train_aug', args.train_aug)
-        with open(args.train_aug, 'rb') as f:
+        with codecs.open(args.train_aug, 'rb', encoding='utf-8') as f:
             augment_json = json.load(f)['aug']
+            pdb.set_trace()
         train_augment, meta = make_augment_batchset(augment_json, args.batch_size,
                                                     args.maxlen_in,
                                                     args.maxlen_out,
@@ -379,7 +380,7 @@ def recog(args):
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from' + args.model_conf)
         idim, odim, train_args = pickle.load(f)
-
+    
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 

@@ -15,7 +15,7 @@ import numpy as np
 # * -------------------- agumenting data prep -------------------- *
 def make_augment_batchset(data, batch_size,
                           max_length_in, max_length_out,
-                          num_batches=0, is_rep_aug=0, subsample=1):
+                          num_batches=0, subsample=1):
     # sort it by input lengths (long to short)
     # data has keys ifilename, ofilename, sentences
     # sentences has keys id, and values ilen, olen, ioffset, ooffset
@@ -35,6 +35,7 @@ def make_augment_batchset(data, batch_size,
     if subsample == 1:
         len_fac = 1
     else:
+        print("Subsample: ", subsample)
         len_fac = np.prod([int(i) for i in subsample.split('_')])
     # change batchsize depending on the input and output length
     minibatches = []
@@ -63,6 +64,9 @@ def converter_augment(batch, idict, odict, ifile, ofile):
         iline = ifile.readline()
         oline = ofile.readline()
         iline = ['<s>'] + iline.strip().split() + ['</s>']  # BOS and EOS for output handled by decoder
+        print("ILINE: ", iline)
+        print("--------DICT---------")
+        print(idict)
         iline = [idict[i] for i in iline]
         assert len(iline) > 2
         iline = np.array(iline, dtype=np.int64)
