@@ -134,15 +134,15 @@ class E2E(chainer.Chain):
             self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                                self.subsample, args.dropout_rate)
             # ctc
-            if hasattr(args, 'ctype') is False or args.ctype == 'warpctc':
+            if args.ctype == 'warpctc':
                 logging.info("Using warpctc CTC implementation")
-                self.ctc = WarpCTC(odim, args.eprojs, args.dropout_rate)
+                if hasattr(args, 'clayers') is False:
+                    self.ctc = WarpCTC(odim, args.eprojs)
+                else:
+                    self.ctc = WarpCTC(odim, args.eprojs, args.clayers, args.cunits, args.cprojs, args.dropout_rate)
             elif args.ctype == 'chainer':
                 logging.info("Using chainer CTC implementation")
                 self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
-            elif args.ctype == 'blstm':
-                logging.info("Using warpctc CTC implementation with non-shared BLSTM layers")
-                self.ctc = WarpCTC_BLSTM(odim, args.eprojs, args.clayers, args.cunits, args.cprojs, args.dropout_rate)
             else:
                 logging.error(
                     "Error: need to specify an appropriate CTC archtecture")
@@ -292,14 +292,21 @@ class CTC(chainer.Chain):
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
 
+# WarpCTC with non-shared BLSTM layers
 class WarpCTC(chainer.Chain):
-    def __init__(self, odim, eprojs, dropout_rate):
+    def __init__(self, odim, eprojs, clayers=0, cunits=320, cprojs=320, dropout_rate=0.0):
         super(WarpCTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
+        self.clayers = clayers
 
         with self.init_scope():
-            self.ctc_lo = L.Linear(eprojs, odim)
+            if clayers > 0:
+                self.nblstm = L.NStepBiLSTM(clayers, eprojs, cunits, dropout_rate)
+                self.l_last = L.Linear(cunits * 2, cprojs)
+                self.ctc_lo = L.Linear(cprojs, odim)
+            else:
+                self.ctc_lo = L.Linear(eprojs, odim)
 
     def __call__(self, hs, ys):
         '''CTC forward
@@ -311,6 +318,18 @@ class WarpCTC(chainer.Chain):
         self.loss = None
         ilens = [x.shape[0] for x in hs]
         olens = [x.shape[0] for x in ys]
+
+        if self.clayers > 0:
+            _, _, hs = self.nblstm(None, None, hs)
+            hs = self.l_last(F.vstack(hs))  # (sum _utt frame_utt) x dim
+            hs = F.split_axis(hs, np.cumsum(ilens[:-1]), axis=0)
+
+            # final tanh operation
+            hs = F.split_axis(F.tanh(F.vstack(hs)), np.cumsum(ilens[:-1]), axis=0)
+
+            # 1 utterance case, it becomes an array, so need to make a utt tuple
+            if not isinstance(hs, tuple):
+                hs = [hs]
 
         # zero padding for hs
         y_hat = linear_tensor(self.ctc_lo, F.dropout(
@@ -333,77 +352,18 @@ class WarpCTC(chainer.Chain):
         :param hs:
         :return:
         '''
-        y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
-        return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
+        if self.clayers > 0:
+            _, _, hs = self.nblstm(None, None, hs)
+            hs = self.l_last(F.vstack(hs))  # (sum _utt frame_utt) x dim
+            hs = F.split_axis(hs, np.cumsum(hlen[:-1]), axis=0)
 
-# WarpCTC with non-shared BLSTM layers
-class WarpCTC_BLSTM(chainer.Chain):
-    def __init__(self, odim, eprojs, clayers, cunits, cprojs, dropout_rate):
-        super(WarpCTC_BLSTM, self).__init__()
-        self.dropout_rate = dropout_rate
-        self.loss = None
+            # final tanh operation
+            hs = F.split_axis(F.tanh(F.vstack(hs)), np.cumsum(hlen[:-1]), axis=0)
 
-        with self.init_scope():
-            self.nblstm = L.NStepBiLSTM(clayers, eprojs, cunits, dropout_rate)
-            self.l_last = L.Linear(cunits * 2, cprojs)
-            self.ctc_lo = L.Linear(cprojs, odim)
-
-    def __call__(self, hs, ys):
-        '''CTC forward
-
-        :param hs:
-        :param ys:
-        :return:
-        '''
-        self.loss = None
-        ilens = [x.shape[0] for x in hs]
-        olens = [x.shape[0] for x in ys]
-
-        hy, cy, hs = self.nblstm(None, None, hs)
-        hs = self.l_last(F.vstack(hs))  # (sum _utt frame_utt) x dim
-        hs = F.split_axis(hs, np.cumsum(ilens[:-1]), axis=0)
-        del hy, cy
-
-        # final tanh operation
-        hs = F.split_axis(F.tanh(F.vstack(hs)), np.cumsum(ilens[:-1]), axis=0)
-
-        # 1 utterance case, it becomes an array, so need to make a utt tuple
-        if not isinstance(hs, tuple):
-            hs = [hs]
-
-        # zero padding for hs
-        y_hat = linear_tensor(self.ctc_lo, F.dropout(
-            F.pad_sequence(hs), ratio=self.dropout_rate))
-        y_hat = F.transpose(y_hat, (1, 0, 2))  # batch x frames x hdim
-
-        # get length info
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
-
-        # get ctc loss
-        self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])[0]
-        logging.info('ctc loss:' + str(self.loss.data))
-
-        return self.loss
-
-    def log_softmax(self, hs, hlen):
-        '''log_softmax of frame activations
-
-        :param hs:
-        :return:
-        '''
-        hy, cy, hs = self.nblstm(None, None, hs)
-        hs = self.l_last(F.vstack(hs))  # (sum _utt frame_utt) x dim
-        hs = F.split_axis(hs, np.cumsum(hlen[:-1]), axis=0)
-        del hy, cy
-
-        # final tanh operation
-        hs = F.split_axis(F.tanh(F.vstack(hs)), np.cumsum(hlen[:-1]), axis=0)
-
-        # 1 utterance case, it becomes an array, so need to make a utt tuple
-        if not isinstance(hs, tuple):
-            hs = [hs]
+            # 1 utterance case, it becomes an array, so need to make a utt tuple
+            if not isinstance(hs, tuple):
+                hs = [hs]
 
         y_hat = linear_tensor(self.ctc_lo, F.pad_sequence(hs))
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
