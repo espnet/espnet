@@ -140,7 +140,8 @@ class DataParallel(torch.nn.DataParallel):
 	linputs = []
 	prev_j = 0
 	for i in range(0, len(device_ids)):
-	    curr_j = len(inputs) if i == len(device_ids) - 1 else int((i+1) * len(inputs) * 1. / len(device_ids))
+	    curr_j = len(inputs) if i == len(device_ids) - 1
+	        else int((i+1) * len(inputs) * 1. / len(device_ids))
 	    linputs.append([inputs[prev_j:curr_j]])
 	    prev_j = curr_j
         kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
