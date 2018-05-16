@@ -65,7 +65,7 @@ def main():
                              'every y frame at 2nd layer etc.')
     # ctc
     parser.add_argument('--ctype', default='warpctc', type=str,
-                        choices=['warpctc', 'chainer', 'blstm'],
+                        choices=['warpctc', 'chainer'],
                         help='Type of CTC architecture.')
     parser.add_argument('--clayers', default=1, type=int,
                         help='Number of CTC encoder layers')
