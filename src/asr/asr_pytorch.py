@@ -11,7 +11,6 @@ import logging
 import math
 import os
 import pickle
-import pdb
 
 # chainer related
 import chainer
@@ -141,8 +140,8 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
         self.done_augment = 0
         self.idict = self.augment_metadata['idict']
         self.odict = self.augment_metadata['odict']
-        self.ifile = open(self.augment_metadata['ifilename'], 'r')
-        self.ofile = open(self.augment_metadata['ofilename'], 'r')
+        self.ifile = codecs.open(self.augment_metadata['ifilename'], 'r', encoding='utf-8')
+        self.ofile = codecs.open(self.augment_metadata['ofilename'], 'r', encoding='utf-8')
 
     def update_core(self,):
         train_iter = self.get_iterator('main')
@@ -266,10 +265,8 @@ def train(args):
     train_reader = lazy_io.read_dict_scp(args.train_feat)
     valid_reader = lazy_io.read_dict_scp(args.valid_feat)
     if os.path.exists(args.train_aug) and args.use_aug:
-        print('args.train_aug', args.train_aug)
         with codecs.open(args.train_aug, 'rb', encoding='utf-8') as f:
             augment_json = json.load(f)['aug']
-            pdb.set_trace()
         train_augment, meta = make_augment_batchset(augment_json, args.batch_size,
                                                     args.maxlen_in,
                                                     args.maxlen_out,

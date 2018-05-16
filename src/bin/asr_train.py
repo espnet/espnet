@@ -193,7 +193,6 @@ def main():
     if args.dict_aug != '':
         with codecs.open(args.dict_aug, 'r', encoding='utf-8') as f:
             aug_dictionary = f.readlines()
-        pdb.set_trace()
         args.aug_vocab_size = len(aug_dictionary)
     else:
         args.aug_vocab_size = None

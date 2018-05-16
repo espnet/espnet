@@ -70,7 +70,8 @@ def converter_augment(batch, idict, odict, ifile, ofile):
         iline = [idict[i] for i in iline]
         assert len(iline) > 2
         iline = np.array(iline, dtype=np.int64)
-        oline = oline.strip().split()[1:]  # so that we can use the same aug files from OpenNMT, removed "aug"
+        #oline = oline.strip().split()[1:]  # so that we can use the same aug files from OpenNMT, removed "aug"
+        oline = oline.strip().split()  # so that we can use the same aug files from OpenNMT
         assert len(oline) > 0
         oline = ' '.join([str(odict.get(i, odict['<unk>'])) for i in oline])
         b_obj['feat'] = iline

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import argparse
+import sys
 import json
 
 
@@ -51,7 +52,7 @@ def main():
                 iline = fi.readline()
                 oline = fo.readline()
                 line_num += 1
-    print('using ' + str(line_num) + ' lines of augmenting data')
+    print('using ' + str(line_num) + ' lines of augmenting data', file=sys.stderr)
     aug_json['aug']['idict'] = idict  # input side dictionary with <pad> symbol
     with open(args.json, "w") as f:
         json.dump(aug_json, f, indent=4)
