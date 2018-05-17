@@ -206,16 +206,9 @@ if [ ${stage} -le 2 ]; then
 
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json.mp
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json.tmp
-
-echo "convert json file to new format"
-    convertjson.py ${feat_tr_dir}/data.json.tmp \
-        ${feat_tr_dir}/feats.scp > ${feat_tr_dir}/data.json && rm ${feat_tr_dir}/data.json.tmp 
-    convertjson.py ${feat_dt_dir}/data.json.tmp \
-        ${feat_dt_dir}/feats.scp > ${feat_dt_dir}/data.json && rm ${feat_dt_dir}/data.json.tmp
-
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
@@ -315,9 +308,7 @@ if [ ${stage} -le 5 ]; then
         # make json files for recognition
         for j in `seq 1 ${nj}`; do
             data2json.sh --feat ${sdata}/${j}/feats.scp --nlsyms ${nlsyms} \
-                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json.tmp
-            convertjson.py ${sdata}/${j}/data.json.tmp ${sdata}/${j}/feats.scp > ${sdata}/${j}/data.json
-            rm ${sdata}/${j}/data.json.tmp
+                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
         done
 
         #### use CPU for decoding

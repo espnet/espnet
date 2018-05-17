@@ -48,11 +48,15 @@ awk -v odim=${odim} '{print $1 " " odim}' ${dir}/text > ${tmpdir}/odim.scp
 if [ ! -z ${lang} ]; then
     awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/lang.scp
 fi
+# feats
+cat ${feat} > ${tmpdir}/feat.scp
 
 rm -f ${tmpdir}/*.json
 for x in ${dir}/text ${dir}/utt2spk ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
     cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done
-mergejson.py ${tmpdir}/*.json 
+mergejson.py ${tmpdir}/*.json > ${tmpdir}/merged.json
+convertjson.py ${tmpdir}/merged.json
+
 rm -fr ${tmpdir}

@@ -175,16 +175,9 @@ if [ ${stage} -le 2 ]; then
 
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data-fbank/${train_set} ${dict} > ${feat_tr_dir}/data.json.tmp
+         data-fbank/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data-fbank/${train_dev} ${dict} > ${feat_dt_dir}/data.json.tmp
-         
-    echo "convert json file to new format"
-    convertjson.py ${feat_tr_dir}/data.json.tmp \
-        ${feat_tr_dir}/feats.scp > ${feat_tr_dir}/data.json && rm ${feat_tr_dir}/data.json.tmp 
-    convertjson.py ${feat_dt_dir}/data.json.tmp \
-        ${feat_dt_dir}/feats.scp > ${feat_dt_dir}/data.json && rm ${feat_dt_dir}/data.json.tmp
-    
+         data-fbank/${train_dev} ${dict} > ${feat_dt_dir}/data.json
 fi
 
 if [ -z ${tag} ]; then
@@ -243,12 +236,13 @@ if [ ${stage} -le 4 ]; then
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-        # make json files for recognition
+        feat_rt_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_rt_dir}
+        # make json files for recognition        
         for j in `seq 1 ${nj}`; do
+            dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta $do_delta \
+                ${sdata}/${j}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/recog ${feat_rt_dir}
             data2json.sh --feat ${sdata}/${j}/feats.scp --nlsyms ${nlsyms} \
-                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json.tmp
-            convertjson.py ${sdata}/${j}/data.json.tmp ${sdata}/${j}/feats.scp > ${sdata}/${j}/data.json
-            rm ${sdata}/${j}/data.json.tmp
+                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
         done
 
         #### use CPU for decoding

@@ -11,35 +11,27 @@ import sys
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('in_json', type=str,
-                        help='Filename of input json file')
-    parser.add_argument('in_feat', type=str,
-                        help=' Filename of input feature file (Kaldi scp)')
+    parser.add_argument('json', type=str,
+                        help='json file')
+    parser.add_argument('--multi', '-m', type=int,
+                        help='Test the json file for multiple input/output', default=0)
     args = parser.parse_args()
     
     # logging info
     logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
-    with open(args.in_json, 'r') as f:
-        j = json.load(f)
-    old_dic = j['utts'.decode('utf-8')]
-
-    scp_dic = {}
-    with open(args.in_feat, 'r') as f:
-        for line in f:
-            id, ark = unicode(line, 'utf-8').split()
-            scp_dic[id] = ark
+    j = json.load(open(args.json))
+    old_dic = j['utts']
 
     new_dic = {}
     for item in old_dic.items():
         id, dic = item
-        scp = scp_dic[id]
 
         in_dic = {}
         if dic.has_key(unicode('idim', 'utf-8')):
             in_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('ilen', 'utf-8')]), int(dic[unicode('idim', 'utf-8')]))
         in_dic[unicode('name', 'utf-8')] = unicode('input1', 'utf-8')
-        in_dic[unicode('feat', 'utf-8')] = scp_dic[id]
+        in_dic[unicode('feat', 'utf-8')] = dic[unicode('feat', 'utf-8')]
 
         out_dic = {}
         out_dic[unicode('name', 'utf-8')] = unicode('target1', 'utf-8')
