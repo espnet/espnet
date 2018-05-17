@@ -57,16 +57,15 @@ def make_augment_batchset(data, batch_size,
     return minibatches, meta
 
 
-def converter_augment(batch, idict, odict, ifile, ofile):
+def converter_augment(batch, idict, odict, ifile, ofile, expand_iline):
     for b_idx, b_obj in batch:
         ifile.seek(b_obj['ioffset'])
         ofile.seek(b_obj['ooffset'])
         iline = ifile.readline()
         oline = ofile.readline()
-        iline = ['<s>'] + iline.strip().split() + ['</s>']  # BOS and EOS for output handled by decoder
-        print("ILINE: ", iline)
-        print("--------DICT---------")
-        print(idict)
+        iline_items = iline.strip().split()
+        iline_items = [item for item in iline.strip().split() for i in range(expand_iline)]
+        iline = ['<s>'] + iline_items + ['</s>']  # BOS and EOS for output handled by decoder
         iline = [idict[i] for i in iline]
         assert len(iline) > 2
         iline = np.array(iline, dtype=np.int64)

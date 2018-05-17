@@ -131,13 +131,18 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
     '''Custom updated for kaldi reader with augment data support'''
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 train_augment_iter, augment_metadata, augment_ratio, optimizer, reader, device):
+                 train_augment_iter, augment_metadata, augment_ratio, alternate_aug, pretrain_aug, expand_iline,
+                 optimizer, reader, device):
         super(PytorchSeqUpdaterKaldiWithAugment, self).__init__(model, grad_clip_threshold,
                                                                 train_iter, optimizer, reader, device=None)
         self.augment_metadata = augment_metadata
         self.train_augment_iter = train_augment_iter
         self.a2a_ratio = augment_ratio   # int(self.augment_metadata['a2a_ratio'])
+        self.pretrain_aug = pretrain_aug
+        self.done_pretrain_aug = 0
         self.done_augment = 0
+        self.expand_iline = expand_iline
+        self.alternate_aug = alternate_aug
         self.idict = self.augment_metadata['idict']
         self.odict = self.augment_metadata['odict']
         self.ifile = codecs.open(self.augment_metadata['ifilename'], 'r', encoding='utf-8')
@@ -146,20 +151,28 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
     def update_core(self,):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
-        if (self.done_augment >= self.a2a_ratio):  # TODO(arendu): need a better way to switch between audio and augment
+        if (self.done_augment < self.a2a_ratio):  # TODO(arendu): need a better way to switch between audio and augment
+            batch = self.train_augment_iter.__next__()
+            logging.info('augment batch, new_epoch:' + str(train_iter.is_new_epoch))
+            x = converter_augment(batch[0], self.idict, self.odict, self.ifile, self.ofile, self.expand_iline)
+            if self.done_pretrain_aug < self.pretrain_aug:
+                self.done_pretrain_aug += 1
+            else:
+                self.done_augment += 1
+            is_aug = True
+        else:
             batch = train_iter.__next__()
             logging.info('audio batch, new_epoch:' + str(train_iter.is_new_epoch))
             x = converter_kaldi(batch[0], self.reader)
-            self.done_augment = 0
+            if self.alternate_aug == 1:
+                self.done_augment = 0
+            else:
+                # does not reset done_augment so only audio data will be done form now on
+                pass
             is_aug = False
-        else:
-            batch = self.train_augment_iter.__next__()
-            logging.info('augment batch, new_epoch:' + str(train_iter.is_new_epoch))
-            x = converter_augment(batch[0], self.idict, self.odict, self.ifile, self.ofile)
-            self.done_augment += 1
-            is_aug = True
 
         # Compute the loss at this time step and accumulate it
+        print('is aug', is_aug, 'done_aug', self.done_augment, 'done_pretrain_aug', self.done_pretrain_aug)
         loss = self.model(x, is_aug=is_aug)
         optimizer.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
@@ -174,7 +187,7 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
         else:
             optimizer.step()
         delete_feat(x)
-        logging.info('commpleted batch')
+        logging.info('completed batch')
 
 
 def train(args):
@@ -279,6 +292,9 @@ def train(args):
                                                     train_augment_iter,
                                                     meta,
                                                     args.aug_ratio,
+                                                    args.aug_alternate,
+                                                    args.aug_pretrain,
+                                                    4 if args.aug_arch == 1 else 1,
                                                     optimizer,
                                                     train_reader,
                                                     gpu_id)

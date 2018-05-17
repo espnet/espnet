@@ -162,6 +162,7 @@ class E2E(torch.nn.Module):
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
+        self.aug_arch = args.aug_arch
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -190,10 +191,23 @@ class E2E(torch.nn.Module):
 
         # augment encoder
         if args.use_aug:
-            self.aug_enc = AugmentEncoder(args.aug_vocab_size,
-                                          args.etype, args.aug_idim,
-                                          args.aug_layers, args.eunits,
-                                          args.eprojs, args.dropout_rate)
+            if self.aug_arch == 0:
+                self.aug_enc = AugmentEncoder(args.aug_vocab_size,
+                                              args.etype, args.aug_idim,
+                                              args.aug_layers, args.eunits,
+                                              args.eprojs, args.dropout_rate)
+            elif self.aug_arch == 1:
+                self.aug_enc = AugmentEncoder(args.aug_vocab_size,
+                                              args.etype, args.aug_idim,
+                                              args.aug_layers, args.eunits,
+                                              args.aug_idim, args.dropout_rate)
+            elif self.aug_arch == 2:
+                self.aug_enc = AugmentEncoder(args.aug_vocab_size,
+                                              args.etype, args.eprojs,
+                                              args.aug_layers, args.eunits,
+                                              args.eprojs, args.dropout_rate)
+            else:
+                raise NotImplementedError("not yet implemented")
         else:
             self.aug_enc = None
         # encoder
@@ -295,7 +309,22 @@ class E2E(torch.nn.Module):
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
         ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
-        if not is_aug:
+        if is_aug:
+            # Augment Encoder
+            ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+            xs = [torch.from_numpy(xx) for xx in xs]
+            padded_xs = aug_pad_list(xs, 0)
+            xpad = to_cuda(self, Variable(padded_xs))
+            if self.aug_arch == 0:
+                hpad, hlens = self.aug_enc(xpad, ilens)
+            elif self.aug_arch == 1:
+                xpad, ilens = self.aug_enc(xpad, ilens)
+                hpad, hlens = self.enc(xpad, ilens)
+            elif self.aug_arch == 2:
+                hpad, hlens = self.aug_enc(xpad, ilens)
+            else:
+                raise NotImplementedError("unknown arch")
+        else:
             # subsample frame
             xs = [xx[::self.subsample[0], :] for xx in xs]
             ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
@@ -303,14 +332,10 @@ class E2E(torch.nn.Module):
 
             # 1. encoder
             xpad = pad_list(hs)
+            print(xpad.shape, ilens, 'in non-aug 1')
             hpad, hlens = self.enc(xpad, ilens)
-        else:
-            # Augment Encoder
-            ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-            xs = [torch.from_numpy(xx) for xx in xs]
-            padded_xs = aug_pad_list(xs, 0)
-            xpad = to_cuda(self, Variable(padded_xs))
-            hpad, hlens = self.aug_enc(xpad, ilens)
+            if self.aug_enc is not None and self.aug_arch == 2:
+                hpad, hlines = self.aug_enc(hpad, hlens, do_embed=False)
 
         # # 3. CTC loss
         loss_ctc = self.ctc(hpad, hlens, ys)
@@ -2000,8 +2025,9 @@ class AugmentEncoder(Encoder):
         assert in_channel == 1
         self.embedding = torch.nn.Embedding(aug_vocab_size, idim)
 
-    def forward(self, xs, ilens):
-        xs = self.embedding(xs)
+    def forward(self, xs, ilens, do_embed=True):
+        if do_embed:
+            xs = self.embedding(xs)
         if self.etype == 'blstm':
             xs, ilens = self.enc1(xs, ilens)
         elif self.etype == 'blstmp':

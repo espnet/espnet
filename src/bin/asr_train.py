@@ -59,6 +59,12 @@ def main():
                         help='Filename of aug input dictionary')
     parser.add_argument('--aug-ratio', default=1, type=int,
                         help='real data to aug data ratio')
+    parser.add_argument('--aug-pretrain', default=0, type=int,
+                        help='number of aug batches before audio batches')
+    parser.add_argument('--aug-alternate', choices=set([0, 1]), default=1, type=int,
+                        help='switch between aug and audio or do only audio')
+    parser.add_argument('--aug-arch', choices=set([0, 1, 2]), default=0, type=int,
+                        help='augmenting arch option')
     parser.add_argument('--aug-layers', default=1, type=int,
                         help='number of layers in the AugmentEncoder')
     parser.add_argument('--aug-idim', default=83, type=int,
