@@ -230,31 +230,31 @@ if [ ${stage} -le 4 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
-
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         # split data
         data=data-fbank/${rtask} # TODO: Need to be declared(?)
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-        feat_rt_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_rt_dir}
         # make json files for recognition        
         for j in `seq 1 ${nj}`; do
-            dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta $do_delta \
-                ${sdata}/${j}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/recog ${feat_rt_dir}
-            data2json.sh --feat ${sdata}/${j}/feats.scp --nlsyms ${nlsyms} \
-                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
+            mkdir -p ${feat_recog_dir}/${j}
+            dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+                ${sdata}/${j}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/recog_${rtask} ${feat_recog_dir}/${j}
+            data2json.sh --feat ${feat_recog_dir}/${j}/feats.scp --nlsyms ${nlsyms} \
+                ${sdata}/${j} ${dict} > ${feat_recog_dir}/${j}/data.json
         done
 
         #### use CPU for decoding
         ngpu=0
-
+        
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-json ${sdata}/JOB/data.json \
+            --recog-json ${feat_recog_dir}/JOB/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

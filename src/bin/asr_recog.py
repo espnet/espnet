@@ -86,17 +86,6 @@ def main():
         else:
             args.ngpu = 1
 
-    # TODO(nelson) remove in future
-    if (args.recog_feat is not None) or \
-       (args.recog_label is not None):
-        logging.error(
-            "--recog-feat, and recog-label"
-            "options are deprecated, please use --recog-json options.")
-        logging.error(
-            "input file format (json) is modified, please redo"
-            "stage 2: Dictionary and Json Data Preparation")
-        sys.exit(1)
-
     # check CUDA_VISIBLE_DEVICES
     if args.ngpu > 0:
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
