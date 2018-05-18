@@ -46,11 +46,24 @@ def pad_list(batch, pad_value=0.0):
 
 
 class BackTranslater(torch.nn.Module):
-    def __init__(self, args):
+    def __init__(self, idim, odim, elayers=256, eunits=1, dlayers=2, dunits=1024,
+                 atype="NoAtt", threshold=0.5, minlenratio=0.0, maxlenratio=0.0):
         super(BackTranslater, self).__init__()
-        self.enc = CharEncoder(30)
+        self.idim = idim
+        self.odim = odim
+        self.elayers = elayers
+        self.eunits = eunits
+        self.dlayers = dlayers
+        self.dunits = dunits
+        self.atype = atype
+        self.threshold = threshold
+        self.minlenratio = minlenratio
+        self.maxlenratio = maxlenratio
+        self.enc = CharEncoder(
+            self.idim, 512, elayers, eunits)
         att = NoAtt()
-        self.dec = FeatureDecoder(512, 40, att)
+        self.dec = FeatureDecoder(
+            eunits * 2, odim, att, dlayers, dunits)
 
     def forward(self, xs, xlens, ys, ylens):
         hs, hlens = self.enc(xs, xlens)
@@ -63,7 +76,7 @@ class BackTranslater(torch.nn.Module):
             target = torch.zeros(olen).float()
             target[-1] = 1.0
             bc_loss += torch.nn.functional.binary_cross_entropy(
-                prob[:olen], target, size_average=False)
+                F.sigmoid(prob[:olen]), target, size_average=False)
         mse_loss /= sum(olens)
         bc_loss /= sum(olens)
 
@@ -94,6 +107,10 @@ class BackTranslater(torch.nn.Module):
         idx = 0
         outs = []
         while True:
+            # updated index
+            idx += 1
+
+            # decoder calculation
             att_c, att_w = self.dec.att(hs, hlens, z_list[0], att_w)
             prenet_out = self.dec.prenet(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
@@ -110,9 +127,6 @@ class BackTranslater(torch.nn.Module):
                 outs += self.dec.postnet(outs)  # (1, odim, Lmax)
                 outs = outs.transpose(2, 1).unsqueeze(0)  # (Lmax, odim)
                 return outs
-
-            # updated index
-            idx += 1
 
 
 class CharEncoder(torch.nn.Module):
@@ -254,7 +268,8 @@ class FeatureDecoder(torch.nn.Module):
         self.prenet = torch.nn.Sequential(
             torch.nn.Linear(odim, 256),
             torch.nn.ReLU(),
-            torch.nn.Linear(256, 256)
+            torch.nn.Linear(256, 256),
+            torch.nn.ReLU(),
         )
         self.postnet = torch.nn.Sequential(
             torch.nn.Conv1d(odim, 512, 5, stride=1, padding=2, bias=False),
