@@ -1,0 +1,111 @@
+// doc/glossary.dox
+
+// Copyright 2015  Johns Hopkins University (author: Daniel Povey)
+
+// See ../../COPYING for clarification regarding multiple authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//  http://www.apache.org/licenses/LICENSE-2.0
+
+// THIS CODE IS PROVIDED *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+// WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+// MERCHANTABLITY OR NON-INFRINGEMENT.
+// See the Apache 2 License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ \page glossary  Glossary of terms
+
+ This page contains a glossary of terms that Kaldi users might want to know
+ about.  The current content here consists just of a few examples; more content
+ will be added shortly.  The easiest way to search in this page is to use the
+ search function of your browser.  For convenience the definition of each
+ term's section is preceded and followed by a colon, so for
+ instance, typing ctrl-f ":lattice:" would take you to the section for "lattice".
+
+
+<div style="text-indent: -1.5em;  padding-left: 1.5em;">
+
+
+<b>:acoustic scale:</b>  The acoustic scale used in decoding, written as --acoustic-scale
+in C++ programs and --acwt in programs.  This is a scale on the acoustic log-probabilities,
+and is a universally used kludge in HMM-GMM and HMM-DNN systems to account for the correlation
+between frames.  It's usually set to 0.1, meaning the acoustic log-probs get a much lower weight
+than the language model log-probs.   In scoring scripts you'll often see a range of language
+model weights being searched over (like the range 7 to 15).  These can be interpreted as
+the inverse of an acoustic scale; it's the ratio between the two that matters for Viterbi
+decoding.
+
+
+<b>:alignment:</b> A representation of the sequence of HMM states taken by the
+Viterbi (best-path) alignment of an utterance.  In Kaldi an alignment is
+synonymous with a sequence of <b>transition-ids</b>.  Most of the time an
+alignment is derived from aligning the reference transcript of an utterance,
+in which case it is called a <b>forced alignment</b>.  <b>lattices</b> also
+contain alignment information as sequences of transition-ids for each word
+sequence in the lattice.  The program \ref bin/show-alignments.cc "show-alignments" shows
+alignments in a human-readable format.
+
+
+<b>:cost:</b>  Any quantity which is used as a 'cost' in a weighted FST
+   algorithm (e.g. acoustic cost, language model cost; see \ref lattices
+   for more details).  Costs are, generally speaking, interpretable
+   as a negative log of a likelihood or probability, but there may
+   be scaling factors involved.
+
+<b>:forced alignment:</b> see <b>alignment</b>.
+
+<b>:lattice:</b>  A representation of alternative likely transcriptions of an utterance, together
+ with associated alignment and cost information.  See \ref lattices.
+
+
+<b>:likelihood:</b>  A mathematical concept meaning the value of a function representing
+  the distribution of a continuous value.  These can be more than one.  Often represented
+  in log space (as log-likelihood) because likelihood values of multi-dimensional
+  features can often be too small or large to fit in standard floating-point precision.
+  With standard cross-entropy trained neural net systems we obtain "pseudo-likelihoods"
+  by dividing log-probabilities by the priors of context-dependent states.
+
+<b>:posterior:</b>  "Posterior" is shorthand for "posterior probability" which is a very
+  general mathematical concept, generally meaning "the probability of some random
+  variable after seeing the relevant data".  In general, posteriors will sum to one.
+  In Kaldi terminology, if you encounter the term "posterior", abbreviated to "post",
+  without further expanation it generally means the per-frame posterior probability of
+  transition-ids.  However these posteriors may be very peaky (i.e. mostly ones and zeros)
+  depending how you obtained them, e.g. from a lattice or from an alignment.
+  Alignments and lattices can be converted to posteriors over transition-ids (see \ref lattice-to-post.cc),
+  or over lattice arcs (see \ref ali-to-post.cc and \ref lattice-arc-post.cc).
+  Posteriors over transition-ids can be converted to posteriors over pdf-ids or over phones;
+  see the tools \ref ali-to-post.cc, \ref post-to-pdf-post.cc and \ref post-to-phone-post.cc.
+
+<b>:pdf-id:</b>  The zero-based integer index of a clustered context-dependent HMM state; see
+  \ref transition_model_identifiers for more information.
+
+<b>:transition-id:</b> a one-based index that encodes the pdf-id (i.e. the clustered context-dependent HMM state),
+the phone identity, and information about whether we took the self-loop or forward transition in the HMM.
+Appears in lattices, decoding graphs and alignments.  See \ref transition_model.
+
+<b>:transition model:</b> The TransitionModel object encodes the transition probabilities
+of the HMMs, and also various other important integer mappings; see \ref transition_model.
+This object is generally written at the start of model files.  The program
+\ref bin/show-transitions.cc "show-transitions" shows these.
+
+<b>:G.fst:</b>  The grammar FST <code>G.fst</code> which lives in the
+  <code>data/lang/</code> directory in the scripts (see \ref data_prep_lang) represents
+  the language model in a Finite State Transducer format (see www.openfst.org).
+ For the most part it is an acceptor, meaning the input and output symbols on the
+ arcs are the same, but for statistical language models with backoff, the backoff
+ arcs have the "disambiguation symbol" <code>#0</code> on the input side only.
+ For many purposes you'll want to get rid of the disambiguation symbols
+  using the command <code>fstproject --project_output=true</code>.  The disambiguation symbols
+ are needed during graph compilation to make the FST determinizable, but for things
+ like language-model rescoring you don't want them.
+
+
+</div>
+
+*/

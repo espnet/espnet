@@ -1,0 +1,20 @@
+
+These instructions are valid for UNIX-like systems (these steps have
+been run on various Linux distributions; Darwin; Cygwin).  For native Windows
+compilation, see ../windows/INSTALL.
+
+You must first have completed the installation steps in ../tools/INSTALL
+(compiling OpenFst; getting ATLAS and CLAPACK headers).
+
+The installation instructions are
+
+  ./configure --shared
+  make depend -j 8
+  make -j 8
+
+Note that we added the "-j 8" to run in parallel because "make" takes a long
+time.  8 jobs might be too many for a laptop or small desktop machine with not
+many cores.
+
+For more information, see documentation at http://kaldi-asr.org/doc/
+and click on "The build process (how Kaldi is compiled)".
