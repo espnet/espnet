@@ -7,48 +7,56 @@ from __future__ import division
 
 import six
 
-import numpy as np
+import chainer
 import torch
 import torch.nn.functional as F
 
-from torch.autograd import Variable
+from chainer import reporter
+
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
+from e2e_asr_attctc_th import AttLoc
 
-def pad_list(batch, pad_value=0.0):
-    """FUNCTION TO PAD VALUE
 
-    :param list batch: list of the sequences, where the shape of i-th sequence (T_i, C)
-    :param float pad_value: value to pad
+def encoder_init(m):
+    if isinstance(m, torch.nn.Conv1d):
+        torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('relu'))
 
-    :return: padded batch with the shape (B, T_max, C)
+
+def decoder_init(m):
+    if isinstance(m, torch.nn.Conv1d):
+        torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
+
+
+class Reporter(chainer.Chain):
+    def report(self, mse_loss, bce_loss, loss):
+        reporter.report({'mse_loss': mse_loss}, self)
+        reporter.report({'bce_loss': bce_loss}, self)
+        reporter.report({'loss': loss}, self)
+
+
+class Tacotron2(torch.nn.Module):
+    """TCOTORON2 BASED SEQ2SEQ MODEL CONVERTS CHARS TO FEATURES
+
+    :param int idim: dimension of the inputs
+    :param int edim: dimension of character embedding
+    :param int odim: dimension of target outputs
+    :param int elayers: the number of encoder blstm layers
+    :param int eunits: the number of encoder blstm units
+    :param int dlayers: the number of decoder lstm layers
+    :param int dunits: the number of decoder lstm units
+    :param str atype: the name of attention type
+    :param float threshold: threshold in inference
+    :param float minlenratio: minimum length ratio
+    :param float maxlenratio: maximum length ratio
     """
-    bs = len(batch)
-    if isinstance(batch[0], Variable):
-        # for pytorch variable
-        maxlen = max(x.size(0) for x in batch)
-        batch_pad = Variable(batch[0].data.new(
-            bs, maxlen, *batch[0].size()[1:]).zero_() + pad_value)
-        for i in range(bs):
-            batch_pad[i, :batch[i].size(0)] = batch[i]
-    else:
-        # for numpy ndarray
-        maxlen = max([b.shape[0] for b in batch])
-        if len(batch[0].shape) >= 2:
-            batch_pad = np.zeros((bs, maxlen, *batch[0].shape[1:]))
-        else:
-            batch_pad = np.zeros((bs, maxlen))
-        for idx, batch in enumerate(batch):
-            batch_pad[idx, :batch.shape[0]] = batch
 
-    return batch_pad
-
-
-class BackTranslater(torch.nn.Module):
-    def __init__(self, idim, odim, elayers=256, eunits=1, dlayers=2, dunits=1024,
-                 atype="NoAtt", threshold=0.5, minlenratio=0.0, maxlenratio=0.0):
-        super(BackTranslater, self).__init__()
+    def __init__(self, idim, edim, odim, elayers=1, eunits=512, dlayers=2, dunits=1024,
+                 atype="location", adim=512, aconv_chans=10, aconv_filts=100, dropout=0.5,
+                 threshold=0.5, minlenratio=0.0, maxlenratio=0.0):
+        super(Tacotron2, self).__init__()
+        # store hyperparameters
         self.idim = idim
         self.odim = odim
         self.elayers = elayers
@@ -56,33 +64,87 @@ class BackTranslater(torch.nn.Module):
         self.dlayers = dlayers
         self.dunits = dunits
         self.atype = atype
+        self.adim = adim
+        self.aconv_filts = aconv_filts
+        self.aconv_chans = aconv_chans
+        self.dropout = dropout
         self.threshold = threshold
         self.minlenratio = minlenratio
         self.maxlenratio = maxlenratio
-        self.enc = CharEncoder(
-            self.idim, 512, elayers, eunits)
-        att = NoAtt()
-        self.dec = FeatureDecoder(
-            eunits * 2, odim, att, dlayers, dunits)
 
-    def forward(self, xs, xlens, ys, ylens):
-        hs, hlens = self.enc(xs, xlens)
-        outs, probs, olens = self.dec(hs, hlens, ys, ylens)
+        # define network modules
+        self.enc = Encoder(idim, edim, elayers, eunits, dropout)
+        att = AttLoc(eunits, dunits, eunits, aconv_chans, aconv_filts)
+        self.dec = Decoder(eunits, odim, att, dlayers, dunits, dropout)
+
+        # initialize
+        self.enc.apply(encoder_init)
+        self.dec.apply(decoder_init)
+
+        self.reporter = Reporter()
+
+    def forward(self, xs, ilens, ys, olens):
+        """TACOTRON2 FORWARD CALCULATION
+
+        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
+        :param list ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax)
+        :param list olens: list of lengths of each target batch (B)
+        :return: outputs with postnets (B, Lmax, D)
+        :rtype: torch.Tensor
+        :return: stop logits (B, Lmax)
+        :rtype: torch.Tensor
+        :return: outputs without postnets (B, Lmax, D)
+        :rtype: torch.Tensor
+        :return: stop logits (B, Lmax)
+        :rtype: torch.Tensor
+        :return: list of lengths of each batch (B)
+        :rtype: list
+        """
+        hs, hlens = self.enc(xs, ilens)
+        post_outs, outs, probs, olens = self.dec(hs, hlens, ys, olens)
+        return post_outs, outs, probs, olens
+
+    def loss(self, ys, post_outs, outs, probs, olens):
+        """TACOTRON2 LOSS CALCULATION
+
+        :param torch.Tensor ys: batch of padded targets (B, Lmax, D)
+        :param torch.Tensor post_outs: outputs with postnets (B, Lmax, D)
+        :param torch.Tensor outs: outputs without postnets (B, Lmax, D)
+        :param torch.Tensor probs: stop logits (B, Lmax)
+        :param list olens: list of lengths of each target batch (B)
+        :return: mean squared error
+        :rtype: torch.Tensor
+        :return: binary cross entorpy
+        :rtype: torch.Tensor
+        """
         mse_loss = 0.0
-        bc_loss = 0.0
-        for y, out, prob, olen in zip(ys, outs, probs, olens):
+        bce_loss = 0.0
+        for y, post_out, out, prob, olen in zip(ys, post_outs, outs, probs, olens):
             mse_loss += torch.nn.functional.mse_loss(
                 out[:olen], y[:olen], size_average=False)
+            mse_loss += torch.nn.functional.mse_loss(
+                post_out[:olen], y[:olen], size_average=False)
             target = torch.zeros(olen).float()
             target[-1] = 1.0
-            bc_loss += torch.nn.functional.binary_cross_entropy(
+            if torch.cuda.is_available():
+                target = target.cuda()
+            bce_loss += torch.nn.functional.binary_cross_entropy(
                 F.sigmoid(prob[:olen]), target, size_average=False)
-        mse_loss /= sum(olens)
-        bc_loss /= sum(olens)
+        mse_loss /= sum(olens) * self.odim
+        bce_loss /= sum(olens)
+        loss = mse_loss + bce_loss
 
-        return mse_loss, bc_loss
+        self.reporter.report(mse_loss.item(), bce_loss.item(), loss.item())
 
-    def predict(self, x):
+        return loss
+
+    def inference(self, x):
+        """GENERATE THE SEQUENCE OF FEATURES
+
+        :param tensor x: the sequence of characters (T)
+        :return: the sequence of features (L, D)
+        """
         # setup
         xs = x.unsqueeze(0)
         xlens = [x.size(0)]
@@ -106,12 +168,15 @@ class BackTranslater(torch.nn.Module):
         # loop for an output sequence
         idx = 0
         outs = []
+        att_ws = []
+        probs = []
         while True:
             # updated index
             idx += 1
 
             # decoder calculation
             att_c, att_w = self.dec.att(hs, hlens, z_list[0], att_w)
+            att_ws += [att_w]
             prenet_out = self.dec.prenet(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.dec.lstm[0](xs, (z_list[0], c_list[0]))
@@ -119,17 +184,18 @@ class BackTranslater(torch.nn.Module):
                 z_list[l], c_list[l] = self.dec.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             outs += [self.dec.feat_out(z_list[-1])]
-            prob = F.sigmoid(self.dec.prob_out(z_list[-1]))[0]
+            probs += [F.sigmoid(self.dec.prob_out(z_list[-1]))[0]]
+            prev_out = outs[-1]
 
             # check whether to finish generation
-            if (prob >= self.thres and idx >= minlen) or idx == maxlen:
-                outs = torch.stack(outs, dim=2)  # (1, odim, Lmax)
-                outs += self.dec.postnet(outs)  # (1, odim, Lmax)
-                outs = outs.transpose(2, 1).unsqueeze(0)  # (Lmax, odim)
-                return outs
+            if (probs[-1] >= self.threshold and idx >= minlen) or idx == maxlen:
+                outs = torch.stack(outs, dim=2)  # (1, odim, L)
+                outs += self.dec.postnet(outs)  # (1, odim, L)
+                outs = outs.transpose(2, 1).squeeze(0)  # (Lx, odim)
+                return outs, probs, att_ws
 
 
-class CharEncoder(torch.nn.Module):
+class Encoder(torch.nn.Module):
     """CHARACTER EMBEDDING ENCODER
 
     This is the encoder which converts the sequence of characters into
@@ -143,8 +209,8 @@ class CharEncoder(torch.nn.Module):
     :param float dropout: dropout rate in lstm layer
     """
 
-    def __init__(self, idim, edim=512, elayers=1, eunits=256, dropout=0.0):
-        super(CharEncoder, self).__init__()
+    def __init__(self, idim, edim=512, elayers=1, eunits=512, dropout=0.5):
+        super(Encoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
         self.edim = edim
@@ -152,33 +218,35 @@ class CharEncoder(torch.nn.Module):
         self.eunits = eunits
         self.dropout = dropout
         # define network layer modules
-        self.embed = torch.nn.Embedding(idim, edim)
+        self.embed = torch.nn.Embedding(idim, edim, padding_idx=0)
         self.convs = torch.nn.Sequential(
             torch.nn.Conv1d(edim, edim, 5, stride=1, padding=2, bias=False),
             torch.nn.BatchNorm1d(edim),
             torch.nn.ReLU(),
+            torch.nn.Dropout(dropout),
             torch.nn.Conv1d(edim, edim, 5, stride=1, padding=2, bias=False),
             torch.nn.BatchNorm1d(edim),
             torch.nn.ReLU(),
+            torch.nn.Dropout(dropout),
             torch.nn.Conv1d(edim, edim, 5, stride=1, padding=2, bias=False),
             torch.nn.BatchNorm1d(edim),
             torch.nn.ReLU(),
+            torch.nn.Dropout(dropout),
         )
         self.blstm = torch.nn.LSTM(
-            edim, eunits, elayers,
+            edim, eunits // 2, elayers,
             batch_first=True,
-            dropout=dropout,
             bidirectional=True
         )
 
     def forward(self, xs, ilens):
         """CHARACTER ENCODER FORWARD CALCULATION
 
-        :param tensor xs: batch of padded character ids (B, Tmax)
+        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each batch (B)
 
-        :return: batch of sequences of padded encoder states (B, Tmax, eunits*2)
-        :rtype: tensor
+        :return: batch of sequences of padded encoder states (B, Tmax, eunits)
+        :rtype: torch.Tensor
         :return: list of lengths of each batch (B)
         :rtype: list
         """
@@ -191,54 +259,7 @@ class CharEncoder(torch.nn.Module):
         return out, olens.tolist()
 
 
-class NoAtt(torch.nn.Module):
-    '''No attention'''
-
-    def __init__(self):
-        super(NoAtt, self).__init__()
-        self.h_length = None
-        self.enc_h = None
-        self.pre_compute_enc_h = None
-        self.c = None
-
-    def reset(self):
-        '''reset states'''
-        self.h_length = None
-        self.enc_h = None
-        self.pre_compute_enc_h = None
-        self.c = None
-
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        '''NoAtt forward
-
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
-        :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: dummy (does not use)
-        :param Variable att_prev: dummy (does not use)
-        :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
-        :return: previous attentioin weights
-        :rtype: Variable
-        '''
-
-        batch = len(enc_hs_pad)
-        # pre-compute all h outside the decoder loop
-        if self.pre_compute_enc_h is None:
-            self.enc_h = enc_hs_pad  # utt x frame x hdim
-            self.h_length = self.enc_h.size(1)
-
-        # initialize attention weight with uniform dist.
-        if att_prev is None:
-            att_prev = [Variable(enc_hs_pad.data.new(
-                l).zero_() + (1.0 / l)) for l in enc_hs_len]
-            # if no bias, 0 0-pad goes 0
-            att_prev = pad_list(att_prev, 0)
-            self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
-
-        return self.c, att_prev
-
-
-class FeatureDecoder(torch.nn.Module):
+class Decoder(torch.nn.Module):
     """DECODER TO PREDICT THE SEQUENCE OF FEATURES
 
     This the decoder which generate the sequence of features from
@@ -252,8 +273,8 @@ class FeatureDecoder(torch.nn.Module):
     :param int dunits: # units of decoder lstm
     """
 
-    def __init__(self, idim, odim, att, dlayers=2, dunits=1024):
-        super(FeatureDecoder, self).__init__()
+    def __init__(self, idim, odim, att, dlayers=2, dunits=1024, dropout=0.5):
+        super(Decoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
         self.odim = odim
@@ -266,40 +287,58 @@ class FeatureDecoder(torch.nn.Module):
         for dl in six.moves.range(1, dlayers):
             self.lstm += [torch.nn.LSTMCell(dunits, dunits)]
         self.prenet = torch.nn.Sequential(
-            torch.nn.Linear(odim, 256),
+            torch.nn.Linear(odim, 256, bias=False),
             torch.nn.ReLU(),
-            torch.nn.Linear(256, 256),
+            torch.nn.Dropout(dropout),
+            torch.nn.Linear(256, 256, bias=False),
             torch.nn.ReLU(),
+            torch.nn.Dropout(dropout),
         )
         self.postnet = torch.nn.Sequential(
             torch.nn.Conv1d(odim, 512, 5, stride=1, padding=2, bias=False),
             torch.nn.BatchNorm1d(512),
             torch.nn.Tanh(),
+            torch.nn.Dropout(dropout),
             torch.nn.Conv1d(512, 512, 5, stride=1, padding=2, bias=False),
             torch.nn.BatchNorm1d(512),
             torch.nn.Tanh(),
+            torch.nn.Dropout(dropout),
             torch.nn.Conv1d(512, 512, 5, stride=1, padding=2, bias=False),
             torch.nn.BatchNorm1d(512),
             torch.nn.Tanh(),
+            torch.nn.Dropout(dropout),
             torch.nn.Conv1d(512, 512, 5, stride=1, padding=2, bias=False),
             torch.nn.BatchNorm1d(512),
             torch.nn.Tanh(),
+            torch.nn.Dropout(dropout),
             torch.nn.Conv1d(512, odim, 5, stride=1, padding=2, bias=False),
+            torch.nn.BatchNorm1d(odim),
+            torch.nn.Dropout(dropout),
         )
         # use 1x1 conv instead of linear
-        self.feat_out = torch.nn.Linear(dunits, odim)
+        self.feat_out = torch.nn.Linear(dunits, odim, bias=False)
         self.prob_out = torch.nn.Linear(dunits, 1)
 
     def zero_state(self, hs):
-        return Variable(hs.data.new(hs.size(0), self.dunits).zero_())
+        return hs.data.new(hs.size(0), self.dunits).zero_()
 
-    def forward(self, hs, hlens, ys, ylens):
+    def forward(self, hs, hlens, ys, olens):
         """DECODER FORWARD CALCULATION
 
-        :param tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
+        :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
         :param list hlens: list of lengths of each input batch (B)
-        :param tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
+        :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
         :param list ylens: list of lengths of each output batch (B)
+        :return: outputs with postnets (B, Lmax, D)
+        :rtype: torch.Tensor
+        :return: stop logits (B, Lmax)
+        :rtype: torch.Tensor
+        :return: outputs without postnets (B, Lmax, D)
+        :rtype: torch.Tensor
+        :return: stop logits (B, Lmax)
+        :rtype: torch.Tensor
+        :return: list of lengths of each batch (B)
+        :rtype: list
         """
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
@@ -316,7 +355,7 @@ class FeatureDecoder(torch.nn.Module):
         # loop for an output sequence
         outs = []
         probs = []
-        for i in six.moves.range(max(ylens)):
+        for i in six.moves.range(max(olens)):
             att_c, att_w = self.att(hs, hlens, z_list[0], att_w)
             prenet_out = self.prenet(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
@@ -330,7 +369,8 @@ class FeatureDecoder(torch.nn.Module):
 
         outs = torch.stack(outs, dim=2)  # (B, odim, Lmax)
         probs = torch.cat(probs, dim=1)  # (B, Lmax)
-        outs += self.postnet(outs)  # (B, odim, Lmax)
+        post_outs = outs + self.postnet(outs)  # (B, odim, Lmax)
         outs = outs.transpose(2, 1)  # (B, Lmax, odim)
+        post_outs = post_outs.transpose(2, 1)  # (B, Lmax, odim)
 
-        return outs, probs, ylens
+        return post_outs, outs, probs, olens
