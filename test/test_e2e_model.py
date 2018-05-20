@@ -9,6 +9,7 @@ import importlib
 
 import numpy
 import pytest
+import torch
 
 
 def make_arg(**kwargs):
@@ -63,7 +64,8 @@ def test_model_trainable_and_decodable(etype):
         attn_loss.backward()  # trainable
 
         in_data = data[0][1]["feat"]
-        model.predictor.recognize(in_data, args, args.char_list)  # decodable
+        with torch.no_grad():
+            model.predictor.recognize(in_data, args, args.char_list)  # decodable
 
 
 def init_torch_weight_const(m, val):

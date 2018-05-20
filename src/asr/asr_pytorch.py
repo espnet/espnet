@@ -17,6 +17,7 @@ from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 
+import numpy as np
 import torch
 
 # spnet related
@@ -28,6 +29,7 @@ from asr_utils import make_batchset
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss
+from e2e_asr_attctc_th import pad_list
 
 # for kaldi io
 import kaldi_io_py
@@ -65,19 +67,20 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         summary = reporter_module.DictSummary()
 
-        for batch in it:
-            observation = {}
-            with reporter_module.report_scope(observation):
-                # read scp files
-                # x: original json with loaded features
-                #    will be converted to chainer variable later
-                # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch[0], self.reader)
-                self.model.eval()
-                self.model(x)
-                delete_feat(x)
-
-            summary.add(observation)
+        self.model.eval()
+        with torch.no_grad():
+            for batch in it:
+                observation = {}
+                with reporter_module.report_scope(observation):
+                    # read scp files
+                    # x: original json with loaded features
+                    #    will be converted to chainer variable later
+                    # batch only has one minibatch utterance, which is specified by batch[0]
+                    x = converter_kaldi(batch[0], self.reader)
+                    self.model(x)
+                    delete_feat(x)
+                summary.add(observation)
+        self.model.train()
 
         return summary.compute_mean()
 
@@ -121,7 +124,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm(
+        grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
@@ -405,6 +408,9 @@ def recog(args):
     with open(args.recog_label, 'rb') as f:
         recog_json = json.load(f)['utts']
 
+    # disable gradient tracking
+    torch.set_grad_enabled(False)
+
     new_json = {}
     for name, feat in reader:
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
@@ -447,3 +453,97 @@ def recog(args):
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_json}, indent=4, sort_keys=True).encode('utf_8'))
+
+
+def extract(args):
+    '''Extract encoder states'''
+
+    # read training config
+    with open(args.model_conf, "rb") as f:
+        logging.info('reading a model config file from' + args.model_conf)
+        idim, odim, train_args = pickle.load(f)
+
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+
+    # load trained model
+    logging.info('reading model parameters from' + args.model)
+    e2e = E2E(idim, odim, train_args)
+    model = Loss(e2e, train_args.mtlalpha)
+    model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
+    extractor = model.predictor.enc
+
+    # check cuda availability
+    if not torch.cuda.is_available():
+        logging.warning('cuda is not available')
+
+    # write model config
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+
+    # Set gpu
+    ngpu = args.ngpu
+    if ngpu >= 1:
+        gpu_id = range(ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        extractor.cuda()
+    else:
+        gpu_id = [-1]
+
+    # read json data
+    with open(args.train_label, 'rb') as f:
+        train_json = json.load(f)['utts']
+    with open(args.valid_label, 'rb') as f:
+        valid_json = json.load(f)['utts']
+
+    # make minibatch list (variable length)
+    train = make_batchset(train_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
+    valid = make_batchset(valid_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
+
+    # hack to make batchsze argument as 1
+    # actual bathsize is included in a list
+    train_iter = chainer.iterators.SerialIterator(train, 1, repeat=False, shuffle=False)
+    valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
+
+    # prepare Kaldi reader
+    train_reader = lazy_io.read_dict_scp(args.train_feat)
+    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
+
+    torch.set_grad_enabled(False)
+    f = open(args.outdir + "/train.ark", "w")
+    for batch in train_iter:
+        data = converter_kaldi(batch[0], train_reader)
+        utt_ids = [d[0] for d in data]
+        xs = [d[1]['feat'] for d in data]
+        sorted_idx = sorted(range(len(xs)), key=lambda i: -len(xs[i]))
+        xs = [xs[i] for i in sorted_idx]
+        ilens = np.fromiter((x.shape[0] for x in xs), dtype=np.int64)
+        xs = [torch.from_numpy(x) for x in xs]
+        xpad = pad_list(xs)
+        if torch.cuda.is_available():
+            xpad = xpad.cuda()
+        hpad, hlens = extractor(xpad, ilens)
+        for utt_id, hs, hlen in zip(utt_ids, hpad, hlens):
+            logging.info(utt_id)
+            kaldi_io_py.write_mat(f, hs[:hlen].cpu().numpy(), utt_id)
+    f.close()
+
+    f = open(args.outdir + "/valid.ark", "w")
+    for batch in valid_iter:
+        data = converter_kaldi(batch[0], valid_reader)
+        utt_ids = [d[0] for d in data]
+        xs = [d[1]['feat'] for d in data]
+        sorted_idx = sorted(range(len(xs)), key=lambda i: -len(xs[i]))
+        xs = [xs[i] for i in sorted_idx]
+        ilens = np.fromiter((x.shape[0] for x in xs), dtype=np.int64)
+        xs = [torch.from_numpy(x) for x in xs]
+        xpad = pad_list(xs)
+        if torch.cuda.is_available():
+            xpad = xpad.cuda()
+        hpad, hlens = extractor(xpad, ilens)
+        for utt_id, hs, hlen in zip(utt_ids, hpad, hlens):
+            logging.info(utt_id)
+            kaldi_io_py.write_mat(f, hs[:hlen].cpu().numpy(), utt_id)
+    f.close()
