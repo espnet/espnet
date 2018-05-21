@@ -51,9 +51,9 @@ matplotlib.use('Agg')
 class ChainerSeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater for chainer'''
 
-    def __init__(self, train_iter, optimizer, device):
+    def __init__(self, train_iter, optimizer, converter,  device):
         super(ChainerSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, device=device)
+            train_iter, optimizer, converter=converter, device=device)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -89,9 +89,9 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
 class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessParallelUpdater):
     '''Custom parallel updater for chainer'''
 
-    def __init__(self, train_iters, optimizer, devices):
+    def __init__(self, train_iters, optimizer, converter, devices):
         super(ChainerMultiProcessParallelUpdaterKaldi, self).__init__(
-            train_iters, optimizer, devices=devices)
+            train_iters, optimizer, converter=converter, devices=devices)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -356,7 +356,7 @@ def train(args):
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
-            train_iter, optimizer, gpu_id)
+            train_iter, optimizer, device=gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -383,7 +383,7 @@ def train(args):
 
         # set up updater
         updater = ChainerMultiProcessParallelUpdaterKaldi(
-            train_iters, optimizer, devices)
+            train_iters, optimizer, device=devices)
 
     # Set up a trainer
     trainer = training.Trainer(

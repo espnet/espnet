@@ -43,9 +43,9 @@ matplotlib.use('Agg')
 class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
     '''Custom evaluater for pytorch'''
 
-    def __init__(self, model, iterator, target, device):
+    def __init__(self, model, iterator, target, converter, device):
         super(PytorchSeqEvaluaterKaldi, self).__init__(
-            iterator, target, device=device)
+            iterator, target, converter=converter, device=device)
         self.model = model
 
     # The core part of the update routine can be customized by overriding.
@@ -83,9 +83,10 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 class PytorchSeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
-    def __init__(self, model, grad_clip_threshold, train_iter, optimizer, device):
+    def __init__(self, model, grad_clip_threshold, train_iter,
+                 optimizer, converter, device):
         super(PytorchSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, device=None)
+            train_iter, optimizer, converter=None, device=None)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
@@ -262,7 +263,7 @@ def train(args):
 
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, gpu_id)
+        model, args.grad_clip, train_iter, optimizer, device=gpu_id)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
