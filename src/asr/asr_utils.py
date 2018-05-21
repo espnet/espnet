@@ -67,7 +67,10 @@ def converter_augment(batch, idict, odict, ifile, ofile, expand_iline):
         iline_items = [item for item in iline.strip().split() for i in range(expand_iline)]
         iline = ['<s>'] + iline_items + ['</s>']  # BOS and EOS for output handled by decoder
         iline = [idict[i] for i in iline]
-        assert len(iline) > 2
+        if len(iline) <= 2:
+            print(b_obj)
+            print(iline_items)
+            assert len(iline) > 2
         iline = np.array(iline, dtype=np.int64)
         #oline = oline.strip().split()[1:]  # so that we can use the same aug files from OpenNMT, removed "aug"
         oline = oline.strip().split()  # so that we can use the same aug files from OpenNMT

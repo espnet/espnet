@@ -57,8 +57,8 @@ def main():
                         help='Filename of aug data (json)')
     parser.add_argument('--dict-aug', type=str, required=False, default='', nargs='?',
                         help='Filename of aug input dictionary')
-    parser.add_argument('--aug-ratio', default=1, type=int,
-                        help='real data to aug data ratio')
+    parser.add_argument('--aug-ratio', default=0.5, type=float,
+                        help='aug to real data ratio (smaller number means less aug batches)')
     parser.add_argument('--aug-pretrain', default=0, type=int,
                         help='number of aug batches before audio batches')
     parser.add_argument('--aug-alternate', choices=set([0, 1]), default=1, type=int,
@@ -196,7 +196,7 @@ def main():
     else:
         args.char_list = None
 
-    if args.dict_aug != '':
+    if args.dict_aug != '' and args.use_aug == 1:
         with codecs.open(args.dict_aug, 'r', encoding='utf-8') as f:
             aug_dictionary = f.readlines()
         args.aug_vocab_size = len(aug_dictionary)

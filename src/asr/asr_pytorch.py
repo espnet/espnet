@@ -10,7 +10,9 @@ import json
 import logging
 import math
 import os
+import os.path
 import pickle
+import random
 
 # chainer related
 import chainer
@@ -138,9 +140,16 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
         self.augment_metadata = augment_metadata
         self.train_augment_iter = train_augment_iter
         self.a2a_ratio = augment_ratio   # int(self.augment_metadata['a2a_ratio'])
+        if 0.0 < self.a2a_ratio < 1.0:
+            pass
+        else:
+            print("aug_ratio is now suppose to be a fraction! use 0.5 for equal aug and audio")
+            print("use 0.75 for equal 3 aug to 1 audio batch etc...")
+            assert 0.0 < self.a2a_ratio < 1.0
         self.pretrain_aug = pretrain_aug
         self.done_pretrain_aug = 0
         self.done_augment = 0
+        self.done_audio = 0
         self.expand_iline = expand_iline
         self.alternate_aug = alternate_aug
         self.idict = self.augment_metadata['idict']
@@ -151,9 +160,9 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
     def update_core(self,):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
-        if (self.done_augment < self.a2a_ratio):  # TODO(arendu): need a better way to switch between audio and augment
+        if (self.done_pretrain_aug < self.pretrain_aug) or (random.random() < self.a2a_ratio):
+        # if (self.done_augment < self.a2a_ratio):  # TODO(arendu): need a better way to switch between audio and augment
             batch = self.train_augment_iter.__next__()
-            logging.info('augment batch, new_epoch:' + str(train_iter.is_new_epoch))
             x = converter_augment(batch[0], self.idict, self.odict, self.ifile, self.ofile, self.expand_iline)
             if self.done_pretrain_aug < self.pretrain_aug:
                 self.done_pretrain_aug += 1
@@ -162,7 +171,6 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
             is_aug = True
         else:
             batch = train_iter.__next__()
-            logging.info('audio batch, new_epoch:' + str(train_iter.is_new_epoch))
             x = converter_kaldi(batch[0], self.reader)
             if self.alternate_aug == 1:
                 self.done_augment = 0
@@ -407,11 +415,12 @@ def recog(args):
     model.load_state_dict(torch.load(args.model, map_location=cpu_loader))
 
     # read rnnlm
-    if args.rnnlm:
+    if args.rnnlm and os.path.isfile(args.rnnlm):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(len(train_args.char_list), 650))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
     else:
+        logging.warning('No RNNLM found (or not provided).')
         rnnlm = None
 
     # prepare Kaldi reader
