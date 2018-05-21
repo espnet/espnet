@@ -20,26 +20,18 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
-    parser.add_argument('--backend', default='chainer', type=str,
+    parser.add_argument('--backend', default='pytorch', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
     parser.add_argument('--outdir', type=str, required=True,
                         help='Output directory')
-    parser.add_argument('--dict', required=True,
-                        help='Dictionary')
-    parser.add_argument('--minibatches', '-N', type=int, default='-1',
-                        help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--train-feat', type=str, required=True,
+    parser.add_argument('--feat', type=str, required=True,
                         help='Filename of train feature data (Kaldi scp)')
-    parser.add_argument('--valid-feat', type=str, required=True,
-                        help='Filename of validation feature data (Kaldi scp)')
-    parser.add_argument('--train-label', type=str, required=True,
+    parser.add_argument('--label', type=str, required=True,
                         help='Filename of train label data (json)')
-    parser.add_argument('--valid-label', type=str, required=True,
-                        help='Filename of validation label data (json)')
     parser.add_argument('--model', type=str, required=True,
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, required=True,
@@ -47,10 +39,6 @@ def main():
     # minibatch related
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
-    parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
-                        help='Batch size is reduced if the input sequence length > ML')
-    parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
-                        help='Batch size is reduced if the output sequence length > ML')
     args = parser.parse_args()
 
     # logging info
@@ -87,19 +75,7 @@ def main():
     # display PYTHONPATH
     logging.info('python path = ' + os.environ['PYTHONPATH'])
 
-    # load dictionary for debug log
-    if args.dict is not None:
-        with open(args.dict, 'rb') as f:
-            dictionary = f.readlines()
-        char_list = [entry.decode('utf-8').split(' ')[0]
-                     for entry in dictionary]
-        char_list.insert(0, '<blank>')
-        char_list.append('<eos>')
-        args.char_list = char_list
-    else:
-        args.char_list = None
-
-    # train
+    # extract
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
         raise NotImplementedError

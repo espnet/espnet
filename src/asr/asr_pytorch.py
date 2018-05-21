@@ -457,7 +457,6 @@ def recog(args):
 
 def extract(args):
     '''Extract encoder states'''
-
     # read training config
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from' + args.model_conf)
@@ -477,10 +476,6 @@ def extract(args):
     if not torch.cuda.is_available():
         logging.warning('cuda is not available')
 
-    # write model config
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-
     # Set gpu
     ngpu = args.ngpu
     if ngpu >= 1:
@@ -491,48 +486,28 @@ def extract(args):
         gpu_id = [-1]
 
     # read json data
-    with open(args.train_label, 'rb') as f:
-        train_json = json.load(f)['utts']
-    with open(args.valid_label, 'rb') as f:
-        valid_json = json.load(f)['utts']
+    with open(args.label, 'rb') as f:
+        js = json.load(f)['utts']
 
     # make minibatch list (variable length)
-    train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+    batch_list = make_batchset(js, args.batch_size, 200, 800, -1)
 
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(train, 1, repeat=False, shuffle=False)
-    valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
+    iterator = chainer.iterators.SerialIterator(batch_list, 1, repeat=False, shuffle=False)
 
     # prepare Kaldi reader
-    train_reader = lazy_io.read_dict_scp(args.train_feat)
-    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
+    reader = lazy_io.read_dict_scp(args.feat)
 
+    # write model config
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+    f = open(args.outdir + "/feats.ark", "w")
+
+    # write to ark file
     torch.set_grad_enabled(False)
-    f = open(args.outdir + "/train.ark", "w")
-    for batch in train_iter:
-        data = converter_kaldi(batch[0], train_reader)
-        utt_ids = [d[0] for d in data]
-        xs = [d[1]['feat'] for d in data]
-        sorted_idx = sorted(range(len(xs)), key=lambda i: -len(xs[i]))
-        xs = [xs[i] for i in sorted_idx]
-        ilens = np.fromiter((x.shape[0] for x in xs), dtype=np.int64)
-        xs = [torch.from_numpy(x) for x in xs]
-        xpad = pad_list(xs)
-        if torch.cuda.is_available():
-            xpad = xpad.cuda()
-        hpad, hlens = extractor(xpad, ilens)
-        for utt_id, hs, hlen in zip(utt_ids, hpad, hlens):
-            logging.info(utt_id)
-            kaldi_io_py.write_mat(f, hs[:hlen].cpu().numpy(), utt_id)
-    f.close()
-
-    f = open(args.outdir + "/valid.ark", "w")
-    for batch in valid_iter:
-        data = converter_kaldi(batch[0], valid_reader)
+    for batch in iterator:
+        data = converter_kaldi(batch[0], reader)
         utt_ids = [d[0] for d in data]
         xs = [d[1]['feat'] for d in data]
         sorted_idx = sorted(range(len(xs)), key=lambda i: -len(xs[i]))
