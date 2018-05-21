@@ -51,7 +51,7 @@ matplotlib.use('Agg')
 class ChainerSeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater for chainer'''
 
-    def __init__(self, train_iter, optimizer, converter,  device):
+    def __init__(self, train_iter, optimizer, converter, device):
         super(ChainerSeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, converter=converter, device=device)
 
