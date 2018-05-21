@@ -3,7 +3,6 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import argparse
 import copy
 import json
 import logging
@@ -11,36 +10,60 @@ import math
 import os
 import pickle
 
-# chainer related
 import chainer
+import numpy as np
+import torch
+
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 
-import numpy as np
-import torch
+import kaldi_io_py
+import lazy_io
 
-# spnet related
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
-from asr_utils import make_batchset
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import pad_list
 from e2e_asr_backtrans import Tacotron2
 
-# for kaldi io
-import lazy_io
-
-# numpy related
 import matplotlib
 matplotlib.use('Agg')
 
 
-def prepare_batch(data):
+def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
+    # sort it by input lengths (long to short)
+    sorted_data = sorted(data.items(), key=lambda data: int(
+        data[1]['olen']), reverse=True)
+    logging.info('# utts: ' + str(len(sorted_data)))
+    # change batchsize depending on the input and output length
+    minibatch = []
+    start = 0
+    while True:
+        ilen = int(sorted_data[start][1]['olen'])
+        olen = int(sorted_data[start][1]['ilen'])
+        factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+        # if ilen = 1000 and max_length_in = 800
+        # then b = batchsize / 2
+        # and max(1, .) avoids batchsize = 0
+        b = max(1, int(batch_size / (1 + factor)))
+        end = min(len(sorted_data), start + b)
+        minibatch.append(sorted_data[start:end])
+        if end == len(sorted_data):
+            break
+        start = end
+    if num_batches > 0:
+        minibatch = minibatch[:num_batches]
+    logging.info('# minibatches: ' + str(len(minibatch)))
+
+    return minibatch
+
+
+def prepare_batch(data, eos):
     # get target features and input character sequence
-    xs = [d[1]['tokenid'].split() for d in data]
+    xs = [d[1]['tokenid'].split() + [str(eos)] for d in data]
     ys = [d[1]['feat'] for d in data]
 
     # remove empty sequence and get sort along with length
@@ -54,8 +77,8 @@ def prepare_batch(data):
     olens = np.fromiter((y.shape[0] for y in ys), dtype=np.int64)
 
     # perform padding and convert to tensor
-    xs = torch.from_numpy(pad_list(xs)).long()
-    ys = torch.from_numpy(pad_list(ys)).float()
+    xs = torch.from_numpy(pad_list(xs, 0)).long()
+    ys = torch.from_numpy(pad_list(ys, 0)).float()
     if torch.cuda.is_available():
         xs = xs.cuda()
         ys = ys.cuda()
@@ -97,7 +120,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                     #    will be converted to chainer variable later
                     # batch only has one minibatch utterance, which is specified by batch[0]
                     data = converter_kaldi(batch[0], self.reader)
-                    xs, ilens, ys, olens = prepare_batch(data)
+                    xs, ilens, ys, olens = prepare_batch(data, self.model.idim - 1)
                     post_outs, outs, probs, olens = self.model(xs, ilens, ys, olens)
                     self.model.loss(ys, post_outs, outs, probs, olens)
                     delete_feat(data)
@@ -136,10 +159,10 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('batch size is less than number of gpus. Ignored')
             return
         data = converter_kaldi(batch[0], self.reader)
-        xs, ilens, ys, olens = prepare_batch(data)
+        xs, ilens, ys, olens = prepare_batch(data, self.model.idim - 1)
 
         # Compute the loss at this time step and accumulate it
-        post_outs, outs, probs, olens = self.model(xs, ilens, ys, olens)
+        post_outs, outs, probs = self.model(xs, ilens, ys, olens)
         loss = self.model.loss(ys, post_outs, outs, probs, olens)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.num_gpu > 1:
@@ -150,6 +173,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
+        logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
         else:
@@ -212,13 +236,14 @@ def train(args):
     with open(args.valid_label, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
+    # reverse input and output dimension
     idim = int(valid_json[utts[0]]['odim'])
     odim = int(valid_json[utts[0]]['idim'])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
     # specify model architecture
-    model = Tacotron2(idim, 512, odim, args.elayers, args.eunits,
+    model = Tacotron2(idim, args.eunits, odim, args.elayers, args.eunits,
                       args.dlayers, args.dunits, args.atype, args.adim,
                       args.aconv_chans, args.aconv_filts, args.dropout_rate)
     logging.info(model)
@@ -229,7 +254,6 @@ def train(args):
     model_conf = args.outdir + '/model.conf'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
-        # TODO(watanabe) use others than pickle, possibly json, and save as a text
         pickle.dump((idim, odim, args), f)
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
@@ -253,11 +277,9 @@ def train(args):
         gpu_id = [-1]
 
     # Setup an optimizer
-    if args.opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps)
-    elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(
+        model.parameters(), args.lr, eps=args.eps,
+        weight_decay=args.weight_decay)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -324,136 +346,80 @@ def train(args):
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
-    # epsilon decay in the optimizer
-    def torch_load(path, obj):
-        if ngpu > 1:
-            model.module.load_state_dict(torch.load(path))
-        else:
-            model.load_state_dict(torch.load(path))
-        return obj
-    if args.opt == 'adadelta':
-        trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=torch_load),
-                       trigger=CompareValueTrigger(
-                           'validation/main/loss',
-                           lambda best_value, current_value: best_value < current_value))
-        trainer.extend(adadelta_eps_decay(args.eps_decay),
-                       trigger=CompareValueTrigger(
-                           'validation/main/loss',
-                           lambda best_value, current_value: best_value < current_value))
-
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
-    report_keys = ['epoch', 'iteration', 'main/loss', 'main/mse_loss', 'main/bce_loss',
-                   'validation/main/loss', 'validation/main/mse_loss', 'validation/main/bce_loss', 'elapsed_time']
-    if args.opt == 'adadelta':
-        trainer.extend(extensions.observe_value(
-            'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
-            trigger=(100, 'iteration'))
-        report_keys.append('eps')
-    trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(100, 'iteration'))
-
+    report_keys = ['epoch', 'iteration', 'elapsed_time', 'main/loss', 'main/mse_loss', 'main/bce_loss',
+                   'validation/main/loss', 'validation/main/mse_loss', 'validation/main/bce_loss']
+    trainer.extend(extensions.PrintReport(report_keys), trigger=(100, 'iteration'))
     trainer.extend(extensions.ProgressBar())
 
     # Run the training
     trainer.run()
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    # general configuration
-    parser.add_argument('--gpu', default=None, type=int, nargs='?',
-                        help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--ngpu', default=0, type=int,
-                        help='Number of GPUs')
-    parser.add_argument('--outdir', type=str, required=True,
-                        help='Output directory')
-    parser.add_argument('--debugmode', default=1, type=int,
-                        help='Debugmode')
-    parser.add_argument('--dict', required=True,
-                        help='Dictionary')
-    parser.add_argument('--seed', default=1, type=int,
-                        help='Random seed')
-    parser.add_argument('--debugdir', type=str,
-                        help='Output directory for debugging')
-    parser.add_argument('--resume', '-r', default='', nargs='?',
-                        help='Resume the training from snapshot')
-    parser.add_argument('--minibatches', '-N', type=int, default='-1',
-                        help='Process only N minibatches (for debug)')
-    parser.add_argument('--verbose', '-V', default=0, type=int,
-                        help='Verbose option')
-    # task related
-    parser.add_argument('--train-feat', type=str, required=True,
-                        help='Filename of train feature data (Kaldi scp)')
-    parser.add_argument('--valid-feat', type=str, required=True,
-                        help='Filename of validation feature data (Kaldi scp)')
-    parser.add_argument('--train-label', type=str, required=True,
-                        help='Filename of train label data (json)')
-    parser.add_argument('--valid-label', type=str, required=True,
-                        help='Filename of validation label data (json)')
-    # network archtecture
-    # encoder
-    parser.add_argument('--elayers', default=1, type=int,
-                        help='Number of encoder layers')
-    parser.add_argument('--eunits', '-u', default=512, type=int,
-                        help='Number of encoder hidden units')
-    # attention
-    parser.add_argument('--atype', default='location', type=str,
-                        choices=['noatt', 'dot', 'add', 'location', 'coverage',
-                                 'coverage_location', 'location2d', 'location_recurrent',
-                                 'multi_head_dot', 'multi_head_add', 'multi_head_loc',
-                                 'multi_head_multi_res_loc'],
-                        help='Type of attention architecture')
-    parser.add_argument('--adim', default=512, type=int,
-                        help='Number of attention transformation dimensions')
-    parser.add_argument('--awin', default=5, type=int,
-                        help='Window size for location2d attention')
-    parser.add_argument('--aheads', default=4, type=int,
-                        help='Number of heads for multi head attention')
-    parser.add_argument('--aconv-chans', default=32, type=int,
-                        help='Number of attention convolution channels \
-                        (negative value indicates no location-aware attention)')
-    parser.add_argument('--aconv-filts', default=32, type=int,
-                        help='Number of attention convolution filters \
-                        (negative value indicates no location-aware attention)')
-    # decoder
-    parser.add_argument('--dlayers', default=2, type=int,
-                        help='Number of decoder layers')
-    parser.add_argument('--dunits', default=1024, type=int,
-                        help='Number of decoder hidden units')
-    # model (parameter) related
-    parser.add_argument('--dropout-rate', default=0.5, type=float,
-                        help='Dropout rate')
-    # minibatch related
-    parser.add_argument('--batch-size', '-b', default=30, type=int,
-                        help='Batch size')
-    parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
-                        help='Batch size is reduced if the input sequence length > ML')
-    parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
-                        help='Batch size is reduced if the output sequence length > ML')
-    # optimization related
-    parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam'],
-                        help='Optimizer')
-    parser.add_argument('--eps', default=1e-8, type=float,
-                        help='Epsilon constant for optimizer')
-    parser.add_argument('--eps-decay', default=0.01, type=float,
-                        help='Decaying ratio of epsilon')
-    parser.add_argument('--threshold', default=1e-4, type=float,
-                        help='Threshold to stop iteration')
-    parser.add_argument('--epochs', '-e', default=30, type=int,
-                        help='Number of maximum epochs')
-    parser.add_argument('--grad-clip', default=5, type=float,
-                        help='Gradient norm threshold to clip')
-    args = parser.parse_args()
+def decode(args):
+    '''Extract encoder states'''
+    # read training config
+    with open(args.model_conf, "rb") as f:
+        logging.info('reading a model config file from' + args.model_conf)
+        idim, odim, train_args = pickle.load(f)
 
-    # logging info
-    if args.verbose > 0:
-        logging.basicConfig(
-            level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+
+    # load trained model
+    logging.info('reading model parameters from' + args.model)
+    model = Tacotron2(idim, train_args.eunits, odim, train_args.elayers, train_args.eunits,
+                      train_args.dlayers, train_args.dunits, train_args.atype, train_args.adim,
+                      train_args.aconv_chans, train_args.aconv_filts, train_args.dropout_rate)
+    model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
+    model.minlenratio = 1
+    model.maxlenratio = 10
+    model.threshold = 0.5
+
+    # check cuda availability
+    if not torch.cuda.is_available():
+        logging.warning('cuda is not available')
+
+    # Set gpu
+    ngpu = args.ngpu
+    if ngpu >= 1:
+        gpu_id = range(ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        model.cuda()
     else:
-        logging.basicConfig(
-            level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-        logging.warning('Skip DEBUG/INFO messages')
+        gpu_id = [-1]
 
-    train(args)
+    # read json data
+    with open(args.label, 'rb') as f:
+        js = json.load(f)['utts']
+
+    # make minibatch list (variable length)
+    batch_list = make_batchset(js, 1, 200, 800, -1)
+
+    # hack to make batchsze argument as 1
+    # actual bathsize is included in a list
+    iterator = chainer.iterators.SerialIterator(batch_list, 1, repeat=False, shuffle=False)
+
+    # prepare Kaldi reader
+    reader = lazy_io.read_dict_scp(args.feat)
+
+    # write model config
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+    f = open(args.outdir + "/feats.ark", "w")
+
+    # write to ark file
+    torch.set_grad_enabled(False)
+    for batch in iterator:
+        data = converter_kaldi(batch[0], reader)
+        utt_id = data[0][0]
+        xs = data[0][1]['tokenid'].split() + [str(model.idim - 1)]
+        xs = np.fromiter(map(int, xs), dtype=np.int64)
+        xs = torch.from_numpy(xs)
+        if torch.cuda.is_available():
+            xs = xs.cuda()
+        outs, _, _ = model.inference(xs)
+        logging.info(utt_id)
+        kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
+    f.close()
