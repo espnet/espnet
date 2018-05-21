@@ -102,8 +102,8 @@ class Tacotron2(torch.nn.Module):
         :rtype: list
         """
         hs, hlens = self.enc(xs, ilens)
-        post_outs, outs, probs, olens = self.dec(hs, hlens, ys, olens)
-        return post_outs, outs, probs, olens
+        post_outs, outs, probs = self.dec(hs, hlens, ys, olens)
+        return post_outs, outs, probs
 
     def loss(self, ys, post_outs, outs, probs, olens):
         """TACOTRON2 LOSS CALCULATION
@@ -147,11 +147,11 @@ class Tacotron2(torch.nn.Module):
         """
         # setup
         xs = x.unsqueeze(0)
-        xlens = [x.size(0)]
+        ilens = [x.size(0)]
         maxlen = int(x.size(0) * self.maxlenratio)
         minlen = int(x.size(0) * self.minlenratio)
 
-        hs, hlens = self.enc(xs, xlens)
+        hs, hlens = self.enc(xs, ilens)
 
         # initialize hidden states of decoder
         c_list = [self.dec.zero_state(hs)]
@@ -159,7 +159,7 @@ class Tacotron2(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list += [self.dec.zero_state(hs)]
             z_list += [self.dec.zero_state(hs)]
-        prev_out = self.dec.feat_out(z_list[-1])
+        prev_out = hs.new_zeros(1, self.odim)
 
         # initialize attention
         att_w = None
@@ -346,7 +346,7 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
-        prev_out = self.feat_out(z_list[-1])
+        prev_out = hs.new_zeros(hs.size(0), self.odim)
 
         # initialize attention
         att_w = None
@@ -365,7 +365,7 @@ class Decoder(torch.nn.Module):
                     z_list[l - 1], (z_list[l], c_list[l]))
             outs += [self.feat_out(z_list[-1])]
             probs += [self.prob_out(z_list[-1])]
-            prev_out = outs[-1]
+            prev_out = ys[:, i]  # teacher forcing
 
         outs = torch.stack(outs, dim=2)  # (B, odim, Lmax)
         probs = torch.cat(probs, dim=1)  # (B, Lmax)
@@ -373,4 +373,4 @@ class Decoder(torch.nn.Module):
         outs = outs.transpose(2, 1)  # (B, Lmax, odim)
         post_outs = post_outs.transpose(2, 1)  # (B, Lmax, odim)
 
-        return post_outs, outs, probs, olens
+        return post_outs, outs, probs
