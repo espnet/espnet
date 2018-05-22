@@ -20,18 +20,22 @@ def test_tacotron2():
     olens = np.sort(np.random.randint(idim * 10, idim * 20, bs))[::-1]
     ys = pad_list([np.random.randn(l, odim) for l in olens], 0)
     ys = torch.from_numpy(ys).float()
+    labels = ys.new_zeros((ys.size(0), ys.size(1)))
+    for i, l in enumerate(olens):
+        labels[i, l - 1:] = 1
 
-    model = Tacotron2(idim, edim, odim, maxlenratio=10)
+    model = Tacotron2(idim, edim, odim, cumulate_att_w=True)
     optimizer = torch.optim.Adam(model.parameters())
 
-    post_outs, outs, probs, olens = model(xs, ilens, ys, olens)
-    mse, bce = model.loss(ys, post_outs, outs, probs, olens)
-    loss = mse + bce
+    outputs = model(xs, ilens, ys)
+    loss = model.loss((ys, labels), outputs)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
 
-    yhat, probs, att_ws = model.inference(xs[0][:ilens[0]])
+    torch.set_grad_enabled(False)
+    model.eval()
+    yhat, probs, att_ws = model.inference(xs[0][:ilens[0]], 0.5, 0, 10)
     print(yhat)
     print(probs)
     print(att_ws)

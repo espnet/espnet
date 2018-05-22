@@ -21,11 +21,8 @@ from chainer.training import extensions
 import kaldi_io_py
 import lazy_io
 
-from asr_utils import adadelta_eps_decay
-from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
-from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import pad_list
 from e2e_asr_backtrans import Tacotron2
 
@@ -79,11 +76,18 @@ def prepare_batch(data, eos):
     # perform padding and convert to tensor
     xs = torch.from_numpy(pad_list(xs, 0)).long()
     ys = torch.from_numpy(pad_list(ys, 0)).float()
+
+    # make labels for stop prediction
+    labels = ys.new_zeros((ys.size(0), ys.size(1)))
+    for i, l in enumerate(olens):
+        labels[i, l - 1:] = 1  # l or l-1?
+
     if torch.cuda.is_available():
         xs = xs.cuda()
         ys = ys.cuda()
+        labels = labels.cuda()
 
-    return xs, ilens, ys, olens
+    return xs, ilens, ys, labels
 
 
 class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
@@ -120,9 +124,9 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                     #    will be converted to chainer variable later
                     # batch only has one minibatch utterance, which is specified by batch[0]
                     data = converter_kaldi(batch[0], self.reader)
-                    xs, ilens, ys, olens = prepare_batch(data, self.model.idim - 1)
-                    post_outs, outs, probs, olens = self.model(xs, ilens, ys, olens)
-                    self.model.loss(ys, post_outs, outs, probs, olens)
+                    xs, ilens, ys, labels = prepare_batch(data, self.model.idim - 1)
+                    outputs = self.model(xs, ilens, ys)
+                    self.model.loss((ys, labels), outputs)
                     delete_feat(data)
                 summary.add(observation)
         self.model.train()
@@ -159,11 +163,11 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('batch size is less than number of gpus. Ignored')
             return
         data = converter_kaldi(batch[0], self.reader)
-        xs, ilens, ys, olens = prepare_batch(data, self.model.idim - 1)
+        xs, ilens, ys, labels = prepare_batch(data, self.model.idim - 1)
 
         # Compute the loss at this time step and accumulate it
-        post_outs, outs, probs = self.model(xs, ilens, ys, olens)
-        loss = self.model.loss(ys, post_outs, outs, probs, olens)
+        outputs = self.model(xs, ilens, ys)
+        loss = self.model.loss((ys, labels), outputs)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.num_gpu > 1:
             loss.backward(torch.ones(self.num_gpu))  # Backprop
@@ -243,9 +247,18 @@ def train(args):
     logging.info('#output dims: ' + str(odim))
 
     # specify model architecture
-    model = Tacotron2(idim, args.eunits, odim, args.elayers, args.eunits,
-                      args.dlayers, args.dunits, args.atype, args.adim,
-                      args.aconv_chans, args.aconv_filts, args.dropout_rate)
+    model = Tacotron2(idim=idim,
+                      edim=args.eunits,
+                      odim=odim,
+                      elayers=args.elayers,
+                      eunits=args.eunits,
+                      dlayers=args.dlayers,
+                      dunits=args.dunits,
+                      adim=args.adim,
+                      achans=args.aconv_chans,
+                      afilts=args.aconv_filts,
+                      cumulate_att_w=args.cumulate_att_w,
+                      dropout=args.dropout_rate)
     logging.info(model)
 
     # write model config
@@ -278,7 +291,7 @@ def train(args):
 
     # Setup an optimizer
     optimizer = torch.optim.Adam(
-        model.parameters(), args.lr, eps=args.eps,
+        model.parameters(), args.lr,
         weight_decay=args.weight_decay)
 
     # FIXME: TOO DIRTY HACK
@@ -369,13 +382,21 @@ def decode(args):
 
     # load trained model
     logging.info('reading model parameters from' + args.model)
-    model = Tacotron2(idim, train_args.eunits, odim, train_args.elayers, train_args.eunits,
-                      train_args.dlayers, train_args.dunits, train_args.atype, train_args.adim,
-                      train_args.aconv_chans, train_args.aconv_filts, train_args.dropout_rate)
+    if not hasattr(train_args, "cumulate_att_w"):
+        train_args.cumulate_att_w = False
+    model = Tacotron2(idim=idim,
+                      edim=train_args.eunits,
+                      odim=odim,
+                      elayers=train_args.elayers,
+                      eunits=train_args.eunits,
+                      dlayers=train_args.dlayers,
+                      dunits=train_args.dunits,
+                      adim=train_args.adim,
+                      achans=train_args.aconv_chans,
+                      afilts=train_args.aconv_filts,
+                      cumulate_att_w=train_args.cumulate_att_w,
+                      dropout=train_args.dropout_rate)
     model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
-    model.minlenratio = 1
-    model.maxlenratio = 10
-    model.threshold = 0.5
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -414,12 +435,13 @@ def decode(args):
     for batch in iterator:
         data = converter_kaldi(batch[0], reader)
         utt_id = data[0][0]
-        xs = data[0][1]['tokenid'].split() + [str(model.idim - 1)]
-        xs = np.fromiter(map(int, xs), dtype=np.int64)
-        xs = torch.from_numpy(xs)
+        x = data[0][1]['tokenid'].split() + [str(model.idim - 1)]
+        x = np.fromiter(map(int, x), dtype=np.int64)
+        x = torch.from_numpy(x)
         if torch.cuda.is_available():
-            xs = xs.cuda()
-        outs, _, _ = model.inference(xs)
+            x = x.cuda()
+        outs, probs, att_ws = model.inference(x, 0.5, 0, 100)
+        from IPython import embed; embed()
         logging.info(utt_id)
         kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
     f.close()

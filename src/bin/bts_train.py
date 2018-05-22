@@ -10,6 +10,8 @@ import os
 import random
 import sys
 
+from distutils.util import strtobool
+
 import numpy as np
 
 
@@ -71,6 +73,8 @@ def main():
     parser.add_argument('--aconv-filts', default=32, type=int,
                         help='Number of attention convolution filters \
                         (negative value indicates no location-aware attention)')
+    parser.add_argument('--cumulate_att_w', default=True, type=strtobool,
+                        help="Whether or not to cumulate attetion weights")
     # decoder
     parser.add_argument('--dlayers', default=2, type=int,
                         help='Number of decoder layers')
@@ -82,9 +86,9 @@ def main():
     # minibatch related
     parser.add_argument('--batch-size', '-b', default=32, type=int,
                         help='Batch size')
-    parser.add_argument('--maxlen-in', default=150, type=int, metavar='ML',
+    parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
                         help='Batch size is reduced if the input sequence length > ML')
-    parser.add_argument('--maxlen-out', default=800, type=int, metavar='ML',
+    parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
     # optimization related
     parser.add_argument('--opt', default='adam', type=str,
@@ -93,13 +97,11 @@ def main():
                         help='Learning rate for optimizer')
     parser.add_argument('--weight-decay', default=1e-6, type=float,
                         help='Weight decay coefficient for optimizer')
-    parser.add_argument('--eps', default=1e-6, type=float,
-                        help='Epsilon constant for optimizer')
     parser.add_argument('--lr-exp-decay', default=1e-5, type=float,
                         help='Decaying ratio of epsilon')
     parser.add_argument('--epochs', '-e', default=30, type=int,
                         help='Number of maximum epochs')
-    parser.add_argument('--grad-clip', default=5, type=float,
+    parser.add_argument('--grad-clip', default=1, type=float,
                         help='Gradient norm threshold to clip')
     args = parser.parse_args()
 
