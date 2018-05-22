@@ -24,7 +24,7 @@ venv/bin/activate: venv requirements.txt
 	. venv/bin/activate && conda install -y numpy matplotlib && pip install -r requirements.txt
 
 pytorch: venv/bin/activate
-	. venv/bin/activate && conda install pytorch -c pytorch
+	. venv/bin/activate && conda install pytorch==0.3.1 -c pytorch
 
 venv/lib/python2.7/site-packages/torch: pytorch
 	echo "we pass this rule using pip because we use conda"
