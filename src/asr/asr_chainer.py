@@ -513,15 +513,20 @@ def recog(args):
         logging.info("prediction [%s]: " + seq_hat_text, name)
 
         # copy old json info
-        new_json[name] = recog_json[name]['output'][0]
+        new_json[name] = dict()
         new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
         # add 1-best recognition results to json
-        new_json[name]['rec_tokenid'] = " ".join(
-            [str(idx[0]) for idx in y_hat])
-        new_json[name]['rec_token'] = " ".join(seq_hat)
-        new_json[name]['rec_text'] = seq_hat_text
+        out_dic = dict()
+        for _key in recog_json[name]['output']:
+            out_dic[_key] = recog_json[name]['output'][0][_key]
 
+        out_dic['rec_tokenid'] = " ".join(
+            [str(idx[0]) for idx in y_hat])
+        out_dic['rec_text'] = seq_hat_text
+
+        new_json[name]['output'] = [out_dic]
+        # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):
