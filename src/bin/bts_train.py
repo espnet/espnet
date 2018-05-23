@@ -18,8 +18,6 @@ import numpy as np
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
-    parser.add_argument('--gpu', default=None, type=int, nargs='?',
-                        help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='pytorch', type=str,
@@ -31,8 +29,6 @@ def main():
                         help='Debugmode')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
-    parser.add_argument('--debugdir', type=str,
-                        help='Output directory for debugging')
     parser.add_argument('--resume', '-r', default='', nargs='?',
                         help='Resume the training from snapshot')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
@@ -50,23 +46,21 @@ def main():
                         help='Filename of validation label data (json)')
     # network archtecture
     # encoder
+    parser.add_argument('--embed_dim', default=512, type=int,
+                        help='Number of dimension of embedding')
     parser.add_argument('--elayers', default=1, type=int,
                         help='Number of encoder layers')
     parser.add_argument('--eunits', '-u', default=512, type=int,
                         help='Number of encoder hidden units')
+    parser.add_argument('--econv_layers', default=3, type=int,
+                        help='Number of encoder conv layers')
+    parser.add_argument('--econv_chans', default=512, type=int,
+                        help='Number of encoder conv filter channels')
+    parser.add_argument('--econv_filts', default=5, type=int,
+                        help='Number of encoder conv filter size')
     # attention
-    parser.add_argument('--atype', default='location', type=str,
-                        choices=['noatt', 'dot', 'add', 'location', 'coverage',
-                                 'coverage_location', 'location2d', 'location_recurrent',
-                                 'multi_head_dot', 'multi_head_add', 'multi_head_loc',
-                                 'multi_head_multi_res_loc'],
-                        help='Type of attention architecture')
     parser.add_argument('--adim', default=512, type=int,
                         help='Number of attention transformation dimensions')
-    parser.add_argument('--awin', default=5, type=int,
-                        help='Window size for location2d attention')
-    parser.add_argument('--aheads', default=4, type=int,
-                        help='Number of heads for multi head attention')
     parser.add_argument('--aconv-chans', default=32, type=int,
                         help='Number of attention convolution channels \
                         (negative value indicates no location-aware attention)')
@@ -80,6 +74,16 @@ def main():
                         help='Number of decoder layers')
     parser.add_argument('--dunits', default=1024, type=int,
                         help='Number of decoder hidden units')
+    parser.add_argument('--prenet_layers', default=2, type=int,
+                        help='Number of prenet layers')
+    parser.add_argument('--prenet_units', default=256, type=int,
+                        help='Number of prenet hidden units')
+    parser.add_argument('--postnet_layers', default=5, type=int,
+                        help='Number of postnet layers')
+    parser.add_argument('--postnet_chans', default=512, type=int,
+                        help='Number of postnet conv filter channels')
+    parser.add_argument('--postnet_filts', default=5, type=int,
+                        help='Number of postnet conv filter size')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.5, type=float,
                         help='Dropout rate')
@@ -91,14 +95,12 @@ def main():
     parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
     # optimization related
-    parser.add_argument('--opt', default='adam', type=str,
-                        choices=['adam'], help='Optimizer')
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate for optimizer')
+    parser.add_argument('--eps', default=1e-6, type=float,
+                        help='Epsilon for optimizer')
     parser.add_argument('--weight-decay', default=1e-6, type=float,
                         help='Weight decay coefficient for optimizer')
-    parser.add_argument('--lr-exp-decay', default=1e-5, type=float,
-                        help='Decaying ratio of epsilon')
     parser.add_argument('--epochs', '-e', default=30, type=int,
                         help='Number of maximum epochs')
     parser.add_argument('--grad-clip', default=1, type=float,

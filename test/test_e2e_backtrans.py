@@ -12,7 +12,6 @@ from e2e_asr_backtrans import Tacotron2
 def test_tacotron2():
     bs = 4
     idim = 10
-    edim = 128
     odim = 40
     ilens = np.sort(np.random.randint(1, idim, bs))[::-1]
     xs = pad_list([np.random.randint(0, idim, l) for l in ilens], 0)
@@ -24,7 +23,7 @@ def test_tacotron2():
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
 
-    model = Tacotron2(idim, edim, odim, cumulate_att_w=True)
+    model = Tacotron2(idim, odim, cumulate_att_w=True)
     optimizer = torch.optim.Adam(model.parameters())
 
     outputs = model(xs, ilens, ys)

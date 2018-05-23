@@ -57,44 +57,97 @@ def make_mask(lengths, dim):
 
 
 class Tacotron2(torch.nn.Module):
-    """TCOTORON2 BASED SEQ2SEQ MODEL CONVERTS CHARS TO FEATURES
+    """TACOTRON2 BASED SEQ2SEQ MODEL CONVERTS CHARS TO FEATURES
 
     :param int idim: dimension of the inputs
-    :param int edim: dimension of character embedding
-    :param int odim: dimension of target outputs
+    :param int odim: dimension of the outputs
+    :param int embed_dim: dimension of character embedding
     :param int elayers: the number of encoder blstm layers
     :param int eunits: the number of encoder blstm units
+    :param int econv_layers: the number of encoder conv layers
+    :param int econv_filts: the number of encoder conv filter size
+    :param int econv_chans: the number of encoder conv filter channels
     :param int dlayers: the number of decoder lstm layers
     :param int dunits: the number of decoder lstm units
+    :param int prenet_layers: the number of prenet layers
+    :param int prenet_units: the number of prenet units
+    :param int postnet_layers: the number of postnet layers
+    :param int postnet_filts: the number of postnet filter size
+    :param int postnet_chans: the number of postnet filter channels
+    :param int adim: the number of dimension of mlp in attention
+    :param int aconv_chans: the number of attention conv filter channels
+    :param int aconv_filts: the number of attention conv filter size
+    :param bool cumulate_att_w: whether to cumulate previous attention weight
+    :param float dropout: dropout rate
     """
 
-    def __init__(self, idim, edim, odim,
-                 elayers=1, eunits=512, dlayers=2, dunits=1024,
-                 adim=512, achans=10, afilts=100, cumulate_att_w=True,
+    def __init__(self, idim, odim,
+                 embed_dim=512,
+                 elayers=1,
+                 eunits=512,
+                 econv_layers=3,
+                 econv_filts=5,
+                 econv_chans=512,
+                 dlayers=2,
+                 dunits=1024,
+                 prenet_layers=2,
+                 prenet_units=256,
+                 postnet_layers=5,
+                 postnet_filts=5,
+                 postnet_chans=512,
+                 adim=512,
+                 aconv_chans=32,
+                 aconv_filts=15,
+                 cumulate_att_w=True,
                  dropout=0.5):
         super(Tacotron2, self).__init__()
         # store hyperparameters
         self.idim = idim
         self.odim = odim
+        self.embed_dim = embed_dim
         self.elayers = elayers
         self.eunits = eunits
+        self.econv_layers = econv_layers
+        self.econv_filts = econv_filts
+        self.econv_chans = econv_chans
         self.dlayers = dlayers
         self.dunits = dunits
+        self.prenet_layers = prenet_layers
+        self.prenet_units = prenet_units
+        self.postnet_layers = postnet_layers
+        self.postnet_chans = postnet_chans
+        self.postnet_filts = postnet_filts
         self.adim = adim
-        self.afilts = afilts
-        self.achans = achans
+        self.aconv_filts = aconv_filts
+        self.aconv_chans = aconv_chans
         self.cumulate_att_w = cumulate_att_w
         self.dropout = dropout
-
         # define network modules
-        self.enc = Encoder(idim, edim, elayers, eunits, dropout)
-        att = AttLoc(eunits, dunits, eunits, achans, afilts)
-        self.dec = Decoder(eunits, odim, att, dlayers, dunits, dropout, cumulate_att_w)
-
+        self.enc = Encoder(idim=idim,
+                           embed_dim=embed_dim,
+                           elayers=elayers,
+                           eunits=eunits,
+                           econv_layers=econv_layers,
+                           econv_chans=econv_chans,
+                           econv_filts=econv_filts,
+                           dropout=dropout)
+        self.dec = Decoder(idim=eunits,
+                           odim=odim,
+                           att=AttLoc(eunits, dunits, adim, aconv_chans, aconv_filts),
+                           dlayers=dlayers,
+                           dunits=dunits,
+                           prenet_layers=prenet_layers,
+                           prenet_units=prenet_units,
+                           postnet_layers=postnet_layers,
+                           postnet_chans=postnet_chans,
+                           postnet_filts=postnet_filts,
+                           cumulate_att_w=cumulate_att_w,
+                           dropout=dropout)
         # initialize
         self.enc.apply(encoder_init)
         self.dec.apply(decoder_init)
 
+        # set reporter
         self.reporter = Reporter()
 
     def forward(self, xs, ilens, ys):
@@ -188,41 +241,53 @@ class Encoder(torch.nn.Module):
     that of tacotron2 in the field of speech synthesis.
 
     :param int idim: dimension of the inputs
-    :param int edim: dimension of character embedding
-    :param int elayers: the number of blstm layers
-    :param int eunits: the number of blstm units
-    :param float dropout: dropout rate in lstm layer
+    :param int embed_dim: dimension of character embedding
+    :param int elayers: the number of encoder blstm layers
+    :param int eunits: the number of encoder blstm units
+    :param int econv_layers: the number of encoder conv layers
+    :param int econv_filts: the number of encoder conv filter size
+    :param int econv_chans: the number of encoder conv filter channels
+    :param float dropout: dropout rate
     """
 
-    def __init__(self, idim, edim=512, elayers=1, eunits=512, dropout=0.5):
+    def __init__(self, idim,
+                 embed_dim=512,
+                 elayers=1,
+                 eunits=512,
+                 econv_layers=3,
+                 econv_chans=512,
+                 econv_filts=5,
+                 dropout=0.5):
         super(Encoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
-        self.edim = edim
+        self.embed_dim = embed_dim
         self.elayers = elayers
         self.eunits = eunits
+        self.econv_layers = econv_layers
+        self.econv_chans = econv_chans
+        self.econv_filts = econv_filts
         self.dropout = dropout
         # define network layer modules
-        self.embed = torch.nn.Embedding(idim, edim)
-        self.convs = torch.nn.Sequential(
-            torch.nn.Conv1d(edim, edim, 5, stride=1, padding=2, bias=False),
-            torch.nn.BatchNorm1d(edim),
+        self.embed = torch.nn.Embedding(idim, embed_dim)
+        self.convs = torch.nn.ModuleList()
+        self.convs += [torch.nn.Sequential(
+            torch.nn.Conv1d(embed_dim, econv_chans, econv_filts, stride=1,
+                            padding=(econv_filts - 1) // 2, bias=False),
+            torch.nn.BatchNorm1d(embed_dim),
             torch.nn.ReLU(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Conv1d(edim, edim, 5, stride=1, padding=2, bias=False),
-            torch.nn.BatchNorm1d(edim),
-            torch.nn.ReLU(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Conv1d(edim, edim, 5, stride=1, padding=2, bias=False),
-            torch.nn.BatchNorm1d(edim),
-            torch.nn.ReLU(),
-            torch.nn.Dropout(dropout),
-        )
+            torch.nn.Dropout(dropout))]
+        for _ in six.moves.range(1, econv_layers):
+            self.convs += [torch.nn.Sequential(
+                torch.nn.Conv1d(econv_chans, econv_chans, econv_filts, stride=1,
+                                padding=(econv_filts - 1) // 2, bias=False),
+                torch.nn.BatchNorm1d(embed_dim),
+                torch.nn.ReLU(),
+                torch.nn.Dropout(dropout))]
         self.blstm = torch.nn.LSTM(
-            edim, eunits // 2, elayers,
+            econv_chans, eunits // 2, elayers,
             batch_first=True,
-            bidirectional=True
-        )
+            bidirectional=True)
 
     def forward(self, xs, ilens):
         """CHARACTER ENCODER FORWARD CALCULATION
@@ -232,14 +297,15 @@ class Encoder(torch.nn.Module):
         :return: batch of sequences of padded encoder states (B, Tmax, eunits)
         :rtype: torch.Tensor
         """
-        outs = self.embed(xs)  # (B, Tmax, C)
-        outs = self.convs(outs.transpose(1, 2))  # (B, C, Tmax)
-        outs = pack_padded_sequence(outs.transpose(1, 2), ilens, batch_first=True)
+        xs = self.embed(xs).transpose(1, 2)
+        for l in six.moves.range(self.econv_layers):
+            xs = self.convs[l](xs)
+        xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
         self.blstm.flatten_parameters()
-        outs, _ = self.blstm(outs)  # (B, Tmax, C)
-        outs, _ = pad_packed_sequence(outs, batch_first=True)
+        xs, _ = self.blstm(xs)  # (B, Tmax, C)
+        xs, _ = pad_packed_sequence(xs, batch_first=True)
 
-        return outs
+        return xs
 
     def inference(self, x):
         """CHARACTER ENCODER INFERENCE
@@ -262,14 +328,30 @@ class Decoder(torch.nn.Module):
     the sequence of the hidden states. The network structure is
     based on that of the tacotron2 in the field of speech synthesis.
 
-    :param int idim: # dimensions of the inputs
-    :param int odim: # dimensions of the outputs
+    :param int idim: dimension of the inputs
+    :param int odim: dimension of the outputs
     :param instance att: instance of attetion class
-    :param int dlayers: # layers of decoder lstm
-    :param int dunits: # units of decoder lstm
+    :param int dlayers: the number of decoder lstm layers
+    :param int dunits: the number of decoder lstm units
+    :param int prenet_layers: the number of prenet layers
+    :param int prenet_units: the number of prenet units
+    :param int postnet_layers: the number of postnet layers
+    :param int postnet_filts: the number of postnet filter size
+    :param int postnet_chans: the number of postnet filter channels
+    :param bool cumulate_att_w: whether to cumulate previous attention weight
+    :param float dropout: dropout rate
     """
 
-    def __init__(self, idim, odim, att, dlayers=2, dunits=1024, dropout=0.5, cumulate_att_w=True):
+    def __init__(self, idim, odim, att,
+                 dlayers=2,
+                 dunits=1024,
+                 prenet_layers=2,
+                 prenet_units=256,
+                 postnet_layers=5,
+                 postnet_chans=512,
+                 postnet_filts=5,
+                 cumulate_att_w=True,
+                 dropout=0.5):
         super(Decoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
@@ -277,42 +359,48 @@ class Decoder(torch.nn.Module):
         self.att = att
         self.dlayers = dlayers
         self.dunits = dunits
+        self.prenet_layers = prenet_layers
+        self.prenet_units = prenet_units
+        self.postnet_layers = postnet_layers
+        self.postnet_chans = postnet_chans
+        self.postnet_filts = postnet_filts
         self.cumulate_att_w = cumulate_att_w
-        # define the network layer modules
+        self.dropout = dropout
+        # define lstm network
         self.lstm = torch.nn.ModuleList()
-        self.lstm += [torch.nn.LSTMCell(idim + 256, dunits)]
-        for dl in six.moves.range(1, dlayers):
+        self.lstm += [torch.nn.LSTMCell(idim + prenet_units, dunits)]
+        for _ in six.moves.range(1, dlayers):
             self.lstm += [torch.nn.LSTMCell(dunits, dunits)]
-        self.prenet = torch.nn.Sequential(
-            torch.nn.Linear(odim, 256, bias=False),
-            torch.nn.ReLU(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Linear(256, 256, bias=False),
-            torch.nn.ReLU(),
-            torch.nn.Dropout(dropout),
-        )
-        self.postnet = torch.nn.Sequential(
-            torch.nn.Conv1d(odim, 512, 5, stride=1, padding=2, bias=False),
-            torch.nn.BatchNorm1d(512),
+        # define prenet
+        self.prenet = torch.nn.ModuleList()
+        self.prenet += [torch.nn.Sequential(
+            torch.nn.Linear(odim, prenet_units, bias=False),
+            torch.nn.ReLU())]
+        for _ in six.moves.range(1, prenet_layers):
+            self.prenet += [torch.nn.Sequential(
+                torch.nn.Linear(prenet_units, prenet_units, bias=False),
+                torch.nn.ReLU())]
+        # define postnet
+        self.postnet = torch.nn.ModuleList()
+        self.postnet += [torch.nn.Sequential(
+            torch.nn.Conv1d(odim, postnet_chans, postnet_filts, stride=1,
+                            padding=(postnet_filts - 1) // 2, bias=False),
+            torch.nn.BatchNorm1d(postnet_chans),
             torch.nn.Tanh(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Conv1d(512, 512, 5, stride=1, padding=2, bias=False),
-            torch.nn.BatchNorm1d(512),
-            torch.nn.Tanh(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Conv1d(512, 512, 5, stride=1, padding=2, bias=False),
-            torch.nn.BatchNorm1d(512),
-            torch.nn.Tanh(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Conv1d(512, 512, 5, stride=1, padding=2, bias=False),
-            torch.nn.BatchNorm1d(512),
-            torch.nn.Tanh(),
-            torch.nn.Dropout(dropout),
-            torch.nn.Conv1d(512, odim, 5, stride=1, padding=2, bias=False),
+            torch.nn.Dropout(dropout))]
+        for _ in six.moves.range(1, postnet_layers - 1):
+            self.postnet += [torch.nn.Sequential(
+                torch.nn.Conv1d(postnet_chans, postnet_chans, postnet_filts, stride=1,
+                                padding=(postnet_filts - 1) // 2, bias=False),
+                torch.nn.BatchNorm1d(postnet_chans),
+                torch.nn.Tanh(),
+                torch.nn.Dropout(dropout))]
+        self.postnet += [torch.nn.Sequential(
+            torch.nn.Conv1d(postnet_chans, odim, postnet_filts, stride=1,
+                            padding=(postnet_filts - 1) // 2, bias=False),
             torch.nn.BatchNorm1d(odim),
-            torch.nn.Dropout(dropout),
-        )
-        # use 1x1 conv instead of linear
+            torch.nn.Dropout(dropout))]
+        # define projection layers
         self.feat_out = torch.nn.Linear(idim + dunits, odim, bias=False)
         self.prob_out = torch.nn.Linear(idim + dunits, 1)
 
@@ -348,7 +436,7 @@ class Decoder(torch.nn.Module):
         outs, logits = [], []
         for y in ys.transpose(0, 1):
             att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
-            prenet_out = self.prenet(prev_out)
+            prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
@@ -365,7 +453,7 @@ class Decoder(torch.nn.Module):
 
         logits = torch.cat(logits, dim=1)  # (B, Lmax)
         before_outs = torch.stack(outs, dim=2)  # (B, odim, Lmax)
-        after_outs = before_outs + self.postnet(before_outs)  # (B, odim, Lmax)
+        after_outs = before_outs + self._postnet_forward(before_outs)  # (B, odim, Lmax)
         before_outs = before_outs.transpose(2, 1)  # (B, Lmax, odim)
         after_outs = after_outs.transpose(2, 1)  # (B, Lmax, odim)
 
@@ -414,7 +502,7 @@ class Decoder(torch.nn.Module):
             # decoder calculation
             att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w)
             att_ws += [att_w]
-            prenet_out = self.prenet(prev_out)
+            prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
@@ -432,10 +520,20 @@ class Decoder(torch.nn.Module):
             # check whether to finish generation
             if (probs[-1] >= threshold and idx >= minlen) or idx == maxlen:
                 outs = torch.stack(outs, dim=2)  # (1, odim, L)
-                outs += self.postnet(outs)  # (1, odim, L)
+                outs += self._postnet_forward(outs)  # (1, odim, L)
                 outs = outs.transpose(2, 1).squeeze(0)  # (Lx, odim)
                 probs = torch.cat(probs, dim=0)
                 att_ws = torch.cat(att_ws, dim=0)
                 break
 
         return outs, probs, att_ws
+
+    def _prenet_forward(self, x):
+        for l in six.moves.range(self.prenet_layers):
+            x = F.dropout(self.prenet[l](x), self.dropout)
+        return x
+
+    def _postnet_forward(self, xs):
+        for l in six.moves.range(self.postnet_layers):
+            xs = self.postnet[l](xs)
+        return xs

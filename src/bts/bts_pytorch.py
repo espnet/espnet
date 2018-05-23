@@ -21,6 +21,7 @@ from chainer.training import extensions
 import kaldi_io_py
 import lazy_io
 
+from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
 from e2e_asr_attctc_th import pad_list
@@ -248,15 +249,23 @@ def train(args):
 
     # specify model architecture
     model = Tacotron2(idim=idim,
-                      edim=args.eunits,
                       odim=odim,
+                      embed_dim=args.embed_dim,
                       elayers=args.elayers,
                       eunits=args.eunits,
+                      econv_layers=args.econv_layers,
+                      econv_chans=args.econv_chans,
+                      econv_filts=args.econv_filts,
                       dlayers=args.dlayers,
                       dunits=args.dunits,
+                      prenet_layers=args.prenet_layers,
+                      prenet_units=args.prenet_units,
+                      postnet_layers=args.postnet_layers,
+                      postnet_chans=args.postnet_chans,
+                      postnet_filts=args.postnet_filts,
                       adim=args.adim,
-                      achans=args.aconv_chans,
-                      afilts=args.aconv_filts,
+                      aconv_chans=args.aconv_chans,
+                      aconv_filts=args.aconv_filts,
                       cumulate_att_w=args.cumulate_att_w,
                       dropout=args.dropout_rate)
     logging.info(model)
@@ -291,7 +300,7 @@ def train(args):
 
     # Setup an optimizer
     optimizer = torch.optim.Adam(
-        model.parameters(), args.lr,
+        model.parameters(), args.lr, eps=args.eps,
         weight_decay=args.weight_decay)
 
     # FIXME: TOO DIRTY HACK
@@ -312,8 +321,7 @@ def train(args):
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
     train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
+    valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
 
     # prepare Kaldi reader
     train_reader = lazy_io.read_dict_scp(args.train_feat)
@@ -374,26 +382,32 @@ def decode(args):
     '''Extract encoder states'''
     # read training config
     with open(args.model_conf, "rb") as f:
-        logging.info('reading a model config file from' + args.model_conf)
+        logging.info('reading a model config file from ' + args.model_conf)
         idim, odim, train_args = pickle.load(f)
 
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # load trained model
-    logging.info('reading model parameters from' + args.model)
-    if not hasattr(train_args, "cumulate_att_w"):
-        train_args.cumulate_att_w = False
+    logging.info('reading model parameters from ' + args.model)
     model = Tacotron2(idim=idim,
-                      edim=train_args.eunits,
                       odim=odim,
+                      embed_dim=train_args.embed_dim,
                       elayers=train_args.elayers,
                       eunits=train_args.eunits,
+                      econv_layers=train_args.econv_layers,
+                      econv_chans=train_args.econv_chans,
+                      econv_filts=train_args.econv_filts,
                       dlayers=train_args.dlayers,
                       dunits=train_args.dunits,
+                      prenet_layers=train_args.prenet_layers,
+                      prenet_units=train_args.prenet_units,
+                      postnet_layers=train_args.postnet_layers,
+                      postnet_chans=train_args.postnet_chans,
+                      postnet_filts=train_args.postnet_filts,
                       adim=train_args.adim,
-                      achans=train_args.aconv_chans,
-                      afilts=train_args.aconv_filts,
+                      aconv_chans=train_args.aconv_chans,
+                      aconv_filts=train_args.aconv_filts,
                       cumulate_att_w=train_args.cumulate_att_w,
                       dropout=train_args.dropout_rate)
     model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
