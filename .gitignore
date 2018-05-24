@@ -27,5 +27,10 @@ tools/venv/
 tools/warp-ctc/
 tools/chainer_ctc/
 tools/subword-nmt/
+tools/chainer_ctc*
+tools/nkf*
+tools/subword-nmt*
+tools/chainer_ctc*
+tools/warp-ctc*
 
 .pytest_cache

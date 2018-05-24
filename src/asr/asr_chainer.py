@@ -68,7 +68,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
-        x = converter_kaldi(batch)
+        x = self.converter(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(x)
@@ -105,7 +105,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
 
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
-            x = converter_kaldi(batch)
+            x = self.converter(batch)
 
             loss = self._master(x)
 
@@ -356,7 +356,7 @@ def train(args):
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
-            train_iter, optimizer, device=gpu_id)
+            train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -383,7 +383,7 @@ def train(args):
 
         # set up updater
         updater = ChainerMultiProcessParallelUpdaterKaldi(
-            train_iters, optimizer, device=devices)
+            train_iters, optimizer, converter=converter_kaldi, device=devices)
 
     # Set up a trainer
     trainer = training.Trainer(
