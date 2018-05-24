@@ -27,6 +27,9 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Cudnn 6 (for the use of GPU)  
 - NCCL 2.0+ (for the use of multi-GPUs)
 
+- PyTorch 0.3.x (**no support for PyTorch 0.4.x**)
+- Chainer 4.x+
+
 ## Installation
 
 Install Kaldi, Python libraries and other required tools using system python and virtualenv
