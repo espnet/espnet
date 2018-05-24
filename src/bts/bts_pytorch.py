@@ -21,7 +21,6 @@ from chainer.training import extensions
 import kaldi_io_py
 import lazy_io
 
-from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
 from e2e_asr_attctc_th import pad_list
@@ -267,6 +266,8 @@ def train(args):
                       aconv_chans=args.aconv_chans,
                       aconv_filts=args.aconv_filts,
                       cumulate_att_w=args.cumulate_att_w,
+                      use_batch_norm=args.use_batch_norm,
+                      use_concate=args.use_concate,
                       dropout=args.dropout_rate)
     logging.info(model)
 
@@ -409,6 +410,7 @@ def decode(args):
                       aconv_chans=train_args.aconv_chans,
                       aconv_filts=train_args.aconv_filts,
                       cumulate_att_w=train_args.cumulate_att_w,
+                      use_batch_norm=args.use_batch_norm,
                       dropout=train_args.dropout_rate)
     model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
 

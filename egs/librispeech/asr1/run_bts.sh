@@ -11,22 +11,24 @@ ngpu=1
 embed_dim=512
 elayers=1
 eunits=512
-econv_layers=3
+econv_layers=3 # if set 0, no conv layer is used
 econv_chans=512
 econv_filts=5
 # decoder related
 dlayers=2
 dunits=1024
-prenet_layers=2
+prenet_layers=2 # if set 0, no prenet is used
 prenet_units=256
-postnet_layers=5
+postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
 # attention related
 adim=512
 aconv_chans=32
-aconv_filts=15 # resulting in 31
-cumulate_att_w=true
+aconv_filts=15 # resulting in filter_size = aconv_filts * 2 + 1
+cumulate_att_w=true # whether to cumulate attetion weight
+use_batch_norm=true # whether to use batch normalization in conv layer
+use_concate=true # whether to concatenate encoder embedding with decoder lstm outputs
 # minibatch related
 batchsize=32
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
@@ -74,7 +76,18 @@ if [ ${stage} -le 5 ];then
 fi
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_tacotron2_${target}_enc${embed_dim}-${econv_layers}x${econv_filts}x${econv_chans}-${elayers}x${eunits}_dec${dlayers}x${dunits}_pre${prenet_layers}x${prenet_units}_post${postnet_layers}x${postnet_filts}x${postnet_chans}_att${adim}-${aconv_filts}x${aconv_chans}_lr${lr}_eps${eps}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_tacotron2_${target}_enc${embed_dim}
+    if [ ${econv_layers} -gt 0 ];then
+        expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
+    fi
+    expdir=${expdir}-${elayers}x${eunits}_dec${dlayers}x${dunits}
+    if [ ${prenet_layers} -gt 0 ];then
+        expdir=${expdir}_pre${prenet_layers}x${prenet_units}
+    fi
+    if [ ${postnet_layers} -gt 0 ];then
+        expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
+    fi
+    expdir=${expdir}_att${adim}-${aconv_filts}x${aconv_chans}_bn-${use_batch_norm}_lr${lr}_eps${eps}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${cumulate_att_w};then
         expdir=${expdir}_cumulate
     fi
@@ -120,6 +133,8 @@ if [ ${stage} -le 6 ];then
            --aconv-chans ${aconv_chans} \
            --aconv-filts ${aconv_filts} \
            --cumulate_att_w ${cumulate_att_w} \
+           --use_batch_norm ${use_batch_norm} \
+           --use_concate ${use_concate} \
            --lr ${lr} \
            --eps ${eps} \
            --batch-size ${batchsize} \

@@ -99,6 +99,7 @@ class Tacotron2(torch.nn.Module):
                  aconv_chans=32,
                  aconv_filts=15,
                  cumulate_att_w=True,
+                 use_batch_norm=True,
                  dropout=0.5):
         super(Tacotron2, self).__init__()
         # store hyperparameters
@@ -121,6 +122,7 @@ class Tacotron2(torch.nn.Module):
         self.aconv_filts = aconv_filts
         self.aconv_chans = aconv_chans
         self.cumulate_att_w = cumulate_att_w
+        self.use_batch_norm = use_batch_norm
         self.dropout = dropout
         # define network modules
         self.enc = Encoder(idim=idim,
@@ -130,6 +132,7 @@ class Tacotron2(torch.nn.Module):
                            econv_layers=econv_layers,
                            econv_chans=econv_chans,
                            econv_filts=econv_filts,
+                           use_batch_norm=use_batch_norm,
                            dropout=dropout)
         self.dec = Decoder(idim=eunits,
                            odim=odim,
@@ -142,6 +145,7 @@ class Tacotron2(torch.nn.Module):
                            postnet_chans=postnet_chans,
                            postnet_filts=postnet_filts,
                            cumulate_att_w=cumulate_att_w,
+                           use_batch_norm=use_batch_norm,
                            dropout=dropout)
         # initialize
         self.enc.apply(encoder_init)
@@ -221,7 +225,9 @@ class Tacotron2(torch.nn.Module):
             weights = None
 
         # calculate loss
-        mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
+        mse_loss = F.mse_loss(before_outs, ys)
+        if self.postnet_layers > 0:
+            mse_loss += F.mse_loss(after_outs, ys)
         bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
         loss = mse_loss + bce_loss
 
@@ -257,6 +263,7 @@ class Encoder(torch.nn.Module):
                  econv_layers=3,
                  econv_chans=512,
                  econv_filts=5,
+                 use_batch_norm=True,
                  dropout=0.5):
         super(Encoder, self).__init__()
         # store the hyperparameters
@@ -265,27 +272,34 @@ class Encoder(torch.nn.Module):
         self.elayers = elayers
         self.eunits = eunits
         self.econv_layers = econv_layers
-        self.econv_chans = econv_chans
-        self.econv_filts = econv_filts
+        self.econv_chans = econv_chans if econv_layers != 0 else -1
+        self.econv_filts = econv_filts if econv_layers != 0 else -1
+        self.use_batch_norm = use_batch_norm
         self.dropout = dropout
         # define network layer modules
-        self.embed = torch.nn.Embedding(idim, embed_dim)
-        self.convs = torch.nn.ModuleList()
-        self.convs += [torch.nn.Sequential(
-            torch.nn.Conv1d(embed_dim, econv_chans, econv_filts, stride=1,
-                            padding=(econv_filts - 1) // 2, bias=False),
-            torch.nn.BatchNorm1d(embed_dim),
-            torch.nn.ReLU(),
-            torch.nn.Dropout(dropout))]
-        for _ in six.moves.range(1, econv_layers):
-            self.convs += [torch.nn.Sequential(
-                torch.nn.Conv1d(econv_chans, econv_chans, econv_filts, stride=1,
-                                padding=(econv_filts - 1) // 2, bias=False),
-                torch.nn.BatchNorm1d(embed_dim),
-                torch.nn.ReLU(),
-                torch.nn.Dropout(dropout))]
+        self.embed = torch.nn.Embedding(self.idim, self.embed_dim)
+        if self.econv_layers > 0:
+            self.convs = torch.nn.ModuleList()
+            for l in six.moves.range(self.conv_layers):
+                ichans = self.embed_dim if l == 0 else self.econv_chans
+                if self.use_batch_norm:
+                    self.convs += [torch.nn.Sequential(
+                        torch.nn.Conv1d(ichans, self.econv_chans, self.econv_filts, stride=1,
+                                        padding=(self.econv_filts - 1) // 2, bias=False),
+                        torch.nn.BatchNorm1d(self.econv_chans),
+                        torch.nn.ReLU(),
+                        torch.nn.Dropout(self.dropout))]
+                else:
+                    self.convs += [torch.nn.Sequential(
+                        torch.nn.Conv1d(ichans, self.econv_chans, self.econv_filts, stride=1,
+                                        padding=(self.econv_filts - 1) // 2, bias=False),
+                        torch.nn.ReLU(),
+                        torch.nn.Dropout(self.dropout))]
+        else:
+            self.convs = None
+        iunits = econv_chans if self.econv_layers != 0 else self.embed_dim
         self.blstm = torch.nn.LSTM(
-            econv_chans, eunits // 2, elayers,
+            iunits, self.eunits // 2, self.elayers,
             batch_first=True,
             bidirectional=True)
 
@@ -351,6 +365,8 @@ class Decoder(torch.nn.Module):
                  postnet_chans=512,
                  postnet_filts=5,
                  cumulate_att_w=True,
+                 use_batch_norm=True,
+                 use_concate=True,
                  dropout=0.5):
         super(Decoder, self).__init__()
         # store the hyperparameters
@@ -360,49 +376,54 @@ class Decoder(torch.nn.Module):
         self.dlayers = dlayers
         self.dunits = dunits
         self.prenet_layers = prenet_layers
-        self.prenet_units = prenet_units
+        self.prenet_units = prenet_units if prenet_layers != 0 else self.odim
         self.postnet_layers = postnet_layers
-        self.postnet_chans = postnet_chans
-        self.postnet_filts = postnet_filts
+        self.postnet_chans = postnet_chans if postnet_layers != 0 else -1
+        self.postnet_filts = postnet_filts if postnet_layers != 0 else -1
         self.cumulate_att_w = cumulate_att_w
+        self.use_batch_norm = use_batch_norm
+        self.use_concate = use_concate
         self.dropout = dropout
         # define lstm network
         self.lstm = torch.nn.ModuleList()
-        self.lstm += [torch.nn.LSTMCell(idim + prenet_units, dunits)]
-        for _ in six.moves.range(1, dlayers):
-            self.lstm += [torch.nn.LSTMCell(dunits, dunits)]
+        for l in six.moves.range(self.dlayers):
+            iunits = self.idim + self.prenet_units if l == 0 else self.dunits
+            self.lstm += [torch.nn.LSTMCell(iunits, self.dunits)]
         # define prenet
-        self.prenet = torch.nn.ModuleList()
-        self.prenet += [torch.nn.Sequential(
-            torch.nn.Linear(odim, prenet_units, bias=False),
-            torch.nn.ReLU())]
-        for _ in six.moves.range(1, prenet_layers):
-            self.prenet += [torch.nn.Sequential(
-                torch.nn.Linear(prenet_units, prenet_units, bias=False),
-                torch.nn.ReLU())]
+        if self.prenet_layers > 0:
+            self.prenet = torch.nn.ModuleList()
+            for l in six.moves.range(self.prenet_layers):
+                ichs = self.odim if l == 0 else self.prenet_units
+                self.prenet += [torch.nn.Sequential(
+                    torch.nn.Linear(ichs, self.prenet_units, bias=False),
+                    torch.nn.ReLU())]
+        else:
+            self.prenet = None
         # define postnet
-        self.postnet = torch.nn.ModuleList()
-        self.postnet += [torch.nn.Sequential(
-            torch.nn.Conv1d(odim, postnet_chans, postnet_filts, stride=1,
-                            padding=(postnet_filts - 1) // 2, bias=False),
-            torch.nn.BatchNorm1d(postnet_chans),
-            torch.nn.Tanh(),
-            torch.nn.Dropout(dropout))]
-        for _ in six.moves.range(1, postnet_layers - 1):
-            self.postnet += [torch.nn.Sequential(
-                torch.nn.Conv1d(postnet_chans, postnet_chans, postnet_filts, stride=1,
-                                padding=(postnet_filts - 1) // 2, bias=False),
-                torch.nn.BatchNorm1d(postnet_chans),
-                torch.nn.Tanh(),
-                torch.nn.Dropout(dropout))]
-        self.postnet += [torch.nn.Sequential(
-            torch.nn.Conv1d(postnet_chans, odim, postnet_filts, stride=1,
-                            padding=(postnet_filts - 1) // 2, bias=False),
-            torch.nn.BatchNorm1d(odim),
-            torch.nn.Dropout(dropout))]
+        if self.postnet_layers > 0:
+            self.postnet = torch.nn.ModuleList()
+            for l in six.moves.range(self.postnet_layers):
+                ichans = self.odim if l == 0 else self.postnet_chans
+                ochans = self.odim if l == self.postnet_layers - 1 else self.postnet_chans
+                if use_batch_norm:
+                    self.postnet += [torch.nn.Sequential(
+                        torch.nn.Conv1d(ichans, ochans, self.postnet_filts, stride=1,
+                                        padding=(self.postnet_filts - 1) // 2, bias=False),
+                        torch.nn.BatchNorm1d(ochans),
+                        torch.nn.Tanh(),
+                        torch.nn.Dropout(self.dropout))]
+                else:
+                    self.postnet += [torch.nn.Sequential(
+                        torch.nn.Conv1d(ichans, ochans, self.postnet_filts, stride=1,
+                                        padding=(self.postnet_filts - 1) // 2, bias=False),
+                        torch.nn.Tanh(),
+                        torch.nn.Dropout(self.dropout))]
+        else:
+            self.postnet = None
         # define projection layers
-        self.feat_out = torch.nn.Linear(idim + dunits, odim, bias=False)
-        self.prob_out = torch.nn.Linear(idim + dunits, 1)
+        iunits = self.idim + self.dunits if self.use_concate else self.dunits
+        self.feat_out = torch.nn.Linear(iunits, self.odim, bias=False)
+        self.prob_out = torch.nn.Linear(iunits, 1)
 
     def zero_state(self, hs):
         return hs.data.new(hs.size(0), self.dunits).zero_()
@@ -442,7 +463,7 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
-            zcs = torch.cat([z_list[-1], att_c], dim=1)
+            zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
             outs += [self.feat_out(zcs)]
             logits += [self.prob_out(zcs)]
             prev_out = y  # teacher forcing
@@ -508,7 +529,7 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
-            zcs = torch.cat([z_list[-1], att_c], dim=1)
+            zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
             outs += [self.feat_out(zcs)]
             probs += [F.sigmoid(self.prob_out(zcs))[0]]
             prev_out = outs[-1]
@@ -529,11 +550,13 @@ class Decoder(torch.nn.Module):
         return outs, probs, att_ws
 
     def _prenet_forward(self, x):
-        for l in six.moves.range(self.prenet_layers):
-            x = F.dropout(self.prenet[l](x), self.dropout)
+        if self.prenet is not None:
+            for l in six.moves.range(self.prenet_layers):
+                x = F.dropout(self.prenet[l](x), self.dropout)
         return x
 
     def _postnet_forward(self, xs):
-        for l in six.moves.range(self.postnet_layers):
-            xs = self.postnet[l](xs)
+        if self.postnet is not None:
+            for l in six.moves.range(self.postnet_layers):
+                xs = self.postnet[l](xs)
         return xs

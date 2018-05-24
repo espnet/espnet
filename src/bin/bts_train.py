@@ -85,6 +85,10 @@ def main():
     parser.add_argument('--postnet_filts', default=5, type=int,
                         help='Number of postnet conv filter size')
     # model (parameter) related
+    parser.add_argument('--use_batch_norm', default=True, type=strtobool,
+                        help='Whether to use batch normalization')
+    parser.add_argument('--use_concate', default=True, type=strtobool,
+                        help='Whether to concatenate encoder embedding with decoder outputs')
     parser.add_argument('--dropout-rate', default=0.5, type=float,
                         help='Dropout rate')
     # minibatch related
