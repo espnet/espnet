@@ -6,6 +6,7 @@
 from __future__ import division
 
 import logging
+import math
 import six
 
 import chainer
@@ -18,6 +19,28 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from e2e_asr_attctc_th import AttLoc
+
+
+def lecun_normal_init(m):
+    for p in m.parameters():
+        data = p.data
+        if data.dim() == 1:
+            # bias
+            data.zero_()
+        elif data.dim() == 2:
+            # linear weight
+            n = data.size(1)
+            stdv = 1. / math.sqrt(n)
+            data.normal_(0, stdv)
+        elif data.dim() == 4:
+            # conv weight
+            n = data.size(1)
+            for k in data.size()[2:]:
+                n *= k
+            stdv = 1. / math.sqrt(n)
+            data.normal_(0, stdv)
+        else:
+            raise NotImplementedError
 
 
 def encoder_init(m):
@@ -78,6 +101,8 @@ class Tacotron2(torch.nn.Module):
     :param int aconv_chans: the number of attention conv filter channels
     :param int aconv_filts: the number of attention conv filter size
     :param bool cumulate_att_w: whether to cumulate previous attention weight
+    :param bool use_batch_norm: whether to use batch normalization
+    :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
     :param float dropout: dropout rate
     """
 
@@ -100,6 +125,7 @@ class Tacotron2(torch.nn.Module):
                  aconv_filts=15,
                  cumulate_att_w=True,
                  use_batch_norm=True,
+                 use_concate=True,
                  dropout=0.5):
         super(Tacotron2, self).__init__()
         # store hyperparameters
@@ -123,33 +149,41 @@ class Tacotron2(torch.nn.Module):
         self.aconv_chans = aconv_chans
         self.cumulate_att_w = cumulate_att_w
         self.use_batch_norm = use_batch_norm
+        self.use_concate = use_concate
         self.dropout = dropout
         # define network modules
-        self.enc = Encoder(idim=idim,
-                           embed_dim=embed_dim,
-                           elayers=elayers,
-                           eunits=eunits,
-                           econv_layers=econv_layers,
-                           econv_chans=econv_chans,
-                           econv_filts=econv_filts,
-                           use_batch_norm=use_batch_norm,
-                           dropout=dropout)
-        self.dec = Decoder(idim=eunits,
-                           odim=odim,
-                           att=AttLoc(eunits, dunits, adim, aconv_chans, aconv_filts),
-                           dlayers=dlayers,
-                           dunits=dunits,
-                           prenet_layers=prenet_layers,
-                           prenet_units=prenet_units,
-                           postnet_layers=postnet_layers,
-                           postnet_chans=postnet_chans,
-                           postnet_filts=postnet_filts,
-                           cumulate_att_w=cumulate_att_w,
-                           use_batch_norm=use_batch_norm,
-                           dropout=dropout)
+        self.enc = Encoder(idim=self.idim,
+                           embed_dim=self.embed_dim,
+                           elayers=self.elayers,
+                           eunits=self.eunits,
+                           econv_layers=self.econv_layers,
+                           econv_chans=self.econv_chans,
+                           econv_filts=self.econv_filts,
+                           use_batch_norm=self.use_batch_norm,
+                           dropout=self.dropout)
+        self.dec = Decoder(idim=self.eunits,
+                           odim=self.odim,
+                           att=AttLoc(
+                               self.eunits,
+                               self.dunits,
+                               self.adim,
+                               self.aconv_chans,
+                               self.aconv_filts),
+                           dlayers=self.dlayers,
+                           dunits=self.dunits,
+                           prenet_layers=self.prenet_layers,
+                           prenet_units=self.prenet_units,
+                           postnet_layers=self.postnet_layers,
+                           postnet_chans=self.postnet_chans,
+                           postnet_filts=self.postnet_filts,
+                           cumulate_att_w=self.cumulate_att_w,
+                           use_batch_norm=self.use_batch_norm,
+                           use_concate=self.use_concate,
+                           dropout=self.dropout)
         # initialize
-        self.enc.apply(encoder_init)
-        self.dec.apply(decoder_init)
+        # self.enc.apply(encoder_init)
+        # self.dec.apply(decoder_init)
+        lecun_normal_init(self)
 
         # set reporter
         self.reporter = Reporter()
@@ -253,6 +287,7 @@ class Encoder(torch.nn.Module):
     :param int econv_layers: the number of encoder conv layers
     :param int econv_filts: the number of encoder conv filter size
     :param int econv_chans: the number of encoder conv filter channels
+    :param bool use_batch_norm: whether to use batch normalization
     :param float dropout: dropout rate
     """
 
@@ -353,6 +388,8 @@ class Decoder(torch.nn.Module):
     :param int postnet_filts: the number of postnet filter size
     :param int postnet_chans: the number of postnet filter channels
     :param bool cumulate_att_w: whether to cumulate previous attention weight
+    :param bool use_batch_norm: whether to use batch normalization
+    :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
     :param float dropout: dropout rate
     """
 

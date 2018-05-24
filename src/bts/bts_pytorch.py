@@ -355,6 +355,10 @@ def train(args):
                                           'main/mse_loss', 'validation/main/mse_loss',
                                           'main/bce_loss', 'validation/main/bce_loss'],
                                          'epoch', file_name='loss.png'))
+    trainer.extend(extensions.PlotReport(['main/mse_loss', 'validation/main/mse_loss'],
+                                         'epoch', file_name='mse_loss.png'))
+    trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
+                                         'epoch', file_name='bce_loss.png'))
 
     # Save best models
     def torch_save(path, _):
