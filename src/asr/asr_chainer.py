@@ -383,7 +383,7 @@ def train(args):
 
         # set up updater
         updater = ChainerMultiProcessParallelUpdaterKaldi(
-            train_iters, optimizer, converter=converter_kaldi, device=devices)
+            train_iters, optimizer, converter=converter_kaldi, devices=devices)
 
     # Set up a trainer
     trainer = training.Trainer(
