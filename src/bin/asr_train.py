@@ -156,7 +156,7 @@ def main():
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         # python 3 case
-        else: # if platform.python_version_tuple()[0] == '3':
+        else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
                 logging.info('CLSP: use gpu' + cvd)
