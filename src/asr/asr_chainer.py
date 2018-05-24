@@ -518,7 +518,7 @@ def recog(args):
 
         # add 1-best recognition results to json
         out_dic = dict()
-        for _key in recog_json[name]['output']:
+        for _key in recog_json[name]['output'][0]:
             out_dic[_key] = recog_json[name]['output'][0][_key]
 
         out_dic['rec_tokenid'] = " ".join(

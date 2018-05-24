@@ -221,10 +221,8 @@ if [ ${stage} -le 3 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-feat scp:${feat_tr_dir}/feats.scp \
-        --valid-feat scp:${feat_dt_dir}/feats.scp \
-        --train-label ${feat_tr_dir}/data.json \
-        --valid-label ${feat_dt_dir}/data.json \
+        --train-json ${feat_tr_dir}/data.json \
+        --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -250,7 +248,8 @@ if [ ${stage} -le 4 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
-
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        
         # split data
         data=data/${rtask}
         split_data.sh --per-utt ${data} ${nj};
@@ -264,7 +263,13 @@ if [ ${stage} -le 4 ]; then
 
         # make json labels for recognition
         data2json.sh ${data} ${dict} > ${data}/data.json
-
+        for j in `seq 1 ${nj}`; do
+            mkdir -p ${feat_recog_dir}/${j}
+            dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+                ${sdata}/${j}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog_${rtask} ${feat_recog_dir}/${j}
+            data2json.sh --feat ${feat_recog_dir}/${j}/feats.scp \
+                ${sdata}/${j} ${dict} > ${feat_recog_dir}/${j}/data.json
+        done
         #### use CPU for decoding
         ngpu=0
 
@@ -274,8 +279,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
+            --recog-json ${feat_recog_dir}/JOB/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

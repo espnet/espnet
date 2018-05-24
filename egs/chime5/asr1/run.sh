@@ -300,6 +300,7 @@ if [ ${stage} -le 5 ]; then
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+
         # split data
         data=data/${rtask}
         split_data.sh --per-utt ${data} ${nj};

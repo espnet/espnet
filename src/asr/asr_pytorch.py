@@ -70,7 +70,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
                 # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch)
+                x = self.converter(batch)
                 self.model.eval()
                 self.model(x)
                 delete_feat(x)
@@ -86,7 +86,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
     def __init__(self, model, grad_clip_threshold, train_iter,
                  optimizer, converter, device):
         super(PytorchSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, converter=None, device=None)
+            train_iter, optimizer, converter=converter, device=None)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
@@ -108,7 +108,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         if len(batch[0]) < self.num_gpu:
             logging.warning('batch size is less than number of gpus. Ignored')
             return
-        x = converter_kaldi(batch)
+        x = self.converter(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = 1. / self.num_gpu * self.model(x)
@@ -263,7 +263,7 @@ def train(args):
 
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, device=gpu_id)
+        model, args.grad_clip, train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -278,7 +278,7 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, valid_iter, reporter, device=gpu_id))
+        model, valid_iter, reporter, converter=converter_kaldi, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -414,18 +414,24 @@ def recog(args):
         logging.info("prediction [%s]: " + seq_hat_text, name)
 
         # copy old json info
-        new_json[name] = recog_json[name]['output'][0]
+        new_json[name] = dict()
         new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
         # added recognition results to json
         logging.debug("dump token id")
-        # TODO(karita) make consistent to chainer as idx[0] not idx
-        new_json[name]['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
-        logging.debug("dump token")
-        new_json[name]['rec_token'] = " ".join(seq_hat)
-        logging.debug("dump text")
-        new_json[name]['rec_text'] = seq_hat_text
+        out_dic = dict()
+        for _key in recog_json[name]['output'][0]:
+            out_dic[_key] = recog_json[name]['output'][0][_key]
 
+        # TODO(karita) make consistent to chainer as idx[0] not idx
+        out_dic['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
+        logging.debug("dump token")
+        out_dic['rec_token'] = " ".join(seq_hat)
+        logging.debug("dump text")
+        out_dic['rec_text'] = seq_hat_text
+
+        new_json[name]['output'] = [out_dic]
+        # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):
