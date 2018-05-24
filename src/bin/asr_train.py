@@ -7,8 +7,8 @@
 import argparse
 import logging
 import os
-import random
 import platform
+import random
 import subprocess
 import sys
 
