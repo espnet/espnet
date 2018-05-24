@@ -393,9 +393,9 @@ class Decoder(torch.nn.Module):
         if self.prenet_layers > 0:
             self.prenet = torch.nn.ModuleList()
             for l in six.moves.range(self.prenet_layers):
-                ichs = self.odim if l == 0 else self.prenet_units
+                ichans = self.odim if l == 0 else self.prenet_units
                 self.prenet += [torch.nn.Sequential(
-                    torch.nn.Linear(ichs, self.prenet_units, bias=False),
+                    torch.nn.Linear(ichans, self.prenet_units, bias=False),
                     torch.nn.ReLU())]
         else:
             self.prenet = None
