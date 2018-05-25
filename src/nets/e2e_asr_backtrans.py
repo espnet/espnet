@@ -74,9 +74,12 @@ def make_mask(lengths, dim):
     maxlen = max(lengths)
     mask = torch.zeros(batch, maxlen, dim)
     for i, l in enumerate(lengths):
-        mask[i, l:] = 1
+        mask[i, :l] = 1
 
-    return mask.byte()
+    if torch.cuda.is_available():
+        return mask.byte().cuda()
+    else:
+        return mask.byte()
 
 
 class Tacotron2(torch.nn.Module):
@@ -103,6 +106,8 @@ class Tacotron2(torch.nn.Module):
     :param bool cumulate_att_w: whether to cumulate previous attention weight
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
+    :param bool use_masking: whether to mask padded part in loss calculation
+    :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     :param float dropout: dropout rate
     """
 
@@ -126,6 +131,8 @@ class Tacotron2(torch.nn.Module):
                  cumulate_att_w=True,
                  use_batch_norm=True,
                  use_concate=True,
+                 use_masking=False,
+                 bce_pos_weight=20.0,
                  dropout=0.5):
         super(Tacotron2, self).__init__()
         # store hyperparameters
@@ -150,6 +157,8 @@ class Tacotron2(torch.nn.Module):
         self.cumulate_att_w = cumulate_att_w
         self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
+        self.use_masking = use_masking
+        self.bce_pos_weight = bce_pos_weight
         self.dropout = dropout
         # define network modules
         self.enc = Encoder(idim=self.idim,
@@ -181,9 +190,8 @@ class Tacotron2(torch.nn.Module):
                            use_concate=self.use_concate,
                            dropout=self.dropout)
         # initialize
-        # self.enc.apply(encoder_init)
-        # self.dec.apply(decoder_init)
-        lecun_normal_init(self)
+        self.enc.apply(encoder_init)
+        self.dec.apply(decoder_init)
 
         # set reporter
         self.reporter = Reporter()
@@ -202,9 +210,9 @@ class Tacotron2(torch.nn.Module):
         :rtype: torch.Tensor
         """
         hs = self.enc(xs, ilens)
-        after_outs, before_outs, logits = self.dec(hs, ilens, ys)
+        after_outs, before_outs, logits, att_ws = self.dec(hs, ilens, ys)
 
-        return after_outs, before_outs, logits
+        return after_outs, before_outs, logits, att_ws
 
     def inference(self, x, threshold=0.5, minlenratio=0.0, maxlenratio=100.0):
         """GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
@@ -225,7 +233,7 @@ class Tacotron2(torch.nn.Module):
 
         return outs, probs, att_ws
 
-    def loss(self, targets, outputs, olens=None, masking=False, bce_pos_weight=1.0):
+    def loss(self, targets, outputs, olens=None):
         """TACOTRON2 LOSS CALCULATION
 
         :param tuple targets: consist of (ys, lables), where
@@ -236,9 +244,6 @@ class Tacotron2(torch.nn.Module):
             before_outs is Tacotron2 outputs before postnets (B, Lmax, D), and
             logits is Tacotron2 stop token sequence (B, Lmax)
         :param list olens: list of lengths of each target batch (B)
-        :param bool masking: whether to mask padded part
-        :param float bce_pos_weight: weight of positive sample of stop token
-            if masking = False, will not effect at all
         :return: tacotron2 loss
         :rtype: torch.Tensor
         """
@@ -246,24 +251,33 @@ class Tacotron2(torch.nn.Module):
         ys, labels = targets
         after_outs, before_outs, logits = outputs
 
-        # masking padded part
-        if masking and olens is not None:
-            if bce_pos_weight != 1.0:
-                weights = ys.new(ys.size(0)).fill_(1)
-                weights.masked_fill_(ys.eq(1), bce_pos_weight)
+        if self.use_masking and olens is not None:
+            if self.bce_pos_weight != 1.0:
+                weights = ys.new(*labels.size()).fill_(1)
+                weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
+            else:
+                weights = None
+            # masking padded values
             mask = make_mask(olens, ys.size(2))
-            after_outs = after_outs.masked_fill_(mask, 0)
-            before_outs = before_outs.masked_fill_(mask, 0)
-            logits = logits.masked_fill_(mask[:, :, 0], 1e3)
+            ys = ys.masked_select(mask)
+            after_outs = after_outs.masked_select(mask)
+            before_outs = before_outs.masked_select(mask)
+            labels = labels.masked_select(mask[:, :, 0])
+            logits = logits.masked_select(mask[:, :, 0])
+            weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
+            # calculate loss
+            mse_loss = F.mse_loss(before_outs, ys)
+            if self.postnet_layers > 0:
+                mse_loss += F.mse_loss(before_outs, ys)
+            bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
+            loss = mse_loss + bce_loss
         else:
-            weights = None
-
-        # calculate loss
-        mse_loss = F.mse_loss(before_outs, ys)
-        if self.postnet_layers > 0:
-            mse_loss += F.mse_loss(after_outs, ys)
-        bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
-        loss = mse_loss + bce_loss
+            # calculate loss
+            mse_loss = F.mse_loss(before_outs, ys)
+            if self.postnet_layers > 0:
+                mse_loss += F.mse_loss(after_outs, ys)
+            bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
+            loss = mse_loss + bce_loss
 
         # report
         logging.info("mse loss = %.5e" % mse_loss.item())
@@ -299,6 +313,7 @@ class Encoder(torch.nn.Module):
                  econv_chans=512,
                  econv_filts=5,
                  use_batch_norm=True,
+                 use_residual=False,
                  dropout=0.5):
         super(Encoder, self).__init__()
         # store the hyperparameters
@@ -310,12 +325,13 @@ class Encoder(torch.nn.Module):
         self.econv_chans = econv_chans if econv_layers != 0 else -1
         self.econv_filts = econv_filts if econv_layers != 0 else -1
         self.use_batch_norm = use_batch_norm
+        self.use_residual = use_residual
         self.dropout = dropout
         # define network layer modules
         self.embed = torch.nn.Embedding(self.idim, self.embed_dim)
         if self.econv_layers > 0:
             self.convs = torch.nn.ModuleList()
-            for l in six.moves.range(self.conv_layers):
+            for l in six.moves.range(self.econv_layers):
                 ichans = self.embed_dim if l == 0 else self.econv_chans
                 if self.use_batch_norm:
                     self.convs += [torch.nn.Sequential(
@@ -348,7 +364,10 @@ class Encoder(torch.nn.Module):
         """
         xs = self.embed(xs).transpose(1, 2)
         for l in six.moves.range(self.econv_layers):
-            xs = self.convs[l](xs)
+            if self.use_residual:
+                xs += self.convs[l](xs)
+            else:
+                xs = self.convs[l](xs)
         xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
         self.blstm.flatten_parameters()
         xs, _ = self.blstm(xs)  # (B, Tmax, C)
@@ -439,7 +458,7 @@ class Decoder(torch.nn.Module):
         # define postnet
         if self.postnet_layers > 0:
             self.postnet = torch.nn.ModuleList()
-            for l in six.moves.range(self.postnet_layers):
+            for l in six.moves.range(self.postnet_layers - 1):
                 ichans = self.odim if l == 0 else self.postnet_chans
                 ochans = self.odim if l == self.postnet_layers - 1 else self.postnet_chans
                 if use_batch_norm:
@@ -455,6 +474,18 @@ class Decoder(torch.nn.Module):
                                         padding=(self.postnet_filts - 1) // 2, bias=False),
                         torch.nn.Tanh(),
                         torch.nn.Dropout(self.dropout))]
+            ichans = self.postnet_chans if self.postnet_layers != 1 else self.odim
+            if use_batch_norm:
+                self.postnet += [torch.nn.Sequential(
+                    torch.nn.Conv1d(ichans, odim, self.postnet_filts, stride=1,
+                                    padding=(self.postnet_filts - 1) // 2, bias=False),
+                    torch.nn.BatchNorm1d(odim),
+                    torch.nn.Dropout(self.dropout))]
+            else:
+                self.postnet += [torch.nn.Sequential(
+                    torch.nn.Conv1d(ichans, odim, self.postnet_filts, stride=1,
+                                    padding=(self.postnet_filts - 1) // 2, bias=False),
+                    torch.nn.Dropout(self.dropout))]
         else:
             self.postnet = None
         # define projection layers
@@ -491,9 +522,10 @@ class Decoder(torch.nn.Module):
         self.att.reset()
 
         # loop for an output sequence
-        outs, logits = [], []
+        outs, logits, att_ws = [], [], []
         for y in ys.transpose(0, 1):
             att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
+            att_ws += [att_w]
             prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
@@ -514,8 +546,9 @@ class Decoder(torch.nn.Module):
         after_outs = before_outs + self._postnet_forward(before_outs)  # (B, odim, Lmax)
         before_outs = before_outs.transpose(2, 1)  # (B, Lmax, odim)
         after_outs = after_outs.transpose(2, 1)  # (B, Lmax, odim)
+        att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
 
-        return after_outs, before_outs, logits
+        return after_outs, before_outs, logits, att_ws
 
     def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=100.0):
         """GENERATE THE SEQUENCE OF FEATURES FROM ENCODER HIDDEN STATES
@@ -578,7 +611,7 @@ class Decoder(torch.nn.Module):
             # check whether to finish generation
             if (probs[-1] >= threshold and idx >= minlen) or idx == maxlen:
                 outs = torch.stack(outs, dim=2)  # (1, odim, L)
-                outs += self._postnet_forward(outs)  # (1, odim, L)
+                outs = outs + self._postnet_forward(outs)  # (1, odim, L)
                 outs = outs.transpose(2, 1).squeeze(0)  # (Lx, odim)
                 probs = torch.cat(probs, dim=0)
                 att_ws = torch.cat(att_ws, dim=0)

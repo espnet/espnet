@@ -89,8 +89,15 @@ def main():
                         help='Whether to use batch normalization')
     parser.add_argument('--use_concate', default=True, type=strtobool,
                         help='Whether to concatenate encoder embedding with decoder outputs')
+    parser.add_argument('--use_residual', default=True, type=strtobool,
+                        help='Whether to use residual connection in conv layer')
     parser.add_argument('--dropout-rate', default=0.5, type=float,
                         help='Dropout rate')
+    # loss related
+    parser.add_argument('--use_masking', default=False, type=strtobool,
+                        help='Whether to use masking in calculation of loss')
+    parser.add_argument('--bce_pos_weight', default=20.0, type=float,
+                        help='Positive sample weight in BCE calculation (only for use_masking=True)')
     # minibatch related
     parser.add_argument('--batch-size', '-b', default=32, type=int,
                         help='Batch size')

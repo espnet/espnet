@@ -29,6 +29,8 @@ from e2e_asr_backtrans import Tacotron2
 import matplotlib
 matplotlib.use('Agg')
 
+MAX_SAVE_ATT_W = 3
+
 
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
     # sort it by input lengths (long to short)
@@ -87,17 +89,19 @@ def prepare_batch(data, eos):
         ys = ys.cuda()
         labels = labels.cuda()
 
-    return xs, ilens, ys, labels
+    return xs, ilens, ys, labels, olens
 
 
 class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
     '''Custom evaluater with Kaldi reader for pytorch'''
 
-    def __init__(self, model, iterator, target, reader, device):
+    def __init__(self, model, iterator, target, reader, device, outdir):
         super(PytorchSeqEvaluaterKaldi, self).__init__(
             iterator, target, device=device)
         self.reader = reader
         self.model = model
+        self.outdir = outdir
+        self.epoch = 0
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -116,7 +120,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         self.model.eval()
         with torch.no_grad():
-            for batch in it:
+            for idx, batch in enumerate(it):
                 observation = {}
                 with reporter_module.report_scope(observation):
                     # read scp files
@@ -124,11 +128,21 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                     #    will be converted to chainer variable later
                     # batch only has one minibatch utterance, which is specified by batch[0]
                     data = converter_kaldi(batch[0], self.reader)
-                    xs, ilens, ys, labels = prepare_batch(data, self.model.idim - 1)
-                    outputs = self.model(xs, ilens, ys)
-                    self.model.loss((ys, labels), outputs)
+                    xs, ilens, ys, labels, olens = prepare_batch(data, self.model.idim - 1)
+                    after_outs, before_outs, logits, att_ws = self.model(xs, ilens, ys)
+                    self.model.loss((ys, labels), (after_outs, before_outs, logits), olens)
                     delete_feat(data)
+
+                # save visialized attention weight
+                if idx < MAX_SAVE_ATT_W:
+                    matplotlib.pyplot.imshow(att_ws[0].cpu().numpy(), aspect="auto")
+                    matplotlib.pyplot.savefig(
+                        self.outdir + "/att_w_idx%d_epoch%d.png" % (idx, self.epoch))
+                    matplotlib.pyplot.close()
+                    self.epoch += 1
+
                 summary.add(observation)
+
         self.model.train()
 
         return summary.compute_mean()
@@ -163,11 +177,11 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('batch size is less than number of gpus. Ignored')
             return
         data = converter_kaldi(batch[0], self.reader)
-        xs, ilens, ys, labels = prepare_batch(data, self.model.idim - 1)
+        xs, ilens, ys, labels, olens = prepare_batch(data, self.model.idim - 1)
 
         # Compute the loss at this time step and accumulate it
-        outputs = self.model(xs, ilens, ys)
-        loss = self.model.loss((ys, labels), outputs)
+        after_outs, before_outs, logits, _ = self.model(xs, ilens, ys)
+        loss = self.model.loss((ys, labels), (after_outs, before_outs, logits), olens)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.num_gpu > 1:
             loss.backward(torch.ones(self.num_gpu))  # Backprop
@@ -268,6 +282,8 @@ def train(args):
                       cumulate_att_w=args.cumulate_att_w,
                       use_batch_norm=args.use_batch_norm,
                       use_concate=args.use_concate,
+                      use_masking=args.use_masking,
+                      bce_pos_weight=args.bce_pos_weight,
                       dropout=args.dropout_rate)
     logging.info(model)
 
@@ -345,7 +361,7 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, valid_iter, reporter, valid_reader, device=gpu_id))
+        model, valid_iter, reporter, valid_reader, gpu_id, args.outdir))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -414,7 +430,8 @@ def decode(args):
                       aconv_chans=train_args.aconv_chans,
                       aconv_filts=train_args.aconv_filts,
                       cumulate_att_w=train_args.cumulate_att_w,
-                      use_batch_norm=args.use_batch_norm,
+                      use_batch_norm=train_args.use_batch_norm,
+                      use_concate=train_args.use_concate,
                       dropout=train_args.dropout_rate)
     model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
 
@@ -452,15 +469,24 @@ def decode(args):
 
     # write to ark file
     torch.set_grad_enabled(False)
+    model.eval()
     for batch in iterator:
         data = converter_kaldi(batch[0], reader)
         utt_id = data[0][0]
         x = data[0][1]['tokenid'].split() + [str(model.idim - 1)]
         x = np.fromiter(map(int, x), dtype=np.int64)
         x = torch.from_numpy(x)
+        y = data[0][1]['feat']
+        y = torch.from_numpy(y)
+        ys = y.unsqueeze(0)
+        xs = x.unsqueeze(0)
+        ilens = [x.size(0)]
         if torch.cuda.is_available():
             x = x.cuda()
+            xs = xs.cuda()
+            ys = ys.cuda()
         outs, probs, att_ws = model.inference(x, 0.5, 0, 100)
+        after_outs, before_outs, probs, att_ws = model.forward(xs, ilens, ys)
         from IPython import embed; embed()
         logging.info(utt_id)
         kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)

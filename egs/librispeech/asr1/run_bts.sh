@@ -29,6 +29,9 @@ aconv_filts=15 # resulting in filter_size = aconv_filts * 2 + 1
 cumulate_att_w=true # whether to cumulate attetion weight
 use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true # whether to concatenate encoder embedding with decoder lstm outputs
+use_residual=false # whether to concatenate encoder embedding with decoder lstm outputs
+use_masking=false
+bce_pos_weight=20.0
 # minibatch related
 batchsize=32
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
@@ -37,6 +40,7 @@ epochs=30
 # optimization related
 lr=1e-3
 eps=1e-6
+weight_decay=1e-6
 # other
 do_delta=false
 target=states # feats or states
@@ -87,10 +91,23 @@ if [ -z ${tag} ];then
     if [ ${postnet_layers} -gt 0 ];then
         expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
     fi
-    expdir=${expdir}_att${adim}-${aconv_filts}x${aconv_chans}_bn-${use_batch_norm}_lr${lr}_eps${eps}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=${expdir}_att${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
         expdir=${expdir}_cumulate
     fi
+    if ${use_batch_norm};then
+        expdir=${expdir}_bn
+    fi
+    if ${use_residual};then
+        expdir=${expdir}_res
+    fi
+    if ${use_concate};then
+        expdir=${expdir}_concate
+    fi
+    if ${use_masking};then
+        expdir=${expdir}_masking_pw${bce_pos_weight}
+    fi
+    expdir=${expdir}_lr${lr}_ep${eps}_wd${weight_decay}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
 else
     expdir=exp/${train_set}_${tag}
 fi
@@ -135,8 +152,12 @@ if [ ${stage} -le 6 ];then
            --cumulate_att_w ${cumulate_att_w} \
            --use_batch_norm ${use_batch_norm} \
            --use_concate ${use_concate} \
+           --use_residual ${use_residual} \
+           --use_masking ${use_masking} \
+           --bce_pos_weight ${bce_pos_weight} \
            --lr ${lr} \
            --eps ${eps} \
+           --weight-decay ${weight_decay} \
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
