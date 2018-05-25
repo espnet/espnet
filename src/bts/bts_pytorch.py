@@ -139,10 +139,10 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                     matplotlib.pyplot.savefig(
                         self.outdir + "/att_w_idx%d_epoch%d.png" % (idx, self.epoch))
                     matplotlib.pyplot.close()
-                    self.epoch += 1
 
                 summary.add(observation)
 
+        self.epoch += 1
         self.model.train()
 
         return summary.compute_mean()
