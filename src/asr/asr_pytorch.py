@@ -79,6 +79,8 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
             summary.add(observation)
 
+        self.model.train()
+
         return summary.compute_mean()
 
 
