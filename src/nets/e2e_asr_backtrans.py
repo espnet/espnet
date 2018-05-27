@@ -21,28 +21,6 @@ from torch.nn.utils.rnn import pad_packed_sequence
 from e2e_asr_attctc_th import AttLoc
 
 
-def lecun_normal_init(m):
-    for p in m.parameters():
-        data = p.data
-        if data.dim() == 1:
-            # bias
-            data.zero_()
-        elif data.dim() == 2:
-            # linear weight
-            n = data.size(1)
-            stdv = 1. / math.sqrt(n)
-            data.normal_(0, stdv)
-        elif data.dim() == 4:
-            # conv weight
-            n = data.size(1)
-            for k in data.size()[2:]:
-                n *= k
-            stdv = 1. / math.sqrt(n)
-            data.normal_(0, stdv)
-        else:
-            raise NotImplementedError
-
-
 def encoder_init(m):
     if isinstance(m, torch.nn.Conv1d):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('relu'))
@@ -109,6 +87,9 @@ class Tacotron2(torch.nn.Module):
     :param bool use_masking: whether to mask padded part in loss calculation
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     :param float dropout: dropout rate
+    :param float threshold: threshold in inference
+    :param float minlenratio: minimum length ratio in inference
+    :param float maxlenratio: maximum length ratio in inference
     """
 
     def __init__(self, idim, odim,
@@ -133,7 +114,10 @@ class Tacotron2(torch.nn.Module):
                  use_concate=True,
                  use_masking=False,
                  bce_pos_weight=20.0,
-                 dropout=0.5):
+                 dropout=0.5,
+                 threshold=0.5,
+                 maxlenratio=5.0,
+                 minlenratio=0.0):
         super(Tacotron2, self).__init__()
         # store hyperparameters
         self.idim = idim
@@ -160,6 +144,9 @@ class Tacotron2(torch.nn.Module):
         self.use_masking = use_masking
         self.bce_pos_weight = bce_pos_weight
         self.dropout = dropout
+        self.threshold = threshold
+        self.maxlenratio = maxlenratio
+        self.minlenratio = minlenratio
         # define network modules
         self.enc = Encoder(idim=self.idim,
                            embed_dim=self.embed_dim,
@@ -188,7 +175,10 @@ class Tacotron2(torch.nn.Module):
                            cumulate_att_w=self.cumulate_att_w,
                            use_batch_norm=self.use_batch_norm,
                            use_concate=self.use_concate,
-                           dropout=self.dropout)
+                           dropout=self.dropout,
+                           threshold=self.threshold,
+                           maxlenratio=self.maxlenratio,
+                           minlenratio=self.minlenratio)
         # initialize
         self.enc.apply(encoder_init)
         self.dec.apply(decoder_init)
@@ -214,13 +204,10 @@ class Tacotron2(torch.nn.Module):
 
         return after_outs, before_outs, logits, att_ws
 
-    def inference(self, x, threshold=0.5, minlenratio=0.0, maxlenratio=100.0):
+    def inference(self, x):
         """GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
 
         :param tensor x: the sequence of characters (T)
-        :param float threshold: threshold in inference
-        :param float minlenratio: minimum length ratio
-        :param float maxlenratio: maximum length ratio
         :return: the sequence of features (L, D)
         :rtype: tensor
         :return: the sequence of stop probabilities (L)
@@ -229,7 +216,7 @@ class Tacotron2(torch.nn.Module):
         :rtype: tensor
         """
         h = self.enc.inference(x)
-        outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio)
+        outs, probs, att_ws = self.dec.inference(h)
 
         return outs, probs, att_ws
 
@@ -410,6 +397,9 @@ class Decoder(torch.nn.Module):
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
     :param float dropout: dropout rate
+    :param float threshold: threshold in inference
+    :param float minlenratio: minimum length ratio in inference
+    :param float maxlenratio: maximum length ratio in inference
     """
 
     def __init__(self, idim, odim, att,
@@ -423,7 +413,10 @@ class Decoder(torch.nn.Module):
                  cumulate_att_w=True,
                  use_batch_norm=True,
                  use_concate=True,
-                 dropout=0.5):
+                 dropout=0.5,
+                 threshold=0.5,
+                 maxlenratio=5.0,
+                 minlenratio=0.0):
         super(Decoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
@@ -440,6 +433,9 @@ class Decoder(torch.nn.Module):
         self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
         self.dropout = dropout
+        self.threshold = threshold
+        self.maxlenratio = maxlenratio
+        self.minlenratio = minlenratio
         # define lstm network
         self.lstm = torch.nn.ModuleList()
         for l in six.moves.range(self.dlayers):
@@ -550,13 +546,10 @@ class Decoder(torch.nn.Module):
 
         return after_outs, before_outs, logits, att_ws
 
-    def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=100.0):
+    def inference(self, h):
         """GENERATE THE SEQUENCE OF FEATURES FROM ENCODER HIDDEN STATES
 
         :param tensor h: the sequence of encoder states (T, C)
-        :param float threshold: threshold in inference
-        :param float minlenratio: minimum length ratio
-        :param float maxlenratio: maximum length ratio
         :return: the sequence of features (L, D)
         :rtype: tensor
         :return: the sequence of stop probabilities (L)
@@ -568,8 +561,8 @@ class Decoder(torch.nn.Module):
         assert len(h.size()) == 2
         hs = h.unsqueeze(0)
         ilens = [h.size(0)]
-        maxlen = int(h.size(0) * maxlenratio)
-        minlen = int(h.size(0) * minlenratio)
+        maxlen = int(h.size(0) * self.maxlenratio)
+        minlen = int(h.size(0) * self.minlenratio)
 
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
@@ -609,7 +602,7 @@ class Decoder(torch.nn.Module):
                 prev_att_w = att_w
 
             # check whether to finish generation
-            if (probs[-1] >= threshold and idx >= minlen) or idx == maxlen:
+            if (probs[-1] >= self.threshold and idx >= minlen) or idx == maxlen:
                 outs = torch.stack(outs, dim=2)  # (1, odim, L)
                 outs = outs + self._postnet_forward(outs)  # (1, odim, L)
                 outs = outs.transpose(2, 1).squeeze(0)  # (Lx, odim)

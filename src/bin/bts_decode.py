@@ -23,19 +23,24 @@ def main():
     parser.add_argument('--backend', default='pytorch', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
-    parser.add_argument('--outdir', type=str, required=True,
-                        help='Output directory')
+    parser.add_argument('--out', type=str, required=True,
+                        help='Output filename')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--feat', type=str, required=True,
-                        help='Filename of train feature data (Kaldi scp)')
     parser.add_argument('--label', type=str, required=True,
                         help='Filename of train label data (json)')
     parser.add_argument('--model', type=str, required=True,
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, required=True,
                         help='Model config file')
+    # decoding related
+    parser.add_argument('--maxlenratio', type=float, default=5,
+                        help='Maximum length ratio in decoding')
+    parser.add_argument('--minlenratio', type=float, default=0,
+                        help='Minimum length ratio in decoding')
+    parser.add_argument('--threshold', type=float, default=0.5,
+                        help='Threshold value in decoding')
     args = parser.parse_args()
 
     # logging info

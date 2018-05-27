@@ -30,7 +30,7 @@ cumulate_att_w=true # whether to cumulate attetion weight
 use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true # whether to concatenate encoder embedding with decoder lstm outputs
 use_residual=false # whether to concatenate encoder embedding with decoder lstm outputs
-use_masking=false
+use_masking=true
 bce_pos_weight=20.0
 # minibatch related
 batchsize=32
@@ -48,6 +48,10 @@ train_set=train_100
 train_dev=dev
 verbose=1
 tag=
+# decoding related
+threshold=0.5
+maxlenratio=5.0
+minlenratio=0.0
 
 . utils/parse_options.sh
 set -e
@@ -164,19 +168,21 @@ if [ ${stage} -le 6 ];then
            --epochs ${epochs}
 fi
 
-# if [ ${stage} -le 7 ];then
-#     echo "stage 7: Decoding"
-#     dict=./data/lang_1char/${train_set}_units.txt
-#     for sets in ${train_set} ${train_dev};do
-#         featdir=${dumpdir}/${sets}/enc_hs
-#         ${cuda_cmd} --gpu ${ngpu} ${expdir}/outputs/${sets}/log/decode.log \
-#             bts_decode.py \
-#                 --backend pytorch \
-#                 --ngpu ${ngpu} \
-#                 --outdir ${expdir}/outputs/${sets} \
-#                 --feat scp:${featdir}/feats.scp \
-#                 --label ${featdir}/data.json \
-#                 --model ${expdir}/results/model.loss.best \
-#                 --model-conf ${expdir}/results/model.conf
-#     done
-# fi
+if [ ${stage} -le 7 ];then
+    echo "stage 7: Decoding"
+    for sets in ${train_dev};do
+        featdir=${dumpdir}/${sets}/enc_hs
+        ${cuda_cmd} --gpu ${ngpu} ${expdir}/outputs_th${threshold}_mlr${minlenratio}-${maxlenratio}/${sets}/log/decode.log \
+            bts_decode.py \
+                --backend pytorch \
+                --ngpu ${ngpu} \
+                --verbose ${verbose} \
+                --out ${expdir}/outputs_th${threshold}_mlr${minlenratio}-${maxlenratio}/${sets}/feats.ark \
+                --label ${featdir}/data.json \
+                --model ${expdir}/results/model.loss.best \
+                --model-conf ${expdir}/results/model.conf \
+                --threshold ${threshold} \
+                --maxlenratio ${maxlenratio} \
+                --minlenratio ${minlenratio}
+    done
+fi

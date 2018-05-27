@@ -406,11 +406,11 @@ def decode(args):
         logging.info('reading a model config file from ' + args.model_conf)
         idim, odim, train_args = pickle.load(f)
 
+    # show argments
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
-    # load trained model
-    logging.info('reading model parameters from ' + args.model)
+    # define model
     model = Tacotron2(idim=idim,
                       odim=odim,
                       embed_dim=train_args.embed_dim,
@@ -433,7 +433,11 @@ def decode(args):
                       use_batch_norm=train_args.use_batch_norm,
                       use_concate=train_args.use_concate,
                       dropout=train_args.dropout_rate)
-    model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
+
+    # load trained model parameters
+    logging.info('reading model parameters from ' + args.model)
+    model.load_state_dict(
+        torch.load(args.model, map_location=lambda storage, loc: storage))
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -452,42 +456,22 @@ def decode(args):
     with open(args.label, 'rb') as f:
         js = json.load(f)['utts']
 
-    # make minibatch list (variable length)
-    batch_list = make_batchset(js, 1, 200, 800, -1)
-
-    # hack to make batchsze argument as 1
-    # actual bathsize is included in a list
-    iterator = chainer.iterators.SerialIterator(batch_list, 1, repeat=False, shuffle=False)
-
-    # prepare Kaldi reader
-    reader = lazy_io.read_dict_scp(args.feat)
-
     # write model config
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    f = open(args.outdir + "/feats.ark", "w")
+    outdir = os.path.dirname(args.out)
+    if len(outdir) != 0 and not os.path.exists(outdir):
+        os.makedirs(outdir)
+    f = open(args.out, "w")
 
     # write to ark file
     torch.set_grad_enabled(False)
     model.eval()
-    for batch in iterator:
-        data = converter_kaldi(batch[0], reader)
-        utt_id = data[0][0]
-        x = data[0][1]['tokenid'].split() + [str(model.idim - 1)]
+    for idx, utt_id in enumerate(js.keys()):
+        x = js[utt_id]['tokenid'].split() + [str(model.idim - 1)]
         x = np.fromiter(map(int, x), dtype=np.int64)
         x = torch.from_numpy(x)
-        y = data[0][1]['feat']
-        y = torch.from_numpy(y)
-        ys = y.unsqueeze(0)
-        xs = x.unsqueeze(0)
-        ilens = [x.size(0)]
         if torch.cuda.is_available():
             x = x.cuda()
-            xs = xs.cuda()
-            ys = ys.cuda()
-        outs, probs, att_ws = model.inference(x, 0.5, 0, 100)
-        after_outs, before_outs, probs, att_ws = model.forward(xs, ilens, ys)
-        from IPython import embed; embed()
-        logging.info(utt_id)
+        outs, probs, att_ws = model.inference(x)
+        logging.info("(%d/%d) %s" % (idx + 1, len(js.keys()), utt_id))
         kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
     f.close()
