@@ -144,7 +144,7 @@ def pad_list(xs, pad_value=float("nan")):
     pad = Variable(
         xs[0].data.new(
             n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
-        volatile=xs.volatile)
+        volatile=xs[0].volatile)
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
     return pad
