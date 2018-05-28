@@ -98,12 +98,13 @@ class Reporter(chainer.Chain):
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    def __init__(self, predictor, mtlalpha):
+    def __init__(self, predictor, mtlalpha, use_only_decoder=False):
         super(Loss, self).__init__()
         self.mtlalpha = mtlalpha
         self.loss = None
         self.accuracy = None
         self.predictor = predictor
+        self.use_only_decoder = use_only_decoder
         self.reporter = Reporter()
 
     def forward(self, x):
@@ -113,7 +114,7 @@ class Loss(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, acc = self.predictor(x, self.use_only_decoder)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -283,7 +284,7 @@ class E2E(torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
-    def forward(self, data):
+    def forward(self, data, use_only_decoder=False):
         '''E2E forward
 
         :param data:
@@ -303,6 +304,14 @@ class E2E(torch.nn.Module):
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
         ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
+
+        # directly calculate loss using given encoder states
+        if use_only_decoder and self.training:
+            ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
+            xpad = pad_list(hs)
+            loss_att, acc = self.dec(xpad, ilens, ys)
+            return None, loss_att, acc
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]

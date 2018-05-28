@@ -40,11 +40,11 @@ epochs=30
 # optimization related
 lr=1e-3
 eps=1e-6
-weight_decay=1e-6
+weight_decay=0.0
 # other
 do_delta=false
 target=states # feats or states
-train_set=train_100
+train_set=train_360
 train_dev=dev
 verbose=1
 tag=
@@ -56,13 +56,14 @@ minlenratio=0.0
 . utils/parse_options.sh
 set -e
 
-dumpdir=./exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150/outputs
-model=./exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150/results/model.acc.best
-config=./exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150/results/model.conf
+basedir=exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150/
+dumpdir=${basedir}/outputs
+model=${basedir}/results/model.acc.best
+config=${basedir}/results/model.conf
+dict=data/lang_1char/${train_set}_units.txt
 
 if [ ${stage} -le 5 ];then
     echo "stage 5: Encoder state extraction"
-    dict=./data/lang_1char/${train_set}_units.txt
     for sets in ${train_set} ${train_dev};do
         featdir=dump/${sets}/delta${do_delta}
         ${cuda_cmd} --gpu ${ngpu} ${dumpdir}/log/extract.log \
@@ -168,21 +169,48 @@ if [ ${stage} -le 6 ];then
            --epochs ${epochs}
 fi
 
+outdir=${expdir}/outputs_th${threshold}_mlr${minlenratio}-${maxlenratio}
 if [ ${stage} -le 7 ];then
     echo "stage 7: Decoding"
-    for sets in ${train_dev};do
-        featdir=${dumpdir}/${sets}/enc_hs
-        ${cuda_cmd} --gpu ${ngpu} ${expdir}/outputs_th${threshold}_mlr${minlenratio}-${maxlenratio}/${sets}/log/decode.log \
+    for sets in train_other_500;do
+        [ ! -e  ${outdir}/${sets}/tmp ] && mkdir -p ${outdir}/${sets}/tmp
+        data2json.sh data/${sets} ${dict} > ${outdir}/${sets}/tmp/data.json
+        ${cuda_cmd} --gpu ${ngpu} ${outdir}/${sets}/log/decode.log \
             bts_decode.py \
                 --backend pytorch \
                 --ngpu ${ngpu} \
                 --verbose ${verbose} \
-                --out ${expdir}/outputs_th${threshold}_mlr${minlenratio}-${maxlenratio}/${sets}/feats.ark \
-                --label ${featdir}/data.json \
+                --out ${outdir}/${sets}/tmp/feats.ark \
+                --label ${outdir}/${sets}/tmp/data.json \
                 --model ${expdir}/results/model.loss.best \
                 --model-conf ${expdir}/results/model.conf \
                 --threshold ${threshold} \
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
+        copy-feats ark:${outdir}/${sets}/tmp/feats.ark \
+            ark,scp:${outdir}/${sets}/enc_hs/feats.ark,${outdir}/${sets}/enc_hs/feats.scp
+        data2json.sh --feat ${outdir}/${sets}/enc_hs/feats.scp \
+             data/${sets} ${dict} > ${outdir}/${sets}/enc_hs/data.json
+        [ -e ${outdir}/${sets}/tmp ] && rm -rf ${outdir}/${sets}/tmp
     done
+fi
+
+if [ ${stage} -le 8 ];then
+    echo "stage 8: Re-training decoder"
+    ${cuda_cmd} --gpu ${ngpu} ${basedir}/retrain-decoder/retrain.log \
+        asr_retrain.py \
+            --ngpu ${ngpu} \
+            --model ${model} \
+            --model-conf ${config} \
+            --verbose ${verbose} \
+            --outdir ${basedir}/retrain-decoder/results \
+            --dict ${dict} \
+            --train-feat scp:${outdir}/train_other_500/enc_hs/feats.scp \
+            --train-label ${outdir}/train_other_500/enc_hs/data.json \
+            --valid-feat scp:dump/${train_dev}/delta${do_delta}/feats.scp \
+            --valid-label dump/${train_dev}/delta${do_delta}/data.json \
+            --batch-size ${batchsize} \
+            --maxlen-in ${maxlen_out} \
+            --maxlen-out ${maxlen_in} \
+            --epochs ${epochs}
 fi
