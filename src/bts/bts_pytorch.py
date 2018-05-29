@@ -400,7 +400,7 @@ def train(args):
 
 
 def decode(args):
-    '''Extract encoder states'''
+    '''Generate encoder states'''
     # read training config
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from ' + args.model_conf)
@@ -438,6 +438,7 @@ def decode(args):
     logging.info('reading model parameters from ' + args.model)
     model.load_state_dict(
         torch.load(args.model, map_location=lambda storage, loc: storage))
+    model.eval()
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -456,22 +457,22 @@ def decode(args):
     with open(args.label, 'rb') as f:
         js = json.load(f)['utts']
 
-    # write model config
+    # chech direcitory
     outdir = os.path.dirname(args.out)
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
-    f = open(args.out, "w")
 
-    # write to ark file
+    # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
     torch.set_grad_enabled(False)
-    model.eval()
-    for idx, utt_id in enumerate(js.keys()):
-        x = js[utt_id]['tokenid'].split() + [str(model.idim - 1)]
-        x = np.fromiter(map(int, x), dtype=np.int64)
-        x = torch.from_numpy(x)
-        if torch.cuda.is_available():
-            x = x.cuda()
-        outs, probs, att_ws = model.inference(x)
-        logging.info("(%d/%d) %s" % (idx + 1, len(js.keys()), utt_id))
-        kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
-    f.close()
+    arkscp = 'ark:| copy-feats ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
+    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+        for idx, utt_id in enumerate(js.keys()):
+            x = js[utt_id]['tokenid'].split() + [str(model.idim - 1)]
+            x = np.fromiter(map(int, x), dtype=np.int64)
+            x = torch.from_numpy(x)
+            if args.ngpu > 0:
+                x = x.cuda()
+            outs, probs, att_ws = model.inference(x)
+            logging.info("(%d/%d) %s (size:%d->%d)" % (
+                idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
+            kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)

@@ -30,7 +30,7 @@ cumulate_att_w=true # whether to cumulate attetion weight
 use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true # whether to concatenate encoder embedding with decoder lstm outputs
 use_residual=false # whether to concatenate encoder embedding with decoder lstm outputs
-use_masking=true
+use_masking=false
 bce_pos_weight=20.0
 # minibatch related
 batchsize=32
@@ -46,17 +46,19 @@ do_delta=false
 target=states # feats or states
 train_set=train_360
 train_dev=dev
+decode_set="train_100 train_other_500"
 verbose=1
 tag=
 # decoding related
 threshold=0.5
 maxlenratio=5.0
 minlenratio=0.0
+nj=64
 
 . utils/parse_options.sh
 set -e
 
-basedir=exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150/
+basedir=exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150
 dumpdir=${basedir}/outputs
 model=${basedir}/results/model.acc.best
 config=${basedir}/results/model.conf
@@ -65,22 +67,32 @@ dict=data/lang_1char/${train_set}_units.txt
 if [ ${stage} -le 5 ];then
     echo "stage 5: Encoder state extraction"
     for sets in ${train_set} ${train_dev};do
-        featdir=dump/${sets}/delta${do_delta}
-        ${cuda_cmd} --gpu ${ngpu} ${dumpdir}/log/extract.log \
+        [ ! -e ${dumpdir}/${sets} ] && mkdir -p ${dumpdir}/${sets}
+        # split scp file
+        scp=dump/${sets}/delta${do_delta}/feats.scp
+        split_scps=""
+        for n in $(seq $nj); do
+            split_scps="$split_scps ${dumpdir}/${sets}/log/feats.$n.scp"
+        done
+        utils/split_scp.pl $scp $split_scps || exit 1;
+        # decode
+        ${train_cmd} JOB=1:$nj ${dumpdir}/${sets}/log/extract.log \
             asr_extract.py \
                 --backend pytorch \
-                --ngpu ${ngpu} \
-                --outdir ${dumpdir}/${sets}/tmp \
-                --feat scp:${featdir}/feats.scp \
-                --label ${featdir}/data.json \
+                --ngpu 0 \
+                --out ${dumpdir}/${sets}/feats.JOB \
+                --feat ${dumpdir}/${sets}/log/feats.JOB.scp \
                 --model ${model} \
                 --model-conf ${config}
-        [ ! -e ${dumpdir}/${sets}/enc_hs ] && mkdir -p ${dumpdir}/${sets}/enc_hs
-        copy-feats ark:${dumpdir}/${sets}/tmp/feats.ark \
-            ark,scp:${dumpdir}/${sets}/enc_hs/feats.ark,${dumpdir}/${sets}/enc_hs/feats.scp
-        data2json.sh --feat ${dumpdir}/${sets}/enc_hs/feats.scp \
-             data/${sets} ${dict} > ${dumpdir}/${sets}/enc_hs/data.json
-        [ -e ${dumpdir}/${sets}/tmp ] && rm -rf ${dumpdir}/${sets}/tmp
+        # concatenate scp files
+        for n in $(seq $nj); do
+            cat ${dumpdir}/${sets}/feats.$n.scp || exit 1;
+        done > ${dumpdir}/${sets}/feats.scp
+        # remove temp scps
+        rm ${dumpdir}/${sets}/log/feats.*.scp 2>/dev/null
+        # create json
+        data2json.sh --feat ${dumpdir}/${sets}/feats.scp \
+             data/${sets} ${dict} > ${dumpdir}/${sets}/data.json
     done
 fi
 
@@ -172,41 +184,64 @@ fi
 outdir=${expdir}/outputs_th${threshold}_mlr${minlenratio}-${maxlenratio}
 if [ ${stage} -le 7 ];then
     echo "stage 7: Decoding"
-    for sets in train_other_500;do
-        [ ! -e  ${outdir}/${sets}/tmp ] && mkdir -p ${outdir}/${sets}/tmp
-        data2json.sh data/${sets} ${dict} > ${outdir}/${sets}/tmp/data.json
-        ${cuda_cmd} --gpu ${ngpu} ${outdir}/${sets}/log/decode.log \
+    for sets in ${decode_set};do
+        [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
+        # create split json
+        data2json.sh data/${sets} ${dict} > ${outdir}/${sets}/data.json
+        splitjson.py -n $nj ${outdir}/${sets}/data.json
+        # decode in parallel
+        ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
             bts_decode.py \
                 --backend pytorch \
-                --ngpu ${ngpu} \
+                --ngpu 0 \
                 --verbose ${verbose} \
-                --out ${outdir}/${sets}/tmp/feats.ark \
-                --label ${outdir}/${sets}/tmp/data.json \
+                --out ${outdir}/${sets}/feats.JOB \
+                --label ${outdir}/${sets}/data.JOB.json \
                 --model ${expdir}/results/model.loss.best \
                 --model-conf ${expdir}/results/model.conf \
                 --threshold ${threshold} \
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
-        copy-feats ark:${outdir}/${sets}/tmp/feats.ark \
-            ark,scp:${outdir}/${sets}/enc_hs/feats.ark,${outdir}/${sets}/enc_hs/feats.scp
-        data2json.sh --feat ${outdir}/${sets}/enc_hs/feats.scp \
-             data/${sets} ${dict} > ${outdir}/${sets}/enc_hs/data.json
-        [ -e ${outdir}/${sets}/tmp ] && rm -rf ${outdir}/${sets}/tmp
+        # concatenate scp files
+        for n in $(seq $nj); do
+            cat ${outdir}/${sets}/feats.$n.scp || exit 1;
+        done > ${outdir}/${sets}/feats.scp
+        # remove temp json
+        rm ${outdir}/${sets}/*.json 2>/dev/null
     done
 fi
 
 if [ ${stage} -le 8 ];then
     echo "stage 8: Re-training decoder"
-    ${cuda_cmd} --gpu ${ngpu} ${basedir}/retrain-decoder/retrain.log \
+    retroutdir=retrain-decoder_bs${batchsize}_mli${maxlen_out}_mlo${maxlen_in}
+    # copy train data
+    utils/copy_data_dir.sh data/${train_set} ${retroutdir}/data/${train_set}
+    cp ${dumpdir}/${train_set}/feats.scp ${retroutdir}/data/${train_set}
+    # copy decode data
+    for sets in ${decode_set};do
+        utils/copy_data_dir.sh data/${sets} ${retroutdir}/data/${sets}
+        cp ${outdir}/${sets}/feats.scp ${retroutdir}/data/${sets}
+    done
+    # combine train and decode data
+    combdirs=
+    for sets in ${train_set} ${decode_set};do
+        combdirs="$combdirs ${retroutdir}/data/${sets}"
+    done
+    utils/combine_data.sh ${retroutdir}/data/train ${combdirs}
+    # create json
+    data2json.sh --feat ${retroutdir}/data/train/feats.scp \
+         ${retroutdir}/data/train ${dict} > ${retroutdir}/data/train/data.json
+    # re-train
+    ${cuda_cmd} --gpu ${ngpu} ${retroutdir}/retrain.log \
         asr_retrain.py \
             --ngpu ${ngpu} \
             --model ${model} \
             --model-conf ${config} \
             --verbose ${verbose} \
-            --outdir ${basedir}/retrain-decoder/results \
+            --outdir ${retroutdir}/results \
             --dict ${dict} \
-            --train-feat scp:${outdir}/train_other_500/enc_hs/feats.scp \
-            --train-label ${outdir}/train_other_500/enc_hs/data.json \
+            --train-feat scp:${retroutdir}/data/train/feats.scp \
+            --train-label ${retroutdir}/data/train/data.json \
             --valid-feat scp:dump/${train_dev}/delta${do_delta}/feats.scp \
             --valid-label dump/${train_dev}/delta${do_delta}/data.json \
             --batch-size ${batchsize} \
