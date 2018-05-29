@@ -11,6 +11,8 @@ import random
 import subprocess
 import sys
 
+from distutils.util import strtobool
+
 import numpy as np
 
 
@@ -36,6 +38,8 @@ def main():
                         help='Model config file')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
+    parser.add_argument('--resume', '-r', default='', nargs='?',
+                        help='Resume the training from snapshot')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
@@ -57,6 +61,8 @@ def main():
     parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
     # optimization related
+    parser.add_argument('--flatstart', default=False, type=strtobool,
+                        help='Whether to start training from the beginnging')
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam'],
                         help='Optimizer')

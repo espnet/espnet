@@ -540,6 +540,11 @@ def retrain(args):
     model = Loss(e2e, train_args.mtlalpha, use_only_decoder=True)
     model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
 
+    # check flatstart
+    if args.flatstart:
+        # initialize decoder
+        model.predictor.init_like_chainer()
+
     # write model config
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)

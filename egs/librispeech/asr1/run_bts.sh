@@ -54,6 +54,8 @@ threshold=0.5
 maxlenratio=5.0
 minlenratio=0.0
 nj=64
+# decoder retraining related
+flatstart=false
 
 . utils/parse_options.sh
 set -e
@@ -213,24 +215,29 @@ fi
 
 if [ ${stage} -le 8 ];then
     echo "stage 8: Re-training decoder"
-    retroutdir=retrain-decoder_bs${batchsize}_mli${maxlen_out}_mlo${maxlen_in}
-    # copy train data
-    utils/copy_data_dir.sh data/${train_set} ${retroutdir}/data/${train_set}
-    cp ${dumpdir}/${train_set}/feats.scp ${retroutdir}/data/${train_set}
-    # copy decode data
-    for sets in ${decode_set};do
-        utils/copy_data_dir.sh data/${sets} ${retroutdir}/data/${sets}
-        cp ${outdir}/${sets}/feats.scp ${retroutdir}/data/${sets}
-    done
-    # combine train and decode data
-    combdirs=
-    for sets in ${train_set} ${decode_set};do
-        combdirs="$combdirs ${retroutdir}/data/${sets}"
-    done
-    utils/combine_data.sh ${retroutdir}/data/train ${combdirs}
-    # create json
-    data2json.sh --feat ${retroutdir}/data/train/feats.scp \
-         ${retroutdir}/data/train ${dict} > ${retroutdir}/data/train/data.json
+    retroutdir=exp/re${train_set}_bs${batchsize}_mli${maxlen_out}_mlo${maxlen_in}
+    if ${flatstart};then
+        retroutdir=${retroutdir}_flatstart
+    fi
+    if [ ! -e ${retroutdir}/data/train/data.json ];then
+        # copy train data with ground-truth scp
+        utils/copy_data_dir.sh data/${train_set} ${retroutdir}/data/${train_set}
+        cp ${dumpdir}/${train_set}/feats.scp ${retroutdir}/data/${train_set}
+        # copy decode data with generated scp
+        for sets in ${decode_set};do
+            utils/copy_data_dir.sh data/${sets} ${retroutdir}/data/${sets}
+            cp ${outdir}/${sets}/feats.scp ${retroutdir}/data/${sets}
+        done
+        # combine train and decode data
+        combdirs=
+        for sets in ${train_set} ${decode_set};do
+            combdirs="$combdirs ${retroutdir}/data/${sets}"
+        done
+        utils/combine_data.sh ${retroutdir}/data/train ${combdirs}
+        # create json
+        data2json.sh --feat ${retroutdir}/data/train/feats.scp \
+             ${retroutdir}/data/train ${dict} > ${retroutdir}/data/train/data.json
+    fi
     # re-train
     ${cuda_cmd} --gpu ${ngpu} ${retroutdir}/retrain.log \
         asr_retrain.py \
@@ -247,5 +254,6 @@ if [ ${stage} -le 8 ];then
             --batch-size ${batchsize} \
             --maxlen-in ${maxlen_out} \
             --maxlen-out ${maxlen_in} \
-            --epochs ${epochs}
+            --epochs ${epochs} \
+            --flatstart ${flatstart}
 fi
