@@ -485,43 +485,26 @@ def extract(args):
     else:
         gpu_id = [-1]
 
-    # read json data
-    with open(args.label, 'rb') as f:
-        js = json.load(f)['utts']
-
-    # make minibatch list (variable length)
-    batch_list = make_batchset(js, args.batch_size, 200, 800, -1)
-
-    # hack to make batchsze argument as 1
-    # actual bathsize is included in a list
-    iterator = chainer.iterators.SerialIterator(batch_list, 1, repeat=False, shuffle=False)
-
     # prepare Kaldi reader
-    reader = lazy_io.read_dict_scp(args.feat)
+    reader = kaldi_io_py.read_mat_scp(args.feat)
 
-    # write model config
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    f = open(args.outdir + "/feats.ark", "w")
+    # chech direcitory
+    outdir = os.path.dirname(args.out)
+    if len(outdir) != 0 and not os.path.exists(outdir):
+        os.makedirs(outdir)
 
     # write to ark file
     torch.set_grad_enabled(False)
-    for batch in iterator:
-        data = converter_kaldi(batch[0], reader)
-        utt_ids = [d[0] for d in data]
-        xs = [d[1]['feat'] for d in data]
-        sorted_idx = sorted(range(len(xs)), key=lambda i: -len(xs[i]))
-        xs = [xs[i] for i in sorted_idx]
-        ilens = np.fromiter((x.shape[0] for x in xs), dtype=np.int64)
-        xs = [torch.from_numpy(x) for x in xs]
-        xpad = pad_list(xs)
-        if torch.cuda.is_available():
-            xpad = xpad.cuda()
-        hpad, hlens = extractor(xpad, ilens)
-        for utt_id, hs, hlen in zip(utt_ids, hpad, hlens):
+    arkscp = 'ark:| copy-feats ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
+    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+        for utt_id, feat in reader:
+            xs = torch.from_numpy(feat).unsqueeze(0)
+            ilens = [feat.shape[0]]
+            if args.ngpu > 0:
+                xs = xs.cuda()
+            hs, _ = extractor(xs, ilens)
             logging.info(utt_id)
-            kaldi_io_py.write_mat(f, hs[:hlen].cpu().numpy(), utt_id)
-    f.close()
+            kaldi_io_py.write_mat(f, hs.cpu().numpy(), utt_id)
 
 
 def retrain(args):
