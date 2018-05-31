@@ -75,7 +75,12 @@ class Loss(chainer.Chain):
         self.loss = None
         loss_ctc, loss_att, acc = self.predictor(x)
         alpha = self.mtlalpha
-        self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+        if alpha == 0:
+            self.loss = loss_att
+        elif alpha == 1:
+            self.loss = loss_ctc
+        else:
+            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
 
         if self.loss.data < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data):
             reporter.report({'loss_ctc': loss_ctc}, self)
@@ -97,6 +102,7 @@ class E2E(chainer.Chain):
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
+        self.mtlalpha = args.mtlalpha
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -183,10 +189,17 @@ class E2E(chainer.Chain):
         hs, ilens = self.enc(hs, ilens)
 
         # 3. CTC loss
-        loss_ctc = self.ctc(hs, ys)
+        if self.mtlalpha == 0:
+            loss_ctc = None
+        else:
+            loss_ctc = self.ctc(hs, ys)
 
         # 4. attention loss
-        loss_att, acc, att_w = self.dec(hs, ys)
+        if self.mtlalpha == 1:
+            loss_att = None
+            acc = None
+        else:
+            loss_att, acc, att_w = self.dec(hs, ys)
 
         return loss_ctc, loss_att, acc
 
@@ -216,10 +229,7 @@ class E2E(chainer.Chain):
 
             # 2. decoder
             # decode the first utterance
-            if recog_args.beam_size == 1:
-                y = self.dec.recognize(h[0], recog_args, rnnlm)
-            else:
-                y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+            y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
             return y
 
@@ -256,10 +266,8 @@ class CTC(chainer.Chain):
         # get length info
         input_length = chainer.Variable(self.xp.array(ilens, dtype=np.int32))
         label_length = chainer.Variable(self.xp.array(olens, dtype=np.int32))
-        logging.info(self.__class__.__name__ +
-                     ' input lengths:  ' + str(input_length.data))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str(label_length.data))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(input_length.data))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(label_length.data))
 
         # get ctc loss
         self.loss = F.connectionist_temporal_classification(
@@ -304,10 +312,8 @@ class WarpCTC(chainer.Chain):
         y_hat = F.transpose(y_hat, (1, 0, 2))  # batch x frames x hdim
 
         # get length info
-        logging.info(self.__class__.__name__ +
-                     ' input lengths:  ' + str(ilens))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str(olens))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
 
         # get ctc loss
         self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])[0]
@@ -566,10 +572,8 @@ class Decoder(chainer.Chain):
         # get dim, length info
         batch = pad_ys_out.shape[0]
         olength = pad_ys_out.shape[1]
-        logging.info(self.__class__.__name__ + ' input lengths:  ' +
-                     str(self.xp.array([h.shape[0] for h in hs])))
-        logging.info(self.__class__.__name__ + ' output lengths: ' +
-                     str(self.xp.array([y.shape[0] for y in ys_out])))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(self.xp.array([h.shape[0] for h in hs])))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str(self.xp.array([y.shape[0] for y in ys_out])))
 
         # initialization
         c_list = [None]  # list of cell state of each layer
@@ -630,56 +634,6 @@ class Decoder(chainer.Chain):
 
         return self.loss, acc, att_weight_all
 
-    # TODO(hori) incorporate CTC score
-    def recognize(self, h, recog_args, rnnlm=None):
-        '''greedy search implementation
-
-        :param h:
-        :param recog_args:
-        :return:
-        '''
-        logging.info('input lengths: ' + str(h.shape[0]))
-        # initialization
-        c_list = [None]  # list of cell state of each layer
-        z_list = [None]  # list of hidden state of each layer
-        if rnnlm:
-            state = None
-        for l in six.moves.range(1, self.dlayers):
-            c_list.append(None)
-            z_list.append(None)
-        att_w = None
-        y_seq = []
-        self.att.reset()  # reset pre-computation of h
-
-        # preprate sos
-        y = self.xp.full(1, self.sos, 'i')
-        maxlen = int(recog_args.maxlenratio * h.shape[0])
-        minlen = int(recog_args.minlenratio * h.shape[0])
-        logging.info('max output length: ' + str(maxlen))
-        logging.info('min output length: ' + str(minlen))
-        for i in six.moves.range(minlen, maxlen):
-            ey = self.embed(y)           # utt list (1) x zdim
-            att_c, att_w = self.att([h], z_list[0], att_w)
-            ey = F.hstack((ey, att_c))   # utt(1) x (zdim + hdim)
-            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
-            for l in six.moves.range(1, self.dlayers):
-                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
-            if rnnlm:
-                state, z_rnnlm = rnnlm.predictor(state, y)
-                final_z = (1 - recog_args.lm_weight) * F.log_softmax(self.output(z_list[-1])).data \
-                    + recog_args.lm_weight * F.log_softmax(z_rnnlm).data
-            else:
-                final_z = F.log_softmax(self.output(z_list[-1])).data
-
-            y = self.xp.argmax(final_z, axis=1).astype('i')
-            y_seq.append(y)
-
-            # terminate decoding
-            if y == self.eos:
-                break
-
-        return y_seq
-
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
@@ -723,7 +677,11 @@ class Decoder(chainer.Chain):
             ctc_prefix_score = CTCPrefixScore(lpz, 0, self.eos, self.xp)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
             hyp['ctc_score_prev'] = 0.0
-            ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
+            if ctc_weight != 1.0:
+                # pre-pruning based on attention scores
+                ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
+            else:
+                ctc_beam = lpz.shape[-1]
         hyps = [hyp]
         ended_hyps = []
 
@@ -832,8 +790,7 @@ class Decoder(chainer.Chain):
         nbest_hyps = sorted(
             ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
-        logging.info('normalized log probability: ' +
-                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
+        logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         return nbest_hyps
 

@@ -79,6 +79,8 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
             summary.add(observation)
 
+        self.model.train()
+
         return summary.compute_mean()
 
 
@@ -107,10 +109,13 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         # x: original json with loaded features
         #    will be converted to chainer variable later
         # batch only has one minibatch utterance, which is specified by batch[0]
+        if len(batch[0]) < self.num_gpu:
+            logging.warning('batch size is less than number of gpus. Ignored')
+            return
         x = converter_kaldi(batch[0], self.reader)
 
         # Compute the loss at this time step and accumulate it
-        loss = self.model(x)
+        loss = 1. / self.num_gpu * self.model(x)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.num_gpu > 1:
             loss.backward(torch.ones(self.num_gpu))  # Backprop
@@ -126,6 +131,34 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         else:
             optimizer.step()
         delete_feat(x)
+
+
+class DataParallel(torch.nn.DataParallel):
+    def scatter(self, inputs, kwargs, device_ids, dim):
+        r"""Scatter with support for kwargs dictionary"""
+        if len(inputs) == 1:
+            inputs = inputs[0]
+        avg = int(math.ceil(len(inputs) * 1. / len(device_ids)))
+        # inputs = scatter(inputs, device_ids, dim) if inputs else []
+        inputs = [[inputs[i:i + avg]] for i in range(0, len(inputs), avg)]
+        kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
+        if len(inputs) < len(kwargs):
+            inputs.extend([() for _ in range(len(kwargs) - len(inputs))])
+        elif len(kwargs) < len(inputs):
+            kwargs.extend([{} for _ in range(len(inputs) - len(kwargs))])
+        inputs = tuple(inputs)
+        kwargs = tuple(kwargs)
+        return inputs, kwargs
+
+    def forward(self, *inputs, **kwargs):
+        if not self.device_ids:
+            return self.module(*inputs, **kwargs)
+        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids, self.dim)
+        if len(self.device_ids) == 1:
+            return self.module(*inputs[0], **kwargs[0])
+        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
+        outputs = self.parallel_apply(replicas, inputs, kwargs)
+        return self.gather(outputs, self.output_device)
 
 
 def train(args):
@@ -160,6 +193,17 @@ def train(args):
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
+    # specify attention, CTC, hybrid mode
+    if args.mtlalpha == 1.0:
+        mtl_mode = 'ctc'
+        logging.info('Pure CTC mode')
+    elif args.mtlalpha == 0.0:
+        mtl_mode = 'att'
+        logging.info('Pure attention mode')
+    else:
+        mtl_mode = 'mtl'
+        logging.info('Multitask learning mode')
+
     # specify model architecture
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
@@ -185,7 +229,7 @@ def train(args):
     elif ngpu > 1:
         gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
-        model = torch.nn.DataParallel(model, device_ids=gpu_id)
+        model = DataParallel(model, device_ids=gpu_id)
         model.cuda()
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
@@ -234,6 +278,10 @@ def train(args):
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+        else:
+            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -253,20 +301,28 @@ def train(args):
 
     # Save best models
     def torch_save(path, _):
-        torch.save(model.state_dict(), path)
-        torch.save(model, path + ".pkl")
+        if ngpu > 1:
+            torch.save(model.module.state_dict(), path)
+            torch.save(model.module, path + ".pkl")
+        else:
+            torch.save(model.state_dict(), path)
+            torch.save(model, path + ".pkl")
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
-                   trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
+    if mtl_mode is not 'ctc':
+        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
     def torch_load(path, obj):
-        model.load_state_dict(torch.load(path))
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(path))
+        else:
+            model.load_state_dict(torch.load(path))
         return obj
     if args.opt == 'adadelta':
-        if args.criterion == 'acc':
+        if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -324,7 +380,17 @@ def recog(args):
 
     def cpu_loader(storage, location):
         return storage
-    model.load_state_dict(torch.load(args.model, map_location=cpu_loader))
+
+    def remove_dataparallel(state_dict):
+        from collections import OrderedDict
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            if k.startswith("module."):
+                k = k[7:]
+            new_state_dict[k] = v
+        return new_state_dict
+
+    model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
 
     # read rnnlm
     if args.rnnlm:
@@ -343,12 +409,9 @@ def recog(args):
 
     new_json = {}
     for name, feat in reader:
-        if args.beam_size == 1:
-            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
-        else:
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
-            # get 1best and remove sos
-            y_hat = nbest_hyps[0]['yseq'][1:]
+        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
+        # get 1best and remove sos
+        y_hat = nbest_hyps[0]['yseq'][1:]
 
         y_true = map(int, recog_json[name]['tokenid'].split())
 

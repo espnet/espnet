@@ -17,7 +17,6 @@ import six
 
 # chainer related
 import chainer
-from cupy.cuda import nccl
 
 from chainer import cuda
 from chainer import function
@@ -126,7 +125,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = np.sqrt(self._sum_sqnorm(
+        grad_norm = np.sqrt(sum_sqnorm(
             [p.grad for p in optimizer.target.params(False)]))
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
@@ -134,16 +133,6 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         else:
             optimizer.update()
         delete_feat(x)
-
-    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-    def _sum_sqnorm(self, arr):
-        sq_sum = collections.defaultdict(float)
-        for x in arr:
-            with cuda.get_device_from_array(x) as dev:
-                x = x.ravel()
-                s = x.dot(x)
-                sq_sum[int(dev)] += s
-        return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
 class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessParallelUpdater):
@@ -160,6 +149,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
 
         self._send_message(('update', None))
         with cuda.Device(self._devices[0]):
+            from cupy.cuda import nccl
             # For reducing memory
             self._master.cleargrads()
 
@@ -185,7 +175,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                 del gg
 
             # check gradient value
-            grad_norm = np.sqrt(self._sum_sqnorm(
+            grad_norm = np.sqrt(sum_sqnorm(
                 [p.grad for p in optimizer.target.params(False)]))
             logging.info('grad norm={}'.format(grad_norm))
 
@@ -216,6 +206,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             self._pipes.append(pipe)
 
         with cuda.Device(self._devices[0]):
+            from cupy.cuda import nccl
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:
                 comm_id = nccl.get_unique_id()
@@ -223,15 +214,17 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                 self.comm = nccl.NcclCommunicator(len(self._devices),
                                                   comm_id, 0)
 
-    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-    def _sum_sqnorm(self, arr):
-        sq_sum = collections.defaultdict(float)
-        for x in arr:
-            with cuda.get_device_from_array(x) as dev:
+
+# copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
+def sum_sqnorm(arr):
+    sq_sum = collections.defaultdict(float)
+    for x in arr:
+        with cuda.get_device_from_array(x) as dev:
+            if x is not None:
                 x = x.ravel()
                 s = x.dot(x)
                 sq_sum[int(dev)] += s
-        return sum([float(i) for i in six.itervalues(sq_sum)])
+    return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
 class CustomWorker(multiprocessing.Process):
@@ -247,6 +240,7 @@ class CustomWorker(multiprocessing.Process):
         self.n_devices = len(master._devices)
 
     def setup(self):
+        from cupy.cuda import nccl
         _, comm_id = self.pipe.recv()
         self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
                                           self.proc_id)
@@ -256,6 +250,7 @@ class CustomWorker(multiprocessing.Process):
         self.reporter.add_observer('main', self.model)
 
     def run(self):
+        from cupy.cuda import nccl
         dev = cuda.Device(self.device)
         dev.use()
         self.setup()
@@ -340,6 +335,17 @@ def train(args):
     # check attention type
     if args.atype not in ['noatt', 'dot', 'location']:
         raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
+
+    # specify attention, CTC, hybrid mode
+    if args.mtlalpha == 1.0:
+        mtl_mode = 'ctc'
+        logging.info('Pure CTC mode')
+    elif args.mtlalpha == 0.0:
+        mtl_mode = 'att'
+        logging.info('Pure attention mode')
+    else:
+        mtl_mode = 'mtl'
+        logging.info('Multitask learning mode')
 
     # specify model architecture
     e2e = E2E(idim, odim, args)
@@ -466,12 +472,13 @@ def train(args):
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
-                   trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
+    if mtl_mode is not 'ctc':
+        trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
+                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc':
+        if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -549,12 +556,9 @@ def recog(args):
     new_json = {}
     for name, feat in reader:
         logging.info('decoding ' + name)
-        if args.beam_size == 1:
-            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-        else:
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-            # get 1best and remove sos
-            y_hat = nbest_hyps[0]['yseq'][1:]
+        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+        # get 1best and remove sos
+        y_hat = nbest_hyps[0]['yseq'][1:]
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result

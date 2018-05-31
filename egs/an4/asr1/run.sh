@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
@@ -22,13 +22,11 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
+etype=blstmp     # encoder architecture type
 elayers=4
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# loss related
-ctctype=chainer
 # decoder related
 dlayers=1
 dunits=300
@@ -47,13 +45,14 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=20
 
 # decoding parameter
 beam_size=20
-penalty=0.2
-maxlenratio=0.8
-minlenratio=0.1
+penalty=0.0
+maxlenratio=0.0
+minlenratio=0.0
+ctc_weight=0.5
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
@@ -163,7 +162,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -194,7 +193,6 @@ if [ ${stage} -le 3 ]; then
         --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
-        --ctc_type ${ctctype} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
@@ -214,7 +212,7 @@ if [ ${stage} -le 4 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
 
         # split data
         data=data/${rtask}
@@ -248,6 +246,7 @@ if [ ${stage} -le 4 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
+            --ctc-weight ${ctc_weight} \
             &
         wait
 
