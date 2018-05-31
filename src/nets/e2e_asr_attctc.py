@@ -112,7 +112,7 @@ class E2E(chainer.Chain):
         # subsample info
         # +1 means input (+1) and layers outputs (args.elayer)
         subsample = np.ones(args.elayers + 1, dtype=np.int)
-        if args.etype == 'blstmp' or args.etype == 'blstm':
+        if args.etype == 'blstmp':
             ss = args.subsample.split("_")
             for j in range(min(args.elayers + 1, len(ss))):
                 subsample[j] = int(ss[j])
