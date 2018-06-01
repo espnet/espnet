@@ -59,14 +59,9 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
 
 
 def prepare_batch(batch, reader, eos):
-    # load feature vector
-    for data in batch:
-        feat = reader[data[0].encode('ascii', 'ignore')]
-        data[1]['feat'] = feat
-
     # get target features and input character sequence
-    xs = [d[1]['tokenid'].split() + [str(eos)] for d in data]
-    ys = [d[1]['feat'] for d in data]
+    xs = [b[1]['tokenid'].split() + [str(eos)] for b in batch]
+    ys = [reader[b[0].encode('ascii', 'ignore')] for b in batch]
 
     # remove empty sequence and get sort along with length
     filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(ys)))
@@ -91,10 +86,6 @@ def prepare_batch(batch, reader, eos):
         xs = xs.cuda()
         ys = ys.cuda()
         labels = labels.cuda()
-
-    # delete loaded feature vector?
-    for data in batch:
-        del data[1]['feat']
 
     return xs, ilens, ys, labels, olens
 
