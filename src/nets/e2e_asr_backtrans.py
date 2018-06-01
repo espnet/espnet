@@ -50,7 +50,7 @@ def make_mask(lengths, dim=None):
     """
     batch = len(lengths)
     maxlen = max(lengths)
-    if dim is Nont:
+    if dim is None:
         mask = torch.zeros(batch, maxlen)
     else:
         mask = torch.zeros(batch, maxlen, dim)
