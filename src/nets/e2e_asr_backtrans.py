@@ -6,14 +6,11 @@
 from __future__ import division
 
 import logging
-import math
 import six
 
 import chainer
 import torch
 import torch.nn.functional as F
-
-from chainer import reporter
 
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
@@ -29,13 +26,6 @@ def encoder_init(m):
 def decoder_init(m):
     if isinstance(m, torch.nn.Conv1d):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
-
-
-class Reporter(chainer.Chain):
-    def report(self, mse_loss, bce_loss, loss):
-        reporter.report({'mse_loss': mse_loss}, self)
-        reporter.report({'bce_loss': bce_loss}, self)
-        reporter.report({'loss': loss}, self)
 
 
 def make_mask(lengths, dim=None):

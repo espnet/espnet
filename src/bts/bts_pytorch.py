@@ -123,7 +123,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
         with torch.no_grad():
             for idx, batch in enumerate(it):
                 observation = {}
-                with chainer.reporter(observation):
+                with chainer.reporter.report_scope(observation):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
