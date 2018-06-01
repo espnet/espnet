@@ -63,6 +63,70 @@ def make_mask(lengths, dim=None):
         return mask.byte()
 
 
+class Reporter(chainer.Chain):
+    def report(self, mse_loss, bce_loss, loss):
+        chainer.reporter.report({'mse_loss': mse_loss}, self)
+        chainer.reporter.report({'bce_loss': bce_loss}, self)
+        chainer.reporter.report({'loss': loss}, self)
+
+
+class Tacotron2Loss(torch.nn.Module):
+    """TACOTRON2 LOSS FUNCTION
+
+    :param tacotron2 torch.nn.Module: Tacotron2 model
+    :param bool use_masking: whether to mask padded part in loss calculation
+    :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
+    """
+
+    def __init__(self, use_masking=True, bce_pos_weight=20.0):
+        super(Tacotron2Loss, self).__init__()
+        self.use_masking = use_masking
+        self.bce_pos_weight = bce_pos_weight
+        self.reporter = Reporter()
+
+    def forward(self, outputs, targets):
+        """TACOTRON2 LOSS CALCULATION
+
+        :return: tacotron2 loss
+        :rtype: torch.Tensor
+        """
+        # parse inputs
+        after_outs, before_outs, logits = outputs
+        if len(targets) == 3:
+            ys, labels, olens = targets
+        else:
+            ys, labels = targets
+            olens = None
+
+        if self.use_masking and olens is not None:
+            if self.bce_pos_weight != 1.0:
+                weights = ys.new(*labels.size()).fill_(1)
+                weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
+            else:
+                weights = None
+            # masking padded values
+            mask = make_mask(olens, ys.size(2))
+            ys = ys.masked_select(mask)
+            after_outs = after_outs.masked_select(mask)
+            before_outs = before_outs.masked_select(mask)
+            labels = labels.masked_select(mask[:, :, 0])
+            logits = logits.masked_select(mask[:, :, 0])
+            weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
+            # calculate loss
+            mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
+            bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
+            loss = mse_loss + bce_loss
+        else:
+            # calculate loss
+            mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
+            bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
+            loss = mse_loss + bce_loss
+
+        self.reporter.report(mse_loss.item(), bce_loss.item(), loss.item())
+
+        return loss
+
+
 class Tacotron2(torch.nn.Module):
     """TACOTRON2 BASED SEQ2SEQ MODEL CONVERTS CHARS TO FEATURES
 
@@ -87,8 +151,6 @@ class Tacotron2(torch.nn.Module):
     :param bool cumulate_att_w: whether to cumulate previous attention weight
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
-    :param bool use_masking: whether to mask padded part in loss calculation
-    :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     :param float dropout: dropout rate
     :param float threshold: threshold in inference
     :param float minlenratio: minimum length ratio in inference
@@ -115,8 +177,6 @@ class Tacotron2(torch.nn.Module):
                  cumulate_att_w=True,
                  use_batch_norm=True,
                  use_concate=True,
-                 use_masking=False,
-                 bce_pos_weight=20.0,
                  dropout=0.5,
                  threshold=0.5,
                  maxlenratio=5.0,
@@ -144,8 +204,6 @@ class Tacotron2(torch.nn.Module):
         self.cumulate_att_w = cumulate_att_w
         self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
-        self.use_masking = use_masking
-        self.bce_pos_weight = bce_pos_weight
         self.dropout = dropout
         self.threshold = threshold
         self.maxlenratio = maxlenratio
@@ -186,24 +244,22 @@ class Tacotron2(torch.nn.Module):
         self.enc.apply(encoder_init)
         self.dec.apply(decoder_init)
 
-        # set reporter
-        self.reporter = Reporter()
-
     def forward(self, xs, ilens, ys):
         """TACOTRON2 FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param list ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax)
-        :return: outputs with postnets (B, Lmax, D)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
-        :return: outputs without postnets (B, Lmax, D)
+        :return: outputs without postnets (B, Lmax, odim)
         :rtype: torch.Tensor
         :return: stop logits (B, Lmax)
         :rtype: torch.Tensor
         """
+        maxlen_in = xs.size(-1)
         hs = self.enc(xs, ilens)
-        after_outs, before_outs, logits, att_ws = self.dec(hs, ilens, ys)
+        after_outs, before_outs, logits, att_ws = self.dec(hs, ilens, ys, maxlen_in)
 
         return after_outs, before_outs, logits, att_ws
 
@@ -211,7 +267,7 @@ class Tacotron2(torch.nn.Module):
         """GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
 
         :param tensor x: the sequence of characters (T)
-        :return: the sequence of features (L, D)
+        :return: the sequence of features (L, odim)
         :rtype: tensor
         :return: the sequence of stop probabilities (L)
         :rtype: tensor
@@ -222,59 +278,6 @@ class Tacotron2(torch.nn.Module):
         outs, probs, att_ws = self.dec.inference(h)
 
         return outs, probs, att_ws
-
-    def loss(self, targets, outputs, olens=None):
-        """TACOTRON2 LOSS CALCULATION
-
-        :param tuple targets: consist of (ys, lables), where
-            ys is target padded sequence (B, Lmax, D), and
-            labels is target stop token sequence (B, Lmax)
-        :param tuple outputs: consist of (after_outs, before_outs, logits), where
-            after_outs is Tacotron2 outputs after postnets (B, Lmax, D),
-            before_outs is Tacotron2 outputs before postnets (B, Lmax, D), and
-            logits is Tacotron2 stop token sequence (B, Lmax)
-        :param list olens: list of lengths of each target batch (B)
-        :return: tacotron2 loss
-        :rtype: torch.Tensor
-        """
-        # parse targets and outputs
-        ys, labels = targets
-        after_outs, before_outs, logits = outputs
-
-        if self.use_masking and olens is not None:
-            if self.bce_pos_weight != 1.0:
-                weights = ys.new(*labels.size()).fill_(1)
-                weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
-            else:
-                weights = None
-            # masking padded values
-            mask = make_mask(olens, ys.size(2))
-            ys = ys.masked_select(mask)
-            after_outs = after_outs.masked_select(mask)
-            before_outs = before_outs.masked_select(mask)
-            labels = labels.masked_select(mask[:, :, 0])
-            logits = logits.masked_select(mask[:, :, 0])
-            weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
-            # calculate loss
-            mse_loss = F.mse_loss(before_outs, ys)
-            if self.postnet_layers > 0:
-                mse_loss += F.mse_loss(after_outs, ys)
-            bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
-            loss = mse_loss + bce_loss
-        else:
-            # calculate loss
-            mse_loss = F.mse_loss(before_outs, ys)
-            if self.postnet_layers > 0:
-                mse_loss += F.mse_loss(after_outs, ys)
-            bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
-            loss = mse_loss + bce_loss
-
-        # report
-        logging.info("mse loss = %.5e" % mse_loss.item())
-        logging.info("bce loss = %.5e" % bce_loss.item())
-        self.reporter.report(mse_loss.item(), bce_loss.item(), loss.item())
-
-        return loss
 
 
 class Encoder(torch.nn.Module):
@@ -359,7 +362,9 @@ class Encoder(torch.nn.Module):
             else:
                 xs = self.convs[l](xs)
         xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
-        self.blstm.flatten_parameters()
+        # does not work with dataparallel
+        # see https://github.com/pytorch/pytorch/issues/7092#issuecomment-388194623
+        # self.blstm.flatten_parameters()
         xs, _ = self.blstm(xs)  # (B, Tmax, C)
         xs, _ = pad_packed_sequence(xs, batch_first=True)
 
@@ -495,19 +500,24 @@ class Decoder(torch.nn.Module):
     def zero_state(self, hs):
         return hs.data.new(hs.size(0), self.dunits).zero_()
 
-    def forward(self, hs, hlens, ys):
+    def forward(self, hs, hlens, ys, maxlen_in=None):
         """DECODER FORWARD CALCULATION
 
         :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
         :param list hlens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
-        :return: outputs with postnets (B, Lmax, D)
+        :param int maxlen_in: maximum length of inputs (only for dataparallel)
+        :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
-        :return: outputs without postnets (B, Lmax, D)
+        :return: outputs without postnets (B, Lmax, odim)
         :rtype: torch.Tensor
         :return: stop logits (B, Lmax)
         :rtype: torch.Tensor
         """
+        # check hlens type
+        if isinstance(hlens, torch.Tensor):
+            hlens = hlens.cpu().numpy()
+
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
@@ -546,6 +556,12 @@ class Decoder(torch.nn.Module):
         before_outs = before_outs.transpose(2, 1)  # (B, Lmax, odim)
         after_outs = after_outs.transpose(2, 1)  # (B, Lmax, odim)
         att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
+
+        # for dataparallel (should be same size in each split batch)
+        if maxlen_in is not None and att_ws.size(-1) != maxlen_in:
+            att_ws_new = att_ws.new_zeros(att_ws.size(0), ys.size(1), maxlen_in)
+            att_ws_new[:, :, :att_ws.size(-1)] = att_ws
+            att_ws = att_ws_new
 
         return after_outs, before_outs, logits, att_ws
 
