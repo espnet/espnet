@@ -87,9 +87,18 @@ set -o pipefail
 # non-target languages: cantonese bengali pashto turkish vietnamese haitian tamil kurmanji tokpisin georgian
 train_set=tr_babel10
 train_dev=dt_babel10
-recog_set="dt_cantonese et_cantonese dt_assamese et_assamese dt_bengali et_bengali dt_pashto et_pashto dt_turkish et_turkish\
- dt_tagalog et_tagalog dt_vietnamese et_vietnamese dt_haitian et_haitian dt_swahili et_swahili dt_lao et_lao\
- dt_tamil et_tamil dt_kurmanji et_kurmanji dt_zulu et_zulu dt_tokpisin et_tokpisin dt_georgian et_georgian\
+# non-target
+recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
+ dt_babel_tagalog et_babel_tagalog dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian\
+ dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian"
+# target
+recog_set="dt_babel_assamese et_babel_assamese dt_babel_tagalog et_babel_tagalog dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao dt_babel_zulu et_babel_zulu
+ dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
+ dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
+# whole set
+recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assamese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
+ dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao\
+ dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_zulu et_babel_zulu dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian\
  dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
  dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
 
