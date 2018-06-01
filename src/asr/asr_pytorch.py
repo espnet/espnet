@@ -17,7 +17,6 @@ from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 
-import numpy as np
 import torch
 
 # spnet related
@@ -28,8 +27,9 @@ from asr_utils import delete_feat
 from asr_utils import make_batchset
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import E2E
+from e2e_asr_attctc_th import lecun_normal_init_parameters
 from e2e_asr_attctc_th import Loss
-from e2e_asr_attctc_th import pad_list
+from e2e_asr_attctc_th import set_forget_bias_to_one
 
 # for kaldi io
 import kaldi_io_py
@@ -415,7 +415,7 @@ def recog(args):
     for name, feat in reader:
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
-        y_hat = nbest_hyps[0]['yseq'][1:]
+        y_hat = [idx.item() for idx in nbest_hyps[0]['yseq'][1:]]
 
         y_true = map(int, recog_json[name]['tokenid'].split())
 
@@ -442,7 +442,7 @@ def recog(args):
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):
-                y_hat = hyp['yseq'][1:]
+                y_hat = [idx.item() for idx in hyp['yseq'][1:]]
                 seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
                 seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
                 new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = " ".join([str(idx) for idx in y_hat])
@@ -488,6 +488,10 @@ def extract(args):
     # prepare Kaldi reader
     reader = kaldi_io_py.read_mat_scp(args.feat)
 
+    # get number of utterances
+    with open(args.feat, "r") as f:
+        nutt = len(f.readlines())
+
     # chech direcitory
     outdir = os.path.dirname(args.out)
     if len(outdir) != 0 and not os.path.exists(outdir):
@@ -495,16 +499,17 @@ def extract(args):
 
     # write to ark file
     torch.set_grad_enabled(False)
-    arkscp = 'ark:| copy-feats ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
+    arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
-        for utt_id, feat in reader:
+        for idx, (utt_id, feat) in enumerate(reader, 1):
             xs = torch.from_numpy(feat).unsqueeze(0)
             ilens = [feat.shape[0]]
             if args.ngpu > 0:
                 xs = xs.cuda()
             hs, _ = extractor(xs, ilens)
-            logging.info(utt_id)
-            kaldi_io_py.write_mat(f, hs.cpu().numpy(), utt_id)
+            logging.info("(%d/%d) %s (size:%d->%d)" % (
+                idx, nutt, utt_id, ilens[0], hs.size(1)))
+            kaldi_io_py.write_mat(f, hs.cpu().numpy()[0], utt_id)
 
 
 def retrain(args):
@@ -542,8 +547,11 @@ def retrain(args):
 
     # check flatstart
     if args.flatstart:
-        # initialize decoder
-        model.predictor.init_like_chainer()
+        # initialzie parameters of attention and decoder
+        lecun_normal_init_parameters(model.predictor.dec)
+        model.predictor.dec.embed.weight.data.normal_(0, 1)
+        for l in range(len(model.predictor.dec.decoder)):
+            set_forget_bias_to_one(model.predictor.dec.decoder[l].bias_ih)
 
     # write model config
     if not os.path.exists(args.outdir):
