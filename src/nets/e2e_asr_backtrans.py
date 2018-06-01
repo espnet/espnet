@@ -38,7 +38,7 @@ class Reporter(chainer.Chain):
         reporter.report({'loss': loss}, self)
 
 
-def make_mask(lengths, dim):
+def make_mask(lengths, dim=None):
     """FUNCTION TO MAKE BINARY MASK
 
     Args:
@@ -50,7 +50,10 @@ def make_mask(lengths, dim):
     """
     batch = len(lengths)
     maxlen = max(lengths)
-    mask = torch.zeros(batch, maxlen, dim)
+    if dim is Nont:
+        mask = torch.zeros(batch, maxlen)
+    else:
+        mask = torch.zeros(batch, maxlen, dim)
     for i, l in enumerate(lengths):
         mask[i, :l] = 1
 
@@ -255,7 +258,7 @@ class Tacotron2(torch.nn.Module):
             # calculate loss
             mse_loss = F.mse_loss(before_outs, ys)
             if self.postnet_layers > 0:
-                mse_loss += F.mse_loss(before_outs, ys)
+                mse_loss += F.mse_loss(after_outs, ys)
             bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
             loss = mse_loss + bce_loss
         else:
