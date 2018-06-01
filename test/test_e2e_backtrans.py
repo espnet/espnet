@@ -7,6 +7,7 @@ import torch
 
 from e2e_asr_attctc_th import pad_list
 from e2e_asr_backtrans import Tacotron2
+from e2e_asr_backtrans import Tacotron2Loss
 
 
 def test_tacotron2():
@@ -24,10 +25,11 @@ def test_tacotron2():
         labels[i, l - 1:] = 1
 
     model = Tacotron2(idim, odim)
+    criterion = Tacotron2Loss()
     optimizer = torch.optim.Adam(model.parameters())
 
     after, before, logits, att_ws = model(xs, ilens, ys)
-    loss = model.loss((ys, labels), (after, before, logits))
+    loss = criterion(after, before, logits, ys, logits)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
