@@ -120,6 +120,7 @@ class Tacotron2Loss(torch.nn.Module):
             bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
             loss = mse_loss + bce_loss
 
+        logging.info("loss = %.3e (bce: %.3e, mse: %.3e)" % (loss.item(), bce_loss.item(), mse_loss.item()))
         self.reporter.report(mse_loss.item(), bce_loss.item(), loss.item())
 
         return loss
