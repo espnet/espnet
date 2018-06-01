@@ -404,7 +404,6 @@ def recog(args):
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
         y_hat = nbest_hyps[0]['yseq'][1:]
-
         y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
 
         # print out decoding result

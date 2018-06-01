@@ -10,6 +10,7 @@ lang=""
 feat="" # feat.scp
 oov="<unk>"
 bpecode=""
+verbose=1
 
 . utils/parse_options.sh
 
@@ -25,8 +26,13 @@ rm -f ${tmpdir}/*.scp
 
 # input, which is not necessary for decoding mode, and make it as an option
 if [ ! -z ${feat} ]; then
-    feat-to-len scp:${feat} ark,t:${tmpdir}/ilen.scp
-    feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp
+    if [ ${verbose} -eq 0 ]; then
+        feat-to-len scp:${feat} ark,t:${tmpdir}/ilen.scp &> /dev/null
+        feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp &> /dev/null
+    else
+        feat-to-len scp:${feat} ark,t:${tmpdir}/ilen.scp 
+        feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp 
+    fi
 fi
 
 # output
@@ -56,7 +62,7 @@ for x in ${dir}/text ${dir}/utt2spk ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
     cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done
-mergejson.py ${tmpdir}/*.json > ${tmpdir}/merged.json
+mergejson.py --verbose ${verbose} ${tmpdir}/*.json > ${tmpdir}/merged.json
 convertjson.py ${tmpdir}/merged.json
 
 rm -fr ${tmpdir}

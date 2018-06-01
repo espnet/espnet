@@ -287,7 +287,7 @@ if [ ${stage} -le 4 ]; then
         # make json files for recognition        
         for j in `seq 1 ${nj}`; do
             mkdir -p ${feat_recog_dir}/${j}
-            dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+            dump.sh --cmd "$train_cmd" --nj 1 --do_delta $do_delta \
                 ${sdata}/${j}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog_${rtask} ${feat_recog_dir}/${j}
             data2json.sh --feat ${feat_recog_dir}/${j}/feats.scp --nlsyms ${nlsyms} \
                 ${sdata}/${j} ${dict} > ${feat_recog_dir}/${j}/data.json

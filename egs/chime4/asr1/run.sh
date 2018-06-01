@@ -226,23 +226,25 @@ fi
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32
-
+    if [ ${verbose} -eq 0 ]; then
+        echo "(Warning) Reduced verbosity for decoding."
+    fi
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         
         # split data
-        data=data-fbank/${rtask} # TODO: Need to be declared(?)
+        data=data-fbank/${rtask}
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
         # make json files for recognition        
         for j in `seq 1 ${nj}`; do
             mkdir -p ${feat_recog_dir}/${j}
-            dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+            dump.sh --verbose ${verbose} --cmd "$train_cmd" --nj 1 --do_delta $do_delta \
                 ${sdata}/${j}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/recog_${rtask} ${feat_recog_dir}/${j}
-            data2json.sh --feat ${feat_recog_dir}/${j}/feats.scp --nlsyms ${nlsyms} \
+            data2json.sh --verbose ${verbose} --feat ${feat_recog_dir}/${j}/feats.scp --nlsyms ${nlsyms} \
                 ${sdata}/${j} ${dict} > ${feat_recog_dir}/${j}/data.json
         done
 

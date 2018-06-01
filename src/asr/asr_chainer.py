@@ -517,12 +517,17 @@ def recog(args):
         new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
         # add 1-best recognition results to json
+        logging.debug("dump token id")
         out_dic = dict()
         for _key in recog_json[name]['output'][0]:
             out_dic[_key] = recog_json[name]['output'][0][_key]
 
+        # TODO(karita) make consistent to chainer as idx[0] not idx
         out_dic['rec_tokenid'] = " ".join(
             [str(idx[0]) for idx in y_hat])
+        logging.debug("dump token")
+        out_dic['rec_token'] = " ".join(seq_hat)
+        logging.debug("dump text")
         out_dic['rec_text'] = seq_hat_text
 
         new_json[name]['output'] = [out_dic]
