@@ -20,8 +20,6 @@ from chainer.training import extensions
 import kaldi_io_py
 import lazy_io
 
-from asr_utils import converter_kaldi
-from asr_utils import delete_feat
 from e2e_asr_attctc_th import pad_list
 from e2e_asr_backtrans import Tacotron2
 from e2e_asr_backtrans import Tacotron2Loss
@@ -29,7 +27,7 @@ from e2e_asr_backtrans import Tacotron2Loss
 import matplotlib
 matplotlib.use('Agg')
 
-MAX_SAVE_ATT_W = 3
+MAX_SAVE_ATT_W = 5
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
@@ -60,7 +58,12 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
     return minibatch
 
 
-def prepare_batch(data, eos):
+def prepare_batch(batch, reader, eos):
+    # load feature vector
+    for data in batch:
+        feat = reader[data[0].encode('ascii', 'ignore')]
+        data[1]['feat'] = feat
+
     # get target features and input character sequence
     xs = [d[1]['tokenid'].split() + [str(eos)] for d in data]
     ys = [d[1]['feat'] for d in data]
@@ -88,6 +91,10 @@ def prepare_batch(data, eos):
         xs = xs.cuda()
         ys = ys.cuda()
         labels = labels.cuda()
+
+    # delete loaded feature vector?
+    for data in batch:
+        del data[1]['feat']
 
     return xs, ilens, ys, labels, olens
 
@@ -119,22 +126,20 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
         else:
             it = copy.copy(iterator)
 
-        summary = reporter_module.DictSummary()
+        summary = chainer.reporter.DictSummary()
 
         self.model.eval()
         with torch.no_grad():
             for idx, batch in enumerate(it):
                 observation = {}
-                with reporter_module.report_scope(observation):
+                with chainer.reporter(observation):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
                     # batch only has one minibatch utterance, which is specified by batch[0]
-                    data = converter_kaldi(batch[0], self.reader)
-                    xs, ilens, ys, labels, olens = prepare_batch(data, self.idim - 1)
+                    xs, ilens, ys, labels, olens = prepare_batch(batch[0], self.reader, self.eos)
                     after_outs, before_outs, logits, att_ws = self.model(xs, ilens, ys)
-                    self.criterion((after_outs, before_outs, logits), (ys, labels, olens))
-                    delete_feat(data)
+                    self.criterion(after_outs, before_outs, logits, ys, labels, olens)
 
                 # save visialized attention weight
                 if idx < MAX_SAVE_ATT_W:
@@ -162,7 +167,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         self.reader = reader
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
-        self.eos = model.idim - 1 if self.num_gpu == 1 else model.module.idim -1
+        self.eos = model.idim - 1 if self.num_gpu == 1 else model.module.idim - 1
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -181,12 +186,11 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         if len(batch[0]) < self.num_gpu:
             logging.warning('batch size is less than number of gpus. Ignored')
             return
-        data = converter_kaldi(batch[0], self.reader)
-        xs, ilens, ys, labels, olens = prepare_batch(data, self.eos)
+        xs, ilens, ys, labels, olens = prepare_batch(batch[0], self.reader, self.eos)
 
         # Compute the loss at this time step and accumulate it
         after_outs, before_outs, logits, att_ws = self.model(xs, ilens, ys)
-        loss = self.criterion((after_outs, before_outs, logits), (ys, labels, olens))
+        loss = self.criterion(after_outs, before_outs, logits, ys, labels, olens)
         optimizer.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
@@ -198,7 +202,6 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
-        delete_feat(data)
 
 
 def train(args):
@@ -330,7 +333,7 @@ def train(args):
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
         if ngpu > 1:
-            model.module2.load_state_dict(torch.load(args.outdir + '/model.loss.best'))
+            model.module.load_state_dict(torch.load(args.outdir + '/model.loss.best'))
         else:
             model.load_state_dict(torch.load(args.outdir + '/model.loss.best'))
         model = trainer.updater.model

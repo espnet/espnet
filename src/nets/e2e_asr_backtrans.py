@@ -73,7 +73,6 @@ class Reporter(chainer.Chain):
 class Tacotron2Loss(torch.nn.Module):
     """TACOTRON2 LOSS FUNCTION
 
-    :param tacotron2 torch.nn.Module: Tacotron2 model
     :param bool use_masking: whether to mask padded part in loss calculation
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
@@ -84,21 +83,20 @@ class Tacotron2Loss(torch.nn.Module):
         self.bce_pos_weight = bce_pos_weight
         self.reporter = Reporter()
 
-    def forward(self, outputs, targets):
-        """TACOTRON2 LOSS CALCULATION
+    def forward(self, after_outs, before_outs, logits, ys, labels, olens=None):
+        """TACOTRON2 LOSS FORWARD CALCULATION
 
-        :return: tacotron2 loss
+        :param torch.Tensor after_outs: outputs with postnets (B, Lmax, odim)
+        :param torch.Tensor before_outs: outputs without postnets (B, Lmax, odim)
+        :param torch.Tensor logits: stop logits (B, Lmax)
+        :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
+        :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
+        :param torch.Tensor olens: batch of the lengths of each target (B)
+        :return: loss value
         :rtype: torch.Tensor
         """
-        # parse inputs
-        after_outs, before_outs, logits = outputs
-        if len(targets) == 3:
-            ys, labels, olens = targets
-        else:
-            ys, labels = targets
-            olens = None
-
         if self.use_masking and olens is not None:
+            # weight positive samples
             if self.bce_pos_weight != 1.0:
                 weights = ys.new(*labels.size()).fill_(1)
                 weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
@@ -256,10 +254,11 @@ class Tacotron2(torch.nn.Module):
         :rtype: torch.Tensor
         :return: stop logits (B, Lmax)
         :rtype: torch.Tensor
+        :return: attetion weights (B, Lmax, Tmax)
+        :rtype: torch.Tensor
         """
-        maxlen_in = xs.size(-1)
         hs = self.enc(xs, ilens)
-        after_outs, before_outs, logits, att_ws = self.dec(hs, ilens, ys, maxlen_in)
+        after_outs, before_outs, logits, att_ws = self.dec(hs, ilens, ys, xs.size(-1))
 
         return after_outs, before_outs, logits, att_ws
 
@@ -500,18 +499,20 @@ class Decoder(torch.nn.Module):
     def zero_state(self, hs):
         return hs.data.new(hs.size(0), self.dunits).zero_()
 
-    def forward(self, hs, hlens, ys, maxlen_in=None):
+    def forward(self, hs, hlens, ys, att_w_maxlen=None):
         """DECODER FORWARD CALCULATION
 
         :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
         :param list hlens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
-        :param int maxlen_in: maximum length of inputs (only for dataparallel)
+        :param int att_w_maxlen: maximum length of att_w (only for dataparallel)
         :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
         :return: outputs without postnets (B, Lmax, odim)
         :rtype: torch.Tensor
         :return: stop logits (B, Lmax)
+        :rtype: torch.Tensor
+        :return: attetion weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
         # check hlens type
@@ -558,8 +559,8 @@ class Decoder(torch.nn.Module):
         att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
 
         # for dataparallel (should be same size in each split batch)
-        if maxlen_in is not None and att_ws.size(-1) != maxlen_in:
-            att_ws_new = att_ws.new_zeros(att_ws.size(0), ys.size(1), maxlen_in)
+        if att_w_maxlen is not None and att_ws.size(-1) != att_w_maxlen:
+            att_ws_new = att_ws.new_zeros(att_ws.size(0), ys.size(1), att_w_maxlen)
             att_ws_new[:, :, :att_ws.size(-1)] = att_ws
             att_ws = att_ws_new
 
