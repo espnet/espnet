@@ -17,7 +17,7 @@ econv_filts=5
 # decoder related
 dlayers=2
 dunits=1024
-prenet_layers=2 # if set 0, no prenet is used
+prenet_layers=2  # if set 0, no prenet is used
 prenet_units=256
 postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
@@ -25,18 +25,18 @@ postnet_filts=5
 # attention related
 adim=512
 aconv_chans=32
-aconv_filts=15 # resulting in filter_size = aconv_filts * 2 + 1
+aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
 cumulate_att_w=true # whether to cumulate attetion weight
 use_batch_norm=true # whether to use batch normalization in conv layer
-use_concate=true # whether to concatenate encoder embedding with decoder lstm outputs
-use_residual=false # whether to concatenate encoder embedding with decoder lstm outputs
-use_masking=false
+use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
+use_residual=false  # whether to concatenate encoder embedding with decoder lstm outputs
+use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=20.0
 # minibatch related
-batchsize=32
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-epochs=30
+batchsize=50
+maxlen_in=200  # if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_out=100 # if output length > maxlen_out, batchsize is automatically reduced
+epochs=20
 # optimization related
 lr=1e-3
 eps=1e-6
@@ -53,14 +53,23 @@ tag=
 threshold=0.5
 maxlenratio=5.0
 minlenratio=0.0
-nj=64
+nj=32
 # decoder retraining related
 flatstart=false
+# decoding related
+beam_size=20
+penalty=0.0
+maxlenratio=0.0
+minlenratio=0.0
+ctc_weight=0.0
+recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_set="test_clean test_other dev_clean dev_other"
 
 . utils/parse_options.sh
 set -e
 
 basedir=exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150
+# basedir=exp/${train_set}_debug
 dumpdir=${basedir}/outputs
 model=${basedir}/results/model.acc.best
 config=${basedir}/results/model.conf
@@ -69,7 +78,7 @@ dict=data/lang_1char/${train_set}_units.txt
 if [ ${stage} -le 5 ];then
     echo "stage 5: Encoder state extraction"
     for sets in ${train_set} ${train_dev};do
-        [ ! -e ${dumpdir}/${sets} ] && mkdir -p ${dumpdir}/${sets}
+        [ ! -e ${dumpdir}/${sets}/log ] && mkdir -p ${dumpdir}/${sets}/log
         # split scp file
         scp=dump/${sets}/delta${do_delta}/feats.scp
         split_scps=""
@@ -78,10 +87,11 @@ if [ ${stage} -le 5 ];then
         done
         utils/split_scp.pl $scp $split_scps || exit 1;
         # decode
-        ${train_cmd} JOB=1:$nj ${dumpdir}/${sets}/log/extract.log \
+        ${train_cmd} JOB=1:$nj ${dumpdir}/${sets}/log/extract.JOB.log \
             asr_extract.py \
                 --backend pytorch \
                 --ngpu 0 \
+                --verbose ${verbose} \
                 --out ${dumpdir}/${sets}/feats.JOB \
                 --feat ${dumpdir}/${sets}/log/feats.JOB.scp \
                 --model ${model} \
@@ -126,7 +136,7 @@ if [ -z ${tag} ];then
     if ${use_masking};then
         expdir=${expdir}_masking_pw${bce_pos_weight}
     fi
-    expdir=${expdir}_lr${lr}_ep${eps}_wd${weight_decay}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=${expdir}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))_mli${maxlen_in}_mlo${maxlen_out}
 else
     expdir=exp/${train_set}_${tag}
 fi
@@ -213,12 +223,12 @@ if [ ${stage} -le 7 ];then
     done
 fi
 
+retroutdir=exp/re${train_set}_bs${batchsize}_mli${maxlen_out}_mlo${maxlen_in}
+if ${flatstart};then
+    retroutdir=${retroutdir}_flatstart
+fi
 if [ ${stage} -le 8 ];then
     echo "stage 8: Re-training decoder"
-    retroutdir=exp/re${train_set}_bs${batchsize}_mli${maxlen_out}_mlo${maxlen_in}
-    if ${flatstart};then
-        retroutdir=${retroutdir}_flatstart
-    fi
     if [ ! -e ${retroutdir}/data/train/data.json ];then
         # copy train data with ground-truth scp
         utils/copy_data_dir.sh data/${train_set} ${retroutdir}/data/${train_set}
@@ -256,4 +266,52 @@ if [ ${stage} -le 8 ];then
             --maxlen-out ${maxlen_in} \
             --epochs ${epochs} \
             --flatstart ${flatstart}
+fi
+
+if [ ${stage} -le 9 ]; then
+    echo "stage 9: Decoding"
+    for rtask in ${recog_set}; do
+    (
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+
+        # split data
+        data=data/${rtask}
+        split_data.sh --per-utt ${data} ${nj};
+        sdata=${data}/split${nj}utt;
+
+        # feature extraction
+        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
+        if ${do_delta}; then
+        feats="$feats add-deltas ark:- ark:- |"
+        fi
+
+        # make json labels for recognition
+        data2json.sh ${data} ${dict} > ${data}/data.json
+
+        #### use CPU for decoding
+        ngpu=0
+
+        ${decode_cmd} JOB=1:${nj} ${retroutdir}/${decode_dir}/log/decode.JOB.log \
+            asr_recog.py \
+            --ngpu ${ngpu} \
+            --backend pytorch \
+            --recog-feat "$feats" \
+            --recog-label ${data}/data.json \
+            --result-label ${retroutdir}/${decode_dir}/data.JOB.json \
+            --model ${retroutdir}/results/model.${recog_model}  \
+            --model-conf ${config} \
+            --beam-size ${beam_size} \
+            --penalty ${penalty} \
+            --maxlenratio ${maxlenratio} \
+            --minlenratio ${minlenratio} \
+            --ctc-weight ${ctc_weight} \
+            &
+        wait
+
+        score_sclite.sh --wer true ${retroutdir}/${decode_dir} ${dict}
+
+    ) &
+    done
+    wait
+    echo "Finished"
 fi
