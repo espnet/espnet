@@ -141,7 +141,10 @@ def pad_list(xs, pad_value=float("nan")):
     assert isinstance(xs[0], Variable)
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
-    pad = Variable(xs[0].data.new(n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value)
+    pad = Variable(
+        xs[0].data.new(
+            n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
+        volatile=xs[0].volatile)
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
     return pad
@@ -285,12 +288,18 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+        if self.training:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+        else:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
+        if self.training:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
+        else:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
 
         # 1. encoder
         xpad = pad_list(hs)
