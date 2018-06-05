@@ -10,7 +10,7 @@ lang=""
 feat="" # feat.scp
 oov="<unk>"
 bpecode=""
-verbose=1
+verbose=0
 
 . utils/parse_options.sh
 

@@ -232,21 +232,21 @@ if [ ${stage} -le 4 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         
         # split data
         data=data-fbank/${rtask}
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-        # make json files for recognition        
-        for j in `seq 1 ${nj}`; do
-            mkdir -p ${feat_recog_dir}/${j}
-            dump.sh --verbose ${verbose} --cmd "$train_cmd" --nj 1 --do_delta $do_delta \
-                ${sdata}/${j}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/recog_${rtask} ${feat_recog_dir}/${j}
-            data2json.sh --verbose ${verbose} --feat ${feat_recog_dir}/${j}/feats.scp --nlsyms ${nlsyms} \
-                ${sdata}/${j} ${dict} > ${feat_recog_dir}/${j}/data.json
-        done
+        # feature extraction
+        feats="ark,s,cs:apply-cmvn --norm-vars=true data-fbank/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
+        if ${do_delta}; then
+        feats="$feats add-deltas ark:- ark:- |"
+        fi
+
+        # make json labels for recognition
+        data2json.sh --verbose 1 --feat ${data}/feats.scp ${data} \
+            ${dict} > ${data}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -257,7 +257,8 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-json ${feat_recog_dir}/JOB/data.json \
+            --recog-feat "$feats" \
+            --recog-label ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

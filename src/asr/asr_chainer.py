@@ -491,13 +491,28 @@ def recog(args):
     else:
         rnnlm = None
 
-    # read json data
-    with open(args.recog_json, 'rb') as f:
-        recog_json = json.load(f)['utts']
+    # This part choose the reader depending on the input data
+    if args.recog_json is None:
+        # prepare Kaldi reader
+        reader = kaldi_io_py.read_mat_ark(args.recog_feat)
+
+        # read json data
+        with open(args.recog_label, 'rb') as f:
+            recog_json = json.load(f)['utts']
+    else:
+        # To execute this part is necessary to dump the features previously.
+        # read json data
+        with open(args.recog_json, 'rb') as f:
+            recog_json = json.load(f)['utts']
+        reader = recog_json.keys()
 
     new_json = {}
-    for name in recog_json.keys():
-        feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
+    for _name in reader:
+        if args.recog_json is None:
+            name, feat = _name
+        else:
+            name = _name
+            feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
         logging.info('decoding ' + name)
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
         # get 1best and remove sos

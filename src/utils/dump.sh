@@ -7,8 +7,8 @@
 
 cmd=run.pl
 do_delta=false
-nj=32
-verbose=1
+nj=1
+verbose=0
 . utils/parse_options.sh
 
 scp=$1
