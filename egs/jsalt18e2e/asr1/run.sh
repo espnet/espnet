@@ -66,6 +66,11 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
+# data directories
+csjdir=../../csj
+libridir=../../librispeech
+babeldir=../../babel
+
 . ./path.sh
 . ./cmd.sh
 
@@ -109,6 +114,10 @@ if [ ${stage} -le 0 ]; then
     # add a check whether the following data preparation is completed or not
 
     # CSJ Japanese
+    if [ -d "$csjdir/asr1/data" ]; then
+	echo "run $csjdir/asr1/run.sh first"
+	exit 1
+    fi
     lang_code=csj_japanese
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_nodup data/tr_${lang_code}
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_dev   data/dt_${lang_code}
@@ -126,6 +135,10 @@ if [ ${stage} -le 0 ]; then
 
     # librispeech
     lang_code=libri_english
+    if [ -d "$libridir/asr1/data" ]; then
+	echo "run $libridir/asr1/run.sh first"
+	exit 1
+    fi
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/train_960  data/tr_${lang_code}
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/dev_clean  data/dt_${lang_code}_clean
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/dev_other  data/dt_${lang_code}_other
@@ -134,6 +147,10 @@ if [ ${stage} -le 0 ]; then
 
     # Babel
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
+	if [ -d "$babeldir/asr1_${lang_code}/data" ]; then
+	    echo "run $babeldir/asr1/local/run_all.sh first"
+	    exit 1
+	fi
 	langid=`echo $x | cut -f 1 -d"-"`
 	lang_code=`echo $x | cut -f 2 -d"-"`
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/train          data/tr_babel_${lang_code}
