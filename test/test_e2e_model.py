@@ -21,6 +21,8 @@ def make_arg(**kwargs):
         dlayers=1,
         dunits=300,
         atype="location",
+        aheads=4,
+        awin=5,
         aconv_chans=10,
         aconv_filts=100,
         mtlalpha=0.5,
@@ -204,3 +206,78 @@ def test_zero_length_target(etype):
     # ]
     # ch_ctc, ch_att, ch_acc = ch_model(data)
     # th_ctc, th_att, th_acc = th_model(data)
+
+
+@pytest.mark.parametrize("atype",
+                         ['noatt', 'dot', 'location'])
+def test_chainer_attention_trainable_and_decodable(atype):
+    args = make_arg(atype=atype)
+    for m_str in ["e2e_asr_attctc"]:
+        if m_str[-3:] == "_th":
+            pytest.importorskip('torch')
+
+        m = importlib.import_module(m_str)
+        model = m.Loss(m.E2E(40, 5, args), 0.5)
+        out_data = "1 2 3 4"
+        data = [
+            ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
+                numpy.float32), tokenid=out_data)),
+            ("bbb", dict(feat=numpy.random.randn(200, 40).astype(
+                numpy.float32), tokenid=out_data))
+        ]
+        attn_loss = model(data)
+        attn_loss.backward()  # trainable
+
+        in_data = data[0][1]["feat"]
+        model.predictor.recognize(in_data, args, args.char_list)  # decodable
+
+
+@pytest.mark.parametrize("atype",
+                         ['noatt', 'dot', 'add', 'location', 'coverage',
+                          'coverage_location', 'location2d', 'location_recurrent',
+                          'multi_head_dot', 'multi_head_add', 'multi_head_loc',
+                          'multi_head_multi_res_loc'])
+def test_pytorch_attention_trainable_and_decodable(atype):
+    args = make_arg(atype=atype)
+    for m_str in ["e2e_asr_attctc_th"]:
+        if m_str[-3:] == "_th":
+            pytest.importorskip('torch')
+
+        m = importlib.import_module(m_str)
+        model = m.Loss(m.E2E(40, 5, args), 0.5)
+        out_data = "1 2 3 4"
+        data = [
+            ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
+                numpy.float32), tokenid=out_data)),
+            ("bbb", dict(feat=numpy.random.randn(200, 40).astype(
+                numpy.float32), tokenid=out_data))
+        ]
+        attn_loss = model(data)
+        attn_loss.backward()  # trainable
+
+        in_data = data[0][1]["feat"]
+        model.predictor.recognize(in_data, args, args.char_list)  # decodable
+
+
+@pytest.mark.parametrize("atype",
+                         ['noatt', 'dot', 'add', 'location', 'coverage',
+                          'coverage_location', 'location2d', 'location_recurrent',
+                          'multi_head_dot', 'multi_head_add', 'multi_head_loc',
+                          'multi_head_multi_res_loc'])
+def test_pytorch_attention_visualize(atype):
+    args = make_arg(atype=atype)
+    for m_str in ["e2e_asr_attctc_th"]:
+        if m_str[-3:] == "_th":
+            pytest.importorskip('torch')
+
+        m = importlib.import_module(m_str)
+        model = m.E2E(40, 5, args)
+        out_data = "1 2 3 4"
+        data = [
+            ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
+                numpy.float32), tokenid=out_data)),
+            ("bbb", dict(feat=numpy.random.randn(200, 40).astype(
+                numpy.float32), tokenid=out_data))
+        ]
+        model.eval()
+        model.visualize_att_w(data)
