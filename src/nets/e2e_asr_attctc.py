@@ -199,7 +199,7 @@ class E2E(chainer.Chain):
             loss_att = None
             acc = None
         else:
-            loss_att, acc, att_w = self.dec(hs, ys)
+            loss_att, acc, _ = self.dec(hs, ys)
 
         return loss_ctc, loss_att, acc
 
@@ -232,6 +232,40 @@ class E2E(chainer.Chain):
             y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
             return y
+
+    def visualize_attention(self, data):
+        '''E2E attention vizualization
+
+        :param data list: list of dicts of the input (B)
+        :return: attention weights (B, Lmax, Tmax)
+        :rtype: float ndarray
+        '''
+        # utt list of frame x dim
+        xs = [i[1]['feat'] for i in data]
+        # remove 0-output-length utterances
+        tids = [d[1]['tokenid'].split() for d in data]
+        filtered_index = list(filter(lambda i: len(tids[i]) > 0, range(len(xs))))
+        if len(filtered_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(filtered_index)))
+        xs = [xs[i] for i in filtered_index]
+        # utt list of olen
+        ys = [self.xp.array(np.fromiter(map(int, tids[i]), dtype=np.int32))
+              for i in filtered_index]
+        ys = [chainer.Variable(y) for y in ys]
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        ilens = self.xp.array([xx.shape[0] for xx in xs], dtype=np.int32)
+        hs = [chainer.Variable(self.xp.array(xx, dtype=np.float32))
+              for xx in xs]
+
+        hs, ilens = self.enc(hs, ilens)
+        _, _, att_ws = self.dec(hs, ys)
+        att_ws = F.stack(att_ws, axis=1)
+        att_ws.to_cpu()
+
+        return att_ws.data
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
