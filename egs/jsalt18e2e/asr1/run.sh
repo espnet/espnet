@@ -3,9 +3,11 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# This is a task of 10 language-indepent ASR used in
-# S. Watanabe et al, "Language independent end-to-end architecture for
-# joint language identification and speech recognition," Proc. ASRU'17, pp. 265--269 (2017)
+# This is a baseline for "JSALT'18 Multilingual End-to-end ASR for Incomplete Data"
+# We use 5 Babel language (Assamese Tagalog Swahili Lao Zulu), Librispeech (English), and CSJ (Japanese)
+# as a target language, and use 10 Babel language (Cantonese Bengali Pashto Turkish Tagalog Vietnamese
+# Haitian Tamil Kurmanji Tok-Pisin Georgian) as a non-target language.
+# The recipe first build language-independent ASR by using non-target languages
 
 . ./path.sh
 . ./cmd.sh
@@ -158,12 +160,12 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/li10/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{13,14,15,16}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/li10/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{13,14,15,16}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
