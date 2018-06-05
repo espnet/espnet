@@ -11,6 +11,7 @@ import math
 import sys
 
 import chainer
+import matplotlib.pyplot as plt
 import numpy as np
 import six
 import torch
@@ -29,6 +30,7 @@ from e2e_asr_common import label_smoothing_dist
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
+MAX_SHOW_ATTENTION = 1
 
 
 def to_cuda(m, x):
@@ -316,7 +318,7 @@ class E2E(torch.nn.Module):
             loss_att = None
             acc = None
         else:
-            loss_att, acc, _ = self.dec(hpad, hlens, ys)
+            loss_att, acc = self.dec(hpad, hlens, ys)
 
         return loss_ctc, loss_att, acc
 
@@ -354,10 +356,11 @@ class E2E(torch.nn.Module):
             self.train()
         return y
 
-    def visualize_attention(self, data):
+    def visualize_attention(self, data, use_visualization=False):
         '''E2E attention vizualization
 
-        :param data list: list of dicts of the input (B)
+        :param list data: list of dicts of the input (B)
+        :param bool use_visualization: whether to visualize attetion weights
         :return: multi-head case => list of attention weights (B, Lmax, Tmax) * H
                  other case => attention weights (B, Lmax, Tmax)
         :rtype: list of float ndarray or float ndarray
@@ -388,32 +391,24 @@ class E2E(torch.nn.Module):
         xpad = pad_list(hs)
         hpad, hlens = self.enc(xpad, ilens)
 
-        _, _, att_ws = self.dec(hpad, hlens, ys)
+        att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
 
-        if isinstance(self.att, AttLoc2D):
-            # att_ws => list of previous concate attentions
-            att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).data.cpu().numpy()
-            return att_ws
-        elif isinstance(self.att, (AttCov, AttCovLoc)):
-            # att_ws => list of list of previous attentions
-            att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).data.cpu().numpy()
-            return att_ws
-        elif isinstance(self.att, AttLocRec):
-            # att_ws => list of tuple of attention and hidden states
-            att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).data.cpu().numpy()
-            return att_ws
-        elif isinstance(self.att, (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
-            # att_ws => list of list of each head attetion
-            n_heads = len(att_ws[0])
-            att_ws_sorted_by_head = []
-            for h in six.moves.range(n_heads):
-                att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1).data.cpu().numpy()
-                att_ws_sorted_by_head += [att_ws_head]
-            return att_ws_sorted_by_head
-        else:
-            # att_ws => list of attetions
-            att_ws = torch.stack(att_ws, dim=1).data.cpu().numpy()
-            return att_ws
+        # visualize
+        if use_visualization:
+            if isinstance(att_ws, list):
+                for i in six.moves.range(MAX_SHOW_ATTENTION):
+                    for h, att_w in enumerate(att_ws, 1):
+                        plt.subplot(1, len(att_ws), h)
+                        plt.imshow(att_w[i], aspect="auto")
+                    plt.show()
+                    plt.close()
+            else:
+                for i in six.moves.range(MAX_SHOW_ATTENTION):
+                    plt.imshow(att_ws[i], aspect="auto")
+                    plt.show()
+                    plt.close()
+
+        return att_ws
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
@@ -1709,7 +1704,6 @@ class Decoder(torch.nn.Module):
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
 
         # loop for an output sequence
-        att_ws = []
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
@@ -1718,7 +1712,6 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             z_all.append(z_list[-1])
-            att_ws.append(att_w)
 
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
@@ -1753,7 +1746,7 @@ class Decoder(torch.nn.Module):
             loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
-        return self.loss, acc, att_ws
+        return self.loss, acc
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
@@ -1919,6 +1912,76 @@ class Decoder(torch.nn.Module):
 
         # remove sos
         return nbest_hyps
+
+    def calculate_all_attentions(self, hpad, hlen, ys):
+        '''Calculate all of attentions
+
+        :return: list of attentions
+        '''
+        hpad = mask_by_length(hpad, hlen, 0)
+        self.loss = None
+        # prepare input and output word sequences with sos/eos IDs
+        eos = Variable(ys[0].data.new([self.eos]))
+        sos = Variable(ys[0].data.new([self.sos]))
+        ys_in = [torch.cat([sos, y], dim=0) for y in ys]
+        ys_out = [torch.cat([y, eos], dim=0) for y in ys]
+
+        # padding for ys with -1
+        # pys: utt x olen
+        pad_ys_in = pad_list(ys_in, self.eos)
+        pad_ys_out = pad_list(ys_out, self.ignore_id)
+
+        # get length info
+        olength = pad_ys_out.size(1)
+
+        # initialization
+        c_list = [self.zero_state(hpad)]
+        z_list = [self.zero_state(hpad)]
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(self.zero_state(hpad))
+            z_list.append(self.zero_state(hpad))
+        att_w = None
+        att_ws = []
+        self.att.reset()  # reset pre-computation of h
+
+        # pre-computation of embedding
+        eys = self.embed(pad_ys_in)  # utt x olen x zdim
+
+        # loop for an output sequence
+        for i in six.moves.range(olength):
+            att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
+            ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](
+                    z_list[l - 1], (z_list[l], c_list[l]))
+            att_ws.append(att_w)
+
+        # convert to numpy array with the shape (B, Lmax, Tmax)
+        if isinstance(self.att, AttLoc2D):
+            # att_ws => list of previous concate attentions
+            att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).data.cpu().numpy()
+            return att_ws
+        elif isinstance(self.att, (AttCov, AttCovLoc)):
+            # att_ws => list of list of previous attentions
+            att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).data.cpu().numpy()
+            return att_ws
+        elif isinstance(self.att, AttLocRec):
+            # att_ws => list of tuple of attention and hidden states
+            att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).data.cpu().numpy()
+            return att_ws
+        elif isinstance(self.att, (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
+            # att_ws => list of list of each head attetion
+            n_heads = len(att_ws[0])
+            att_ws_sorted_by_head = []
+            for h in six.moves.range(n_heads):
+                att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1).data.cpu().numpy()
+                att_ws_sorted_by_head += [att_ws_head]
+            return att_ws_sorted_by_head
+        else:
+            # att_ws => list of attetions
+            att_ws = torch.stack(att_ws, dim=1).data.cpu().numpy()
+            return att_ws
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
