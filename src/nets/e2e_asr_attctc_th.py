@@ -164,7 +164,6 @@ class E2E(torch.nn.Module):
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.mtlalpha = args.mtlalpha
-        self.atype = args.atype
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
