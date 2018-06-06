@@ -17,7 +17,6 @@ import torch
 import torch.nn.functional as F
 import warpctc_pytorch as warp_ctc
 
-# matplotlib related
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
