@@ -17,10 +17,6 @@ import torch
 import torch.nn.functional as F
 import warpctc_pytorch as warp_ctc
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 from chainer import reporter
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
@@ -29,6 +25,9 @@ from torch.nn.utils.rnn import pad_packed_sequence
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
+
+import matplotlib
+matplotlib.use('Agg')
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -402,17 +401,17 @@ class E2E(torch.nn.Module):
             for i in six.moves.range(max(len(data), MAX_SHOW_ATTENTION)):
                 if len(att_ws.shape) == 4:
                     for h, att_w in enumerate(att_ws[i], 1):
-                        plt.subplot(1, len(att_ws[i]), h)
-                        plt.imshow(att_w, aspect="auto")
-                        plt.xlabel("Input Index")
-                        plt.ylabel("Output Index")
+                        matplotlib.pyplot.subplot(1, len(att_ws[i]), h)
+                        matplotlib.pyplot.imshow(att_w, aspect="auto")
+                        matplotlib.pyplot.xlabel("Input Index")
+                        matplotlib.pyplot.ylabel("Output Index")
                 else:
-                    plt.imshow(att_ws[i], aspect="auto")
-                    plt.xlabel("Input Index")
-                    plt.ylabel("Output Index")
-            plt.tight_layout()
-            plt.show()
-            plt.close()
+                    matplotlib.pyplot.imshow(att_ws[i], aspect="auto")
+                    matplotlib.pyplot.xlabel("Input Index")
+                    matplotlib.pyplot.ylabel("Output Index")
+            matplotlib.pyplot.tight_layout()
+            matplotlib.pyplot.show()
+            matplotlib.pyplot.close()
 
         return att_ws
 
