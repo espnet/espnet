@@ -11,12 +11,16 @@ import math
 import sys
 
 import chainer
-import matplotlib.pyplot as plt
 import numpy as np
 import six
 import torch
 import torch.nn.functional as F
 import warpctc_pytorch as warp_ctc
+
+# matplotlib related
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 from chainer import reporter
 from torch.autograd import Variable
@@ -391,22 +395,25 @@ class E2E(torch.nn.Module):
         xpad = pad_list(hs)
         hpad, hlens = self.enc(xpad, ilens)
 
+        # decoder
         att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
 
         # visualize
         if use_visualization:
-            if isinstance(att_ws, list):
-                for i in six.moves.range(MAX_SHOW_ATTENTION):
-                    for h, att_w in enumerate(att_ws, 1):
-                        plt.subplot(1, len(att_ws), h)
-                        plt.imshow(att_w[i], aspect="auto")
-                    plt.show()
-                    plt.close()
-            else:
-                for i in six.moves.range(MAX_SHOW_ATTENTION):
+            for i in six.moves.range(max(len(data), MAX_SHOW_ATTENTION)):
+                if len(att_ws.shape) == 4:
+                    for h, att_w in enumerate(att_ws[i], 1):
+                        plt.subplot(1, len(att_ws[i]), h)
+                        plt.imshow(att_w, aspect="auto")
+                        plt.xlabel("Input Index")
+                        plt.ylabel("Output Index")
+                else:
                     plt.imshow(att_ws[i], aspect="auto")
-                    plt.show()
-                    plt.close()
+                    plt.xlabel("Input Index")
+                    plt.ylabel("Output Index")
+            plt.tight_layout()
+            plt.show()
+            plt.close()
 
         return att_ws
 
@@ -1916,7 +1923,7 @@ class Decoder(torch.nn.Module):
     def calculate_all_attentions(self, hpad, hlen, ys):
         '''Calculate all of attentions
 
-        :return: list of attentions
+        :return: numpy array format attentions
         '''
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
@@ -1961,27 +1968,24 @@ class Decoder(torch.nn.Module):
         if isinstance(self.att, AttLoc2D):
             # att_ws => list of previous concate attentions
             att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).data.cpu().numpy()
-            return att_ws
         elif isinstance(self.att, (AttCov, AttCovLoc)):
             # att_ws => list of list of previous attentions
             att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).data.cpu().numpy()
-            return att_ws
         elif isinstance(self.att, AttLocRec):
             # att_ws => list of tuple of attention and hidden states
             att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).data.cpu().numpy()
-            return att_ws
         elif isinstance(self.att, (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
             # att_ws => list of list of each head attetion
             n_heads = len(att_ws[0])
             att_ws_sorted_by_head = []
             for h in six.moves.range(n_heads):
-                att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1).data.cpu().numpy()
+                att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1)
                 att_ws_sorted_by_head += [att_ws_head]
-            return att_ws_sorted_by_head
+            att_ws = torch.stack(att_ws_sorted_by_head, dim=1).data.cpu().numpy()
         else:
             # att_ws => list of attetions
             att_ws = torch.stack(att_ws, dim=1).data.cpu().numpy()
-            return att_ws
+        return att_ws
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------

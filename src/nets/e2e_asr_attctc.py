@@ -268,18 +268,20 @@ class E2E(chainer.Chain):
 
         # visualize
         if use_visualization:
-            if isinstance(att_ws, list):
-                for i in six.moves.range(MAX_SHOW_ATTENTION):
-                    for h, att_w in enumerate(att_ws, 1):
-                        plt.subplot(1, len(att_ws), h)
-                        plt.imshow(att_w[i], aspect="auto")
-                    plt.show()
-                    plt.close()
-            else:
-                for i in six.moves.range(MAX_SHOW_ATTENTION):
+            for i in six.moves.range(max(len(data), MAX_SHOW_ATTENTION)):
+                if len(att_ws.shape) == 4:
+                    for h, att_w in enumerate(att_ws[i], 1):
+                        plt.subplot(1, len(att_ws[i]), h)
+                        plt.imshow(att_w, aspect="auto")
+                        plt.xlabel("Input Index")
+                        plt.ylabel("Output Index")
+                else:
                     plt.imshow(att_ws[i], aspect="auto")
-                    plt.show()
-                    plt.close()
+                    plt.xlabel("Input Index")
+                    plt.ylabel("Output Index")
+            plt.tight_layout()
+            plt.show()
+            plt.close()
 
         return att_ws
 
