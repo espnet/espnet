@@ -15,9 +15,6 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 from chainer import cuda
 from chainer import reporter
@@ -27,6 +24,9 @@ from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
 import deterministic_embed_id as DL
+
+import matplotlib
+matplotlib.use('Agg')
 
 
 CTC_LOSS_THRESHOLD = 10000
@@ -276,17 +276,17 @@ class E2E(chainer.Chain):
             for i in six.moves.range(max(len(data), MAX_SHOW_ATTENTION)):
                 if len(att_ws.shape) == 4:
                     for h, att_w in enumerate(att_ws[i], 1):
-                        plt.subplot(1, len(att_ws[i]), h)
-                        plt.imshow(att_w, aspect="auto")
-                        plt.xlabel("Input Index")
-                        plt.ylabel("Output Index")
+                        matplotlib.pyplot.subplot(1, len(att_ws[i]), h)
+                        matplotlib.pyplot.imshow(att_w, aspect="auto")
+                        matplotlib.pyplot.xlabel("Input Index")
+                        matplotlib.pyplot.ylabel("Output Index")
                 else:
-                    plt.imshow(att_ws[i], aspect="auto")
-                    plt.xlabel("Input Index")
-                    plt.ylabel("Output Index")
-            plt.tight_layout()
-            plt.show()
-            plt.close()
+                    matplotlib.pyplot.imshow(att_ws[i], aspect="auto")
+                    matplotlib.pyplot.xlabel("Input Index")
+                    matplotlib.pyplot.ylabel("Output Index")
+            matplotlib.pyplot.tight_layout()
+            matplotlib.pyplot.show()
+            matplotlib.pyplot.close()
 
         return att_ws
 

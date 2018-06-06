@@ -14,7 +14,6 @@ from chainer.training import extension
 # matplotlib related
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 
 # * -------------------- training iterator related -------------------- *
@@ -165,14 +164,14 @@ class PlotAttentionReport(extension.Extension):
     def _plot_and_save_attention(self, att_w, filename):
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
-                plt.subplot(1, len(att_w), h)
-                plt.imshow(aw, aspect="auto")
-                plt.xlabel("Input Index")
-                plt.ylabel("Output Index")
+                matplotlib.pyplot.subplot(1, len(att_w), h)
+                matplotlib.pyplot.imshow(aw, aspect="auto")
+                matplotlib.pyplot.xlabel("Input Index")
+                matplotlib.pyplot.ylabel("Output Index")
         else:
-            plt.imshow(att_w, aspect="auto")
-            plt.xlabel("Input Index")
-            plt.ylabel("Output Index")
-        plt.tight_layout()
-        plt.savefig(filename)
-        plt.close()
+            matplotlib.pyplot.imshow(att_w, aspect="auto")
+            matplotlib.pyplot.xlabel("Input Index")
+            matplotlib.pyplot.ylabel("Output Index")
+        matplotlib.pyplot.tight_layout()
+        matplotlib.pyplot.savefig(filename)
+        matplotlib.pyplot.close()
