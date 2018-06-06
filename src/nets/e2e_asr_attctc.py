@@ -8,14 +8,18 @@ import logging
 import math
 import sys
 
-import matplotlib.pyplot as plt
 import numpy as np
 import six
 
 import chainer
-from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+from chainer import cuda
 from chainer import reporter
 from chainer_ctc.warpctc import ctc as warp_ctc
 from ctc_prefix_score import CTCPrefixScore
@@ -23,6 +27,7 @@ from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
 import deterministic_embed_id as DL
+
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
