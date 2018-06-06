@@ -34,6 +34,7 @@ from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
 from asr_utils import make_batchset
+from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_attctc import E2E
 from e2e_asr_attctc import Loss
@@ -457,6 +458,13 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(ChainerSeqEvaluaterKaldi(
         valid_iter, model, valid_reader, device=gpu_id))
+
+    # Save attention weight each epoch
+    if args.save_attention and args.mtlalpha != 1.0:
+        data = [valid[0][0]]
+        data = converter_kaldi(data, valid_reader)
+        trainer.extend(PlotAttentionReport(model, data, args.outdir),
+                       trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))

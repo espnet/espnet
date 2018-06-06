@@ -12,6 +12,8 @@ import random
 import subprocess
 import sys
 
+from distutils.util import strtobool
+
 import numpy as np
 
 
@@ -128,6 +130,8 @@ def main():
                         help='Number of maximum epochs')
     parser.add_argument('--grad-clip', default=5, type=float,
                         help='Gradient norm threshold to clip')
+    parser.add_argument('--save-attention', default=True, type=strtobool,
+                        help='Whether to save attention weight in each epoch')
     args = parser.parse_args()
 
     # logging info
