@@ -147,12 +147,12 @@ if [ ${stage} -le 0 ]; then
 
     # Babel
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
+	langid=`echo $x | cut -f 1 -d"-"`
+	lang_code=`echo $x | cut -f 2 -d"-"`
 	if [ -d "$babeldir/asr1_${lang_code}/data" ]; then
 	    echo "run $babeldir/asr1/local/run_all.sh first"
 	    exit 1
 	fi
-	langid=`echo $x | cut -f 1 -d"-"`
-	lang_code=`echo $x | cut -f 2 -d"-"`
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/train          data/tr_babel_${lang_code}
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/dev            data/dt_babel_${lang_code}
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/eval_${langid} data/et_babel_${lang_code}
