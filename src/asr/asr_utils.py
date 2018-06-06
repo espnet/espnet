@@ -3,12 +3,18 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
+import copy
 import logging
 
 # chainer related
 import chainer
 from chainer import training
+from chainer.training import extension
+
+# matplotlib related
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 # * -------------------- training iterator related -------------------- *
@@ -138,3 +144,35 @@ def _adadelta_eps_decay(trainer, eps_decay):
         for p in optimizer.param_groups:
             p["eps"] *= eps_decay
             logging.info('adadelta eps decayed to ' + str(p["eps"]))
+
+
+class PlotAttentionReport(extension.Extension):
+    def __init__(self, model, data, outdir):
+        self.data = copy.deepcopy(data)
+        self.outdir = outdir
+        if hasattr(model, "module"):
+            self.att_vis_fn = model.module.predictor.visualize_attention
+        else:
+            self.att_vis_fn = model.predictor.visualize_attention
+
+    def __call__(self, trainer):
+        att_ws = self.att_vis_fn(self.data)
+        for idx, att_w in enumerate(att_ws):
+            filename = "%s/att_w_%s_epoch_{.updater.epoch}.png" % (
+                self.outdir, self.data[idx][0])
+            self._plot_and_save_attention(att_w, filename.format(trainer))
+
+    def _plot_and_save_attention(self, att_w, filename):
+        if len(att_w.shape) == 3:
+            for h, aw in enumerate(att_w, 1):
+                plt.subplot(1, len(att_w), h)
+                plt.imshow(aw, aspect="auto")
+                plt.xlabel("Input Index")
+                plt.ylabel("Output Index")
+        else:
+            plt.imshow(att_w, aspect="auto")
+            plt.xlabel("Input Index")
+            plt.ylabel("Output Index")
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
