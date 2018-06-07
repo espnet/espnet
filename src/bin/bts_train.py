@@ -101,11 +101,14 @@ def main():
     parser.add_argument('--bce_pos_weight', default=20.0, type=float,
                         help='Positive sample weight in BCE calculation (only for use_masking=True)')
     # minibatch related
+    parser.add_argument('--batch_sort_key', default=None, type=str,
+                        choices=[None, 'output', 'input'], nargs='?',
+                        help='Batch sorting key')
     parser.add_argument('--batch-size', '-b', default=32, type=int,
                         help='Batch size')
-    parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
+    parser.add_argument('--maxlen-in', default=100, type=int, metavar='ML',
                         help='Batch size is reduced if the input sequence length > ML')
-    parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
+    parser.add_argument('--maxlen-out', default=200, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
     # optimization related
     parser.add_argument('--lr', default=1e-3, type=float,

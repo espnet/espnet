@@ -9,6 +9,7 @@ import logging
 import math
 import os
 import pickle
+import random
 
 import chainer
 import numpy as np
@@ -30,27 +31,64 @@ matplotlib.use('Agg')
 MAX_SAVE_ATT_W = 5
 
 
-def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
-    # sort it by output lengths (long to short)
-    sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['ilen']), reverse=True)
-    logging.info('# utts: ' + str(len(sorted_data)))
-    # change batchsize depending on the input and output length
+def make_batchset(data, batch_size, max_length_in, max_length_out,
+                  num_batches=0, batch_sort_key=None):
     minibatch = []
     start = 0
-    while True:
-        ilen = int(sorted_data[start][1]['olen'])  # reverse
-        olen = int(sorted_data[start][1]['ilen'])  # reverse
-        factor = max(int(ilen / max_length_in), int(olen / max_length_out))
-        # if ilen = 1000 and max_length_in = 800
-        # then b = batchsize / 2
-        # and max(1, .) avoids batchsize = 0
-        b = max(1, int(batch_size / (1 + factor)))
-        end = min(len(sorted_data), start + b)
-        minibatch.append(sorted_data[start:end])
-        if end == len(sorted_data):
-            break
-        start = end
+    if batch_sort_key is None:
+        logging.info("use shuffled batch.")
+        shuffled_data = random.sample(data.items(), len(data.items()))
+        logging.info('# utts: ' + str(len(shuffled_data)))
+        while True:
+            end = min(len(shuffled_data), start + batch_size)
+            minibatch.append(shuffled_data[start:end])
+            if end == len(shuffled_data):
+                break
+            start = end
+    elif batch_sort_key == "input":
+        logging.info("use batch sorted by input length and adaptive batch size.")
+        # sort it by output lengths (long to short)
+        sorted_data = sorted(data.items(), key=lambda data: int(
+            data[1]['olen']), reverse=True)
+        logging.info('# utts: ' + str(len(sorted_data)))
+        # change batchsize depending on the input and output length
+        while True:
+            ilen = int(sorted_data[start][1]['olen'])  # reverse
+            olen = int(sorted_data[start][1]['ilen'])  # reverse
+            factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+            # if ilen = 1000 and max_length_in = 800
+            # then b = batchsize / 2
+            # and max(1, .) avoids batchsize = 0
+            b = max(1, int(batch_size / (1 + factor)))
+            end = min(len(sorted_data), start + b)
+            minibatch.append(sorted_data[start:end])
+            if end == len(sorted_data):
+                break
+            start = end
+    elif batch_sort_key == "output":
+        logging.info("use batch sorted by output length and adaptive batch size.")
+        # sort it by output lengths (long to short)
+        sorted_data = sorted(data.items(), key=lambda data: int(
+            data[1]['ilen']), reverse=True)
+        logging.info('# utts: ' + str(len(sorted_data)))
+        # change batchsize depending on the input and output length
+        while True:
+            ilen = int(sorted_data[start][1]['olen'])  # reverse
+            olen = int(sorted_data[start][1]['ilen'])  # reverse
+            factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+            # if ilen = 1000 and max_length_in = 800
+            # then b = batchsize / 2
+            # and max(1, .) avoids batchsize = 0
+            b = max(1, int(batch_size / (1 + factor)))
+            end = min(len(sorted_data), start + b)
+            minibatch.append(sorted_data[start:end])
+            if end == len(sorted_data):
+                break
+            start = end
+    else:
+        ValueError("batch_sort_key should be selected from None, input, and output.")
+
+    # for debugging
     if num_batches > 0:
         minibatch = minibatch[:num_batches]
     logging.info('# minibatches: ' + str(len(minibatch)))
@@ -134,10 +172,10 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
                 # save visialized attention weight
                 if idx < MAX_SAVE_ATT_W:
-                    matplotlib.pyplot.imshow(att_ws[0].cpu().numpy(), aspect="auto")
-                    matplotlib.pyplot.savefig(
-                        self.outdir + "/att_w_idx%d_epoch%d.png" % (idx, self.epoch))
-                    matplotlib.pyplot.close()
+                    import matplotlib.pyplot as plt
+                    plt.imshow(att_ws[0].cpu().numpy(), aspect="auto")
+                    plt.savefig(self.outdir + "/att_w_idx%d_epoch%d.png" % (idx, self.epoch))
+                    plt.close()
 
                 summary.add(observation)
 
@@ -302,9 +340,9 @@ def train(args):
 
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches, args.batch_sort_key)
     valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches, args.batch_sort_key)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
     train_iter = chainer.iterators.SerialIterator(train, 1)
@@ -322,11 +360,12 @@ def train(args):
 
     # Resume from a snapshot
     if args.resume:
+        logging.info("restored from %s" % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
         if ngpu > 1:
-            model.module.load_state_dict(torch.load(args.outdir + '/model.loss.best'))
+            model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         else:
-            model.load_state_dict(torch.load(args.outdir + '/model.loss.best'))
+            model.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -334,7 +373,7 @@ def train(args):
         model, criterion, valid_iter, reporter, valid_reader, gpu_id, args.outdir))
 
     # Take a snapshot for each specified epoch
-    trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -350,11 +389,11 @@ def train(args):
     def torch_save(path, _):
         if ngpu > 1:
             torch.save(model.module.state_dict(), path)
-            torch.save(model.module, path + ".pkl")
         else:
             torch.save(model.state_dict(), path)
-            torch.save(model, path + ".pkl")
 
+    trainer.extend(extensions.snapshot_object(model, 'model.ep.{.updater.epoch}', savefun=torch_save),
+                   trigger=(1, 'epoch'))
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
