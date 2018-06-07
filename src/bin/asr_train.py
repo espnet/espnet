@@ -161,7 +161,7 @@ def main():
             "options are deprecated, please use --train-json and --valid-json options.")
         logging.error(
             "input file format (json) is modified, please redo"
-            "stage 2: Dictionary and Json Data Preparation")
+            "stage 1: Feature Generation")
         sys.exit(1)
 
     # check CUDA_VISIBLE_DEVICES

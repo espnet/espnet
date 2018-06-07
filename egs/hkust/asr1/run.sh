@@ -160,7 +160,7 @@ if [ ${stage} -le 1 ]; then
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
@@ -279,7 +279,7 @@ if [ ${stage} -le 5 ]; then
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-         # make json labels for recognition
+        # make json labels for recognition
         for j in `seq 1 ${nj}`; do
             data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
                 ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
