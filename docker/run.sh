@@ -3,6 +3,8 @@
 docker_gpu=0
 docker_egs=
 docker_folders=
+docker_cuda=9.0
+docker_cudnn=7
 
 while test $# -gt 0
 do
@@ -42,37 +44,43 @@ fi
 from_image="ubuntu:16.04"
 image_label="espnet:ubuntu16.04"
 if [ ! "${docker_gpu}" == "-1" ]; then
-  cuda_ver=$( nvcc -V | grep release )
-  cuda_ver=${cuda_ver#*"release "}
-  cuda_ver=${cuda_ver%,*}
-  if [ ! -z "${cuda_ver}" ]; then
-    cudnn_ver=$( cat /usr/local/cuda/include/cudnn.h | grep "#define CUDNN_MAJOR" )
-    cudnn_ver=${cudnn_ver#*MAJOR}
-    cudnn_ver=${cudnn_ver// /}
-    if [ ! -z "${cudnn_ver}" ]; then
-      from_image="nvidia/cuda:${cuda_ver}-cudnn${cudnn_ver}-devel-ubuntu16.04"
-      image_label="espnet:cuda${cuda_ver}-cudnn${cudnn_ver}-ubuntu16.04"
+  if [ ! -z "${docker_cuda}" ]; then
+    # If the docker_cuda is not set, the program will automatically 
+    # search the installed version with default configurations (apt)
+    docker_cuda=$( nvcc -V | grep release )
+    docker_cuda=${docker_cuda#*"release "}
+    docker_cuda=${docker_cuda%,*}
+    if [ ! -z "${docker_cuda}" ]; then
+      docker_cudnn=$( cat /usr/local/cuda/include/cudnn.h | grep "#define CUDNN_MAJOR" )
+      docker_cudnn=${docker_cudnn#*MAJOR}
+      docker_cudnn=${docker_cudnn// /}
+      if [ ! -z "${docker_cudnn}" ]; then
+        from_image="nvidia/cuda:${docker_cuda}-cudnn${docker_cudnn}-devel-ubuntu16.04"
+        image_label="espnet:cuda${docker_cuda}-cudnn${docker_cudnn}-ubuntu16.04"
+      else
+        echo "CUDNN was not found in default folder."
+        from_image="nvidia/cuda:${docker_cuda}-devel-ubuntu16.04"
+        image_label="espnet:cuda${docker_cuda}-ubuntu16.04"
+      fi
     else
-      echo "CUDNN was not found in default folder."
-      from_image="nvidia/cuda:${cuda_ver}-devel-ubuntu16.04"
-      image_label="espnet:cuda${cuda_ver}-ubuntu16.04"
+      echo "CUDA was not found, selecting CPU image. For GPU image, install NVIDIA-DOCKER, CUDA and NVCC."
     fi
   else
-    echo "CUDA version was not found, selecting CPU image. For GPU image, install NVIDIA-DOCKER, CUDA and NVCC."
+    from_image="nvidia/cuda:${docker_cuda}-cudnn${docker_cudnn}-devel-ubuntu16.04"
+    image_label="espnet:cuda${docker_cuda}-cudnn${docker_cudnn}-ubuntu16.04"
   fi
 fi
 echo "Using image ${from_image}."
-build_args="--build-arg FROM_IMAGE=${from_image}"
-if [ ! -z "${HTTP_PROXY}" ]; then
-  echo "Building with proxy ${HTTP_PROXY}"
-  build_args="${build_args} --build-arg WITH_PROXY=${HTTP_PROXY}"
-fi 
-
 docker_image=$( docker images -q ${image_label} ) 
-
 cd ..
+
 if ! [[ -n ${docker_image}  ]]; then
   echo "Building docker image..."
+  build_args="--build-arg FROM_IMAGE=${from_image}"
+  if [ ! -z "${HTTP_PROXY}" ]; then
+    echo "Building with proxy ${HTTP_PROXY}"
+    build_args="${build_args} --build-arg WITH_PROXY=${HTTP_PROXY}"
+  fi 
   (docker build ${build_args} -f docker/espnet.devel -t ${image_label} .) || exit 1
 fi
 
@@ -95,7 +103,8 @@ if [ "${docker_gpu}" == "-1" ]; then
   cmd="docker run -i --rm --name espnet_cpu ${vols} ${image_label} /bin/bash -c '${cmd}'"
 else
   # --rm erase the container when the training is finished.
-  cmd="NV_GPU='${docker_gpu}' nvidia-docker run -i --rm --name espnet_gpu${docker_gpu} ${vols} ${image_label} /bin/bash -c '${cmd}'"
+  container_gpu=${docker_gpu//,/_}
+  cmd="NV_GPU='${docker_gpu}' nvidia-docker run -i --rm --name espnet_gpu${container_gpu} ${vols} ${image_label} /bin/bash -c '${cmd}'"
 fi
 
 echo "Executing application in Docker"
