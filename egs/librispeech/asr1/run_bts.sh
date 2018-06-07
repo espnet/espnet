@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright 2018 Nagoya University (Tomoki Hayashi)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 . ./path.sh
 . ./cmd.sh
 
@@ -23,7 +26,7 @@ postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
 # attention related
-adim=512
+adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
 cumulate_att_w=true # whether to cumulate attetion weight
@@ -33,9 +36,10 @@ use_residual=false  # whether to concatenate encoder embedding with decoder lstm
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=20.0
 # minibatch related
+batch_sort_key=input
 batchsize=50
-maxlen_in=200  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=100 # if output length > maxlen_out, batchsize is automatically reduced
+maxlen_in=100  # if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_out=200 # if output length > maxlen_out, batchsize is automatically reduced
 epochs=20
 # optimization related
 lr=1e-3
@@ -47,23 +51,14 @@ target=states # feats or states
 train_set=train_360
 train_dev=dev
 decode_set="train_100 train_other_500"
-verbose=1
+verbose=0
+resume=
 tag=
 # decoding related
 threshold=0.5
 maxlenratio=5.0
 minlenratio=0.0
 nj=32
-# decoder retraining related
-flatstart=false
-# decoding related
-beam_size=20
-penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.0
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
-recog_set="test_clean test_other dev_clean dev_other"
 
 . utils/parse_options.sh
 set -e
@@ -109,7 +104,7 @@ if [ ${stage} -le 5 ];then
 fi
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_tacotron2_${target}_enc${embed_dim}
+    expdir=exp/${train_set}_taco2_${target}_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
         expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
@@ -122,21 +117,24 @@ if [ -z ${tag} ];then
     fi
     expdir=${expdir}_att${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
-        expdir=${expdir}_cumulate
+        expdir=${expdir}_cm
     fi
     if ${use_batch_norm};then
         expdir=${expdir}_bn
     fi
     if ${use_residual};then
-        expdir=${expdir}_res
+        expdir=${expdir}_rs
     fi
     if ${use_concate};then
-        expdir=${expdir}_concate
+        expdir=${expdir}_cc
     fi
     if ${use_masking};then
-        expdir=${expdir}_masking_pw${bce_pos_weight}
+        expdir=${expdir}_msk_pw${bce_pos_weight}
     fi
-    expdir=${expdir}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=${expdir}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
+    if [ ! -z ${batch_sort_key} ];then
+        expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
+    fi
 else
     expdir=exp/${train_set}_${tag}
 fi
@@ -187,9 +185,11 @@ if [ ${stage} -le 6 ];then
            --lr ${lr} \
            --eps ${eps} \
            --weight-decay ${weight_decay} \
+           --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
+           --resume ${resume} \
            --epochs ${epochs}
 fi
 
@@ -221,97 +221,4 @@ if [ ${stage} -le 7 ];then
         # remove temp json
         rm ${outdir}/${sets}/*.json 2>/dev/null
     done
-fi
-
-retroutdir=exp/re${train_set}_bs${batchsize}_mli${maxlen_out}_mlo${maxlen_in}
-if ${flatstart};then
-    retroutdir=${retroutdir}_flatstart
-fi
-if [ ${stage} -le 8 ];then
-    echo "stage 8: Re-training decoder"
-    if [ ! -e ${retroutdir}/data/train/data.json ];then
-        # copy train data with ground-truth scp
-        utils/copy_data_dir.sh data/${train_set} ${retroutdir}/data/${train_set}
-        cp ${dumpdir}/${train_set}/feats.scp ${retroutdir}/data/${train_set}
-        # copy decode data with generated scp
-        for sets in ${decode_set};do
-            utils/copy_data_dir.sh data/${sets} ${retroutdir}/data/${sets}
-            cp ${outdir}/${sets}/feats.scp ${retroutdir}/data/${sets}
-        done
-        # combine train and decode data
-        combdirs=
-        for sets in ${train_set} ${decode_set};do
-            combdirs="$combdirs ${retroutdir}/data/${sets}"
-        done
-        utils/combine_data.sh ${retroutdir}/data/train ${combdirs}
-        # create json
-        data2json.sh --feat ${retroutdir}/data/train/feats.scp \
-             ${retroutdir}/data/train ${dict} > ${retroutdir}/data/train/data.json
-    fi
-    # re-train
-    ${cuda_cmd} --gpu ${ngpu} ${retroutdir}/retrain.log \
-        asr_retrain.py \
-            --ngpu ${ngpu} \
-            --model ${model} \
-            --model-conf ${config} \
-            --verbose ${verbose} \
-            --outdir ${retroutdir}/results \
-            --dict ${dict} \
-            --train-feat scp:${retroutdir}/data/train/feats.scp \
-            --train-label ${retroutdir}/data/train/data.json \
-            --valid-feat scp:dump/${train_dev}/delta${do_delta}/feats.scp \
-            --valid-label dump/${train_dev}/delta${do_delta}/data.json \
-            --batch-size ${batchsize} \
-            --maxlen-in ${maxlen_out} \
-            --maxlen-out ${maxlen_in} \
-            --epochs ${epochs} \
-            --flatstart ${flatstart}
-fi
-
-if [ ${stage} -le 9 ]; then
-    echo "stage 9: Decoding"
-    for rtask in ${recog_set}; do
-    (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-
-        # split data
-        data=data/${rtask}
-        split_data.sh --per-utt ${data} ${nj};
-        sdata=${data}/split${nj}utt;
-
-        # feature extraction
-        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-        if ${do_delta}; then
-        feats="$feats add-deltas ark:- ark:- |"
-        fi
-
-        # make json labels for recognition
-        data2json.sh ${data} ${dict} > ${data}/data.json
-
-        #### use CPU for decoding
-        ngpu=0
-
-        ${decode_cmd} JOB=1:${nj} ${retroutdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
-            --ngpu ${ngpu} \
-            --backend pytorch \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
-            --result-label ${retroutdir}/${decode_dir}/data.JOB.json \
-            --model ${retroutdir}/results/model.${recog_model}  \
-            --model-conf ${config} \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            &
-        wait
-
-        score_sclite.sh --wer true ${retroutdir}/${decode_dir} ${dict}
-
-    ) &
-    done
-    wait
-    echo "Finished"
 fi
