@@ -1,6 +1,6 @@
 .PHONY: all clean
 
-all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc subword-nmt
+all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc subword-nmt sentencepiece
 
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
@@ -44,8 +44,12 @@ chainer_ctc: venv/bin/activate
 subword-nmt:
 	git clone https://github.com/rsennrich/subword-nmt.git
 
+sentencepiece:
+	git clone https://github.com/google/sentencepiece.git
+	cd sentencepiece && ./autogen.sh && ./configure && $(MAKE)
+
 clean:
-	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc subword-nmt
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc subword-nmt sentencepiece
 	rm -f miniconda.sh
 	rm -f chainer300_cudnn7.0_nossh.devel
 	find . -iname "*.pyc" -delete
