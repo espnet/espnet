@@ -123,7 +123,7 @@ if [ $stage -le 1 ]; then
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
   for x in ${train_set} ${train_dev} ${recog_set}; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 data/${x} exp/make_fbank/${x} ${fbankdir}
+      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 data/${x} exp/make_fbank/${x} ${fbankdir}
       ./utils/fix_data_dir.sh data/${x} 
   done
 
@@ -143,7 +143,7 @@ if [ $stage -le 1 ]; then
       /export/b{10,11,12,13}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
       ${feat_dt_dir}/storage
   fi
-  dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+  dump.sh --cmd "$train_cmd" --nj 20 --do_delta $do_delta \
       data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
   dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
       data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}

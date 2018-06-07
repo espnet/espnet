@@ -1,11 +1,13 @@
 # pytorch, BLSTMP 8layers
 # CER
-decode_dev_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.txt:| 2.9
-decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.txt:| 9.6
-decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.txt:| 2.7
-decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.txt:| 9.9
+decode_dev_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.txt:| 2.9 (2.7 with lm_weight=0.3)
+decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.txt:| 9.6 (9.1 with lm_weight=0.3)
+decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.txt:| 2.7 (2.6 with lm_weight=0.3)
+decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.txt:| 9.9 (9.4 with lm_weight=0.3)
 # WER
-decode_dev_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 7.7
-decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 21.1
-decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 7.7
-decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 21.9
+decode_dev_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 7.7 (7.1 with lm_weight=0.3)
+decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 21.1 (19.2 with lm_weight=0.3)
+decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 7.7 (7.2 with lm_weight=0.3)
+decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 21.9 (20.0 with lm_weight=0.3)
+
+
