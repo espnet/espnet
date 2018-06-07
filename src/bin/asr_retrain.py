@@ -63,6 +63,8 @@ def main():
     # optimization related
     parser.add_argument('--flatstart', default=False, type=strtobool,
                         help='Whether to start training from the beginnging')
+    parser.add_argument('--freeze-attention', default=False, type=strtobool,
+                        help='Whether to freeze attention layer parameters')
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam'],
                         help='Optimizer')

@@ -415,8 +415,7 @@ def recog(args):
     for name, feat in reader:
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
-        y_hat = [idx.item() for idx in nbest_hyps[0]['yseq'][1:]]
-
+        y_hat = [idx.item() if isinstance(idx, torch.Tensor) else idx for idx in nbest_hyps[0]['yseq'][1:]]
         y_true = map(int, recog_json[name]['tokenid'].split())
 
         # print out decoding result
@@ -442,7 +441,7 @@ def recog(args):
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):
-                y_hat = [idx.item() for idx in hyp['yseq'][1:]]
+                y_hat = [idx.item() if isinstance(idx, torch.Tensor) else idx for idx in nbest_hyps[0]['yseq'][1:]]
                 seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
                 seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
                 new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = " ".join([str(idx) for idx in y_hat])
@@ -545,13 +544,17 @@ def retrain(args):
     model = Loss(e2e, train_args.mtlalpha, use_only_decoder=True)
     model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
 
-    # check flatstart
     if args.flatstart:
         # initialzie parameters of attention and decoder
+        logging.info("training start from initialized value.")
         lecun_normal_init_parameters(model.predictor.dec)
         model.predictor.dec.embed.weight.data.normal_(0, 1)
         for l in range(len(model.predictor.dec.decoder)):
             set_forget_bias_to_one(model.predictor.dec.decoder[l].bias_ih)
+    elif args.freeze_attention:
+        logging.info("attention layer parameters are freezed.")
+        for p in model.predictor.dec.att.parameters():
+            p.requires_grad = False
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -578,11 +581,12 @@ def retrain(args):
         gpu_id = [-1]
 
     # Setup an optimizer
+    params = [p for p in model.parameters() if p.requires_grad]
     if args.opt == 'adadelta':
         optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps)
+            params, rho=0.95, eps=args.eps)
     elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters())
+        optimizer = torch.optim.Adam(params)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
