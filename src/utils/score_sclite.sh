@@ -9,6 +9,7 @@ nlsyms=""
 wer=false
 bpe=false
 remove_blank=true
+filter=""
 
 . utils/parse_options.sh
 
@@ -24,17 +25,21 @@ concatjson.py ${dir}/data.*.json > ${dir}/data.json
 json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn ${dir}/hyp.trn
 
 if $bpe; then
-    sed -i.bak -r 's/(@@ )|(@@ ?$)//g' ${dir}/ref.trn
-    sed -i.bak -r 's/(@@ )|(@@ ?$)//g' ${dir}/hyp.trn
+    sed -i.bak1 -r 's/(@@ )|(@@ ?$)//g' ${dir}/ref.trn
+    sed -i.bak1 -r 's/(@@ )|(@@ ?$)//g' ${dir}/hyp.trn
 fi
 if $remove_blank; then
-    sed -i.bak -r 's/<blank> //g' ${dir}/hyp.trn
+    sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp.trn
 fi
 if [ ! -z ${nlsyms} ]; then
     cp ${dir}/ref.trn ${dir}/ref.trn.org
     cp ${dir}/hyp.trn ${dir}/hyp.trn.org
     filt.py -v $nlsyms ${dir}/ref.trn.org > ${dir}/ref.trn
     filt.py -v $nlsyms ${dir}/hyp.trn.org > ${dir}/hyp.trn
+fi
+if [ ! -z ${filter} ]; then
+    sed -i.bak3 -f ${filter} ${dir}/hyp.trn
+    sed -i.bak3 -f ${filter} ${dir}/ref.trn
 fi
     
 sclite -r ${dir}/ref.trn trn -h ${dir}/hyp.trn trn -i rm -o all stdout > ${dir}/result.txt
