@@ -68,7 +68,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         summary = reporter_module.DictSummary()
 
-        for idx, batch in enumerate(it):
+        for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
                 # read scp files
