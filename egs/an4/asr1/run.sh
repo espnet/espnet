@@ -136,11 +136,17 @@ if [ ${stage} -le 1 ]; then
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
-    # dump features for training
+    # dump features
     dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+            ${feat_recog_dir}
+    done
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
@@ -211,20 +217,18 @@ if [ ${stage} -le 4 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-        
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+
         # split data
         data=data/${rtask}
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-        # feature extraction
-        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-        if ${do_delta}; then
-        feats="$feats add-deltas ark:- ark:- |"
-        fi
-
         # make json labels for recognition
-        data2json.sh --feat ${data}/feats.scp ${data} ${dict} > ${data}/data.json
+        for j in `seq 1 ${nj}`; do
+            data2json.sh --feat ${feat_recog_dir}/feats.scp \
+                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
+        done
 
         #### use CPU for decoding
         ngpu=0
@@ -235,8 +239,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
+            --recog-json ${sdata}/JOB/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

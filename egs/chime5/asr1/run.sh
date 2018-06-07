@@ -204,6 +204,12 @@ if [ ${stage} -le 2 ]; then
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_recog_dir}
+    done
+
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
@@ -299,20 +305,18 @@ if [ ${stage} -le 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
         data=data/${rtask}
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-        # feature extraction
-        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-        if ${do_delta}; then
-        feats="$feats add-deltas ark:- ark:- |"
-        fi
-
         # make json labels for recognition
-        data2json.sh --feat ${data}/feats.scp ${data} ${dict} > ${data}/data.json
+        for j in `seq 1 ${nj}`; do
+            data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
+                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
+        done
 
         #### use CPU for decoding
         ngpu=0
@@ -321,8 +325,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
+            --recog-json ${sdata}/JOB/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
