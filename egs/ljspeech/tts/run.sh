@@ -38,8 +38,8 @@ bce_pos_weight=20.0
 # minibatch related
 batch_sort_key=input
 batchsize=50
-maxlen_in=100  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=200 # if output length > maxlen_out, batchsize is automatically reduced
+maxlen_in=150  # if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_out=400 # if output length > maxlen_out, batchsize is automatically reduced
 epochs=300
 # optimization related
 lr=1e-3
@@ -53,7 +53,7 @@ maxlenratio=10.0
 minlenratio=0.0
 nj=32
 # other
-verbose=1
+verbose=0
 seed=1125
 dumpdir=dump   # directory to dump full features
 
