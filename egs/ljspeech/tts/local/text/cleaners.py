@@ -47,7 +47,7 @@ _abbreviations = [(re.compile('\\b%s\\.' % x[0], re.IGNORECASE), x[1]) for x in 
 def expand_abbreviations(text):
     for regex, replacement in _abbreviations:
         text = re.sub(regex, replacement, text)
-        return text
+    return text
 
 
 def expand_numbers(text):
@@ -71,13 +71,14 @@ def convert_to_ascii(text):
 
 
 def remove_unnecessary_symbols(text):
-    text = re.sub(r'[\(\)\[\]\"\:\']+', '', text)
-    text = re.sub(r'[\.\,]$', '', text)
+    text = re.sub(r'[\(\)\[\]\"\']+', '', text)
     return text
 
 
 def expand_symbols(text):
     text = re.sub("\;", ",", text)
+    text = re.sub("\:", ",", text)
+    text = re.sub("-", " ", text)
     text = re.sub("\&", "and", text)
     return text
 
@@ -100,10 +101,11 @@ def transliteration_cleaners(text):
 def english_cleaners(text):
     '''Pipeline for English text, including number and abbreviation expansion.'''
     text = convert_to_ascii(text)
-    text = expand_symbols(text)
-    text = remove_unnecessary_symbols(text)
+    text = lowercase(text)
     text = expand_numbers(text)
     text = expand_abbreviations(text)
+    text = expand_symbols(text)
+    text = remove_unnecessary_symbols(text)
     text = uppercase(text)
     text = collapse_whitespace(text)
     return text
