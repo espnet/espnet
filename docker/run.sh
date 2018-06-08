@@ -44,7 +44,7 @@ fi
 from_image="ubuntu:16.04"
 image_label="espnet:ubuntu16.04"
 if [ ! "${docker_gpu}" == "-1" ]; then
-  if [ ! -z "${docker_cuda}" ]; then
+  if [ -z "${docker_cuda}" ]; then
     # If the docker_cuda is not set, the program will automatically 
     # search the installed version with default configurations (apt)
     docker_cuda=$( nvcc -V | grep release )
@@ -109,6 +109,6 @@ fi
 
 echo "Executing application in Docker"
 echo ${cmd}
-eval ${cmd}
+#eval ${cmd}
 
 echo "`basename $0` done."
