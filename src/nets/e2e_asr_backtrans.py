@@ -76,21 +76,23 @@ class ZoneOutCell(torch.nn.Module):
         self.zoneout_prob = zoneout_prob
 
     def forward(self, inputs, hidden):
-        def zoneout(h, next_h, prob):
-            if isinstance(h, tuple):
-                num_h = len(h)
-                if not isinstance(prob, tuple):
-                    prob = tuple([prob] * num_h)
-                return tuple([zoneout(h[i], next_h[i], prob[i]) for i in range(num_h)])
-            if self.training:
-                mask = h.new_tensor(h.size()).bernoulli_(prob)
-                return mask * next_h + (1 - mask) * h
-            else:
-                return prob * next_h + (1 - prob) * h
-
         next_hidden = self.cell(inputs, hidden)
-        next_hidden = zoneout(hidden, next_hidden, self.zoneout_prob)
+        next_hidden = self._zoneout(hidden, next_hidden, self.zoneout_prob)
         return next_hidden
+
+    def _zoneout(self, h, next_h, prob):
+        # apply recursively
+        if isinstance(h, tuple):
+            num_h = len(h)
+            if not isinstance(prob, tuple):
+                prob = tuple([prob] * num_h)
+            return tuple([self._zoneout(h[i], next_h[i], prob[i]) for i in range(num_h)])
+
+        if self.training:
+            mask = h.new_zeros(*h.size()).bernoulli_(prob)
+            return mask * next_h + (1 - mask) * h
+        else:
+            return prob * next_h + (1 - prob) * h
 
 
 class Tacotron2Loss(torch.nn.Module):
