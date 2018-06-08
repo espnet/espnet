@@ -289,7 +289,8 @@ def train(args):
         cumulate_att_w=args.cumulate_att_w,
         use_batch_norm=args.use_batch_norm,
         use_concate=args.use_concate,
-        dropout=args.dropout_rate)
+        dropout=args.dropout_rate,
+        zoneout=args.zoneout_rate)
     criterion = Tacotron2Loss(
         use_masking=args.use_masking,
         bce_pos_weight=args.bce_pos_weight)
@@ -420,28 +421,30 @@ def decode(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # define model
-    model = Tacotron2(idim=idim,
-                      odim=odim,
-                      embed_dim=train_args.embed_dim,
-                      elayers=train_args.elayers,
-                      eunits=train_args.eunits,
-                      econv_layers=train_args.econv_layers,
-                      econv_chans=train_args.econv_chans,
-                      econv_filts=train_args.econv_filts,
-                      dlayers=train_args.dlayers,
-                      dunits=train_args.dunits,
-                      prenet_layers=train_args.prenet_layers,
-                      prenet_units=train_args.prenet_units,
-                      postnet_layers=train_args.postnet_layers,
-                      postnet_chans=train_args.postnet_chans,
-                      postnet_filts=train_args.postnet_filts,
-                      adim=train_args.adim,
-                      aconv_chans=train_args.aconv_chans,
-                      aconv_filts=train_args.aconv_filts,
-                      cumulate_att_w=train_args.cumulate_att_w,
-                      use_batch_norm=train_args.use_batch_norm,
-                      use_concate=train_args.use_concate,
-                      dropout=train_args.dropout_rate)
+    model = Tacotron2(
+        idim=idim,
+        odim=odim,
+        embed_dim=train_args.embed_dim,
+        elayers=train_args.elayers,
+        eunits=train_args.eunits,
+        econv_layers=train_args.econv_layers,
+        econv_chans=train_args.econv_chans,
+        econv_filts=train_args.econv_filts,
+        dlayers=train_args.dlayers,
+        dunits=train_args.dunits,
+        prenet_layers=train_args.prenet_layers,
+        prenet_units=train_args.prenet_units,
+        postnet_layers=train_args.postnet_layers,
+        postnet_chans=train_args.postnet_chans,
+        postnet_filts=train_args.postnet_filts,
+        adim=train_args.adim,
+        aconv_chans=train_args.aconv_chans,
+        aconv_filts=train_args.aconv_filts,
+        cumulate_att_w=train_args.cumulate_att_w,
+        use_batch_norm=train_args.use_batch_norm,
+        use_concate=train_args.use_concate,
+        dropout=train_args.dropout_rate,
+        zoneout=train_args.zoneout_rate if hasattr(train_args, "zoneout_rate") else 0.0)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)

@@ -45,6 +45,8 @@ epochs=20
 lr=1e-3
 eps=1e-6
 weight_decay=0.0
+dropout=0.5
+zoneout=0.1
 # other
 do_delta=false
 target=states # feats or states
@@ -131,7 +133,7 @@ if [ -z ${tag} ];then
     if ${use_masking};then
         expdir=${expdir}_msk_pw${bce_pos_weight}
     fi
-    expdir=${expdir}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
+    expdir=${expdir}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
     if [ ! -z ${batch_sort_key} ];then
         expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
     fi
@@ -184,6 +186,8 @@ if [ ${stage} -le 6 ];then
            --bce_pos_weight ${bce_pos_weight} \
            --lr ${lr} \
            --eps ${eps} \
+           --dropout-rate ${dropout} \
+           --zoneout-rate ${zoneout} \
            --weight-decay ${weight_decay} \
            --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \

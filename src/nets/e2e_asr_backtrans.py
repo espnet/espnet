@@ -60,6 +60,39 @@ class Reporter(chainer.Chain):
         chainer.reporter.report({'loss': loss}, self)
 
 
+class ZoneOutCell(torch.nn.Module):
+    """ZONEOUT CELL
+
+    This code is modified from https://github.com/eladhoffer/seq2seq.pytorch
+
+    :param torch.nn.Module cell: pytorch recurrent cell
+    :param float zoneout_prob: probability of zoneout
+    """
+
+    def __init__(self, cell, zoneout_prob=0.1):
+        super(ZoneOutCell, self).__init__()
+        self.cell = cell
+        self.hidden_size = cell.hidden_size
+        self.zoneout_prob = zoneout_prob
+
+    def forward(self, inputs, hidden):
+        def zoneout(h, next_h, prob):
+            if isinstance(h, tuple):
+                num_h = len(h)
+                if not isinstance(prob, tuple):
+                    prob = tuple([prob] * num_h)
+                return tuple([zoneout(h[i], next_h[i], prob[i]) for i in range(num_h)])
+            if self.training:
+                mask = h.new_tensor(h.size()).bernoulli_(prob)
+                return mask * next_h + (1 - mask) * h
+            else:
+                return prob * next_h + (1 - prob) * h
+
+        next_hidden = self.cell(inputs, hidden)
+        next_hidden = zoneout(hidden, next_hidden, self.zoneout_prob)
+        return next_hidden
+
+
 class Tacotron2Loss(torch.nn.Module):
     """TACOTRON2 LOSS FUNCTION
 
@@ -141,6 +174,7 @@ class Tacotron2(torch.nn.Module):
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
     :param float dropout: dropout rate
+    :param float zoneout: zoneout rate
     :param float threshold: threshold in inference
     :param float minlenratio: minimum length ratio in inference
     :param float maxlenratio: maximum length ratio in inference
@@ -167,6 +201,7 @@ class Tacotron2(torch.nn.Module):
                  use_batch_norm=True,
                  use_concate=True,
                  dropout=0.5,
+                 zoneout=0.1,
                  threshold=0.5,
                  maxlenratio=5.0,
                  minlenratio=0.0):
@@ -194,6 +229,7 @@ class Tacotron2(torch.nn.Module):
         self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
         self.dropout = dropout
+        self.zoneout = zoneout
         self.threshold = threshold
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
@@ -226,6 +262,7 @@ class Tacotron2(torch.nn.Module):
                            use_batch_norm=self.use_batch_norm,
                            use_concate=self.use_concate,
                            dropout=self.dropout,
+                           zoneout=self.zoneout,
                            threshold=self.threshold,
                            maxlenratio=self.maxlenratio,
                            minlenratio=self.minlenratio)
@@ -395,6 +432,7 @@ class Decoder(torch.nn.Module):
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
     :param float dropout: dropout rate
+    :param float zoneout: zoneout rate
     :param float threshold: threshold in inference
     :param float minlenratio: minimum length ratio in inference
     :param float maxlenratio: maximum length ratio in inference
@@ -412,6 +450,7 @@ class Decoder(torch.nn.Module):
                  use_batch_norm=True,
                  use_concate=True,
                  dropout=0.5,
+                 zoneout=0.1,
                  threshold=0.5,
                  maxlenratio=5.0,
                  minlenratio=0.0):
@@ -431,6 +470,7 @@ class Decoder(torch.nn.Module):
         self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
         self.dropout = dropout
+        self.zoneout = zoneout
         self.threshold = threshold
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
@@ -438,7 +478,10 @@ class Decoder(torch.nn.Module):
         self.lstm = torch.nn.ModuleList()
         for l in six.moves.range(self.dlayers):
             iunits = self.idim + self.prenet_units if l == 0 else self.dunits
-            self.lstm += [torch.nn.LSTMCell(iunits, self.dunits)]
+            lstm = torch.nn.LSTMCell(iunits, self.dunits)
+            if zoneout > 0.0:
+                lstm = ZoneOutCell(lstm, self.zoneout)
+            self.lstm += [lstm]
         # define prenet
         if self.prenet_layers > 0:
             self.prenet = torch.nn.ModuleList()

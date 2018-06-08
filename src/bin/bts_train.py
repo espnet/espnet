@@ -95,6 +95,8 @@ def main():
                         help='Whether to use residual connection in conv layer')
     parser.add_argument('--dropout-rate', default=0.5, type=float,
                         help='Dropout rate')
+    parser.add_argument('--zoneout-rate', default=0.1, type=float,
+                        help='Zoneout rate')
     # loss related
     parser.add_argument('--use_masking', default=False, type=strtobool,
                         help='Whether to use masking in calculation of loss')
