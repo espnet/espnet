@@ -252,7 +252,7 @@ if [ ${stage} -le 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
 
         # split data
         data=data/${rtask}
