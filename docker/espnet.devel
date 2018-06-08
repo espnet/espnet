@@ -48,6 +48,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
         libgcc-5-dev \
         libstdc++-5-dev \
         && \
+    apt-get -y install --reinstall \
+        libnccl-dev \
+        libnccl2 \
+        && \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && apt-get -y install --no-install-recommends \
         python3.6 \
@@ -60,7 +64,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
 RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
     python get-pip.py && \
     rm get-pip.py
-RUN pip install -U soundfile
+RUN pip install -U soundfile virtualenv
 
 # Install espnet
 RUN mkdir -p /espnet
