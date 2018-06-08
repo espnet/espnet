@@ -227,9 +227,9 @@ class E2E(torch.nn.Module):
             self.att = AttLocRec(args.eprojs, args.dunits,
                                  args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'coverage':
-            self.att = AttCov(args.eprojs, args.dunits, args.adim, args.awin)
+            self.att = AttCov(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'coverage_location':
-            self.att = AttCovLoc(args.eprojs, args.dunits, args.adim, args.awin,
+            self.att = AttCovLoc(args.eprojs, args.dunits, args.adim,
                                  args.aconv_chans, args.aconv_filts)
         elif args.atype == 'multi_head_dot':
             self.att = AttMultiHeadDot(args.eprojs, args.dunits,
@@ -1039,7 +1039,7 @@ class AttLocRec(torch.nn.Module):
         # NOTE use bmm instead of sum(*)
         c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
 
-        return c, (att_prev, (att_h, att_c))
+        return c, (w, (att_h, att_c))
 
 
 class AttCovLoc(torch.nn.Module):
