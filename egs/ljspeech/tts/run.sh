@@ -26,7 +26,7 @@ postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
 # attention related
-adim=512
+adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
 cumulate_att_w=true # whether to cumulate attetion weight
@@ -36,14 +36,17 @@ use_residual=false  # whether to concatenate encoder embedding with decoder lstm
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=20.0
 # minibatch related
+batch_sort_key=input
 batchsize=50
-maxlen_in=200  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=100 # if output length > maxlen_out, batchsize is automatically reduced
-epochs=20
+maxlen_in=100  # if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_out=200 # if output length > maxlen_out, batchsize is automatically reduced
+epochs=300
 # optimization related
 lr=1e-3
 eps=1e-6
 weight_decay=0.0
+dropout=0.5
+zoneout=0.1
 # decoding related
 threshold=0.5
 maxlenratio=10.0
@@ -51,6 +54,7 @@ minlenratio=0.0
 nj=32
 # other
 verbose=1
+seed=1125
 dumpdir=dump   # directory to dump full features
 
 # feature configuration
@@ -162,7 +166,11 @@ if [ -z ${tag} ];then
     if ${use_masking};then
         expdir=${expdir}_msk_pw${bce_pos_weight}
     fi
-    expdir=${expdir}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=${expdir}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
+    if [ ! -z ${batch_sort_key} ];then
+        expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
+    fi
+    expdir=${expdir}_sd${seed}
 else
     expdir=exp/${train_set}_${tag}
 fi
@@ -177,6 +185,7 @@ if [ ${stage} -le 6 ];then
            --ngpu ${ngpu} \
            --outdir ${expdir}/results \
            --verbose ${verbose} \
+           --seed ${seed} \
            --train-feat ${tr_feat} \
            --train-label ${tr_label} \
            --valid-feat ${dt_feat} \
@@ -205,7 +214,10 @@ if [ ${stage} -le 6 ];then
            --bce_pos_weight ${bce_pos_weight} \
            --lr ${lr} \
            --eps ${eps} \
+           --dropout-rate ${dropout} \
+           --zoneout-rate ${zoneout} \
            --weight-decay ${weight_decay} \
+           --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
