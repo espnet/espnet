@@ -90,9 +90,9 @@ class ZoneOutCell(torch.nn.Module):
 
         if self.training:
             mask = h.new_zeros(*h.size()).bernoulli_(prob)
-            return mask * next_h + (1 - mask) * h
+            return (1 - mask) * next_h + mask * h
         else:
-            return prob * next_h + (1 - prob) * h
+            return (1 - prob) * next_h + prob * h
 
 
 class Tacotron2Loss(torch.nn.Module):
