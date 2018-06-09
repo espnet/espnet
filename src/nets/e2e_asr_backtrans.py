@@ -74,6 +74,8 @@ class ZoneOutCell(torch.nn.Module):
         self.cell = cell
         self.hidden_size = cell.hidden_size
         self.zoneout_prob = zoneout_prob
+        if zoneout_prob > 1.0 or zoneout_prob < 0.0:
+            raise ValueError("zoneout probability must be in the range from 0.0 to 1.0.")
 
     def forward(self, inputs, hidden):
         next_hidden = self.cell(inputs, hidden)
