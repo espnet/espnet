@@ -12,8 +12,6 @@ import random
 import subprocess
 import sys
 
-from distutils.util import strtobool
-
 import numpy as np
 
 
