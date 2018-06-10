@@ -252,7 +252,7 @@ def test_pytorch_attention_trainable_and_decodable(atype):
 
 
 @pytest.mark.parametrize("atype", ['noatt', 'dot', 'location'])
-def test_chainer_attention_visualize(atype):
+def test_chainer_all_attention_calculation(atype):
     args = make_arg(atype=atype)
     m = importlib.import_module('e2e_asr_attctc')
     model = m.E2E(40, 5, args)
@@ -264,7 +264,7 @@ def test_chainer_attention_visualize(atype):
             numpy.float32), tokenid=out_data))
     ]
     with chainer.no_backprop_mode():
-        att_ws = model.visualize_attention(data)
+        att_ws = model.calculate_all_attentions(data)
         print(att_ws.shape)
 
 
@@ -273,7 +273,7 @@ def test_chainer_attention_visualize(atype):
                           'coverage_location', 'location2d', 'location_recurrent',
                           'multi_head_dot', 'multi_head_add', 'multi_head_loc',
                           'multi_head_multi_res_loc'])
-def test_pytorch_attention_visualize(atype):
+def test_pytorch_all_attention_calculation(atype):
     args = make_arg(atype=atype)
     m = importlib.import_module("e2e_asr_attctc_th")
     model = m.E2E(40, 5, args)
@@ -285,9 +285,5 @@ def test_pytorch_attention_visualize(atype):
             numpy.float32), tokenid=out_data))
     ]
     model.eval()
-    att_ws = model.visualize_attention(data)
-    if isinstance(att_ws, list):
-        for att_w in att_ws:
-            print(att_w.shape)
-    else:
-        print(att_ws.shape)
+    att_ws = model.calculate_all_attentions(data)
+    print(att_ws.shape)
