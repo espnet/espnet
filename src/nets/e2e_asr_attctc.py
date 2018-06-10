@@ -236,7 +236,7 @@ class E2E(chainer.Chain):
             return y
 
     def calculate_all_attentions(self, data):
-        '''E2E attention vizualization
+        '''E2E attention calculation
 
         :param list data: list of dicts of the input (B)
         :return: attention weights (B, Lmax, Tmax)
