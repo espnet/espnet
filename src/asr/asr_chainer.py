@@ -460,11 +460,11 @@ def train(args):
         valid_iter, model, valid_reader, device=gpu_id))
 
     # Save attention weight each epoch
-    if args.save_attention and args.mtlalpha != 1.0:
-        data = [valid[0][0]]
+    if args.num_save_attention > 0 and args.mtlalpha != 1.0:
+        data = sorted(valid_json.items()[:args.num_save_attention],
+                      key=lambda x: int(x[1]['ilen']), reverse=True)
         data = converter_kaldi(data, valid_reader)
-        trainer.extend(PlotAttentionReport(model, data, args.outdir),
-                       trigger=(1, 'epoch'))
+        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))

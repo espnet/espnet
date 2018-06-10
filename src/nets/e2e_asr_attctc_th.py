@@ -26,13 +26,9 @@ from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
-import matplotlib
-matplotlib.use('Agg')
-
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
-MAX_SHOW_ATTENTION = 1
 
 
 def to_cuda(m, x):
@@ -358,14 +354,14 @@ class E2E(torch.nn.Module):
             self.train()
         return y
 
-    def visualize_attention(self, data, use_visualization=False):
-        '''E2E attention vizualization
+    def calculate_all_attentions(self, data):
+        '''E2E attention calculation
 
         :param list data: list of dicts of the input (B)
-        :param bool use_visualization: whether to visualize attetion weights
-        :return: multi-head case => list of attention weights (B, Lmax, Tmax) * H
-                 other case => attention weights (B, Lmax, Tmax)
-        :rtype: list of float ndarray or float ndarray
+        :return: attention weights with the following shape,
+            1) multi-head case => attention weights (B, H, Lmax, Tmax),
+            2) other case => attention weights (B, Lmax, Tmax).
+         :rtype: float ndarray
         '''
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
@@ -395,23 +391,6 @@ class E2E(torch.nn.Module):
 
         # decoder
         att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
-
-        # visualize
-        if use_visualization:
-            for i in six.moves.range(max(len(data), MAX_SHOW_ATTENTION)):
-                if len(att_ws.shape) == 4:
-                    for h, att_w in enumerate(att_ws[i], 1):
-                        matplotlib.pyplot.subplot(1, len(att_ws[i]), h)
-                        matplotlib.pyplot.imshow(att_w, aspect="auto")
-                        matplotlib.pyplot.xlabel("Input Index")
-                        matplotlib.pyplot.ylabel("Output Index")
-                else:
-                    matplotlib.pyplot.imshow(att_ws[i], aspect="auto")
-                    matplotlib.pyplot.xlabel("Input Index")
-                    matplotlib.pyplot.ylabel("Output Index")
-            matplotlib.pyplot.tight_layout()
-            matplotlib.pyplot.show()
-            matplotlib.pyplot.close()
 
         return att_ws
 
