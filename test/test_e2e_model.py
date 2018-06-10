@@ -71,7 +71,6 @@ def test_model_trainable_and_decodable(module, etype, atype):
     args = make_arg(etype=etype, atype=atype)
     if module[-3:] == "_th":
         pytest.importorskip('torch')
-
     m = importlib.import_module(module)
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     out_data = "1 2 3 4"
@@ -250,6 +249,8 @@ def test_zero_length_target(etype):
 )
 def test_calculate_all_attentions(module, atype):
     args = make_arg(atype=atype)
+    if module[-3:] == "_th":
+        pytest.importorskip('torch')
     m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
     out_data = "1 2 3 4"
