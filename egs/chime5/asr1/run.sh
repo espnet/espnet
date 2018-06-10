@@ -233,13 +233,10 @@ if [ ${stage} -le 3 ]; then
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
-        lmngpu=1
-    else
-        lmngpu=${ngpu}
     fi
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
-        --ngpu ${lmngpu} \
+        --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
