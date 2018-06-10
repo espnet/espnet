@@ -25,14 +25,9 @@ from e2e_asr_common import label_smoothing_dist
 
 import deterministic_embed_id as DL
 
-import matplotlib
-matplotlib.use('Agg')
-
-
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
-MAX_SHOW_ATTENTION = 1
 
 
 def _subsamplex(x, n):
@@ -240,11 +235,10 @@ class E2E(chainer.Chain):
 
             return y
 
-    def visualize_attention(self, data, use_visualization=False):
+    def calculate_all_attentions(self, data):
         '''E2E attention vizualization
 
         :param list data: list of dicts of the input (B)
-        :param bool use_visualization: whether to visualize attetion weights
         :return: attention weights (B, Lmax, Tmax)
         :rtype: float ndarray
         '''
@@ -270,23 +264,6 @@ class E2E(chainer.Chain):
 
         hs, ilens = self.enc(hs, ilens)
         att_ws = self.dec.calculate_all_attentions(hs, ys)
-
-        # visualize
-        if use_visualization:
-            for i in six.moves.range(max(len(data), MAX_SHOW_ATTENTION)):
-                if len(att_ws.shape) == 4:
-                    for h, att_w in enumerate(att_ws[i], 1):
-                        matplotlib.pyplot.subplot(1, len(att_ws[i]), h)
-                        matplotlib.pyplot.imshow(att_w, aspect="auto")
-                        matplotlib.pyplot.xlabel("Input Index")
-                        matplotlib.pyplot.ylabel("Output Index")
-                else:
-                    matplotlib.pyplot.imshow(att_ws[i], aspect="auto")
-                    matplotlib.pyplot.xlabel("Input Index")
-                    matplotlib.pyplot.ylabel("Output Index")
-            matplotlib.pyplot.tight_layout()
-            matplotlib.pyplot.show()
-            matplotlib.pyplot.close()
 
         return att_ws
 

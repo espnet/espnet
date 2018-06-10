@@ -130,8 +130,8 @@ def main():
                         help='Number of maximum epochs')
     parser.add_argument('--grad-clip', default=5, type=float,
                         help='Gradient norm threshold to clip')
-    parser.add_argument('--save-attention', default=True, type=strtobool,
-                        help='Whether to save attention weight in each epoch')
+    parser.add_argument('--num-save-attention', default=3, type=int,
+                        help='Number of samples of attention to be saved')
     args = parser.parse_args()
 
     # logging info
