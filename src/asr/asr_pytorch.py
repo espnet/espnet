@@ -13,10 +13,12 @@ import pickle
 
 # chainer related
 import chainer
+
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 
+# torch related
 import torch
 
 # spnet related
@@ -25,6 +27,7 @@ from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
 from asr_utils import make_batchset
+from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss
@@ -36,7 +39,7 @@ import lazy_io
 # rnnlm
 import lm_pytorch
 
-# numpy related
+# matplotlib related
 import matplotlib
 matplotlib.use('Agg')
 
@@ -287,6 +290,13 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(
         model, valid_iter, reporter, valid_reader, device=gpu_id))
+
+    # Save attention weight each epoch
+    if args.num_save_attention > 0 and args.mtlalpha != 1.0:
+        data = sorted(valid_json.items()[:args.num_save_attention],
+                      key=lambda x: int(x[1]['ilen']), reverse=True)
+        data = converter_kaldi(data, valid_reader)
+        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))

@@ -3,12 +3,18 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
+import copy
 import logging
+import os
 
 # chainer related
 import chainer
 from chainer import training
+from chainer.training import extension
+
+# matplotlib related
+import matplotlib
+matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
@@ -138,3 +144,41 @@ def _adadelta_eps_decay(trainer, eps_decay):
         for p in optimizer.param_groups:
             p["eps"] *= eps_decay
             logging.info('adadelta eps decayed to ' + str(p["eps"]))
+
+
+class PlotAttentionReport(extension.Extension):
+    def __init__(self, model, data, outdir):
+        self.data = copy.deepcopy(data)
+        self.outdir = outdir
+        if not os.path.exists(self.outdir):
+            os.makedirs(self.outdir)
+        if hasattr(model, "module"):
+            self.att_vis_fn = model.module.predictor.calculate_all_attentions
+        else:
+            self.att_vis_fn = model.predictor.calculate_all_attentions
+
+    def __call__(self, trainer):
+        att_ws = self.att_vis_fn(self.data)
+        for idx, att_w in enumerate(att_ws):
+            filename = "%s/%s.ep.{.updater.epoch}.png" % (
+                self.outdir, self.data[idx][0])
+            if len(att_w.shape) == 3:
+                att_w = att_w[:, :int(self.data[idx][1]['olen']), :int(self.data[idx][1]['ilen'])]
+            else:
+                att_w = att_w[:int(self.data[idx][1]['olen']), :int(self.data[idx][1]['ilen'])]
+            self._plot_and_save_attention(att_w, filename.format(trainer))
+
+    def _plot_and_save_attention(self, att_w, filename):
+        if len(att_w.shape) == 3:
+            for h, aw in enumerate(att_w, 1):
+                matplotlib.pyplot.subplot(1, len(att_w), h)
+                matplotlib.pyplot.imshow(aw, aspect="auto")
+                matplotlib.pyplot.xlabel("Encoder Index")
+                matplotlib.pyplot.ylabel("Decoder Index")
+        else:
+            matplotlib.pyplot.imshow(att_w, aspect="auto")
+            matplotlib.pyplot.xlabel("Encoder Index")
+            matplotlib.pyplot.ylabel("Decoder Index")
+        matplotlib.pyplot.tight_layout()
+        matplotlib.pyplot.savefig(filename)
+        matplotlib.pyplot.close()
