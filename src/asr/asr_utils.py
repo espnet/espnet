@@ -5,23 +5,20 @@
 
 import copy
 import logging
-<<<<<<< HEAD
-import sys
-=======
 import os
->>>>>>> upstream/master
+import sys
 
 # chainer related
 import chainer
 from chainer import training
 from chainer.training import extension
 
+# io related
+import kaldi_io_py
+
 # matplotlib related
 import matplotlib
 matplotlib.use('Agg')
-
-# io related
-import kaldi_io_py
 
 
 # * -------------------- training iterator related -------------------- *

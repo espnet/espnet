@@ -46,7 +46,6 @@ def make_arg(**kwargs):
     return argparse.Namespace(**defaults)
 
 
-<<<<<<< HEAD
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_model_trainable_and_decodable(etype):
     args = make_arg(etype=etype)
@@ -65,44 +64,6 @@ def test_model_trainable_and_decodable(etype):
         ]
         attn_loss = model(data)
         attn_loss.backward()  # trainable
-=======
-@pytest.mark.parametrize(
-    "module, etype, atype", [
-        ('e2e_asr_attctc', 'vggblstmp', 'location'),
-        ('e2e_asr_attctc', 'blstmp', 'noatt'),
-        ('e2e_asr_attctc', 'blstmp', 'dot'),
-        ('e2e_asr_attctc', 'blstmp', 'location'),
-        ('e2e_asr_attctc_th', 'vggblstmp', 'location'),
-        ('e2e_asr_attctc_th', 'blstmp', 'noatt'),
-        ('e2e_asr_attctc_th', 'blstmp', 'dot'),
-        ('e2e_asr_attctc_th', 'blstmp', 'add'),
-        ('e2e_asr_attctc_th', 'blstmp', 'location'),
-        ('e2e_asr_attctc_th', 'blstmp', 'coverage'),
-        ('e2e_asr_attctc_th', 'blstmp', 'coverage_location'),
-        ('e2e_asr_attctc_th', 'blstmp', 'location2d'),
-        ('e2e_asr_attctc_th', 'blstmp', 'location_recurrent'),
-        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_dot'),
-        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_add'),
-        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_loc'),
-        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_multi_res_loc')
-    ]
-)
-def test_model_trainable_and_decodable(module, etype, atype):
-    args = make_arg(etype=etype, atype=atype)
-    if module[-3:] == "_th":
-        pytest.importorskip('torch')
-    m = importlib.import_module(module)
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
-    out_data = "1 2 3 4"
-    data = [
-        ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data)),
-        ("bbb", dict(feat=numpy.random.randn(200, 40).astype(
-            numpy.float32), tokenid=out_data))
-    ]
-    attn_loss = model(data)
-    attn_loss.backward()  # trainable
->>>>>>> upstream/master
 
     with chainer.no_backprop_mode():
         in_data = data[0][1]["feat"]
