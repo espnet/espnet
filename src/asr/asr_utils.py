@@ -6,11 +6,15 @@
 import copy
 import logging
 import os
+import sys
 
 # chainer related
 import chainer
 from chainer import training
 from chainer.training import extension
+
+# io related
+import kaldi_io_py
 
 # matplotlib related
 import matplotlib
@@ -19,16 +23,24 @@ matplotlib.use('Agg')
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
+    # TODO(nelson) remove in future
+    if 'input' not in data.values()[0]:
+        print(data[1]['input'])
+        logging.error(
+            "input file format (json) is modified, please redo"
+            "stage 2: Dictionary and Json Data Preparation")
+        sys.exit(1)
+
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['ilen']), reverse=True)
+        data[1]['input'][0]['shape'][0]), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))
     # change batchsize depending on the input and output length
     minibatch = []
     start = 0
     while True:
-        ilen = int(sorted_data[start][1]['ilen'])
-        olen = int(sorted_data[start][1]['olen'])
+        ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
+        olen = int(sorted_data[start][1]['output'][0]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # if ilen = 1000 and max_length_in = 800
         # then b = batchsize / 2
@@ -48,9 +60,11 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
 
 # TODO(watanabe) perform mean and variance normalization during the python program
 # and remove the data dump process in run.sh
-def converter_kaldi(batch, reader):
+def converter_kaldi(batch, device=None):
+    # batch only has one minibatch utterance, which is specified by batch[0]
+    batch = batch[0]
     for data in batch:
-        feat = reader[data[0].encode('ascii', 'ignore')]
+        feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])
         data[1]['feat'] = feat
 
     return batch
@@ -163,9 +177,11 @@ class PlotAttentionReport(extension.Extension):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])
             if len(att_w.shape) == 3:
-                att_w = att_w[:, :int(self.data[idx][1]['olen']), :int(self.data[idx][1]['ilen'])]
+                att_w = att_w[:, :int(self.data[idx][1]['output'][0]['shape'][0]),
+                              :int(self.data[idx][1]['input'][0]['shape'][0])]
             else:
-                att_w = att_w[:int(self.data[idx][1]['olen']), :int(self.data[idx][1]['ilen'])]
+                att_w = att_w[:int(self.data[idx][1]['output'][0]['shape'][0]),
+                              :int(self.data[idx][1]['input'][0]['shape'][0])]
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def _plot_and_save_attention(self, att_w, filename):

@@ -186,7 +186,7 @@ class E2E(torch.nn.Module):
         # label smoothing info
         if args.lsm_type:
             logging.info("Use label smoothing with " + args.lsm_type)
-            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_label)
+            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         else:
             labeldist = None
 
@@ -278,7 +278,7 @@ class E2E(torch.nn.Module):
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
-        tids = [d[1]['tokenid'].split() for d in data]
+        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
@@ -367,7 +367,7 @@ class E2E(torch.nn.Module):
         xs = [d[1]['feat'] for d in data]
 
         # remove 0-output-length utterances
-        tids = [d[1]['tokenid'].split() for d in data]
+        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
@@ -464,8 +464,8 @@ class CTC(torch.nn.Module):
         y_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(ilens))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + ''.join(str(ilens).split('\n')))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + ''.join(str(olens).split('\n')))
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
@@ -1706,7 +1706,7 @@ class Decoder(torch.nn.Module):
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
-        logging.info('att loss:' + str(self.loss.data))
+        logging.info('att loss:' + ''.join(str(self.loss.data).split('\n')))
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:

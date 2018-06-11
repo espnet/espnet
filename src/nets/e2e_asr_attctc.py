@@ -127,7 +127,7 @@ class E2E(chainer.Chain):
         # label smoothing info
         if args.lsm_type:
             logging.info("Use label smoothing with " + args.lsm_type)
-            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_label)
+            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         else:
             labeldist = None
 
@@ -170,7 +170,7 @@ class E2E(chainer.Chain):
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
         # remove 0-output-length utterances
-        tids = [d[1]['tokenid'].split() for d in data]
+        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
         filtered_index = list(filter(lambda i: len(tids[i]) > 0, range(len(xs))))
         if len(filtered_index) != len(xs):
             logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
@@ -245,7 +245,7 @@ class E2E(chainer.Chain):
         # utt list of frame x dim
         xs = [i[1]['feat'] for i in data]
         # remove 0-output-length utterances
-        tids = [d[1]['tokenid'].split() for d in data]
+        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
         filtered_index = list(filter(lambda i: len(tids[i]) > 0, range(len(xs))))
         if len(filtered_index) != len(xs):
             logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
