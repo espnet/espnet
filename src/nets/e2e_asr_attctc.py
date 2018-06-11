@@ -12,9 +12,11 @@ import numpy as np
 import six
 
 import chainer
-from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
+
+
+from chainer import cuda
 from chainer import reporter
 from chainer_ctc.warpctc import ctc as warp_ctc
 from ctc_prefix_score import CTCPrefixScore
@@ -199,7 +201,7 @@ class E2E(chainer.Chain):
             loss_att = None
             acc = None
         else:
-            loss_att, acc, att_w = self.dec(hs, ys)
+            loss_att, acc = self.dec(hs, ys)
 
         return loss_ctc, loss_att, acc
 
@@ -232,6 +234,38 @@ class E2E(chainer.Chain):
             y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
             return y
+
+    def calculate_all_attentions(self, data):
+        '''E2E attention calculation
+
+        :param list data: list of dicts of the input (B)
+        :return: attention weights (B, Lmax, Tmax)
+        :rtype: float ndarray
+        '''
+        # utt list of frame x dim
+        xs = [i[1]['feat'] for i in data]
+        # remove 0-output-length utterances
+        tids = [d[1]['tokenid'].split() for d in data]
+        filtered_index = list(filter(lambda i: len(tids[i]) > 0, range(len(xs))))
+        if len(filtered_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(filtered_index)))
+        xs = [xs[i] for i in filtered_index]
+        # utt list of olen
+        ys = [self.xp.array(np.fromiter(map(int, tids[i]), dtype=np.int32))
+              for i in filtered_index]
+        ys = [chainer.Variable(y) for y in ys]
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        ilens = self.xp.array([xx.shape[0] for xx in xs], dtype=np.int32)
+        hs = [chainer.Variable(self.xp.array(xx, dtype=np.float32))
+              for xx in xs]
+
+        hs, ilens = self.enc(hs, ilens)
+        att_ws = self.dec.calculate_all_attentions(hs, ys)
+
+        return att_ws
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
@@ -584,7 +618,6 @@ class Decoder(chainer.Chain):
         att_w = None
         z_all = []
         self.att.reset()  # reset pre-computation of h
-        att_weight_all = []  # for debugging
 
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
@@ -598,7 +631,6 @@ class Decoder(chainer.Chain):
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
             z_all.append(z_list[-1])
-            att_weight_all.append(att_w.data)  # for debugging
 
         z_all = F.reshape(F.stack(z_all, axis=1),
                           (batch * olength, self.dunits))
@@ -632,7 +664,7 @@ class Decoder(chainer.Chain):
             loss_reg = - F.sum(F.scale(F.log_softmax(y_all), self.vlabeldist, axis=1)) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
-        return self.loss, acc, att_weight_all
+        return self.loss, acc
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
@@ -793,6 +825,53 @@ class Decoder(chainer.Chain):
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         return nbest_hyps
+
+    def calculate_all_attentions(self, hs, ys):
+        '''Calculate all of attentions
+
+        :return: list of attentions
+        '''
+        # prepare input and output word sequences with sos/eos IDs
+        eos = self.xp.array([self.eos], 'i')
+        sos = self.xp.array([self.sos], 'i')
+        ys_in = [F.concat([sos, y], axis=0) for y in ys]
+        ys_out = [F.concat([y, eos], axis=0) for y in ys]
+
+        # padding for ys with -1
+        # pys: utt x olen
+        pad_ys_in = F.pad_sequence(ys_in, padding=self.eos)
+        pad_ys_out = F.pad_sequence(ys_out, padding=-1)
+
+        # get length info
+        olength = pad_ys_out.shape[1]
+
+        # initialization
+        c_list = [None]  # list of cell state of each layer
+        z_list = [None]  # list of hidden state of each layer
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(None)
+            z_list.append(None)
+        att_w = None
+        att_ws = []
+        self.att.reset()  # reset pre-computation of h
+
+        # pre-computation of embedding
+        eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        eys = F.separate(eys, axis=1)
+
+        # loop for an output sequence
+        for i in six.moves.range(olength):
+            att_c, att_w = self.att(hs, z_list[0], att_w)
+            ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
+            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
+            for l in six.moves.range(1, self.dlayers):
+                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            att_ws.append(att_w)  # for debugging
+
+        att_ws = F.stack(att_ws, axis=1)
+        att_ws.to_cpu()
+
+        return att_ws.data
 
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
