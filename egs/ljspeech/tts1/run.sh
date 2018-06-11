@@ -10,6 +10,13 @@
 stage=-1
 # gpu setting
 ngpu=1
+# feature extraction related
+fs=22050
+fmax=""
+fmin=""
+n_mels=80
+n_fft=1024
+n_shift=512
 # encoder related
 embed_dim=512
 elayers=1
@@ -36,11 +43,11 @@ use_residual=false  # whether to concatenate encoder embedding with decoder lstm
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=20.0
 # minibatch related
-batch_sort_key=input
-batchsize=50
-maxlen_in=150  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=400 # if output length > maxlen_out, batchsize is automatically reduced
-epochs=300
+batchsize=64
+batch_sort_key="" # none or input or output
+maxlen_in=150  # (does not effect in batch_sort_key="") if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_out=400 # (does not effect in batch_sort_key="") if output length > maxlen_out, batchsize is automatically reduced
+epochs=200
 # optimization related
 lr=1e-3
 eps=1e-6
@@ -100,7 +107,10 @@ if [ ${stage} -le 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    steps/make_fbank.sh --cmd "$train_cmd" --nj 32 data/train exp/make_fbank/train ${fbankdir}
+    local/make_fbank.sh --cmd "${train_cmd}" --nj 32 \
+        --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
+        --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
+        data/train exp/make_fbank/train ${fbankdir}
 
     # make a dev set
     utils/subset_data_dir.sh --last data/train 500 data/deveval
@@ -174,8 +184,8 @@ if [ -z ${tag} ];then
 else
     expdir=exp/${train_set}_${tag}
 fi
-if [ ${stage} -le 6 ];then
-    echo "stage 6: Back translator training"
+if [ ${stage} -le 3 ];then
+    echo "stage 3: Back translator training"
     tr_feat=scp:${feat_tr_dir}/feats.scp
     tr_label=${feat_tr_dir}/data.json
     dt_feat=scp:${feat_dt_dir}/feats.scp
@@ -225,9 +235,9 @@ if [ ${stage} -le 6 ];then
 fi
 
 outdir=${expdir}/outputs_th${threshold}_mlr${minlenratio}-${maxlenratio}
-if [ ${stage} -le 7 ];then
-    echo "stage 7: Decoding"
-    for sets in ${eval_set};do
+if [ ${stage} -le 4 ];then
+    echo "stage 4: Decoding"
+    for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         # create split json
         data2json.sh data/${sets} ${dict} > ${outdir}/${sets}/data.json
@@ -253,3 +263,15 @@ if [ ${stage} -le 7 ];then
         rm ${outdir}/${sets}/*.json 2>/dev/null
     done
 fi
+
+if [ ${stage} -le 5 ];then
+    echo "stage 5: Synthesis"
+    for sets in ${train_dev} ${eval_set};do
+        local/convert_fbank.sh --nj 32 --cmd "${train_cmd}" \
+            --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
+            --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
+            ${outdir}/${sets} \
+            ${outdir}/${sets}/wav
+    done
+fi
+
