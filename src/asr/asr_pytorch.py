@@ -34,7 +34,6 @@ from e2e_asr_attctc_th import Loss
 
 # for kaldi io
 import kaldi_io_py
-import lazy_io
 
 # rnnlm
 import lm_pytorch
@@ -45,12 +44,11 @@ matplotlib.use('Agg')
 
 
 class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
-    '''Custom evaluater with Kaldi reader for pytorch'''
+    '''Custom evaluater for pytorch'''
 
-    def __init__(self, model, iterator, target, reader, device):
+    def __init__(self, model, iterator, target, converter, device):
         super(PytorchSeqEvaluaterKaldi, self).__init__(
-            iterator, target, device=device)
-        self.reader = reader
+            iterator, target, converter=converter, device=device)
         self.model = model
 
     # The core part of the update routine can be customized by overriding.
@@ -74,8 +72,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 # read scp files
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
-                # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch[0], self.reader)
+                x = self.converter(batch)
                 self.model.eval()
                 self.model(x)
                 delete_feat(x)
@@ -88,13 +85,13 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
 
 class PytorchSeqUpdaterKaldi(training.StandardUpdater):
-    '''Custom updater with Kaldi reader for pytorch'''
+    '''Custom updater for pytorch'''
 
-    def __init__(self, model, grad_clip_threshold, train_iter, optimizer, reader, device):
+    def __init__(self, model, grad_clip_threshold, train_iter,
+                 optimizer, converter, device):
         super(PytorchSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, device=None)
+            train_iter, optimizer, converter=converter, device=None)
         self.model = model
-        self.reader = reader
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
 
@@ -115,7 +112,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         if len(batch[0]) < self.num_gpu:
             logging.warning('batch size is less than number of gpus. Ignored')
             return
-        x = converter_kaldi(batch[0], self.reader)
+        x = self.converter(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = 1. / self.num_gpu * self.model(x)
@@ -188,11 +185,11 @@ def train(args):
         logging.warning('cuda is not available')
 
     # get input and output dimension info
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['idim'])
-    odim = int(valid_json[utts[0]]['odim'])
+    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
+    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
@@ -252,9 +249,9 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # read json data
-    with open(args.train_label, 'rb') as f:
+    with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
@@ -268,13 +265,9 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(
         valid, 1, repeat=False, shuffle=False)
 
-    # prepare Kaldi reader
-    train_reader = lazy_io.read_dict_scp(args.train_feat)
-    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
-
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, train_reader, gpu_id)
+        model, args.grad_clip, train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -289,13 +282,13 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, valid_iter, reporter, valid_reader, device=gpu_id))
+        model, valid_iter, reporter, converter=converter_kaldi, device=gpu_id))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(valid_json.items()[:args.num_save_attention],
-                      key=lambda x: int(x[1]['ilen']), reverse=True)
-        data = converter_kaldi(data, valid_reader)
+                      key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
+        data = converter_kaldi(data, device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
@@ -410,20 +403,17 @@ def recog(args):
     else:
         rnnlm = None
 
-    # prepare Kaldi reader
-    reader = kaldi_io_py.read_mat_ark(args.recog_feat)
-
     # read json data
-    with open(args.recog_label, 'rb') as f:
+    with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
     new_json = {}
-    for name, feat in reader:
+    for name in recog_json.keys():
+        feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
         y_hat = nbest_hyps[0]['yseq'][1:]
-
-        y_true = map(int, recog_json[name]['tokenid'].split())
+        y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
 
         # print out decoding result
         seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
@@ -434,17 +424,24 @@ def recog(args):
         logging.info("prediction [%s]: " + seq_hat_text, name)
 
         # copy old json info
-        new_json[name] = recog_json[name]
+        new_json[name] = dict()
+        new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
         # added recognition results to json
         logging.debug("dump token id")
-        # TODO(karita) make consistent to chainer as idx[0] not idx
-        new_json[name]['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
-        logging.debug("dump token")
-        new_json[name]['rec_token'] = " ".join(seq_hat)
-        logging.debug("dump text")
-        new_json[name]['rec_text'] = seq_hat_text
+        out_dic = dict()
+        for _key in recog_json[name]['output'][0]:
+            out_dic[_key] = recog_json[name]['output'][0][_key]
 
+        # TODO(karita) make consistent to chainer as idx[0] not idx
+        out_dic['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
+        logging.debug("dump token")
+        out_dic['rec_token'] = " ".join(seq_hat)
+        logging.debug("dump text")
+        out_dic['rec_text'] = seq_hat_text
+
+        new_json[name]['output'] = [out_dic]
+        # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):

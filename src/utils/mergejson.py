@@ -12,10 +12,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
+    parser.add_argument('--verbose', '-V', default=0, type=int,
+                        help='Verbose option')
     args = parser.parse_args()
     
     # logging info
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    if args.verbose > 0:
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    else:
+        logging.basicConfig(
+            level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
     # make intersection set for utterance keys
     js = []

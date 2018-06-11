@@ -7,7 +7,8 @@
 
 cmd=run.pl
 do_delta=false
-nj=32
+nj=1
+verbose=0
 
 . utils/parse_options.sh
 
@@ -61,5 +62,6 @@ done > $dumpdir/feats.scp
 
 # remove temp scps
 rm $logdir/feats.*.scp 2>/dev/null
-
-echo "Succeeded dumping features for training"
+if [ ${verbose} -eq 1 ]; then
+    echo "Succeeded dumping features for training"
+fi
