@@ -47,6 +47,9 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 opt=adadelta
 epochs=15
 
+# rnnlm related
+lm_weight=0.3
+
 # decoding parameter
 beam_size=20
 penalty=0.0
@@ -63,9 +66,8 @@ datadir=/export/a15/vpanayotov/data
 # base url for downloads.
 data_url=www.openslr.org/resources/12
 
-# bpe (0 means not to use bpe)
 # bpemode (unigram or bpe)
-nbpe=0
+nbpe=1000
 bpemode=unigram
 
 # exp tag
@@ -155,29 +157,54 @@ if [ ${stage} -le 1 ]; then
 fi
 
 dict=data/lang_char/${train_set}_units.txt
+bpemodel=data/lang_char/${train_set}${nbpe}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_char/
-    if [ $nbpe -le 0 ]; then
-	echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-	text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-	    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-	wc -l ${dict}
-    else
-	bpemodel=data/lang_char/${train_set}${nbpe}
-	echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-	cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
-	spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
-	spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict} 
-	wc -l ${dict}
-    fi
+    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
+    spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict} 
+    wc -l ${dict}
+
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
 	 data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+fi
+
+# You can skip this and remove --rnnlm option in the recognition (stage 5)
+lmexpdir=exp/train_rnnlm_2layer_bs256
+mkdir -p ${lmexpdir}
+if [ ${stage} -le 3 ]; then
+    echo "stage 3: LM Preparation"
+    lmdatadir=data/local/lm_train
+    mkdir -p ${lmdatadir}
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | perl -pe 's/\n/ <eos> /g' \
+        > ${lmdatadir}/train.txt
+        cut -f 2- -d" " data/${train_set}/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
+        > ${lmdatadir}/valid.txt
+    # use only 1 gpu
+    if [ ${ngpu} -gt 1 ]; then
+        echo "LM training does not support multi-gpu. signle gpu will be used."
+        lmngpu=1
+    else
+        lmngpu=${ngpu}
+    fi
+    ${cuda_cmd} ${lmexpdir}/train.log \
+        lm_train.py \
+        --ngpu ${lmngpu} \
+        --backend ${backend} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --train-label ${lmdatadir}/train.txt \
+        --valid-label ${lmdatadir}/valid.txt \
+        --epoch 60 \
+        --batchsize 256 \
+        --dict ${dict}
 fi
 
 if [ -z ${tag} ]; then
@@ -190,8 +217,8 @@ else
 fi
 mkdir -p ${expdir}
 
-if [ ${stage} -le 3 ]; then
-    echo "stage 3: Network Training"
+if [ ${stage} -le 4 ]; then
+    echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
@@ -225,8 +252,8 @@ if [ ${stage} -le 3 ]; then
         --epochs ${epochs}
 fi
 
-if [ ${stage} -le 4 ]; then
-    echo "stage 4: Decoding"
+if [ ${stage} -le 5 ]; then
+    echo "stage 5: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
@@ -241,14 +268,11 @@ if [ ${stage} -le 4 ]; then
         # feature extraction
         feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
         if ${do_delta}; then
-        feats="$feats add-deltas ark:- ark:- |"
+            feats="$feats add-deltas ark:- ark:- |"
         fi
 
         # make json labels for recognition
-	if [ $nbpe -le 0 ];then
-            data2json.sh ${data} ${dict} > ${data}/data.json
-	else
-            data2json.sh --bpecode $bpemodel ${data} ${dict} > ${data}/data.json	    
+        data2json.sh --bpecode ${bpemodel}.model ${data} ${dict} > ${data}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -267,10 +291,12 @@ if [ ${stage} -le 4 ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
+            --rnnlm ${lmexpdir}/rnnlm.model.best \
+            --lm-weight ${lm_weight} \
             &
         wait
 
-        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --bpe ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
