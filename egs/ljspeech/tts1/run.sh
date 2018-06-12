@@ -45,8 +45,8 @@ bce_pos_weight=20.0
 # minibatch related
 batchsize=64
 batch_sort_key="" # none or input or output
-maxlen_in=150  # (does not effect in batch_sort_key="") if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=400 # (does not effect in batch_sort_key="") if output length > maxlen_out, batchsize is automatically reduced
+maxlen_in=150  # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
+maxlen_out=400 # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
 epochs=200
 # optimization related
 lr=1e-3
@@ -267,11 +267,15 @@ fi
 if [ ${stage} -le 5 ];then
     echo "stage 5: Synthesis"
     for sets in ${train_dev} ${eval_set};do
+        [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
+        apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
+            scp:${outdir}/${sets}/feats.scp \
+            ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
         local/convert_fbank.sh --nj 32 --cmd "${train_cmd}" \
             --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
             --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
-            ${outdir}/${sets} \
-            ${outdir}/${sets}/wav
+            ${outdir}_denorm/${sets} \
+            ${outdir}_denorm/${sets}/log \
+            ${outdir}_denorm/${sets}/wav
     done
 fi
-
