@@ -26,6 +26,6 @@ tools/nkf/
 tools/venv/
 tools/warp-ctc/
 tools/chainer_ctc/
-tools/subword-nmt/
+tools/sentencepiece/
 
 .pytest_cache
