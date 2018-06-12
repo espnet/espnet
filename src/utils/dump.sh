@@ -8,6 +8,7 @@
 cmd=run.pl
 do_delta=false
 nj=32
+compress="true"
 
 . utils/parse_options.sh
 
@@ -45,12 +46,12 @@ if ${do_delta};then
     $cmd JOB=1:$nj $logdir/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true $cvmnark scp:$logdir/feats.JOB.scp ark:- \| \
         add-deltas ark:- ark:- \| \
-        copy-feats ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
+        copy-feats --compress=$compress ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
         || exit 1
 else
     $cmd JOB=1:$nj $logdir/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true $cvmnark scp:$logdir/feats.JOB.scp ark:- \| \
-        copy-feats ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
+        copy-feats --compress=$compress ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
         || exit 1
 fi
 
