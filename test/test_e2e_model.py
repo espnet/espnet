@@ -74,12 +74,8 @@ def test_model_trainable_and_decodable(module, etype, atype):
     m = importlib.import_module(module)
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     out_data = "1 2 3 4"
-    data = [
-        ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data)),
-        ("bbb", dict(feat=numpy.random.randn(200, 40).astype(
-            numpy.float32), tokenid=out_data))
-    ]
+    data = [("aaa", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), output=[dict(tokenid=out_data)])),
+            ("bbb", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), output=[dict(tokenid=out_data)]))]
     attn_loss = model(data)
     attn_loss.backward()  # trainable
 
@@ -110,11 +106,11 @@ def test_chainer_ctc_type():
     numpy.random.seed(0)
     data = [
         ("aaa", dict(feat=numpy.random.randn(200, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("bbb", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("cc", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data))
+            numpy.float32), output=[dict(tokenid=out_data)]))
     ]
 
     def _propagate(ctc_type):
@@ -154,11 +150,11 @@ def test_loss_and_ctc_grad(etype):
     out_data = "1 2 3 4"
     data = [
         ("aaa", dict(feat=numpy.random.randn(200, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("bbb", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("cc", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data))
+            numpy.float32), output=[dict(tokenid=out_data)]))
     ]
 
     ch_ctc, ch_att, ch_acc = ch_model(data)
@@ -209,9 +205,9 @@ def test_zero_length_target(etype):
     th_model = th.E2E(40, 5, args)
 
     data = [
-        ("aaa", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), tokenid="1")),
-        ("bbb", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid="")),
-        ("cc", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid="1 2"))
+        ("aaa", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), output=[dict(tokenid="1")])),
+        ("bbb", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), output=[dict(tokenid="")])),
+        ("cc", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), output=[dict(tokenid="1 2")]))
     ]
 
     ch_ctc, ch_att, ch_acc = ch_model(data)
@@ -256,9 +252,9 @@ def test_calculate_all_attentions(module, atype):
     out_data = "1 2 3 4"
     data = [
         ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("bbb", dict(feat=numpy.random.randn(200, 40).astype(
-            numpy.float32), tokenid=out_data))
+            numpy.float32), output=[dict(tokenid=out_data)]))
     ]
     with chainer.no_backprop_mode():
         att_ws = model.calculate_all_attentions(data)
