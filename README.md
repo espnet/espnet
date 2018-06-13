@@ -84,12 +84,11 @@ $ cd egs/an4/asr1
 ```
 Once move to the directory, then, execute the following main script with a **chainer** backend:
 ```sh
-$ ./run.sh
+$ ./run.sh --backend chainer
 ```
-or execute the following main script with a **pytorch** backend 
-(currently the pytorch backend does not support VGG-like layers):
+or execute the following main script with a **pytorch** backend:
 ```sh
-$ ./run.sh --backend pytorch --etype blstmp
+$ ./run.sh --backend pytorch
 ```
 With this main script, you can perform a full procedure of ASR experiments including
 - Data download
