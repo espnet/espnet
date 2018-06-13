@@ -42,13 +42,17 @@ def main():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--train-feat', type=str, required=True,
+    parser.add_argument('--train-feat', type=str, default=None,
                         help='Filename of train feature data (Kaldi scp)')
-    parser.add_argument('--valid-feat', type=str, required=True,
+    parser.add_argument('--valid-feat', type=str, default=None,
                         help='Filename of validation feature data (Kaldi scp)')
-    parser.add_argument('--train-label', type=str, required=True,
+    parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
-    parser.add_argument('--valid-label', type=str, required=True,
+    parser.add_argument('--valid-json', type=str, default=None,
+                        help='Filename of validation label data (json)')
+    parser.add_argument('--train-label', type=str, default=None,
+                        help='Filename of train label data (json)')
+    parser.add_argument('--valid-label', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network archtecture
     # encoder
@@ -128,6 +132,8 @@ def main():
                         help='Number of maximum epochs')
     parser.add_argument('--grad-clip', default=5, type=float,
                         help='Gradient norm threshold to clip')
+    parser.add_argument('--num-save-attention', default=3, type=int,
+                        help='Number of samples of attention to be saved')
     args = parser.parse_args()
 
     # logging info
@@ -146,6 +152,19 @@ def main():
             args.ngpu = 0
         else:
             args.ngpu = 1
+
+    # TODO(nelson) remove in future
+    if (args.train_feat is not None) or \
+       (args.valid_feat is not None) or \
+       (args.train_label is not None) or \
+       (args.valid_label is not None):
+        logging.error(
+            "--train-feat, --valid-feat, --train-label, and valid-label"
+            "options are deprecated, please use --train-json and --valid-json options.")
+        logging.error(
+            "input file format (json) is modified, please redo"
+            "stage 1: Feature Generation")
+        sys.exit(1)
 
     # check CUDA_VISIBLE_DEVICES
     if args.ngpu > 0:

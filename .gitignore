@@ -1,4 +1,4 @@
-*~
+B*~
 *.pyc
 \#*\#
 .\#*
@@ -15,6 +15,7 @@ egs/*/*/exp
 egs/*/*/fbank
 egs/*/*/stft
 egs/*/*/enhan
+egs/*/*/wav*
 
 # tools related
 src/utils/kaldi_io_py.py
@@ -27,5 +28,9 @@ tools/venv/
 tools/warp-ctc/
 tools/chainer_ctc/
 tools/sentencepiece/
+tools/nkf*
+tools/chainer_ctc*
+tools/warp-ctc*
+tools/sentencepiece/*
 
 .pytest_cache

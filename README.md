@@ -78,18 +78,17 @@ export CUDA_PATH=$CUDAROOT
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
 We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
-The following directory is an example of performing ASR experiment with the VoxForge Italian Corpus.
+The following directory is an example of performing ASR experiment with the CMU Census Database (AN4) recipe.
 ```sh
-$ cd egs/voxforge/asr1
+$ cd egs/an4/asr1
 ```
 Once move to the directory, then, execute the following main script with a **chainer** backend:
 ```sh
-$ ./run.sh
+$ ./run.sh --backend chainer
 ```
-or execute the following main script with a **pytorch** backend 
-(currently the pytorch backend does not support VGG-like layers):
+or execute the following main script with a **pytorch** backend:
 ```sh
-$ ./run.sh --backend pytorch --etype blstmp
+$ ./run.sh --backend pytorch
 ```
 With this main script, you can perform a full procedure of ASR experiments including
 - Data download
@@ -132,7 +131,7 @@ It will build a container and execute the main program specified by the followin
 $ cd docker
 $ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpora4/CHiME4/CHiME3 --dlayers 1 --ngpu 1 
 ```
-The docker container is built based on the CUDA and CUDNN version installed in your computer.
+Optionally, you can set the CUDA and CUDNN version with the arguments `--docker_cuda` and `--docker_cudnn` respectively (default version set at CUDA=9.0 and CUDNN=7). The docker container can be built based on the CUDA and CUDNN version installed in your computer if you empty this arguments.
 The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
 Multiple GPUs should be specified with the following options:
 ```sh
@@ -160,7 +159,7 @@ ImportError: numpy.core.multiarray failed to import
 ```
 Then, please reinstall matplotlib with the following command:
 ```sh
-$ cd egs/voxforge/asr1
+$ cd egs/an4/asr1
 $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
@@ -197,8 +196,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval3 | 6.8 | N/A  |
 | HKUST train_dev | 29.7 | N/A  |
 | HKUST dev       | 28.3 | N/A  |
-| Librispeech dev_clean  | 2.9 | 7.7 |
-| Librispeech test_clean | 2.7 | 7.7 |
+| Librispeech dev_clean  | 2.7 | 7.2 |
+| Librispeech test_clean | 2.6 | 7.1 |
 
 ## Chainer and Pytorch backends
 

@@ -20,6 +20,8 @@ install:
     else
           pip3 install http://download.pytorch.org/whl/cpu/torch-0.3.1-cp36-cp36m-linux_x86_64.whl ;
     fi
+  # install matplotlib
+  - pip install matplotlib
   # install warp-ctc
   - git clone https://github.com/SeanNaren/warp-ctc.git 
   - cd warp-ctc && git checkout 9e5b238f8d9337b0c39b3fd01bbaff98ba523aa5 && mkdir build && cd build && cmake .. && make -j4 && cd ..
