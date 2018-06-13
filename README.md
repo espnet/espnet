@@ -78,9 +78,9 @@ export CUDA_PATH=$CUDAROOT
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
 We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
-The following directory is an example of performing ASR experiment with the VoxForge Italian Corpus.
+The following directory is an example of performing ASR experiment with the CMU Census Database (AN4) recipe.
 ```sh
-$ cd egs/voxforge/asr1
+$ cd egs/an4/asr1
 ```
 Once move to the directory, then, execute the following main script with a **chainer** backend:
 ```sh
@@ -160,7 +160,7 @@ ImportError: numpy.core.multiarray failed to import
 ```
 Then, please reinstall matplotlib with the following command:
 ```sh
-$ cd egs/voxforge/asr1
+$ cd egs/an4/asr1
 $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
