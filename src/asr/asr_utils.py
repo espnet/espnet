@@ -3,26 +3,36 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
+import copy
 import logging
+import os
+import sys
 
 # chainer related
 import chainer
 from chainer import training
+from chainer.training import extension
+
+# io related
+import kaldi_io_py
+
+# matplotlib related
+import matplotlib
+matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['ilen']), reverse=True)
+        data[1]['input'][0]['shape'][0]), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))
     # change batchsize depending on the input and output length
     minibatch = []
     start = 0
     while True:
-        ilen = int(sorted_data[start][1]['ilen'])
-        olen = int(sorted_data[start][1]['olen'])
+        ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
+        olen = int(sorted_data[start][1]['output'][0]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # if ilen = 1000 and max_length_in = 800
         # then b = batchsize / 2
@@ -42,9 +52,11 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
 
 # TODO(watanabe) perform mean and variance normalization during the python program
 # and remove the data dump process in run.sh
-def converter_kaldi(batch, reader):
+def converter_kaldi(batch, device=None):
+    # batch only has one minibatch utterance, which is specified by batch[0]
+    batch = batch[0]
     for data in batch:
-        feat = reader[data[0].encode('ascii', 'ignore')]
+        feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])
         data[1]['feat'] = feat
 
     return batch
@@ -138,3 +150,43 @@ def _adadelta_eps_decay(trainer, eps_decay):
         for p in optimizer.param_groups:
             p["eps"] *= eps_decay
             logging.info('adadelta eps decayed to ' + str(p["eps"]))
+
+
+class PlotAttentionReport(extension.Extension):
+    def __init__(self, model, data, outdir):
+        self.data = copy.deepcopy(data)
+        self.outdir = outdir
+        if not os.path.exists(self.outdir):
+            os.makedirs(self.outdir)
+        if hasattr(model, "module"):
+            self.att_vis_fn = model.module.predictor.calculate_all_attentions
+        else:
+            self.att_vis_fn = model.predictor.calculate_all_attentions
+
+    def __call__(self, trainer):
+        att_ws = self.att_vis_fn(self.data)
+        for idx, att_w in enumerate(att_ws):
+            filename = "%s/%s.ep.{.updater.epoch}.png" % (
+                self.outdir, self.data[idx][0])
+            if len(att_w.shape) == 3:
+                att_w = att_w[:, :int(self.data[idx][1]['output'][0]['shape'][0]),
+                              :int(self.data[idx][1]['input'][0]['shape'][0])]
+            else:
+                att_w = att_w[:int(self.data[idx][1]['output'][0]['shape'][0]),
+                              :int(self.data[idx][1]['input'][0]['shape'][0])]
+            self._plot_and_save_attention(att_w, filename.format(trainer))
+
+    def _plot_and_save_attention(self, att_w, filename):
+        if len(att_w.shape) == 3:
+            for h, aw in enumerate(att_w, 1):
+                matplotlib.pyplot.subplot(1, len(att_w), h)
+                matplotlib.pyplot.imshow(aw, aspect="auto")
+                matplotlib.pyplot.xlabel("Encoder Index")
+                matplotlib.pyplot.ylabel("Decoder Index")
+        else:
+            matplotlib.pyplot.imshow(att_w, aspect="auto")
+            matplotlib.pyplot.xlabel("Encoder Index")
+            matplotlib.pyplot.ylabel("Decoder Index")
+        matplotlib.pyplot.tight_layout()
+        matplotlib.pyplot.savefig(filename)
+        matplotlib.pyplot.close()
