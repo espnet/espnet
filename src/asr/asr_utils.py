@@ -6,7 +6,6 @@
 import copy
 import logging
 import os
-import sys
 
 # chainer related
 import chainer
@@ -23,14 +22,6 @@ matplotlib.use('Agg')
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
-    # TODO(nelson) remove in future
-    if 'input' not in data.values()[0]:
-        print(data[1]['input'])
-        logging.error(
-            "input file format (json) is modified, please redo"
-            "stage 2: Dictionary and Json Data Preparation")
-        sys.exit(1)
-
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
         data[1]['input'][0]['shape'][0]), reverse=True)
