@@ -6,7 +6,6 @@
 import copy
 import logging
 import os
-import sys
 
 # chainer related
 import chainer
