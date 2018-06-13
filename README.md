@@ -23,35 +23,15 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 - Python2.7+  
-- Cuda 8.0 (for the use of GPU)  
-- Cudnn 6 (for the use of GPU)  
+- Cuda 8.0 or 9.1 (for the use of GPU)  
+- Cudnn 6+ (for the use of GPU)  
 - NCCL 2.0+ (for the use of multi-GPUs)
 
 - PyTorch 0.3.x (**no support for PyTorch 0.4.x**)
 - Chainer 4.x+
 
 ## Installation
-
-Install Kaldi, Python libraries and other required tools using system python and virtualenv
-```sh
-$ cd tools
-$ make -j
-```
-
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
-```sh
-$ cd tools
-$ make -f conda.mk -j
-```
-
-For higher version (>4.9) of gcc and cuda 9.1 use following command:
-```sh
-$ cd tools
-$ make -j -f Makefile.cuda91.gcc6
-```
-
-You can compare Makefile and Makefile.cuda91.gcc6 to change makefile accordingly for other version of gcc/cuda.
-
+### Step 1) setting of  the environment
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
 ```
@@ -75,6 +55,27 @@ export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
 export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
+
+### Step 2) installation
+Install Kaldi, Python libraries and other required tools using system python and virtualenv
+```sh
+$ cd tools
+$ make -j
+```
+or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+```sh
+$ cd tools
+$ make -f conda.mk -j
+```
+
+For higher version (>4.9) of gcc and cuda 9.1 use following command:
+```sh
+$ cd tools
+$ make -j -f Makefile.cuda91.gcc6
+```
+
+You can compare Makefile and Makefile.cuda91.gcc6 to change makefile accordingly for other version of gcc/cuda.
+
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
 We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
