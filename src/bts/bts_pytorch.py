@@ -96,9 +96,12 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     return minibatch
 
 
-def prepare_batch(batch, reader, eos):
+def prepare_batch(batch, reader):
+    # get eos
+    eos = str(int(batch[0][1]['odim']) - 1)
+
     # get target features and input character sequence
-    xs = [b[1]['tokenid'].split() + [str(eos)] for b in batch]
+    xs = [b[1]['tokenid'].split() + [eos] for b in batch]
     ys = [reader[b[0].encode('ascii', 'ignore')] for b in batch]
 
     # remove empty sequence and get sort along with length
@@ -140,7 +143,6 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
         self.outdir = outdir
         self.epoch = 0
         self.num_gpu = len(device)
-        self.eos = model.idim - 1 if self.num_gpu == 1 else model.module.idim - 1
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -166,7 +168,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
                     # batch only has one minibatch utterance, which is specified by batch[0]
-                    xs, ilens, ys, labels, olens = prepare_batch(batch[0], self.reader, self.eos)
+                    xs, ilens, ys, labels, olens = prepare_batch(batch[0], self.reader)
                     after_outs, before_outs, logits, att_ws = self.model(xs, ilens, ys)
                     self.criterion(after_outs, before_outs, logits, ys, labels, olens)
 
@@ -196,7 +198,6 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         self.reader = reader
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
-        self.eos = model.idim - 1 if self.num_gpu == 1 else model.module.idim - 1
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -215,7 +216,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         if len(batch[0]) < self.num_gpu:
             logging.warning('batch size is less than number of gpus. Ignored')
             return
-        xs, ilens, ys, labels, olens = prepare_batch(batch[0], self.reader, self.eos)
+        xs, ilens, ys, labels, olens = prepare_batch(batch[0], self.reader)
 
         # Compute the loss at this time step and accumulate it
         after_outs, before_outs, logits, att_ws = self.model(xs, ilens, ys)
@@ -266,6 +267,14 @@ def train(args):
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
+    # define output activation function
+    if args.output_activation is None:
+        output_activation_fn = None
+    elif hasattr(torch.nn.functional, args.output_activation):
+        output_activation_fn = getattr(torch.nn.functional, args.output_activation)
+    else:
+        raise ValueError("there is no such an activation function. (%s)" % args.output_activation)
+
     # specify model architecture
     model = Tacotron2(
         idim=idim,
@@ -283,6 +292,7 @@ def train(args):
         postnet_layers=args.postnet_layers,
         postnet_chans=args.postnet_chans,
         postnet_filts=args.postnet_filts,
+        output_activation_fn=output_activation_fn,
         adim=args.adim,
         aconv_chans=args.aconv_chans,
         aconv_filts=args.aconv_filts,
@@ -420,6 +430,17 @@ def decode(args):
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
+    # define output activation function
+    if hasattr(train_args, "output_activation"):
+        if args.output_activation is None:
+            output_activation_fn = None
+        elif hasattr(torch.nn.functional, train_args.output_activation):
+            output_activation_fn = getattr(torch.nn.functional, train_args.output_activation)
+        else:
+            raise ValueError("there is no such an activation function. (%s)" % train_args.output_activation)
+    else:
+        output_activation_fn = None
+
     # define model
     model = Tacotron2(
         idim=idim,
@@ -440,11 +461,13 @@ def decode(args):
         adim=train_args.adim,
         aconv_chans=train_args.aconv_chans,
         aconv_filts=train_args.aconv_filts,
+        output_activation_fn=output_activation_fn,
         cumulate_att_w=train_args.cumulate_att_w,
         use_batch_norm=train_args.use_batch_norm,
         use_concate=train_args.use_concate,
         dropout=train_args.dropout_rate,
         zoneout=train_args.zoneout_rate if hasattr(train_args, "zoneout_rate") else 0.0)
+    eos = str(model.idim - 1)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
@@ -479,7 +502,7 @@ def decode(args):
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
-            x = js[utt_id]['tokenid'].split() + [str(model.idim - 1)]
+            x = js[utt_id]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
             x = torch.from_numpy(x)
             if args.ngpu > 0:

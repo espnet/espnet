@@ -31,7 +31,7 @@ def main():
                         help='Debugmode')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
-    parser.add_argument('--resume', '-r', default='', nargs='?',
+    parser.add_argument('--resume', '-r', default='', type=str, nargs='?',
                         help='Resume the training from snapshot')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
@@ -86,6 +86,8 @@ def main():
                         help='Number of postnet conv filter channels')
     parser.add_argument('--postnet_filts', default=5, type=int,
                         help='Number of postnet conv filter size')
+    parser.add_argument('--output_activation', default=None, type=str, nargs='?',
+                        help='Output activation function')
     # model (parameter) related
     parser.add_argument('--use_batch_norm', default=True, type=strtobool,
                         help='Whether to use batch normalization')

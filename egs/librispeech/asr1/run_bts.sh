@@ -10,6 +10,8 @@
 stage=5
 # gpu setting
 ngpu=1
+# extaction setting
+extract_layer_idx=8  # if set 1, first hidden layer outputs will be extracted (-1 indicates final layer)
 # encoder related
 embed_dim=512
 elayers=1
@@ -25,6 +27,7 @@ prenet_units=256
 postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
+output_activation=tanh
 # attention related
 adim=128
 aconv_chans=32
@@ -66,8 +69,7 @@ nj=32
 set -e
 
 basedir=exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150
-# basedir=exp/${train_set}_debug
-dumpdir=${basedir}/outputs
+dumpdir=${basedir}/outputs-h${extract_layer_idx}
 model=${basedir}/results/model.acc.best
 config=${basedir}/results/model.conf
 dict=data/lang_1char/${train_set}_units.txt
@@ -92,7 +94,8 @@ if [ ${stage} -le 5 ];then
                 --out ${dumpdir}/${sets}/feats.JOB \
                 --feat ${dumpdir}/${sets}/log/feats.JOB.scp \
                 --model ${model} \
-                --model-conf ${config}
+                --model-conf ${config} \
+                --extract-layer-idx ${extract_layer_idx}
         # concatenate scp files
         for n in $(seq $nj); do
             cat ${dumpdir}/${sets}/feats.$n.scp || exit 1;
@@ -106,7 +109,11 @@ if [ ${stage} -le 5 ];then
 fi
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_taco2_${target}_enc${embed_dim}
+    expdir=exp/${train_set}_taco2
+    if [ ${target} = "states" ];then
+        expdir=${expdir}_h${extract_layer_idx}
+    fi
+    expdir=${expdir}_${target}_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
         expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
@@ -116,6 +123,9 @@ if [ -z ${tag} ];then
     fi
     if [ ${postnet_layers} -gt 0 ];then
         expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
+    fi
+    if [ ! -z ${output_activation} ];then
+        expdir=${expdir}_${output_activation}
     fi
     expdir=${expdir}_att${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
@@ -143,10 +153,10 @@ fi
 if [ ${stage} -le 6 ];then
     echo "stage 6: Back translator training"
     if [ ${target} == "states" ];then
-        tr_feat=scp:${dumpdir}/${train_set}/enc_hs/feats.scp
-        tr_label=${dumpdir}/${train_set}/enc_hs/data.json
-        dt_feat=scp:${dumpdir}/${train_dev}/enc_hs/feats.scp
-        dt_label=${dumpdir}/${train_dev}/enc_hs/data.json
+        tr_feat=scp:${dumpdir}/${train_set}/feats.scp
+        tr_label=${dumpdir}/${train_set}/data.json
+        dt_feat=scp:${dumpdir}/${train_dev}/feats.scp
+        dt_label=${dumpdir}/${train_dev}/data.json
     else
         tr_feat=scp:dump/${train_set}/delta${do_delta}/feats.scp
         tr_label=dump/${train_set}/delta${do_delta}/data.json
@@ -175,6 +185,7 @@ if [ ${stage} -le 6 ];then
            --postnet_layers ${postnet_layers} \
            --postnet_chans ${postnet_chans} \
            --postnet_filts ${postnet_filts} \
+           --output_activation ${output_activation} \
            --adim ${adim} \
            --aconv-chans ${aconv_chans} \
            --aconv-filts ${aconv_filts} \

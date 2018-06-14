@@ -198,6 +198,7 @@ class Tacotron2(torch.nn.Module):
                  postnet_layers=5,
                  postnet_filts=5,
                  postnet_chans=512,
+                 output_activation_fn=None,
                  adim=512,
                  aconv_chans=32,
                  aconv_filts=15,
@@ -226,6 +227,7 @@ class Tacotron2(torch.nn.Module):
         self.postnet_layers = postnet_layers
         self.postnet_chans = postnet_chans
         self.postnet_filts = postnet_filts
+        self.output_activation_fn = output_activation_fn
         self.adim = adim
         self.aconv_filts = aconv_filts
         self.aconv_chans = aconv_chans
@@ -291,6 +293,9 @@ class Tacotron2(torch.nn.Module):
         """
         hs = self.enc(xs, ilens)
         after_outs, before_outs, logits, att_ws = self.dec(hs, ilens, ys, xs.size(-1))
+        if self.output_activation_fn is not None:
+            before_outs = self.output_activation_fn(before_outs)
+            after_outs = self.output_activation_fn(after_outs)
 
         return after_outs, before_outs, logits, att_ws
 
@@ -307,6 +312,8 @@ class Tacotron2(torch.nn.Module):
         """
         h = self.enc.inference(x)
         outs, probs, att_ws = self.dec.inference(h)
+        if self.output_activation_fn is not None:
+            outs = self.output_activation_fn(outs)
 
         return outs, probs, att_ws
 
