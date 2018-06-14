@@ -8,6 +8,7 @@
 nlsyms=""
 wer=false
 bpe=""
+bpemodel=""
 remove_blank=true
 filter=""
 
@@ -45,8 +46,8 @@ grep -e Avg -e SPKR -m 2 ${dir}/result.txt
 
 if ${wer}; then
     if [ ! -z $bpe ]; then
-	spm_decode --model=${bpe} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
-	spm_decode --model=${bpe} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
+	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
+	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     else
 	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
 	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
