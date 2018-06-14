@@ -154,6 +154,12 @@ if [ ${stage} -le 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+     for rtask in ${recog_set}; do
+         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+             ${feat_recog_dir}
+     done
 fi
 
 dict=data/lang_char/${train_set}_units.txt
@@ -171,9 +177,9 @@ if [ ${stage} -le 2 ]; then
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
-	 data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+	 data/${train_set} ${dict} > ${feat_tr_dir}/data_${nbpe}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${nbpe}.json
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 5)
@@ -230,10 +236,8 @@ if [ ${stage} -le 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-feat scp:${feat_tr_dir}/feats.scp \
-        --valid-feat scp:${feat_dt_dir}/feats.scp \
-        --train-label ${feat_tr_dir}/data.json \
-        --valid-label ${feat_dt_dir}/data.json \
+        --train-json ${feat_tr_dir}/data_${nbpe}.json \
+        --valid-json ${feat_dt_dir}/data_${nbpe}.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -272,7 +276,11 @@ if [ ${stage} -le 5 ]; then
         fi
 
         # make json labels for recognition
-        data2json.sh --bpecode ${bpemodel}.model ${data} ${dict} > ${data}/data.json
+	for j in `seq 1 ${nj}`; do
+            feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+            data2json.sh --bpecode ${bpemodel}.model --feat ${feat_recog_dir}/feats.scp \
+                ${sdata}/${j} ${dict} > ${sdata}/${j}/data_${nbpe}.json
+        done
 
         #### use CPU for decoding
         ngpu=0
@@ -281,8 +289,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
+            --recog-json ${sdata}/JOB/data_${nbpe}.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
@@ -296,7 +303,7 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        score_sclite.sh --bpe ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
