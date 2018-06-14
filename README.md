@@ -103,7 +103,7 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Training based on [chainer](https://chainer.org/) or [pytorch](http://pytorch.org/).
 - Recognition and scoring
 
-To monitor the progress (loss and accuracy for training and validation data)
+The training progress (loss and accuracy for training and validation data) can be monitored with the following command
 ```
 $ tail -f exp/${expdir}/train.log
 ```
@@ -112,15 +112,16 @@ With the default verbose (=0), it gives you the following information
 epoch       iteration   main/loss   main/loss_ctc  main/loss_att  validation/main/loss  validation/main/loss_ctc  validation/main/loss_att  main/acc    validation/main/acc  elapsed_time  eps
 :
 :
-5           68300       70.1965     91.2416        49.1514                                                                                  0.729131                         102506        1e-08
-5           68400       75.3734     98.0821        52.6648                                                                                  0.727678                         102621        1e-08
-5           68500       71.5659     93.714         49.4179                                                                                  0.72659                          102735        1e-08
-5           68600       71.1513     92.0621        50.2406                                                                                  0.735238                         102837        1e-08
-5           68700       71.5159     92.7187        50.3131                                                                                  0.725523                         102952        1e-08
-     total [#############.....................................] 26.74%
-this epoch [#################.................................] 34.88%
-     68700 iter, 5 epoch / 20 epochs
-    0.7734 iters/sec. Estimated time to finish: 2 days, 19:35:14.691414.
+6           89700       63.7861     83.8041        43.768                                                                                   0.731425                         136184        1e-08
+6           89800       71.5186     93.9897        49.0475                                                                                  0.72843                          136320        1e-08
+6           89900       72.1616     94.3773        49.9459                                                                                  0.730052                         136473        1e-08
+7           90000       64.2985     84.4583        44.1386        72.506                94.9823                   50.0296                   0.740617    0.72476              137936        1e-08
+7           90100       81.6931     106.74         56.6462                                                                                  0.733486                         138049        1e-08
+7           90200       74.6084     97.5268        51.6901                                                                                  0.731593                         138175        1e-08
+     total [#################.................................] 35.54%
+this epoch [#####.............................................] 10.84%
+     91300 iter, 7 epoch / 20 epochs
+   0.71428 iters/sec. Estimated time to finish: 2 days, 16:23:34.613215.
 ```
 
 ### Use of GPU
