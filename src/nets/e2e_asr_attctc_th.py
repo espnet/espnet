@@ -392,12 +392,12 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+        ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+        hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # encoder
         xpad = pad_list(hs)
@@ -1910,8 +1910,8 @@ class Decoder(torch.nn.Module):
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
-        eos = Variable(ys[0].data.new([self.eos]))
-        sos = Variable(ys[0].data.new([self.sos]))
+        eos = ys[0].data.new([self.eos])
+        sos = ys[0].data.new([self.sos])
         ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_out = [torch.cat([y, eos], dim=0) for y in ys]
 
