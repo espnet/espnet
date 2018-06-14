@@ -115,7 +115,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     minibatch = []
     start = 0
     if batch_sort_key is None:
-        logging.info("use shuffled batch.")
+        logging.info('use shuffled batch.')
         shuffled_data = random.sample(data.items(), len(data.items()))
         logging.info('# utts: ' + str(len(shuffled_data)))
         while True:
@@ -124,8 +124,8 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
             if end == len(shuffled_data):
                 break
             start = end
-    elif batch_sort_key == "input":
-        logging.info("use batch sorted by input length and adaptive batch size.")
+    elif batch_sort_key == 'input':
+        logging.info('use batch sorted by input length and adaptive batch size.')
         # sort it by output lengths (long to short)
         sorted_data = sorted(data.items(), key=lambda data: int(
             data[1]['output'][0]['shape'][0]), reverse=True)
@@ -144,8 +144,8 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
             if end == len(sorted_data):
                 break
             start = end
-    elif batch_sort_key == "output":
-        logging.info("use batch sorted by output length and adaptive batch size.")
+    elif batch_sort_key == 'output':
+        logging.info('use batch sorted by output length and adaptive batch size.')
         # sort it by output lengths (long to short)
         sorted_data = sorted(data.items(), key=lambda data: int(
             data[1]['input'][0]['shape'][0]), reverse=True)
@@ -165,7 +165,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
                 break
             start = end
     else:
-        ValueError("batch_sort_key should be selected from None, input, and output.")
+        ValueError('batch_sort_key should be selected from None, input, and output.')
 
     # for debugging
     if num_batches > 0:
@@ -217,21 +217,21 @@ def batch_converter(batch, device=None, return_targets=False):
 
 
 def torch_save(path, model):
-    if hasattr(model, "module"):
+    if hasattr(model, 'module'):
         torch.save(model.module.state_dict(), path)
     else:
         torch.save(model.state_dict(), path)
 
 
 def torch_load(path, model):
-    if hasattr(model, "module"):
+    if hasattr(model, 'module'):
         model.module.load_state_dict(torch.load(path))
     else:
         model.load_state_dict(torch.load(path))
 
 
 def train(args):
-    '''Run training'''
+    '''RUN TRAINING'''
     # seed setting
     torch.manual_seed(args.seed)
 
@@ -273,7 +273,7 @@ def train(args):
     elif hasattr(torch.nn.functional, args.output_activation):
         output_activation_fn = getattr(torch.nn.functional, args.output_activation)
     else:
-        raise ValueError("there is no such an activation function. (%s)" % args.output_activation)
+        raise ValueError('there is no such an activation function. (%s)' % args.output_activation)
 
     # specify model architecture
     tacotron2 = Tacotron2(
@@ -333,8 +333,8 @@ def train(args):
         weight_decay=args.weight_decay)
 
     # FIXME: TOO DIRTY HACK
-    setattr(optimizer, "target", reporter)
-    setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
+    setattr(optimizer, 'target', reporter)
+    setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -361,7 +361,7 @@ def train(args):
 
     # Resume from a snapshot
     if args.resume:
-        logging.info("restored from %s" % args.resume)
+        logging.info('restored from %s' % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
         torch_load(tacotron2, args.outdir + '/model.ep.%d' % trainer.updater.epoch)
         model = trainer.updater.model
@@ -377,7 +377,7 @@ def train(args):
         data = sorted(valid_json.items()[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         trainer.extend(PlotAttentionReport(
-            tacotron2, data, args.outdir + "/att_ws",
+            tacotron2, data, args.outdir + '/att_ws',
             partial(batch_converter, return_targets=False)), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
@@ -410,9 +410,9 @@ def train(args):
 
 
 def decode(args):
-    '''Generate encoder states'''
+    '''RUN DECODING'''
     # read training config
-    with open(args.model_conf, "rb") as f:
+    with open(args.model_conf, 'rb') as f:
         logging.info('reading a model config file from ' + args.model_conf)
         idim, odim, train_args = pickle.load(f)
 
@@ -421,13 +421,13 @@ def decode(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # define output activation function
-    if hasattr(train_args, "output_activation"):
+    if hasattr(train_args, 'output_activation'):
         if train_args.output_activation is None:
             output_activation_fn = None
         elif hasattr(torch.nn.functional, train_args.output_activation):
             output_activation_fn = getattr(torch.nn.functional, train_args.output_activation)
         else:
-            raise ValueError("there is no such an activation function. (%s)" % train_args.output_activation)
+            raise ValueError('there is no such an activation function. (%s)' % train_args.output_activation)
     else:
         output_activation_fn = None
 
@@ -484,9 +484,8 @@ def decode(args):
         os.makedirs(outdir)
 
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
-    torch.set_grad_enabled(False)
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
-    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+    with torch.no_grad() and kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
@@ -494,6 +493,6 @@ def decode(args):
             if args.ngpu > 0:
                 x = x.cuda()
             outs, probs, att_ws = tacotron2.inference(x)
-            logging.info("(%d/%d) %s (size:%d->%d)" % (
+            logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
             kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
