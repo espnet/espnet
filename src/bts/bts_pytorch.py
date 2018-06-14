@@ -485,7 +485,8 @@ def decode(args):
 
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
-    with torch.no_grad() and kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+    torch.set_grad_enabled(False)
+    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)

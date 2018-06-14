@@ -458,7 +458,7 @@ def recog(args):
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):
-                y_hat = [idx.item() if isinstance(idx, torch.Tensor) else idx for idx in nbest_hyps[0]['yseq'][1:]]
+                y_hat = map(int, hyp['yseq'][1:])
                 seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
                 seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
                 new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = " ".join([str(idx) for idx in y_hat])
