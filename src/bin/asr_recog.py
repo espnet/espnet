@@ -31,10 +31,12 @@ def main():
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--recog-feat', type=str, required=True,
+    parser.add_argument('--recog-feat', type=str,
                         help='Filename of recognition feature data (Kaldi scp)')
-    parser.add_argument('--recog-label', type=str, required=True,
+    parser.add_argument('--recog-label', type=str,
                         help='Filename of recognition label data (json)')
+    parser.add_argument('--recog-json', type=str,
+                        help='Filename of recognition data (json)')
     parser.add_argument('--result-label', type=str, required=True,
                         help='Filename of result label data (json)')
     # model (parameter) related
