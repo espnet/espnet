@@ -34,9 +34,8 @@ def main():
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, required=True,
                         help='Model config file')
-    # minibatch related
-    parser.add_argument('--batch-size', '-b', default=50, type=int,
-                        help='Batch size')
+    parser.add_argument('--extract-layer-idx', type=int, default=-1,
+                        help='Index of hidden layer to extract the states')
     args = parser.parse_args()
 
     # logging info

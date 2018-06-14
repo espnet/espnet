@@ -98,13 +98,12 @@ class Reporter(chainer.Chain):
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    def __init__(self, predictor, mtlalpha, use_only_decoder=False):
+    def __init__(self, predictor, mtlalpha):
         super(Loss, self).__init__()
         self.mtlalpha = mtlalpha
         self.loss = None
         self.accuracy = None
         self.predictor = predictor
-        self.use_only_decoder = use_only_decoder
         self.reporter = Reporter()
 
     def forward(self, x):
@@ -114,7 +113,7 @@ class Loss(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x, self.use_only_decoder)
+        loss_ctc, loss_att, acc = self.predictor(x)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -179,6 +178,9 @@ class E2E(torch.nn.Module):
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.mtlalpha = args.mtlalpha
+        self.input_layer_idx = args.input_layer_idx if hasattr(args, "input_layer_idx") else 0
+        if self.input_layer_idx == -1:
+            self.input_layer_idx = args.elayers
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -284,7 +286,7 @@ class E2E(torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
-    def forward(self, data, use_only_decoder=False):
+    def forward(self, data):
         '''E2E forward
 
         :param data:
@@ -305,22 +307,18 @@ class E2E(torch.nn.Module):
               for i in sorted_index]
         ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
-        # directly calculate loss using given encoder states
-        if use_only_decoder and self.training:
-            ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
-            xpad = pad_list(hs)
-            loss_att, acc = self.dec(xpad, ilens, ys)
-            return None, loss_att, acc
-
         # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
+        if self.input_layer_idx == 0:
+            xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
         hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # 1. encoder
         xpad = pad_list(hs)
-        hpad, hlens = self.enc(xpad, ilens)
+        if self.training:
+            hpad, hlens = self.enc(xpad, ilens, self.input_layer_idx)
+        else:
+            hpad, hlens = self.enc(xpad, ilens)
 
         # # 3. CTC loss
         if self.mtlalpha == 0:
@@ -1910,7 +1908,7 @@ class Encoder(torch.nn.Module):
 
         self.etype = etype
 
-    def forward(self, xs, ilens):
+    def forward(self, xs, ilens, input_layer_idx=0):
         '''Encoder forward
 
         :param xs:
@@ -1918,21 +1916,52 @@ class Encoder(torch.nn.Module):
         :return:
         '''
         if self.etype == 'blstm':
-            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc1(xs, ilens, input_layer_idx)
         elif self.etype == 'blstmp':
-            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc1(xs, ilens, input_layer_idx)
         elif self.etype == 'vggblstmp':
             xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens, input_layer_idx)
         elif self.etype == 'vggblstm':
             xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens, input_layer_idx)
         else:
             logging.error(
                 "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
 
-        return xs, ilens.cpu().numpy()
+        if isinstance(ilens, torch.Tensor):
+            ilens = ilens.cpu().numpy()
+
+        return xs, ilens
+
+    def extract(self, xs, ilens, extract_layer_idx=-1):
+        '''Encoder forward
+
+        :param xs:
+        :param ilens:
+        :param extract_layer_idx:
+        :return:
+        '''
+        if self.etype == 'blstm':
+            xs, ilens = self.enc1.extract(xs, ilens, extract_layer_idx)
+        elif self.etype == 'blstmp':
+            xs, ilens = self.enc1.extract(xs, ilens, extract_layer_idx)
+        elif self.etype == 'vggblstmp':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2.extract(xs, ilens, extract_layer_idx)
+        elif self.etype == 'vggblstm':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2.extract(xs, ilens, extract_layer_idx)
+        else:
+            logging.error(
+                "Error: need to specify an appropriate encoder archtecture")
+            sys.exit()
+
+        if isinstance(ilens, torch.Tensor):
+            ilens = ilens.cpu().numpy()
+
+        return xs, ilens
 
 
 class BLSTMP(torch.nn.Module):
@@ -1952,7 +1981,7 @@ class BLSTMP(torch.nn.Module):
         self.cdim = cdim
         self.subsample = subsample
 
-    def forward(self, xpad, ilens):
+    def forward(self, xpad, ilens, input_layer_idx=0):
         '''BLSTMP forward
 
         :param xs:
@@ -1960,11 +1989,13 @@ class BLSTMP(torch.nn.Module):
         :return:
         '''
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        for layer in six.moves.range(self.elayers):
+        if input_layer_idx == -1:
+            input_layer_idx = self.elayers
+        for layer in six.moves.range(input_layer_idx, self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
             bilstm.flatten_parameters()
-            ys, (hy, cy) = bilstm(xpack)
+            ys, _ = bilstm(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
             sub = self.subsample[layer + 1]
@@ -1975,7 +2006,39 @@ class BLSTMP(torch.nn.Module):
             projected = getattr(self, 'bt' + str(layer)
                                 )(ypad.contiguous().view(-1, ypad.size(2)))
             xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
-            del hy, cy
+
+        return xpad, ilens  # x: utt list of frame x dim
+
+    def extract(self, xpad, ilens, extract_layer_idx=-1):
+        '''BLSTMP extract
+
+        :param xs:
+        :param ilens:
+        :param layer_idx:
+        :return:
+        '''
+        # check layer index
+        if extract_layer_idx < 0 or extract_layer_idx > self.elayers:
+            raise ValueError("layer index is out of range.")
+        if extract_layer_idx == -1:
+            extract_layer_idx = self.elayers
+        for layer in six.moves.range(self.elayers):
+            if layer == extract_layer_idx:
+                break
+            xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
+            bilstm = getattr(self, 'bilstm' + str(layer))
+            bilstm.flatten_parameters()
+            ys, _ = bilstm(xpack)
+            # ys: utt list of frame x cdim x 2 (2: means bidirectional)
+            ypad, ilens = pad_packed_sequence(ys, batch_first=True)
+            sub = self.subsample[layer + 1]
+            if sub > 1:
+                ypad = ypad[:, ::sub]
+                ilens = [(i + 1) // sub for i in ilens]
+            # (sum _utt frame_utt) x dim
+            projected = getattr(self, 'bt' + str(layer)
+                                )(ypad.contiguous().view(-1, ypad.size(2)))
+            xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
 
         return xpad, ilens  # x: utt list of frame x dim
 
@@ -1996,8 +2059,7 @@ class BLSTM(torch.nn.Module):
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
-        ys, (hy, cy) = self.nblstm(xpack)
-        del hy, cy
+        ys, _ = self.nblstm(xpack)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ypad, ilens = pad_packed_sequence(ys, batch_first=True)
         # (sum _utt frame_utt) x dim
@@ -2005,6 +2067,9 @@ class BLSTM(torch.nn.Module):
             ypad.contiguous().view(-1, ypad.size(2))))
         xpad = projected.view(ypad.size(0), ypad.size(1), -1)
         return xpad, ilens  # x: utt list of frame x dim
+
+    def extract(self, xpad, ilens, extract_layer_idx=-1):
+        raise NotImplementedError()
 
 
 class VGG2L(torch.nn.Module):

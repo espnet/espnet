@@ -65,6 +65,8 @@ def main():
                         help='Whether to start training from the beginnging')
     parser.add_argument('--freeze-attention', default=False, type=strtobool,
                         help='Whether to freeze attention layer parameters')
+    parser.add_argument('--input-layer-idx', type=int, default=-1,
+                        help='Index of hidden layer of the input states')
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam'],
                         help='Optimizer')

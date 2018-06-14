@@ -469,7 +469,7 @@ def extract(args):
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
     model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
-    extractor = model.predictor.enc
+    extractor = model.predictor.enc.extract
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -505,7 +505,7 @@ def extract(args):
             ilens = [feat.shape[0]]
             if args.ngpu > 0:
                 xs = xs.cuda()
-            hs, _ = extractor(xs, ilens)
+            hs, _ = extractor(xs, ilens, args.extract_layer_idx)
             logging.info("(%d/%d) %s (size:%d->%d)" % (
                 idx, nutt, utt_id, ilens[0], hs.size(1)))
             kaldi_io_py.write_mat(f, hs.cpu().numpy()[0], utt_id)
@@ -540,8 +540,9 @@ def retrain(args):
         idim, odim, train_args = pickle.load(f)
 
     # specify model architecture
+    train_args.input_layer_idx = args.input_layer_idx
     e2e = E2E(idim, odim, train_args)
-    model = Loss(e2e, train_args.mtlalpha, use_only_decoder=True)
+    model = Loss(e2e, train_args.mtlalpha)
     model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
 
     if args.flatstart:

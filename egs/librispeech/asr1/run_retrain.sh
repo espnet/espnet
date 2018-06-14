@@ -11,18 +11,19 @@ stage=5
 # gpu setting
 ngpu=1
 batchsize=50
-maxlen_in=200  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-epochs=20
+maxlen_in=400  # if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_out=200 # if output length > maxlen_out, batchsize is automatically reduced
+epochs=15
 # other
 do_delta=false
-train_set=train_360
+train_set=train_100
 train_dev=dev
-decode_set="train_100 train_other_500"
-verbose=1
+decode_set="train_360 train_other_500"
+verbose=0
 tag=
 nj=32
 # decoder retraining related
+input_layer_idx=-1
 flatstart=false
 freeze_attention=false
 # decoding related
@@ -38,13 +39,13 @@ recog_set="test_clean test_other dev_clean dev_other"
 set -e
 
 basedir=exp/${train_set}_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_bs50_mli800_mlo150
-dumpdir=${basedir}/outputs
+dumpdir=${basedir}/outputs-h${input_layer_idx}
 model=${basedir}/results/model.acc.best
 config=${basedir}/results/model.conf
 dict=data/lang_1char/${train_set}_units.txt
-outdir=./exp/train_360_taco2_states_enc512-3x5x512-1x512_dec2x1024_pre2x256_post5x5x512_att512-15x32_cm_bn_cc_msk_pw20.0_lr1e-3_ep1e-6_wd0.0_bs150_mli200_mlo100/outputs_th0.5_mlr0.0-0.0
+outdir=./exp/train_100_taco2_states_enc512-3x5x512-1x512_dec2x1024_pre2x256_post5x5x512_att128-15x32_cm_bn_cc_msk_pw20.0_do0.5_zo0.1_lr1e-3_ep1e-6_wd0.0_bs50_sort_by_input_mli150_mlo400/outputs_th0.5_mlr0.0-5.0
 
-retroutdir=exp/re${train_set}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+retroutdir=$(dirname ${outdir})/re${train_set}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
 if ${flatstart};then
     retroutdir=${retroutdir}_fs
 fi
@@ -90,7 +91,8 @@ if [ ${stage} -le 8 ];then
             --maxlen-out ${maxlen_in} \
             --epochs ${epochs} \
             --freeze-attention ${freeze_attention} \
-            --flatstart ${flatstart}
+            --flatstart ${flatstart} \
+            --input-layer-idx ${input_layer_idx}
 fi
 
 if [ ${stage} -le 9 ]; then
