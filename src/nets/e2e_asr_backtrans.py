@@ -563,7 +563,7 @@ class Decoder(torch.nn.Module):
         self.prob_out = torch.nn.Linear(iunits, 1)
 
     def zero_state(self, hs):
-        return hs.data.new(hs.size(0), self.dunits).zero_()
+        return hs.new(hs.size(0), self.dunits).zero_()
 
     def forward(self, hs, hlens, ys, att_w_maxlen=None):
         """DECODER FORWARD CALCULATION
