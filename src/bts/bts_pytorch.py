@@ -382,7 +382,7 @@ def train(args):
         plot_converter = partial(batch_converter, return_targets=False)
         trainer.extend(PlotAttentionReport(
             tacotron2, data, args.outdir + "/att_ws", plot_converter),
-            trigger=(10, 'iteration'))
+            trigger=(1000, 'iteration'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
