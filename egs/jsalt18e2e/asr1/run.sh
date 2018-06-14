@@ -3,9 +3,11 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# This is a task of 10 language-indepent ASR used in
-# S. Watanabe et al, "Language independent end-to-end architecture for
-# joint language identification and speech recognition," Proc. ASRU'17, pp. 265--269 (2017)
+# This is a baseline for "JSALT'18 Multilingual End-to-end ASR for Incomplete Data"
+# We use 5 Babel language (Assamese Tagalog Swahili Lao Zulu), Librispeech (English), and CSJ (Japanese)
+# as a target language, and use 10 Babel language (Cantonese Bengali Pashto Turkish Vietnamese
+# Haitian Tamil Kurmanji Tok-Pisin Georgian) as a non-target language.
+# The recipe first build language-independent ASR by using non-target languages
 
 . ./path.sh
 . ./cmd.sh
@@ -62,7 +64,31 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # exp tag
 tag="" # tag for managing experiments.
 
+# data set
+# non-target languages: cantonese bengali pashto turkish vietnamese haitian tamil kurmanji tokpisin georgian
+train_set=tr_babel10
+train_dev=dt_babel10
+# non-target
+recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
+ dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian\
+ dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian"
+# target
+recog_set="dt_babel_assamese et_babel_assamese dt_babel_tagalog et_babel_tagalog dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao dt_babel_zulu et_babel_zulu
+ dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
+ dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
+# whole set
+recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assamese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
+ dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao dt_babel_tagalog et_babel_tagalog\
+ dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_zulu et_babel_zulu dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian\
+ dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
+ dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
+
 . utils/parse_options.sh || exit 1;
+
+# data directories
+csjdir=../../csj
+libridir=../../librispeech
+babeldir=../../babel
 
 . ./path.sh
 . ./cmd.sh
@@ -84,46 +110,53 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_li10
-train_dev=dev_li10
-recog_set="dt_de dt_en dt_es dt_fr dt_it dt_ja dt_nl dt_pt dt_ru dt_zh et_de et_en et_es et_fr et_it et_ja_1 et_ja_2 et_ja_3 et_nl et_pt et_ru et_zh"
-
 if [ ${stage} -le 0 ]; then
     # TODO
     # add a check whether the following data preparation is completed or not
-    # HKUST Mandarin
-    lang_code=zh
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../hkust/asr1/data/train_nodup_sp data/tr_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../hkust/asr1/data/train_dev data/dt_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../hkust/asr1/data/dev data/et_${lang_code}
 
     # CSJ Japanese
-    lang_code=ja
+    if [ -d "$csjdir/asr1/data" ]; then
+	echo "run $csjdir/asr1/run.sh first"
+	exit 1
+    fi
+    lang_code=csj_japanese
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_nodup data/tr_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_dev data/dt_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval1 data/et_${lang_code}_1
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval2 data/et_${lang_code}_2
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval3 data/et_${lang_code}_3
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_dev   data/dt_${lang_code}
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval1       data/et_${lang_code}_1
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval2       data/et_${lang_code}_2
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval3       data/et_${lang_code}_3
     # 1) change wide to narrow chars
     # 2) lower to upper chars
-    for x in data/*_${lang_code}*; do
+    for x in data/*${lang_code}*; do
         utils/copy_data_dir.sh ${x} ${x}_org
         cat ${x}_org/text | nkf -Z |\
             awk '{for(i=2;i<=NF;++i){$i = toupper($i)} print}' > ${x}/text
         rm -fr ${x}_org
     done
 
-    # WSJ English
-    lang_code=en
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../wsj/asr1/data/train_si284 data/tr_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../wsj/asr1/data/test_dev93 data/dt_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../wsj/asr1/data/test_eval92 data/et_${lang_code}
+    # librispeech
+    lang_code=libri_english
+    if [ -d "$libridir/asr1/data" ]; then
+	echo "run $libridir/asr1/run.sh first"
+	exit 1
+    fi
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/train_960  data/tr_${lang_code}
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/dev_clean  data/dt_${lang_code}_clean
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/dev_other  data/dt_${lang_code}_other
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/test_clean data/et_${lang_code}_clean
+    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/test_other data/et_${lang_code}_other
 
-    # Voxforge
-    for lang_code in de es fr it nl pt ru; do
-        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../voxforge/asr1/data/tr_${lang_code} data/tr_${lang_code}
-        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../voxforge/asr1/data/dt_${lang_code} data/dt_${lang_code}
-        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../voxforge/asr1/data/et_${lang_code} data/et_${lang_code}
+    # Babel
+    for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
+	langid=`echo $x | cut -f 1 -d"-"`
+	lang_code=`echo $x | cut -f 2 -d"-"`
+	if [ -d "$babeldir/asr1_${lang_code}/data" ]; then
+	    echo "run $babeldir/asr1/local/run_all.sh first"
+	    exit 1
+	fi
+        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/train          data/tr_babel_${lang_code}
+        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/dev            data/dt_babel_${lang_code}
+        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/eval_${langid} data/et_babel_${lang_code}
     done
 fi
 
@@ -131,36 +164,40 @@ feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ]; then
 
-    utils/combine_data.sh data/${train_set} data/tr_*
-    utils/combine_data.sh data/${train_dev} data/dt_*
+    utils/combine_data.sh data/${train_set}_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
+    utils/combine_data.sh data/${train_dev}_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
 
+    # remove utt having more than 3000 frames or less than 10 frames or
+    # remove utt having more than 400 characters or no more than 0 characters
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
+    
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/li10/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{13,14,15,16}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/li10/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{13,14,15,16}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    for rtask in ${recog_set}; do
+   for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
 fi
-
-dict=data/lang_1char/${train_set}_units.txt
+dict=data/lang_1char/train_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
@@ -169,12 +206,12 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
-    echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms}
+    echo "make a non-linguistic symbol list for all languages"
+    cut -f 2- data/tr_*/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    cat data/tr_*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 

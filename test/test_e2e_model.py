@@ -7,6 +7,7 @@
 import argparse
 import importlib
 
+import chainer
 import numpy
 import pytest
 
@@ -21,6 +22,8 @@ def make_arg(**kwargs):
         dlayers=1,
         dunits=300,
         atype="location",
+        aheads=4,
+        awin=5,
         aconv_chans=10,
         aconv_filts=100,
         mtlalpha=0.5,
@@ -43,25 +46,40 @@ def make_arg(**kwargs):
     return argparse.Namespace(**defaults)
 
 
-@pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
-def test_model_trainable_and_decodable(etype):
-    args = make_arg(etype=etype)
-    for m_str in ["e2e_asr_attctc", "e2e_asr_attctc_th"]:
-        if m_str[-3:] == "_th":
-            pytest.importorskip('torch')
+@pytest.mark.parametrize(
+    "module, etype, atype", [
+        ('e2e_asr_attctc', 'vggblstmp', 'location'),
+        ('e2e_asr_attctc', 'blstmp', 'noatt'),
+        ('e2e_asr_attctc', 'blstmp', 'dot'),
+        ('e2e_asr_attctc', 'blstmp', 'location'),
+        ('e2e_asr_attctc_th', 'vggblstmp', 'location'),
+        ('e2e_asr_attctc_th', 'blstmp', 'noatt'),
+        ('e2e_asr_attctc_th', 'blstmp', 'dot'),
+        ('e2e_asr_attctc_th', 'blstmp', 'add'),
+        ('e2e_asr_attctc_th', 'blstmp', 'location'),
+        ('e2e_asr_attctc_th', 'blstmp', 'coverage'),
+        ('e2e_asr_attctc_th', 'blstmp', 'coverage_location'),
+        ('e2e_asr_attctc_th', 'blstmp', 'location2d'),
+        ('e2e_asr_attctc_th', 'blstmp', 'location_recurrent'),
+        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_dot'),
+        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_add'),
+        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_loc'),
+        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_multi_res_loc')
+    ]
+)
+def test_model_trainable_and_decodable(module, etype, atype):
+    args = make_arg(etype=etype, atype=atype)
+    if module[-3:] == "_th":
+        pytest.importorskip('torch')
+    m = importlib.import_module(module)
+    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    out_data = "1 2 3 4"
+    data = [("aaa", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), output=[dict(tokenid=out_data)])),
+            ("bbb", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), output=[dict(tokenid=out_data)]))]
+    attn_loss = model(data)
+    attn_loss.backward()  # trainable
 
-        m = importlib.import_module(m_str)
-        model = m.Loss(m.E2E(40, 5, args), 0.5)
-        out_data = "1 2 3 4"
-        data = [
-            ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
-                numpy.float32), tokenid=out_data)),
-            ("bbb", dict(feat=numpy.random.randn(200, 40).astype(
-                numpy.float32), tokenid=out_data))
-        ]
-        attn_loss = model(data)
-        attn_loss.backward()  # trainable
-
+    with chainer.no_backprop_mode():
         in_data = data[0][1]["feat"]
         model.predictor.recognize(in_data, args, args.char_list)  # decodable
 
@@ -88,11 +106,11 @@ def test_chainer_ctc_type():
     numpy.random.seed(0)
     data = [
         ("aaa", dict(feat=numpy.random.randn(200, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("bbb", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("cc", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data))
+            numpy.float32), output=[dict(tokenid=out_data)]))
     ]
 
     def _propagate(ctc_type):
@@ -132,11 +150,11 @@ def test_loss_and_ctc_grad(etype):
     out_data = "1 2 3 4"
     data = [
         ("aaa", dict(feat=numpy.random.randn(200, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("bbb", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data)),
+            numpy.float32), output=[dict(tokenid=out_data)])),
         ("cc", dict(feat=numpy.random.randn(100, 40).astype(
-            numpy.float32), tokenid=out_data))
+            numpy.float32), output=[dict(tokenid=out_data)]))
     ]
 
     ch_ctc, ch_att, ch_acc = ch_model(data)
@@ -187,9 +205,9 @@ def test_zero_length_target(etype):
     th_model = th.E2E(40, 5, args)
 
     data = [
-        ("aaa", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), tokenid="1")),
-        ("bbb", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid="")),
-        ("cc", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), tokenid="1 2"))
+        ("aaa", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32), output=[dict(tokenid="1")])),
+        ("bbb", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), output=[dict(tokenid="")])),
+        ("cc", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32), output=[dict(tokenid="1 2")]))
     ]
 
     ch_ctc, ch_att, ch_acc = ch_model(data)
@@ -204,3 +222,40 @@ def test_zero_length_target(etype):
     # ]
     # ch_ctc, ch_att, ch_acc = ch_model(data)
     # th_ctc, th_att, th_acc = th_model(data)
+
+
+@pytest.mark.parametrize(
+    "module, atype", [
+        ('e2e_asr_attctc', 'noatt'),
+        ('e2e_asr_attctc', 'dot'),
+        ('e2e_asr_attctc', 'location'),
+        ('e2e_asr_attctc_th', 'noatt'),
+        ('e2e_asr_attctc_th', 'dot'),
+        ('e2e_asr_attctc_th', 'add'),
+        ('e2e_asr_attctc_th', 'location'),
+        ('e2e_asr_attctc_th', 'coverage'),
+        ('e2e_asr_attctc_th', 'coverage_location'),
+        ('e2e_asr_attctc_th', 'location2d'),
+        ('e2e_asr_attctc_th', 'location_recurrent'),
+        ('e2e_asr_attctc_th', 'multi_head_dot'),
+        ('e2e_asr_attctc_th', 'multi_head_add'),
+        ('e2e_asr_attctc_th', 'multi_head_loc'),
+        ('e2e_asr_attctc_th', 'multi_head_multi_res_loc')
+    ]
+)
+def test_calculate_all_attentions(module, atype):
+    args = make_arg(atype=atype)
+    if module[-3:] == "_th":
+        pytest.importorskip('torch')
+    m = importlib.import_module(module)
+    model = m.E2E(40, 5, args)
+    out_data = "1 2 3 4"
+    data = [
+        ("aaa", dict(feat=numpy.random.randn(100, 40).astype(
+            numpy.float32), output=[dict(tokenid=out_data)])),
+        ("bbb", dict(feat=numpy.random.randn(200, 40).astype(
+            numpy.float32), output=[dict(tokenid=out_data)]))
+    ]
+    with chainer.no_backprop_mode():
+        att_ws = model.calculate_all_attentions(data)
+        print(att_ws.shape)
