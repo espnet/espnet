@@ -9,9 +9,10 @@ import lm_chainer
 
 import argparse
 import importlib
-import numpy
 
+import numpy
 import pytest
+import torch
 
 
 def make_arg(**kwargs):
@@ -71,6 +72,7 @@ def test_recognition_results(etype, m_str, text_idx1):
                        ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"]])
 
     # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
+    torch.set_grad_enabled(False)
     for text_idx2, ctc_weight in enumerate([0.0, 0.5, 1.0]):
         seq_true_text = seq_true_texts[text_idx1][text_idx2]
 
@@ -113,6 +115,7 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"]]
 
     # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
+    torch.set_grad_enabled(False)
     for text_idx2, ctc_weight in enumerate([0.0, 0.5, 1.0]):
         seq_true_text = seq_true_texts[text_idx1][text_idx2]
 
