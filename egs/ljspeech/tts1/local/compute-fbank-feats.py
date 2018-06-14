@@ -20,7 +20,7 @@ def logmelspectrogram(x, fs, n_mels, n_fft, n_shift, window='hann', fmin=None, f
     fmax = fs / 2 if fmax is None else fmax
     mel_basis = librosa.filters.mel(fs, n_fft, n_mels, fmin, fmax)
     spc = np.abs(librosa.stft(x, n_fft, n_shift, window=window))
-    lmspc = np.log10(np.max(EPS, np.dot(mel_basis, spc).T))
+    lmspc = np.log10(np.maximum(EPS, np.dot(mel_basis, spc).T))
 
     return lmspc
 
