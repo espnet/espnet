@@ -31,6 +31,85 @@ import matplotlib
 matplotlib.use('Agg')
 
 
+class CustomEvaluator(extensions.Evaluator):
+    '''CUSTOM EVALUATER FOR TACOTRON2 TRAINING'''
+
+    def __init__(self, model, iterator, target, converter, device):
+        super(CustomEvaluator, self).__init__(
+            iterator, target, converter=converter, device=device)
+        self.model = model
+        self.num_gpu = len(device)
+
+    # The core part of the update routine can be customized by overriding.
+    def evaluate(self):
+        iterator = self._iterators['main']
+
+        if self.eval_hook:
+            self.eval_hook(self)
+
+        if hasattr(iterator, 'reset'):
+            iterator.reset()
+            it = iterator
+        else:
+            it = copy.copy(iterator)
+
+        summary = chainer.reporter.DictSummary()
+
+        self.model.eval()
+        for batch in it:
+            observation = {}
+            with torch.no_grad() and chainer.reporter.report_scope(observation):
+                # convert to torch tensor
+                batch = self.converter(batch)
+                self.model(*batch)
+            summary.add(observation)
+        self.model.train()
+
+        return summary.compute_mean()
+
+
+class CustomUpdater(training.StandardUpdater):
+    '''CUSTOM UPDATER FOR TACOTRON2 TRAINING'''
+
+    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device):
+        super(CustomUpdater, self).__init__(
+            train_iter, optimizer, converter=converter, device=None)
+        self.model = model
+        self.grad_clip = grad_clip
+        self.num_gpu = len(device)
+
+    # The core part of the update routine can be customized by overriding.
+    def update_core(self):
+        # When we pass one iterator and optimizer to StandardUpdater.__init__,
+        # they are automatically named 'main'.
+        train_iter = self.get_iterator('main')
+        optimizer = self.get_optimizer('main')
+
+        # Get the next batch ( a list of json files)
+        batch = train_iter.next()
+
+        # check batch size for the use of multi-gpu
+        if len(batch[0]) < self.num_gpu:
+            raise ValueError('batch size is less than number of gpus.')
+
+        # convert to torch tensor
+        batch = self.converter(batch)
+
+        # compute loss and gradient
+        loss = self.model(*batch)
+        optimizer.zero_grad()
+        loss.backward()
+
+        # compute the gradient norm to check if it is normal or not
+        grad_norm = torch.nn.utils.clip_grad_norm_(
+            self.model.parameters(), self.grad_clip)
+        logging.debug('grad norm={}'.format(grad_norm))
+        if math.isnan(grad_norm):
+            logging.warning('grad norm is nan. Do not update model.')
+        else:
+            optimizer.step()
+
+
 def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, batch_sort_key=None):
     minibatch = []
@@ -137,92 +216,18 @@ def batch_converter(batch, device=None, return_targets=False):
         return xs, ilens, ys
 
 
-class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
-    '''Custom evaluater with Kaldi reader for pytorch'''
-
-    def __init__(self, model, iterator, target, converter, device):
-        super(PytorchSeqEvaluaterKaldi, self).__init__(
-            iterator, target, converter=converter, device=device)
-        self.model = model
-        self.num_gpu = len(device)
-
-    # The core part of the update routine can be customized by overriding.
-    def evaluate(self):
-        iterator = self._iterators['main']
-
-        if self.eval_hook:
-            self.eval_hook(self)
-
-        if hasattr(iterator, 'reset'):
-            iterator.reset()
-            it = iterator
-        else:
-            it = copy.copy(iterator)
-
-        summary = chainer.reporter.DictSummary()
-
-        self.model.eval()
-        with torch.no_grad():
-            for batch in it:
-                observation = {}
-                with chainer.reporter.report_scope(observation):
-                    # read scp files
-                    # x: original json with loaded features
-                    #    will be converted to chainer variable later
-                    # batch only has one minibatch utterance, which is specified by batch[0]
-                    batch = self.converter(batch)
-                    self.model(*batch)
-
-                summary.add(observation)
-
-        self.model.train()
-
-        return summary.compute_mean()
+def torch_save(path, model):
+    if hasattr(model, "module"):
+        torch.save(model.module.state_dict(), path)
+    else:
+        torch.save(model.state_dict(), path)
 
 
-class PytorchSeqUpdaterKaldi(training.StandardUpdater):
-    '''Custom updater with Kaldi reader for pytorch'''
-
-    def __init__(self, model, grad_clip_threshold, train_iter, optimizer, converter, device):
-        super(PytorchSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, converter=converter, device=None)
-        self.model = model
-        self.grad_clip_threshold = grad_clip_threshold
-        self.num_gpu = len(device)
-
-    # The core part of the update routine can be customized by overriding.
-    def update_core(self):
-        # When we pass one iterator and optimizer to StandardUpdater.__init__,
-        # they are automatically named 'main'.
-        train_iter = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
-
-        # Get the next batch ( a list of json files)
-        batch = train_iter.__next__()
-
-        # read scp files
-        # x: original json with loaded features
-        #    will be converted to chainer variable later
-        # batch only has one minibatch utterance, which is specified by batch[0]
-        if len(batch[0]) < self.num_gpu:
-            logging.warning('batch size is less than number of gpus. Ignored')
-            return
-
-        # compute loss and gradient
-        batch = self.converter(batch)
-        loss = self.model(*batch)
-        optimizer.zero_grad()  # Clear the parameter gradients
-        loss.backward()  # Backprop
-        loss.detach()  # Truncate the graph
-
-        # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm_(
-            self.model.parameters(), self.grad_clip_threshold)
-        logging.debug('grad norm={}'.format(grad_norm))
-        if math.isnan(grad_norm):
-            logging.warning('grad norm is nan. Do not update model.')
-        else:
-            optimizer.step()
+def torch_load(path, model):
+    if hasattr(model, "module"):
+        model.module.load_state_dict(torch.load(path))
+    else:
+        model.load_state_dict(torch.load(path))
 
 
 def train(args):
@@ -230,13 +235,6 @@ def train(args):
     # seed setting
     torch.manual_seed(args.seed)
 
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # revmoe type check
-    if args.debugmode < 2:
-        chainer.config.type_check = False
-        logging.info('torch type check is disabled')
     # use determinisitic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
@@ -252,11 +250,22 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
+
     # reverse input and output dimension
     idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
+
+    # write model config
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+    model_conf = args.outdir + '/model.conf'
+    with open(model_conf, 'wb') as f:
+        logging.info('writing a model config file to' + model_conf)
+        pickle.dump((idim, odim, args), f)
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # define output activation function
     if args.output_activation is None:
@@ -293,16 +302,6 @@ def train(args):
         dropout=args.dropout_rate,
         zoneout=args.zoneout_rate)
     logging.info(tacotron2)
-
-    # write model config
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    model_conf = args.outdir + '/model.conf'
-    with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to' + model_conf)
-        pickle.dump((idim, odim, args), f)
-    for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # Set gpu
     ngpu = args.ngpu
@@ -355,34 +354,29 @@ def train(args):
 
     # Set up a trainer
     converter = partial(batch_converter, return_targets=True)
-    updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, converter, gpu_id)
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, gpu_id)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
     if args.resume:
         logging.info("restored from %s" % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
-        if ngpu > 1:
-            tacotron2.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
-        else:
-            tacotron2.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
+        torch_load(tacotron2, args.outdir + '/model.ep.%d' % trainer.updater.epoch)
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, valid_iter, reporter, converter, gpu_id))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
 
+    # Save attention figure for each epoch
     if args.num_save_attention > 0:
         data = sorted(valid_json.items()[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        plot_converter = partial(batch_converter, return_targets=False)
         trainer.extend(PlotAttentionReport(
-            tacotron2, data, args.outdir + "/att_ws", plot_converter),
-            trigger=(1000, 'iteration'))
+            tacotron2, data, args.outdir + "/att_ws",
+            partial(batch_converter, return_targets=False)), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -394,15 +388,11 @@ def train(args):
     trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
                                          'epoch', file_name='bce_loss.png'))
 
-    # Save best models
-    def torch_save(path, model):
-        if ngpu > 1:
-            torch.save(model.module.state_dict(), path)
-        else:
-            torch.save(model.state_dict(), path)
+    # Save model for each epoch
+    trainer.extend(extensions.snapshot_object(
+        tacotron2, 'model.ep.{.updater.epoch}', savefun=torch_save), trigger=(1, 'epoch'))
 
-    trainer.extend(extensions.snapshot_object(tacotron2, 'model.ep.{.updater.epoch}', savefun=torch_save),
-                   trigger=(1, 'epoch'))
+    # Save best models
     trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
@@ -464,7 +454,7 @@ def decode(args):
         use_batch_norm=train_args.use_batch_norm,
         use_concate=train_args.use_concate,
         dropout=train_args.dropout_rate,
-        zoneout=train_args.zoneout_rate if hasattr(train_args, "zoneout_rate") else 0.0)
+        zoneout=train_args.zoneout_rate)
     eos = str(tacotron2.idim - 1)
 
     # load trained model parameters
@@ -472,10 +462,6 @@ def decode(args):
     tacotron2.load_state_dict(
         torch.load(args.model, map_location=lambda storage, loc: storage))
     tacotron2.eval()
-
-    # check cuda availability
-    if not torch.cuda.is_available():
-        logging.warning('cuda is not available')
 
     # Set gpu
     ngpu = args.ngpu
