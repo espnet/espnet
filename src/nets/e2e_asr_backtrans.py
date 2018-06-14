@@ -9,6 +9,7 @@ import logging
 import six
 
 import chainer
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -293,8 +294,13 @@ class Tacotron2(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
+        # check ilens type (should be list of int)
+        if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
+            ilens = list(map(int, ilens))
+
         hs, hlens = self.enc(xs, ilens)
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
+
         # apply activation function for scaling
         if self.output_activation_fn is not None:
             before_outs = self.output_activation_fn(before_outs)
@@ -315,6 +321,7 @@ class Tacotron2(torch.nn.Module):
         """
         h = self.enc.inference(x)
         outs, probs, att_ws = self.dec.inference(h)
+
         # apply activation function for scaling
         if self.output_activation_fn is not None:
             outs = self.output_activation_fn(outs)
@@ -330,6 +337,10 @@ class Tacotron2(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: numpy array
         """
+        # check ilens type (should be list of int)
+        if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
+            ilens = list(map(int, ilens))
+
         with torch.no_grad():
             hs, hlens = self.enc(xs, ilens)
             att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
@@ -438,7 +449,7 @@ class Encoder(torch.nn.Module):
         """
         assert len(x.size()) == 1
         xs = x.unsqueeze(0)
-        ilens = [int(x.size(0))]
+        ilens = [x.size(0)]
 
         return self.forward(xs, ilens)[0][0]
 
@@ -695,10 +706,6 @@ class Decoder(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: numpy array
         """
-        # check hlens type
-        if isinstance(hlens, torch.Tensor):
-            hlens = hlens.cpu().numpy()
-
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]

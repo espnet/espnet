@@ -192,9 +192,9 @@ def batch_converter(batch, device=None, return_targets=False):
     xs = [np.fromiter(map(int, xs[i]), dtype=np.int64) for i in sorted_idx]
     ys = [ys[i] for i in sorted_idx]
 
-    # get list of lengths
-    ilens = np.fromiter((x.shape[0] for x in xs), dtype=np.int64).tolist()
-    olens = np.fromiter((y.shape[0] for y in ys), dtype=np.int64).tolist()
+    # get list of lengths (must be tensor for DataParallel)
+    ilens = torch.from_numpy(np.fromiter((x.shape[0] for x in xs), dtype=np.int64))
+    olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys), dtype=np.int64))
 
     # perform padding and convert to tensor
     xs = torch.from_numpy(pad_list(xs, 0)).long()
