@@ -82,10 +82,8 @@ if [ ${stage} -le 8 ];then
             --verbose ${verbose} \
             --outdir ${retroutdir}/results \
             --dict ${dict} \
-            --train-feat scp:${retroutdir}/data/train/feats.scp \
-            --train-label ${retroutdir}/data/train/data.json \
-            --valid-feat scp:dump/${train_dev}/delta${do_delta}/feats.scp \
-            --valid-label dump/${train_dev}/delta${do_delta}/data.json \
+            --train-json ${retroutdir}/data/train/data.json \
+            --valid-json dump/${train_dev}/delta${do_delta}/data.json \
             --batch-size ${batchsize} \
             --maxlen-in ${maxlen_out} \
             --maxlen-out ${maxlen_in} \
@@ -100,20 +98,18 @@ if [ ${stage} -le 9 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
         data=data/${rtask}
         split_data.sh --per-utt ${data} ${nj};
         sdata=${data}/split${nj}utt;
 
-        # feature extraction
-        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-        if ${do_delta}; then
-        feats="$feats add-deltas ark:- ark:- |"
-        fi
-
-        # make json labels for recognition
-        data2json.sh ${data} ${dict} > ${data}/data.json
+         # make json labels for recognition
+        for j in `seq 1 ${nj}`; do
+            data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
+                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
+        done
 
         #### use CPU for decoding
         ngpu=0
@@ -122,8 +118,7 @@ if [ ${stage} -le 9 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend pytorch \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
+            --recog-json ${sdata}/JOB/data.json \
             --result-label ${retroutdir}/${decode_dir}/data.JOB.json \
             --model ${retroutdir}/results/model.${recog_model}  \
             --model-conf ${config} \

@@ -217,7 +217,7 @@ if [ ${stage} -le 7 ];then
                 --ngpu 0 \
                 --verbose ${verbose} \
                 --out ${outdir}/${sets}/feats.JOB \
-                --label ${outdir}/${sets}/data.JOB.json \
+                --json ${outdir}/${sets}/data.JOB.json \
                 --model ${expdir}/results/model.loss.best \
                 --model-conf ${expdir}/results/model.conf \
                 --threshold ${threshold} \
