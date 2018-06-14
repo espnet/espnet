@@ -395,7 +395,7 @@ def train(args):
                                          'epoch', file_name='bce_loss.png'))
 
     # Save best models
-    def torch_save(path, _):
+    def torch_save(path, model):
         if ngpu > 1:
             torch.save(model.module.state_dict(), path)
         else:
@@ -430,7 +430,7 @@ def decode(args):
 
     # define output activation function
     if hasattr(train_args, "output_activation"):
-        if args.output_activation is None:
+        if train_args.output_activation is None:
             output_activation_fn = None
         elif hasattr(torch.nn.functional, train_args.output_activation):
             output_activation_fn = getattr(torch.nn.functional, train_args.output_activation)
