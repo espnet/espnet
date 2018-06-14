@@ -60,6 +60,7 @@ maxlenratio=10.0
 minlenratio=0.0
 nj=32
 # other
+resume=""
 verbose=0
 seed=1125
 dumpdir=dump   # directory to dump full features
@@ -100,6 +101,7 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+feat_ev_dir=${dumpdir}/${eval_set}/delta${do_delta}; mkdir -p ${feat_ev_dir}
 if [ ${stage} -le 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -127,6 +129,8 @@ if [ ${stage} -le 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
@@ -145,6 +149,8 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --feat ${feat_ev_dir}/feats.scp \
+         data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
 
@@ -194,6 +200,7 @@ if [ ${stage} -le 3 ];then
            --outdir ${expdir}/results \
            --verbose ${verbose} \
            --seed ${seed} \
+           --resume ${resume} \
            --train-json ${tr_json} \
            --valid-json ${dt_json} \
            --embed_dim ${embed_dim} \
@@ -236,7 +243,8 @@ if [ ${stage} -le 4 ];then
     for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         # create split json
-        data2json.sh data/${sets} ${dict} > ${outdir}/${sets}/data.json
+        data2json.sh --feat dump/${sets}/delta${do_delta}/feats.scp \
+            data/${sets} ${dict} > ${outdir}/${sets}/data.json
         splitjson.py -n $nj ${outdir}/${sets}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \

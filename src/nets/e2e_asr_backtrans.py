@@ -330,10 +330,11 @@ class Tacotron2(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: numpy array
         """
-        hs = self.enc(xs, ilens)
-        att_ws = self.dec.calculate_all_attentions(hs, ilens, ys)
+        with torch.no_grad():
+            hs = self.enc(xs, ilens)
+            att_ws = self.dec.calculate_all_attentions(hs, ilens, ys)
 
-        return att_ws
+        return att_ws.cpu().numpy()
 
 
 class Encoder(torch.nn.Module):
@@ -731,7 +732,7 @@ class Decoder(torch.nn.Module):
 
         att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
 
-        return att_ws.cpu().numpy()
+        return att_ws
 
     def _prenet_forward(self, x):
         if self.prenet is not None:

@@ -158,14 +158,21 @@ class PlotAttentionReport(extension.Extension):
         self.converter = converter
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
+        # TODO(kan-bayashi): clean up this process
         if hasattr(model, "module"):
-            self.att_vis_fn = model.module.predictor.calculate_all_attentions
+            if hasattr(model.module, "predictor"):
+                self.att_vis_fn = model.module.predictor.calculate_all_attentions
+            else:
+                self.att_vis_fn = model.module.calculate_all_attentions
         else:
-            self.att_vis_fn = model.predictor.calculate_all_attentions
+            if hasattr(model, "predictor"):
+                self.att_vis_fn = model.predictor.calculate_all_attentions
+            else:
+                self.att_vis_fn = model.calculate_all_attentions
 
     def __call__(self, trainer):
         if self.converter is not None:
-            x = self.converter(self.data)
+            x = self.converter([self.data])
         else:
             x = self.data
         if isinstance(x, tuple):

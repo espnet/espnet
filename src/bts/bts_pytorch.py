@@ -49,12 +49,12 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         logging.info("use batch sorted by input length and adaptive batch size.")
         # sort it by output lengths (long to short)
         sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['olen']), reverse=True)
+            data[1]['output'][0]['shape'][0]), reverse=True)
         logging.info('# utts: ' + str(len(sorted_data)))
         # change batchsize depending on the input and output length
         while True:
-            ilen = int(sorted_data[start][1]['olen'])  # reverse
-            olen = int(sorted_data[start][1]['ilen'])  # reverse
+            ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
+            olen = int(sorted_data[start][1]['output'][0]['shape'][0])
             factor = max(int(ilen / max_length_in), int(olen / max_length_out))
             # if ilen = 1000 and max_length_in = 800
             # then b = batchsize / 2
@@ -69,12 +69,12 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         logging.info("use batch sorted by output length and adaptive batch size.")
         # sort it by output lengths (long to short)
         sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['ilen']), reverse=True)
+            data[1]['input'][0]['shape'][0]), reverse=True)
         logging.info('# utts: ' + str(len(sorted_data)))
         # change batchsize depending on the input and output length
         while True:
-            ilen = int(sorted_data[start][1]['olen'])  # reverse
-            olen = int(sorted_data[start][1]['ilen'])  # reverse
+            ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
+            olen = int(sorted_data[start][1]['output'][0]['shape'][0])
             factor = max(int(ilen / max_length_in), int(olen / max_length_out))
             # if ilen = 1000 and max_length_in = 800
             # then b = batchsize / 2
@@ -101,7 +101,7 @@ def batch_converter(batch, device=None, return_targets=False):
     batch = batch[0]
 
     # get eos
-    eos = str(int(batch[0][1]['output'][0]['shape'][0]) - 1)
+    eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
 
     # get target features and input character sequence
     xs = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
@@ -163,7 +163,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         self.model.eval()
         with torch.no_grad():
-            for idx, batch in enumerate(it):
+            for batch in it:
                 observation = {}
                 with chainer.reporter.report_scope(observation):
                     # read scp files
@@ -249,12 +249,12 @@ def train(args):
         logging.warning('cuda is not available')
 
     # get input and output dimension info
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
     # reverse input and output dimension
-    idim = int(valid_json[utts[0]]['odim'])
-    odim = int(valid_json[utts[0]]['idim'])
+    idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
@@ -364,15 +364,14 @@ def train(args):
         logging.info("restored from %s" % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
         if ngpu > 1:
-            model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
+            tacotron2.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         else:
-            model.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
+            tacotron2.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
-    evaluater = PytorchSeqEvaluaterKaldi(
-        model, valid_iter, reporter, converter, gpu_id)
-    trainer.extend(evaluater, (args.epochs, 'epoch'))
+    trainer.extend(PytorchSeqEvaluaterKaldi(
+        model, valid_iter, reporter, converter, gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
@@ -383,7 +382,7 @@ def train(args):
         plot_converter = partial(batch_converter, return_targets=False)
         trainer.extend(PlotAttentionReport(
             tacotron2, data, args.outdir + "/att_ws", plot_converter),
-            trigger=(1000, 'iteration'))
+            trigger=(10, 'iteration'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -402,9 +401,9 @@ def train(args):
         else:
             torch.save(model.state_dict(), path)
 
-    trainer.extend(extensions.snapshot_object(model, 'model.ep.{.updater.epoch}', savefun=torch_save),
+    trainer.extend(extensions.snapshot_object(tacotron2, 'model.ep.{.updater.epoch}', savefun=torch_save),
                    trigger=(1, 'epoch'))
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+    trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
     # Write a log of evaluation statistics for each epoch
@@ -441,7 +440,7 @@ def decode(args):
         output_activation_fn = None
 
     # define model
-    model = Tacotron2(
+    tacotron2 = Tacotron2(
         idim=idim,
         odim=odim,
         embed_dim=train_args.embed_dim,
@@ -466,13 +465,13 @@ def decode(args):
         use_concate=train_args.use_concate,
         dropout=train_args.dropout_rate,
         zoneout=train_args.zoneout_rate if hasattr(train_args, "zoneout_rate") else 0.0)
-    eos = str(model.idim - 1)
+    eos = str(tacotron2.idim - 1)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    model.load_state_dict(
+    tacotron2.load_state_dict(
         torch.load(args.model, map_location=lambda storage, loc: storage))
-    model.eval()
+    tacotron2.eval()
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -483,7 +482,7 @@ def decode(args):
     if ngpu >= 1:
         gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
-        model.cuda()
+        tacotron2.cuda()
     else:
         gpu_id = [-1]
 
@@ -501,12 +500,12 @@ def decode(args):
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
-            x = js[utt_id]['tokenid'].split() + [eos]
+            x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
             x = torch.from_numpy(x)
             if args.ngpu > 0:
                 x = x.cuda()
-            outs, probs, att_ws = model.inference(x)
+            outs, probs, att_ws = tacotron2.inference(x)
             logging.info("(%d/%d) %s (size:%d->%d)" % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
             kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
