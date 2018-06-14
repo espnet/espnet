@@ -338,9 +338,9 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # read json data
-    with open(args.train_label, 'rb') as f:
+    with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
@@ -488,7 +488,7 @@ def decode(args):
         gpu_id = [-1]
 
     # read json data
-    with open(args.label, 'rb') as f:
+    with open(args.json, 'rb') as f:
         js = json.load(f)['utts']
 
     # chech direcitory

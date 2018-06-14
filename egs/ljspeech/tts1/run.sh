@@ -186,20 +186,16 @@ else
 fi
 if [ ${stage} -le 3 ];then
     echo "stage 3: Back translator training"
-    tr_feat=scp:${feat_tr_dir}/feats.scp
-    tr_label=${feat_tr_dir}/data.json
-    dt_feat=scp:${feat_dt_dir}/feats.scp
-    dt_label=${feat_dt_dir}/data.json
+    tr_json=${feat_tr_dir}/data.json
+    dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         bts_train.py \
            --ngpu ${ngpu} \
            --outdir ${expdir}/results \
            --verbose ${verbose} \
            --seed ${seed} \
-           --train-feat ${tr_feat} \
-           --train-label ${tr_label} \
-           --valid-feat ${dt_feat} \
-           --valid-label ${dt_label} \
+           --train-json ${tr_json} \
+           --valid-json ${dt_json} \
            --embed_dim ${embed_dim} \
            --elayers ${elayers} \
            --eunits ${eunits} \
@@ -249,7 +245,7 @@ if [ ${stage} -le 4 ];then
                 --ngpu 0 \
                 --verbose ${verbose} \
                 --out ${outdir}/${sets}/feats.JOB \
-                --label ${outdir}/${sets}/data.JOB.json \
+                --json ${outdir}/${sets}/data.JOB.json \
                 --model ${expdir}/results/model.loss.best \
                 --model-conf ${expdir}/results/model.conf \
                 --threshold ${threshold} \

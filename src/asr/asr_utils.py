@@ -152,9 +152,10 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 
 class PlotAttentionReport(extension.Extension):
-    def __init__(self, model, data, outdir):
+    def __init__(self, model, data, outdir, converter=None):
         self.data = copy.deepcopy(data)
         self.outdir = outdir
+        self.converter = converter
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
         if hasattr(model, "module"):
@@ -163,9 +164,16 @@ class PlotAttentionReport(extension.Extension):
             self.att_vis_fn = model.predictor.calculate_all_attentions
 
     def __call__(self, trainer):
-        att_ws = self.att_vis_fn(self.data)
+        if self.converter is not None:
+            x = self.converter(self.data)
+        else:
+            x = self.data
+        if isinstance(x, tuple):
+            att_ws = self.att_vis_fn(*x)
+        else:
+            att_ws = self.att_vis_fn(x)
         for idx, att_w in enumerate(att_ws):
-            filename = "%s/%s.ep.{.updater.epoch}.png" % (
+            filename = "%s/%s.iter.{.updater.iteration}.png" % (
                 self.outdir, self.data[idx][0])
             if len(att_w.shape) == 3:
                 att_w = att_w[:, :int(self.data[idx][1]['output'][0]['shape'][0]),

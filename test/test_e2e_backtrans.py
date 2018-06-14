@@ -25,11 +25,11 @@ def test_tacotron2():
         labels[i, l - 1:] = 1
 
     model = Tacotron2(idim, odim)
-    criterion = Tacotron2Loss()
+    criterion = Tacotron2Loss(model)
     optimizer = torch.optim.Adam(model.parameters())
 
-    after, before, logits, att_ws = model(xs, ilens, ys)
-    loss = criterion(after, before, logits, ys, logits)
+    after, before, logits = model(xs, ilens, ys)
+    loss = criterion(xs, ilens, ys, labels, olens)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -37,3 +37,4 @@ def test_tacotron2():
     with torch.no_grad():
         model.eval()
         yhat, probs, att_ws = model.inference(xs[0][:ilens[0]])
+        att_ws = model.calculate_all_attentions(xs, ilens, ys)
