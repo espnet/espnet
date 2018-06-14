@@ -1659,6 +1659,12 @@ class Decoder(torch.nn.Module):
         :param ys:
         :return:
         '''
+        # check hlens type
+        if isinstance(hlen, torch.Tensor):
+            hlen = hlen.cpu().numpy().tolist()
+        elif isinstance(hlen, np.ndarray):
+            hlen = hlen.tolist()
+
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
@@ -2037,10 +2043,7 @@ class Encoder(torch.nn.Module):
                 "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
 
-        if isinstance(ilens, torch.Tensor):
-            ilens = ilens.cpu().numpy()
-
-        return xs, ilens
+        return xs, list(map(int, ilens))
 
     def extract(self, xs, ilens, extract_layer_idx=-1):
         '''Encoder forward

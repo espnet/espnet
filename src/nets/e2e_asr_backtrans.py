@@ -9,6 +9,7 @@ import logging
 import six
 
 import chainer
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -116,10 +117,10 @@ class Tacotron2Loss(torch.nn.Module):
         """TACOTRON2 LOSS FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :param list ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
-        :param torch.Tensor olens: batch of the lengths of each target (B)
+        :param list olens: batch of the lengths of each target (B)
         :return: loss value
         :rtype: torch.Tensor
         """
@@ -282,7 +283,7 @@ class Tacotron2(torch.nn.Module):
         """TACOTRON2 FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :param list ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
@@ -293,8 +294,8 @@ class Tacotron2(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
-        hs = self.enc(xs, ilens)
-        after_outs, before_outs, logits = self.dec(hs, ilens, ys)
+        hs, hlens = self.enc(xs, ilens)
+        after_outs, before_outs, logits = self.dec(hs, hlens, ys)
         # apply activation function for scaling
         if self.output_activation_fn is not None:
             before_outs = self.output_activation_fn(before_outs)
@@ -331,8 +332,8 @@ class Tacotron2(torch.nn.Module):
         :rtype: numpy array
         """
         with torch.no_grad():
-            hs = self.enc(xs, ilens)
-            att_ws = self.dec.calculate_all_attentions(hs, ilens, ys)
+            hs, hlens = self.enc(xs, ilens)
+            att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
 
         return att_ws.cpu().numpy()
 
@@ -411,6 +412,8 @@ class Encoder(torch.nn.Module):
         :param list ilens: list of lengths of each batch (B)
         :return: batch of sequences of padded encoder states (B, Tmax, eunits)
         :rtype: torch.Tensor
+        :return: batch of lenghts of each encoder states (B)
+        :rtype: list
         """
         xs = self.embed(xs).transpose(1, 2)
         for l in six.moves.range(self.econv_layers):
@@ -423,9 +426,9 @@ class Encoder(torch.nn.Module):
         # see https://github.com/pytorch/pytorch/issues/7092#issuecomment-388194623
         # self.blstm.flatten_parameters()
         xs, _ = self.blstm(xs)  # (B, Tmax, C)
-        xs, _ = pad_packed_sequence(xs, batch_first=True)
+        xs, hlens = pad_packed_sequence(xs, batch_first=True)
 
-        return xs
+        return xs, list(map(int, hlens))
 
     def inference(self, x):
         """CHARACTER ENCODER INFERENCE
@@ -436,9 +439,9 @@ class Encoder(torch.nn.Module):
         """
         assert len(x.size()) == 1
         xs = x.unsqueeze(0)
-        ilens = [x.size(0)]
+        ilens = [int(x.size(0))]
 
-        return self.forward(xs, ilens)[0]
+        return self.forward(xs, ilens)[0][0]
 
 
 class Decoder(torch.nn.Module):
@@ -579,10 +582,6 @@ class Decoder(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
-        # check hlens type
-        if isinstance(hlens, torch.Tensor):
-            hlens = hlens.cpu().numpy()
-
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]

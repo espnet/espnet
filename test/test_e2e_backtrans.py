@@ -74,8 +74,8 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     maxout_len = 10
     idim = 5
     odim = 10
-    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1]
-    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1]
+    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
+    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
     xs = pad_list([np.random.randint(0, idim, l) for l in ilens], 0)
     ys = pad_list([np.random.randn(l, odim) for l in olens], 0)
     xs = torch.from_numpy(xs).long()
