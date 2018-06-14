@@ -21,9 +21,11 @@ def logmelspectrogram(x, fs, n_mels, n_fft, n_shift, window='hann', fmin=None, f
     mel_basis = librosa.filters.mel(fs, n_fft, n_mels, fmin, fmax)
     spc = np.abs(librosa.stft(x, n_fft, n_shift, window=window))  # (n_fft, n_frames)
     mspc = np.dot(mel_basis, spc)
-    lmspc = np.log10(mspc.T + np.random.uniform(EPS, 2 * EPS, mspc.T.shape))
+    clip = np.random.uniform(EPS, 2 * EPS, mspc.shape)
+    mspc = np.max(np.stack([mspc, clip]), axis=0)
+    lmspc = np.log10(mspc)
 
-    return lmspc
+    return lmspc.T
 
 
 def main():
