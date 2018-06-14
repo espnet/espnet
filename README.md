@@ -56,7 +56,19 @@ export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
 
-### Step 2) installation
+### Step 2-A) installation with compiled Kaldi
+Install Python libraries and other required tools using system python and virtualenv
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi
+```
+or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi -f conda.mk
+```
+
+### Step 2-B) installation including Kaldi installation
 Install Kaldi, Python libraries and other required tools using system python and virtualenv
 ```sh
 $ cd tools
@@ -67,14 +79,6 @@ or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossar
 $ cd tools
 $ make -f conda.mk -j
 ```
-
-For higher version (>4.9) of gcc and cuda 9.1 use following command:
-```sh
-$ cd tools
-$ make -j -f Makefile.cuda91.gcc6
-```
-
-You can compare Makefile and Makefile.cuda91.gcc6 to change makefile accordingly for other version of gcc/cuda.
 
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
