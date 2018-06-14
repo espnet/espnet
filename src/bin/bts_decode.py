@@ -6,11 +6,8 @@
 import argparse
 import logging
 import os
-import random
 import subprocess
 import sys
-
-import numpy as np
 
 
 def main():

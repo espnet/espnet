@@ -381,8 +381,8 @@ class Encoder(torch.nn.Module):
         self.embed = torch.nn.Embedding(self.idim, self.embed_dim)
         if self.econv_layers > 0:
             self.convs = torch.nn.ModuleList()
-            for l in six.moves.range(self.econv_layers):
-                ichans = self.embed_dim if l == 0 else self.econv_chans
+            for layer in six.moves.range(self.econv_layers):
+                ichans = self.embed_dim if layer == 0 else self.econv_chans
                 if self.use_batch_norm:
                     self.convs += [torch.nn.Sequential(
                         torch.nn.Conv1d(ichans, self.econv_chans, self.econv_filts, stride=1,
@@ -506,8 +506,8 @@ class Decoder(torch.nn.Module):
         self.minlenratio = minlenratio
         # define lstm network
         self.lstm = torch.nn.ModuleList()
-        for l in six.moves.range(self.dlayers):
-            iunits = self.idim + self.prenet_units if l == 0 else self.dunits
+        for layer in six.moves.range(self.dlayers):
+            iunits = self.idim + self.prenet_units if layer == 0 else self.dunits
             lstm = torch.nn.LSTMCell(iunits, self.dunits)
             if zoneout > 0.0:
                 lstm = ZoneOutCell(lstm, self.zoneout)
@@ -515,8 +515,8 @@ class Decoder(torch.nn.Module):
         # define prenet
         if self.prenet_layers > 0:
             self.prenet = torch.nn.ModuleList()
-            for l in six.moves.range(self.prenet_layers):
-                ichans = self.odim if l == 0 else self.prenet_units
+            for layer in six.moves.range(self.prenet_layers):
+                ichans = self.odim if layer == 0 else self.prenet_units
                 self.prenet += [torch.nn.Sequential(
                     torch.nn.Linear(ichans, self.prenet_units, bias=False),
                     torch.nn.ReLU())]
@@ -525,9 +525,9 @@ class Decoder(torch.nn.Module):
         # define postnet
         if self.postnet_layers > 0:
             self.postnet = torch.nn.ModuleList()
-            for l in six.moves.range(self.postnet_layers - 1):
-                ichans = self.odim if l == 0 else self.postnet_chans
-                ochans = self.odim if l == self.postnet_layers - 1 else self.postnet_chans
+            for layer in six.moves.range(self.postnet_layers - 1):
+                ichans = self.odim if layer == 0 else self.postnet_chans
+                ochans = self.odim if layer == self.postnet_layers - 1 else self.postnet_chans
                 if use_batch_norm:
                     self.postnet += [torch.nn.Sequential(
                         torch.nn.Conv1d(ichans, ochans, self.postnet_filts, stride=1,
