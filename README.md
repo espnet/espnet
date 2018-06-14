@@ -103,6 +103,26 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Training based on [chainer](https://chainer.org/) or [pytorch](http://pytorch.org/).
 - Recognition and scoring
 
+To monitor the progress (loss and accuracy for training and validation data)
+```
+$ tail -f exp/${expdir}/train.log
+```
+With the default verbose (=0), it gives you the following information
+```
+epoch       iteration   main/loss   main/loss_ctc  main/loss_att  validation/main/loss  validation/main/loss_ctc  validation/main/loss_att  main/acc    validation/main/acc  elapsed_time  eps
+:
+:
+5           68300       70.1965     91.2416        49.1514                                                                                  0.729131                         102506        1e-08
+5           68400       75.3734     98.0821        52.6648                                                                                  0.727678                         102621        1e-08
+5           68500       71.5659     93.714         49.4179                                                                                  0.72659                          102735        1e-08
+5           68600       71.1513     92.0621        50.2406                                                                                  0.735238                         102837        1e-08
+5           68700       71.5159     92.7187        50.3131                                                                                  0.725523                         102952        1e-08
+     total [#############.....................................] 26.74%
+this epoch [#################.................................] 34.88%
+     68700 iter, 5 epoch / 20 epochs
+    0.7734 iters/sec. Estimated time to finish: 2 days, 19:35:14.691414.
+```
+
 ### Use of GPU
 If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
 ```sh
