@@ -170,13 +170,6 @@ def train(args):
     # seed setting
     torch.manual_seed(args.seed)
 
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # revmoe type check
-    if args.debugmode < 2:
-        chainer.config.type_check = False
-        logging.info('torch type check is disabled')
     # use determinisitic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
@@ -472,7 +465,7 @@ def recog(args):
 
 
 def extract(args):
-    '''Extract encoder states'''
+    '''Run Extraction'''
     # read training config
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from' + args.model_conf)
@@ -533,13 +526,6 @@ def retrain(args):
     # seed setting
     torch.manual_seed(args.seed)
 
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # revmoe type check
-    if args.debugmode < 2:
-        chainer.config.type_check = False
-        logging.info('torch type check is disabled')
     # use determinisitic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
@@ -611,9 +597,9 @@ def retrain(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # read json data
-    with open(args.train_label, 'rb') as f:
+    with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
@@ -627,13 +613,9 @@ def retrain(args):
     valid_iter = chainer.iterators.SerialIterator(
         valid, 1, repeat=False, shuffle=False)
 
-    # prepare Kaldi reader
-    train_reader = lazy_io.read_dict_scp(args.train_feat)
-    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
-
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, train_reader, gpu_id)
+        model, args.grad_clip, train_iter, optimizer, converter_kaldi, gpu_id)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -648,7 +630,7 @@ def retrain(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, valid_iter, reporter, valid_reader, device=gpu_id))
+        model, valid_iter, reporter, converter_kaldi, device=gpu_id))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
