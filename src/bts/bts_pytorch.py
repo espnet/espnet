@@ -343,14 +343,16 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
-    train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches, args.batch_sort_key)
-    valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches, args.batch_sort_key)
+    train_batchset = make_batchset(train_json, args.batch_size,
+                                   args.maxlen_in, args.maxlen_out,
+                                   args.minibatches, args.batch_sort_key)
+    valid_batchset = make_batchset(valid_json, args.batch_size,
+                                   args.maxlen_in, args.maxlen_out,
+                                   args.minibatches, args.batch_sort_key)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
+    train_iter = chainer.iterators.SerialIterator(train_batchset, 1)
+    valid_iter = chainer.iterators.SerialIterator(valid_batchset, 1, repeat=False, shuffle=False)
 
     # Set up a trainer
     converter = partial(batch_converter, return_targets=True)
