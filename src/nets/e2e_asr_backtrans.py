@@ -100,28 +100,30 @@ class ZoneOutCell(torch.nn.Module):
 class Tacotron2Loss(torch.nn.Module):
     """TACOTRON2 LOSS FUNCTION
 
+    :param torch.nn.Module model: tacotron2 model
     :param bool use_masking: whether to mask padded part in loss calculation
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
 
-    def __init__(self, use_masking=True, bce_pos_weight=20.0):
+    def __init__(self, model, use_masking=True, bce_pos_weight=20.0):
         super(Tacotron2Loss, self).__init__()
+        self.model = model
         self.use_masking = use_masking
         self.bce_pos_weight = bce_pos_weight
         self.reporter = Reporter()
 
-    def forward(self, after_outs, before_outs, logits, ys, labels, olens=None):
+    def forward(self, xs, ilens, ys, labels, olens=None):
         """TACOTRON2 LOSS FORWARD CALCULATION
 
-        :param torch.Tensor after_outs: outputs with postnets (B, Lmax, odim)
-        :param torch.Tensor before_outs: outputs without postnets (B, Lmax, odim)
-        :param torch.Tensor logits: stop logits (B, Lmax)
-        :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
+        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
         :param torch.Tensor olens: batch of the lengths of each target (B)
         :return: loss value
         :rtype: torch.Tensor
         """
+        after_outs, before_outs, logits = self.model(xs, ilens, ys)
         if self.use_masking and olens is not None:
             # weight positive samples
             if self.bce_pos_weight != 1.0:
@@ -147,7 +149,7 @@ class Tacotron2Loss(torch.nn.Module):
             bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
             loss = mse_loss + bce_loss
 
-        logging.info("loss = %.3e (bce: %.3e, mse: %.3e)" % (loss.item(), bce_loss.item(), mse_loss.item()))
+        logging.debug("loss = %.3e (bce: %.3e, mse: %.3e)" % (loss.item(), bce_loss.item(), mse_loss.item()))
         self.reporter.report(mse_loss.item(), bce_loss.item(), loss.item())
 
         return loss
@@ -292,12 +294,13 @@ class Tacotron2(torch.nn.Module):
         :rtype: torch.Tensor
         """
         hs = self.enc(xs, ilens)
-        after_outs, before_outs, logits, att_ws = self.dec(hs, ilens, ys, xs.size(-1))
+        after_outs, before_outs, logits = self.dec(hs, ilens, ys)
+        # apply activation function for scaling
         if self.output_activation_fn is not None:
             before_outs = self.output_activation_fn(before_outs)
             after_outs = self.output_activation_fn(after_outs)
 
-        return after_outs, before_outs, logits, att_ws
+        return after_outs, before_outs, logits
 
     def inference(self, x):
         """GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
@@ -312,10 +315,25 @@ class Tacotron2(torch.nn.Module):
         """
         h = self.enc.inference(x)
         outs, probs, att_ws = self.dec.inference(h)
+        # apply activation function for scaling
         if self.output_activation_fn is not None:
             outs = self.output_activation_fn(outs)
 
         return outs, probs, att_ws
+
+    def calculate_all_attentions(self, xs, ilens, ys):
+        """TACOTRON2 FORWARD CALCULATION
+
+        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :return: attetion weights (B, Lmax, Tmax)
+        :rtype: numpy array
+        """
+        hs = self.enc(xs, ilens)
+        att_ws = self.dec.calculate_all_attentions(hs, ilens, ys)
+
+        return att_ws
 
 
 class Encoder(torch.nn.Module):
@@ -577,10 +595,9 @@ class Decoder(torch.nn.Module):
         self.att.reset()
 
         # loop for an output sequence
-        outs, logits, att_ws = [], [], []
+        outs, logits = [], []
         for y in ys.transpose(0, 1):
             att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
-            att_ws += [att_w]
             prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
@@ -601,15 +618,8 @@ class Decoder(torch.nn.Module):
         after_outs = before_outs + self._postnet_forward(before_outs)  # (B, odim, Lmax)
         before_outs = before_outs.transpose(2, 1)  # (B, Lmax, odim)
         after_outs = after_outs.transpose(2, 1)  # (B, Lmax, odim)
-        att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
 
-        # for dataparallel (should be same size in each split batch)
-        if att_w_maxlen is not None and att_ws.size(-1) != att_w_maxlen:
-            att_ws_new = att_ws.new_zeros(att_ws.size(0), ys.size(1), att_w_maxlen)
-            att_ws_new[:, :, :att_ws.size(-1)] = att_ws
-            att_ws = att_ws_new
-
-        return after_outs, before_outs, logits, att_ws
+        return after_outs, before_outs, logits
 
     def inference(self, h):
         """GENERATE THE SEQUENCE OF FEATURES FROM ENCODER HIDDEN STATES
@@ -676,6 +686,52 @@ class Decoder(torch.nn.Module):
                 break
 
         return outs, probs, att_ws
+
+    def calculate_all_attentions(self, hs, hlens, ys):
+        """DECODER ATTENTION CALCULATION
+
+        :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
+        :param list hlens: list of lengths of each input batch (B)
+        :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
+        :return: attetion weights (B, Lmax, Tmax)
+        :rtype: numpy array
+        """
+        # check hlens type
+        if isinstance(hlens, torch.Tensor):
+            hlens = hlens.cpu().numpy()
+
+        # initialize hidden states of decoder
+        c_list = [self.zero_state(hs)]
+        z_list = [self.zero_state(hs)]
+        for l in six.moves.range(1, self.dlayers):
+            c_list += [self.zero_state(hs)]
+            z_list += [self.zero_state(hs)]
+        prev_out = hs.new_zeros(hs.size(0), self.odim)
+
+        # initialize attention
+        prev_att_w = None
+        self.att.reset()
+
+        # loop for an output sequence
+        att_ws = []
+        for y in ys.transpose(0, 1):
+            att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
+            att_ws += [att_w]
+            prenet_out = self._prenet_forward(prev_out)
+            xs = torch.cat([att_c, prenet_out], dim=1)
+            z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.lstm[l](
+                    z_list[l - 1], (z_list[l], c_list[l]))
+            prev_out = y  # teacher forcing
+            if self.cumulate_att_w and prev_att_w is not None:
+                prev_att_w = prev_att_w + att_w  # Note: error when use +=
+            else:
+                prev_att_w = att_w
+
+        att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
+
+        return att_ws.cpu().numpy()
 
     def _prenet_forward(self, x):
         if self.prenet is not None:

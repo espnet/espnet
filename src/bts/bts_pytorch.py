@@ -11,6 +11,8 @@ import os
 import pickle
 import random
 
+from functools import partial
+
 import chainer
 import numpy as np
 import torch
@@ -19,16 +21,14 @@ from chainer import training
 from chainer.training import extensions
 
 import kaldi_io_py
-import lazy_io
 
+from asr_utils import PlotAttentionReport
 from e2e_asr_attctc_th import pad_list
 from e2e_asr_backtrans import Tacotron2
 from e2e_asr_backtrans import Tacotron2Loss
 
 import matplotlib
 matplotlib.use('Agg')
-
-MAX_SAVE_ATT_W = 5
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
@@ -96,13 +96,16 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     return minibatch
 
 
-def prepare_batch(batch, reader):
+def batch_converter(batch, device=None, return_targets=False):
+    # get batch
+    batch = batch[0]
+
     # get eos
-    eos = str(int(batch[0][1]['odim']) - 1)
+    eos = str(int(batch[0][1]['output'][0]['shape'][0]) - 1)
 
     # get target features and input character sequence
-    xs = [b[1]['tokenid'].split() + [eos] for b in batch]
-    ys = [reader[b[0].encode('ascii', 'ignore')] for b in batch]
+    xs = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
+    ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
 
     # remove empty sequence and get sort along with length
     filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(ys)))
@@ -128,20 +131,19 @@ def prepare_batch(batch, reader):
         ys = ys.cuda()
         labels = labels.cuda()
 
-    return xs, ilens, ys, labels, olens
+    if return_targets:
+        return xs, ilens, ys, labels, olens
+    else:
+        return xs, ilens, ys
 
 
 class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
     '''Custom evaluater with Kaldi reader for pytorch'''
 
-    def __init__(self, model, criterion, iterator, target, reader, device, outdir):
+    def __init__(self, model, iterator, target, converter, device):
         super(PytorchSeqEvaluaterKaldi, self).__init__(
-            iterator, target, device=device)
-        self.reader = reader
-        self.criterion = criterion
+            iterator, target, converter=converter, device=device)
         self.model = model
-        self.outdir = outdir
-        self.epoch = 0
         self.num_gpu = len(device)
 
     # The core part of the update routine can be customized by overriding.
@@ -168,20 +170,11 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
                     # batch only has one minibatch utterance, which is specified by batch[0]
-                    xs, ilens, ys, labels, olens = prepare_batch(batch[0], self.reader)
-                    after_outs, before_outs, logits, att_ws = self.model(xs, ilens, ys)
-                    self.criterion(after_outs, before_outs, logits, ys, labels, olens)
-
-                # save visialized attention weight
-                if idx < MAX_SAVE_ATT_W:
-                    import matplotlib.pyplot as plt
-                    plt.imshow(att_ws[0].cpu().numpy(), aspect="auto")
-                    plt.savefig(self.outdir + "/att_w_idx%d_epoch%d.png" % (idx, self.epoch))
-                    plt.close()
+                    batch = self.converter(batch)
+                    self.model(*batch)
 
                 summary.add(observation)
 
-        self.epoch += 1
         self.model.train()
 
         return summary.compute_mean()
@@ -190,12 +183,10 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 class PytorchSeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater with Kaldi reader for pytorch'''
 
-    def __init__(self, model, criterion, grad_clip_threshold, train_iter, optimizer, reader, device):
+    def __init__(self, model, grad_clip_threshold, train_iter, optimizer, converter, device):
         super(PytorchSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, device=None)
+            train_iter, optimizer, converter=converter, device=None)
         self.model = model
-        self.criterion = criterion
-        self.reader = reader
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
 
@@ -216,18 +207,18 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         if len(batch[0]) < self.num_gpu:
             logging.warning('batch size is less than number of gpus. Ignored')
             return
-        xs, ilens, ys, labels, olens = prepare_batch(batch[0], self.reader)
 
-        # Compute the loss at this time step and accumulate it
-        after_outs, before_outs, logits, att_ws = self.model(xs, ilens, ys)
-        loss = self.criterion(after_outs, before_outs, logits, ys, labels, olens)
+        # compute loss and gradient
+        batch = self.converter(batch)
+        loss = self.model(*batch)
         optimizer.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
+
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
-        logging.info('grad norm={}'.format(grad_norm))
+        logging.debug('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
         else:
@@ -276,7 +267,7 @@ def train(args):
         raise ValueError("there is no such an activation function. (%s)" % args.output_activation)
 
     # specify model architecture
-    model = Tacotron2(
+    tacotron2 = Tacotron2(
         idim=idim,
         odim=odim,
         embed_dim=args.embed_dim,
@@ -301,10 +292,7 @@ def train(args):
         use_concate=args.use_concate,
         dropout=args.dropout_rate,
         zoneout=args.zoneout_rate)
-    criterion = Tacotron2Loss(
-        use_masking=args.use_masking,
-        bce_pos_weight=args.bce_pos_weight)
-    logging.info(model)
+    logging.info(tacotron2)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -317,22 +305,28 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # Set gpu
-    reporter = criterion.reporter
     ngpu = args.ngpu
     if ngpu == 1:
         gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
-        model.cuda()
+        tacotron2.cuda()
     elif ngpu > 1:
         gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
-        model = torch.nn.DataParallel(model, device_ids=gpu_id)
-        model.cuda()
+        tacotron2 = torch.nn.DataParallel(tacotron2, device_ids=gpu_id)
+        tacotron2.cuda()
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
         args.batch_size *= args.ngpu
     else:
         gpu_id = [-1]
+
+    # define loss
+    model = Tacotron2Loss(
+        model=tacotron2,
+        use_masking=args.use_masking,
+        bce_pos_weight=args.bce_pos_weight)
+    reporter = model.reporter
 
     # Setup an optimizer
     optimizer = torch.optim.Adam(
@@ -359,15 +353,11 @@ def train(args):
     train_iter = chainer.iterators.SerialIterator(train, 1)
     valid_iter = chainer.iterators.SerialIterator(valid, 1, repeat=False, shuffle=False)
 
-    # prepare Kaldi reader
-    train_reader = lazy_io.read_dict_scp(args.train_feat)
-    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
-
     # Set up a trainer
+    converter = partial(batch_converter, return_targets=True)
     updater = PytorchSeqUpdaterKaldi(
-        model, criterion, args.grad_clip, train_iter, optimizer, train_reader, gpu_id)
-    trainer = training.Trainer(
-        updater, (args.epochs, 'epoch'), out=args.outdir)
+        model, args.grad_clip, train_iter, optimizer, converter, gpu_id)
+    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
     if args.resume:
@@ -380,11 +370,20 @@ def train(args):
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, criterion, valid_iter, reporter, valid_reader, gpu_id, args.outdir))
+    evaluater = PytorchSeqEvaluaterKaldi(
+        model, valid_iter, reporter, converter, gpu_id)
+    trainer.extend(evaluater, (args.epochs, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
+
+    if args.num_save_attention > 0:
+        data = sorted(valid_json.items()[:args.num_save_attention],
+                      key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
+        plot_converter = partial(batch_converter, return_targets=False)
+        trainer.extend(PlotAttentionReport(
+            tacotron2, data, args.outdir + "/att_ws", plot_converter),
+            trigger=(1000, 'iteration'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',

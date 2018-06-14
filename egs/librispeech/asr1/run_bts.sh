@@ -153,25 +153,19 @@ fi
 if [ ${stage} -le 6 ];then
     echo "stage 6: Back translator training"
     if [ ${target} == "states" ];then
-        tr_feat=scp:${dumpdir}/${train_set}/feats.scp
-        tr_label=${dumpdir}/${train_set}/data.json
-        dt_feat=scp:${dumpdir}/${train_dev}/feats.scp
-        dt_label=${dumpdir}/${train_dev}/data.json
+        tr_json=${dumpdir}/${train_set}/data.json
+        dt_json=${dumpdir}/${train_dev}/data.json
     else
-        tr_feat=scp:dump/${train_set}/delta${do_delta}/feats.scp
-        tr_label=dump/${train_set}/delta${do_delta}/data.json
-        dt_feat=scp:dump/${train_dev}/delta${do_delta}/feats.scp
-        dt_label=dump/${train_dev}/delta${do_delta}/data.json
+        tr_json=dump/${train_set}/delta${do_delta}/data.json
+        dt_json=dump/${train_dev}/delta${do_delta}/data.json
     fi
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         bts_train.py \
            --ngpu ${ngpu} \
            --outdir ${expdir}/results \
            --verbose ${verbose} \
-           --train-feat ${tr_feat} \
-           --train-label ${tr_label} \
-           --valid-feat ${dt_feat} \
-           --valid-label ${dt_label} \
+           --train-json ${tr_json} \
+           --valid-json ${dt_json} \
            --embed_dim ${embed_dim} \
            --elayers ${elayers} \
            --eunits ${eunits} \
