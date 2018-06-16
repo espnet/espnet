@@ -363,7 +363,7 @@ def train(args):
     if args.resume:
         logging.info('restored from %s' % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
-        torch_load(tacotron2, args.outdir + '/model.ep.%d' % trainer.updater.epoch)
+        torch_load(args.outdir + '/model.ep.%d' % trainer.updater.epoch, tacotron2)
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
