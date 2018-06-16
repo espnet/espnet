@@ -41,18 +41,12 @@ if __name__ == '__main__':
         js.append(j)
     logging.info('new json has ' + str(len(intersec_ks)) + ' utterances')
         
-    new_dic = {}
+    old_dic = {}
     for k in intersec_ks:
         v = js[0]['utts'][k]
         for j in js[1:]:
             v.update(j['utts'][k])
-        new_dic[k] = v
-        
-    # ensure "ensure_ascii=False", which is a bug
-    j = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False).encode('utf_8')
-
-    #j = json.load(open(args.json))
-    old_dic = j['utts']
+        old_dic[k] = v
 
     new_dic = {}
     for item in old_dic.items():
@@ -74,6 +68,7 @@ if __name__ == '__main__':
 
         new_dic[id] = {unicode('input', 'utf-8'):[in_dic], unicode('output', 'utf-8'):[out_dic],
             unicode('utt2spk', 'utf-8'):dic[unicode('utt2spk', 'utf-8')]}
-        
+    
+    # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False).encode('utf_8')
     print(jsonstring)

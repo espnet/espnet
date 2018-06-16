@@ -166,7 +166,7 @@ if [ ${stage} -le 2 ]; then
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            --nlsyms ${nlsyms} data/${rtask}/feats.scp ${dict} > ${feat_recog_dir}/data.json
+            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
 
@@ -234,7 +234,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-json ${feat_recog_dir}/data.JOB.json \
+            --recog-json ${feat_recog_dir}/split_nj${nj}/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
