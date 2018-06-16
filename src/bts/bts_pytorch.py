@@ -378,7 +378,7 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         trainer.extend(PlotAttentionReport(
             tacotron2, data, args.outdir + '/att_ws',
-            partial(batch_converter, return_targets=False)), trigger=(1, 'epoch'))
+            partial(batch_converter, return_targets=False), True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
