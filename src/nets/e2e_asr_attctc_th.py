@@ -1630,7 +1630,7 @@ class Decoder(torch.nn.Module):
         self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
         for l in six.moves.range(1, self.dlayers):
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
-        self.ignore_id = 0  # NOTE: 0 for CTC?
+        self.ignore_id = -1
         self.output = torch.nn.Linear(dunits, odim)
 
         self.loss = None
