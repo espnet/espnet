@@ -147,8 +147,8 @@ def _adadelta_eps_decay(trainer, eps_decay):
     # pytorch
     else:
         for p in optimizer.param_groups:
-            p['eps'] *= eps_decay
-            logging.info('adadelta eps decayed to ' + str(p['eps']))
+            p["eps"] *= eps_decay
+            logging.info('adadelta eps decayed to ' + str(p["eps"]))
 
 
 class PlotAttentionReport(extension.Extension):
@@ -158,14 +158,15 @@ class PlotAttentionReport(extension.Extension):
         self.converter = converter
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
+
         # TODO(kan-bayashi): clean up this process
-        if hasattr(model, 'module'):
-            if hasattr(model.module, 'predictor'):
+        if hasattr(model, "module"):
+            if hasattr(model.module, "predictor"):
                 self.att_vis_fn = model.module.predictor.calculate_all_attentions
             else:
                 self.att_vis_fn = model.module.calculate_all_attentions
         else:
-            if hasattr(model, 'predictor'):
+            if hasattr(model, "predictor"):
                 self.att_vis_fn = model.predictor.calculate_all_attentions
             else:
                 self.att_vis_fn = model.calculate_all_attentions
@@ -182,7 +183,7 @@ class PlotAttentionReport(extension.Extension):
         else:
             att_ws = self.att_vis_fn(x)
         for idx, att_w in enumerate(att_ws):
-            filename = '%s/%s.iter.{.updater.iteration}.png' % (
+            filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])
             if len(att_w.shape) == 3:
                 att_w = att_w[:, :int(self.data[idx][1]['output'][0]['shape'][0]),
@@ -196,13 +197,13 @@ class PlotAttentionReport(extension.Extension):
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
                 matplotlib.pyplot.subplot(1, len(att_w), h)
-                matplotlib.pyplot.imshow(aw, aspect='auto')
-                matplotlib.pyplot.xlabel('Encoder Index')
-                matplotlib.pyplot.ylabel('Decoder Index')
+                matplotlib.pyplot.imshow(aw, aspect="auto")
+                matplotlib.pyplot.xlabel("Encoder Index")
+                matplotlib.pyplot.ylabel("Decoder Index")
         else:
-            matplotlib.pyplot.imshow(att_w, aspect='auto')
-            matplotlib.pyplot.xlabel('Encoder Index')
-            matplotlib.pyplot.ylabel('Decoder Index')
+            matplotlib.pyplot.imshow(att_w, aspect="auto")
+            matplotlib.pyplot.xlabel("Encoder Index")
+            matplotlib.pyplot.ylabel("Decoder Index")
         matplotlib.pyplot.tight_layout()
         matplotlib.pyplot.savefig(filename)
         matplotlib.pyplot.close()
