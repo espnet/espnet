@@ -11,8 +11,6 @@ import os
 import pickle
 import random
 
-from functools import partial
-
 import chainer
 import numpy as np
 import torch
@@ -34,11 +32,10 @@ matplotlib.use('Agg')
 class CustomEvaluator(extensions.Evaluator):
     '''CUSTOM EVALUATER FOR TACOTRON2 TRAINING'''
 
-    def __init__(self, model, iterator, target, converter, device):
-        super(CustomEvaluator, self).__init__(
-            iterator, target, converter=converter, device=device)
+    def __init__(self, model, iterator, target, converter):
+        super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
-        self.num_gpu = len(device)
+        self.converter = converter
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -58,7 +55,7 @@ class CustomEvaluator(extensions.Evaluator):
         self.model.eval()
         for batch in it:
             observation = {}
-            with torch.no_grad() and chainer.reporter.report_scope(observation):
+            with torch.no_grad(), chainer.reporter.report_scope(observation):
                 # convert to torch tensor
                 batch = self.converter(batch)
                 self.model(*batch)
@@ -71,12 +68,11 @@ class CustomEvaluator(extensions.Evaluator):
 class CustomUpdater(training.StandardUpdater):
     '''CUSTOM UPDATER FOR TACOTRON2 TRAINING'''
 
-    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device):
-        super(CustomUpdater, self).__init__(
-            train_iter, optimizer, converter=converter, device=None)
+    def __init__(self, model, grad_clip, train_iter, optimizer, converter):
+        super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip = grad_clip
-        self.num_gpu = len(device)
+        self.converter = converter
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -85,15 +81,8 @@ class CustomUpdater(training.StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
-        # Get the next batch ( a list of json files)
-        batch = train_iter.next()
-
-        # check batch size for the use of multi-gpu
-        if len(batch[0]) < self.num_gpu:
-            raise ValueError('batch size is less than number of gpus.')
-
-        # convert to torch tensor
-        batch = self.converter(batch)
+        # Get the next batch (a list of json files)
+        batch = self.converter(train_iter.next())
 
         # compute loss and gradient
         loss = self.model(*batch)
@@ -108,6 +97,53 @@ class CustomUpdater(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
+
+
+class CustomConverter(object):
+    def __init__(self, device, return_targets=True):
+        self.device = device
+        self.return_targets = return_targets
+
+    def __call__(self, batch):
+        # batch should be located in list
+        assert len(batch) == 1
+        batch = batch[0]
+
+        # get eos
+        eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
+
+        # get target features and input character sequence
+        xs = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
+        ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
+
+        # remove empty sequence and get sort along with length
+        filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(ys)))
+        sorted_idx = sorted(filtered_idx, key=lambda i: -len(xs[i]))
+        xs = [np.fromiter(map(int, xs[i]), dtype=np.int64) for i in sorted_idx]
+        ys = [ys[i] for i in sorted_idx]
+
+        # get list of lengths (must be tensor for DataParallel)
+        ilens = torch.from_numpy(np.fromiter((x.shape[0] for x in xs), dtype=np.int64))
+        olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys), dtype=np.int64))
+
+        # perform padding and convert to tensor
+        xs = torch.from_numpy(pad_list(xs, 0)).long()
+        ys = torch.from_numpy(pad_list(ys, 0)).float()
+
+        # make labels for stop prediction
+        labels = ys.new_zeros((ys.size(0), ys.size(1)))
+        for i, l in enumerate(olens):
+            labels[i, l - 1:] = 1
+
+        if sum(self.device) >= 0:
+            xs = xs.cuda()
+            ys = ys.cuda()
+            labels = labels.cuda()
+
+        if self.return_targets:
+            return xs, ilens, ys, labels, olens
+        else:
+            return xs, ilens, ys
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
@@ -173,47 +209,6 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     logging.info('# minibatches: ' + str(len(minibatch)))
 
     return minibatch
-
-
-def batch_converter(batch, device=None, return_targets=False):
-    # get batch
-    batch = batch[0]
-
-    # get eos
-    eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
-
-    # get target features and input character sequence
-    xs = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
-    ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-
-    # remove empty sequence and get sort along with length
-    filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(ys)))
-    sorted_idx = sorted(filtered_idx, key=lambda i: -len(xs[i]))
-    xs = [np.fromiter(map(int, xs[i]), dtype=np.int64) for i in sorted_idx]
-    ys = [ys[i] for i in sorted_idx]
-
-    # get list of lengths (must be tensor for DataParallel)
-    ilens = torch.from_numpy(np.fromiter((x.shape[0] for x in xs), dtype=np.int64))
-    olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys), dtype=np.int64))
-
-    # perform padding and convert to tensor
-    xs = torch.from_numpy(pad_list(xs, 0)).long()
-    ys = torch.from_numpy(pad_list(ys, 0)).float()
-
-    # make labels for stop prediction
-    labels = ys.new_zeros((ys.size(0), ys.size(1)))
-    for i, l in enumerate(olens):
-        labels[i, l - 1:] = 1  # l or l-1?
-
-    if torch.cuda.is_available():
-        xs = xs.cuda()
-        ys = ys.cuda()
-        labels = labels.cuda()
-
-    if return_targets:
-        return xs, ilens, ys, labels, olens
-    else:
-        return xs, ilens, ys
 
 
 def torch_save(path, model):
@@ -315,8 +310,8 @@ def train(args):
         tacotron2 = torch.nn.DataParallel(tacotron2, device_ids=gpu_id)
         tacotron2.cuda()
         logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * args.ngpu))
-        args.batch_size *= args.ngpu
+            args.batch_size, args.batch_size * ngpu))
+        args.batch_size *= ngpu
     else:
         gpu_id = [-1]
 
@@ -355,8 +350,8 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(valid_batchset, 1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    converter = partial(batch_converter, return_targets=True)
-    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, gpu_id)
+    converter = CustomConverter(gpu_id)
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -367,7 +362,7 @@ def train(args):
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, gpu_id))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
@@ -378,7 +373,7 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         trainer.extend(PlotAttentionReport(
             tacotron2, data, args.outdir + '/att_ws',
-            partial(batch_converter, return_targets=False), True), trigger=(1, 'epoch'))
+            CustomConverter(gpu_id, False), True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
