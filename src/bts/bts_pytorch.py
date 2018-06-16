@@ -100,6 +100,8 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
+    '''CUSTOM CONVERTER FOR TACOTRON2'''
+
     def __init__(self, device, return_targets=True):
         self.device = device
         self.return_targets = return_targets
