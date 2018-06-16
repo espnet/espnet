@@ -174,6 +174,7 @@ class Tacotron2(torch.nn.Module):
     :param int postnet_layers: the number of postnet layers
     :param int postnet_filts: the number of postnet filter size
     :param int postnet_chans: the number of postnet filter channels
+    :param function output_activation_fn: activation function for outputs
     :param int adim: the number of dimension of mlp in attention
     :param int aconv_chans: the number of attention conv filter channels
     :param int aconv_filts: the number of attention conv filter size
@@ -267,6 +268,7 @@ class Tacotron2(torch.nn.Module):
                            postnet_layers=self.postnet_layers,
                            postnet_chans=self.postnet_chans,
                            postnet_filts=self.postnet_filts,
+                           output_activation_fn=self.output_activation_fn,
                            cumulate_att_w=self.cumulate_att_w,
                            use_batch_norm=self.use_batch_norm,
                            use_concate=self.use_concate,
@@ -301,11 +303,6 @@ class Tacotron2(torch.nn.Module):
         hs, hlens = self.enc(xs, ilens)
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
 
-        # apply activation function for scaling
-        if self.output_activation_fn is not None:
-            before_outs = self.output_activation_fn(before_outs)
-            after_outs = self.output_activation_fn(after_outs)
-
         return after_outs, before_outs, logits
 
     def inference(self, x):
@@ -321,10 +318,6 @@ class Tacotron2(torch.nn.Module):
         """
         h = self.enc.inference(x)
         outs, probs, att_ws = self.dec.inference(h)
-
-        # apply activation function for scaling
-        if self.output_activation_fn is not None:
-            outs = self.output_activation_fn(outs)
 
         return outs, probs, att_ws
 
@@ -342,8 +335,10 @@ class Tacotron2(torch.nn.Module):
             ilens = list(map(int, ilens))
 
         with torch.no_grad():
+            self.eval()
             hs, hlens = self.enc(xs, ilens)
             att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
+            self.train()
 
         return att_ws.cpu().numpy()
 
@@ -471,6 +466,7 @@ class Decoder(torch.nn.Module):
     :param int postnet_layers: the number of postnet layers
     :param int postnet_filts: the number of postnet filter size
     :param int postnet_chans: the number of postnet filter channels
+    :param function output_activation_fn: activation function for outputs
     :param bool cumulate_att_w: whether to cumulate previous attention weight
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
@@ -489,6 +485,7 @@ class Decoder(torch.nn.Module):
                  postnet_layers=5,
                  postnet_chans=512,
                  postnet_filts=5,
+                 output_activation_fn=None,
                  cumulate_att_w=True,
                  use_batch_norm=True,
                  use_concate=True,
@@ -509,6 +506,7 @@ class Decoder(torch.nn.Module):
         self.postnet_layers = postnet_layers
         self.postnet_chans = postnet_chans if postnet_layers != 0 else -1
         self.postnet_filts = postnet_filts if postnet_layers != 0 else -1
+        self.output_activation_fn = output_activation_fn
         self.cumulate_att_w = cumulate_att_w
         self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
@@ -629,6 +627,11 @@ class Decoder(torch.nn.Module):
         before_outs = before_outs.transpose(2, 1)  # (B, Lmax, odim)
         after_outs = after_outs.transpose(2, 1)  # (B, Lmax, odim)
 
+        # apply activation function for scaling
+        if self.output_activation_fn is not None:
+            before_outs = self.output_activation_fn(before_outs)
+            after_outs = self.output_activation_fn(after_outs)
+
         return after_outs, before_outs, logits
 
     def inference(self, h):
@@ -678,7 +681,10 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
-            outs += [self.feat_out(zcs)]
+            if self.output_activation_fn is not None:
+                outs += [self.output_activation_fn(self.feat_out(zcs))]
+            else:
+                outs += [self.feat_out(zcs)]
             probs += [F.sigmoid(self.prob_out(zcs))[0]]
             prev_out = outs[-1]
             if self.cumulate_att_w and prev_att_w is not None:
