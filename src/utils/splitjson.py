@@ -6,10 +6,12 @@
 from __future__ import print_function
 
 import argparse
+from collections import OrderedDict
 import json
 import logging
 import os
 import sys
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -23,23 +25,22 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
     j = json.load(open(args.json))
-    dics = [x for x in j['utts'].items()]
+    ids = [x for x in j['utts']]
 
-    ndics = len(dics)
+    ndics = len(ids)
     parts = [x for x in range (0, ndics+1, ndics // args.parts)]
 
     filename = os.path.basename(args.json).split('.')[0]
     dirname = os.path.dirname(args.json)
-    dirname = '{}/split_nj{}'.format(dirname, args.parts)
+    dirname = '{}/split{}utt'.format(dirname, args.parts)
 
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 
     for i in range (args.parts):
-        list_dic = dics[parts[i]:parts[i+1]]
         new_dic = {}
-        for item in list_dic:
-            id, dic = item
+        for id in ids:
+            dic = j['utts'][id]
             new_dic[id] = dic
         jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False).encode('utf_8')
         fl = '{}/{}.{}.json'.format(dirname, filename, i+1)
