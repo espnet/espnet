@@ -4,9 +4,11 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import json
 import argparse
+from collections import OrderedDict
+import json
 import logging
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -41,16 +43,16 @@ if __name__ == '__main__':
         js.append(j)
     logging.info('new json has ' + str(len(intersec_ks)) + ' utterances')
         
-    old_dic = {}
+    old_dic = OrderedDict()
     for k in intersec_ks:
         v = js[0]['utts'][k]
         for j in js[1:]:
             v.update(j['utts'][k])
         old_dic[k] = v
 
-    new_dic = {}
-    for item in old_dic.items():
-        id, dic = item
+    new_dic = OrderedDict()
+    for id in old_dic:
+        dic = old_dic[id]
 
         in_dic = {}
         if dic.has_key(unicode('idim', 'utf-8')):
