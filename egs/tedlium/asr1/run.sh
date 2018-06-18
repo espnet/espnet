@@ -155,7 +155,7 @@ if [ ${stage} -le 2 ]; then
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
 
