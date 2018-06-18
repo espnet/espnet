@@ -7,7 +7,8 @@
 
 nlsyms=""
 wer=false
-bpe=false
+bpe=""
+bpemodel=""
 remove_blank=true
 filter=""
 
@@ -24,10 +25,6 @@ dic=$2
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
 json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn ${dir}/hyp.trn
 
-if $bpe; then
-    sed -i.bak1 -r 's/(@@ )|(@@ ?$)//g' ${dir}/ref.trn
-    sed -i.bak1 -r 's/(@@ )|(@@ ?$)//g' ${dir}/hyp.trn
-fi
 if $remove_blank; then
     sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp.trn
 fi
@@ -48,10 +45,15 @@ echo "write a CER (or TER) result in ${dir}/result.txt"
 grep -e Avg -e SPKR -m 2 ${dir}/result.txt
 
 if ${wer}; then
-    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
-    sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+    if [ ! -z $bpe ]; then
+	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
+	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
+    else
+	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
+	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+    fi
     sclite -r ${dir}/ref.wrd.trn trn -h ${dir}/hyp.wrd.trn trn -i rm -o all stdout > ${dir}/result.wrd.txt
-
+	
     echo "write a WER result in ${dir}/result.wrd.txt"
     grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.txt
 fi
