@@ -107,7 +107,7 @@ class ClassifierWithState(link.Chain):
             any type: new state
             cupy/numpy array: log probability vector
 
-        """ 
+        """
         if hasattr(self.predictor, 'normalized') and self.predictor.normalized:
             return self.predictor(state, x)
         else:
