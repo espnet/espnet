@@ -107,7 +107,7 @@ class ClassifierWithState(nn.Module):
         else:
             state, z = self.predictor(state, x)
             return state, F.log_softmax(z, dim=1).data
- 
+
 
 class RNNLM(nn.Module):
 
