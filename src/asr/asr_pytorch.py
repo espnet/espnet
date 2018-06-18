@@ -37,8 +37,8 @@ from e2e_asr_attctc_th import Loss
 import kaldi_io_py
 
 # rnnlm
-import lm_pytorch
 import extlm_pytorch
+import lm_pytorch
 
 # matplotlib related
 import matplotlib
@@ -431,12 +431,12 @@ def recog(args):
 
         if rnnlm is not None:
             rnnlm = lm_pytorch.ClassifierWithState(
-                            extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
-                                    rnnlm.predictor, word_dict, char_dict))
+                extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
+                                           rnnlm.predictor, word_dict, char_dict))
         else:
             rnnlm = lm_pytorch.ClassifierWithState(
-                            extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
-                                    word_dict, char_dict))
+                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
 
     # read json data
     with open(args.recog_json, 'rb') as f:

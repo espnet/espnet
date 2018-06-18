@@ -42,8 +42,8 @@ from e2e_asr_attctc import Loss
 import kaldi_io_py
 
 # rnnlm
-import lm_chainer
 import extlm_chainer
+import lm_chainer
 
 # numpy related
 import matplotlib
@@ -525,12 +525,12 @@ def recog(args):
 
         if rnnlm is not None:
             rnnlm = lm_chainer.ClassifierWithState(
-                            extlm_chainer.MultiLevelLM(word_rnnlm.predictor,
-                                        rnnlm.predictor, word_dict, char_dict))
+                extlm_chainer.MultiLevelLM(word_rnnlm.predictor,
+                                           rnnlm.predictor, word_dict, char_dict))
         else:
             rnnlm = lm_chainer.ClassifierWithState(
-                            extlm_chainer.LookAheadWordLM(word_rnnlm.predictor,
-                                        word_dict, char_dict))
+                extlm_chainer.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
 
     # read json data
     with open(args.recog_json, 'rb') as f:
