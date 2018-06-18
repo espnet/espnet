@@ -38,6 +38,7 @@ import kaldi_io_py
 
 # rnnlm
 import lm_pytorch
+import extlm_pytorch
 
 # matplotlib related
 import matplotlib
@@ -410,6 +411,32 @@ def recog(args):
         rnnlm.eval()
     else:
         rnnlm = None
+
+    if args.word_rnnlm:
+        if args.word_dict:
+            word_dict = {'<blank>': 0}
+            for ln in open(args.word_dict, 'r').readlines():
+                s, i = ln.split()
+                word_dict[s] = int(i)
+            if '<eos>' not in word_dict:
+                word_dict['<eos>'] = len(word_dict)
+        else:
+            word_dict = None
+
+        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
+
+        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), 650))
+        word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
+        word_rnnlm.eval()
+
+        if rnnlm is not None:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                            extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
+                                    rnnlm.predictor, word_dict, char_dict))
+        else:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                            extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
+                                    word_dict, char_dict))
 
     # read json data
     with open(args.recog_json, 'rb') as f:
