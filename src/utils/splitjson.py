@@ -38,8 +38,8 @@ if __name__ == '__main__':
         os.makedirs(dirname)
 
     for i in range (args.parts):
-        new_dic = {}
-        for id in ids:
+        new_dic = OrderedDict()
+        for id in ids[parts[i]:parts[i+1]]:
             dic = j['utts'][id]
             new_dic[id] = dic
         jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False).encode('utf_8')
