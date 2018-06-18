@@ -115,7 +115,7 @@ if [ ${stage} -le 0 ]; then
     # add a check whether the following data preparation is completed or not
 
     # CSJ Japanese
-    if [ -d "$csjdir/asr1/data" ]; then
+    if [ ! -d "$csjdir/asr1/data" ]; then
 	echo "run $csjdir/asr1/run.sh first"
 	exit 1
     fi
@@ -136,7 +136,7 @@ if [ ${stage} -le 0 ]; then
 
     # librispeech
     lang_code=libri_english
-    if [ -d "$libridir/asr1/data" ]; then
+    if [ ! -d "$libridir/asr1/data" ]; then
 	echo "run $libridir/asr1/run.sh first"
 	exit 1
     fi
@@ -150,7 +150,7 @@ if [ ${stage} -le 0 ]; then
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
 	langid=`echo $x | cut -f 1 -d"-"`
 	lang_code=`echo $x | cut -f 2 -d"-"`
-	if [ -d "$babeldir/asr1_${lang_code}/data" ]; then
+	if [ ! -d "$babeldir/asr1_${lang_code}/data" ]; then
 	    echo "run $babeldir/asr1/local/run_all.sh first"
 	    exit 1
 	fi

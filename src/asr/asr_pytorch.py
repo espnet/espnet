@@ -407,6 +407,7 @@ def recog(args):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(len(train_args.char_list), 650))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
+        rnnlm.eval()
     else:
         rnnlm = None
 
