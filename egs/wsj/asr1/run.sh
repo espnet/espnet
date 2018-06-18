@@ -57,6 +57,8 @@ epochs=15
 
 # rnnlm related
 lm_weight=1.0
+use_wordlm=false
+vocabsize=20000
 
 # decoding parameter
 beam_size=20
@@ -173,19 +175,38 @@ fi
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
-lmexpdir=exp/train_rnnlm_2layer_bs2048
+if [ $use_wordlm = true ]; then
+    lm_batchsize=256
+    lmexpdir=exp/train_rnnlm_word_2layer_bs${lm_batchsize}
+    lmdict=${lmexpdir}/wordlist_${vocabsize}.txt
+else
+    lm_batchsize=2048
+    lmexpdir=exp/train_rnnlm_2layer_bs${lm_batchsize}
+    lmdict=$dict
+fi
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmdatadir}/train_trans.txt
-    zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
-        | text2token.py -n 1 | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' >> ${lmdatadir}/train_others.txt
-    cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmdatadir}/valid.txt
+    if [ $use_wordlm = true ]; then
+        cat data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+            > ${lmdatadir}/train_trans.txt
+        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
+            | perl -pe 's/\n/ <eos> /g' > ${lmdatadir}/train_others.txt
+        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
+        cat data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+            > ${lmdatadir}/valid.txt
+        text2vocabulary.py -s ${vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+    else
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+            > ${lmdatadir}/train_trans.txt
+        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
+            | text2token.py -n 1 | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' >> ${lmdatadir}/train_others.txt
+        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+            > ${lmdatadir}/valid.txt
+    fi
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -198,7 +219,8 @@ if [ ${stage} -le 3 ]; then
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-        --dict ${dict}
+        --batchsize ${lm_batchsize} \
+        --dict ${lmdict}
 fi
 
 if [ -z ${tag} ]; then
@@ -260,7 +282,14 @@ if [ ${stage} -le 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        if [ $use_wordlm = true ]; then
+            decode_dir=${decode_dir}_wordrnnlm${lm_weight}
+            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best --word-dict ${lmdict}"
+        else
+            decode_dir=${decode_dir}_rnnlm${lm_weight}
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -290,8 +319,8 @@ if [ ${stage} -le 5 ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight} &
+            --lm-weight ${lm_weight} \
+            $recog_opts &
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}

@@ -43,6 +43,7 @@ import kaldi_io_py
 
 # rnnlm
 import lm_chainer
+import extlm_chainer
 
 # numpy related
 import matplotlib
@@ -505,6 +506,31 @@ def recog(args):
         chainer.serializers.load_npz(args.rnnlm, rnnlm)
     else:
         rnnlm = None
+
+    if args.word_rnnlm:
+        if args.word_dict:
+            word_dict = {'<blank>': 0}
+            for ln in open(args.word_dict, 'r').readlines():
+                s, i = ln.split()
+                word_dict[s] = int(i)
+            if '<eos>' not in word_dict:
+                word_dict['<eos>'] = len(word_dict)
+        else:
+            word_dict = None
+
+        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
+
+        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), 650))
+        chainer.serializers.load_npz(args.word_rnnlm, word_rnnlm)
+
+        if rnnlm is not None:
+            rnnlm = lm_chainer.ClassifierWithState(
+                            extlm_chainer.MultiLevelLM(word_rnnlm.predictor,
+                                        rnnlm.predictor, word_dict, char_dict))
+        else:
+            rnnlm = lm_chainer.ClassifierWithState(
+                            extlm_chainer.LookAheadWordLM(word_rnnlm.predictor,
+                                        word_dict, char_dict))
 
     # read json data
     with open(args.recog_json, 'rb') as f:
