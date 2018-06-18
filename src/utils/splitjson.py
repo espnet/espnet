@@ -27,7 +27,8 @@ if __name__ == '__main__':
     ids = [x for x in j['utts']]
 
     ndics = len(ids)
-    parts = [x for x in range (0, ndics+1, ndics // args.parts)]
+    parts = [x for x in range (0, ndics, ndics // args.parts)]
+    parts[args.parts] = ndics
 
     filename = os.path.basename(args.json).split('.')[0]
     dirname = os.path.dirname(args.json)
