@@ -100,6 +100,20 @@ class ClassifierWithState(link.Chain):
             reporter.report({'accuracy': self.accuracy}, self)
         return state, self.loss
 
+    def predict(self, state, x):
+        """Predict log probabilities for given state and input x using the predictor
+
+        Returns:
+            any type: new state
+            cupy/numpy array: log probability vector
+
+        """ 
+        if hasattr(self.predictor, 'normalized') and self.predictor.normalized:
+            return self.predictor(state, x)
+        else:
+            state, z = self.predictor(state, x)
+            return state, F.log_softmax(z).data
+
 
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
