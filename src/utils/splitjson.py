@@ -6,7 +6,6 @@
 from __future__ import print_function
 
 import argparse
-from collections import OrderedDict
 import json
 import logging
 import os
@@ -38,11 +37,11 @@ if __name__ == '__main__':
         os.makedirs(dirname)
 
     for i in range (args.parts):
-        new_dic = OrderedDict()
+        new_dic = dict()
         for id in ids[parts[i]:parts[i+1]]:
             dic = j['utts'][id]
             new_dic[id] = dic
-        jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False).encode('utf_8')
+        jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8')
         fl = '{}/{}.{}.json'.format(dirname, filename, i+1)
 
         sys.stdout = open(fl, "wb+")
