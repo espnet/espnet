@@ -5,7 +5,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-from collections import OrderedDict
 import json
 import logging
 
@@ -43,14 +42,14 @@ if __name__ == '__main__':
         js.append(j)
     logging.info('new json has ' + str(len(intersec_ks)) + ' utterances')
         
-    old_dic = OrderedDict()
+    old_dic = dict()
     for k in intersec_ks:
         v = js[0]['utts'][k]
         for j in js[1:]:
             v.update(j['utts'][k])
         old_dic[k] = v
 
-    new_dic = OrderedDict()
+    new_dic = dict()
     for id in old_dic:
         dic = old_dic[id]
 
@@ -72,5 +71,5 @@ if __name__ == '__main__':
             unicode('utt2spk', 'utf-8'):dic[unicode('utt2spk', 'utf-8')]}
     
     # ensure "ensure_ascii=False", which is a bug
-    jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False).encode('utf_8')
+    jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8')
     print(jsonstring)
