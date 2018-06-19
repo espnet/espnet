@@ -32,6 +32,7 @@ from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
+from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
@@ -508,18 +509,12 @@ def recog(args):
         rnnlm = None
 
     if args.word_rnnlm:
-        if args.word_dict:
-            word_dict = {'<blank>': 0}
-            for ln in open(args.word_dict, 'r').readlines():
-                s, i = ln.split()
-                word_dict[s] = int(i)
-            if '<eos>' not in word_dict:
-                word_dict['<eos>'] = len(word_dict)
-        else:
-            word_dict = None
+        if not args.word_dict:
+            logging.error('word dictionary file is not specified for the word RNNLM.')
+            sys.exit(1)
 
+        word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-
         word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), 650))
         chainer.serializers.load_npz(args.word_rnnlm, word_rnnlm)
 
