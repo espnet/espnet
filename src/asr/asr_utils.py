@@ -176,16 +176,18 @@ class PlotAttentionReport(extension.Extension):
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def _plot_and_save_attention(self, att_w, filename):
+        # dynamically import matplotlib due to not found error
+        import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
-                matplotlib.pyplot.subplot(1, len(att_w), h)
-                matplotlib.pyplot.imshow(aw, aspect="auto")
-                matplotlib.pyplot.xlabel("Encoder Index")
-                matplotlib.pyplot.ylabel("Decoder Index")
+                plt.subplot(1, len(att_w), h)
+                plt.imshow(aw, aspect="auto")
+                plt.xlabel("Encoder Index")
+                plt.ylabel("Decoder Index")
         else:
-            matplotlib.pyplot.imshow(att_w, aspect="auto")
-            matplotlib.pyplot.xlabel("Encoder Index")
-            matplotlib.pyplot.ylabel("Decoder Index")
-        matplotlib.pyplot.tight_layout()
-        matplotlib.pyplot.savefig(filename)
-        matplotlib.pyplot.close()
+            plt.imshow(att_w, aspect="auto")
+            plt.xlabel("Encoder Index")
+            plt.ylabel("Decoder Index")
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
