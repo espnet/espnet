@@ -5,7 +5,7 @@
 
 # This is a baseline for "JSALT'18 Multilingual End-to-end ASR for Incomplete Data"
 # We use 5 Babel language (Assamese Tagalog Swahili Lao Zulu), Librispeech (English), and CSJ (Japanese)
-# as a target language, and use 10 Babel language (Cantonese Bengali Pashto Turkish Tagalog Vietnamese
+# as a target language, and use 10 Babel language (Cantonese Bengali Pashto Turkish Vietnamese
 # Haitian Tamil Kurmanji Tok-Pisin Georgian) as a non-target language.
 # The recipe first build language-independent ASR by using non-target languages
 
@@ -64,6 +64,25 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # exp tag
 tag="" # tag for managing experiments.
 
+# data set
+# non-target languages: cantonese bengali pashto turkish vietnamese haitian tamil kurmanji tokpisin georgian
+train_set=tr_babel10
+train_dev=dt_babel10
+# non-target
+recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
+ dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian\
+ dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian"
+# target
+recog_set="dt_babel_assamese et_babel_assamese dt_babel_tagalog et_babel_tagalog dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao dt_babel_zulu et_babel_zulu
+ dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
+ dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
+# whole set
+recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assamese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
+ dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao dt_babel_tagalog et_babel_tagalog\
+ dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_zulu et_babel_zulu dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian\
+ dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
+ dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
+
 . utils/parse_options.sh || exit 1;
 
 # data directories
@@ -91,30 +110,12 @@ set -e
 set -u
 set -o pipefail
 
-# non-target languages: cantonese bengali pashto turkish vietnamese haitian tamil kurmanji tokpisin georgian
-train_set=tr_babel10
-train_dev=dt_babel10
-# non-target
-recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
- dt_babel_tagalog et_babel_tagalog dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian\
- dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian"
-# target
-recog_set="dt_babel_assamese et_babel_assamese dt_babel_tagalog et_babel_tagalog dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao dt_babel_zulu et_babel_zulu
- dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
- dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
-# whole set
-recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assamese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
- dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao\
- dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_zulu et_babel_zulu dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian\
- dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
- dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
-
 if [ ${stage} -le 0 ]; then
     # TODO
     # add a check whether the following data preparation is completed or not
 
     # CSJ Japanese
-    if [ -d "$csjdir/asr1/data" ]; then
+    if [ ! -d "$csjdir/asr1/data" ]; then
 	echo "run $csjdir/asr1/run.sh first"
 	exit 1
     fi
@@ -135,7 +136,7 @@ if [ ${stage} -le 0 ]; then
 
     # librispeech
     lang_code=libri_english
-    if [ -d "$libridir/asr1/data" ]; then
+    if [ ! -d "$libridir/asr1/data" ]; then
 	echo "run $libridir/asr1/run.sh first"
 	exit 1
     fi
@@ -149,7 +150,7 @@ if [ ${stage} -le 0 ]; then
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
 	langid=`echo $x | cut -f 1 -d"-"`
 	lang_code=`echo $x | cut -f 2 -d"-"`
-	if [ -d "$babeldir/asr1_${lang_code}/data" ]; then
+	if [ ! -d "$babeldir/asr1_${lang_code}/data" ]; then
 	    echo "run $babeldir/asr1/local/run_all.sh first"
 	    exit 1
 	fi

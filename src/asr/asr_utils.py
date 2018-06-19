@@ -199,6 +199,7 @@ class PlotAttentionReport(extension.Extension):
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def _plot_and_save_attention(self, att_w, filename):
+        # dynamically import matplotlib due to not found error
         import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
