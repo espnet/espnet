@@ -31,7 +31,9 @@ from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import E2E
+from e2e_asr_attctc_th import lecun_normal_init_parameters
 from e2e_asr_attctc_th import Loss
+from e2e_asr_attctc_th import set_forget_bias_to_one
 
 # for kaldi io
 import kaldi_io_py
@@ -67,6 +69,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         summary = reporter_module.DictSummary()
 
+        self.model.eval()
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
@@ -124,7 +127,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm(
+        grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
@@ -167,13 +170,6 @@ def train(args):
     # seed setting
     torch.manual_seed(args.seed)
 
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # revmoe type check
-    if args.debugmode < 2:
-        chainer.config.type_check = False
-        logging.info('torch type check is disabled')
     # use determinisitic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
@@ -415,12 +411,15 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
+    # disable gradient tracking
+    torch.set_grad_enabled(False)
+
     new_json = {}
     for name in recog_json.keys():
         feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
         nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
-        y_hat = nbest_hyps[0]['yseq'][1:]
+        y_hat = map(int, nbest_hyps[0]['yseq'][1:])
         y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
 
         # print out decoding result
@@ -453,7 +452,7 @@ def recog(args):
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):
-                y_hat = hyp['yseq'][1:]
+                y_hat = map(int, hyp['yseq'][1:])
                 seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
                 seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
                 new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = " ".join([str(idx) for idx in y_hat])
@@ -464,3 +463,242 @@ def recog(args):
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_json}, indent=4, sort_keys=True).encode('utf_8'))
+
+
+def extract(args):
+    '''Run Extraction'''
+    # read training config
+    with open(args.model_conf, "rb") as f:
+        logging.info('reading a model config file from' + args.model_conf)
+        idim, odim, train_args = pickle.load(f)
+
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+
+    # load trained model
+    logging.info('reading model parameters from' + args.model)
+    e2e = E2E(idim, odim, train_args)
+    model = Loss(e2e, train_args.mtlalpha)
+    model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
+    extractor = model.predictor.enc.extract
+
+    # check cuda availability
+    if not torch.cuda.is_available():
+        logging.warning('cuda is not available')
+
+    # Set gpu
+    ngpu = args.ngpu
+    if ngpu >= 1:
+        gpu_id = range(ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        extractor.cuda()
+    else:
+        gpu_id = [-1]
+
+    # prepare Kaldi reader
+    reader = kaldi_io_py.read_mat_scp(args.feat)
+
+    # get number of utterances
+    with open(args.feat, "r") as f:
+        nutt = len(f.readlines())
+
+    # chech direcitory
+    outdir = os.path.dirname(args.out)
+    if len(outdir) != 0 and not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    # write to ark file
+    torch.set_grad_enabled(False)
+    arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
+    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+        for idx, (utt_id, feat) in enumerate(reader, 1):
+            xs = torch.from_numpy(feat).unsqueeze(0)
+            ilens = [feat.shape[0]]
+            if args.ngpu > 0:
+                xs = xs.cuda()
+            hs, _ = extractor(xs, ilens, args.extract_layer_idx)
+            logging.info("(%d/%d) %s (size:%d->%d)" % (
+                idx, nutt, utt_id, ilens[0], hs.size(1)))
+            kaldi_io_py.write_mat(f, hs.cpu().numpy()[0], utt_id)
+
+
+def retrain(args):
+    '''Run training'''
+    # seed setting
+    torch.manual_seed(args.seed)
+
+    # use determinisitic computation or not
+    if args.debugmode < 1:
+        torch.backends.cudnn.deterministic = False
+        logging.info('torch cudnn deterministic is disabled')
+    else:
+        torch.backends.cudnn.deterministic = True
+
+    # check cuda availability
+    if not torch.cuda.is_available():
+        logging.warning('cuda is not available')
+
+    # read training config
+    with open(args.model_conf, "rb") as f:
+        logging.info('reading a model config file from' + args.model_conf)
+        idim, odim, train_args = pickle.load(f)
+
+    # specify model architecture
+    train_args.input_layer_idx = args.input_layer_idx
+    e2e = E2E(idim, odim, train_args)
+    model = Loss(e2e, train_args.mtlalpha)
+    model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
+
+    if args.flatstart:
+        # initialzie parameters of attention and decoder
+        logging.info("training start from initialized value.")
+        lecun_normal_init_parameters(model.predictor.dec)
+        model.predictor.dec.embed.weight.data.normal_(0, 1)
+        for l in range(len(model.predictor.dec.decoder)):
+            set_forget_bias_to_one(model.predictor.dec.decoder[l].bias_ih)
+    elif args.freeze_attention:
+        logging.info("attention layer parameters are freezed.")
+        for p in model.predictor.dec.att.parameters():
+            p.requires_grad = False
+
+    # write model config
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+
+    # Set gpu
+    reporter = model.reporter
+    ngpu = args.ngpu
+    if ngpu == 1:
+        gpu_id = range(ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        model.cuda()
+    elif ngpu > 1:
+        gpu_id = range(ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        model = DataParallel(model, device_ids=gpu_id)
+        model.cuda()
+        logging.info('batch size is automatically increased (%d -> %d)' % (
+            args.batch_size, args.batch_size * args.ngpu))
+        args.batch_size *= args.ngpu
+    else:
+        gpu_id = [-1]
+
+    # Setup an optimizer
+    params = [p for p in model.parameters() if p.requires_grad]
+    if args.opt == 'adadelta':
+        optimizer = torch.optim.Adadelta(
+            params, rho=0.95, eps=args.eps)
+    elif args.opt == 'adam':
+        optimizer = torch.optim.Adam(params)
+
+    # FIXME: TOO DIRTY HACK
+    setattr(optimizer, "target", reporter)
+    setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
+
+    # read json data
+    with open(args.train_json, 'rb') as f:
+        train_json = json.load(f)['utts']
+    with open(args.valid_json, 'rb') as f:
+        valid_json = json.load(f)['utts']
+
+    # make minibatch list (variable length)
+    train = make_batchset(train_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
+    valid = make_batchset(valid_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches)
+    # hack to make batchsze argument as 1
+    # actual bathsize is included in a list
+    train_iter = chainer.iterators.SerialIterator(train, 1)
+    valid_iter = chainer.iterators.SerialIterator(
+        valid, 1, repeat=False, shuffle=False)
+
+    # Set up a trainer
+    updater = PytorchSeqUpdaterKaldi(
+        model, args.grad_clip, train_iter, optimizer, converter_kaldi, gpu_id)
+    trainer = training.Trainer(
+        updater, (args.epochs, 'epoch'), out=args.outdir)
+
+    # Resume from a snapshot
+    if args.resume:
+        chainer.serializers.load_npz(args.resume, trainer)
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+        else:
+            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+        model = trainer.updater.model
+
+    # Evaluate the model with the test dataset for each epoch
+    trainer.extend(PytorchSeqEvaluaterKaldi(
+        model, valid_iter, reporter, converter_kaldi, device=gpu_id))
+
+    # Take a snapshot for each specified epoch
+    trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
+
+    # Make a plot for training and validation values
+    trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
+                                          'main/loss_ctc', 'validation/main/loss_ctc',
+                                          'main/loss_att', 'validation/main/loss_att'],
+                                         'epoch', file_name='loss.png'))
+    trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
+                                         'epoch', file_name='acc.png'))
+
+    # Save best models
+    def torch_save(path, _):
+        if ngpu > 1:
+            torch.save(model.module.state_dict(), path)
+            torch.save(model.module, path + ".pkl")
+        else:
+            torch.save(model.state_dict(), path)
+            torch.save(model, path + ".pkl")
+
+    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+                   trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
+
+    # epsilon decay in the optimizer
+    def torch_load(path, obj):
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(path))
+        else:
+            model.load_state_dict(torch.load(path))
+        return obj
+    if args.opt == 'adadelta':
+        if args.criterion == 'acc':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+            trainer.extend(adadelta_eps_decay(args.eps_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+        elif args.criterion == 'loss':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+            trainer.extend(adadelta_eps_decay(args.eps_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+
+    # Write a log of evaluation statistics for each epoch
+    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
+    report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
+                   'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
+                   'main/acc', 'validation/main/acc', 'elapsed_time']
+    if args.opt == 'adadelta':
+        trainer.extend(extensions.observe_value(
+            'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
+            trigger=(100, 'iteration'))
+        report_keys.append('eps')
+    trainer.extend(extensions.PrintReport(
+        report_keys), trigger=(100, 'iteration'))
+
+    trainer.extend(extensions.ProgressBar())
+
+    # Run the training
+    trainer.run()

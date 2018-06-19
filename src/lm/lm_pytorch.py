@@ -19,7 +19,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from chainer import reporter
-from torch.autograd import Variable
 
 from e2e_asr_attctc_th import th_accuracy
 from e2e_asr_attctc_th import to_cuda
@@ -51,8 +50,8 @@ class ClassifierWithState(nn.Module):
         It also computes accuracy and stores it to the attribute.
 
         Args:
-            args (list of ~chainer.Variable): Input minibatch.
-            kwargs (dict of ~chainer.Variable): Input minibatch.
+            args (list of ~torch.Tensor): Input minibatch.
+            kwargs (dict of ~torch.Tensor): Input minibatch.
 
         When ``label_key`` is ``int``, the correpoding element in ``args``
         is treated as ground truth labels. And when it is ``str``, the
@@ -63,7 +62,7 @@ class ClassifierWithState(nn.Module):
         with ground truth labels.
 
         Returns:
-            ~chainer.Variable: Loss value.
+            ~torch.Tensor: Loss value.
 
         """
 
@@ -114,7 +113,7 @@ class RNNLM(nn.Module):
             param.data.uniform_(-0.1, 0.1)
 
     def zero_state(self, batchsize):
-        return Variable(torch.zeros(batchsize, self.n_units)).float()
+        return torch.zeros(batchsize, self.n_units).float()
 
     def forward(self, state, x):
         if state is None:
@@ -194,22 +193,23 @@ def train(args):
         state = None
         sum_perp = 0
         data_count = 0
-        for batch in copy.copy(iter):
-            batch = np.array(batch)
-            x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
-            t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
-            if args.ngpu > 0:
-                x = x.cuda(gpu_id)
-                t = t.cuda(gpu_id)
-            state, loss = model(state, x, t)
-            sum_perp += loss.data
-            if data_count % bproplen == 0:
-                # detach all states
-                for key in state.keys():
-                    state[key] = state[key].detach()
-            data_count += 1
-        model.predictor.train()
-        return np.exp(float(sum_perp) / data_count)
+        with torch.no_grad():
+            for batch in copy.copy(iter):
+                batch = np.array(batch)
+                x = torch.from_numpy(batch[:, 0]).long()
+                t = torch.from_numpy(batch[:, 1]).long()
+                if args.ngpu > 0:
+                    x = x.cuda(gpu_id)
+                    t = t.cuda(gpu_id)
+                state, loss = model(state, x, t)
+                sum_perp += loss.item()
+                if data_count % bproplen == 0:
+                    # detach all states
+                    for key in state.keys():
+                        state[key] = state[key].detach()
+                data_count += 1
+            model.predictor.train()
+            return np.exp(float(sum_perp) / data_count)
 
     sum_perp = 0
     count = 0
@@ -228,8 +228,8 @@ def train(args):
             # self.converter does this job
             # (it is chainer.dataset.concat_examples by default)
             batch = np.array(batch)
-            x = Variable(torch.from_numpy(batch[:, 0]).long())
-            t = Variable(torch.from_numpy(batch[:, 1]).long())
+            x = torch.from_numpy(batch[:, 0]).long()
+            t = torch.from_numpy(batch[:, 1]).long()
             if args.ngpu > 0:
                 x = x.cuda(gpu_id)
                 t = t.cuda(gpu_id)
@@ -238,13 +238,13 @@ def train(args):
             loss += loss_batch
             count += 1
 
-        sum_perp += loss.data
+        sum_perp += loss.item()
         model.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
         # detach all states
         for key in state.keys():
             state[key] = state[key].detach()
-        nn.utils.clip_grad_norm(model.parameters(), args.gradclip)
+        nn.utils.clip_grad_norm_(model.parameters(), args.gradclip)
         optimizer.step()  # Update the parameters
 
         if iteration % 100 == 0:

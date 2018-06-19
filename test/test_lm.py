@@ -46,19 +46,17 @@ def test_lm():
     # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.W.data, rnnlm_th.predictor.lo.weight.data.numpy())
 
     # test prediction equality
-    x = torch.autograd.Variable(
-        torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))),
-        volatile=True).long()
-    with chainer.no_backprop_mode(), chainer.using_config('train', False):
+    x = torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))).long()
+    with torch.no_grad(), chainer.no_backprop_mode(), chainer.using_config('train', False):
         rnnlm_th.predictor.eval()
         state_th, y_th = rnnlm_th.predictor(None, x.long())
         state_ch, y_ch = rnnlm_ch.predictor(None, x.data.numpy())
         for k in state_ch.keys():
             print(k)
-            print(state_th[k].data.numpy())
+            print(state_th[k].numpy())
             print(state_ch[k].data)
-            numpy.testing.assert_allclose(state_th[k].data.numpy(), state_ch[k].data, 1e-5)
+            numpy.testing.assert_allclose(state_th[k].numpy(), state_ch[k].data, 1e-5)
         print("y")
-        print(y_th.data.numpy())
+        print(y_th.numpy())
         print(y_ch.data)
-        numpy.testing.assert_allclose(y_th.data.numpy(), y_ch.data, 1e-5)
+        numpy.testing.assert_allclose(y_th.numpy(), y_ch.data, 1e-5)
