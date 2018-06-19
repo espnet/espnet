@@ -176,10 +176,12 @@ fi
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ $use_wordlm = true ]; then
+    lmdatadir=data/local/wordlm_train
     lm_batchsize=256
     lmexpdir=exp/train_rnnlm_word_2layer_bs${lm_batchsize}
     lmdict=${lmexpdir}/wordlist_${vocabsize}.txt
 else
+    lmdatadir=data/local/lm_train
     lm_batchsize=2048
     lmexpdir=exp/train_rnnlm_2layer_bs${lm_batchsize}
     lmdict=$dict
@@ -187,7 +189,6 @@ fi
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
     if [ $use_wordlm = true ]; then
         cat data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
