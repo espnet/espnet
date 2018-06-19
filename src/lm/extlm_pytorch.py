@@ -6,7 +6,7 @@
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
+import math
 
 import torch
 import torch.nn as nn
@@ -31,13 +31,13 @@ def make_lexical_tree(word_dict, subword_dict, word_unk):
             for i, c in enumerate(w):
                 cid = subword_dict[c]
                 if cid not in succ:  # if next node does not exist, make a new node
-                    succ[cid] = [{}, -1, np.array((wid - 1, wid), 'i')]
+                    succ[cid] = [{}, -1, (wid - 1, wid)]
                 else:
                     prev = succ[cid][2]
-                    succ[cid][2][:] = (min(prev[0], wid - 1), max(prev[1], wid))
+                    succ[cid][2] = (min(prev[0], wid - 1), max(prev[1], wid))
                 if i == len(w) - 1:  # if word end, set word id
                     succ[cid][1] = wid
-                succ = succ[cid][0]  # move to the next successors
+                succ = succ[cid][0]  # move to the child successors
     return root
 
 
@@ -58,7 +58,7 @@ class MultiLevelLM(nn.Module):
         self.space = subword_dict['<space>']
         self.eos = subword_dict['<eos>']
         self.lexroot = make_lexical_tree(word_dict, subword_dict, self.word_unk)
-        self.oov_penalty = oov_penalty
+        self.log_oov_penalty = math.log(oov_penalty)
         self.open_vocab = open_vocab
         self.subword_dict_size = len(subword_dict)
         self.subwordlm_weight = subwordlm_weight
@@ -66,7 +66,7 @@ class MultiLevelLM(nn.Module):
 
     def forward(self, state, x):
         # update state with input label x
-        if state is None:
+        if state is None:  # make initial states and log-prob vectors
             wlm_state, z_wlm = self.wordlm(None, self.var_word_eos)
             wlm_logprobs = F.log_softmax(z_wlm, dim=1).data
             clm_state, z_clm = self.subwordlm(None, x)
@@ -77,35 +77,35 @@ class MultiLevelLM(nn.Module):
         else:
             clm_state, wlm_state, wlm_logprobs, node, log_y, clm_logprob = state
             xi = int(x)
-            if xi == self.space:
-                if node is not None and node[1] >= 0:  # at word end node
+            if xi == self.space:  # inter-word transition
+                if node is not None and node[1] >= 0:  # check if the node is word end
                     w = Variable(torch.LongTensor([node[1]]), volatile=True)
-                else:
+                else:  # this node is not a word end, which means <unk>
                     w = self.var_word_unk
-
+                # update wordlm state and log-prob vector
                 wlm_state, z_wlm = self.wordlm(wlm_state, w)
                 wlm_logprobs = F.log_softmax(z_wlm, dim=1).data
-                new_node = self.lexroot
+                new_node = self.lexroot  # move to the tree root
                 clm_logprob = 0.
-            elif node is not None and xi in node[0]:
+            elif node is not None and xi in node[0]:  # intra-word transition
                 new_node = node[0][xi]
                 clm_logprob += log_y[0, xi]
-            elif self.open_vocab:
+            elif self.open_vocab:  # if no path in the tree, enter open-vocabulary mode
                 new_node = None
                 clm_logprob += log_y[0, xi]
-            else:
+            else:  # if open_vocab flag is disabled, return 0 probabilities
                 log_y = torch.zeros(1, self.subword_dict_size) + self.logzero
                 return (clm_state, wlm_state, None, log_y, 0.), log_y
 
             clm_state, z_clm = self.subwordlm(clm_state, x)
             log_y = F.log_softmax(z_clm, dim=1).data * self.subwordlm_weight
 
-        # calculate probability distribution
+        # apply word-level probabilies for <space> and <eos> labels
         if xi != self.space:
-            if new_node is not None and new_node[1] >= 0:  # if word end node
+            if new_node is not None and new_node[1] >= 0:  # if new node is word end
                 wlm_logprob = wlm_logprobs[:, new_node[1]] - clm_logprob
             else:
-                wlm_logprob = wlm_logprobs[:, self.word_unk] + np.log(self.oov_penalty)
+                wlm_logprob = wlm_logprobs[:, self.word_unk] + self.log_oov_penalty
             log_y[:, self.space] = wlm_logprob
             log_y[:, self.eos] = wlm_logprob + wlm_logprobs[:, self.word_eos]
         else:
@@ -137,7 +137,7 @@ class LookAheadWordLM(nn.Module):
 
     def forward(self, state, x):
         # update state with input label x
-        if state is None:
+        if state is None:  # make initial states and cumlative probability vector
             wlm_state, z_wlm = self.wordlm(None, self.var_word_eos)
             cumsum_probs = torch.cumsum(F.softmax(z_wlm, dim=1).data, dim=1)
             new_node = self.lexroot
@@ -145,30 +145,34 @@ class LookAheadWordLM(nn.Module):
         else:
             wlm_state, cumsum_probs, node = state
             xi = int(x)
-            if xi == self.space:
-                if node is not None and node[1] >= 0:  # at word end
+            if xi == self.space:  # inter-word transition
+                if node is not None and node[1] >= 0:  # check if the node is word end
                     w = Variable(torch.LongTensor([node[1]]), volatile=True)
-                else:
+                else:  # this node is not a word end, which means <unk>
                     w = self.var_word_unk
+                # update wordlm state and cumlative probability vector
                 wlm_state, z_wlm = self.wordlm(wlm_state, w)
                 cumsum_probs = torch.cumsum(F.softmax(z_wlm, dim=1).data, dim=1)
-                new_node = self.lexroot
-            elif node is not None and xi in node[0]:
+                new_node = self.lexroot  # move to the tree root
+            elif node is not None and xi in node[0]:  # intra-word transition
                 new_node = node[0][xi]
-            elif self.open_vocab:
+            elif self.open_vocab:  # if no path in the tree, enter open-vocabulary mode
                 new_node = None
-            else:
+            else:  # if open_vocab flag is disabled, return 0 probabilities
                 log_y = torch.zeros(1, self.subword_dict_size) + self.logzero
                 return (wlm_state, None, None), log_y
 
-        # calculate probability distribution
         if new_node is not None:
             succ, wid, wids = new_node
+            # compute parent node probability
             sum_prob = (cumsum_probs[:, wids[1]] - cumsum_probs[:, wids[0]]) if wids is not None else 1.0
+            # set <unk> probability as a default value
             unk_prob = cumsum_probs[:, self.word_unk] - cumsum_probs[:, self.word_unk - 1]
             y = torch.zeros(1, self.subword_dict_size) + unk_prob * self.oov_penalty
+            # compute transition probabilities to child nodes
             for cid, nd in succ.items():
                 y[:, cid] = (cumsum_probs[:, nd[2][1]] - cumsum_probs[:, nd[2][0]]) / sum_prob
+            # apply word-level probabilies for <space> and <eos> labels
             if wid >= 0:
                 wlm_prob = (cumsum_probs[:, wid] - cumsum_probs[:, wid - 1]) / sum_prob
                 y[:, self.space] = wlm_prob
@@ -177,6 +181,6 @@ class LookAheadWordLM(nn.Module):
                 y[:, self.space] = self.zero
                 y[:, self.eos] = self.zero
             return (wlm_state, cumsum_probs, new_node), torch.log(y)
-        else:
+        else:  # if no path in the tree, transition probability is one
             log_y = torch.zeros(1, self.subword_dict_size)
             return (wlm_state, cumsum_probs, new_node), log_y
