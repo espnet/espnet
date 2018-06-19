@@ -55,6 +55,7 @@ weight_decay=0.0
 dropout=0.5
 zoneout=0.1
 # decoding related
+model=model.loss.best
 threshold=0.5
 maxlenratio=10.0
 minlenratio=0.0
@@ -237,7 +238,7 @@ if [ ${stage} -le 3 ];then
            --epochs ${epochs}
 fi
 
-outdir=${expdir}/outputs_th${threshold}_mlr${minlenratio}-${maxlenratio}
+outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
 if [ ${stage} -le 4 ];then
     echo "stage 4: Decoding"
     for sets in ${train_dev} ${eval_set};do
@@ -254,7 +255,7 @@ if [ ${stage} -le 4 ];then
                 --verbose ${verbose} \
                 --out ${outdir}/${sets}/feats.JOB \
                 --json ${outdir}/${sets}/data.JOB.json \
-                --model ${expdir}/results/model.loss.best \
+                --model ${expdir}/results/${model} \
                 --model-conf ${expdir}/results/model.conf \
                 --threshold ${threshold} \
                 --maxlenratio ${maxlenratio} \
