@@ -189,3 +189,14 @@ class PlotAttentionReport(extension.Extension):
         matplotlib.pyplot.tight_layout()
         matplotlib.pyplot.savefig(filename)
         matplotlib.pyplot.close()
+
+
+# * -------------------- language model related -------------------- *
+def load_labeldict(dict_file):
+    labeldict = {'<blank>': 0}  # <blank>'s Id is 0
+    for ln in open(dict_file, 'r').readlines():
+        s, i = ln.split()
+        labeldict[s] = int(i)
+    if '<eos>' not in labeldict:
+        labeldict['<eos>'] = len(labeldict)
+    return labeldict
