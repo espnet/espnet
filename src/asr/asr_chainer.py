@@ -386,7 +386,7 @@ def train(args):
         # actual batchsize is included in a list
         train_iters = [chainer.iterators.MultiprocessIterator(
             TransformDataset(train_subsets[gid], converter_kaldi),
-            1, n_processes=1, n_prefetch=2)
+            1, n_processes=ngpu, n_prefetch=ngpu+2, maxtasksperchild=10)
             for gid in six.moves.xrange(ngpu)]
 
         # set up updater
