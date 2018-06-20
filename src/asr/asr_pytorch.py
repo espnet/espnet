@@ -69,6 +69,8 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         for batch in it:
             observation = {}
+            if torch.__version__ != "0.3.1":
+                torch.set_grad_enabled(False)
             with reporter_module.report_scope(observation):
                 # read scp files
                 # x: original json with loaded features
@@ -77,6 +79,9 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 self.model.eval()
                 self.model(x)
                 delete_feat(x)
+
+            if torch.__version__ != "0.3.1":
+                torch.set_grad_enabled(True)
 
             summary.add(observation)
 
@@ -293,7 +298,7 @@ def train(args):
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
-        data = sorted(valid_json.items()[:args.num_save_attention],
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         data = converter_kaldi([data], device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
