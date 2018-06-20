@@ -263,6 +263,7 @@ if [ ${stage} -le 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
         data=data/${rtask}
@@ -271,7 +272,6 @@ if [ ${stage} -le 5 ]; then
 
         # make json labels for recognition
         for j in `seq 1 ${nj}`; do
-            feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
             data2json.sh --bpecode ${bpemodel}.model --feat ${feat_recog_dir}/feats.scp \
                 ${sdata}/${j} ${dict} > ${sdata}/${j}/data_${nbpe}.json
         done
