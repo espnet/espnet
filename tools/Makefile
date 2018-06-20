@@ -30,7 +30,7 @@ venv/bin/activate: requirements.txt
 
 nkf:
 	mkdir -p nkf
-	cd nkf; wget http://gigenet.dl.osdn.jp/nkf/64158/nkf-2.1.4.tar.gz
+	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
 venv/lib/python2.7/site-packages/torch: venv/bin/activate
