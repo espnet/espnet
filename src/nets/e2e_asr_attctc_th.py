@@ -132,7 +132,7 @@ class Loss(torch.nn.Module):
             loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
 
         loss_data = self.loss.data[0] if torch_is_old else float(self.loss)
-        if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
+        if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             self.reporter.report(loss_ctc_data, loss_att_data, acc, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
