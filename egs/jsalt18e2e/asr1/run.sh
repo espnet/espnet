@@ -29,7 +29,7 @@ do_delta=false # true when using CNN
 # network archtecture
 # encoder related
 etype=blstmp     # encoder architecture type
-elayers=8
+elayers=4
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
@@ -51,7 +51,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=20
 
 # decoding parameter
 beam_size=20
