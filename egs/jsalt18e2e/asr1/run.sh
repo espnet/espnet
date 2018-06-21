@@ -83,7 +83,14 @@ recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assa
  dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
  dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
 
+# subset options
+# select the number of speakers for subset training experiments. (e.g. 1000; select 1000 speakers). Default: select the whole train set.
+subset_num_spk=""
+
 . utils/parse_options.sh || exit 1;
+
+# data set
+train_set=tr_babel10${subset_num_spk:+_${subset_num_spk}spk}
 
 # data directories
 csjdir=../../csj
@@ -109,6 +116,7 @@ fi
 set -e
 set -u
 set -o pipefail
+
 
 if [ ${stage} -le 0 ]; then
     # TODO
@@ -167,6 +175,15 @@ if [ ${stage} -le 1 ]; then
     utils/combine_data.sh data/${train_set}_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
     utils/combine_data.sh data/${train_dev}_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
 
+    if [ ! -z $subset_num_spk ]; then
+        # create a trainng subset with ${subset_num_spk} speakers (in total 7470)
+        s2u=data/${train_set}_org/spk2utt
+        subset_scp.pl ${subset_num_spk} data/${train_set}_org/spk2utt > data/${train_set}_org/spk2utt_tmp
+        utils/spk2utt_to_utt2spk.pl data/${train_set}_org/spk2utt_tmp > data/${train_set}_org/utt2spk
+        utils/fix_data_dir.sh data/${train_set}_org
+        rm data/${train_set}_org/spk2utt_tmp
+    fi
+
     # remove utt having more than 3000 frames or less than 10 frames or
     # remove utt having more than 400 characters or no more than 0 characters
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
@@ -178,21 +195,21 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{13,14,15,16}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{01,02,03,04}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{13,14,15,16}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{01,02,03,04}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train_${train_set} ${feat_tr_dir}
+    [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev_${train_dev} ${feat_dt_dir}
    for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+        [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
