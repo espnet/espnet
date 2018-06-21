@@ -30,6 +30,7 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
+torch_is_old = torch.__version__.startswith("0.3.")
 
 def to_cuda(m, x):
     assert isinstance(m, torch.nn.Module)
@@ -118,19 +119,20 @@ class Loss(torch.nn.Module):
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
-            loss_att_data = loss_att.data[0]
+            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
             loss_ctc_data = None
         elif alpha == 1:
             self.loss = loss_ctc
             loss_att_data = None
-            loss_ctc_data = loss_ctc.data[0]
+            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = loss_att.data[0]
-            loss_ctc_data = loss_ctc.data[0]
+            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
+            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
 
-        if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, self.loss.data[0])
+        loss_data = self.loss.data[0] if torch_is_old else float(self.loss)
+        if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -141,10 +143,16 @@ def pad_list(xs, pad_value=float("nan")):
     assert isinstance(xs[0], Variable)
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
-    pad = Variable(
-        xs[0].data.new(
-            n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
-        volatile=xs[0].volatile)
+    if torch_is_old:
+        pad = Variable(
+            xs[0].data.new(
+                n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
+            volatile=xs[0].volatile)
+    else:
+        pad = Variable(
+            xs[0].data.new(
+                n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value)
+
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
     return pad
@@ -275,6 +283,9 @@ class E2E(torch.nn.Module):
         :param data:
         :return:
         '''
+        if not torch_is_old:
+            torch.set_grad_enabled(self.training)
+
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
@@ -288,18 +299,18 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        if self.training:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
-        else:
+        if torch_is_old and not self.training:
             ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
-
+        else:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+        
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        if self.training:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
-        else:
+        if torch_is_old and not self.training:
             hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+        else:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
 
         # 1. encoder
         xpad = pad_list(hs)
@@ -333,8 +344,13 @@ class E2E(torch.nn.Module):
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
-        h = to_cuda(self, Variable(torch.from_numpy(
-            np.array(x, dtype=np.float32)), volatile=True))
+        if torch_is_old:
+            h = to_cuda(self, Variable(torch.from_numpy(
+                np.array(x, dtype=np.float32)), volatile=True))
+        else:
+            torch.set_grad_enabled(False)
+            h = to_cuda(self, Variable(torch.from_numpy(
+                np.array(x, dtype=np.float32))))
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
@@ -363,6 +379,9 @@ class E2E(torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
          :rtype: float ndarray
         '''
+        if not torch_is_old:
+            torch.set_grad_enabled(False)
+
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
 
@@ -378,12 +397,18 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+        if torch_is_old:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+        else:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+        if torch_is_old:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+        else:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
 
         # encoder
         xpad = pad_list(hs)
@@ -1757,7 +1782,12 @@ class Decoder(torch.nn.Module):
 
         # preprate sos
         y = self.sos
-        vy = Variable(h.data.new(1).zero_().long(), volatile=True)
+        if torch_is_old:
+            vy = Variable(h.data.new(1).zero_().long(), volatile=True)
+        else:
+            torch.set_grad_enabled(False)
+            vy = Variable(h.data.new(1).zero_().long())
+
         if recog_args.maxlenratio == 0:
             maxlen = h.shape[0]
         else:
@@ -1834,7 +1864,7 @@ class Decoder(torch.nn.Module):
                     new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
-                    new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
+                    new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
                     if rnnlm:
                         new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
