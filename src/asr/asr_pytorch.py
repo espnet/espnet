@@ -69,7 +69,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         for batch in it:
             observation = {}
-            if torch.__version__ != "0.3.1":
+            if not torch.__version__.startswith("0.3."):
                 torch.set_grad_enabled(False)
             with reporter_module.report_scope(observation):
                 # read scp files
@@ -80,7 +80,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 self.model(x)
                 delete_feat(x)
 
-            if torch.__version__ != "0.3.1":
+            if not torch.__version__.startswith("0.3."):
                 torch.set_grad_enabled(True)
 
             summary.add(observation)
