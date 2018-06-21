@@ -32,6 +32,7 @@ MAX_DECODER_OUTPUT = 5
 
 torch_is_old = torch.__version__.startswith("0.3.")
 
+
 def to_cuda(m, x):
     assert isinstance(m, torch.nn.Module)
     device_id = torch.cuda.device_of(next(m.parameters()).data).idx
@@ -303,7 +304,7 @@ class E2E(torch.nn.Module):
             ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
         else:
             ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
-        
+
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
