@@ -40,7 +40,7 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.5
+mtlalpha=0.2
 
 # label smoothing
 lsm_type=unigram
@@ -57,11 +57,11 @@ epochs=15
 
 # rnnlm related
 lm_weight=1.0
-use_wordlm=false
+use_wordlm=true
 vocabsize=20000
 
 # decoding parameter
-beam_size=20
+beam_size=30
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
