@@ -55,10 +55,9 @@ def test_optimizer(ch_opt_t, th_opt_t):
     data = numpy.random.randn(2, 3).astype(numpy.float32)
     ch_loss = ch_model(data)
     th_loss = th_model(torch.autograd.Variable(torch.from_numpy(data)))
-    numpy.testing.assert_allclose(ch_loss.data, th_loss.data.numpy())
-
     chainer.functions.sum(ch_loss).backward()
     th_loss.backward()
+    numpy.testing.assert_allclose(ch_loss.data, th_loss.data.numpy())
     ch_opt.update()
     th_opt.step()
     numpy.testing.assert_allclose(
