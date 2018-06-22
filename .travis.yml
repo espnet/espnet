@@ -8,16 +8,36 @@ matrix:
   include:
     - os: linux
       python: "2.7"
-      TH_VERSION="0.4.0"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+      env:
+        - TH_VERSION="0.4.0"
+        - CC="gcc-7"
+        - CXX="g++-7"
     - os: linux
       python: "3.6"
-      TH_VERSION="0.4.0"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+      env:
+        - TH_VERSION="0.4.0"
+        - CC="gcc-7"
+        - CXX="g++-7"
     - os: linux
       python: "2.7"
-      TH_VERSION="0.3.1"
+      env:
+        - TH_VERSION="0.3.1"
     - os: linux
       python: "3.6"
-      TH_VERSION="0.3.1"
+      env:
+        - TH_VERSION="0.3.1"
 
 install:
   - pip install -U pip wheel
