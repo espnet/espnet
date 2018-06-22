@@ -46,9 +46,13 @@ def test_lm():
     # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.W.data, rnnlm_th.predictor.lo.weight.data.numpy())
 
     # test prediction equality
-    x = torch.autograd.Variable(
-        torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))),
-        volatile=True).long()
+    if torch.__version__.startswith("0.3."):
+        x = torch.autograd.Variable(
+            torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))),
+            volatile=True).long()
+    else:
+        x = torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))).long()
+        torch.set_grad_enabled(False)
     with chainer.no_backprop_mode(), chainer.using_config('train', False):
         rnnlm_th.predictor.eval()
         state_th, y_th = rnnlm_th.predictor(None, x.long())
