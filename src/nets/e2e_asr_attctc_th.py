@@ -141,14 +141,22 @@ class Loss(torch.nn.Module):
 
 
 def pad_list(xs, pad_value=float("nan")):
-    assert isinstance(xs[0], Variable)
+    # if torch_is_old:
+    #     assert isinstance(xs[0], Variable), type(xs[0])
+    # else:
+    #     assert isinstance(xs[0], torch.Tensor), type(xs[0])
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
     if torch_is_old:
+        if isinstance(xs[0], Variable):
+            new = xs[0].data.new
+            v = xs[0].volatile
+        else:
+            new = xs[0].new
+            v = True
         pad = Variable(
-            xs[0].data.new(
-                n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
-            volatile=xs[0].volatile)
+            new(n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
+            volatile=v)
     else:
         pad = xs[0].data.new(
             n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value
@@ -547,7 +555,6 @@ class NoAtt(torch.nn.Module):
         :return: previous attentioin weights
         :rtype: Variable
         '''
-
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -753,6 +760,7 @@ class AttLoc(torch.nn.Module):
 
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
+        # 
         if self.pre_compute_enc_h is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
@@ -767,7 +775,7 @@ class AttLoc(torch.nn.Module):
         # initialize attention weight with uniform dist.
         if att_prev is None:
             att_prev = [Variable(enc_hs_pad.data.new(
-                int(l)).zero_() + (1.0 / int(l))) for l in enc_hs_len]
+                l).zero_() + (1.0 / l)) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
 
@@ -1681,6 +1689,9 @@ class Decoder(torch.nn.Module):
         :return:
         '''
         hpad = mask_by_length(hpad, hlen, 0)
+        if not isinstance(hlen, list):
+            hlen = hlen.tolist()
+
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
         eos = Variable(ys[0].data.new([self.eos]))
@@ -1932,6 +1943,8 @@ class Decoder(torch.nn.Module):
 
         :return: numpy array format attentions
         '''
+        if not isinstance(hlen, list):
+            hlen = hlen.tolist()
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
