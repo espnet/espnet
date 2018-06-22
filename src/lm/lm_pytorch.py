@@ -206,7 +206,7 @@ def train(args):
             else:
                 x = torch.from_numpy(batch[:, 0]).long()
                 t = torch.from_numpy(batch[:, 1]).long()
-                
+
             if args.ngpu > 0:
                 x = x.cuda(gpu_id)
                 t = t.cuda(gpu_id)
