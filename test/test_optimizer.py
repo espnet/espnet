@@ -37,6 +37,8 @@ class ThModel(torch.nn.Module):
     (chainer.optimizers.AdaDelta, lambda ps: torch.optim.Adadelta(ps, rho=0.95))
 ])
 def test_optimizer(ch_opt_t, th_opt_t):
+    if not torch.__version__.startswith("0.3."):
+        torch.set_grad_enabled(True)
     # model construction
     ch_model = ChModel()
     th_model = ThModel()
