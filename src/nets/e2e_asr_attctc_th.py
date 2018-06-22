@@ -760,7 +760,6 @@ class AttLoc(torch.nn.Module):
 
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
-        # 
         if self.pre_compute_enc_h is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
