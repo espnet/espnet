@@ -153,7 +153,7 @@ def pad_list(xs, pad_value=float("nan")):
             v = xs[0].volatile
         else:
             new = xs[0].new
-            v = True
+            v = False
         pad = Variable(
             new(n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
             volatile=v)
@@ -307,8 +307,8 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        if torch_is_old and not self.training:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+        if torch_is_old:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=not self.training)) for y in ys]
         else:
             ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
