@@ -150,9 +150,8 @@ def pad_list(xs, pad_value=float("nan")):
                 n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
             volatile=xs[0].volatile)
     else:
-        pad = Variable(
-            xs[0].data.new(
-                n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value)
+        pad = xs[0].data.new(
+            n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value
 
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
@@ -303,7 +302,7 @@ class E2E(torch.nn.Module):
         if torch_is_old and not self.training:
             ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
         else:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+            ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
@@ -311,7 +310,7 @@ class E2E(torch.nn.Module):
         if torch_is_old and not self.training:
             hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
         else:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
+            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # 1. encoder
         xpad = pad_list(hs)
@@ -350,8 +349,8 @@ class E2E(torch.nn.Module):
                 np.array(x, dtype=np.float32)), volatile=True))
         else:
             torch.set_grad_enabled(False)
-            h = to_cuda(self, Variable(torch.from_numpy(
-                np.array(x, dtype=np.float32))))
+            h = to_cuda(self, torch.from_numpy(
+                np.array(x, dtype=np.float32)))
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
@@ -401,7 +400,7 @@ class E2E(torch.nn.Module):
         if torch_is_old:
             ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
         else:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+            ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
@@ -409,7 +408,7 @@ class E2E(torch.nn.Module):
         if torch_is_old:
             hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
         else:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
+            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # encoder
         xpad = pad_list(hs)
@@ -1787,7 +1786,7 @@ class Decoder(torch.nn.Module):
             vy = Variable(h.data.new(1).zero_().long(), volatile=True)
         else:
             torch.set_grad_enabled(False)
-            vy = Variable(h.data.new(1).zero_().long())
+            vy = h.new_zeros(1).long()
 
         if recog_args.maxlenratio == 0:
             maxlen = h.shape[0]
@@ -1850,7 +1849,7 @@ class Decoder(torch.nn.Module):
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
                         + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
                     if rnnlm:
-                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
                     local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:

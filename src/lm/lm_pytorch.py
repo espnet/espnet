@@ -23,6 +23,7 @@ from torch.autograd import Variable
 
 from e2e_asr_attctc_th import th_accuracy
 from e2e_asr_attctc_th import to_cuda
+from e2e_asr_attctc_th import torch_is_old
 from lm_utils import ParallelSequentialIterator
 
 
@@ -51,8 +52,8 @@ class ClassifierWithState(nn.Module):
         It also computes accuracy and stores it to the attribute.
 
         Args:
-            args (list of ~chainer.Variable): Input minibatch.
-            kwargs (dict of ~chainer.Variable): Input minibatch.
+            args (list of ~torch.Tensor): Input minibatch.
+            kwargs (dict of ~torch.Tensor): Input minibatch.
 
         When ``label_key`` is ``int``, the correpoding element in ``args``
         is treated as ground truth labels. And when it is ``str``, the
@@ -63,7 +64,7 @@ class ClassifierWithState(nn.Module):
         with ground truth labels.
 
         Returns:
-            ~chainer.Variable: Loss value.
+            ~torch.Tensor: Loss value.
 
         """
 
@@ -190,14 +191,22 @@ def train(args):
 
     def evaluate(model, iter, bproplen=100):
         # Evaluation routine to be used for validation and test.
+        # TODO(karita) use torch.no_grad here
+        if not torch_is_old:
+            torch.set_grad_enabled(False)
         model.predictor.eval()
         state = None
         sum_perp = 0
         data_count = 0
         for batch in copy.copy(iter):
             batch = np.array(batch)
-            x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
-            t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
+            if torch_is_old:
+                x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
+                t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
+            else:
+                x = torch.from_numpy(batch[:, 0]).long()
+                t = torch.from_numpy(batch[:, 1]).long()
+                
             if args.ngpu > 0:
                 x = x.cuda(gpu_id)
                 t = t.cuda(gpu_id)
@@ -208,6 +217,9 @@ def train(args):
                 for key in state.keys():
                     state[key] = state[key].detach()
             data_count += 1
+        # TODO(karita) use torch.no_grad here
+        if not torch_is_old:
+            torch.set_grad_enabled(True)
         model.predictor.train()
         return np.exp(float(sum_perp) / data_count)
 
@@ -244,7 +256,10 @@ def train(args):
         # detach all states
         for key in state.keys():
             state[key] = state[key].detach()
-        nn.utils.clip_grad_norm(model.parameters(), args.gradclip)
+        if torch_is_old:
+            nn.utils.clip_grad_norm(model.parameters(), args.gradclip)
+        else:
+            nn.utils.clip_grad_norm_(model.parameters(), args.gradclip)
         optimizer.step()  # Update the parameters
 
         if iteration % 100 == 0:
