@@ -10,17 +10,14 @@ matrix:
       python: "2.7"
     - os: linux
       python: "3.6"
-    - TORCH_VERSION=0.3.1
-    - TORCH_VERSION=0.4.0
-
 
 install:
   - pip install -U pip wheel
   - pip install -r ./tools/test_requirements.txt
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-          pip install http://download.pytorch.org/whl/cpu/torch-${TORCH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
+          pip install http://download.pytorch.org/whl/cpu/torch-0.4.0-cp27-cp27mu-linux_x86_64.whl ;
     else
-          pip3 install http://download.pytorch.org/whl/cpu/torch-${TORCH_VERSION}}-cp36-cp36m-linux_x86_64.whl ;
+          pip3 install http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-linux_x86_64.whl ;
     fi
   # install matplotlib
   - pip install matplotlib
