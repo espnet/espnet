@@ -91,6 +91,7 @@ subset_num_spk=""
 
 # data set
 train_set=tr_babel10${subset_num_spk:+_${subset_num_spk}spk}
+langdir=data/lang_1char${subset_num_spk:+_${subset_num_spk}spk}
 
 # data directories
 csjdir=../../csj
@@ -168,20 +169,19 @@ if [ ${stage} -le 0 ]; then
     done
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}/json_${train_set}
+feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}/json_${train_set}
 if [ ${stage} -le 1 ]; then
 
-    utils/combine_data.sh data/${train_set}_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
-    utils/combine_data.sh data/${train_dev}_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
+    utils/combine_data.sh data/tr_babel10_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
+    utils/combine_data.sh data/dt_babel10_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
 
     if [ ! -z $subset_num_spk ]; then
         # create a trainng subset with ${subset_num_spk} speakers (in total 7470)
-        s2u=data/${train_set}_org/spk2utt
-        subset_scp.pl ${subset_num_spk} data/${train_set}_org/spk2utt > data/${train_set}_org/spk2utt_tmp
-        utils/spk2utt_to_utt2spk.pl data/${train_set}_org/spk2utt_tmp > data/${train_set}_org/utt2spk
-        utils/fix_data_dir.sh data/${train_set}_org
-        rm data/${train_set}_org/spk2utt_tmp
+        head -n $subset_num_spk <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
+        utils/subset_data_dir.sh \
+        --spk-list data/tr_babel10_org/spk_list_${subset_num_spk}spk \
+        data/tr_babel10_org data/${train_set}_org
     fi
 
     # remove utt having more than 3000 frames or less than 10 frames or
@@ -204,9 +204,9 @@ if [ ${stage} -le 1 ]; then
         ${feat_dt_dir}/storage
     fi
     [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train_${train_set} ${feat_tr_dir}
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev_${train_dev} ${feat_dt_dir}
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
    for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
@@ -214,29 +214,29 @@ if [ ${stage} -le 1 ]; then
             ${feat_recog_dir}
     done
 fi
-dict=data/lang_1char/train_units.txt
-nlsyms=data/lang_1char/non_lang_syms.txt
+dict=${langdir}/train_units.txt
+nlsyms=${langdir}/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
+    [ ! -d $langdir ] && mkdir -p $langdir
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- data/tr_*/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms}
+    cut -f 2- data/${train_set}_org/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/tr_*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+    cat data/${train_set}_org/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+         data/${train_set} ${dict} > ${feat_tr_dir}/json_${train_set}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${train_dev} ${dict} > ${feat_dt_dir}/json_${train_set}/data.json
 fi
 
 if [ -z ${tag} ]; then
@@ -262,8 +262,8 @@ if [ ${stage} -le 3 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
+        --train-json ${feat_tr_dir}/json_${train_set}/data.json \
+        --valid-json ${feat_dt_dir}/json_${train_set}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -298,8 +298,9 @@ if [ ${stage} -le 4 ]; then
 
          # make json labels for recognition
         for j in `seq 1 ${nj}`; do
+            mkdir -p ${sdata}/${j}/json_${train_set}
             data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
-                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
+                ${sdata}/${j} ${dict} > ${sdata}/${j}/json_${train_set}/data.json
         done
 
         #### use CPU for decoding
@@ -309,7 +310,7 @@ if [ ${stage} -le 4 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${sdata}/JOB/data.json \
+            --recog-json ${sdata}/JOB/json_${train_set}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
