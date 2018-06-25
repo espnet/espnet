@@ -202,13 +202,13 @@ if [ ${stage} -le 1 ]; then
         ${feat_dt_dir}/storage
     fi
     [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set}_${train_set} ${feat_tr_dir}
     [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev}_${train_set} ${feat_dt_dir}
    for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask}_${train_set} \
             ${feat_recog_dir}
     done
 fi
