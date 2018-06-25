@@ -180,6 +180,12 @@ if [ ${stage} -le 2 ]; then
 	 data/${train_set} ${dict} > ${feat_tr_dir}/data_${nbpe}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data_${nbpe}.json
+    
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
+            data/${rtask} ${dict} > ${feat_recog_dir}/data_${nbpe}.json
+    done
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 5)
@@ -196,13 +202,10 @@ if [ ${stage} -le 3 ]; then
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
-        lmngpu=1
-    else
-        lmngpu=${ngpu}
     fi
     ${cuda_cmd} ${lmexpdir}/train.log \
         lm_train.py \
-        --ngpu ${lmngpu} \
+        --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
@@ -266,15 +269,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        data=data/${rtask}
-        split_data.sh --per-utt ${data} ${nj};
-        sdata=${data}/split${nj}utt;
-
-        # make json labels for recognition
-        for j in `seq 1 ${nj}`; do
-            data2json.sh --bpecode ${bpemodel}.model --feat ${feat_recog_dir}/feats.scp \
-                ${sdata}/${j} ${dict} > ${sdata}/${j}/data_${nbpe}.json
-        done
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${nbpe}.json
 
         #### use CPU for decoding
         ngpu=0
@@ -283,7 +278,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${sdata}/JOB/data_${nbpe}.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

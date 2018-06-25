@@ -215,8 +215,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 | 5.3 | 12.4 |
-| WSJ eval92| 3.6 |  8.9 |
+| WSJ dev93 | 4.9 | 10.9 |
+| WSJ eval92| 3.1 |  7.1 |
 | CSJ eval1 | 8.5 | N/A  |
 | CSJ eval2 | 6.1 | N/A  |
 | CSJ eval3 | 6.8 | N/A  |
