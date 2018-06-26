@@ -134,6 +134,8 @@ def main():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    parser.add_argument('--phoneme_objective', default='', nargs='?',
+                        help='Train with an additional phoneme transcription objective')
     args = parser.parse_args()
 
     # logging info
@@ -214,6 +216,12 @@ def main():
         from asr_chainer import train
         train(args)
     elif args.backend == "pytorch":
+        print("PHONEME OBJECTIVE: ", args.phoneme_objective)
+        if args.phoneme_objective:
+            print("TRAINING WITH PHONEME OBJECTIVE")
+        else:
+            print("NOT TRAINING WITH PHONEME OBJECTIVE")
+        import sys; sys.exit()
         from asr_pytorch import train
         train(args)
     else:
