@@ -89,9 +89,10 @@ def linear_tensor(linear, x):
 
 
 class Reporter(chainer.Chain):
-    def report(self, loss_ctc, loss_att, acc, mtl_loss):
+    def report(self, loss_ctc, loss_att, loss_phn, acc, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
+        reporter.report({'loss_phn': loss_phn}, self)
         reporter.report({'acc': acc}, self)
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
@@ -114,7 +115,7 @@ class Loss(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, loss_phn, acc = self.predictor(x)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -125,12 +126,18 @@ class Loss(torch.nn.Module):
             loss_att_data = None
             loss_ctc_data = loss_ctc.data[0]
         else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+            # If a phoneme loss has been supplied by self.predictor, incorporate it
+            # into the total loss with equal weight as the CTC , otherwise don't.
+            if loss_phn is not None:
+                self.loss = alpha/2 * loss_ctc + alpha/2 * loss_phn + (1 - alpha) * loss_att
+                loss_phn_data = loss_phn.data[0]
+            else:
+                self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
             loss_att_data = loss_att.data[0]
             loss_ctc_data = loss_ctc.data[0]
 
         if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, self.loss.data[0])
+            self.reporter.report(loss_ctc_data, loss_att_data, loss_phn_data, acc, self.loss.data[0])
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -290,21 +297,25 @@ class E2E(torch.nn.Module):
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
-        tids = get_tids('grapheme')
-        phn_tids = get_tids('phn')
-        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        grapheme_tids = get_tids('grapheme')
+        phoneme_tids = get_tids('phn')
+        filtered_index = filter(lambda i: len(grapheme_tids[i]) > 0 and len(phoneme_tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
             logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
                 len(xs), len(sorted_index)))
         xs = [xs[i] for i in sorted_index]
         # utt list of olen
-        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
-              for i in sorted_index]
+        grapheme_ys = [np.fromiter(map(int, grapheme_tids[i]), dtype=np.int64)
+                       for i in sorted_index]
+        phoneme_ys = [np.fromiter(map(int, phoneme_tids[i]), dtype=np.int64)
+                       for i in sorted_index]
         if self.training:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+            grapheme_ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in grapheme_ys]
+            phoneme_ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in phoneme_ys]
         else:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+            grapheme_ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in grapheme_ys]
+            phoneme_ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in phoneme_ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
@@ -322,21 +333,21 @@ class E2E(torch.nn.Module):
         if self.mtlalpha == 0:
             loss_ctc = None
         else:
-            loss_ctc = self.ctc(hpad, hlens, ys)
+            loss_ctc = self.ctc(hpad, hlens, grapheme_ys)
 
         # 4. attention loss
         if self.mtlalpha == 1:
             loss_att = None
             acc = None
         else:
-            loss_att, acc = self.dec(hpad, hlens, ys)
+            loss_att, acc = self.dec(hpad, hlens, grapheme_ys)
 
         # 5. Phoneme loss
+        loss_phn = None
         if self.phoneme_objective:
-            loss_phn = self.phn_ctc(hpad, hlens, phn_ys)
-        return loss_ctc, loss_att, loss_phn, acc
+            loss_phn = self.phn_ctc(hpad, hlens, phoneme_ys)
 
-        return loss_ctc, loss_att, acc
+        return loss_ctc, loss_att, loss_phn, acc
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E beam search
