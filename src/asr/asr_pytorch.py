@@ -211,12 +211,11 @@ def train(args):
         sys.exit(1)
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     grapheme_odim = get_odim("grapheme", valid_json)
-    phoneme_odim = get_odim("phn", valid_json)
-    print("Grapheme odim: ", grapheme_odim)
-    print("Phoneme odim: ", phoneme_odim)
-    import sys; sys.exit()
     logging.info('#input dims : ' + str(idim))
-    logging.info('#output dims: ' + str(odim))
+    logging.info('#grapheme output dims: ' + str(grapheme_odim))
+    if args.phoneme_objective:
+        phoneme_odim = get_odim("phn", valid_json)
+        logging.info('#phoneme output dims: ' + str(phoneme_odim))
 
     # specify attention, CTC, hybrid mode
     if args.mtlalpha == 1.0:
@@ -228,9 +227,14 @@ def train(args):
     else:
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
+    if args.phoneme_objective:
+        logging.info('Training with an additional phoneme transcription objective.')
 
     # specify model architecture
-    e2e = E2E(idim, odim, args)
+    if args.phoneme_objective:
+        e2e = E2E(idim, grapheme_odim, args, phoneme_odim=phoneme_odim)
+    else:
+        e2e = E2E(idim, grapheme_odim, args)
     model = Loss(e2e, args.mtlalpha)
 
     # write model config
@@ -240,7 +244,7 @@ def train(args):
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
         # TODO(watanabe) use others than pickle, possibly json, and save as a text
-        pickle.dump((idim, odim, args), f)
+        pickle.dump((idim, grapheme_odim, args), f)
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 

@@ -157,13 +157,14 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, phoneme_odim=None):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.mtlalpha = args.mtlalpha
+        self.phoneme_objective = args.phoneme_objective
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -195,6 +196,8 @@ class E2E(torch.nn.Module):
                            self.subsample, args.dropout_rate)
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+        # Phoneme CTC objective
+        self.phn_ctc = CTC(phoneme_odim, args.eprojs, args.dropout_rate)
         # attention
         if args.atype == 'noatt':
             self.att = NoAtt()
@@ -275,10 +278,20 @@ class E2E(torch.nn.Module):
         :param data:
         :return:
         '''
+
+        def get_tids(output_type):
+            tids = []
+            for utter in data:
+                for output in utter[1]['output']:
+                    if output[u'name'] == output_type:
+                        tids.append(output['tokenid'].split())
+            return tids
+
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
-        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
+        tids = get_tids('grapheme')
+        phn_tids = get_tids('phn')
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
@@ -317,6 +330,11 @@ class E2E(torch.nn.Module):
             acc = None
         else:
             loss_att, acc = self.dec(hpad, hlens, ys)
+
+        # 5. Phoneme loss
+        if self.phoneme_objective:
+            loss_phn = self.phn_ctc(hpad, hlens, phn_ys)
+        return loss_ctc, loss_att, loss_phn, acc
 
         return loss_ctc, loss_att, acc
 
