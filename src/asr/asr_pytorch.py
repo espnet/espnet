@@ -168,6 +168,13 @@ class DataParallel(torch.nn.DataParallel):
         outputs = self.parallel_apply(replicas, inputs, kwargs)
         return self.gather(outputs, self.output_device)
 
+def get_odim(output_name, valid_json):
+    """ Return the output dimension for a given output type.
+    For example, output type might be 'phn' (phonemes) or 'grapheme'"""
+    utts = list(valid_json.keys())
+    for output in valid_json[utts[0]]['output']:
+        if output['name'] == output_name:
+            return int(output['shape'][1])
 
 def train(args):
     '''Run training'''
@@ -203,7 +210,11 @@ def train(args):
             "stage 2: Dictionary and Json Data Preparation")
         sys.exit(1)
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    grapheme_odim = get_odim("grapheme", valid_json)
+    phoneme_odim = get_odim("phn", valid_json)
+    print("Grapheme odim: ", grapheme_odim)
+    print("Phoneme odim: ", phoneme_odim)
+    import sys; sys.exit()
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 

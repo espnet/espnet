@@ -216,12 +216,6 @@ def main():
         from asr_chainer import train
         train(args)
     elif args.backend == "pytorch":
-        print("PHONEME OBJECTIVE: ", args.phoneme_objective)
-        if args.phoneme_objective:
-            print("TRAINING WITH PHONEME OBJECTIVE")
-        else:
-            print("NOT TRAINING WITH PHONEME OBJECTIVE")
-        import sys; sys.exit()
         from asr_pytorch import train
         train(args)
     else:
