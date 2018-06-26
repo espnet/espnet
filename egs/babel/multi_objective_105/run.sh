@@ -5,6 +5,7 @@
 
 . ./path.sh
 . ./cmd.sh
+. ./conf/lang.conf
 
 # general configuration
 backend=pytorch
@@ -44,7 +45,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # Phoneme Objective
-phoneme_ali=../text.ali.phn
+phoneme_objective=false
 
 # label smoothing
 lsm_type=unigram
@@ -119,7 +120,7 @@ if [ $stage -le 0 ]; then
   done
   
   for x in ${train_set} ${train_dev}; do
-      if [ ! -z $phoneme_ali ]; then
+      if $phoneme_objective; then
           awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
           ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
           mv data/${x}/text.tmp data/${x}/text 
@@ -199,7 +200,7 @@ if [ ${stage} -le 2 ]; then
     done
 
     # Phoneme Objective
-    if [ ! -z ${phoneme_ali} ]; then
+    if ${phoneme_objective}; then
         echo "<unk> 1" > ${dict}.phn
         cut -d' ' -f2- ${phoneme_ali} | tr " " "\n" | sort -u |\
         grep -v '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}.phn
