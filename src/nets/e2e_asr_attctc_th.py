@@ -111,9 +111,10 @@ class Reporter(chainer.Chain):
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    def __init__(self, predictor, mtlalpha):
+    def __init__(self, predictor, mtlalpha, phoneme_objective_weight=None):
         super(Loss, self).__init__()
         self.mtlalpha = mtlalpha
+        self.phoneme_objective_weight = phoneme_objective_weight
         self.loss = None
         self.accuracy = None
         self.predictor = predictor
@@ -139,8 +140,10 @@ class Loss(torch.nn.Module):
         else:
             # If a phoneme loss has been supplied by self.predictor, incorporate it
             # into the total loss with equal weight as the CTC , otherwise don't.
-            if loss_phn is not None:
-                self.loss = alpha/2 * loss_ctc + alpha/2 * loss_phn + (1 - alpha) * loss_att
+            if self.phoneme_objective_weight > 0.0:
+                assert loss_phn is not None # Then we should have been given a phoneme loss.
+                beta = self.phoneme_objective_weight
+                self.loss = alpha * loss_ctc + beta * loss_phn + (1 - alpha - beta) * loss_att
                 loss_phn_data = loss_phn.data[0]
             else:
                 self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
@@ -182,7 +185,7 @@ class E2E(torch.nn.Module):
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.mtlalpha = args.mtlalpha
-        self.phoneme_objective = args.phoneme_objective
+        self.phoneme_objective_weight = args.phoneme_objective_weight
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -347,7 +350,7 @@ class E2E(torch.nn.Module):
 
         # 5. Phoneme loss
         loss_phn = None
-        if self.phoneme_objective:
+        if self.phoneme_objective_weight > 0.0:
             loss_phn = self.phn_ctc(hpad, hlens, phoneme_ys)
 
         return loss_ctc, loss_att, loss_phn, acc

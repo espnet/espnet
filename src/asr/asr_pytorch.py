@@ -213,7 +213,7 @@ def train(args):
     grapheme_odim = get_odim("grapheme", valid_json)
     logging.info('#input dims : ' + str(idim))
     logging.info('#grapheme output dims: ' + str(grapheme_odim))
-    if args.phoneme_objective:
+    if args.phoneme_objective_weight > 0.0:
         phoneme_odim = get_odim("phn", valid_json)
         logging.info('#phoneme output dims: ' + str(phoneme_odim))
 
@@ -227,15 +227,15 @@ def train(args):
     else:
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
-    if args.phoneme_objective:
+    if args.phoneme_objective_weight > 0.0:
         logging.info('Training with an additional phoneme transcription objective.')
 
     # specify model architecture
-    if args.phoneme_objective:
+    if args.phoneme_objective_weight > 0.0:
         e2e = E2E(idim, grapheme_odim, args, phoneme_odim=phoneme_odim)
     else:
         e2e = E2E(idim, grapheme_odim, args)
-    model = Loss(e2e, args.mtlalpha)
+    model = Loss(e2e, args.mtlalpha, phoneme_objective_weight=args.phoneme_objective_weight)
 
     # write model config
     if not os.path.exists(args.outdir):

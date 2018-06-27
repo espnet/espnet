@@ -134,8 +134,8 @@ def main():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
-    parser.add_argument('--phoneme_objective', default='', nargs='?',
-                        help='Train with an additional phoneme transcription objective')
+    parser.add_argument('--phoneme_objective_weight', default=0.0, type=float,
+                        help='Train with an additional phoneme transcription objective if weight > 0')
     args = parser.parse_args()
 
     # logging info
