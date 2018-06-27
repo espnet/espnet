@@ -315,8 +315,8 @@ class E2E(torch.nn.Module):
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        if torch_is_old and not self.training:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+        if torch_is_old:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=not self.training)) for xx in xs]
         else:
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
@@ -1688,8 +1688,7 @@ class Decoder(torch.nn.Module):
         :return:
         '''
         hpad = mask_by_length(hpad, hlen, 0)
-        if not isinstance(hlen, list):
-            hlen = hlen.tolist()
+        hlen = list(map(int, hlen))
 
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
@@ -1747,7 +1746,7 @@ class Decoder(torch.nn.Module):
         if self.verbose > 0 and self.char_list is not None:
             y_hat = y_all.view(batch, olength, -1)
             y_true = pad_ys_out
-            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data.cpu().numpy()), y_true.data.cpu().numpy()):
+            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.detach().cpu().numpy()), y_true.detach().cpu().numpy()):
                 if i == MAX_DECODER_OUTPUT:
                     break
                 idx_hat = np.argmax(y_hat_[y_true_ != self.ignore_id], axis=1)
@@ -1942,8 +1941,7 @@ class Decoder(torch.nn.Module):
 
         :return: numpy array format attentions
         '''
-        if not isinstance(hlen, list):
-            hlen = hlen.tolist()
+        hlen = list(map(int, hlen))
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
@@ -2112,7 +2110,7 @@ class BLSTMP(torch.nn.Module):
             sub = self.subsample[layer + 1]
             if sub > 1:
                 ypad = ypad[:, ::sub]
-                ilens = [(i + 1) // sub for i in ilens]
+                ilens = [int(i + 1) // sub for i in ilens]
             # (sum _utt frame_utt) x dim
             projected = getattr(self, 'bt' + str(layer)
                                 )(ypad.contiguous().view(-1, ypad.size(2)))
