@@ -51,7 +51,7 @@ lsm_type=unigram
 lsm_weight=0.05
 
 # minibatch related
-batchsize=30
+batchsize=10
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 

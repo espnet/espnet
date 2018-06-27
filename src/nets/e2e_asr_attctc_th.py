@@ -30,6 +30,17 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
+def get_tids(output_type, data):
+    """ Given some data from data.json, return a list of lists,
+    where each sub-list consists of tokenids corresponding to
+    some specified output type."""
+
+    tids = []
+    for utter in data:
+        for output in utter[1]['output']:
+            if output[u'name'] == output_type:
+                tids.append(output['tokenid'].split())
+    return tids
 
 def to_cuda(m, x):
     assert isinstance(m, torch.nn.Module)
@@ -286,19 +297,11 @@ class E2E(torch.nn.Module):
         :return:
         '''
 
-        def get_tids(output_type):
-            tids = []
-            for utter in data:
-                for output in utter[1]['output']:
-                    if output[u'name'] == output_type:
-                        tids.append(output['tokenid'].split())
-            return tids
-
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
-        grapheme_tids = get_tids('grapheme')
-        phoneme_tids = get_tids('phn')
+        grapheme_tids = get_tids('grapheme', data)
+        phoneme_tids = get_tids('phn', data)
         filtered_index = filter(lambda i: len(grapheme_tids[i]) > 0 and len(phoneme_tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
@@ -396,7 +399,7 @@ class E2E(torch.nn.Module):
         xs = [d[1]['feat'] for d in data]
 
         # remove 0-output-length utterances
-        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
+        tids = get_tids("grapheme", data)
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
@@ -422,7 +425,6 @@ class E2E(torch.nn.Module):
         att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
 
         return att_ws
-
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
 class _ChainerLikeCTC(warp_ctc._CTC):
