@@ -218,7 +218,8 @@ class E2E(torch.nn.Module):
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
         # Phoneme CTC objective
-        self.phn_ctc = CTC(phoneme_odim, args.eprojs, args.dropout_rate)
+        if self.phoneme_objective_weight > 0.0:
+            self.phn_ctc = CTC(phoneme_odim, args.eprojs, args.dropout_rate)
         # attention
         if args.atype == 'noatt':
             self.att = NoAtt()
