@@ -74,6 +74,6 @@ done
 ./utils/combine_data.sh data/dev ${dev_dirs}
 
 for l in ${recog}; do
-  ln -s ${cwd}/data/${l}/data/eval_${l} ${cwd}/data/eval_${l}
+  ln -fs ${cwd}/data/${l}/data/eval_${l} ${cwd}/data/eval_${l}
 done
 
