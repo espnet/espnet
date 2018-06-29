@@ -42,17 +42,17 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.5
+mtlalpha=0.33
 
 # Phoneme Objective
-phoneme_objective=false
+phoneme_objective_weight=0.33
 
 # label smoothing
 lsm_type=unigram
 lsm_weight=0.05
 
 # minibatch related
-batchsize=30
+batchsize=10
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -114,13 +114,13 @@ recog_set=${recog_set%% }
 
 if [ $stage -le 0 ]; then
   echo "stage 0: Setting up individual languages"
-  ./local/setup_languages.sh --langs "${langs}" --recog "${recog}"
+  ./local/setup_languages.sh --langs "${langs}" --recog "${recog}" --FLP false
   for x in ${train_set} ${train_dev} ${recog_set}; do
 	    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
   done
   
   for x in ${train_set} ${train_dev}; do
-      if $phoneme_objective; then
+      if [[ $phoneme_objective_weight > 0 ]]; then
           awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
           ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
           mv data/${x}/text.tmp data/${x}/text 
@@ -200,7 +200,7 @@ if [ ${stage} -le 2 ]; then
     done
 
     # Phoneme Objective
-    if ${phoneme_objective}; then
+    if [[ ${phoneme_objective_weight} > 0 ]]; then
         echo "<unk> 1" > ${dict}.phn
         cut -d' ' -f2- ${phoneme_ali} | tr " " "\n" | sort -u |\
         grep -v '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}.phn
@@ -242,8 +242,6 @@ if [ ${stage} -le 2 ]; then
     fi
 fi
 
-exit
-
 if $use_lm; then
   lm_train_set=data/local/train.txt
   lm_valid_set=data/local/dev.txt
@@ -279,7 +277,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_phonemeweight${phoneme_objective_weight}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -325,7 +323,8 @@ if [ ${stage} -le 3 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --phoneme_objective_weight ${phoneme_objective_weight}
 fi
 
 

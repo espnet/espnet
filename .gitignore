@@ -1,4 +1,4 @@
-*~
+B*~
 *.pyc
 \#*\#
 .\#*
@@ -27,11 +27,10 @@ tools/nkf/
 tools/venv/
 tools/warp-ctc/
 tools/chainer_ctc/
-tools/subword-nmt/
-tools/chainer_ctc*
+tools/sentencepiece/
 tools/nkf*
-tools/subword-nmt*
 tools/chainer_ctc*
 tools/warp-ctc*
+tools/sentencepiece/*
 
 .pytest_cache

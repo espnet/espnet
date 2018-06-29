@@ -30,6 +30,17 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
+def get_tids(output_type, data):
+    """ Given some data from data.json, return a list of lists,
+    where each sub-list consists of tokenids corresponding to
+    some specified output type."""
+
+    tids = []
+    for utter in data:
+        for output in utter[1]['output']:
+            if output[u'name'] == output_type:
+                tids.append(output['tokenid'].split())
+    return tids
 
 def to_cuda(m, x):
     assert isinstance(m, torch.nn.Module)
@@ -89,9 +100,10 @@ def linear_tensor(linear, x):
 
 
 class Reporter(chainer.Chain):
-    def report(self, loss_ctc, loss_att, acc, mtl_loss):
+    def report(self, loss_ctc, loss_att, loss_phn, acc, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
+        reporter.report({'loss_phn': loss_phn}, self)
         reporter.report({'acc': acc}, self)
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
@@ -99,9 +111,10 @@ class Reporter(chainer.Chain):
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    def __init__(self, predictor, mtlalpha):
+    def __init__(self, predictor, mtlalpha, phoneme_objective_weight=None):
         super(Loss, self).__init__()
         self.mtlalpha = mtlalpha
+        self.phoneme_objective_weight = phoneme_objective_weight
         self.loss = None
         self.accuracy = None
         self.predictor = predictor
@@ -114,7 +127,7 @@ class Loss(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, loss_phn, acc = self.predictor(x)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -125,12 +138,20 @@ class Loss(torch.nn.Module):
             loss_att_data = None
             loss_ctc_data = loss_ctc.data[0]
         else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+            # If a phoneme loss has been supplied by self.predictor, incorporate it
+            # into the total loss with equal weight as the CTC , otherwise don't.
+            if self.phoneme_objective_weight > 0.0:
+                assert loss_phn is not None # Then we should have been given a phoneme loss.
+                beta = self.phoneme_objective_weight
+                self.loss = alpha * loss_ctc + beta * loss_phn + (1 - alpha - beta) * loss_att
+                loss_phn_data = loss_phn.data[0]
+            else:
+                self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
             loss_att_data = loss_att.data[0]
             loss_ctc_data = loss_ctc.data[0]
 
         if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, self.loss.data[0])
+            self.reporter.report(loss_ctc_data, loss_att_data, loss_phn_data, acc, self.loss.data[0])
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -157,13 +178,14 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, phoneme_odim=None):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.mtlalpha = args.mtlalpha
+        self.phoneme_objective_weight = args.phoneme_objective_weight
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -195,6 +217,9 @@ class E2E(torch.nn.Module):
                            self.subsample, args.dropout_rate)
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+        # Phoneme CTC objective
+        if self.phoneme_objective_weight > 0.0:
+            self.phn_ctc = CTC(phoneme_odim, args.eprojs, args.dropout_rate)
         # attention
         if args.atype == 'noatt':
             self.att = NoAtt()
@@ -275,23 +300,29 @@ class E2E(torch.nn.Module):
         :param data:
         :return:
         '''
+
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
-        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
-        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        grapheme_tids = get_tids('grapheme', data)
+        phoneme_tids = get_tids('phn', data)
+        filtered_index = filter(lambda i: len(grapheme_tids[i]) > 0 and len(phoneme_tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
             logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
                 len(xs), len(sorted_index)))
         xs = [xs[i] for i in sorted_index]
         # utt list of olen
-        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
-              for i in sorted_index]
+        grapheme_ys = [np.fromiter(map(int, grapheme_tids[i]), dtype=np.int64)
+                       for i in sorted_index]
+        phoneme_ys = [np.fromiter(map(int, phoneme_tids[i]), dtype=np.int64)
+                       for i in sorted_index]
         if self.training:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+            grapheme_ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in grapheme_ys]
+            phoneme_ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in phoneme_ys]
         else:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+            grapheme_ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in grapheme_ys]
+            phoneme_ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in phoneme_ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
@@ -309,16 +340,21 @@ class E2E(torch.nn.Module):
         if self.mtlalpha == 0:
             loss_ctc = None
         else:
-            loss_ctc = self.ctc(hpad, hlens, ys)
+            loss_ctc = self.ctc(hpad, hlens, grapheme_ys)
 
         # 4. attention loss
         if self.mtlalpha == 1:
             loss_att = None
             acc = None
         else:
-            loss_att, acc = self.dec(hpad, hlens, ys)
+            loss_att, acc = self.dec(hpad, hlens, grapheme_ys)
 
-        return loss_ctc, loss_att, acc
+        # 5. Phoneme loss
+        loss_phn = None
+        if self.phoneme_objective_weight > 0.0:
+            loss_phn = self.phn_ctc(hpad, hlens, phoneme_ys)
+
+        return loss_ctc, loss_att, loss_phn, acc
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E beam search
@@ -367,7 +403,7 @@ class E2E(torch.nn.Module):
         xs = [d[1]['feat'] for d in data]
 
         # remove 0-output-length utterances
-        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
+        tids = get_tids("grapheme", data)
         filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
@@ -393,7 +429,6 @@ class E2E(torch.nn.Module):
         att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
 
         return att_ws
-
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
 class _ChainerLikeCTC(warp_ctc._CTC):
@@ -742,7 +777,7 @@ class AttLoc(torch.nn.Module):
         # initialize attention weight with uniform dist.
         if att_prev is None:
             att_prev = [Variable(enc_hs_pad.data.new(
-                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+                int(l)).zero_() + (1.0 / int(l))) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
 
@@ -1804,8 +1839,7 @@ class Decoder(torch.nn.Module):
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
                 if rnnlm:
-                    rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], vy)
-                    local_lm_scores = F.log_softmax(z_rnnlm, dim=1).data
+                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
                     local_scores = local_att_scores

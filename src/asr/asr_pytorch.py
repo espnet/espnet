@@ -27,6 +27,7 @@ from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
+from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
@@ -37,6 +38,7 @@ from e2e_asr_attctc_th import Loss
 import kaldi_io_py
 
 # rnnlm
+import extlm_pytorch
 import lm_pytorch
 
 # matplotlib related
@@ -69,6 +71,8 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         for batch in it:
             observation = {}
+            if torch.__version__ != "0.3.1":
+                torch.set_grad_enabled(False)
             with reporter_module.report_scope(observation):
                 # read scp files
                 # x: original json with loaded features
@@ -77,6 +81,9 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 self.model.eval()
                 self.model(x)
                 delete_feat(x)
+
+            if torch.__version__ != "0.3.1":
+                torch.set_grad_enabled(True)
 
             summary.add(observation)
 
@@ -161,6 +168,13 @@ class DataParallel(torch.nn.DataParallel):
         outputs = self.parallel_apply(replicas, inputs, kwargs)
         return self.gather(outputs, self.output_device)
 
+def get_odim(output_name, valid_json):
+    """ Return the output dimension for a given output type.
+    For example, output type might be 'phn' (phonemes) or 'grapheme'"""
+    utts = list(valid_json.keys())
+    for output in valid_json[utts[0]]['output']:
+        if output['name'] == output_name:
+            return int(output['shape'][1])
 
 def train(args):
     '''Run training'''
@@ -196,9 +210,12 @@ def train(args):
             "stage 2: Dictionary and Json Data Preparation")
         sys.exit(1)
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    grapheme_odim = get_odim("grapheme", valid_json)
     logging.info('#input dims : ' + str(idim))
-    logging.info('#output dims: ' + str(odim))
+    logging.info('#grapheme output dims: ' + str(grapheme_odim))
+    if args.phoneme_objective_weight > 0.0:
+        phoneme_odim = get_odim("phn", valid_json)
+        logging.info('#phoneme output dims: ' + str(phoneme_odim))
 
     # specify attention, CTC, hybrid mode
     if args.mtlalpha == 1.0:
@@ -210,10 +227,15 @@ def train(args):
     else:
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
+    if args.phoneme_objective_weight > 0.0:
+        logging.info('Training with an additional phoneme transcription objective.')
 
     # specify model architecture
-    e2e = E2E(idim, odim, args)
-    model = Loss(e2e, args.mtlalpha)
+    if args.phoneme_objective_weight > 0.0:
+        e2e = E2E(idim, grapheme_odim, args, phoneme_odim=phoneme_odim)
+    else:
+        e2e = E2E(idim, grapheme_odim, args)
+    model = Loss(e2e, args.mtlalpha, phoneme_objective_weight=args.phoneme_objective_weight)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -222,7 +244,7 @@ def train(args):
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
         # TODO(watanabe) use others than pickle, possibly json, and save as a text
-        pickle.dump((idim, odim, args), f)
+        pickle.dump((idim, grapheme_odim, args), f)
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -293,7 +315,7 @@ def train(args):
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
-        data = sorted(valid_json.items()[:args.num_save_attention],
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         data = converter_kaldi([data], device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
@@ -410,6 +432,26 @@ def recog(args):
         rnnlm.eval()
     else:
         rnnlm = None
+
+    if args.word_rnnlm:
+        if not args.word_dict:
+            logging.error('word dictionary file is not specified for the word RNNLM.')
+            sys.exit(1)
+
+        word_dict = load_labeldict(args.word_dict)
+        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
+        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), 650))
+        word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
+        word_rnnlm.eval()
+
+        if rnnlm is not None:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
+                                           rnnlm.predictor, word_dict, char_dict))
+        else:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
 
     # read json data
     with open(args.recog_json, 'rb') as f:

@@ -7,7 +7,6 @@
 import argparse
 import json
 import logging
-import pdb
 
 
 if __name__ == '__main__':

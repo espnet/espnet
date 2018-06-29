@@ -70,7 +70,7 @@ done
 
 merge_opts=""
 if [ ! -z ${phn_text} ]; then
-    merge_opts="--oname phone"
+    merge_opts="--oname phn"
 elif [ ! -z ${bpecode} ]; then
     merge_opts="--oname bpe"
 fi
