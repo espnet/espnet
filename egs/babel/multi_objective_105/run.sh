@@ -120,7 +120,7 @@ if [ $stage -le 0 ]; then
   done
   
   for x in ${train_set} ${train_dev}; do
-      if [[ $phoneme_objective_weight > 0 ]]; then
+      if [[ $phoneme_objective_weight > 0.0 ]]; then
           awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
           ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
           mv data/${x}/text.tmp data/${x}/text 
@@ -136,7 +136,7 @@ if [ $stage -le 1 ]; then
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
   for x in ${train_set} ${train_dev} ${recog_set}; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 data/${x} exp/make_fbank/${x} ${fbankdir}
+      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 data/${x} exp/make_fbank/${x} ${fbankdir}
       ./utils/fix_data_dir.sh data/${x} 
   done
 
@@ -200,7 +200,7 @@ if [ ${stage} -le 2 ]; then
     done
 
     # Phoneme Objective
-    if [[ ${phoneme_objective_weight} > 0 ]]; then
+    if [[ ${phoneme_objective_weight} > 0.0 ]]; then
         echo "<unk> 1" > ${dict}.phn
         cut -d' ' -f2- ${phoneme_ali} | tr " " "\n" | sort -u |\
         grep -v '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}.phn
