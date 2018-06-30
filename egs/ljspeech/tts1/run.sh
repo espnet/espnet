@@ -273,7 +273,7 @@ if [ ${stage} -le 5 ];then
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
             ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
-        local/convert_fbank.sh --nj 32 --cmd "${train_cmd}" \
+        local/convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
             --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
             ${outdir}_denorm/${sets} \
