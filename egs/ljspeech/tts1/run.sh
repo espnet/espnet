@@ -261,8 +261,6 @@ if [ ${stage} -le 4 ];then
         for n in $(seq $nj); do
             cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
-        # remove temp json
-        rm ${outdir}/${sets}/*.json 2>/dev/null
     done
 fi
 
