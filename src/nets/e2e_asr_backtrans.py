@@ -359,16 +359,12 @@ class Tacotron2(torch.nn.Module):
 
         self.eval()
         # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if torch_is_old:
-            if not xs.volatile and not ys.volatile:
-                xs.volatile = True
-                ys.volatile = True
-            hs, hlens = self.enc(xs, ilens)
-            att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
-        else:
-            with torch.no_grad():
-                hs, hlens = self.enc(xs, ilens)
-                att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
+        if not torch_is_old:
+            torch.set_grad_enabled(False)
+        hs, hlens = self.enc(xs, ilens)
+        att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
+        if not torch_is_old:
+            torch.set_grad_enabled(True)
         self.train()
 
         return att_ws.data.cpu().numpy()
