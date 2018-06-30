@@ -13,48 +13,30 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from e2e_asr_attctc_th import AttLoc
+from e2e_asr_attctc_th import torch_is_old
 
 
 def encoder_init(m):
     if isinstance(m, torch.nn.Conv1d):
-        torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('relu'))
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        if torch_is_old:
+            torch.nn.init.xavier_uniform(m.weight, torch.nn.init.calculate_gain('relu'))
+        else:
+            torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('relu'))
 
 
 def decoder_init(m):
     if isinstance(m, torch.nn.Conv1d):
-        torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
-
-
-def pad_list(batch, pad_value=float("nan")):
-    """FUNCTION TO PAD VALUE
-
-    :param list batch: list of the sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :param float pad_value: value to pad
-    :return: padded batch with the shape (B, Tmax, D)
-    """
-    bs = len(batch)
-    if isinstance(batch[0], torch.Tensor):
-        # for pytorch variable
-        maxlen = max(b.size(0) for b in batch)
-        batch_pad = batch[0].new_zeros(bs, maxlen, *batch[0].size()[1:]).fill_(pad_value)
-        for i, b in enumerate(batch):
-            batch_pad[i, :b.size(0)] = b
-    else:
-        # for numpy ndarray
-        maxlen = max([b.shape[0] for b in batch])
-        if len(batch[0].shape) >= 2:
-            batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        if torch_is_old:
+            torch.nn.init.xavier_uniform(m.weight, torch.nn.init.calculate_gain('tanh'))
         else:
-            batch_pad = np.zeros((bs, maxlen))
-        batch_pad.fill(pad_value)
-        for i, b in enumerate(batch):
-            batch_pad[i, :b.shape[0]] = b
-
-    return batch_pad
+            torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
 
 
 def make_mask(lengths, dim=None):
@@ -75,6 +57,10 @@ def make_mask(lengths, dim=None):
         mask = torch.zeros(batch, maxlen, dim)
     for i, l in enumerate(lengths):
         mask[i, :l] = 1
+
+    # TODO(kan-bayashi): need to be fixed in pytorch v4
+    if torch_is_old:
+        mask = Variable(mask)
 
     if torch.cuda.is_available():
         return mask.byte().cuda()
@@ -120,7 +106,10 @@ class ZoneOutCell(torch.nn.Module):
             return tuple([self._zoneout(h[i], next_h[i], prob[i]) for i in range(num_h)])
 
         if self.training:
-            mask = h.new_zeros(*h.size()).bernoulli_(prob)
+            # TODO(kan-bayashi): need to be fixed in pytorch v4
+            mask = h.data.new(*h.size()).bernoulli_(prob)
+            if torch_is_old:
+                mask = Variable(mask, volatile=h.volatile)
             return mask * h + (1 - mask) * next_h
         else:
             return prob * h + (1 - prob) * next_h
@@ -156,7 +145,10 @@ class Tacotron2Loss(torch.nn.Module):
         if self.use_masking and olens is not None:
             # weight positive samples
             if self.bce_pos_weight != 1.0:
-                weights = ys.new(*labels.size()).fill_(1)
+                # TODO(kan-bayashi): need to be fixed in pytorch v4
+                weights = ys.data.new(*labels.size()).fill_(1)
+                if torch_is_old:
+                    weights = Variable(weights, volatile=ys.volatile)
                 weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
             else:
                 weights = None
@@ -178,8 +170,11 @@ class Tacotron2Loss(torch.nn.Module):
             bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
             loss = mse_loss + bce_loss
 
-        logging.debug("loss = %.3e (bce: %.3e, mse: %.3e)" % (loss.item(), bce_loss.item(), mse_loss.item()))
-        self.reporter.report(mse_loss.item(), bce_loss.item(), loss.item())
+        loss_data = loss.data[0] if torch_is_old else loss.item()
+        bce_loss_data = bce_loss.data[0] if torch_is_old else bce_loss.item()
+        mse_loss_data = mse_loss.data[0] if torch_is_old else mse_loss.item()
+        logging.debug("loss = %.3e (bce: %.3e, mse: %.3e)" % (loss_data, bce_loss_data, mse_loss_data))
+        self.reporter.report(mse_loss_data, bce_loss_data, loss_data)
 
         return loss
 
@@ -362,13 +357,21 @@ class Tacotron2(torch.nn.Module):
         if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
             ilens = list(map(int, ilens))
 
-        with torch.no_grad():
-            self.eval()
+        self.eval()
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        if torch_is_old:
+            if not xs.volatile and not ys.volatile:
+                xs.volatile = True
+                ys.volatile = True
             hs, hlens = self.enc(xs, ilens)
             att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
-            self.train()
+        else:
+            with torch.no_grad():
+                hs, hlens = self.enc(xs, ilens)
+                att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
+        self.train()
 
-        return att_ws.cpu().numpy()
+        return att_ws.data.cpu().numpy()
 
 
 class Encoder(torch.nn.Module):
@@ -448,6 +451,8 @@ class Encoder(torch.nn.Module):
         :return: batch of lenghts of each encoder states (B)
         :rtype: list
         """
+        if not isinstance(ilens, list):
+            ilens = list(map(int, ilens))
         xs = self.embed(xs).transpose(1, 2)
         for l in six.moves.range(self.econv_layers):
             if self.use_residual:
@@ -600,7 +605,11 @@ class Decoder(torch.nn.Module):
         self.prob_out = torch.nn.Linear(iunits, 1)
 
     def zero_state(self, hs):
-        return hs.new(hs.size(0), self.dunits).zero_()
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        init_hs = hs.data.new(hs.size(0), self.dunits).zero_()
+        if torch_is_old:
+            init_hs = Variable(init_hs, volatile=hs.volatile)
+        return init_hs
 
     def forward(self, hs, hlens, ys, att_w_maxlen=None):
         """DECODER FORWARD CALCULATION
@@ -624,7 +633,10 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
-        prev_out = hs.new_zeros(hs.size(0), self.odim)
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        prev_out = hs.data.new(hs.size(0), self.odim).zero_()
+        if torch_is_old:
+            prev_out = Variable(prev_out, volatile=hs.volatile)
 
         # initialize attention
         prev_att_w = None
@@ -686,7 +698,10 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
-        prev_out = hs.new_zeros(1, self.odim)
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        prev_out = hs.data.new(1, self.odim).zero_()
+        if torch_is_old:
+            prev_out = Variable(prev_out, volatile=hs.volatile)
 
         # initialize attention
         prev_att_w = None
@@ -721,7 +736,7 @@ class Decoder(torch.nn.Module):
                 prev_att_w = att_w
 
             # check whether to finish generation
-            if (probs[-1] >= self.threshold and idx >= minlen) or idx == maxlen:
+            if (int(probs[-1] >= self.threshold) and idx >= minlen) or idx == maxlen:
                 outs = torch.stack(outs, dim=2)  # (1, odim, L)
                 outs = outs + self._postnet_forward(outs)  # (1, odim, L)
                 outs = outs.transpose(2, 1).squeeze(0)  # (Lx, odim)
@@ -746,7 +761,10 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
-        prev_out = hs.new_zeros(hs.size(0), self.odim)
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        prev_out = hs.data.new(hs.size(0), self.odim).zero_()
+        if torch_is_old:
+            prev_out = Variable(prev_out, volatile=hs.volatile)
 
         # initialize attention
         prev_att_w = None
