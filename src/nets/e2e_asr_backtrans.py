@@ -29,6 +29,34 @@ def decoder_init(m):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
 
 
+def pad_list(batch, pad_value=float("nan")):
+    """FUNCTION TO PAD VALUE
+
+    :param list batch: list of the sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
+    :param float pad_value: value to pad
+    :return: padded batch with the shape (B, Tmax, D)
+    """
+    bs = len(batch)
+    if isinstance(batch[0], torch.Tensor):
+        # for pytorch variable
+        maxlen = max(b.size(0) for b in batch)
+        batch_pad = batch[0].new_zeros(bs, maxlen, *batch[0].size()[1:]).fill_(pad_value)
+        for i, b in enumerate(batch):
+            batch_pad[i, :b.size(0)] = b
+    else:
+        # for numpy ndarray
+        maxlen = max([b.shape[0] for b in batch])
+        if len(batch[0].shape) >= 2:
+            batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
+        else:
+            batch_pad = np.zeros((bs, maxlen))
+        batch_pad.fill(pad_value)
+        for i, b in enumerate(batch):
+            batch_pad[i, :b.shape[0]] = b
+
+    return batch_pad
+
+
 def make_mask(lengths, dim=None):
     """FUNCTION TO MAKE BINARY MASK
 
