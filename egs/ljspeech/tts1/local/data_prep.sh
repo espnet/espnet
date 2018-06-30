@@ -18,7 +18,6 @@ text=${data_dir}/text
 # check file existence
 [ -e ${scp} ] && rm ${scp}
 [ -e ${utt2spk} ] && rm ${utt2spk}
-[ -e ${text} ] && rm ${text}
 
 # make scp, utt2spk, and spk2utt
 find ${db} -name "*.wav" | sort | while read -r filename;do
@@ -30,5 +29,5 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text
-PYTHONPATH=local/text python local/clean_text.py ${data_dir}/metadata.csv
+PYTHONPATH=local/text python local/clean_text.py ${db}/metadata.csv > ${text}
 echo "finished making text."
