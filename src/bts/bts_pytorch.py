@@ -537,7 +537,13 @@ def decode(args):
                 x = Variable(x, volatile=True)
             if args.ngpu > 0:
                 x = x.cuda()
-            outs, probs, att_ws = tacotron2.inference(x)
+            outs, _, _ = tacotron2.inference(x)
+            if outs.size(0) == x.size(0) * args.maxlenratio:
+                logging.warn("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
-            kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
+            if torch_is_old:
+                outs = outs.data.cpu().numpy()
+            else:
+                outs = outs.cpu().numpy()
+            kaldi_io_py.write_mat(f, outs, utt_id)
