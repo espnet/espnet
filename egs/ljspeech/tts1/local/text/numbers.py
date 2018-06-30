@@ -1,5 +1,5 @@
-""" from https://github.com/keithito/tacotron """
 # -*- coding: utf-8 -*-
+""" from https://github.com/keithito/tacotron """
 
 import inflect
 import re
