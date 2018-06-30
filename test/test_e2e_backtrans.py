@@ -6,11 +6,12 @@ import numpy as np
 import pytest
 import torch
 
+from torch.autograd import Variable
+
 from bts_pytorch import pad_ndarray_list
 from e2e_asr_backtrans import Tacotron2
 from e2e_asr_backtrans import Tacotron2Loss
-
-torch_is_old = torch.__version__.startswith("0.3.")
+from e2e_asr_backtrans import torch_is_old
 
 
 def make_model_args(**kwargs):
@@ -54,7 +55,6 @@ def make_loss_args(**kwargs):
     return defaults
 
 
-@pytest.mark.skipif(torch_is_old, reason="torch version is old")
 @pytest.mark.parametrize(
     "model_dict, loss_dict", [
         ({}, {}),
@@ -83,9 +83,14 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     ys = pad_ndarray_list([np.random.randn(l, odim) for l in olens], 0)
     xs = torch.from_numpy(xs).long()
     ys = torch.from_numpy(ys).float()
-    labels = ys.new_zeros((ys.size(0), ys.size(1)))
+    # TODO(kan-bayashi): need to be modified in pytorch v4
+    labels = ys.new(ys.size(0), ys.size(1)).zero_()
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
+    if torch_is_old:
+        xs = Variable(xs)
+        ys = Variable(ys)
+        labels = Variable(labels)
 
     # define model
     model_args = make_model_args(**model_dict)
@@ -102,10 +107,16 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     optimizer.step()
 
     # decodable
-    with torch.no_grad():
-        model.eval()
-        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]])
-        att_ws = model.calculate_all_attentions(xs, ilens, ys)
-        assert att_ws.shape[0] == bs
-        assert att_ws.shape[1] == max(olens)
-        assert att_ws.shape[2] == max(ilens)
+    if torch_is_old:
+        xs.volatile = True
+        ys.volatile = True
+    else:
+        torch.set_grad_enabled(False)
+    model.eval()
+    yhat, probs, att_ws = model.inference(xs[0][:ilens[0]])
+    att_ws = model.calculate_all_attentions(xs, ilens, ys)
+    assert att_ws.shape[0] == bs
+    assert att_ws.shape[1] == max(olens)
+    assert att_ws.shape[2] == max(ilens)
+    if not torch_is_old:
+        torch.set_grad_enabled(True)

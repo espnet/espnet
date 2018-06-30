@@ -17,13 +17,14 @@ import torch
 
 from chainer import training
 from chainer.training import extensions
+from torch.autograd import Variable
 
 import kaldi_io_py
 
 from asr_utils import PlotAttentionReport
-from e2e_asr_backtrans import pad_list
 from e2e_asr_backtrans import Tacotron2
 from e2e_asr_backtrans import Tacotron2Loss
+from e2e_asr_backtrans import torch_is_old
 
 import matplotlib
 matplotlib.use('Agg')
@@ -53,13 +54,19 @@ class CustomEvaluator(extensions.Evaluator):
         summary = chainer.reporter.DictSummary()
 
         self.model.eval()
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        if not torch_is_old:
+            torch.set_grad_enabled(False)
         for batch in it:
             observation = {}
-            with torch.no_grad(), chainer.reporter.report_scope(observation):
+            with chainer.reporter.report_scope(observation):
                 # convert to torch tensor
-                batch = self.converter(batch)
+                batch = self.converter(batch, self.model.training)
                 self.model(*batch)
             summary.add(observation)
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        if not torch_is_old:
+            torch.set_grad_enabled(True)
         self.model.train()
 
         return summary.compute_mean()
@@ -73,6 +80,11 @@ class CustomUpdater(training.StandardUpdater):
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        if torch_is_old:
+            self.clip_grad_norm = torch.nn.utils.clip_grad_norm
+        else:
+            self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -82,7 +94,7 @@ class CustomUpdater(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
 
         # Get the next batch (a list of json files)
-        batch = self.converter(train_iter.next())
+        batch = self.converter(train_iter.next(), self.model.training)
 
         # compute loss and gradient
         loss = self.model(*batch)
@@ -90,8 +102,7 @@ class CustomUpdater(training.StandardUpdater):
         loss.backward()
 
         # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm_(
-            self.model.parameters(), self.grad_clip)
+        grad_norm = self.clip_grad_norm(self.model.parameters(), self.grad_clip)
         logging.debug('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
@@ -106,7 +117,7 @@ class CustomConverter(object):
         self.device = device
         self.return_targets = return_targets
 
-    def __call__(self, batch):
+    def __call__(self, batch, is_training=True):
         # batch should be located in list
         assert len(batch) == 1
         batch = batch[0]
@@ -129,13 +140,19 @@ class CustomConverter(object):
         olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys), dtype=np.int64))
 
         # perform padding and convert to tensor
-        xs = torch.from_numpy(pad_list(xs, 0)).long()
-        ys = torch.from_numpy(pad_list(ys, 0)).float()
+        xs = torch.from_numpy(pad_ndarray_list(xs, 0)).long()
+        ys = torch.from_numpy(pad_ndarray_list(ys, 0)).float()
 
         # make labels for stop prediction
-        labels = ys.new_zeros((ys.size(0), ys.size(1)))
+        labels = ys.new(ys.size(0), ys.size(1)).zero_()
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1
+
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        if torch_is_old:
+            xs = Variable(xs, volatile=not is_training)
+            ys = Variable(ys, volatile=not is_training)
+            labels = Variable(labels, volatile=not is_training)
 
         if sum(self.device) >= 0:
             xs = xs.cuda()
@@ -146,6 +163,27 @@ class CustomConverter(object):
             return xs, ilens, ys, labels, olens
         else:
             return xs, ilens, ys
+
+
+def pad_ndarray_list(batch, pad_value=float("nan")):
+    """FUNCTION TO PERFORM PADDING OF NDARRAY LIST
+
+    :param list batch: list of the ndarray [(T_1, D), (T_2, D), ..., (T_B, D)]
+    :param float pad_value: value to pad
+    :return: padded batch with the shape (B, Tmax, D)
+    :rtype: ndarray
+    """
+    bs = len(batch)
+    maxlen = max([b.shape[0] for b in batch])
+    if len(batch[0].shape) >= 2:
+        batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
+    else:
+        batch_pad = np.zeros((bs, maxlen))
+    batch_pad.fill(pad_value)
+    for i, b in enumerate(batch):
+        batch_pad[i, :b.shape[0]] = b
+
+    return batch_pad
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
@@ -486,12 +524,17 @@ def decode(args):
 
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
-    torch.set_grad_enabled(False)
+    # TODO(kan-bayashi): need to be fixed in pytorch v4
+    if not torch_is_old:
+        torch.set_grad_enabled(False)
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
             x = torch.from_numpy(x)
+            # TODO(kan-bayashi): need to be fixed in pytorch v4
+            if torch_is_old:
+                x = Variable(x, volatile=True)
             if args.ngpu > 0:
                 x = x.cuda()
             outs, probs, att_ws = tacotron2.inference(x)
