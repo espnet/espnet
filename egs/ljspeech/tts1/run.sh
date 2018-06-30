@@ -243,10 +243,7 @@ if [ ${stage} -le 4 ];then
     echo "stage 4: Decoding"
     for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
-        # create split json
-        data2json.sh --feat dump/${sets}/delta${do_delta}/feats.scp \
-            data/${sets} ${dict} > ${outdir}/${sets}/data.json
-        splitjson.py -n $nj ${outdir}/${sets}/data.json
+        splitjson.py --parts ${nj} ${dumpdir}/${sets}/delta${do_delta}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
             bts_decode.py \
@@ -254,7 +251,7 @@ if [ ${stage} -le 4 ];then
                 --ngpu 0 \
                 --verbose ${verbose} \
                 --out ${outdir}/${sets}/feats.JOB \
-                --json ${outdir}/${sets}/data.JOB.json \
+                --json ${dumpdir}/${sets}/delta${do_delta}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
                 --model-conf ${expdir}/results/model.conf \
                 --threshold ${threshold} \
