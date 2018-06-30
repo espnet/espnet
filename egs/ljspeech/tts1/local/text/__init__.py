@@ -1,4 +1,6 @@
 """ from https://github.com/keithito/tacotron """
+# -*- coding: utf-8 -*-
+
 import re
 from text import cleaners
 from text.symbols import symbols

@@ -12,6 +12,7 @@ the Unidecode library (https://pypi.python.org/pypi/Unidecode)
 the symbols in symbols.py to match your data).
 '''
 
+import sys
 import re
 
 from numbers import normalize_numbers
@@ -58,10 +59,6 @@ def lowercase(text):
     return text.lower()
 
 
-def uppercase(text):
-    return text.upper()
-
-
 def collapse_whitespace(text):
     return re.sub(_whitespace_re, ' ', text)
 
@@ -71,16 +68,23 @@ def convert_to_ascii(text):
 
 
 def remove_unnecessary_symbols(text):
-    text = re.sub(r'[\(\)\[\]\"\']+', '', text)
+    # added
+    text = re.sub(r'[\(\)\[\]\"]+', '', text)
     return text
 
 
 def expand_symbols(text):
+    # added
     text = re.sub("\;", ",", text)
     text = re.sub("\:", ",", text)
-    text = re.sub("-", " ", text)
+    text = re.sub("\-", " ", text)
     text = re.sub("\&", "and", text)
     return text
+
+
+def uppercase(text):
+    # added
+    return text.upper()
 
 
 def basic_cleaners(text):

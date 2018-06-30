@@ -27,15 +27,8 @@ find ${db} -name "*.wav" | sort | while read -r filename;do
     echo "${id} LJ" >> ${utt2spk}
 done
 utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
-
 echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text
-cat ${db}/metadata.csv | while read -r line;do
-    id=$(echo "${line}" | awk -F"|" '{print $1}')
-    content=$(echo "${line}" | awk -F"|" '{print $2}')
-    clean_content=$(PYTHONPATH=local/text local/clean_text.py "${content}")
-    echo "${id} ${clean_content}" >> ${text}
-done
-
+PYTHONPATH=local/text python local/clean_text.py ${data_dir}/metadata.csv
 echo "finished making text."
