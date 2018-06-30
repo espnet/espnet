@@ -3,3 +3,5 @@ cupy>=2.0.0
 python_speech_features>=0.6
 setuptools>=38.5.1
 librosa>=0.6.1
+inflect
+unidecode
