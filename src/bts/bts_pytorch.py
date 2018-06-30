@@ -21,7 +21,7 @@ from chainer.training import extensions
 import kaldi_io_py
 
 from asr_utils import PlotAttentionReport
-from e2e_asr_attctc_th import pad_list
+from e2e_asr_backtrans import pad_list
 from e2e_asr_backtrans import Tacotron2
 from e2e_asr_backtrans import Tacotron2Loss
 
