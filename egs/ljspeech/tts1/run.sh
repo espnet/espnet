@@ -6,17 +6,21 @@
 . ./path.sh
 . ./cmd.sh
 
-# stage setting
+# genearl configuration
 stage=-1
-# gpu setting
-ngpu=1
+ngpu=1       # number of gpu in training
+nj=32        # numebr of parallel jobs
+dumpdir=dump # directory to dump full features
+verbose=0    # verbose option (if set > 1, get more log)
+seed=1       # random seed number
+resume=""    # the snapshot path to resume (if set empty, no effect)
 # feature extraction related
-fs=22050
-fmax=""
-fmin=""
-n_mels=80
-n_fft=1024
-n_shift=512
+fs=22050    # sampling frequency
+fmax=""     # maximum frequency
+fmin=""     # minimum frequency
+n_mels=80   # number of mel basis
+n_fft=1024  # number of fft points
+n_shift=512 # number of shift points
 # encoder related
 embed_dim=512
 elayers=1
@@ -44,30 +48,21 @@ use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=20.0
 # minibatch related
 batchsize=64
-batch_sort_key="" # none or input or output
-maxlen_in=150  # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
-maxlen_out=400 # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
-epochs=200
+batch_sort_key="" # empty or input or output (if empty, shuffled batch will be used)
+maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
+maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
 # optimization related
 lr=1e-3
 eps=1e-6
 weight_decay=0.0
 dropout=0.5
 zoneout=0.1
+epochs=200
 # decoding related
 model=model.loss.best
-threshold=0.5
+threshold=0.5 # threshold to stop the generation
 maxlenratio=10.0
 minlenratio=0.0
-nj=32
-# other
-resume=""
-verbose=0
-seed=1125
-dumpdir=dump   # directory to dump full features
-
-# feature configuration
-do_delta=false # true when using CNN
 
 # root directory of db
 db_root=downloads
@@ -100,9 +95,9 @@ if [ ${stage} -le 0 ]; then
     utils/validate_data_dir.sh --no-feats data/train
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-feat_ev_dir=${dumpdir}/${eval_set}/delta${do_delta}; mkdir -p ${feat_ev_dir}
+feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
+feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
 if [ ${stage} -le 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -110,7 +105,7 @@ if [ ${stage} -le 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    local/make_fbank.sh --cmd "${train_cmd}" --nj 32 \
+    local/make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
         --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
         --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
         data/train exp/make_fbank/train ${fbankdir}
@@ -126,11 +121,11 @@ if [ ${stage} -le 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
@@ -192,11 +187,11 @@ else
     expdir=exp/${train_set}_${tag}
 fi
 if [ ${stage} -le 3 ];then
-    echo "stage 3: Back translator training"
+    echo "stage 3: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        bts_train.py \
+        tts_train.py \
            --ngpu ${ngpu} \
            --outdir ${expdir}/results \
            --verbose ${verbose} \
@@ -243,15 +238,16 @@ if [ ${stage} -le 4 ];then
     echo "stage 4: Decoding"
     for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
-        splitjson.py --parts ${nj} ${dumpdir}/${sets}/delta${do_delta}/data.json
+        cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
+        splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
-            bts_decode.py \
+            tts_decode.py \
                 --backend pytorch \
                 --ngpu 0 \
                 --verbose ${verbose} \
                 --out ${outdir}/${sets}/feats.JOB \
-                --json ${dumpdir}/${sets}/delta${do_delta}/split${nj}utt/data.JOB.json \
+                --json ${outdir}/${sets}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
                 --model-conf ${expdir}/results/model.conf \
                 --threshold ${threshold} \
