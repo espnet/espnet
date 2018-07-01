@@ -28,7 +28,13 @@ if __name__ == '__main__':
 
     ndics = len(ids)
     parts = [x for x in range (0, ndics, ndics // args.parts)]
-    parts[args.parts] = ndics
+
+    if len(parts) == args.parts + 1:
+        parts[args.parts] = ndics
+    elif len(parts) == args.parts:
+        parts += [ndics]
+    else:
+        sys.exit()
 
     filename = os.path.basename(args.json).split('.')[0]
     dirname = os.path.dirname(args.json)
