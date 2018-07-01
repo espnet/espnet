@@ -5,11 +5,11 @@
 
 
 import argparse
-import platform
-import subprocess
 import logging
 import os
+import platform
 import random
+import subprocess
 import sys
 
 from distutils.util import strtobool
