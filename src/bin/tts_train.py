@@ -172,7 +172,7 @@ def main():
     np.random.seed(args.seed)
 
     if args.backend == "pytorch":
-        from bts_pytorch import train
+        from tts_pytorch import train
         train(args)
     else:
         raise NotImplementedError

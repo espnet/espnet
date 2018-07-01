@@ -8,10 +8,10 @@ import torch
 
 from torch.autograd import Variable
 
-from bts_pytorch import pad_ndarray_list
-from e2e_asr_backtrans import Tacotron2
-from e2e_asr_backtrans import Tacotron2Loss
-from e2e_asr_backtrans import torch_is_old
+from e2e_tts_th import Tacotron2
+from e2e_tts_th import Tacotron2Loss
+from e2e_tts_th import torch_is_old
+from tts_pytorch import pad_ndarray_list
 
 
 def make_model_args(**kwargs):

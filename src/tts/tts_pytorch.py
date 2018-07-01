@@ -22,9 +22,9 @@ from torch.autograd import Variable
 import kaldi_io_py
 
 from asr_utils import PlotAttentionReport
-from e2e_asr_backtrans import Tacotron2
-from e2e_asr_backtrans import Tacotron2Loss
-from e2e_asr_backtrans import torch_is_old
+from e2e_tts_th import Tacotron2
+from e2e_tts_th import Tacotron2Loss
+from e2e_tts_th import torch_is_old
 
 import matplotlib
 matplotlib.use('Agg')
