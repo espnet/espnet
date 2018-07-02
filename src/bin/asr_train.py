@@ -37,6 +37,17 @@ def main():
                         help='Output directory for debugging')
     parser.add_argument('--resume', '-r', default='', nargs='?',
                         help='Resume the training from snapshot')
+    parser.add_argument('--modify_output', '-m', default='false', type=bool,
+                        help='Wehether to modify output layer to new language')
+    parser.add_argument('--adapt', '-a', type=bool, default=False,
+                        help='retrain/adapt from the exisitng best model')
+    parser.add_argument('--adaptLayerNames', '-l', type=str, default="AttCtcOut",
+                        choices=['AttOut', 'Out', 'AttCtc', 'AttCtcOut', 'CtcOut'],
+                        help='only retrain these layers from the exisitng best model')
+    parser.add_argument('--freeze', '-f', type=bool, default=False,
+                        help='freeze layers from the exisitng best model')
+    parser.add_argument('--args.noencs_freeze', '-ne', type=int, default=8,
+                        help='No of encoder layers to freeze, multiples of 2')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
@@ -105,6 +116,9 @@ def main():
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
+    # Scheduled sampling flags
+    parser.add_argument('--teacher-forcing-ratio', default=1.0, type=float,
+                        help='probability to use true labels ')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
@@ -117,8 +131,16 @@ def main():
                         help='Batch size is reduced if the output sequence length > ML')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam'],
+                        choices=['adadelta', 'adam', 'sgd'],
                         help='Optimizer')
+    parser.add_argument('--lr', default=1e-3, type=float,
+                        help='Learning rate constant for sgd optimizer')
+    parser.add_argument('--lr_decay', default=1e-1, type=float,
+                        help='Learning rate decay (lr*decay) constant for sgd optimizer')
+    parser.add_argument('--mom', default=0.9, type=float,
+                        help='Momentum constant for sgd optimizer')
+    parser.add_argument('--wd', default=0, type=float,
+                        help='MWeight decay constant for sgd optimizer')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
@@ -174,6 +196,17 @@ def main():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+            elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]):
+                command='nvidia-smi --query-gpu=memory.free,memory.total --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1/$3 > 0.98) print NR-1}\''
+                try:
+                    cvd = str(subprocess.check_output(command, shell=True).rsplit('\n')[0:args.ngpu])
+                    cvd = cvd.replace("]","")
+                    cvd = cvd.replace("[","")
+                    cvd = cvd.replace("'","")
+                    logging.warn(cvd)
+                    os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+                except subprocess.CalledProcessError:
+                    logging.info("No GPU seems to be available")
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
