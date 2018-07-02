@@ -69,7 +69,8 @@ def make_mask(lengths, dim=None):
 
 
 class Reporter(chainer.Chain):
-    def report(self, mse_loss, bce_loss, loss):
+    def report(self, l1_loss, mse_loss, bce_loss, loss):
+        chainer.reporter.report({'l1_loss': l1_loss}, self)
         chainer.reporter.report({'mse_loss': mse_loss}, self)
         chainer.reporter.report({'bce_loss': bce_loss}, self)
         chainer.reporter.report({'loss': loss}, self)
@@ -161,20 +162,24 @@ class Tacotron2Loss(torch.nn.Module):
             logits = logits.masked_select(mask[:, :, 0])
             weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
             # calculate loss
+            l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
             mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
             bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
-            loss = mse_loss + bce_loss
+            loss = l1_loss + mse_loss + bce_loss
         else:
             # calculate loss
+            l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
             mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
             bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
-            loss = mse_loss + bce_loss
+            loss = l1_loss + mse_loss + bce_loss
 
         loss_data = loss.data[0] if torch_is_old else loss.item()
+        l1_loss_data = l1_loss.data[0] if torch_is_old else l1_loss.item()
         bce_loss_data = bce_loss.data[0] if torch_is_old else bce_loss.item()
         mse_loss_data = mse_loss.data[0] if torch_is_old else mse_loss.item()
-        logging.debug("loss = %.3e (bce: %.3e, mse: %.3e)" % (loss_data, bce_loss_data, mse_loss_data))
-        self.reporter.report(mse_loss_data, bce_loss_data, loss_data)
+        logging.debug("loss = %.3e (bce: %.3e, l1: %.3e, mse: %.3e)" % (
+            loss_data, bce_loss_data, l1_loss_data, mse_loss_data))
+        self.reporter.report(l1_loss_data, mse_loss_data, bce_loss_data, loss_data)
 
         return loss
 
