@@ -152,27 +152,51 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 
 class PlotAttentionReport(extension.Extension):
-    def __init__(self, model, data, outdir):
+    def __init__(self, model, data, outdir, converter=None, reverse=False):
         self.data = copy.deepcopy(data)
         self.outdir = outdir
+        self.converter = converter
+        self.reverse = reverse
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
+
+        # TODO(kan-bayashi): clean up this process
         if hasattr(model, "module"):
-            self.att_vis_fn = model.module.predictor.calculate_all_attentions
+            if hasattr(model.module, "predictor"):
+                self.att_vis_fn = model.module.predictor.calculate_all_attentions
+            else:
+                self.att_vis_fn = model.module.calculate_all_attentions
         else:
-            self.att_vis_fn = model.predictor.calculate_all_attentions
+            if hasattr(model, "predictor"):
+                self.att_vis_fn = model.predictor.calculate_all_attentions
+            else:
+                self.att_vis_fn = model.calculate_all_attentions
 
     def __call__(self, trainer):
-        att_ws = self.att_vis_fn(self.data)
+        if self.converter is not None:
+            # TODO(kan-bayashi): need to be fixed due to hard coding
+            x = self.converter([self.data], False)
+        else:
+            x = self.data
+        if isinstance(x, tuple):
+            att_ws = self.att_vis_fn(*x)
+        elif isinstance(x, dict):
+            att_ws = self.att_vis_fn(**x)
+        else:
+            att_ws = self.att_vis_fn(x)
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])
-            if len(att_w.shape) == 3:
-                att_w = att_w[:, :int(self.data[idx][1]['output'][0]['shape'][0]),
-                              :int(self.data[idx][1]['input'][0]['shape'][0])]
+            if self.reverse:
+                dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
+                enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
             else:
-                att_w = att_w[:int(self.data[idx][1]['output'][0]['shape'][0]),
-                              :int(self.data[idx][1]['input'][0]['shape'][0])]
+                dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
+                enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
+            if len(att_w.shape) == 3:
+                att_w = att_w[:, :dec_len, :enc_len]
+            else:
+                att_w = att_w[:dec_len, :enc_len]
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def _plot_and_save_attention(self, att_w, filename):
