@@ -1622,7 +1622,7 @@ def th_accuracy(y_all, pad_target, ignore_label):
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., teacher_forcing_ratio=1.0):
+                 char_list=None, labeldist=None, lsm_weight=0., tf_ratio=1.0):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -1646,7 +1646,7 @@ class Decoder(torch.nn.Module):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
         # for scheduled sampling
-        self.teacher_forcing_ratio = teacher_forcing_ratio
+        self.tf_ratio = tf_ratio
 
     def zero_state(self, hpad):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
@@ -1691,7 +1691,7 @@ class Decoder(torch.nn.Module):
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
 
         # Scheduled sampling
-        use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
+        use_teacher_forcing = True if random.random() < self.tf_ratio else False
         if use_teacher_forcing:
             # Teacher forcing: feed the target as input
             logging.info("USing teacher forcing")
@@ -1719,7 +1719,7 @@ class Decoder(torch.nn.Module):
                         z_list[l - 1], (z_list[l], c_list[l]))
                 z_all.append(z_list[-1])
         z_all = torch.stack(z_all, dim=2).view(batch * olength, self.dunits)
- 
+
        # compute loss
         y_all = self.output(z_all)
         self.loss = F.cross_entropy(y_all, pad_ys_out.view(-1),

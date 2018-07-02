@@ -117,7 +117,7 @@ def main():
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
     # Scheduled sampling flags
-    parser.add_argument('--teacher-forcing-ratio', default=1.0, type=float,
+    parser.add_argument('--tf_ratio', default=1.0, type=float,
                         help='probability to use true labels ')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
