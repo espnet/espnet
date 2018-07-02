@@ -238,7 +238,7 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight, args.teacher_forcing_ratio)
+                           labeldist, args.lsm_weight, args.tf_ratio)
 
         # weight initialization
         self.init_like_chainer()
