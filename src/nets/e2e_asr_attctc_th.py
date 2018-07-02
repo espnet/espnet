@@ -16,6 +16,7 @@ import six
 import torch
 import torch.nn.functional as F
 import warpctc_pytorch as warp_ctc
+import random
 
 from chainer import reporter
 from torch.autograd import Variable
@@ -250,7 +251,7 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight)
+                           labeldist, args.lsm_weight, args.tf_ratio)
 
         # weight initialization
         self.init_like_chainer()
@@ -1634,7 +1635,7 @@ def th_accuracy(y_all, pad_target, ignore_label):
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0.):
+                 char_list=None, labeldist=None, lsm_weight=0., tf_ratio=1.0):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -1657,6 +1658,8 @@ class Decoder(torch.nn.Module):
         self.labeldist = labeldist
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
+        # for scheduled sampling
+        self.tf_ratio = tf_ratio
 
     def zero_state(self, hpad):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
@@ -1700,18 +1703,37 @@ class Decoder(torch.nn.Module):
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
 
-        # loop for an output sequence
-        for i in six.moves.range(olength):
-            att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
-            ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
-            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-            z_all.append(z_list[-1])
+        # Scheduled sampling
+        use_teacher_forcing = True if random.random() < self.tf_ratio else False
+        if use_teacher_forcing:
+            # Teacher forcing: feed the target as input
+            logging.info("USing teacher forcing")
+            # loop for an output sequence
+            for i in six.moves.range(olength):
+                att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
+                ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
+                z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
+                for l in six.moves.range(1, self.dlayers):
+                    z_list[l], c_list[l] = self.decoder[l](
+                        z_list[l - 1], (z_list[l], c_list[l]))
+                z_all.append(z_list[-1])
+        else:
+            # Sched. sampling: feed its own predictions as inpu
+            logging.info("Using scheduled sampling")
+            # loop for an output sequence
+            for i in six.moves.range(1):
+                att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
+                ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
+            for i in six.moves.range(olength):
+                z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
+                ey = torch.cat((z_list[0], att_c), dim=1)
+                for l in six.moves.range(1, self.dlayers):
+                    z_list[l], c_list[l] = self.decoder[l](
+                        z_list[l - 1], (z_list[l], c_list[l]))
+                z_all.append(z_list[-1])
+        z_all = torch.stack(z_all, dim=2).view(batch * olength, self.dunits)
 
-        z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
-        # compute loss
+       # compute loss
         y_all = self.output(z_all)
         self.loss = F.cross_entropy(y_all, pad_ys_out.view(-1),
                                     ignore_index=self.ignore_id,
