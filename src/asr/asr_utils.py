@@ -11,10 +11,9 @@ import os
 import chainer
 from chainer import training
 from chainer.training import extension
+import math
 import torch
 from torch.nn.parameter import Parameter
-import math
-
 
 # io related
 import kaldi_io_py
@@ -207,8 +206,10 @@ def load_labeldict(dict_file):
         labeldict['<eos>'] = len(labeldict)
     return labeldict
 
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 def freeze_parameters(model, elayers, *freeze_layer):
     size = 0
@@ -221,22 +222,23 @@ def freeze_parameters(model, elayers, *freeze_layer):
                 for enc_name, enc_module in module.named_children():
                     for enc_layer_name, enc_layer_module in enc_module.named_children():
                         count += 1
-                        if count <= elayers:
-                            logging.info(str(enc_layer_name)+ " components is frozen")
+                        if count <= int(elayers):
+                            logging.info(str(enc_layer_name) + " components is frozen")
                             for mname, param in module.named_parameters():
                                 param.requires_grad = False
                                 size += param.numel()
                         else:
-                            logging.info(str(enc_layer_name)+ " components is not frozen")
+                            logging.info(str(enc_layer_name) + " components is not frozen")
             elif name not in freeze_layer and name is not 'enc':
                 for mname, param in module.named_parameters():
-                    logging.info(str(mname)+ " components is frozen")
-                    logging.info(str(mname)+ " >> params after re-init")
+                    logging.info(str(mname) + " components is frozen")
+                    logging.info(str(mname) + " >> params after re-init")
                     param.requires_grad = False
                     size += param.numel()
             else:
-                logging.info(str(name)+" components is not frozen" )
+                logging.info(str(name) + " components is not frozen")
     return model, size
+
 
 def sgd_lr_decay(lr_decay):
     '''Extension to perform sgd lr decay'''
@@ -244,6 +246,7 @@ def sgd_lr_decay(lr_decay):
     def sgd_lr_decay(trainer):
         _sgd_lr_decay(trainer, lr_decay)
     return sgd_lr_decay
+
 
 def _sgd_lr_decay(trainer, lr_decay):
     optimizer = trainer.updater.get_optimizer('main')
@@ -258,6 +261,7 @@ def _sgd_lr_decay(trainer, lr_decay):
             p['lr'] *= lr_decay
             logging.info('sgd lr decayed to ' + str(p["lr"]))
 
+
 def init_parameter(weight=None, bias=None):
     if weight is not None:
         stdv = 1. / math.sqrt(weight.size(1))
@@ -266,6 +270,7 @@ def init_parameter(weight=None, bias=None):
         stdv = 1. / math.sqrt(bias.size(0))
         bias.data.uniform_(-stdv, stdv)
     return weight, bias
+
 
 def remove_output_layer(pretrained_model, odim, eprojs, dunits):
     w = Parameter(torch.Tensor(odim, eprojs).cuda())

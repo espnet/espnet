@@ -23,17 +23,20 @@ from chainer.training import extensions
 import torch
 
 # spnet related
-from asr_utils import sgd_lr_decay, remove_output_layer
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
+from asr_utils import count_parameters
 from asr_utils import delete_feat
+from asr_utils import freeze_parameters
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
-from asr_utils import restore_snapshot, count_parameters, freeze_parameters
-from e2e_asr_attctc_th import E2E
+from asr_utils import remove_output_layer
+from asr_utils import restore_snapshot
+from asr_utils import sgd_lr_decay
 from e2e_asr_attctc_th import Loss
+from e3e_asr_attctc_th import E2E
 
 # for kaldi io
 import kaldi_io_py
@@ -259,7 +262,8 @@ def train(args):
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters())
     elif args.opt == 'sgd':
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr,
+        optimizer = torch.optim.SGD(
+            model.parameters(), lr=args.lr,
             momentum=args.mom, weight_decay=args.wd)
 
     # FIXME: TOO DIRTY HACK

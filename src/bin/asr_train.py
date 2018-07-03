@@ -200,9 +200,9 @@ def main():
                 command='nvidia-smi --query-gpu=memory.free,memory.total --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1/$3 > 0.98) print NR-1}\''
                 try:
                     cvd = str(subprocess.check_output(command, shell=True).rsplit('\n')[0:args.ngpu])
-                    cvd = cvd.replace("]","")
-                    cvd = cvd.replace("[","")
-                    cvd = cvd.replace("'","")
+                    cvd = cvd.replace("]", "")
+                    cvd = cvd.replace("[", "")
+                    cvd = cvd.replace("'", "")
                     logging.warn(cvd)
                     os.environ['CUDA_VISIBLE_DEVICES'] = cvd
                 except subprocess.CalledProcessError:
