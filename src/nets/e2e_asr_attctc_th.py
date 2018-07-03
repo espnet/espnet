@@ -1746,7 +1746,8 @@ class Decoder(torch.nn.Module):
         if self.verbose > 0 and self.char_list is not None:
             y_hat = y_all.view(batch, olength, -1)
             y_true = pad_ys_out
-            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data().cpu().numpy()), y_true.data().cpu().numpy()):
+            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.detach().cpu().numpy()),
+                                            y_true.detach().cpu().numpy()):
                 if i == MAX_DECODER_OUTPUT:
                     break
                 idx_hat = np.argmax(y_hat_[y_true_ != self.ignore_id], axis=1)
