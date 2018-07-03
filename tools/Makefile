@@ -34,7 +34,7 @@ nkf:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
 venv/lib/python2.7/site-packages/torch: venv/bin/activate
-	. venv/bin/activate; pip install pip --upgrade; pip install http://download.pytorch.org/whl/cu80/torch-0.3.1-cp27-cp27mu-linux_x86_64.whl
+	. venv/bin/activate; pip install pip --upgrade; pip install torch
 
 warp-ctc: venv/lib/python2.7/site-packages/torch
 	git clone https://github.com/SeanNaren/warp-ctc.git
