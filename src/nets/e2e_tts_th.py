@@ -154,6 +154,14 @@ class Tacotron2Loss(torch.nn.Module):
                 weights = None
             # masking padded values
             mask = make_mask(olens, ys.size(2))
+            if torch.cuda.is_available():
+                ys = ys.cuda()
+                after_outs = after_outs.cuda()
+                before_outs = before_outs.cuda()
+                labels = labels.cuda()
+                logits = logits.cuda()
+                if weights is not None:
+                    weights = weights.cuda()
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
             before_outs = before_outs.masked_select(mask)

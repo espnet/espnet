@@ -1,6 +1,7 @@
 import chainer
 import torch
 
+from e2e_asr_attctc_th import torch_is_old
 import lm_chainer
 import lm_pytorch
 
@@ -46,7 +47,7 @@ def test_lm():
     # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.W.data, rnnlm_th.predictor.lo.weight.data.numpy())
 
     # test prediction equality
-    if torch.__version__.startswith("0.3."):
+    if torch_is_old:
         x = torch.autograd.Variable(
             torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))),
             volatile=True).long()
