@@ -321,10 +321,10 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        #if self.training:
-        ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
-        #else:
-        #    ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+        if self.training:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+        else:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
 
         if is_aug:
             # Augment Encoder
@@ -338,7 +338,6 @@ class E2E(torch.nn.Module):
                 xpad, ilens = self.aug_enc(xpad, ilens)
                 hpad, hlens = self.enc(xpad, ilens)
             elif self.aug_arch == 2:
-                #hpad, hlens = self.aug_enc(xpad, ilens)
                 raise NotImplementedError("do not use arch 2")
             else:
                 raise NotImplementedError("unknown arch")
@@ -346,28 +345,27 @@ class E2E(torch.nn.Module):
             # subsample frame
             xs = [xx[::self.subsample[0], :] for xx in xs]
             ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-            # if self.training:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
-            #else:
-            #    hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
-
+            if self.training:
+                hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
+            else:
+                hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
 
             # 1. encoder
             xpad = pad_list(hs)
             hpad, hlens = self.enc(xpad, ilens)
 
         # # 3. CTC loss
-        #if self.mtlalpha == 0:
-        #    loss_ctc = None
-        #else:
-        loss_ctc = self.ctc(hpad, hlens, ys)
+        if self.mtlalpha == 0:
+            loss_ctc = None
+        else:
+            loss_ctc = self.ctc(hpad, hlens, ys)
 
         # 4. attention loss
-        #if self.mtlalpha == 1:
-        #    loss_att = None
-        #    acc = None
-        #else:
-        loss_att, acc = self.dec(hpad, hlens, ys)
+        if self.mtlalpha == 1:
+            loss_att = None
+            acc = None
+        else:
+            loss_att, acc = self.dec(hpad, hlens, ys)
 
         return loss_ctc, loss_att, acc
 
