@@ -47,7 +47,7 @@ def main():
     parser.add_argument('--freeze', '-f', type=bool, default=False,
                         help='freeze layers from the exisitng best model')
     parser.add_argument('--args.noencs_freeze', '-ne', type=int, default=8,
-                        help='No of encoder layers to freeze, multiples of 2')
+                        help='No of encoder layers to freeze, multiples of 2 for blstmp')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
@@ -197,7 +197,8 @@ def main():
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
             elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]):
-                command='nvidia-smi --query-gpu=memory.free,memory.total --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1/$3 > 0.98) print NR-1}\''
+                command = 'nvidia-smi --query-gpu=memory.free,memory.total \
+                --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1/$3 > 0.98) print NR-1}\''
                 try:
                     cvd = str(subprocess.check_output(command, shell=True).rsplit('\n')[0:args.ngpu])
                     cvd = cvd.replace("]", "")

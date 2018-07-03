@@ -35,8 +35,8 @@ from asr_utils import PlotAttentionReport
 from asr_utils import remove_output_layer
 from asr_utils import restore_snapshot
 from asr_utils import sgd_lr_decay
-from e2e_asr_attctc_th import Loss
 from e2e_asr_attctc_th import E2E
+from e2e_asr_attctc_th import Loss
 
 # for kaldi io
 import kaldi_io_py
