@@ -95,6 +95,20 @@ class ClassifierWithState(nn.Module):
             reporter.report({'accuracy': self.accuracy}, self)
         return state, self.loss
 
+    def predict(self, state, x):
+        """Predict log probabilities for given state and input x using the predictor
+
+        Returns:
+            any type: new state
+            TorchTensor: log probability vector
+
+        """
+        if hasattr(self.predictor, 'normalized') and self.predictor.normalized:
+            return self.predictor(state, x)
+        else:
+            state, z = self.predictor(state, x)
+            return state, F.log_softmax(z, dim=1).data
+
 
 class RNNLM(nn.Module):
 

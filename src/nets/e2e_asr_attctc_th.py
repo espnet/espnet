@@ -26,6 +26,9 @@ from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
+
+torch_is_old = torch.__version__.startswith("0.3.")
+
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -141,10 +144,6 @@ class Loss(torch.nn.Module):
 
 
 def pad_list(xs, pad_value=float("nan")):
-    # if torch_is_old:
-    #     assert isinstance(xs[0], Variable), type(xs[0])
-    # else:
-    #     assert isinstance(xs[0], torch.Tensor), type(xs[0])
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
     if torch_is_old:
@@ -163,6 +162,7 @@ def pad_list(xs, pad_value=float("nan")):
 
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
+
     return pad
 
 
@@ -1844,8 +1844,7 @@ class Decoder(torch.nn.Module):
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
                 if rnnlm:
-                    rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], vy)
-                    local_lm_scores = F.log_softmax(z_rnnlm, dim=1).data
+                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
                     local_scores = local_att_scores
