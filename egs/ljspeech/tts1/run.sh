@@ -45,7 +45,7 @@ use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
 use_residual=false  # whether to concatenate encoder embedding with decoder lstm outputs
 use_masking=true    # whether to mask the padded part in loss calculation
-bce_pos_weight=20.0
+bce_pos_weight=1.0
 # minibatch related
 batchsize=32
 batch_sort_key="" # empty or input or output (if empty, shuffled batch will be used)
@@ -60,7 +60,7 @@ zoneout=0.1
 epochs=200
 # decoding related
 model=model.loss.best
-threshold=0.5 # threshold to stop the generation
+threshold=0.7 # threshold to stop the generation
 maxlenratio=10.0
 minlenratio=0.0
 
