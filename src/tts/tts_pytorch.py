@@ -417,9 +417,12 @@ def train(args):
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
+                                          'main/l1_loss', 'validation/main/l1_loss',
                                           'main/mse_loss', 'validation/main/mse_loss',
                                           'main/bce_loss', 'validation/main/bce_loss'],
                                          'epoch', file_name='loss.png'))
+    trainer.extend(extensions.PlotReport(['main/l1_loss', 'validation/main/l1_loss'],
+                                         'epoch', file_name='l1_loss.png'))
     trainer.extend(extensions.PlotReport(['main/mse_loss', 'validation/main/mse_loss'],
                                          'epoch', file_name='mse_loss.png'))
     trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
@@ -435,8 +438,11 @@ def train(args):
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
-    report_keys = ['epoch', 'iteration', 'elapsed_time', 'main/loss', 'main/mse_loss', 'main/bce_loss',
-                   'validation/main/loss', 'validation/main/mse_loss', 'validation/main/bce_loss']
+    report_keys = ['epoch', 'iteration', 'elapsed_time',
+                   'main/loss', 'main/l1_loss',
+                   'main/mse_loss', 'main/bce_loss',
+                   'validation/main/loss', 'validation/main/l1_loss',
+                   'validation/main/mse_loss', 'validation/main/bce_loss']
     trainer.extend(extensions.PrintReport(report_keys), trigger=(100, 'iteration'))
     trainer.extend(extensions.ProgressBar())
 
