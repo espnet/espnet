@@ -368,7 +368,6 @@ def train(args):
     #train_reader = lazy_io.read_dict_scp(args.train_feat)
     #valid_reader = lazy_io.read_dict_scp(args.valid_feat)
     if os.path.exists(args.train_aug) and args.use_aug:
-        print('im here', gpu_id)
         with codecs.open(args.train_aug, 'rb', encoding='utf-8') as f:
             augment_json = json.load(f)['aug']
         train_augment, meta = make_augment_batchset(augment_json, args.batch_size,

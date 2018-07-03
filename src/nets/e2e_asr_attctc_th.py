@@ -26,6 +26,8 @@ from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
+import pdb
+
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -328,7 +330,6 @@ class E2E(torch.nn.Module):
 
         if is_aug:
             # Augment Encoder
-            #xs = [xx[::self.subsample[0], :] for xx in xs]
             xs = [torch.from_numpy(xx) for xx in xs]
             ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
             padded_xs = aug_pad_list(xs, 0)

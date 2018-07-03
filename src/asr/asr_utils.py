@@ -44,7 +44,6 @@ def make_augment_batchset(data, batch_size,
     if subsample == 1:
         len_fac = 1
     else:
-        print("Subsample: ", subsample)
         len_fac = np.prod([int(i) for i in subsample.split('_')])
     # change batchsize depending on the input and output length
     minibatches = []
@@ -67,7 +66,6 @@ def make_augment_batchset(data, batch_size,
 
 
 def converter_augment(batch, idict, odict, ifile, ofile, expand_iline):
-    print('converter_augment')
     converted_batch = []
     for b_idx, b_obj in batch:
         ifile.seek(b_obj['ioffset'])
@@ -135,7 +133,6 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
 # and remove the data dump process in run.sh
 def converter_kaldi(batch, device=None):
     # batch only has one minibatch utterance, which is specified by batch[0]
-    print('kaldi converter_kaldi')
     batch = batch[0]
     for data in batch:
         feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])
