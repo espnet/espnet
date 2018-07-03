@@ -118,5 +118,3 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     assert att_ws.shape[0] == bs
     assert att_ws.shape[1] == max(olens)
     assert att_ws.shape[2] == max(ilens)
-    if not torch_is_old:
-        torch.set_grad_enabled(True)
