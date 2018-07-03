@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 
-ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition.
+ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition, and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine, 
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
@@ -20,6 +20,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
 - State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Moderate performance in standard English benchmarks
+- Tacotron2 based end-to-end TTS (new!)
 
 ## Requirements
 - Python2.7+  
@@ -235,6 +236,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | VGG-like encoder | supported | no support |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
+| TTS recipe suuport | no support | supported |
 
 ## References (Please cite the following articles)
 [1] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)

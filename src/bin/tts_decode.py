@@ -1,20 +1,12 @@
 #!/usr/bin/env python
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
-# This code is ported from the following implementation written in Torch.
-# https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
-
-from __future__ import division
-from __future__ import print_function
 
 import argparse
 import logging
-import numpy as np
 import os
 import platform
-import random
 import subprocess
 import sys
 
@@ -26,38 +18,27 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
-    parser.add_argument('--backend', default='chainer', type=str,
+    parser.add_argument('--backend', default='pytorch', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
-    parser.add_argument('--outdir', type=str, required=True,
-                        help='Output directory')
-    parser.add_argument('--debugmode', default=1, type=int,
-                        help='Debugmode')
-    parser.add_argument('--dict', type=str, required=True,
-                        help='Dictionary')
-    parser.add_argument('--seed', default=1, type=int,
-                        help='Random seed')
-    parser.add_argument('--minibatches', '-N', type=int, default='-1',
-                        help='Process only N minibatches (for debug)')
+    parser.add_argument('--out', type=str, required=True,
+                        help='Output filename')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--train-label', type=str, required=True,
+    parser.add_argument('--json', type=str, required=True,
                         help='Filename of train label data (json)')
-    parser.add_argument('--valid-label', type=str, required=True,
-                        help='Filename of validation label data (json)')
-    # LSTMLM training configuration
-    parser.add_argument('--batchsize', '-b', type=int, default=2048,
-                        help='Number of examples in each mini-batch')
-    parser.add_argument('--bproplen', '-l', type=int, default=35,
-                        help='Number of words in each mini-batch '
-                             '(= length of truncated BPTT)')
-    parser.add_argument('--epoch', '-e', type=int, default=20,
-                        help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gradclip', '-c', type=float, default=5,
-                        help='Gradient norm threshold to clip')
-    parser.add_argument('--unit', '-u', type=int, default=650,
-                        help='Number of LSTM units in each layer')
+    parser.add_argument('--model', type=str, required=True,
+                        help='Model file parameters to read')
+    parser.add_argument('--model-conf', type=str, required=True,
+                        help='Model config file')
+    # decoding related
+    parser.add_argument('--maxlenratio', type=float, default=5,
+                        help='Maximum length ratio in decoding')
+    parser.add_argument('--minlenratio', type=float, default=0,
+                        help='Minimum length ratio in decoding')
+    parser.add_argument('--threshold', type=float, default=0.5,
+                        help='Threshold value in decoding')
     args = parser.parse_args()
 
     # logging info
@@ -85,6 +66,7 @@ def main():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+        # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
@@ -101,28 +83,13 @@ def main():
     # display PYTHONPATH
     logging.info('python path = ' + os.environ['PYTHONPATH'])
 
-    # seed setting
-    nseed = args.seed
-    random.seed(nseed)
-    np.random.seed(nseed)
-
-    # load dictionary
-    with open(args.dict, 'rb') as f:
-        dictionary = f.readlines()
-    char_list = [entry.decode('utf-8').split(' ')[0] for entry in dictionary]
-    char_list.insert(0, '<blank>')
-    char_list.append('<eos>')
-    args.char_list_dict = {x: i for i, x in enumerate(char_list)}
-    args.n_vocab = len(char_list)
-
-    # train
+    # extract
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from lm_chainer import train
-        train(args)
+        raise NotImplementedError
     elif args.backend == "pytorch":
-        from lm_pytorch import train
-        train(args)
+        from tts_pytorch import decode
+        decode(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")
 
