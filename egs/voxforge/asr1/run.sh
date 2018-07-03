@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
@@ -22,7 +22,7 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
+etype=blstmp     # encoder architecture type
 elayers=4
 eunits=320
 eprojs=320
@@ -57,7 +57,7 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 
 # data
 voxforge=downloads # original data directory to be stored
-lang=it # de, en, es, fr, it, nl, pt, ru
+lang=pt # de, en, es, fr, it, nl, pt, ru
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -127,12 +127,12 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{13,14,15,16}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{13,14,15,16}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
