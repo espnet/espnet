@@ -27,8 +27,6 @@ elayers=8
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# loss related
-ctctype=chainer
 # decoder related
 dlayers=1
 dunits=300
@@ -84,11 +82,6 @@ if [ ! -z $gpu ]; then
     else
         ngpu=1
     fi
-fi
-
-# only for CLSP
-if [[ $(hostname -f) == *.clsp.jhu.edu ]] ; then
-    export CUDA_VISIBLE_DEVICES=$(/usr/local/bin/free-gpu -n $ngpu)
 fi
 
 # Set bash to 'debug' mode, it will exit on :
@@ -185,6 +178,12 @@ if [ ${stage} -le 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+            ${feat_recog_dir}
+    done
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
@@ -203,10 +202,15 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+            data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+    done
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_ctc${ctctype}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -228,16 +232,13 @@ if [ ${stage} -le 3 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-feat scp:${feat_tr_dir}/feats.scp \
-        --valid-feat scp:${feat_dt_dir}/feats.scp \
-        --train-label ${feat_tr_dir}/data.json \
-        --valid-label ${feat_dt_dir}/data.json \
+        --train-json ${feat_tr_dir}/data.json \
+        --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
-        --ctc_type ${ctctype} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
@@ -258,20 +259,10 @@ if [ ${stage} -le 4 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        data=data/${rtask}
-        split_data.sh --per-utt ${data} ${nj};
-        sdata=${data}/split${nj}utt;
-
-        # feature extraction
-        feats="ark,s,cs:apply-cmvn --norm-vars=true data/${train_set}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-        if ${do_delta}; then
-        feats="$feats add-deltas ark:- ark:- |"
-        fi
-
-        # make json labels for recognition
-        data2json.sh ${data} ${dict} > ${data}/data.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
 
         #### use CPU for decoding
         ngpu=0
@@ -282,8 +273,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

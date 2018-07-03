@@ -8,8 +8,9 @@ import argparse
 import logging
 import os
 import codecs
+import platform
 import random
-import pdb
+import subprocess
 import sys
 
 import numpy as np
@@ -42,13 +43,17 @@ def main():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--train-feat', type=str, required=True,
+    parser.add_argument('--train-feat', type=str, default=None,
                         help='Filename of train feature data (Kaldi scp)')
-    parser.add_argument('--valid-feat', type=str, required=True,
+    parser.add_argument('--valid-feat', type=str, default=None,
                         help='Filename of validation feature data (Kaldi scp)')
-    parser.add_argument('--train-label', type=str, required=True,
+    parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
-    parser.add_argument('--valid-label', type=str, required=True,
+    parser.add_argument('--valid-json', type=str, default=None,
+                        help='Filename of validation label data (json)')
+    parser.add_argument('--train-label', type=str, default=None,
+                        help='Filename of train label data (json)')
+    parser.add_argument('--valid-label', type=str, default=None,
                         help='Filename of validation label data (json)')
     # aug related
     parser.add_argument('--use_aug', type=int, choices=set([0, 1]), default=0,
@@ -63,7 +68,7 @@ def main():
                         help='number of aug batches before audio batches')
     parser.add_argument('--aug-alternate', choices=set([0, 1]), default=1, type=int,
                         help='switch between aug and audio or do only audio')
-    parser.add_argument('--aug-arch', choices=set([0, 1, 2]), default=0, type=int,
+    parser.add_argument('--aug-arch', choices=set([0, 1]), default=0, type=int,
                         help='augmenting arch option')
     parser.add_argument('--aug-layers', default=1, type=int,
                         help='number of layers in the AugmentEncoder')
@@ -85,7 +90,7 @@ def main():
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
     # loss
-    parser.add_argument('--ctc_type', default='chainer', type=str,
+    parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['chainer', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
     # attention
@@ -148,6 +153,8 @@ def main():
                         help='Number of maximum epochs')
     parser.add_argument('--grad-clip', default=5, type=float,
                         help='Gradient norm threshold to clip')
+    parser.add_argument('--num-save-attention', default=3, type=int,
+                        help='Number of samples of attention to be saved')
     args = parser.parse_args()
 
     # logging info
@@ -167,8 +174,34 @@ def main():
         else:
             args.ngpu = 1
 
+    # TODO(nelson) remove in future
+    if (args.train_feat is not None) or \
+       (args.valid_feat is not None) or \
+       (args.train_label is not None) or \
+       (args.valid_label is not None):
+        logging.error(
+            "--train-feat, --valid-feat, --train-label, and valid-label"
+            "options are deprecated, please use --train-json and --valid-json options.")
+        logging.error(
+            "input file format (json) is modified, please redo"
+            "stage 1: Feature Generation")
+        sys.exit(1)
+
     # check CUDA_VISIBLE_DEVICES
     if args.ngpu > 0:
+        # python 2 case
+        if platform.python_version_tuple()[0] == '2':
+            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
+                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
+                logging.info('CLSP: use gpu' + cvd)
+                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+        # python 3 case
+        else:
+            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
+                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
+                logging.info('CLSP: use gpu' + cvd)
+                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
             logging.warn("CUDA_VISIBLE_DEVICES is not set.")

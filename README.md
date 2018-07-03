@@ -23,23 +23,15 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 - Python2.7+  
-- Cuda 8.0 (for the use of GPU)  
-- Cudnn 6 (for the use of GPU)  
+- Cuda 8.0 or 9.1 (for the use of GPU)  
+- Cudnn 6+ (for the use of GPU)  
 - NCCL 2.0+ (for the use of multi-GPUs)
 
+- PyTorch 0.3.x (**no support for PyTorch 0.4.x**)
+- Chainer 4.x+
+
 ## Installation
-
-Install Kaldi, Python libraries and other required tools using system python and virtualenv
-```sh
-$ cd tools
-$ make -j
-```
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
-```sh
-$ cd tools
-$ make -f conda.mk -j
-```
-
+### Step 1) setting of  the environment
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
 ```
@@ -52,7 +44,7 @@ export CUDA_PATH=$CUDAROOT
 ```
 
 If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl) 
-and set paths in your `.bashrc` or `.bash_profile` appropriately, for 
+and set paths in your `.bashrc` or `.bash_profile` appropriately, for example:
 ```
 CUDAROOT=/path/to/cuda
 NCCL_ROOT=/path/to/nccl
@@ -63,21 +55,45 @@ export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
 export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
+
+### Step 2-A) installation with compiled Kaldi
+Install Python libraries and other required tools using system python and virtualenv
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi
+```
+or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi -f conda.mk
+```
+
+### Step 2-B) installation including Kaldi installation
+Install Kaldi, Python libraries and other required tools using system python and virtualenv
+```sh
+$ cd tools
+$ make -j
+```
+or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+```sh
+$ cd tools
+$ make -f conda.mk -j
+```
+
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
 We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
-The following directory is an example of performing ASR experiment with the VoxForge Italian Corpus.
+The following directory is an example of performing ASR experiment with the CMU Census Database (AN4) recipe.
 ```sh
-$ cd egs/voxforge/asr1
+$ cd egs/an4/asr1
 ```
 Once move to the directory, then, execute the following main script with a **chainer** backend:
 ```sh
-$ ./run.sh
+$ ./run.sh --backend chainer
 ```
-or execute the following main script with a **pytorch** backend 
-(currently the pytorch backend does not support VGG-like layers):
+or execute the following main script with a **pytorch** backend:
 ```sh
-$ ./run.sh --backend pytorch --etype blstmp
+$ ./run.sh --backend pytorch
 ```
 With this main script, you can perform a full procedure of ASR experiments including
 - Data download
@@ -86,6 +102,27 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Dictionary and JSON format data preparation
 - Training based on [chainer](https://chainer.org/) or [pytorch](http://pytorch.org/).
 - Recognition and scoring
+
+The training progress (loss and accuracy for training and validation data) can be monitored with the following command
+```
+$ tail -f exp/${expdir}/train.log
+```
+With the default verbose (=0), it gives you the following information
+```
+epoch       iteration   main/loss   main/loss_ctc  main/loss_att  validation/main/loss  validation/main/loss_ctc  validation/main/loss_att  main/acc    validation/main/acc  elapsed_time  eps
+:
+:
+6           89700       63.7861     83.8041        43.768                                                                                   0.731425                         136184        1e-08
+6           89800       71.5186     93.9897        49.0475                                                                                  0.72843                          136320        1e-08
+6           89900       72.1616     94.3773        49.9459                                                                                  0.730052                         136473        1e-08
+7           90000       64.2985     84.4583        44.1386        72.506                94.9823                   50.0296                   0.740617    0.72476              137936        1e-08
+7           90100       81.6931     106.74         56.6462                                                                                  0.733486                         138049        1e-08
+7           90200       74.6084     97.5268        51.6901                                                                                  0.731593                         138175        1e-08
+     total [#################.................................] 35.54%
+this epoch [#####.............................................] 10.84%
+     91300 iter, 7 epoch / 20 epochs
+   0.71428 iters/sec. Estimated time to finish: 2 days, 16:23:34.613215.
+```
 
 ### Use of GPU
 If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
@@ -96,28 +133,38 @@ $ ./run.sh --ngpu 1
 # use multi-gpu
 $ ./run.sh --ngpu 3
 
+# if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows
+# (Note that if you use slurm, this specification is not needed)
+$ CUDA_VISIBLE_DEVICES=0,1,2 ./run.sh --ngpu 3
+
 # use cpu
 $ ./run.sh --ngpu 0
 ```
-Default setup uses CPU (`--ngpu 0`).  
+Default setup uses CPU (`--ngpu 0`).
 
 Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) 
 is required before setup.
+
+### Error due to ACS (Multiple GPUs)
+When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
+Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
+To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
 
 ### Docker Container
 To work inside a docker container, execute `run.sh` located inside the docker directory.
 It will build a container and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
 ```sh
 $ cd docker
-$ ./run.sh [--docker_gpu 0 --docker_egs chime4 --docker_folders /export/corpora4/CHiME4/CHiME3] --dlayers 1 --ngpu 1 
+$ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpora4/CHiME4/CHiME3 --dlayers 1 --ngpu 1 
 ```
+Optionally, you can set the CUDA and CUDNN version with the arguments `--docker_cuda` and `--docker_cudnn` respectively (default version set at CUDA=9.0 and CUDNN=7). The docker container can be built based on the CUDA and CUDNN version installed in your computer if you empty this arguments.
 The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
 Multiple GPUs should be specified with the following options:
 ```sh
 $ cd docker
-$ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5 --docker_folders /export/corpora4/CHiME5 --ngpu 3
+$ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5/asr1 --docker_folders /export/corpora4/CHiME5 --ngpu 3
 ```
-Note that all experimental files and results are created under the normal example directories (`egs/<example>/asr1/`).
+Note that all experimental files and results are created under the normal example directories (`egs/<example>/`).
 
 ### Setup in your cluster
 Change `cmd.sh` according to your cluster setup.
@@ -138,10 +185,29 @@ ImportError: numpy.core.multiarray failed to import
 ```
 Then, please reinstall matplotlib with the following command:
 ```sh
-$ cd egs/voxforge/asr1
+$ cd egs/an4/asr1
 $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
+
+## CTC, attention, and hybrid CTC/attention
+ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
+
+```sh
+# hybrid CTC/attention (default)
+#  --mtlalpha 0.5 and --ctc_weight 0.3 in most cases
+$ ./run.sh
+
+# CTC mode
+$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model loss.best
+
+# attention mode
+$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
+```
+
+The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value 
+(i.e., `--recog_model loss.best`).
+About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
 
 ## Results
 
@@ -149,16 +215,15 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 | 5.3 | 12.4 |
-| WSJ eval92| 3.6 |  8.9 |
+| WSJ dev93 | 4.9 | 10.9 |
+| WSJ eval92| 3.1 |  7.1 |
 | CSJ eval1 | 8.5 | N/A  |
 | CSJ eval2 | 6.1 | N/A  |
 | CSJ eval3 | 6.8 | N/A  |
 | HKUST train_dev | 29.7 | N/A  |
 | HKUST dev       | 28.3 | N/A  |
-| Librispeech dev_clean  | 2.9 | 7.7 |
-| Librispeech test_clean | 2.7 | 7.7 |
-
+| Librispeech dev_clean  | 2.7 | 7.2 |
+| Librispeech test_clean | 2.6 | 7.1 |
 
 ## Chainer and Pytorch backends
 
@@ -166,7 +231,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | Performance | ◎ | ○ |
 | Speed | ○ | ◎ |
-| Multi-GPU | supported | no support |
+| Multi-GPU | supported | supported |
 | VGG-like encoder | supported | no support |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |

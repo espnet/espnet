@@ -8,7 +8,7 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin
 . $KALDI_ROOT/tools/config/common_path.sh
 export LC_ALL=C
 
-export PATH=$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PATH
+export PATH=$MAIN_ROOT/tools/sentencepiece/src:$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 source $MAIN_ROOT/tools/venv/bin/activate
 export PYTHONPATH=$SPNET_ROOT/lm/:$SPNET_ROOT/asr/:$SPNET_ROOT/nets/:$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH

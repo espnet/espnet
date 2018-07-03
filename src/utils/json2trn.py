@@ -37,10 +37,10 @@ if __name__ == '__main__':
     r = open(args.ref, 'w')
 
     for x in j['utts']:
-        seq = [char_list[int(i)] for i in j['utts'][x]['rec_tokenid'].split()]
+        seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['rec_tokenid'].split()]
         h.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
         h.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x +")\n")
 
-        seq = [char_list[int(i)] for i in j['utts'][x]['tokenid'].split()]
+        seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid'].split()]
         r.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
         r.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x +")\n")

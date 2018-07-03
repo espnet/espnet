@@ -17,3 +17,11 @@ exp/tr_it_d1_debug_chainer/decode_dt_it_beam20_eacc.best_p0_len0.2-0.8/result.tx
 exp/tr_it_d1_debug_chainer/decode_dt_it_beam20_eacc.best_p0_len0.2-0.8/result.txt:| Sum/Avg               | 1082   79133 | 88.3    6.1    5.6    3.2   14.9   98.9 |
 exp/tr_it_d1_debug_chainer/decode_et_it_beam20_eacc.best_p0_len0.2-0.8/result.txt:| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 exp/tr_it_d1_debug_chainer/decode_et_it_beam20_eacc.best_p0_len0.2-0.8/result.txt:| Sum/Avg               | 1055   77966 | 88.4    6.0    5.6    2.9   14.5   98.9 |
+
+# change several update including ctc/attention decoding, label smoothing, and fixed search parameters
+write a CER (or TER) result in exp/tr_it_debug_alpha0.5/decode_dt_it_beam20_eacc.best_p0_len0.0-0.0_ctcw0.5/result.txt
+| SPKR                  | # Snt   # Wrd | Corr     Sub    Del     Ins    Err   S.Err |
+| Sum/Avg               | 1082    79133 | 89.6     5.5    5.0     2.5   12.9    98.2 |
+write a CER (or TER) result in exp/tr_it_debug_alpha0.5/decode_et_it_beam20_eacc.best_p0_len0.0-0.0_ctcw0.5/result.txt
+| SPKR                  | # Snt   # Wrd | Corr     Sub    Del     Ins    Err   S.Err |
+| Sum/Avg               | 1055    77966 | 89.7     5.5    4.8     2.3   12.6    98.4 |

@@ -6,7 +6,6 @@
 from __future__ import division
 
 import collections
-import copy
 import json
 import logging
 import math
@@ -14,13 +13,12 @@ import multiprocessing
 import os
 import pickle
 import six
+import sys
 
 # chainer related
 import chainer
-import cupy
 
 from chainer import cuda
-from chainer import function
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -34,16 +32,18 @@ from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
+from asr_utils import load_labeldict
 from asr_utils import make_batchset
+from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_attctc import E2E
 from e2e_asr_attctc import Loss
 
 # for kaldi io
 import kaldi_io_py
-import lazy_io
 
 # rnnlm
+import extlm_chainer
 import lm_chainer
 
 # numpy related
@@ -52,57 +52,12 @@ import numpy as np
 matplotlib.use('Agg')
 
 
-class ChainerSeqEvaluaterKaldi(extensions.Evaluator):
-    '''Custom evaluater with Kaldi reader for chainer'''
-
-    def __init__(self, iterator, target, reader, device):
-        super(ChainerSeqEvaluaterKaldi, self).__init__(
-            iterator, target, device=device)
-        self.reader = reader
-
-    # The core part of the update routine can be customized by overriding.
-    def evaluate(self):
-        '''evaluate over iterator'''
-        iterator = self._iterators['main']
-        eval_func = self.eval_func or self._targets['main']
-
-        if self.eval_hook:
-            self.eval_hook(self)
-
-        if hasattr(iterator, 'reset'):
-            iterator.reset()
-            it = iterator
-        else:
-            it = copy.copy(iterator)
-
-        summary = reporter_module.DictSummary()
-
-        # for multi gpu calculation
-        chainer.cuda.get_device_from_id(self.device).use()
-        for batch in it:
-            observation = {}
-            with reporter_module.report_scope(observation):
-                # read scp files
-                # x: original json with loaded features
-                #    will be converted to chainer variable later
-                # batch only has one minibatch utterance, which is specified by batch[0]
-                x = converter_kaldi(batch[0], self.reader)
-                with function.no_backprop_mode():
-                    eval_func(x)
-                    delete_feat(x)
-
-            summary.add(observation)
-
-        return summary.compute_mean()
-
-
 class ChainerSeqUpdaterKaldi(training.StandardUpdater):
-    '''Custom updater with Kaldi reader for chainer'''
+    '''Custom updater for chainer'''
 
-    def __init__(self, train_iter, optimizer, reader, device):
+    def __init__(self, train_iter, optimizer, converter, device):
         super(ChainerSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, device=device)
-        self.reader = reader
+            train_iter, optimizer, converter=converter, device=device)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -117,8 +72,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
-        # batch only has one minibatch utterance, which is specified by batch[0]
-        x = converter_kaldi(batch[0], self.reader)
+        x = self.converter(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(x)
@@ -126,7 +80,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = np.sqrt(self._sum_sqnorm(
+        grad_norm = np.sqrt(sum_sqnorm(
             [p.grad for p in optimizer.target.params(False)]))
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
@@ -135,24 +89,13 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
             optimizer.update()
         delete_feat(x)
 
-    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-    def _sum_sqnorm(self, arr):
-        sq_sum = collections.defaultdict(float)
-        for x in arr:
-            with cuda.get_device_from_array(x) as dev:
-                x = x.ravel()
-                s = x.dot(x)
-                sq_sum[int(dev)] += s
-        return sum([float(i) for i in six.itervalues(sq_sum)])
-
 
 class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessParallelUpdater):
-    '''Custom parallel updater with Kaldi reader for chainer'''
+    '''Custom parallel updater for chainer'''
 
-    def __init__(self, train_iters, optimizer, reader, devices):
+    def __init__(self, train_iters, optimizer, converter, devices):
         super(ChainerMultiProcessParallelUpdaterKaldi, self).__init__(
-            train_iters, optimizer, devices=devices)
-        self.reader = reader
+            train_iters, optimizer, converter=converter, devices=devices)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -160,12 +103,13 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
 
         self._send_message(('update', None))
         with cuda.Device(self._devices[0]):
+            from cupy.cuda import nccl
             # For reducing memory
             self._master.cleargrads()
 
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
-            x = converter_kaldi(batch[0], self.reader)
+            x = self.converter(batch)
 
             loss = self._master(x)
 
@@ -178,14 +122,14 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             if self.comm is not None:
                 gg = gather_grads(self._master)
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 cupy.cuda.nccl.NCCL_FLOAT,
-                                 cupy.cuda.nccl.NCCL_SUM,
+                                 nccl.NCCL_FLOAT,
+                                 nccl.NCCL_SUM,
                                  0, null_stream.ptr)
                 scatter_grads(self._master, gg)
                 del gg
 
             # check gradient value
-            grad_norm = np.sqrt(self._sum_sqnorm(
+            grad_norm = np.sqrt(sum_sqnorm(
                 [p.grad for p in optimizer.target.params(False)]))
             logging.info('grad norm={}'.format(grad_norm))
 
@@ -197,7 +141,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
 
             if self.comm is not None:
                 gp = gather_params(self._master)
-                self.comm.bcast(gp.data.ptr, gp.size, cupy.cuda.nccl.NCCL_FLOAT,
+                self.comm.bcast(gp.data.ptr, gp.size, nccl.NCCL_FLOAT,
                                 0, null_stream.ptr)
 
             delete_feat(x)
@@ -216,22 +160,25 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             self._pipes.append(pipe)
 
         with cuda.Device(self._devices[0]):
+            from cupy.cuda import nccl
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:
-                comm_id = cupy.cuda.nccl.get_unique_id()
+                comm_id = nccl.get_unique_id()
                 self._send_message(("set comm_id", comm_id))
-                self.comm = cupy.cuda.nccl.NcclCommunicator(len(self._devices),
-                                                            comm_id, 0)
+                self.comm = nccl.NcclCommunicator(len(self._devices),
+                                                  comm_id, 0)
 
-    # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-    def _sum_sqnorm(self, arr):
-        sq_sum = collections.defaultdict(float)
-        for x in arr:
-            with cuda.get_device_from_array(x) as dev:
+
+# copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
+def sum_sqnorm(arr):
+    sq_sum = collections.defaultdict(float)
+    for x in arr:
+        with cuda.get_device_from_array(x) as dev:
+            if x is not None:
                 x = x.ravel()
                 s = x.dot(x)
                 sq_sum[int(dev)] += s
-        return sum([float(i) for i in six.itervalues(sq_sum)])
+    return sum([float(i) for i in six.itervalues(sq_sum)])
 
 
 class CustomWorker(multiprocessing.Process):
@@ -241,21 +188,22 @@ class CustomWorker(multiprocessing.Process):
         self.proc_id = proc_id
         self.pipe = pipe
         self.model = master._master
-        self.reader = master.reader
         self.device = master._devices[proc_id]
         self.iterator = master._mpu_iterators[proc_id]
         self.n_devices = len(master._devices)
 
     def setup(self):
+        from cupy.cuda import nccl
         _, comm_id = self.pipe.recv()
-        self.comm = cupy.cuda.nccl.NcclCommunicator(self.n_devices, comm_id,
-                                                    self.proc_id)
+        self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
+                                          self.proc_id)
 
         self.model.to_gpu(self.device)
         self.reporter = reporter_module.Reporter()
         self.reporter.add_observer('main', self.model)
 
     def run(self):
+        from cupy.cuda import nccl
         dev = cuda.Device(self.device)
         dev.use()
         self.setup()
@@ -270,7 +218,7 @@ class CustomWorker(multiprocessing.Process):
                 self.model.cleargrads()
 
                 batch = self.iterator.next()
-                x = converter_kaldi(batch[0], self.reader)
+                x = converter_kaldi(batch)
                 observation = {}
                 with self.reporter.scope(observation):
                     loss = self.model(x)
@@ -284,14 +232,14 @@ class CustomWorker(multiprocessing.Process):
                 gg = gather_grads(self.model)
                 null_stream = cuda.Stream.null
                 self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 cupy.cuda.nccl.NCCL_FLOAT,
-                                 cupy.cuda.nccl.NCCL_SUM, 0,
+                                 nccl.NCCL_FLOAT,
+                                 nccl.NCCL_SUM, 0,
                                  null_stream.ptr)
                 del gg
                 self.model.cleargrads()
                 gp = gather_params(self.model)
                 self.comm.bcast(gp.data.ptr, gp.size,
-                                cupy.cuda.nccl.NCCL_FLOAT, 0,
+                                nccl.NCCL_FLOAT, 0,
                                 null_stream.ptr)
                 scatter_params(self.model, gp)
                 gp = None
@@ -329,17 +277,34 @@ def train(args):
         logging.warning('cudnn is not available')
 
     # get input and output dimension info
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['idim'])
-    odim = int(valid_json[utts[0]]['odim'])
+    # TODO(nelson) remove in future
+    if 'input' not in valid_json[utts[0]]:
+        logging.error(
+            "input file format (json) is modified, please redo"
+            "stage 2: Dictionary and Json Data Preparation")
+        sys.exit(1)
+    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
+    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
     # check attention type
     if args.atype not in ['noatt', 'dot', 'location']:
         raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
+
+    # specify attention, CTC, hybrid mode
+    if args.mtlalpha == 1.0:
+        mtl_mode = 'ctc'
+        logging.info('Pure CTC mode')
+    elif args.mtlalpha == 0.0:
+        mtl_mode = 'att'
+        logging.info('Pure attention mode')
+    else:
+        mtl_mode = 'mtl'
+        logging.info('Multitask learning mode')
 
     # specify model architecture
     e2e = E2E(idim, odim, args)
@@ -366,11 +331,12 @@ def train(args):
         logging.info('single gpu calculation.')
     elif ngpu > 1:
         gpu_id = 0
-        args.batch_size = math.ceil(args.batch_size / ngpu)
         devices = {'main': gpu_id}
         for gid in six.moves.xrange(1, ngpu):
             devices['sub_%d' % gid] = gid
         logging.info('multi gpu calculation (#gpus = %d).' % ngpu)
+        logging.info('batch size is automatically increased (%d -> %d)' % (
+            args.batch_size, args.batch_size * args.ngpu))
     else:
         gpu_id = -1
         logging.info('cpu calculation')
@@ -384,14 +350,10 @@ def train(args):
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
     # read json data
-    with open(args.train_label, 'rb') as f:
+    with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
-    with open(args.valid_label, 'rb') as f:
+    with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
-
-    # prepare Kaldi reader
-    train_reader = lazy_io.read_dict_scp(args.train_feat)
-    valid_reader = lazy_io.read_dict_scp(args.valid_feat)
 
     # set up training iterator and updater
     if ngpu <= 1:
@@ -404,7 +366,7 @@ def train(args):
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
-            train_iter, optimizer, train_reader, gpu_id)
+            train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -431,7 +393,7 @@ def train(args):
 
         # set up updater
         updater = ChainerMultiProcessParallelUpdaterKaldi(
-            train_iters, optimizer, train_reader, devices)
+            train_iters, optimizer, converter=converter_kaldi, devices=devices)
 
     # Set up a trainer
     trainer = training.Trainer(
@@ -448,8 +410,15 @@ def train(args):
         valid, 1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(ChainerSeqEvaluaterKaldi(
-        valid_iter, model, valid_reader, device=gpu_id))
+    trainer.extend(extensions.Evaluator(
+        valid_iter, model, converter=converter_kaldi, device=gpu_id))
+
+    # Save attention weight each epoch
+    if args.num_save_attention > 0 and args.mtlalpha != 1.0:
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
+                      key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
+        data = converter_kaldi([data], device=gpu_id)
+        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -465,12 +434,13 @@ def train(args):
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
-                   trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
+    if mtl_mode is not 'ctc':
+        trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
+                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc':
+        if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -538,23 +508,37 @@ def recog(args):
     else:
         rnnlm = None
 
-    # prepare Kaldi reader
-    reader = kaldi_io_py.read_mat_ark(args.recog_feat)
+    if args.word_rnnlm:
+        if not args.word_dict:
+            logging.error('word dictionary file is not specified for the word RNNLM.')
+            sys.exit(1)
+
+        word_dict = load_labeldict(args.word_dict)
+        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
+        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), 650))
+        chainer.serializers.load_npz(args.word_rnnlm, word_rnnlm)
+
+        if rnnlm is not None:
+            rnnlm = lm_chainer.ClassifierWithState(
+                extlm_chainer.MultiLevelLM(word_rnnlm.predictor,
+                                           rnnlm.predictor, word_dict, char_dict))
+        else:
+            rnnlm = lm_chainer.ClassifierWithState(
+                extlm_chainer.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
 
     # read json data
-    with open(args.recog_label, 'rb') as f:
+    with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
     new_json = {}
-    for name, feat in reader:
+    for name in recog_json.keys():
+        feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
         logging.info('decoding ' + name)
-        if args.beam_size == 1:
-            y_hat = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-        else:
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-            # get 1best and remove sos
-            y_hat = nbest_hyps[0]['yseq'][1:]
-        y_true = map(int, recog_json[name]['tokenid'].split())
+        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+        # get 1best and remove sos
+        y_hat = nbest_hyps[0]['yseq'][1:]
+        y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
 
         # print out decoding result
         seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
@@ -565,14 +549,25 @@ def recog(args):
         logging.info("prediction [%s]: " + seq_hat_text, name)
 
         # copy old json info
-        new_json[name] = recog_json[name]
+        new_json[name] = dict()
+        new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
         # add 1-best recognition results to json
-        new_json[name]['rec_tokenid'] = " ".join(
-            [str(idx[0]) for idx in y_hat])
-        new_json[name]['rec_token'] = " ".join(seq_hat)
-        new_json[name]['rec_text'] = seq_hat_text
+        logging.debug("dump token id")
+        out_dic = dict()
+        for _key in recog_json[name]['output'][0]:
+            out_dic[_key] = recog_json[name]['output'][0][_key]
 
+        # TODO(karita) make consistent to chainer as idx[0] not idx
+        out_dic['rec_tokenid'] = " ".join(
+            [str(idx[0]) for idx in y_hat])
+        logging.debug("dump token")
+        out_dic['rec_token'] = " ".join(seq_hat)
+        logging.debug("dump text")
+        out_dic['rec_text'] = seq_hat_text
+
+        new_json[name]['output'] = [out_dic]
+        # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
             for i, hyp in enumerate(nbest_hyps):

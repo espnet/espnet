@@ -3,13 +3,22 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
+import copy
 import logging
+import os
 
 # chainer related
 import chainer
 from chainer import training
 import numpy as np
+from chainer.training import extension
+
+# io related
+import kaldi_io_py
+
+# matplotlib related
+import matplotlib
+matplotlib.use('Agg')
 
 
 # * -------------------- agumenting data prep -------------------- *
@@ -58,6 +67,8 @@ def make_augment_batchset(data, batch_size,
 
 
 def converter_augment(batch, idict, odict, ifile, ofile, expand_iline):
+    print('converter_augment')
+    converted_batch = []
     for b_idx, b_obj in batch:
         ifile.seek(b_obj['ioffset'])
         ofile.seek(b_obj['ooffset'])
@@ -72,12 +83,22 @@ def converter_augment(batch, idict, odict, ifile, ofile, expand_iline):
             print(iline_items)
             assert len(iline) > 2
         iline = np.array(iline, dtype=np.int64)
-        #oline = oline.strip().split()[1:]  # so that we can use the same aug files from OpenNMT, removed "aug"
+        # oline = oline.strip().split()[1:]  # so that we can use the same aug files from OpenNMT, removed "aug"
         oline = oline.strip().split()  # so that we can use the same aug files from OpenNMT
         assert len(oline) > 0
         oline = ' '.join([str(odict.get(i, odict['<unk>'])) for i in oline])
         b_obj['feat'] = iline
         b_obj['tokenid'] = oline
+        b_convert = (b_idx, {'feat': iline, 'output': [{'tokenid': oline}]})
+        converted_batch.append(b_convert)
+    return converted_batch
+
+
+def delete_feat_augment(batch):
+    for data in batch:
+        del data[1]['feat']
+        del data[1]['output']
+
     return batch
 
 
@@ -85,14 +106,14 @@ def converter_augment(batch, idict, odict, ifile, ofile, expand_iline):
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['ilen']), reverse=True)
+        data[1]['input'][0]['shape'][0]), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))
     # change batchsize depending on the input and output length
     minibatch = []
     start = 0
     while True:
-        ilen = int(sorted_data[start][1]['ilen'])
-        olen = int(sorted_data[start][1]['olen'])
+        ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
+        olen = int(sorted_data[start][1]['output'][0]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # if ilen = 1000 and max_length_in = 800
         # then b = batchsize / 2
@@ -112,9 +133,12 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
 
 # TODO(watanabe) perform mean and variance normalization during the python program
 # and remove the data dump process in run.sh
-def converter_kaldi(batch, reader):
+def converter_kaldi(batch, device=None):
+    # batch only has one minibatch utterance, which is specified by batch[0]
+    print('kaldi converter_kaldi')
+    batch = batch[0]
     for data in batch:
-        feat = reader[data[0].encode('ascii', 'ignore')]
+        feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])
         data[1]['feat'] = feat
 
     return batch
@@ -208,3 +232,56 @@ def _adadelta_eps_decay(trainer, eps_decay):
         for p in optimizer.param_groups:
             p["eps"] *= eps_decay
             logging.info('adadelta eps decayed to ' + str(p["eps"]))
+
+
+class PlotAttentionReport(extension.Extension):
+    def __init__(self, model, data, outdir):
+        self.data = copy.deepcopy(data)
+        self.outdir = outdir
+        if not os.path.exists(self.outdir):
+            os.makedirs(self.outdir)
+        if hasattr(model, "module"):
+            self.att_vis_fn = model.module.predictor.calculate_all_attentions
+        else:
+            self.att_vis_fn = model.predictor.calculate_all_attentions
+
+    def __call__(self, trainer):
+        att_ws = self.att_vis_fn(self.data)
+        for idx, att_w in enumerate(att_ws):
+            filename = "%s/%s.ep.{.updater.epoch}.png" % (
+                self.outdir, self.data[idx][0])
+            if len(att_w.shape) == 3:
+                att_w = att_w[:, :int(self.data[idx][1]['output'][0]['shape'][0]),
+                              :int(self.data[idx][1]['input'][0]['shape'][0])]
+            else:
+                att_w = att_w[:int(self.data[idx][1]['output'][0]['shape'][0]),
+                              :int(self.data[idx][1]['input'][0]['shape'][0])]
+            self._plot_and_save_attention(att_w, filename.format(trainer))
+
+    def _plot_and_save_attention(self, att_w, filename):
+        # dynamically import matplotlib due to not found error
+        import matplotlib.pyplot as plt
+        if len(att_w.shape) == 3:
+            for h, aw in enumerate(att_w, 1):
+                plt.subplot(1, len(att_w), h)
+                plt.imshow(aw, aspect="auto")
+                plt.xlabel("Encoder Index")
+                plt.ylabel("Decoder Index")
+        else:
+            plt.imshow(att_w, aspect="auto")
+            plt.xlabel("Encoder Index")
+            plt.ylabel("Decoder Index")
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
+
+
+# * -------------------- language model related -------------------- *
+def load_labeldict(dict_file):
+    labeldict = {'<blank>': 0}  # <blank>'s Id is 0
+    for ln in open(dict_file, 'r').readlines():
+        s, i = ln.split()
+        labeldict[s] = int(i)
+    if '<eos>' not in labeldict:
+        labeldict['<eos>'] = len(labeldict)
+    return labeldict
