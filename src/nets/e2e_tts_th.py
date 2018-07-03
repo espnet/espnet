@@ -173,6 +173,7 @@ class Tacotron2Loss(torch.nn.Module):
             bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
             loss = l1_loss + mse_loss + bce_loss
 
+        # report loss values for logging
         loss_data = loss.data[0] if torch_is_old else loss.item()
         l1_loss_data = l1_loss.data[0] if torch_is_old else l1_loss.item()
         bce_loss_data = bce_loss.data[0] if torch_is_old else bce_loss.item()
