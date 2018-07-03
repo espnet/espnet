@@ -20,7 +20,7 @@ fmax=""     # maximum frequency
 fmin=""     # minimum frequency
 n_mels=80   # number of mel basis
 n_fft=1024  # number of fft points
-n_shift=512 # number of shift points
+n_shift=256 # number of shift points
 # encoder related
 embed_dim=512
 elayers=1
@@ -47,7 +47,7 @@ use_residual=false  # whether to concatenate encoder embedding with decoder lstm
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=20.0
 # minibatch related
-batchsize=64
+batchsize=32
 batch_sort_key="" # empty or input or output (if empty, shuffled batch will be used)
 maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
 maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
