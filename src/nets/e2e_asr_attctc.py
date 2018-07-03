@@ -733,8 +733,7 @@ class Decoder(chainer.Chain):
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1])).data
                 if rnnlm:
-                    rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], hyp['yseq'][i])
-                    local_lm_scores = F.log_softmax(z_rnnlm).data
+                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], hyp['yseq'][i])
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
                     local_scores = local_att_scores
