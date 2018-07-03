@@ -328,8 +328,8 @@ class E2E(torch.nn.Module):
 
         if is_aug:
             # Augment Encoder
+            xs = [xx[::self.subsample[0], :] for xx in xs]
             ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-            xs = [torch.from_numpy(xx) for xx in xs]
             padded_xs = aug_pad_list(xs, 0)
             xpad = to_cuda(self, Variable(padded_xs))
             if self.aug_arch == 0:
