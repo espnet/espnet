@@ -420,7 +420,6 @@ class E2E(torch.nn.Module):
 
         # encoder
         xpad = pad_list(hs)
-        # xpad = pad_list(hs)
         hpad, hlens = self.enc(xpad, ilens)
 
         # decoder
