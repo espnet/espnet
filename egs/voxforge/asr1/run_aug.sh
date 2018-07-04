@@ -45,20 +45,28 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=20
+epochs=15
 
 # decoding parameter
 beam_size=20
-penalty=0.0
+penalty=0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.5
+ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
+# aug data
+aug_use=1
+aug_ratio=0.5
+aug_pretrain=0
+aug_alternate=1
+aug_arch=0
+aug_layers=1
+
+
 # data
-datadir=./downloads
-an4_root=${datadir}/an4
-data_url=http://www.speech.cs.cmu.edu/databases/an4/
+voxforge=downloads # original data directory to be stored
+lang=it # de, en, es, fr, it, nl, pt, ru
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -67,6 +75,8 @@ tag="" # tag for managing experiments.
 
 . ./path.sh
 . ./cmd.sh
+
+aug_path=/export/b07/arenduc1/datasets/augmenting_data/aug_${lang}.rep
 
 # check gpu option usage
 if [ ! -z $gpu ]; then
@@ -85,35 +95,23 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodev
-train_dev=train_dev
-recog_set="train_dev test"
+train_set=tr_${lang}
+train_dev=dt_${lang}
+recog_set="dt_${lang} et_${lang}"
 
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"
-    mkdir -p ${datadir}
-    local/download_and_untar.sh ${datadir} ${data_url}
+    local/getdata.sh ${lang} ${voxforge}
 fi
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    echo "stage 0: Data preparation"
-    mkdir -p data/{train,test} exp
-
-    if [ ! -f ${an4_root}/README ]; then
-        echo Cannot find an4 root! Exiting...
-        exit 1
-    fi
-
-    python local/data_prep.py ${an4_root} ${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
-
-    for x in test train; do
-        for f in text wav.scp utt2spk; do
-            sort data/${x}/${f} -o data/${x}/${f}
-        done
-        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
-    done
+    echo "stage 0: Data Preparation"
+    selected=${voxforge}/${lang}/extracted
+    # Initial normalization of the data
+    local/voxforge_data_prep.sh ${selected} ${lang}
+    local/voxforge_format_data.sh ${lang}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -124,47 +122,58 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in test train; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/all_${lang} exp/make_fbank/train_${lang} ${fbankdir}
 
-    # make a dev set
-    utils/subset_data_dir.sh --first data/train 100 data/${train_dev}
-    n=$[`cat data/train/text | wc -l` - 100]
-    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
+    # remove utt having more than 2000 frames or less than 10 frames or
+    # remove utt having more than 200 characters or no more than 0 characters
+    remove_longshortdata.sh data/all_${lang} data/all_trim_${lang}
+
+    # following split consider prompt duplication (but does not consider speaker overlap instead)
+    local/split_tr_dt_et.sh data/all_trim_${lang} data/tr_${lang} data/dt_${lang} data/et_${lang}
+    rm -r data/all_trim_${lang}
 
     # compute global CMVN
-    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+    compute-cmvn-stats scp:data/tr_${lang}/feats.scp data/tr_${lang}/cmvn.ark
 
-    # dump features
-    dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    # dump features for training
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{13,14,15,16}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+        ${feat_tr_dir}/storage
+    fi
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{13,14,15,16}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        ${feat_dt_dir}/storage
+    fi
+    dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+        data/tr_${lang}/feats.scp data/tr_${lang}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        data/dt_${lang}/feats.scp data/tr_${lang}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
 fi
 
-dict=data/lang_1char/${train_set}_units.txt
+dict=data/lang_1char/tr_${lang}_units.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 data/tr_${lang}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --lang ${lang} --feat ${feat_tr_dir}/feats.scp \
+         data/tr_${lang} ${dict} > ${feat_tr_dir}/data.json
+    data2json.sh --lang ${lang} --feat ${feat_dt_dir}/feats.scp \
+         data/dt_${lang} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
@@ -172,8 +181,23 @@ if [ ${stage} -le 2 ]; then
     done
 fi
 
+dict_aug=data/lang_1char/aug_input_${lang}_units.txt
+if [ $stage -le 3 ]; then
+    if [ ! -z "${aug_path}" ] && [ ${aug_use} -eq 1 ]; then
+      echo "creating ${feat_tr_dir}/aug.json with augmenting data"
+      aug2json.py -a ${aug_path} -d ${dict} -j ${feat_tr_dir}/aug.json > $dict_aug
+    else
+      echo "skipping data augmentation..."
+    fi
+fi
+
+
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    if [ "${aug_use}" -eq 1 ]; then
+      expdir=${expdir}_aug_properties
+      expdir=${expdir}_ratio${aug_ratio}_pre${aug_pretrain}_alt${aug_alternate}_arch${aug_arch}_layers${aug_layers}
+    fi
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -182,7 +206,7 @@ else
 fi
 mkdir -p ${expdir}
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 4 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -197,6 +221,14 @@ if [ ${stage} -le 3 ]; then
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json \
+        --use_aug ${aug_use} \
+        --aug-ratio ${aug_ratio} \
+        --aug-pretrain ${aug_pretrain} \
+        --aug-alternate ${aug_alternate} \
+        --aug-layers ${aug_layers} \
+        --aug-arch ${aug_arch} \
+        --train-aug ${feat_tr_dir}/aug.json \
+        --dict-aug ${dict_aug} \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -217,7 +249,7 @@ fi
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
-    nj=8
+    nj=32
 
     for rtask in ${recog_set}; do
     (
@@ -248,7 +280,7 @@ if [ ${stage} -le 4 ]; then
             &
         wait
 
-        score_sclite.sh ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done

@@ -5,11 +5,14 @@
 
 
 import copy
+import codecs
 import json
 import logging
 import math
 import os
+import os.path
 import pickle
+import random
 import sys
 
 # chainer related
@@ -25,8 +28,11 @@ import torch
 # spnet related
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
+from asr_utils import converter_augment
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
+from asr_utils import delete_feat_augment
+from asr_utils import make_augment_batchset
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
@@ -139,6 +145,86 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         else:
             optimizer.step()
         delete_feat(x)
+
+
+class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
+    '''Custom updated for kaldi reader with augment data support'''
+
+    def __init__(self, model, grad_clip_threshold, train_iter,
+                 train_augment_iter, augment_metadata, augment_ratio, alternate_aug, pretrain_aug, expand_iline,
+                 optimizer, converter_kaldi, converter_augment, device):
+        super(PytorchSeqUpdaterKaldiWithAugment, self).__init__(model, grad_clip_threshold,
+                                                                train_iter, optimizer, converter=converter_kaldi, device=device)
+        self.augment_metadata = augment_metadata
+        self.converter_augment = converter_augment
+        self.train_augment_iter = train_augment_iter
+        self.a2a_ratio = augment_ratio   # int(self.augment_metadata['a2a_ratio'])
+        if 0.0 < self.a2a_ratio < 1.0:
+            pass
+        else:
+            print("aug_ratio is now suppose to be a fraction! use 0.5 for equal aug and audio")
+            print("use 0.75 for equal 3 aug to 1 audio batch etc...")
+            assert 0.0 < self.a2a_ratio < 1.0
+        self.pretrain_aug = pretrain_aug
+        self.done_pretrain_aug = 0
+        self.done_augment = 0
+        self.done_audio = 0
+        self.expand_iline = expand_iline
+        self.alternate_aug = alternate_aug
+        self.idict = self.augment_metadata['idict']
+        self.odict = self.augment_metadata['odict']
+        self.ifile = codecs.open(self.augment_metadata['ifilename'], 'r', encoding='utf-8')
+        self.ofile = codecs.open(self.augment_metadata['ofilename'], 'r', encoding='utf-8')
+
+    def update_core(self,):
+        train_iter = self.get_iterator('main')
+        optimizer = self.get_optimizer('main')
+        if (self.done_pretrain_aug < self.pretrain_aug) or (random.random() < self.a2a_ratio):
+            # if (self.done_augment < self.a2a_ratio):
+            batch = self.train_augment_iter.__next__()
+            x = self.converter_augment(batch[0], self.idict, self.odict, self.ifile, self.ofile, self.expand_iline)
+            if self.done_pretrain_aug < self.pretrain_aug:
+                self.done_pretrain_aug += 1
+            else:
+                self.done_augment += 1
+            is_aug = True
+        else:
+            batch = train_iter.__next__()
+            if len(batch[0]) < self.num_gpu:
+                logging.warning('batch size is less than number of gpus. Ignored')
+                return
+            x = self.converter(batch)  # [0], self.reader)
+            if self.alternate_aug == 1:
+                self.done_augment = 0
+            else:
+                # does not reset done_augment so only audio data will be done form now on
+                pass
+            is_aug = False
+
+        # Compute the loss at this time step and accumulate it
+        print('is aug', is_aug, 'done_aug', self.done_augment, 'done_pretrain_aug', self.done_pretrain_aug)
+        loss = 1. / self.num_gpu * self.model(x, is_aug=is_aug)
+        # loss = self.model(x, is_aug=is_aug)
+        optimizer.zero_grad()  # Clear the parameter gradients
+        if self.num_gpu > 1:
+            loss.backward(torch.ones(self.num_gpu))  # Backprop
+        else:
+            loss.backward()  # Backprop
+        loss.detach()  # Truncate the graph
+        # compute the gradient norm to check if it is normal or not
+        grad_norm = torch.nn.utils.clip_grad_norm(
+            self.model.parameters(), self.grad_clip_threshold)
+        logging.info('grad norm={}'.format(grad_norm))
+        if math.isnan(grad_norm):
+            logging.warning('grad norm is nan. Do not update model.')
+            logging.warning(str(batch[0]))
+        else:
+            optimizer.step()
+        if is_aug:
+            delete_feat_augment(x)
+        else:
+            delete_feat(x)
+        logging.info('completed batch')
 
 
 class DataParallel(torch.nn.DataParallel):
@@ -267,7 +353,6 @@ def train(args):
         train_json = json.load(f)['utts']
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
-
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
@@ -279,11 +364,40 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(
         valid, 1, repeat=False, shuffle=False)
 
-    # Set up a trainer
-    updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
-    trainer = training.Trainer(
-        updater, (args.epochs, 'epoch'), out=args.outdir)
+    # prepare Kaldi reader
+    #train_reader = lazy_io.read_dict_scp(args.train_feat)
+    #valid_reader = lazy_io.read_dict_scp(args.valid_feat)
+    if os.path.exists(args.train_aug) and args.use_aug:
+        with codecs.open(args.train_aug, 'rb', encoding='utf-8') as f:
+            augment_json = json.load(f)['aug']
+        train_augment, meta = make_augment_batchset(augment_json, args.batch_size,
+                                                    args.maxlen_in,
+                                                    args.maxlen_out,
+                                                    args.minibatches,
+                                                    args.subsample)
+        train_augment_iter = chainer.iterators.SerialIterator(train_augment, 1)
+        updater = PytorchSeqUpdaterKaldiWithAugment(model,
+                                                    args.grad_clip,
+                                                    train_iter,
+                                                    train_augment_iter,
+                                                    meta,
+                                                    args.aug_ratio,
+                                                    args.aug_alternate,
+                                                    args.aug_pretrain,
+                                                    4 if args.aug_arch == 1 else 1,
+                                                    optimizer,
+                                                    converter_kaldi=converter_kaldi,
+                                                    converter_augment=converter_augment,
+                                                    device=gpu_id)
+        trainer = training.Trainer(updater,
+                                   (args.epochs, 'epoch'),
+                                   out=args.outdir)
+    else:
+        # Set up a trainer
+        updater = PytorchSeqUpdaterKaldi(
+            model, args.grad_clip, train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
+        trainer = training.Trainer(
+            updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
     if args.resume:
@@ -375,6 +489,9 @@ def train(args):
 
     # Run the training
     trainer.run()
+    if isinstance(updater, PytorchSeqUpdaterKaldiWithAugment):
+        updater.ifile.close()
+        updater.ofile.close()
 
 
 def recog(args):
@@ -386,7 +503,7 @@ def recog(args):
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from' + args.model_conf)
         idim, odim, train_args = pickle.load(f)
-
+    
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -410,12 +527,13 @@ def recog(args):
     model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
 
     # read rnnlm
-    if args.rnnlm:
+    if args.rnnlm and os.path.isfile(args.rnnlm):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(len(train_args.char_list), 650))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
         rnnlm.eval()
     else:
+        logging.warning('No RNNLM found (or not provided).')
         rnnlm = None
 
     if args.word_rnnlm:

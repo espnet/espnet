@@ -26,8 +26,8 @@ from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
+import pdb
 
-torch_is_old = torch.__version__.startswith("0.3.")
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -112,14 +112,14 @@ class Loss(torch.nn.Module):
         self.predictor = predictor
         self.reporter = Reporter()
 
-    def forward(self, x):
+    def forward(self, x, is_aug=False):
         '''Loss forward
 
         :param x:
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, acc = self.predictor(x, is_aug)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -141,6 +141,17 @@ class Loss(torch.nn.Module):
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
         return self.loss
+
+
+def aug_pad_list(xs, pad_idx):
+    max_len = xs[0].size(0)
+    pad_xs = []
+    for i in range(len(xs)):
+        padded_xx = torch.cat((xs[i], pad_idx +
+                               torch.zeros(max_len - xs[i].size(0)).type_as(xs[i])), dim=0).unsqueeze(0)
+        pad_xs.append(padded_xx)
+    padded = torch.cat(pad_xs, dim=0)  # (batch_size, seq_len)
+    return padded
 
 
 def pad_list(xs, pad_value=float("nan")):
@@ -179,6 +190,7 @@ class E2E(torch.nn.Module):
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
+        self.aug_arch = args.aug_arch
         self.mtlalpha = args.mtlalpha
 
         # below means the last number becomes eos/sos ID
@@ -206,6 +218,27 @@ class E2E(torch.nn.Module):
         else:
             labeldist = None
 
+        # augment encoder
+        if args.use_aug:
+            if self.aug_arch == 0:
+                self.aug_enc = AugmentEncoder(args.aug_vocab_size,
+                                              args.etype, args.aug_idim,
+                                              args.aug_layers, args.eunits,
+                                              args.eprojs, args.dropout_rate)
+            elif self.aug_arch == 1:
+                self.aug_enc = AugmentEncoder(args.aug_vocab_size,
+                                              args.etype, args.aug_idim,
+                                              args.aug_layers, args.eunits,
+                                              args.aug_idim, args.dropout_rate)
+            elif self.aug_arch == 2:
+                self.aug_enc = AugmentEncoder(args.aug_vocab_size,
+                                              args.etype, args.eprojs,
+                                              args.aug_layers, args.eunits,
+                                              args.eprojs, args.dropout_rate)
+            else:
+                raise NotImplementedError("not yet implemented")
+        else:
+            self.aug_enc = None
         # encoder
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                            self.subsample, args.dropout_rate)
@@ -285,7 +318,7 @@ class E2E(torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
-    def forward(self, data):
+    def forward(self, data, is_aug=False):
         '''E2E forward
 
         :param data:
@@ -312,17 +345,32 @@ class E2E(torch.nn.Module):
         else:
             ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        if torch_is_old:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=not self.training)) for xx in xs]
+        if is_aug:
+            # Augment Encoder
+            xs = [torch.from_numpy(xx) for xx in xs]
+            ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+            padded_xs = aug_pad_list(xs, 0)
+            xpad = to_cuda(self, Variable(padded_xs))
+            if self.aug_arch == 0:
+                hpad, hlens = self.aug_enc(xpad, ilens)
+            elif self.aug_arch == 1:
+                xpad, ilens = self.aug_enc(xpad, ilens)
+                hpad, hlens = self.enc(xpad, ilens)
+            elif self.aug_arch == 2:
+                raise NotImplementedError("do not use arch 2")
+            else:
+                raise NotImplementedError("unknown arch")
         else:
-            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
-
-        # 1. encoder
-        xpad = pad_list(hs)
-        hpad, hlens = self.enc(xpad, ilens)
+            # subsample frame
+            xs = [xx[::self.subsample[0], :] for xx in xs]
+            ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+            if torch_is_old:
+                hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=not self.training)) for xx in xs]
+            else:
+                hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
+            # 1. encoder
+            xpad = pad_list(hs)
+            hpad, hlens = self.enc(xpad, ilens)
 
         # # 3. CTC loss
         if self.mtlalpha == 0:
@@ -2071,13 +2119,40 @@ class Encoder(torch.nn.Module):
             logging.error(
                 "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
+        return xs, ilens
 
+
+class AugmentEncoder(Encoder):
+    def __init__(self, aug_vocab_size, etype, idim, elayers, eunits, eprojs, dropout, in_channel=1):
+        super(AugmentEncoder, self).__init__(etype, idim, elayers,
+                                             eunits, eprojs, [1] * (1 + elayers), dropout, in_channel=1)
+        assert in_channel == 1
+        self.embedding = torch.nn.Embedding(aug_vocab_size, idim)
+
+    def forward(self, xs, ilens, do_embed=True):
+        if do_embed:
+            xs = self.embedding(xs)
+        if self.etype == 'blstm':
+            xs, ilens = self.enc1(xs, ilens)
+        elif self.etype == 'blstmp':
+            xs, ilens = self.enc1(xs, ilens)
+        elif self.etype == 'vggblstmp':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'vggblstm':
+            xs, ilens = self.enc1(xs, ilens)
+            xs, ilens = self.enc2(xs, ilens)
+        else:
+            logging.error(
+                "Error: need to specify an appropriate encoder architecture")
+            sys.exit()
         return xs, ilens
 
 
 class BLSTMP(torch.nn.Module):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
+        self.dropout_rate = dropout
         for i in six.moves.range(elayers):
             if i == 0:
                 inputdim = idim
@@ -2114,6 +2189,7 @@ class BLSTMP(torch.nn.Module):
             # (sum _utt frame_utt) x dim
             projected = getattr(self, 'bt' + str(layer)
                                 )(ypad.contiguous().view(-1, ypad.size(2)))
+            projected = F.dropout(projected, p=self.dropout_rate)
             xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
             del hy, cy
 

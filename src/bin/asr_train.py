@@ -7,6 +7,7 @@
 import argparse
 import logging
 import os
+import codecs
 import platform
 import random
 import subprocess
@@ -54,6 +55,26 @@ def main():
                         help='Filename of train label data (json)')
     parser.add_argument('--valid-label', type=str, default=None,
                         help='Filename of validation label data (json)')
+    # aug related
+    parser.add_argument('--use_aug', type=int, choices=set([0, 1]), default=0,
+                        help='enables or disables augment based training')
+    parser.add_argument('--train-aug', type=str, required=False, default='', nargs='?',
+                        help='Filename of aug data (json)')
+    parser.add_argument('--dict-aug', type=str, required=False, default='', nargs='?',
+                        help='Filename of aug input dictionary')
+    parser.add_argument('--aug-ratio', default=0.5, type=float,
+                        help='aug to real data ratio (smaller number means less aug batches)')
+    parser.add_argument('--aug-pretrain', default=0, type=int,
+                        help='number of aug batches before audio batches')
+    parser.add_argument('--aug-alternate', choices=set([0, 1]), default=1, type=int,
+                        help='switch between aug and audio or do only audio')
+    parser.add_argument('--aug-arch', choices=set([0, 1]), default=0, type=int,
+                        help='augmenting arch option')
+    parser.add_argument('--aug-layers', default=1, type=int,
+                        help='number of layers in the AugmentEncoder')
+    parser.add_argument('--aug-idim', default=83, type=int,
+                        help='augment symbol embedding dim')
+
     # network archtecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
@@ -207,6 +228,13 @@ def main():
         args.char_list = char_list
     else:
         args.char_list = None
+
+    if args.dict_aug != '' and args.use_aug == 1:
+        with codecs.open(args.dict_aug, 'r', encoding='utf-8') as f:
+            aug_dictionary = f.readlines()
+        args.aug_vocab_size = len(aug_dictionary)
+    else:
+        args.aug_vocab_size = None
 
     # train
     logging.info('backend = ' + args.backend)

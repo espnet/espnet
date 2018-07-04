@@ -39,6 +39,9 @@ def main():
                         help='Filename of recognition data (json)')
     parser.add_argument('--result-label', type=str, required=True,
                         help='Filename of result label data (json)')
+    # aug related
+    #parser.add_argument('--train-aug', type=str, required=True,
+    #                    help='Filename of aug data (json)')
     # model (parameter) related
     parser.add_argument('--model', type=str, required=True,
                         help='Model file parameters to read')
