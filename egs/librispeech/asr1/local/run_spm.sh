@@ -191,7 +191,6 @@ fi
 # You can skip this and remove --rnnlm option in the recognition (stage 5)
 lmexpdir=exp/train_rnnlm_2layer_bs256_${bpemode}${nbpe}
 mkdir -p ${lmexpdir}
-if false; then
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
@@ -215,7 +214,6 @@ if [ ${stage} -le 3 ]; then
         --epoch 60 \
         --batchsize 256 \
         --dict ${dict}
-fi
 fi
 
 if [ -z ${tag} ]; then
