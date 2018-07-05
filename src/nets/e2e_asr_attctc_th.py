@@ -2099,7 +2099,7 @@ class BLSTMP(torch.nn.Module):
         :param ilens:
         :return:
         '''
-        # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         for layer in six.moves.range(self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
@@ -2183,11 +2183,10 @@ class VGG2L(torch.nn.Module):
         xs = F.relu(self.conv2_2(xs))
         xs = F.max_pool2d(xs, 2, stride=2, ceil_mode=True)
         # change ilens accordingly
-        # ilens = [_get_max_pooled_size(i) for i in ilens]
         ilens = np.array(
             np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
         ilens = np.array(
-            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
+            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = xs.transpose(1, 2)
