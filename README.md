@@ -230,7 +230,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | Chainer | Pytorch |
 |-----------|:----:|:----:|
-| Performance | ◎ | ○ |
+| Performance | ◎ | ◎ |
 | Speed | ○ | ◎ |
 | Multi-GPU | supported | supported |
 | VGG-like encoder | supported | supported |
