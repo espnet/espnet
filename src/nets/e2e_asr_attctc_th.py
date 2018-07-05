@@ -143,7 +143,7 @@ class Loss(torch.nn.Module):
         return self.loss
 
 
-def pad_list(xs, pad_value=0.0):
+def pad_list(xs, pad_value):
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
     if torch_is_old:
@@ -321,7 +321,7 @@ class E2E(torch.nn.Module):
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # 1. encoder
-        xpad = pad_list(hs)
+        xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
 
         # # 3. CTC loss
@@ -419,7 +419,7 @@ class E2E(torch.nn.Module):
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # encoder
-        xpad = pad_list(hs)
+        xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
 
         # decoder
