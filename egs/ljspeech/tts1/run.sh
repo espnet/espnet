@@ -43,9 +43,9 @@ aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
 cumulate_att_w=true # whether to cumulate attetion weight
 use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
-use_residual=false  # whether to concatenate encoder embedding with decoder lstm outputs
+use_residual=false  # whether to use residual connection in encoder convolution
 use_masking=true    # whether to mask the padded part in loss calculation
-bce_pos_weight=1.0
+bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
 # minibatch related
 batchsize=32
 batch_sort_key="" # empty or input or output (if empty, shuffled batch will be used)
@@ -60,9 +60,9 @@ zoneout=0.1
 epochs=200
 # decoding related
 model=model.loss.best
-threshold=0.7 # threshold to stop the generation
-maxlenratio=10.0
-minlenratio=0.0
+threshold=0.7    # threshold to stop the generation
+maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
+minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
 
 # root directory of db
 db_root=downloads
