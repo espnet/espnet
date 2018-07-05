@@ -143,7 +143,7 @@ class Loss(torch.nn.Module):
         return self.loss
 
 
-def pad_list(xs, pad_value=float("nan")):
+def pad_list(xs, pad_value):
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
     if torch_is_old:
@@ -321,7 +321,7 @@ class E2E(torch.nn.Module):
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # 1. encoder
-        xpad = pad_list(hs)
+        xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
 
         # # 3. CTC loss
@@ -419,7 +419,7 @@ class E2E(torch.nn.Module):
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # encoder
-        xpad = pad_list(hs)
+        xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
 
         # decoder
@@ -797,8 +797,8 @@ class AttLoc(torch.nn.Module):
 
         # weighted sum over flames
         # utt x hdim
-        # NOTE use bmm instead of sum(*)
-        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+        # NOTE equivalent to c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+        c = torch.matmul(w.unsqueeze(1), self.enc_h).squeeze(1)
 
         return c, w
 
