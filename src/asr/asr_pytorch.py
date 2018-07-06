@@ -264,7 +264,7 @@ def train(args):
     elif args.opt == 'sgd':
         optimizer = torch.optim.SGD(
             model.parameters(), lr=args.lr,
-            momentum=args.mom, weight_decay=args.wd)
+            momentum=args.momentum, weight_decay=args.weight_decay)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -310,19 +310,19 @@ def train(args):
                 model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         model = trainer.updater.model
         if args.freeze:
-            if args.adaptLayerNames == "AttOut":
+            if args.adapt_layer_names == "AttOut":
                 model, size = freeze_parameters(model, args.noencs_freeze, "att", "dec")
                 logging.info("no of parameters frozen are: " + str(size))
-            elif args.adaptLayerNames == "Out":
+            elif args.adapt_layer_names == "Out":
                 model, size = freeze_parameters(model, args.noencs_freeze, "dec")
                 logging.info("no of parameters frozen are: " + str(size))
-            elif args.adaptLayerNames == "AttCtc":
+            elif args.adapt_layer_names == "AttCtc":
                 model, size = freeze_parameters(model, args.noencs_freeze, "att", "ctc")
                 logging.info("no of parameters frozen are: " + str(size))
-            elif args.adaptLayerNames == "AttCtcOut":
+            elif args.adapt_layer_names == "AttCtcOut":
                 model, size = freeze_parameters(model, args.noencs_freeze, "att", "ctc", "dec")
                 logging.info("no of parameters frozen are: " + str(size))
-            elif args.adaptLayerNames == "CtcOut":
+            elif args.adapt_layer_names == "CtcOut":
                 model, size = freeze_parameters(model, args.noencs_freeze, "ctc", "dec")
                 logging.info("no of parameters frozen are: " + str(size))
 

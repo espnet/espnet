@@ -33,8 +33,6 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
-torch_is_old = torch.__version__.startswith("0.3.")
-
 
 def to_cuda(m, x):
     assert isinstance(m, torch.nn.Module)

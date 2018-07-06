@@ -37,16 +37,17 @@ def main():
                         help='Output directory for debugging')
     parser.add_argument('--resume', '-r', default='', nargs='?',
                         help='Resume the training from snapshot')
-    parser.add_argument('--modify_output', '-m', default='false', type=bool,
+    # multilingual transfer learning
+    parser.add_argument('--modify-output', '-m', default='false', type=bool,
                         help='Wehether to modify output layer to new language')
     parser.add_argument('--adapt', '-a', type=bool, default=False,
                         help='retrain/adapt from the exisitng best model')
-    parser.add_argument('--adaptLayerNames', '-l', type=str, default="AttCtcOut",
+    parser.add_argument('--adapt-layer-names', '-l', type=str, default="AttCtcOut",
                         choices=['AttOut', 'Out', 'AttCtc', 'AttCtcOut', 'CtcOut'],
                         help='only retrain these layers from the exisitng best model')
     parser.add_argument('--freeze', '-f', type=bool, default=False,
                         help='freeze layers from the exisitng best model')
-    parser.add_argument('--args.noencs_freeze', '-ne', type=int, default=8,
+    parser.add_argument('--noencs-freeze', '-ne', type=int, default=8,
                         help='No of encoder layers to freeze, multiples of 2 for blstmp')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
@@ -83,6 +84,9 @@ def main():
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['chainer', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
+    parser.add_argument('--ctype', default='onlyctc', type=str,
+                        choices=['onlyctc', 'attctc'],
+                        help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
@@ -117,8 +121,8 @@ def main():
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
     # Scheduled sampling flags
-    parser.add_argument('--tf-ratio', default=1.0, type=float,
-                        help='probability to use true labels ')
+    parser.add_argument('--scheduled-sampling-ratio', default=0.0, type=float,
+                        help='probability to use predicted labels ')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
@@ -135,11 +139,11 @@ def main():
                         help='Optimizer')
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate constant for sgd optimizer')
-    parser.add_argument('--lr_decay', default=1e-1, type=float,
+    parser.add_argument('--lr-decay', default=1e-1, type=float,
                         help='Learning rate decay (lr*decay) constant for sgd optimizer')
-    parser.add_argument('--mom', default=0.9, type=float,
+    parser.add_argument('--momentum', default=0.0, type=float,
                         help='Momentum constant for sgd optimizer')
-    parser.add_argument('--wd', default=0, type=float,
+    parser.add_argument('--weight-decay', default=0, type=float,
                         help='MWeight decay constant for sgd optimizer')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
