@@ -59,6 +59,8 @@ def main():
     parser.add_argument('--econv_filts', default=5, type=int,
                         help='Number of encoder conv filter size')
     # attention
+    parser.add_argument('--spk_embed_dim', default=None, type=int, nargs='?',
+                        help='Number of dimension of speaker embedding')
     parser.add_argument('--adim', default=512, type=int,
                         help='Number of attention transformation dimensions')
     parser.add_argument('--aconv-chans', default=32, type=int,
