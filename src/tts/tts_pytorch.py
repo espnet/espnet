@@ -113,9 +113,10 @@ class CustomUpdater(training.StandardUpdater):
 class CustomConverter(object):
     '''CUSTOM CONVERTER FOR TACOTRON2'''
 
-    def __init__(self, device, return_targets=True):
+    def __init__(self, device, return_targets=True, use_speaker_embedding=False):
         self.device = device
         self.return_targets = return_targets
+        self.use_speaker_embedding = use_speaker_embedding
 
     def __call__(self, batch, is_training=True):
         # batch should be located in list
@@ -159,10 +160,22 @@ class CustomConverter(object):
             ys = ys.cuda()
             labels = labels.cuda()
 
-        if self.return_targets:
-            return xs, ilens, ys, labels, olens
+        # load speaker embedding
+        if self.use_speaker_embedding:
+            spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
+            spembs = [spembs[i] for i in sorted_idx]
+            spembs = torch.from_numpy(np.array(spembs)).float()
+            if torch_is_old:
+                spembs = Variable(spembs, volatile=not is_training)
+            if sum(self.device) >= 0:
+                spembs = spembs.cuda()
         else:
-            return xs, ilens, ys
+            spembs = None
+
+        if self.return_targets:
+            return xs, ilens, ys, labels, olens, spembs
+        else:
+            return xs, ilens, ys, spembs
 
 
 def pad_ndarray_list(batch, pad_value=float("nan")):
@@ -314,6 +327,7 @@ def train(args):
     tacotron2 = Tacotron2(
         idim=idim,
         odim=odim,
+        spk_embed_dim=args.spk_embed_dim,
         embed_dim=args.embed_dim,
         elayers=args.elayers,
         eunits=args.eunits,
@@ -390,7 +404,8 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(valid_batchset, 1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    converter = CustomConverter(gpu_id)
+    use_speaker_embedding = False if args.spk_embed_dim is None else True
+    converter = CustomConverter(gpu_id, use_speaker_embedding=use_speaker_embedding)
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -413,7 +428,7 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         trainer.extend(PlotAttentionReport(
             tacotron2, data, args.outdir + '/att_ws',
-            CustomConverter(gpu_id, False), True), trigger=(1, 'epoch'))
+            CustomConverter(gpu_id, False, use_speaker_embedding), True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -476,6 +491,7 @@ def decode(args):
     tacotron2 = Tacotron2(
         idim=idim,
         odim=odim,
+        spk_embed_dim=train_args.spk_embed_dim if isinstance(train_args, "spk_embed_dim") else None,
         embed_dim=train_args.embed_dim,
         elayers=train_args.elayers,
         eunits=train_args.eunits,
@@ -528,6 +544,15 @@ def decode(args):
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
 
+    # check the use of embedding
+    if not isinstance(train_args, "spk_embed_dim"):
+        use_speaker_embedding = False
+    else:
+        if train_args.spk_embed_dim is None:
+            use_speaker_embedding = False
+        else:
+            use_speaker_embedding = True
+
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
     # TODO(kan-bayashi): need to be fixed in pytorch v4
@@ -535,6 +560,7 @@ def decode(args):
         torch.set_grad_enabled(False)
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
+            # get input
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
             x = torch.from_numpy(x)
@@ -543,13 +569,24 @@ def decode(args):
                 x = Variable(x, volatile=True)
             if args.ngpu > 0:
                 x = x.cuda()
-            outs, _, _ = tacotron2.inference(x)
+
+            # get speaker embedding
+            if use_speaker_embedding:
+                spemb = kaldi_io_py.read_vec_flt(js[utt_id]['input'][1]['feat'])
+                spemb = torch.from_numpy(spemb)
+                # TODO(kan-bayashi): need to be fixed in pytorch v4
+                if torch_is_old:
+                    spemb = Variable(spemb, volatile=True)
+                if args.ngpu > 0:
+                    spemb = spemb.cuda()
+                inputs = (x, spemb)
+            else:
+                inputs = (x)
+
+            # decode
+            outs, _, _ = tacotron2.inference(*inputs)
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warn("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
-            if torch_is_old:
-                outs = outs.data.cpu().numpy()
-            else:
-                outs = outs.cpu().numpy()
-            kaldi_io_py.write_mat(f, outs, utt_id)
+            kaldi_io_py.write_mat(f, outs.data.cpu().numpy(), utt_id)
