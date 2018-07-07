@@ -49,16 +49,16 @@ use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
 # minibatch related
 batchsize=32
-batch_sort_key="" # empty or input or output (if empty, shuffled batch will be used)
-maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
-maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
+batch_sort_key="output" # empty or input or output (if empty, shuffled batch will be used)
+maxlen_in=150           # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
+maxlen_out=400          # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
 # optimization related
 lr=1e-3
 eps=1e-6
 weight_decay=0.0
 dropout=0.5
 zoneout=0.1
-epochs=200
+epochs=50
 # decoding related
 model=model.loss.best
 threshold=0.7    # threshold to stop the generation
