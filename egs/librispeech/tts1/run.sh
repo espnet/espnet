@@ -29,6 +29,7 @@ econv_layers=3 # if set 0, no conv layer is used
 econv_chans=512
 econv_filts=5
 # decoder related
+spk_embed_dim=512
 dlayers=2
 dunits=1024
 prenet_layers=2  # if set 0, no prenet is used
@@ -140,8 +141,28 @@ if [ ${stage} -le 1 ]; then
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
+dict=data/lang_1char/${train_set}_units.txt
+echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
-    echo "stage 2: x-vector extraction"
+    ### Task dependent. You have to check non-linguistic symbols used in the corpus.
+    echo "stage 2: Dictionary and Json Data Preparation"
+    mkdir -p data/lang_1char/
+    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    wc -l ${dict}
+
+    # make json labels
+    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --feat ${feat_ev_dir}/feats.scp \
+         data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
+fi
+
+if [ ${stage} -le 3 ]; then
+    echo "stage 3: x-vector extraction"
     # Make MFCCs and compute the energy-based VAD for each dataset
     mfccdir=mfcc
     vaddir=mfcc
@@ -171,26 +192,10 @@ if [ ${stage} -le 2 ]; then
             $nnet_dir data/${name} \
             $nnet_dir/xvectors_${name}
     done
-fi
-
-dict=data/lang_1char/${train_set}_units.txt
-echo "dictionary: ${dict}"
-if [ ${stage} -le 3 ]; then
-    ### Task dependent. You have to check non-linguistic symbols used in the corpus.
-    echo "stage 3: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
-
-    # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    data2json.sh --feat ${feat_ev_dir}/feats.scp \
-         data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
+    # Update json
+    for name in ${train_set} ${train_dev} ${eval_set}; do
+        local/update_json.sh ${dumpdir}/${name} ${nnet_dir}/xvectors_${name}/xvector.scp
+    done
 fi
 
 
@@ -249,6 +254,7 @@ if [ ${stage} -le 4 ];then
            --econv_layers ${econv_layers} \
            --econv_chans ${econv_chans} \
            --econv_filts ${econv_filts} \
+           --spk_embed_dim ${spk_embed_dim} \
            --dlayers ${dlayers} \
            --dunits ${dunits} \
            --prenet_layers ${prenet_layers} \
