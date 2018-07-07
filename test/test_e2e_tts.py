@@ -164,7 +164,8 @@ def test_tacotron2_with_speaker_embedding_trainable_and_decodable(model_dict, lo
     # define model
     model_args = make_model_args(**model_dict)
     loss_args = make_loss_args(**loss_dict)
-    model = Tacotron2(idim, odim, spk_embed_dim, **model_args)
+    model_args.spk_embed_dim = spk_embed_dim
+    model = Tacotron2(idim, odim, **model_args)
     criterion = Tacotron2Loss(model, **loss_args)
     optimizer = torch.optim.Adam(model.parameters())
 
