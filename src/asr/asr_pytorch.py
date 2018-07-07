@@ -26,11 +26,15 @@ import torch
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
+from asr_utils import count_parameters
 from asr_utils import delete_feat
+from asr_utils import freeze_parameters
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
+from asr_utils import remove_output_layer
 from asr_utils import restore_snapshot
+from asr_utils import sgd_lr_decay
 from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss
 
@@ -257,6 +261,10 @@ def train(args):
             model.parameters(), rho=0.95, eps=args.eps)
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters())
+    elif args.opt == 'sgd':
+        optimizer = torch.optim.SGD(
+            model.parameters(), lr=args.lr,
+            momentum=args.momentum, weight_decay=args.weight_decay)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -286,13 +294,37 @@ def train(args):
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
-    if args.resume:
+    if (args.resume) and not (args.adapt):
         chainer.serializers.load_npz(args.resume, trainer)
+        logging.info("from snapshot, num of parameters to adapt are: " + str(count_parameters(model)))
+    if (args.resume) and (args.adapt):
+        logging.info("num of parameters to in model are: " + str(count_parameters(model)))
+
         if ngpu > 1:
             model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         else:
-            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            if (args.modify_output):
+                pretrained_model = torch.load(args.outdir + '/model.acc.best')
+                model.load_state_dict(remove_output_layer(pretrained_model, odim, args.eprojs, args.dunits))
+            else:
+                model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         model = trainer.updater.model
+        if args.freeze:
+            if args.adapt_layer_names == "AttOut":
+                model, size = freeze_parameters(model, args.noencs_freeze, "att", "dec")
+                logging.info("no of parameters frozen are: " + str(size))
+            elif args.adapt_layer_names == "Out":
+                model, size = freeze_parameters(model, args.noencs_freeze, "dec")
+                logging.info("no of parameters frozen are: " + str(size))
+            elif args.adapt_layer_names == "AttCtc":
+                model, size = freeze_parameters(model, args.noencs_freeze, "att", "ctc")
+                logging.info("no of parameters frozen are: " + str(size))
+            elif args.adapt_layer_names == "AttCtcOut":
+                model, size = freeze_parameters(model, args.noencs_freeze, "att", "ctc", "dec")
+                logging.info("no of parameters frozen are: " + str(size))
+            elif args.adapt_layer_names == "CtcOut":
+                model, size = freeze_parameters(model, args.noencs_freeze, "ctc", "dec")
+                logging.info("no of parameters frozen are: " + str(size))
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(PytorchSeqEvaluaterKaldi(
@@ -357,6 +389,25 @@ def train(args):
                            trigger=CompareValueTrigger(
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
+    elif args.opt == 'sgd':
+        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+            trainer.extend(sgd_lr_decay(args.lr_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+        elif args.criterion == 'loss':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+            trainer.extend(sgd_lr_decay(args.lr_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
@@ -368,6 +419,12 @@ def train(args):
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(100, 'iteration'))
         report_keys.append('eps')
+    elif args.opt == 'sgd':
+        trainer.extend(extensions.observe_value(
+            'lr', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["lr"]),
+            trigger=(100, 'iteration'))
+        report_keys.append('lr')
+
     trainer.extend(extensions.PrintReport(
         report_keys), trigger=(100, 'iteration'))
 
