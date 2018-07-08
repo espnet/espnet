@@ -491,7 +491,7 @@ def decode(args):
     tacotron2 = Tacotron2(
         idim=idim,
         odim=odim,
-        spk_embed_dim=train_args.spk_embed_dim if isinstance(train_args, "spk_embed_dim") else None,
+        spk_embed_dim=train_args.spk_embed_dim if hasattr(train_args, "spk_embed_dim") else None,
         embed_dim=train_args.embed_dim,
         elayers=train_args.elayers,
         eunits=train_args.eunits,
@@ -545,7 +545,7 @@ def decode(args):
         os.makedirs(outdir)
 
     # check the use of embedding
-    if not isinstance(train_args, "spk_embed_dim"):
+    if not hasattr(train_args, "spk_embed_dim"):
         use_speaker_embedding = False
     else:
         if train_args.spk_embed_dim is None:
