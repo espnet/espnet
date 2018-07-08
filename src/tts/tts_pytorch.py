@@ -553,22 +553,23 @@ def decode(args):
         else:
             use_speaker_embedding = True
 
-    # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
-    arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
     # TODO(kan-bayashi): need to be fixed in pytorch v4
     if not torch_is_old:
         torch.set_grad_enabled(False)
+
+    # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
+    arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
-            # get input
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
             x = torch.from_numpy(x)
+            if args.ngpu > 0:
+                x = x.cuda()
+
             # TODO(kan-bayashi): need to be fixed in pytorch v4
             if torch_is_old:
                 x = Variable(x, volatile=True)
-            if args.ngpu > 0:
-                x = x.cuda()
 
             # get speaker embedding
             if use_speaker_embedding:
@@ -579,12 +580,11 @@ def decode(args):
                     spemb = Variable(spemb, volatile=True)
                 if args.ngpu > 0:
                     spemb = spemb.cuda()
-                inputs = (x, spemb)
             else:
-                inputs = (x)
+                spemb = None
 
-            # decode
-            outs, _, _ = tacotron2.inference(*inputs)
+            # decode and write
+            outs, _, _ = tacotron2.inference(x, spemb)
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warn("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
