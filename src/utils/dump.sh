@@ -7,10 +7,12 @@
 
 cmd=run.pl
 do_delta=false
+do_cvn=true
 nj=1
 verbose=0
 compress="true"
 
+echo "$0 $*"
 . utils/parse_options.sh
 
 scp=$1
@@ -43,15 +45,17 @@ done
 utils/split_scp.pl $scp $split_scps || exit 1;
 
 # dump features 
+$do_cvn && cmvn_opt="--norm-vars=true" || cmvn_opt="--norm-vars=false"
+
 if ${do_delta};then
     $cmd JOB=1:$nj $logdir/dump_feature.JOB.log \
-        apply-cmvn --norm-vars=true $cvmnark scp:$logdir/feats.JOB.scp ark:- \| \
+        apply-cmvn $cmvn_opt $cvmnark scp:$logdir/feats.JOB.scp ark:- \| \
         add-deltas ark:- ark:- \| \
         copy-feats --compress=$compress ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
         || exit 1
 else
     $cmd JOB=1:$nj $logdir/dump_feature.JOB.log \
-        apply-cmvn --norm-vars=true $cvmnark scp:$logdir/feats.JOB.scp ark:- \| \
+        apply-cmvn $cmvn_opt $cvmnark scp:$logdir/feats.JOB.scp ark:- \| \
         copy-feats --compress=$compress ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
         || exit 1
 fi
