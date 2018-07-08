@@ -58,7 +58,7 @@ if __name__ == '__main__':
         orgdic = intersec_org_dic[id]
         adddic = intersec_add_dic[id]
         # original input
-        in_org_dic = orgdic['input'][0]
+        input_list = orgdic['input']
         # additional input
         in_add_dic = {}
         if 'idim' in adddic and 'ilen' in adddic:
@@ -66,10 +66,12 @@ if __name__ == '__main__':
                                    int(adddic['idim'])]
         elif 'idim' in adddic:
             in_add_dic['shape'] = [int(adddic['idim'])]
-        in_add_dic['name'] = 'speaker_embedding'
+        in_add_dic['name'] = 'input%d' % (len(input_list) + 1)
         in_add_dic['feat'] = adddic['feat']
 
-        new_dic[id] = {'input': [in_org_dic, in_add_dic],
+        input_list.append(in_add_dic)
+
+        new_dic[id] = {'input': input_list,
                        'output': orgdic['output'],
                        'utt2spk': orgdic['utt2spk']}
 
