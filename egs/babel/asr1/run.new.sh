@@ -171,10 +171,8 @@ if [ ${stage} -le 3 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --seed ${seed} \
-        --train-feat scp:${feat_tr_dir}/feats.scp \
-        --valid-feat scp:${feat_dt_dir}/feats.scp \
-        --train-label ${feat_tr_dir}/data.json \
-        --valid-label ${feat_dt_dir}/data.json \
+        --train-json ${feat_tr_dir}/data.json \
+        --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -240,8 +238,7 @@ if [ ${stage} -le 4 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-feat "$feats" \
-            --recog-label ${data}/data.json \
+            --recog-json ${data}/data.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
