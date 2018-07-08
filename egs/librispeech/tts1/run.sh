@@ -194,7 +194,7 @@ if [ ${stage} -le 3 ]; then
     done
     # Update json
     for name in ${train_set} ${train_dev} ${eval_set}; do
-        local/update_json.sh ${dumpdir}/${name} ${nnet_dir}/xvectors_${name}/xvector.scp
+        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
     done
 fi
 

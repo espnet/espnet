@@ -8,6 +8,7 @@
 verbose=0
 
 . utils/parse_options.sh
+set -e
 
 if [ $# != 2 ]; then
     echo "Usage: $0 <json> <scp>";
