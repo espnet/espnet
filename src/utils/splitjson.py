@@ -3,6 +3,7 @@
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 from __future__ import print_function
 from __future__ import division
 
@@ -37,6 +38,7 @@ if __name__ == '__main__':
     # load json and split keys
     j = json.load(open(args.json))
     utt_ids = j['utts'].keys()
+    logging.info("number of utterances = %d" % len(utt_ids))
     if len(utt_ids) < args.parts:
         logging.error("#utterances < #splits. Use smaller split number.")
         sys.exit(1)
