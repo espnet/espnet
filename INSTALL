@@ -1,32 +1,101 @@
-. /mnt/matylda6/baskar/experiments/Tensorflow/sandbox/VAE/path.sh 
-#make sure the path.sh is executed to check for cudnn, cuda and gcc versions
-conda create -n py27_test python=2.7
-conda activate py27_test
-over
+#. /mnt/matylda6/baskar/experiments/Tensorflow/sandbox/VAE/path.sh 
+
+# --- Generic settings
+# -- CUDA
+CUDA_ROOT=/usr/local/share/cuda-9.0.176
+export CUDA_HOME=$CUDA_ROOT
+export CUDA_PATH=$CUDA_ROOT
+export CUDA_BIN_PATH=$CUDA_ROOT
+export LD_LIBRARY_PATH=$CUDA_ROOT:$LD_LIBRARY_PATH
+export CPATH=$CUDA_ROOT/include # for warp-ctc
+
+# -- GCC
+#export OMP_NUM_THREADS=1
+export CC="/usr/local/bin/gcc-5.3"
+export CXX="/usr/local/bin/g++-5.3"
+
+# -- PYTHON
+unset PYTHONPATH
+unset PYTHONHOME
+
+CONDADIR=$HOME/local/anaconda3
+export PATH=$CONDADIR/bin:$PATH
+
+env_name=py27_cuda9 
+
+# -------
+# Generate path.sh for egs directories"
+# -------
+echo "MAIN_ROOT=$PWD
+KALDI_ROOT=\$MAIN_ROOT/tools/kaldi
+SPNET_ROOT=\$MAIN_ROOT/src
+
+CONDADIR=$CONDADIR
+CUDA_ROOT=$CUDA_ROOT
+
+export CUDA_HOME=\$CUDA_ROOT
+export CUDA_PATH=\$CUDA_ROOT
+
+[ -f \$KALDI_ROOT/tools/env.sh ] && . \$KALDI_ROOT/tools/env.sh
+export PATH=\$PWD/utils/:\$KALDI_ROOT/tools/openfst/bin:\$KALDI_ROOT/tools/sctk/bin:\$KALDI_ROOT/tools/sph2pipe_v2.5/:\$CUDA_ROOT/bin:\$PWD:\$PATH
+[ ! -f \$KALDI_ROOT/tools/config/common_path.sh ] && echo >&2 \"The standard file \$KALDI_ROOT/tools/config/common_path.sh is not present -> Exit!\" && exit 1
+. \$KALDI_ROOT/tools/config/common_path.sh
+export LC_ALL=C
+
+export PATH=\$SPNET_ROOT/utils/:\$SPNET_ROOT/bin/:\$PATH
+export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:\$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build:\$CUDA_ROOT/lib64
+source \$CONDADIR/bin/activate $env_name
+export PYTHONPATH=\$CONDADIR/envs/${env_name}/bin:\$SPNET_ROOT/lm/:\$SPNET_ROOT/asr/:\$SPNET_ROOT/nets/:\$SPNET_ROOT/utils/:\$SPNET_ROOT/bin/:\$PYTHONPATH
+
+export OMP_NUM_THREADS=1
+export CC="$CC"
+export CXX="$CXX"
+
+export CPATH=\$CUDA_ROOT/include" > path.sh
+
+
+# --------------------
+#    INSTALL tools
+# --------------------
+cd tools
+make kaldi-io-for-python kaldi
+
+#install nkf from makefile
+make nkf
+
+#install subword-nmt
+make sentencepiece
+
+# --------------------
+#    INSTALL PYTHON stuff
+# --------------------
+conda create -n $env_name python=2.7
+conda activate $env_name
+#over
 #pre-requisites
+conda install -c anaconda cudatoolkit==9.0
+conda install -c pytorch magma-cuda90
+
+pip install matplotlib
+
 conda install chainer>=3.0.0
 conda install -c contango python_speech_features
 conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing cython
 pip install cupy-cuda90 --pre
 
-#Installation oof pytorch
-conda install pytorch==0.3.0 # This is sometimes not detecting correct cudnn
-# if pytorch is not detecting cudnn then use this pip installation
-pip install pip --upgrade; pip install http://download.pytorch.org/whl/cu80/torch-0.3.0-cp27-cp27mu-linux_x86_64.whl
-
-#install nkf from makefile
-make nkf
+#Installation of pytorch
+pip install pip --upgrade; pip install http://download.pytorch.org/whl/cu90/torch-0.3.1-cp27-cp27mu-linux_x86_64.whl
 
 #install warpctc
 git clone https://github.com/SeanNaren/warp-ctc.git
-mkdir -p build; cd build; cmake .. && make -j 4
-cd warp-ctc/pytorch_binding && python setup.py install
+cd warp-ctc; mkdir -p build; cd build; cmake .. && make -j 4
 cd -
+cd pytorch_binding && python setup.py install
+cd -
+cd ../ # Back to tools
 #install chainer ctc
 git clone https://github.com/jheymann85/chainer_ctc.git
 cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
-cd chainer_ctc && pip install .
+pip install .
 cd -
 
-#install subword-nmt
-make subword-nmt

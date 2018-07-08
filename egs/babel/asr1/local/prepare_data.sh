@@ -5,9 +5,16 @@
 
 # This is not necessarily the top-level run.sh as it is in other directories.   see README.txt first.
 
-. ./conf/lang.conf
+
 . ./path.sh
 . ./cmd.sh
+if [[ $(hostname -f) == *.clsp.jhu.edu ]]; then
+    echo "in JHU"
+    . ./conf/lang.conf
+elif [[ $(hostname -f) == *.fit.vutbr.cz ]]; then
+    echo "in BUT"
+    . ./conf/lang.but.conf
+fi
 
 FLP=true
 
