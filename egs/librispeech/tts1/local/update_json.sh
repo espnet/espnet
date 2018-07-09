@@ -9,6 +9,8 @@ verbose=0
 
 . utils/parse_options.sh
 set -e
+set -u
+set -o pipefail
 
 if [ $# != 2 ]; then
     echo "Usage: $0 <json> <scp>";
@@ -28,10 +30,7 @@ cat ${feat} > ${tmpdir}/feat.scp
 touch ${tmpdir}/idim.scp
 idim=$(copy-vector --print-args=false scp:${tmpdir}/feat.scp ark,t:- | head -n 1 | wc -w)
 idim=$(( idim - 3 ))
-cat ${tmpdir}/feat.scp | while read line;do
-    id=$(echo ${line} | awk '{print $1}')
-    echo "$id $idim" >> ${tmpdir}/idim.scp
-done
+cat ${tmpdir}/feat.scp | awk '{print $1 " ${idim}"' > ${tmpdir}/idim.scp
 
 # convert to json
 rm -f ${tmpdir}/*.json
