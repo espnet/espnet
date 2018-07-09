@@ -9,6 +9,7 @@ import os
 
 import librosa
 import numpy as np
+import soundfile as sf
 
 import kaldi_io_py
 
@@ -27,7 +28,7 @@ def logmelspectrogram(x, fs, n_mels, n_fft, n_shift, window='hann', fmin=None, f
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fs', type=int, default=22050,
+    parser.add_argument('--fs', type=int, default=16000,
                         help='Sampling frequency')
     parser.add_argument('--fmax', type=int, default=None, nargs='?',
                         help='Maximum frequency')
@@ -72,7 +73,7 @@ def main():
     # extract feature and then write as ark with scp format
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, (utt_id, path) in enumerate(scp, 1):
-            x, fs = librosa.core.load(path, sr=None)
+            x, fs = sf.read(path)
             assert fs == args.fs
             lmspc = logmelspectrogram(
                 x=x,
