@@ -167,20 +167,21 @@ if [ ${stage} -le 3 ]; then
     mfccdir=mfcc
     vaddir=mfcc
     for name in ${train_set} ${train_dev} ${eval_set}; do
+        utils/copy_data_dir.sh data/${name} data/${name}_mfcc
         steps/make_mfcc.sh \
             --write-utt2num-frames true \
             --mfcc-config conf/mfcc.conf \
             --nj ${nj} --cmd "$train_cmd" \
-            data/${name} exp/make_mfcc $mfccdir
-        utils/fix_data_dir.sh data/${name}
+            data/${name}_mfcc exp/make_mfcc $mfccdir
+        utils/fix_data_dir.sh data/${name}_mfcc
         sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
-            data/${name} exp/make_vad ${vaddir}
-        utils/fix_data_dir.sh data/${name}
+            data/${name}_mfcc exp/make_vad ${vaddir}
+        utils/fix_data_dir.sh data/${name}_mfcc
     done
     # Check pretrained model existence
     nnet_dir=exp/xvector_nnet_1a
     if [ ! -e $nnet_dir ];then
-        echo "x-vector model does not exist."
+        echo "X-vector model does not exist. Download pre-trained model."
         wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
         tar xvf 0008_sitw_v2_1a.tar.gz
         mv 0008_sitw_v2_1a/exp/xvector_nnet_1a exp
@@ -189,7 +190,7 @@ if [ ${stage} -le 3 ]; then
     # Extract x-vector
     for name in ${train_set} ${train_dev} ${eval_set}; do
         sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
-            $nnet_dir data/${name} \
+            $nnet_dir data/${name}_mfcc \
             $nnet_dir/xvectors_${name}
     done
     # Update json
