@@ -165,7 +165,7 @@ class CustomConverter(object):
             return xs, ilens, ys
 
 
-def pad_ndarray_list(batch, pad_value=float("nan")):
+def pad_ndarray_list(batch, pad_value):
     """FUNCTION TO PERFORM PADDING OF NDARRAY LIST
 
     :param list batch: list of the ndarray [(T_1, D), (T_2, D), ..., (T_B, D)]
