@@ -3,6 +3,8 @@
 # Copyright 2018 Johns Hopkins University (Matthew Wiesner)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+norm_case=false
+
 . ./path.sh
 . ./cmd.sh
 . ./conf/lang.conf
@@ -59,7 +61,7 @@ done
 for l in ${all_langs}; do
   (
     cd data/${l}
-    ./local/prepare_data.sh --FLP ${FLP} ${l}
+    ./local/prepare_data.sh --norm_case $norm_case --FLP ${FLP} ${l}
     cd ${cwd}
   ) &
 done
