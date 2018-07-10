@@ -8,13 +8,13 @@ if [ $# -ne 1 ]; then
   exit 1;
 fi
 
-expname=$1
-cd ..
-mkdir ${expname}
-cd ${expname}
+expdir=$1
 
-cp ../asr1/{cmd,path,run}.sh .
-cp -P ../asr1/steps .
-cp -P ../asr1/utils .
-ln -s ../asr1/local .
-ln -s ../asr1/conf .
+pwd=$PWD
+
+mkdir -p ${expdir}; cd ${expdir}
+
+cp $pwd/{cmd,path,run,run.new}.sh ./
+for f in steps utils local conf; do
+    ln -rs $pwd/$f ./
+done

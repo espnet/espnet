@@ -1,0 +1,74 @@
+#!/bin/bash
+
+train_babel_langs="101 103 104 105 404 107 201 204 205 207"
+target_babel_langs="102 106 202 203 206"
+
+#for i in 101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403    107 201 307 404; do
+for i in $train_babel_langs $target_babel_lang; do
+    i=102
+    bash -x setup_experiment.sh ../Baselines/$i
+    cd ../Baselines/$i
+    bash -x run.sh --langs "$i" --recog "$i" &
+    cd -
+    sleep 10m
+done &
+
+# rerun missing
+for i in 104 105 204 206 303 304 305; do
+for i in 105 204 206 304 305; do
+    cd ../Baselines/$i
+    bash -x run.sh --langs "$i" --recog "$i" --stage 3 &
+    cd -
+done
+
+
+for i in 101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403    107 201 307 404; do
+#    cd ../Baselines/$i/data/
+    cd ../Baselines/$i/dump/
+#    ln -fs ${i}/data/*_$i ./
+    for f in $(find ./ -name "*.scp"); do
+	sed -i "s:babel/${i}/:babel/Baselines/${i}/:" $f
+    done
+    cd -
+done
+
+# Score
+for i in 101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403    107 201 307 404; do
+    awk '/Sum.Avg/{print "CER " $(NF-2) " " FILENAME " "$0}' ../Baselines/$i/exp/train_*/decode_*/result.txt 
+done
+
+
+# ------------
+# GMM training
+# ------------
+
+for i in 101 103 104 105 404 107 201 204 205 207; do
+    dir=../Baselines/$i.new
+    bash -x setup_experiment.sh $dir
+    cd $dir
+    ./local/setup_languages.sh --langs "${i}" --recog "${i}"
+
+    # ---
+    train_set=train
+    train_dev=dev
+    recog_set="eval_${i}"
+    # ---
+
+    feakind=MultRDTv1
+    fbankdir=data-$feakind
+    
+    # Generate and dump features
+    for x in ${train_set} ${train_dev} ${recog_set}; do
+        local/fea.genMultRDT.sh \
+            data/$x data-$feakind/$x
+    done
+    fi
+done
+
+
+# ------------
+# Multilingual training
+# ------------
+
+cd ../Multiling_v0
+./run_multilingual.sh

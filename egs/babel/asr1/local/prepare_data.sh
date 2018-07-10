@@ -5,11 +5,19 @@
 
 # This is not necessarily the top-level run.sh as it is in other directories.   see README.txt first.
 
-. ./conf/lang.conf
+
 . ./path.sh
 . ./cmd.sh
+if [[ $(hostname -f) == *.clsp.jhu.edu ]]; then
+    echo "in JHU"
+    . ./conf/lang.conf
+elif [[ $(hostname -f) == *.fit.vutbr.cz ]]; then
+    echo "in BUT"
+    . ./conf/lang.but.conf
+fi
 
 FLP=true
+norm_case=false; text_case=lower
 
 . ./utils/parse_options.sh
 if [ $# -ne 1 ]; then
@@ -61,6 +69,7 @@ if [[ ! -f data/train/wav.scp || data/train/wav.scp -ot "$train_data_dir" ]]; th
   local/prepare_acoustic_training_data.pl \
     --vocab ${!lexicon_file} --fragmentMarkers \-\*\~ \
     $train_data_dir data/train.tmp > data/train.tmp/skipped_utts.log
+  
 fi
 
 if [[ ! -f data/dev10h.pem/wav.scp || data/dev10h.pem/wav.scp -ot "$dev10h_data_dir" ]]; then
@@ -73,7 +82,22 @@ if [[ ! -f data/dev10h.pem/wav.scp || data/dev10h.pem/wav.scp -ot "$dev10h_data_
     $dev10h_data_dir data/dev10h.pem > data/dev10h.pem/skipped_utts.log
 fi
 
-
+if $norm_case; then
+    for t in data/dev10h.pem/text data/train.tmp/text; do 
+	locale_tmp=$(eval echo \$locale_$l) # set locale if variable locale_${l} exists
+	echo "Converting ${t} to lower case ${locale_tmp:+with locale ${locale_tmp}}"
+	if [ ! -e $t.bak ]; then
+	    mv $t $t.bak
+	    awk '/</{for(i=1;i<=NF;i++) if($i ~ /^<.*>$/) W[$i]=1}; END{for( w in W) print w}' $t.bak > $t.marker.wlist
+	    local/transc.ModifyCase.sh \
+		--intact-wlist $t.marker.wlist \
+		--case $text_case ${locale_tmp:+ --locale $locale_tmp} \
+		$t.bak $t || exit 1
+	else
+	    echo " $t.bak already exists. Skipping"
+	fi
+    done
+fi
 
 ###########################################################################
 # Prepend language ID to all utterances to disambiguate between speakers
