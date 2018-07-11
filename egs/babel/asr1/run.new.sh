@@ -125,7 +125,7 @@ feat_dt_dir=${dumpdir}/${train_dev}/${dumpdir_name}
 
 #dict=data/lang_1char/${train_set}_units.txt
 #nlsyms=data/lang_1char/non_lang_syms.txt
-lang=data/lang
+lang=data/lang_1char
 
 if [ ${stage} -le 2 ] && [ ${stage_last} -ge 2 ]; then
     echo "Creating dictionary: into  ${lang}"
