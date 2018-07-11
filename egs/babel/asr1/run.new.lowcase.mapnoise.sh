@@ -106,7 +106,11 @@ if [ $stage -le 0 ] && [ $stage_last -ge 0 ]; then
   # It will fill directories for all $lang_ids: data/${lang_id}/data 
   #     by train_${lang_id} dev_${lang_id} 
   # and combine them together into main data/{train,dev}
-  ./local/setup_languages.sh --norm_case $norm_case \
+  wordmap=$PWD/wordmap.map
+  echo "Creating wmaps into "
+  echo "<noise> <silence>
+<v-noise> <silence>" > $wordmap  
+  ./local/setup_languages.sh --norm_case $norm_case --wordmap ${wordmap} \
       --langs "${lang_id}" --recog "${lang_id}"
 fi
 
