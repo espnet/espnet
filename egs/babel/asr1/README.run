@@ -1,14 +1,30 @@
 #!/bin/bash
 
 train_babel_langs="101 103 104 105 404 107 201 204 205 207"
+train_babel_langs_noCant="103 104 105 404 107 201 204 205 207"
 target_babel_langs="102 106 202 203 206"
 
+
 #for i in 101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403    107 201 307 404; do
+expdir_root=../Baselines
+cmd=./run.sh
+
+expdir_root=../Baselines.v1
+cmd=./run.new.sh
+
+expdir_root=../Baselines.v2
+cmd=./run.new.lowcase.sh
+
+expdir_root=../Baselines.v3
+cmd=../../asr1/run.new.lowcase.mapnoise.sh
+
 for i in $train_babel_langs $target_babel_lang; do
     i=102
-    bash -x setup_experiment.sh ../Baselines/$i
-    cd ../Baselines/$i
-    bash -x run.sh --langs "$i" --recog "$i" &
+    i=202
+    bash -x setup_experiment.sh $expdir_root/$i
+    cd $expdir_root/$i
+    #bash -x $cmd --langs "$i" --recog "$i" & # for run.sh
+    bash -x $cmd --lang_id "$i" &            # for run.new.sh
     cd -
     sleep 10m
 done &
@@ -42,33 +58,61 @@ done
 # GMM training
 # ------------
 
-for i in 101 103 104 105 404 107 201 204 205 207; do
-    dir=../Baselines/$i.new
+#for i in 101 103 104 105 404 107 201 204 205 207 102 106 203 206; do
+for i in 102 106 202 203 206; do # Target only
+for i in 106 203 206; do
+    dir=../Baselines.v2/$i # casenorm
     bash -x setup_experiment.sh $dir
     cd $dir
-    ./local/setup_languages.sh --langs "${i}" --recog "${i}"
+#    ./local/setup_languages.sh --norm_case true --langs "${i}" --recog "${i}"
 
     # ---
-    train_set=train
-    train_dev=dev
-    recog_set="eval_${i}"
-    # ---
-
-    feakind=MultRDTv1
-    fbankdir=data-$feakind
-    
-    # Generate and dump features
-    for x in ${train_set} ${train_dev} ${recog_set}; do
-        local/fea.genMultRDT.sh \
-            data/$x data-$feakind/$x
-    done
-    fi
+     ../../asr1/run.gmm.sh --recog_set eval_${i} --stage 0 &
+     ../../asr1/run.train_bn.sh --lang_id ${i}
+    cd -
 done
 
 
 # ------------
-# Multilingual training
+# Multilingual GMM training
 # ------------
 
-cd ../Multiling_v0
-./run_multilingual.sh
+#cd ../Multiling_v0
+#./run_multilingual.sh
+
+dir=../Multiling.v2 # casenorm                                                                                                                          
+dir=../Multiling.v3 # casenorm - cantonese
+bash -x setup_experiment.sh $dir
+cd $dir
+./local/setup_languages.sh --norm_case true \
+    --langs "$train_babel_langs_noCant" --recog "$train_babel_langs_noCant"
+
+# ----- Data
+train_set=traindev
+if [ $stage -le 0 ] && [ $stage_last -gt 0 ]; then
+    [ ! -d data/${train_set} ] && ./utils/combine_data.sh data/${train_set} data/train data/dev
+fi    
+
+# ----- Make grapheme based dct+lang
+for i in $train_babel_langs; do
+    dctdir_tmp=data/local/dict.tmp_${i}
+    lang_train=data/lang.wrd2grp_${i} # will be created
+    
+    # Create dictionary into ${lang_train}/dct
+    ./local/make_dct.grp.sh --add_langinfo ${i} "data/${i}/data/train data/${i}/data/dev_${i}" ${lang_train}
+    wc ${lang_train}/dct
+done
+
+lang_train=data/lang.wrd2grp
+dctdir_tmp=data/local/dict.tmp
+mkdir -p $lang_train
+for i in $train_babel_langs; do
+    cat ${lang_train}_${i}/dct
+done | sort -u > ${lang_train}/dct
+sort -u data/lang.wrd2grp_*/non_lang_syms.txt > ${lang_train}/non_lang_syms.txt
+
+
+./local/make_lang.gmm.sh ${lang_train} ${dctdir_tmp} ${lang_train} 
+
+../asr1/run.gmm.sh --recog_set eval_103 --nj_train 200 --stage 3
+

@@ -18,6 +18,7 @@ fi
 
 FLP=true
 norm_case=false; text_case=lower
+wordmap=
 
 . ./utils/parse_options.sh
 if [ $# -ne 1 ]; then
@@ -88,7 +89,7 @@ if $norm_case; then
 	echo "Converting ${t} to lower case ${locale_tmp:+with locale ${locale_tmp}}"
 	if [ ! -e $t.bak ]; then
 	    mv $t $t.bak
-	    awk '/</{for(i=1;i<=NF;i++) if($i ~ /^<.*>$/) W[$i]=1}; END{for( w in W) print w}' $t.bak > $t.marker.wlist
+	    awk '/</{for(i=2;i<=NF;i++) if($i ~ /^<.*>$/) W[$i]=1}; END{for( w in W) print w}' $t.bak > $t.marker.wlist
 	    local/transc.ModifyCase.sh \
 		--intact-wlist $t.marker.wlist \
 		--case $text_case ${locale_tmp:+ --locale $locale_tmp} \
@@ -98,6 +99,22 @@ if $norm_case; then
 	fi
     done
 fi
+
+if [ -n $wordmap ]; then
+    for t in data/dev10h.pem/text data/train.tmp/text; do 
+	locale_tmp=$(eval echo \$locale_$l) # set locale if variable locale_${l} exists
+	echo "Appling $wordmap wordmap on $t"
+	if [ ! -e $t.unmap ]; then
+	    mv $t $t.unmap
+	    awk '
+k==0{MAP[$1]=$2}
+k==1{for(i=2;i<=NF;i++) if($i in MAP) $i=MAP[$i]; print}' k=0 $wordmap k=1 $t.unmap > $t
+	else
+	    echo " $t.unmap already exists. Skipping"
+	fi
+    done
+fi
+
 
 ###########################################################################
 # Prepend language ID to all utterances to disambiguate between speakers

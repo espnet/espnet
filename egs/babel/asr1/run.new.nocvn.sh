@@ -9,10 +9,10 @@
 
 # Data settings 
 do_delta=false # true when using CNN
-do_cvn=true
+do_cvn=false
 
 dumpdir=dump   # directory to dump full features
-dumpdir_name=delta${do_delta}cvn$do_cvn # 
+dumpdir_name=delta${do_delta}cvn${do_cvn} # 
 
 # general configuration
 backend=pytorch
@@ -114,6 +114,7 @@ if [ $stage -le 1 ] && [ $stage_last -ge 1 ]; then
     # Generate and dump features
     for x in ${train_set} ${train_dev} ${recog_set}; do
 	local/makeanddump_fea.sh \
+	    --do_cvn $do_cvn  \
 	    --data_in data/$x \
 	    --data_fea ${fbankdir}/$x \
 	    --data_dmp ${dumpdir}/$x/${dumpdir_name}
@@ -125,7 +126,7 @@ feat_dt_dir=${dumpdir}/${train_dev}/${dumpdir_name}
 
 #dict=data/lang_1char/${train_set}_units.txt
 #nlsyms=data/lang_1char/non_lang_syms.txt
-lang=data/lang_1char
+lang=data/lang
 
 if [ ${stage} -le 2 ] && [ ${stage_last} -ge 2 ]; then
     echo "Creating dictionary: into  ${lang}"
@@ -147,7 +148,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_cvn${do_cvn}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi

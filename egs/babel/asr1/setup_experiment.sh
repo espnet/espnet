@@ -14,7 +14,7 @@ pwd=$PWD
 
 mkdir -p ${expdir}; cd ${expdir}
 
-cp $pwd/{cmd,path,run,run.new}.sh ./
+cp $pwd/{cmd,path,run*}.sh ./
 for f in steps utils local conf; do
     ln -rs $pwd/$f ./
 done

@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 norm_case=false
+wordmap=
 
 . ./path.sh
 . ./cmd.sh
@@ -61,7 +62,7 @@ done
 for l in ${all_langs}; do
   (
     cd data/${l}
-    ./local/prepare_data.sh --norm_case $norm_case --FLP ${FLP} ${l}
+    ./local/prepare_data.sh --norm_case $norm_case --wordmap "$wordmap" --FLP ${FLP} ${l}
     cd ${cwd}
   ) &
 done

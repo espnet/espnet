@@ -10,6 +10,7 @@
 # Data settings 
 do_delta=false # true when using CNN
 do_cvn=true
+norm_case=true # normalize text case to lower 
 
 dumpdir=dump   # directory to dump full features
 dumpdir_name=delta${do_delta}cvn$do_cvn # 
@@ -105,7 +106,12 @@ if [ $stage -le 0 ] && [ $stage_last -ge 0 ]; then
   # It will fill directories for all $lang_ids: data/${lang_id}/data 
   #     by train_${lang_id} dev_${lang_id} 
   # and combine them together into main data/{train,dev}
-  ./local/setup_languages.sh --langs "${lang_id}" --recog "${lang_id}"
+  wordmap=$PWD/wordmap.map
+  echo "Creating wmaps into "
+  echo "<noise> <silence>
+<v-noise> <silence>" > $wordmap  
+  ./local/setup_languages.sh --norm_case $norm_case --wordmap ${wordmap} \
+      --langs "${lang_id}" --recog "${lang_id}"
 fi
 
 fbankdir=fbank
