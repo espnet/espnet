@@ -14,7 +14,7 @@ kaldi:
 else
 kaldi: kaldi_github
 	cd kaldi_github/tools; $(MAKE) all
-	cd kaldi_github/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
+	cd kaldi_github/src; ./configure --shared --use-cuda=yes; $(MAKE) depend; $(MAKE) all
 	ln -s kaldi_github kaldi
 
 kaldi_github:
