@@ -63,7 +63,7 @@ for i in ${train_set} ${train_dev} ${recog_set}; do
     d_in=data/${i}
     d_out=${dumpdir}/${i}/${dumpdir_name}
     if [ ! -s ${d_out}/cmvn.scp ]; then
-	cp ${d_in}/{segments,spk2utt,utt2spk,wav.scp} ${d_out}
+	cp ${d_in}/{segments,spk2utt,utt2spk,text,wav.scp} ${d_out}
 	steps/compute_cmvn_stats.sh ${d_out} ${d_out}/log ${d_out}/data || exit 1;
     fi
 done
@@ -86,11 +86,11 @@ fi
 if [ $stage -le 3 ] && [ $stage_last -ge 3 ]; then
     
     for i in ${train_set} ${train_dev} ${recog_set}; do
-	datadir_in=data/${i}
+	feadir_in=${dumpdir}/${i}/${dumpdir_name}
 	feadir_out=${feadir_bn}/${i}
 	
 	if [ ! -e ${feadir_out}/feats.scp ]; then
- 	    steps/nnet/make_bn_feats.sh --nj 10 --cmd "$train_cmd" ${feadir_out} ${datadir_in} $dir ${feadir_out}/log ${feadir_out}/data || exit 1
+ 	    steps/nnet/make_bn_feats.sh --nj 10 --cmd "$train_cmd" ${feadir_out} ${feadir_in} $dir ${feadir_out}/log ${feadir_out}/data || exit 1
 	    steps/compute_cmvn_stats.sh ${feadir_out} ${feadir_out}/log ${feadir_out}/data || exit 1;
 	fi
     done
