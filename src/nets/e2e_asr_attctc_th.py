@@ -33,8 +33,6 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
-torch_is_old = torch.__version__.startswith("0.3.")
-
 
 def to_cuda(m, x):
     assert isinstance(m, torch.nn.Module)
@@ -2103,7 +2101,9 @@ class BLSTMP(torch.nn.Module):
         for layer in six.moves.range(self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
-            bilstm.flatten_parameters()
+            if torch_is_old:
+                # pytorch 0.4.x does not support flatten_parameters() for multiple GPUs
+                bilstm.flatten_parameters()
             ys, (hy, cy) = bilstm(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
