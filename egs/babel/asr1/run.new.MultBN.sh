@@ -1,0 +1,1 @@
+/mnt/matylda3/karafiat/BABEL/GIT/espnet.github/egs/babel/asr1/run.new.MultBN.sh

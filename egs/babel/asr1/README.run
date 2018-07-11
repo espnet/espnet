@@ -1,7 +1,9 @@
 #!/bin/bash
 
 train_babel_langs="101 103 104 105 404 107 201 204 205 207"
+train_babel_langs_noCant="103 104 105 404 107 201 204 205 207"
 target_babel_langs="102 106 202 203 206"
+
 
 #for i in 101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403    107 201 307 404; do
 expdir_root=../Baselines
@@ -65,7 +67,7 @@ for i in 106 203 206; do
 #    ./local/setup_languages.sh --norm_case true --langs "${i}" --recog "${i}"
 
     # ---
-     ../../asr1/run.gmm.sh --recog_set eval_${i} --stage 0
+     ../../asr1/run.gmm.sh --recog_set eval_${i} --stage 0 &
      ../../asr1/run.train_bn.sh --lang_id ${i}
     cd -
 done
@@ -79,10 +81,11 @@ done
 #./run_multilingual.sh
 
 dir=../Multiling.v2 # casenorm                                                                                                                          
+dir=../Multiling.v3 # casenorm - cantonese
 bash -x setup_experiment.sh $dir
 cd $dir
 ./local/setup_languages.sh --norm_case true \
-    --langs "$train_babel_langs" --recog "$train_babel_langs"
+    --langs "$train_babel_langs_noCant" --recog "$train_babel_langs_noCant"
 
 # ----- Data
 train_set=traindev
@@ -111,5 +114,5 @@ sort -u data/lang.wrd2grp_*/non_lang_syms.txt > ${lang_train}/non_lang_syms.txt
 
 ./local/make_lang.gmm.sh ${lang_train} ${dctdir_tmp} ${lang_train} 
 
-../asr1/run.gmm.sh --recog_set eval_${103} --nj_train 200 --stage 3
+../asr1/run.gmm.sh --recog_set eval_103 --nj_train 200 --stage 3
 
