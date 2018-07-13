@@ -205,46 +205,31 @@ fi
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
-    nj=32
+    nj=80
     
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
-
-        # split data
-        #data=data/${rtask}
-	data=${dumpdir}/${rtask}/$dumpdir_name
-
+        feat_recog_dir=${dumpdir}/${rtask}/$dumpdir_name
 	# Copy data files for scoring and data split
 	for f in utt2spk spk2utt text wav.scp segments; do
-	    [ ! -e $data/${f} ] && cp data/$rtask/$f ${data}/
+	    [ ! -e ${feat_recog_dir}/${f} ] && cp data/$rtask/$f ${feat_recog_dir}/
 	done
-	split_data.sh --per-utt ${data} ${nj};
-        sdata=${data}/split${nj}utt;
 
-        # feature extraction
-        #feats="ark,s,cs:apply-cmvn --norm-vars=true $fbankdir/${rtask}/cmvn.ark scp:${sdata}/JOB/feats.scp ark:- |"
-        #if ${do_delta}; then
-        #feats="$feats add-deltas ark:- ark:- |"
-        #fi
-        feats="ark:copy-feats scp:${sdata}/JOB/feats.scp ark:- |"
-
-        # make json labels for recognition
-	./local/make_json.sh \
-            --lang $lang                    \
-            --data_in $fbankdir/${rtask} --data $data
+        # split data
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
 
-	# For rnnlm
-	extra_opts=""
- 
+        # For rnnlm
+        extra_opts=""
+
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${data}/data.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
@@ -255,11 +240,11 @@ if [ ${stage} -le 4 ]; then
             --minlenratio ${minlenratio} \
             ${extra_opts} &
         wait
-
+	
 	nlsyms=$lang/non_lang_syms.txt
 	dict=$lang/train_units.txt
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-
+	
     ) &
     done
     wait
