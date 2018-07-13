@@ -59,16 +59,17 @@ done
 # ------------
 
 #for i in 101 103 104 105 404 107 201 204 205 207 102 106 203 206; do
-for i in 102 106 202 203 206; do # Target only
+for i in 102 106 202 203 206  207 404; do # Target only + tokPis + Georg
 for i in 106 203 206; do
+for i in  207 404; do
     dir=../Baselines.v2/$i # casenorm
     bash -x setup_experiment.sh $dir
     cd $dir
-#    ./local/setup_languages.sh --norm_case true --langs "${i}" --recog "${i}"
+    ./local/setup_languages.sh --norm_case true --langs "${i}" --recog "${i}" # Only first time needed
 
     # ---
-     ../../asr1/run.gmm.sh --recog_set eval_${i} --stage 0 &
-     ../../asr1/run.train_bn.sh --lang_id ${i}
+     ../../asr1/run.gmm.sh --recog_set eval_${i} --stage 0 
+     ../../asr1/run.train_bn.sh --lang_id ${i} &
     cd -
 done
 
