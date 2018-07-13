@@ -2,7 +2,7 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc subword-nmt
+all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc sentencepiece
 
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
@@ -12,13 +12,10 @@ ifneq ($(strip $(KALDI)),)
 kaldi:
 	ln -s $(KALDI) kaldi
 else
-kaldi: kaldi_github
-	cd kaldi_github/tools; $(MAKE) all
+kaldi:
+	git clone https://github.com/kaldi-asr/kaldi.git kaldi_github; cd kaldi_github/tools; $(MAKE) all
 	cd kaldi_github/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
-	ln -s kaldi_github kaldi
-
-kaldi_github:
-	git clone https://github.com/kaldi-asr/kaldi.git kaldi_github
+	ln -s kaldi_github kaldi	
 endif
 
 # for some reason, including matplotlib in requirements.txt causes errors, and
@@ -30,11 +27,11 @@ venv/bin/activate: requirements.txt
 
 nkf:
 	mkdir -p nkf
-	cd nkf; wget http://gigenet.dl.osdn.jp/nkf/64158/nkf-2.1.4.tar.gz
+	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
 venv/lib/python2.7/site-packages/torch: venv/bin/activate
-	. venv/bin/activate; pip install pip --upgrade; pip install http://download.pytorch.org/whl/cu80/torch-0.3.1-cp27-cp27mu-linux_x86_64.whl
+	. venv/bin/activate; pip install pip --upgrade; pip install torch
 
 warp-ctc: venv/lib/python2.7/site-packages/torch
 	git clone https://github.com/SeanNaren/warp-ctc.git
@@ -48,10 +45,11 @@ chainer_ctc: venv/bin/activate
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
 	. venv/bin/activate; cd chainer_ctc && pip install .
 
-subword-nmt:
-	git clone https://github.com/rsennrich/subword-nmt.git
+sentencepiece:
+	git clone https://github.com/google/sentencepiece.git
+	cd sentencepiece && ./autogen.sh && ./configure && $(MAKE)
 
 clean:
-	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc subword-nmt
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece
 	rm -f miniconda.sh
 	find . -iname "*.pyc" -delete
