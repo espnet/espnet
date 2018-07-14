@@ -187,7 +187,7 @@ class E2E(torch.nn.Module):
         # subsample info
         # +1 means input (+1) and layers outputs (args.elayer)
         subsample = np.ones(args.elayers + 1, dtype=np.int)
-        if args.etype == 'blstmp':
+        if args.etype == 'blstmp' or args.etype == 'bgrup':
             ss = args.subsample.split("_")
             for j in range(min(args.elayers + 1, len(ss))):
                 subsample[j] = int(ss[j])
@@ -2039,6 +2039,10 @@ class Encoder(torch.nn.Module):
             self.enc2 = BLSTM(_get_vgg2l_odim(idim, in_channel=in_channel),
                               elayers, eunits, eprojs, dropout)
             logging.info('Use CNN-VGG + BLSTM for encoder')
+        elif etype == 'bgrup':
+            self.enc1 = BGRUP(idim, elayers, eunits,
+                              eprojs, subsample, dropout)
+            logging.info('BGRUP with every-layer projection for encoder')
         else:
             logging.error(
                 "Error: need to specify an appropriate encoder archtecture")
@@ -2063,6 +2067,8 @@ class Encoder(torch.nn.Module):
         elif self.etype == 'vggblstm':
             xs, ilens = self.enc1(xs, ilens)
             xs, ilens = self.enc2(xs, ilens)
+        elif self.etype == 'bgrup':
+            xs, ilens = self.enc1(xs, ilens)
         else:
             logging.error(
                 "Error: need to specify an appropriate encoder archtecture")
@@ -2194,3 +2200,48 @@ class VGG2L(torch.nn.Module):
         xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens
+
+
+class BGRUP(torch.nn.Module):
+    def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
+        super(BGRUP, self).__init__()
+        for i in six.moves.range(elayers):
+            if i == 0:
+                inputdim = idim
+            else:
+                inputdim = hdim
+            setattr(self, "bigrup%d" % i, torch.nn.GRU(inputdim, cdim, dropout=dropout,
+                                                        num_layers=1, bidirectional=True, batch_first=True))
+            # bottleneck layer to merge
+            setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
+
+        self.elayers = elayers
+        self.cdim = cdim
+        self.subsample = subsample
+
+    def forward(self, xpad, ilens):
+        '''BGRU forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        '''
+        # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        for layer in six.moves.range(self.elayers):
+            xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
+            bigru = getattr(self, 'bigrup' + str(layer))
+            bigru.flatten_parameters()
+            ys, (hy, cy) = bigru(xpack)
+            # ys: utt list of frame x cdim x 2 (2: means bidirectional)
+            ypad, ilens = pad_packed_sequence(ys, batch_first=True)
+            sub = self.subsample[layer + 1]
+            if sub > 1:
+                ypad = ypad[:, ::sub]
+                ilens = [(i + 1) // sub for i in ilens]
+            # (sum _utt frame_utt) x dim
+            projected = getattr(self, 'bt' + str(layer)
+                                )(ypad.contiguous().view(-1, ypad.size(2)))
+            xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
+            del hy, cy
+
+        return xpad, ilens  # x: utt list of frame x dim
