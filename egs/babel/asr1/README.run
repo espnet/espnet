@@ -13,20 +13,21 @@ expdir_root=../Baselines.v1
 cmd=./run.new.sh
 
 expdir_root=../Baselines.v2
-cmd=./run.new.lowcase.sh
+cmd=../../asr1/run.new.lowcase.sh
 
 expdir_root=../Baselines.v3
 cmd=../../asr1/run.new.lowcase.mapnoise.sh
 
 for i in $train_babel_langs $target_babel_lang; do
-    i=102
-    i=202
+#    i=102
+#    i=202
+    [ $i == 202 ] && continue
     bash -x setup_experiment.sh $expdir_root/$i
     cd $expdir_root/$i
     #bash -x $cmd --langs "$i" --recog "$i" & # for run.sh
     bash -x $cmd --lang_id "$i" &            # for run.new.sh
     cd -
-    sleep 10m
+    sleep 20m
 done &
 
 # rerun missing
@@ -68,10 +69,72 @@ for i in  207 404; do
     ./local/setup_languages.sh --norm_case true --langs "${i}" --recog "${i}" # Only first time needed
 
     # ---
-     ../../asr1/run.gmm.sh --recog_set eval_${i} --stage 0 
-     ../../asr1/run.train_bn.sh --lang_id ${i} &
+     ../../asr1/run.gmm.sh --recog_set eval_${i} --stage 0  # Gmm align
+     ../../asr1/run.train_bn.sh --recog_set eval_${i} &            # BN train + feaextr bn3L 
     cd -
 done
+
+
+# ------------
+# E2E on fbank/BN
+# ------------
+expdir_root=../Baselines.v2
+cmd=../../asr1/run.new.lowcase.sh
+
+for i in  202 102 207 404; do
+    dir=$expdir_root/$i # casenorm
+    cd $dir
+    $cmd --lang_id "$i" --stage 1 &  # E2E on fbank
+    $cmd --lang_id "$i" --stage 1 --backend chainer &  # E2E on fbank
+    ../../asr1/run.new.bn.sh --lang_id ${i} & # E2E on BN 
+
+    ../../asr1/run.train_bn.sh --stage 1 --recog_set eval_${i} & # Estimate BN extractor
+    ../../asr1/run.new.bn.sh --lang_id ${i} --stage 2 \
+	--feakind bn3L &                           # Train on new fea
+    cd -
+done
+
+# After feagen run
+for i in  202 102 207 404; do
+    dir=$expdir_root/$i # casenorm
+    cd $dir
+    #$cmd --lang_id "$i" --stage 3 --backend chainer &                          # E2E on fbank using chainer
+    ../../asr1/run.new.bn.sh --lang_id ${i} --backend chainer --feakind bn3L &  # Train on MonoBN
+    cd -
+done
+
+
+# Multilingual BN on languages
+expdir_root=../Baselines.v2
+MultBNdir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.v3/exp/dnn_bn3L
+MultBNlabel=Mult9L_bn3L
+for i in  202 102 207 404; do
+    dir=$expdir_root/$i # casenorm 
+    cd $dir
+    ../../asr1/run.train_bn.sh --stage 3 --recog_set eval_${i} \
+	--feadir_bn data-$MultBNlabel --dir $MultBNdir # Forward NN
+    ../../asr1/run.new.bn.sh --lang_id ${i} --stage 2 \
+	--feakind $MultBNlabel & # Train on new fea
+    cd -
+done
+
+# Multilingual BN on languages - 8k system
+expdir_root=../Baselines.v2
+MultBNdir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.v3/exp/dnn_24fbank8k.bn3L/
+MultBNlabel=Mult9L-24fbank8kbn3L
+for i in  202 102 207 404; do
+    i=202
+    dir=$expdir_root/$i # casenorm 
+    cd $dir
+    ../../asr1/run.train_bn.8k.sh --lang_id ${i}  --stage 1 --stage_last 1 \
+        --feadir_bn data-$MultBNlabel --dir $MultBNdir     # Make fbank
+    ../../asr1/run.train_bn.8k.sh --lang_id ${i}  --stage 3 \
+        --feadir_bn data-$MultBNlabel --dir $MultBNdir     # Forward NN
+    ../../asr1/run.new.bn.sh --lang_id ${i} --stage 2 \
+	--feakind $MultBNlabel &                           # Train on new fea
+    cd -
+done
+
 
 
 # ------------
@@ -116,4 +179,20 @@ sort -u data/lang.wrd2grp_*/non_lang_syms.txt > ${lang_train}/non_lang_syms.txt
 ./local/make_lang.gmm.sh ${lang_train} ${dctdir_tmp} ${lang_train} 
 
 ../asr1/run.gmm.sh --recog_set eval_103 --nj_train 200 --stage 3
+
+
+
+# Multilingual BN + AM 
+MultBNdir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.v3/exp/dnn_bn3L
+MultBNlabel=Mult9L_bn3L
+cd ../Multiling.v2/
+dir.LinkToScratch.sh data-$MultBNlabel
+../asr1/run.train_bn.sh --stage 3 --njfea 100 \
+    --dumpdir_name deltafalse \
+    --train_set train_mult --train_dev dev_mult --recog_set "" \
+    --feadir_bn data-$MultBNlabel --dir $MultBNdir # Forward NN
+
+../asr1/run.new.bn.sh --lang_id ${i} --stage 2 \
+    --train_set train_mult --train_dev dev_mult  \
+    --feakind $MultBNlabel & # Train on new fea
 
