@@ -2211,7 +2211,7 @@ class BGRUP(torch.nn.Module):
             else:
                 inputdim = hdim
             setattr(self, "bigrup%d" % i, torch.nn.GRU(inputdim, cdim, dropout=dropout,
-                                                        num_layers=1, bidirectional=True, batch_first=True))
+                                                       num_layers=1, bidirectional=True, batch_first=True))
             # bottleneck layer to merge
             setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
 
@@ -2230,7 +2230,9 @@ class BGRUP(torch.nn.Module):
         for layer in six.moves.range(self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
             bigru = getattr(self, 'bigrup' + str(layer))
-            bigru.flatten_parameters()
+            if torch_is_old:
+                # pytorch 0.4.x does not support flatten_parameters() for multiple GPUs
+                bigru.flatten_parameters()
             ys, (hy, cy) = bigru(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
