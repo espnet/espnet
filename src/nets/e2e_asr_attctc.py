@@ -892,29 +892,28 @@ class Encoder(chainer.Chain):
 
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
+        encoders = etype.split('_')
         with self.init_scope():
-            if etype == 'blstm':
-                self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
-                logging.info('BLSTM without projection for encoder')
-            elif etype == 'blstmp':
-                self.enc1 = BLSTMP(idim, elayers, eunits,
-                                   eprojs, subsample, dropout)
-                logging.info('BLSTM with every-layer projection for encoder')
-            elif etype == 'vggblstmp':
-                self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTMP(_get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
-                                   subsample, dropout)
-                logging.info('Use CNN-VGG + BLSTMP for encoder')
-            elif etype == 'vggblstm':
-                self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTM(_get_vgg2l_odim(
-                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
-                logging.info('Use CNN-VGG + BLSTM for encoder')
-            else:
-                logging.error(
-                    "Error: need to specify an appropriate encoder archtecture")
-                sys.exit()
-
+            self._forward = list()
+            for i in range(len(encoders)):
+                name = 'enc{}'.format(i + 1)
+                if encoders[i] == 'blstm':
+                    _encoder = BLSTM(idim, elayers, eunits, eprojs, dropout)
+                    logging.info('Added BLSTM without projection for encoder')
+                elif encoders[i] == 'blstmp':
+                    _encoder = BLSTMP(idim, elayers, eunits,
+                                      eprojs, subsample, dropout)
+                    logging.info('Added BLSTM with every-layer projection for encoder')
+                elif encoders[i] == 'vgg':
+                    _encoder = VGG2L(in_channel)
+                    idim = _get_vgg2l_odim(idim, in_channel=in_channel)
+                    logging.info('Added CNN-VGG for encoder')
+                else:
+                    logging.error(
+                        "Error: {} not found. Need to specify an appropriate encoder archtecture".format(encoders[i]))
+                    sys.exit(1)
+                setattr(self, name, _encoder)
+                self._forward.append(name)
         self.etype = etype
 
     def __call__(self, xs, ilens):
@@ -924,22 +923,15 @@ class Encoder(chainer.Chain):
         :param ilens:
         :return:
         '''
-        if self.etype == 'blstm':
-            xs, ilens = self.enc1(xs, ilens)
-        elif self.etype == 'blstmp':
-            xs, ilens = self.enc1(xs, ilens)
-        elif self.etype == 'vggblstmp':
-            xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
-        elif self.etype == 'vggblstm':
-            xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
-        else:
-            logging.error(
-                "Error: need to specify an appropriate encoder archtecture")
-            sys.exit()
-
+        for name in self._forward:
+            enc = getattr(self, name)
+            xs, ilens = enc(xs, ilens)
         return xs, ilens
+
+    # TODO(nelson) check if this property is necessary. Otherwise, it will be better to delete.
+    @property
+    def forward(self):
+        return [getattr(self, name) for name in self._forward]
 
 
 # TODO(watanabe) explanation of BLSTMP
