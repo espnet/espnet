@@ -141,7 +141,7 @@ class Loss(torch.nn.Module):
         return self.loss
 
 
-def pad_list(xs, pad_value):
+def pad_list(xs, pad_value=0.0):
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
     if torch_is_old:
@@ -1942,6 +1942,7 @@ class Decoder(torch.nn.Module):
         hlen = list(map(int, hlen))
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
+
         # prepare input and output word sequences with sos/eos IDs
         eos = Variable(ys[0].data.new([self.eos]))
         sos = Variable(ys[0].data.new([self.sos]))
