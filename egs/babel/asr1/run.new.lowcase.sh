@@ -153,12 +153,15 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
+    addtmpopt=''
+    [ $backend != "pytorch" ] && addtmpopt=_${backend}
+    expdir=${expdir}${addtmpopt}
 else
     expdir=exp/${train_set}_${tag}
 fi
 mkdir -p ${expdir}
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ]  && [ ${stage_last} -ge 3 ]; then
     echo "stage 3: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
@@ -199,7 +202,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stage_last} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=80
 

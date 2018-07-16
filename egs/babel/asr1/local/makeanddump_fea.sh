@@ -32,10 +32,10 @@ if [ ${stage} -le 1 ]; then
     
     # Make Features if they are missing
     if [ ! -f $data_fea/feats.scp ]; then
-        sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" $data_in/wav.scp
-        steps/make_fbank_pitch.sh --cmd "$train_cmd -js 5" --nj 20 ${data_in} ${data_fea} ${data_fea}
-	copy_data_dir.sh $data_in $data_fea # feagen generates unfortunately feats.scp into $data_in so copy has tobe after fea gen
-        ./utils/fix_data_dir.sh ${data_fea} 
+        [ ! -e $data_in/wav.scp.bak ] && sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" $data_in/wav.scp
+	copy_data_dir.sh $data_in $data_fea;  rm $data_fea/feats.scp ${data_fea}/cmvn.* 
+        steps/make_fbank_pitch.sh --cmd "$train_cmd -js 5" --nj 20 ${data_fea} ${data_fea}/log ${data_fea}/data
+        ./utils/fix_data_dir.sh ${data_in} 
         compute-cmvn-stats scp:${data_fea}/feats.scp ${data_fea}/cmvn.ark
     fi
 fi

@@ -141,7 +141,7 @@ class Loss(torch.nn.Module):
         return self.loss
 
 
-def pad_list(xs, pad_value=float("nan")):
+def pad_list(xs, pad_value=0.0):
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
     if torch_is_old:
@@ -319,7 +319,7 @@ class E2E(torch.nn.Module):
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # 1. encoder
-        xpad = pad_list(hs)
+        xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
 
         # # 3. CTC loss
@@ -417,7 +417,7 @@ class E2E(torch.nn.Module):
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # encoder
-        xpad = pad_list(hs)
+        xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
 
         # decoder
@@ -1942,6 +1942,7 @@ class Decoder(torch.nn.Module):
         hlen = list(map(int, hlen))
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
+
         # prepare input and output word sequences with sos/eos IDs
         eos = Variable(ys[0].data.new([self.eos]))
         sos = Variable(ys[0].data.new([self.sos]))
@@ -2167,6 +2168,7 @@ class VGG2L(torch.nn.Module):
 
         # x: utt x frame x dim
         # xs = F.pad_sequence(xs)
+        xs = xs.contiguous()
 
         # x: utt x 1 (input channel num) x frame x dim
         xs = xs.view(xs.size(0), xs.size(1), self.in_channel,

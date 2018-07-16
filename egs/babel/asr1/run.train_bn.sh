@@ -23,7 +23,6 @@ dumpdir=dump   # directory to dump full features
 dumpdir_name=delta${do_delta}cvn$do_cvn # 
 
 # Input/output dirs
-lang_id="101"
 dir=exp/dnn_bn #2L
 feadir_bn=data-bn
 
@@ -33,13 +32,14 @@ ali=exp/tri5b_MultRDTv1_short_ali
 graph_src=exp/tri5b_MultRDTv1_short/graph.lang_test.wrd2grp.traindev.o3g.kn
 lang_train=data/lang.wrd2grp
 njdec=30
-
-. utils/parse_options.sh || exit 1;
+njfea=10
 
 # Train test sets
 train_set=train
 train_dev=dev
-recog_set="eval_${lang_id}"
+recog_set=eval_101
+
+. utils/parse_options.sh || exit 1;
 
 
 
@@ -90,7 +90,7 @@ if [ $stage -le 3 ] && [ $stage_last -ge 3 ]; then
 	feadir_out=${feadir_bn}/${i}
 	
 	if [ ! -e ${feadir_out}/feats.scp ]; then
- 	    steps/nnet/make_bn_feats.sh --nj 10 --cmd "$train_cmd" ${feadir_out} ${feadir_in} $dir ${feadir_out}/log ${feadir_out}/data || exit 1
+ 	    steps/nnet/make_bn_feats.sh --cmd "$train_cmd" --nj $njfea ${feadir_out} ${feadir_in} $dir ${feadir_out}/log ${feadir_out}/data || exit 1
 	    steps/compute_cmvn_stats.sh ${feadir_out} ${feadir_out}/log ${feadir_out}/data || exit 1;
 	fi
     done

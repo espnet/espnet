@@ -31,9 +31,9 @@ def test_ctc_loss():
     ch_target = F.pad_sequence(np_target, padding=-1)
     ch_loss = F.connectionist_temporal_classification(
         ch_pred, ch_target, 0, input_length, label_length).data
-
+    th_ignore = 0
     th_pred = pad_list([torch.autograd.Variable(torch.from_numpy(x))
-                        for x in np_pred]).transpose(0, 1)
+                        for x in np_pred], th_ignore).transpose(0, 1)
     th_target = torch.autograd.Variable(
         torch.from_numpy(numpy.concatenate(np_target)))
     th_ilen = torch.autograd.Variable(torch.from_numpy(input_length))

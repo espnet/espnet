@@ -76,14 +76,13 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # exp tag
 tag="" # tag for managing experiments.
 
-lang_id="101"
+train_set=train
+train_dev=dev
+recog_set="eval_101"
 
 . utils/parse_options.sh || exit 1;
 
 # Train test sets
-train_set=train
-train_dev=dev
-recog_set="eval_${lang_id}"
 
 
 # check gpu option usage
@@ -108,7 +107,7 @@ if [ $stage -le 0 ] && [ $stage_last -ge 0 ]; then
   # It will fill directories for all $lang_ids: data/${lang_id}/data 
   #     by train_${lang_id} dev_${lang_id} 
   # and combine them together into main data/{train,dev}
-  ./local/setup_languages.sh --langs "${lang_id}" --recog "${lang_id}"
+# ./local/setup_languages.sh --langs "${lang_id}" --recog "${lang_id}"
 fi
 
 fbankdir=data-$feakind
@@ -144,6 +143,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
+    addtmpopt=''
+    [ $backend != "pytorch" ] && addtmpopt=_${backend}
+    expdir=${expdir}${addtmpopt}
 else
     expdir=exp/${train_set}_${tag}
 fi
