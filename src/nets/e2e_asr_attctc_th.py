@@ -2152,7 +2152,7 @@ class VGG2L(torch.nn.Module):
 
 
 class BRNNP(torch.nn.Module):
-    def __init__(self, etype, idim, elayers, cdim, hdim, subsample, dropout):
+    def __init__(self, cell_type, idim, elayers, cdim, hdim, subsample, dropout):
         super(BRNNP, self).__init__()
         for i in six.moves.range(elayers):
             if i == 0:
@@ -2160,10 +2160,10 @@ class BRNNP(torch.nn.Module):
             else:
                 inputdim = hdim
 
-            if etype == 'blstmp':
+            if cell_type == 'blstmp':
                 setattr(self, "birnn%d" % i, torch.nn.LSTM(inputdim, cdim, dropout=dropout,
                                                             num_layers=1, bidirectional=True, batch_first=True))
-            elif etype == 'bgrup':
+            elif cell_type == 'bgrup':
                 setattr(self, "birnn%d" % i, torch.nn.GRU(inputdim, cdim, dropout=dropout,
                                                            num_layers=1, bidirectional=True, batch_first=True))
             else:
