@@ -89,17 +89,44 @@ for i in  202 102 207 404; do
     ../../asr1/run.new.bn.sh --lang_id ${i} & # E2E on BN 
 
     ../../asr1/run.train_bn.sh --stage 1 --recog_set eval_${i} & # Estimate BN extractor
-    ../../asr1/run.new.bn.sh --lang_id ${i} --stage 2 \
+
+    ../../asr1/run.new.bn.sh --recog_set eval_${i} --stage 2 \
 	--feakind bn3L &                           # Train on new fea
     cd -
 done
 
-# After feagen run
+
+feakind=MultBNv1
+fbankdir=data-$feakind
+expdir_root=../Baselines.v2
+for i in  202 102 207 404; do
+    dir=$expdir_root/$i 
+    train_set=train; train_dev=dev; recog_set=eval_${i}
+ 
+    cd $dir
+    # Generate and dump features
+    for x in ${train_set} ${train_dev} ${recog_set}; do
+        local/fea.genMultRDT.sh \
+            --feagenopt "--stage_last 20" data/$x data-$feakind/$x
+    done
+    ../../asr1/run.new.bn.sh --recog_set eval_${i} --stage 2 \
+	--feakind ${feakind} &                           # Train on new fea
+    cd -
+done
+
+
+
+
+
+# After feagen simply run just NN training for various types
+MultBNlabel=Mult9L_bn3L
 for i in  202 102 207 404; do
     dir=$expdir_root/$i # casenorm
     cd $dir
     #$cmd --lang_id "$i" --stage 3 --backend chainer &                          # E2E on fbank using chainer
-    ../../asr1/run.new.bn.sh --lang_id ${i} --backend chainer --feakind bn3L &  # Train on MonoBN
+    #../../asr1/run.new.bn.sh --recog_set eval_${i} --backend chainer --feakind bn3L &  # Train on MonoBN
+    ../../asr1/run.new.bn.sh --recog_set eval_${i} --backend chainer \
+	--feakind $MultBNlabel --stage 3 & # Train just NN
     cd -
 done
 
@@ -113,7 +140,7 @@ for i in  202 102 207 404; do
     cd $dir
     ../../asr1/run.train_bn.sh --stage 3 --recog_set eval_${i} \
 	--feadir_bn data-$MultBNlabel --dir $MultBNdir # Forward NN
-    ../../asr1/run.new.bn.sh --lang_id ${i} --stage 2 \
+    ../../asr1/run.new.bn.sh --recog_set eval_${i} --stage 2 \
 	--feakind $MultBNlabel & # Train on new fea
     cd -
 done
@@ -123,14 +150,17 @@ expdir_root=../Baselines.v2
 MultBNdir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.v3/exp/dnn_24fbank8k.bn3L/
 MultBNlabel=Mult9L-24fbank8kbn3L
 for i in  202 102 207 404; do
-    i=202
+for i in  207 404; do
+#    i=202
     dir=$expdir_root/$i # casenorm 
     cd $dir
-    ../../asr1/run.train_bn.8k.sh --lang_id ${i}  --stage 1 --stage_last 1 \
+    ../../asr1/run.train_bn.8k.sh --recog_set eval_${i} --stage 1 --stage_last 1 \
         --feadir_bn data-$MultBNlabel --dir $MultBNdir     # Make fbank
-    ../../asr1/run.train_bn.8k.sh --lang_id ${i}  --stage 3 \
+
+    ../../asr1/run.train_bn.8k.sh --recog_set eval_${i} --stage 3 \
         --feadir_bn data-$MultBNlabel --dir $MultBNdir     # Forward NN
-    ../../asr1/run.new.bn.sh --lang_id ${i} --stage 2 \
+
+    ../../asr1/run.new.bn.sh --recog_set eval_${i}  --stage 2 \
 	--feakind $MultBNlabel &                           # Train on new fea
     cd -
 done
@@ -192,7 +222,28 @@ dir.LinkToScratch.sh data-$MultBNlabel
     --train_set train_mult --train_dev dev_mult --recog_set "" \
     --feadir_bn data-$MultBNlabel --dir $MultBNdir # Forward NN
 
-../asr1/run.new.bn.sh --lang_id ${i} --stage 2 \
+../asr1/run.new.bn.sh --recog_set "" --stage 2 \
+    --train_set train_mult --train_dev dev_mult  \
+    --feakind $MultBNlabel & # Train on new fea
+
+# Multilingual BN + AM  (8kHz)
+MultBNdir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.v3/exp/dnn_24fbank8k.bn3L/
+MultBNlabel=Mult9L-24fbank8kbn3L
+cd ../Multiling.v2/
+dir.LinkToScratch.sh data-$MultBNlabel
+
+sed 's: sox -R -t wav - -t wav - rate 16000 dither |::' data/train_mult/wav.scp > data/train_mult/wav.scp.bak # Make original 8k wav.scp
+sed 's: sox -R -t wav - -t wav - rate 16000 dither |::' data/dev_mult/wav.scp   > data/dev_mult/wav.scp.bak
+
+../asr1/run.train_bn.8k.sh --stage 1 --njfea 100 --stage_last 1 \
+    --train_set train_mult --train_dev dev_mult --recog_set ""  \
+    --feadir_bn data-$MultBNlabel --dir $MultBNdir     # Make fbank
+
+../asr1/run.train_bn.8k.sh --stage 3 --njfea 100 \
+    --train_set train_mult --train_dev dev_mult --recog_set "" \
+    --feadir_bn data-$MultBNlabel --dir $MultBNdir # Forward NN
+
+../asr1/run.new.bn.sh --recog_set "" --stage 2 \
     --train_set train_mult --train_dev dev_mult  \
     --feakind $MultBNlabel & # Train on new fea
 
