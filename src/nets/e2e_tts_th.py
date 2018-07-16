@@ -345,7 +345,8 @@ class Tacotron2(torch.nn.Module):
 
         hs, hlens = self.enc(xs, ilens)
         if self.spk_embed_dim is not None:
-            hs = torch.cat([hs, spembs.unsqueeze(1).repeat(1, hs.size(1), 1)], dim=-1)
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
 
         return after_outs, before_outs, logits
@@ -364,7 +365,8 @@ class Tacotron2(torch.nn.Module):
         """
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
-            h = torch.cat([h, spemb.unsqueeze(0).repeat(h.size(0), 1)], dim=-1)
+            spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
+            h = torch.cat([h, spemb], dim=-1)
         outs, probs, att_ws = self.dec.inference(h)
 
         return outs, probs, att_ws
@@ -389,7 +391,8 @@ class Tacotron2(torch.nn.Module):
             torch.set_grad_enabled(False)
         hs, hlens = self.enc(xs, ilens)
         if self.spk_embed_dim is not None:
-            hs = torch.cat([hs, spembs.unsqueeze(1).repeat(1, hs.size(1), 1)], dim=-1)
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = torch.cat([hs, spembs], dim=-1)
         att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
         if not torch_is_old:
             torch.set_grad_enabled(True)
