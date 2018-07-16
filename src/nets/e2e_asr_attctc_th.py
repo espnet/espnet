@@ -2167,6 +2167,7 @@ class VGG2L(torch.nn.Module):
 
         # x: utt x frame x dim
         # xs = F.pad_sequence(xs)
+        xs = xs.contiguous()
 
         # x: utt x 1 (input channel num) x frame x dim
         xs = xs.view(xs.size(0), xs.size(1), self.in_channel,
