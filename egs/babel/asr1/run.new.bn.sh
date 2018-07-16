@@ -76,14 +76,13 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # exp tag
 tag="" # tag for managing experiments.
 
-lang_id="101" # for eval set
 train_set=train
 train_dev=dev
+recog_set="eval_101"
 
 . utils/parse_options.sh || exit 1;
 
 # Train test sets
-recog_set="eval_${lang_id}"
 
 
 # check gpu option usage
