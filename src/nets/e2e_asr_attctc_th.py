@@ -1726,7 +1726,7 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
-            #scheduled sampling
+            # scheduled sampling
             if random.random() < self.scheduled_sampling_ratio:
                 logging.info('sampling scheduled with %s:' % (
                     str(self.scheduled_sampling_ratio)))
