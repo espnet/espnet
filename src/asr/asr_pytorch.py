@@ -213,6 +213,7 @@ def train(args):
     grapheme_odim = get_odim("grapheme", valid_json)
     logging.info('#input dims : ' + str(idim))
     logging.info('#grapheme output dims: ' + str(grapheme_odim))
+    phoneme_odim = -1
     if args.phoneme_objective_weight > 0.0:
         phoneme_odim = get_odim("phn", valid_json)
         logging.info('#phoneme output dims: ' + str(phoneme_odim))
