@@ -232,7 +232,6 @@ def main():
                 except subprocess.CalledProcessError:
                     logging.info("No GPU seems to be available")
 
-
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
             logging.warn("CUDA_VISIBLE_DEVICES is not set.")
