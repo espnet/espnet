@@ -178,7 +178,7 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args, phoneme_odim=756):
+    def __init__(self, idim, odim, args, phoneme_odim=-1):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
