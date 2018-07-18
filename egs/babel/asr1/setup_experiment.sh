@@ -10,11 +10,12 @@ fi
 
 expdir=$1
 
-pwd=$PWD
+mkdir -p ${expdir}; 
 
-mkdir -p ${expdir}; cd ${expdir}
+pwd=$PWD 
+cd ${expdir}
 
-cp $pwd/{cmd,path,run*}.sh ./
-for f in steps utils local conf; do
+cp $pwd/{cmd,path}.sh ./
+for f in steps utils local conf run; do
     ln -rs $pwd/$f ./
 done
