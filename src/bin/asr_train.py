@@ -40,6 +40,8 @@ def main():
     # multilingual transfer learning
     parser.add_argument('--modify-output', '-m', default='false', type=bool,
                         help='Wehether to modify output layer to new language')
+    parser.add_argument('--adaptdir', type=str, required=True,
+                        help='Adapt directory')
     parser.add_argument('--adapt', '-a', type=bool, default=False,
                         help='retrain/adapt from the exisitng best model')
     parser.add_argument('--adapt-layer-names', '-l', type=str, default="AttCtcOut",

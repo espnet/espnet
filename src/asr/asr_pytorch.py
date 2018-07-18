@@ -297,17 +297,20 @@ def train(args):
     if (args.resume) and not (args.adapt):
         chainer.serializers.load_npz(args.resume, trainer)
         logging.info("from snapshot, num of parameters to adapt are: " + str(count_parameters(model)))
-    if (args.resume) and (args.adapt):
-        logging.info("num of parameters to in model are: " + str(count_parameters(model)))
-
         if ngpu > 1:
             model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         else:
+            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+    if (args.resume) and (args.adapt):
+        logging.info("num of parameters to in model are: " + str(count_parameters(model)))
+        if ngpu > 1:
+            model.module.load_state_dict(torch.load(args.adaptdir + '/model.acc.best'))
+        else:
             if (args.modify_output):
-                pretrained_model = torch.load(args.outdir + '/model.acc.best')
+                pretrained_model = torch.load(args.adaptdir + '/model.acc.best')
                 model.load_state_dict(remove_output_layer(pretrained_model, odim, args.eprojs, args.dunits))
             else:
-                model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+                model.load_state_dict(torch.load(args.adaptdir + '/model.acc.best'))
         model = trainer.updater.model
         if args.freeze:
             if args.adapt_layer_names == "AttOut":

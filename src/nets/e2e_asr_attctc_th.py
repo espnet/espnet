@@ -1724,19 +1724,22 @@ class Decoder(torch.nn.Module):
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
 
         # loop for an output sequence
+        for i in six.moves.range(1):
+            att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
             # scheduled sampling
             if random.random() < self.scheduled_sampling_ratio:
                 logging.info('sampling scheduled with %s:' % (
                     str(self.scheduled_sampling_ratio)))
-                z_out = self.output(z_list[0])
+                z_out = self.output(z_list[-1])
                 z_out = torch.max(F.log_softmax(z_out, dim=1), dim=1)[1]
                 z_out = self.embed(z_out)
-                ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
+                ey = torch.cat((z_out, att_c), dim=1) # utt x (zdim + hdim)
             else:
-                ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
+                ey = torch.cat((eys[:, i, :], att_c), dim=1) # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
+
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
