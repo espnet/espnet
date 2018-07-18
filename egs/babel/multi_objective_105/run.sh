@@ -21,6 +21,7 @@ resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false # true when using CNN
+use_langvec=false
 
 # network archtecture
 # encoder related
@@ -136,8 +137,11 @@ if [ $stage -le 1 ]; then
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
   for x in ${train_set} ${train_dev} ${recog_set}; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 data/${x} exp/make_fbank/${x} ${fbankdir}
-      ./utils/fix_data_dir.sh data/${x} 
+      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 40 data/${x} exp/make_fbank/${x} ${fbankdir}
+      ./utils/fix_data_dir.sh data/${x}
+      if ${use_langvec}; then
+        ./local_/add_langvecs.sh --cmd "${train_cmd}" --nj 20 ${fbankdir}_langvecs data/${x}/feats.scp
+      fi 
   done
 
   # compute global CMVN
