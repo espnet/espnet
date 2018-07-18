@@ -128,27 +128,30 @@ class Loss(torch.nn.Module):
         '''
         self.loss = None
         loss_ctc, loss_att, loss_phn, acc = self.predictor(x)
+
         alpha = self.mtlalpha
-        if alpha == 0:
-            self.loss = loss_att
-            loss_att_data = loss_att.data[0]
-            loss_ctc_data = None
-        elif alpha == 1:
-            self.loss = loss_ctc
-            loss_att_data = None
+        beta = self.phoneme_objective_weight
+
+        loss_ctc_data = None
+        loss_att_data = None
+        loss_phn_data = None
+        
+        # If any of these losses are None from self.predictor, then we are not using them and can zero them.
+        if loss_ctc is None:
+            loss_ctc = 0
+        if loss_phn is None:
+            loss_phn = 0
+        if loss_att is None:
+            loss_att = 0
+
+        self.loss = alpha * loss_ctc + beta * loss_phn + (1 - alpha - beta) * loss_att
+
+        if alpha > 0:
             loss_ctc_data = loss_ctc.data[0]
-        else:
-            # If a phoneme loss has been supplied by self.predictor, incorporate it
-            # into the total loss with equal weight as the CTC , otherwise don't.
-            if self.phoneme_objective_weight > 0.0:
-                assert loss_phn is not None # Then we should have been given a phoneme loss.
-                beta = self.phoneme_objective_weight
-                self.loss = alpha * loss_ctc + beta * loss_phn + (1 - alpha - beta) * loss_att
-                loss_phn_data = loss_phn.data[0]
-            else:
-                self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+        if beta > 0:
+            loss_phn_data = loss_phn.data[0]
+        if alpha + beta < 1:
             loss_att_data = loss_att.data[0]
-            loss_ctc_data = loss_ctc.data[0]
 
         if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
             self.reporter.report(loss_ctc_data, loss_att_data, loss_phn_data, acc, self.loss.data[0])
