@@ -1735,9 +1735,9 @@ class Decoder(torch.nn.Module):
                 z_out = self.output(z_list[-1])
                 z_out = torch.max(F.log_softmax(z_out, dim=1), dim=1)[1]
                 z_out = self.embed(z_out)
-                ey = torch.cat((z_out, att_c), dim=1) # utt x (zdim + hdim)
+                ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
-                ey = torch.cat((eys[:, i, :], att_c), dim=1) # utt x (zdim + hdim)
+                ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
 
             for l in six.moves.range(1, self.dlayers):
