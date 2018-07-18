@@ -43,18 +43,20 @@ set -o pipefail
 
 # Train
 source $train_conf 
-[ -z $expdir ] && expdir=exp/$(basename ${data_train})_$tag${tagflag} # tag and training options are defined in $train_conf
+[ -z $expdir ] && expdir=exp/$(basename ${data_train})_${tag_train}${tagflag} # tag and training options are defined in $train_conf
 
 mkdir -p ${expdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
-    echo " conf: $train_conf"
-    echo " extra conf: $extra_train_conf"
-    echo " {extra_train_opts}" 
+    echo " log ${expdir}/train.log"
+    echo " conf file: $train_conf"
+    echo " extra conf file: $extra_train_conf"
+    echo " extra conf opts: ${extra_train_opts}" 
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --outdir ${expdir}/results \
+        --debugdir ${expdir} \
         --train-json ${data_train}/data.json \
         --valid-json ${data_dev}/data.json \
 	${opt_train} \
@@ -66,12 +68,10 @@ source $eval_conf
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network testing"
-    echo " conf: $eval_conf"
-    echo " extra conf: $extra_eval_conf"
-    echo " {extra_eval_opts}" 
+    echo " conf file: $eval_conf"
+    echo " extra conf file: ${extra_eval_conf}"
+    echo " extra conf opts: ${extra_eval_opts}" 
 
-if [ ${stage} -le 4 ]; then
-    echo "stage 4: Decoding"
     nj=80
 
     for data in ${data_eval}; do
@@ -94,7 +94,6 @@ if [ ${stage} -le 4 ]; then
 	    
             ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
 		asr_recog.py \
-		--outdir ${expdir}/results \
 		--model ${expdir}/results/model.${recog_model}  \
 		--model-conf ${expdir}/results/model.conf  \
 		--recog-json ${data}/split${nj}utt/data.JOB.json \

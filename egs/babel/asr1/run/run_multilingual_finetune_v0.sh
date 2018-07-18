@@ -47,7 +47,7 @@ nlsyms=$lang/non_lang_syms.txt
 
 ## Adaptation of the language independant (LI) trained model towards target languages
 
-mexpdir=exp/${expname}.adadelta.AttCtcOut
+mexpdir=exp/${expname}.AttCtcOut
 m2expdir=${mexpdir}_it2
 
 if [ ${stage} -le 1 ]; then
@@ -56,6 +56,9 @@ if [ ${stage} -le 1 ]; then
     elayers=$(source $train_conf; echo $elayers)
     extra_train_opts="--modify-output true \
         --resume $multnn_resume \
+        --opt sgd \
+        --lr 1e-2 \
+        --lr-decay 0.5 \
         --epochs 10 \
         --adapt yes \
         --adapt-layer-names AttCtcOut \
