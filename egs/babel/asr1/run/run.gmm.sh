@@ -9,6 +9,7 @@ nj_train=20
 stage_last=1000000
 
 lang_train=data/lang.wrd2grp # will be created
+exp_train="_MultRDTv1_short"
 
 [ -f ./path.sh ] && . ./path.sh
 . parse_options.sh || exit 1;
@@ -62,7 +63,7 @@ fbankdir=data-$feakind
 if [ $stage -le 5 ] && [ $stage_last -gt 5 ]; then
 
     for x in ${train_set} ${recog_set}; do
-	local/fea.genMultRDT.sh \
+	[ ! -e data-$feakind/$x/feats.scp ] && local/fea.genMultRDT.sh \
             data/$x data-$feakind/$x
     done
 fi
@@ -73,6 +74,7 @@ if [ $stage -le 10 ] && [ $stage_last -gt 10 ]; then
     [ ! -e local/score.sh ] && ln -sr $PWD/steps/score_kaldi.sh local/score.sh
     lang_test=data/lang_test.wrd2grp.$train_set.o3g.kn # from prev stage
     ./local/run-1-gmm.MultRDTv1_short.sh \
+	--exp   ${exp_train} \
 	--stage ${stage_train} --nj $nj_train \
 	--lang $lang_train \
 	--lang_test $lang_test   \
