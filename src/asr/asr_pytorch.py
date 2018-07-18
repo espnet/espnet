@@ -213,6 +213,7 @@ def train(args):
     grapheme_odim = get_odim("grapheme", valid_json)
     logging.info('#input dims : ' + str(idim))
     logging.info('#grapheme output dims: ' + str(grapheme_odim))
+    phoneme_odim = -1
     if args.phoneme_objective_weight > 0.0:
         phoneme_odim = get_odim("phn", valid_json)
         logging.info('#phoneme output dims: ' + str(phoneme_odim))
@@ -244,7 +245,7 @@ def train(args):
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
         # TODO(watanabe) use others than pickle, possibly json, and save as a text
-        pickle.dump((idim, grapheme_odim, args), f)
+        pickle.dump((idim, grapheme_odim, phoneme_odim, args), f)
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -400,14 +401,17 @@ def recog(args):
     # read training config
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = pickle.load(f)
+        idim, grapheme_odim, phoneme_odim, train_args = pickle.load(f)
 
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
+    # Phoneme objective weight set to zero.
+    #train_args.phoneme_objective_weight = 0.0
+
     # specify model architecture
     logging.info('reading model parameters from' + args.model)
-    e2e = E2E(idim, odim, train_args)
+    e2e = E2E(idim, grapheme_odim, train_args, phoneme_odim=phoneme_odim)
     model = Loss(e2e, train_args.mtlalpha)
 
     def cpu_loader(storage, location):
@@ -422,7 +426,12 @@ def recog(args):
             new_state_dict[k] = v
         return new_state_dict
 
-    model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
+    #logging.info("args.model: {}".format(args))
+    a = torch.load(args.model, map_location=cpu_loader)
+    b = remove_dataparallel(a)
+    logging.info("remove_dataparallel:{}".format(b))
+    model.load_state_dict(b)
+    #model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
 
     # read rnnlm
     if args.rnnlm:

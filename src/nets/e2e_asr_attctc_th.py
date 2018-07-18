@@ -178,7 +178,7 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args, phoneme_odim=None):
+    def __init__(self, idim, odim, args, phoneme_odim=-1):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -219,6 +219,9 @@ class E2E(torch.nn.Module):
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
         # Phoneme CTC objective
         if self.phoneme_objective_weight > 0.0:
+            logging.info("phoneme_objective_weight={}".format(self.phoneme_objective_weight))
+            logging.info("phoneme_odim:{}".format(phoneme_odim))
+            logging.info("args.eprojs:{}".format(args.eprojs))
             self.phn_ctc = CTC(phoneme_odim, args.eprojs, args.dropout_rate)
         # attention
         if args.atype == 'noatt':
