@@ -7,16 +7,16 @@ target_babel_langs="102 106 202 203 206"
 
 #for i in 101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403    107 201 307 404; do
 expdir_root=../Baselines
-cmd=./run.sh
+cmd=./run/run.sh
 
 expdir_root=../Baselines.v1
-cmd=./run.new.sh
+cmd=./run/run.new.sh
 
 expdir_root=../Baselines.v2
-cmd=../../asr1/run.new.lowcase.sh
+cmd=./run//run.new.lowcase.sh
 
 expdir_root=../Baselines.v3
-cmd=../../asr1/run.new.lowcase.mapnoise.sh
+cmd=./run//run.new.lowcase.mapnoise.sh
 
 for i in $train_babel_langs $target_babel_lang; do
 #    i=102
@@ -69,8 +69,8 @@ for i in  207 404; do
     ./local/setup_languages.sh --norm_case true --langs "${i}" --recog "${i}" # Only first time needed
 
     # ---
-     ../../asr1/run.gmm.sh --recog_set eval_${i} --stage 0  # Gmm align
-     ../../asr1/run.train_bn.sh --recog_set eval_${i} &            # BN train + feaextr bn3L 
+     ./run/run.gmm.sh --recog_set eval_${i} --stage 0  # Gmm align
+     ./run/run.train_bn.sh --recog_set eval_${i} &            # BN train + feaextr bn3L 
     cd -
 done
 
@@ -79,19 +79,34 @@ done
 # E2E on fbank/BN
 # ------------
 expdir_root=../Baselines.v2
-cmd=../../asr1/run.new.lowcase.sh
+cmd=./run/run.new.lowcase.sh
 
 for i in  202 102 207 404; do
     dir=$expdir_root/$i # casenorm
     cd $dir
     $cmd --lang_id "$i" --stage 1 &  # E2E on fbank
     $cmd --lang_id "$i" --stage 1 --backend chainer &  # E2E on fbank
-    ../../asr1/run.new.bn.sh --lang_id ${i} & # E2E on BN 
+    ./run/run.new.bn.sh --lang_id ${i} & # E2E on BN 
 
-    ../../asr1/run.train_bn.sh --stage 1 --recog_set eval_${i} & # Estimate BN extractor
+    ./run/run.train_bn.sh --stage 1 --recog_set eval_${i} & # Estimate BN extractor
 
-    ../../asr1/run.new.bn.sh --recog_set eval_${i} --stage 2 \
+    ./run/run.new.bn.sh --recog_set eval_${i} --stage 2 \
 	--feakind bn3L &                           # Train on new fea
+    cd -
+done
+
+# same on 8k
+for i in  202 102 207 404; do
+for i in  102 207 404; do
+    dir=$expdir_root/$i # casenorm
+    cd $dir
+#    $cmd --lang_id "$i" --stage 1 &  # E2E on fbank
+#    $cmd --lang_id "$i" --stage 1 --backend chainer &  # E2E on fbank
+#    ./run/run.new.bn.sh --lang_id ${i} & # E2E on BN 
+
+#    ./run/run.train_bn.8k.sh --stage 1 --recog_set eval_${i} # Estimate BN extractor
+    ./run/run.new.bn.sh --recog_set eval_${i} --stage 2 \
+	--feakind 24fbank8k.bn3L &                           # Train on new fea
     cd -
 done
 
@@ -109,7 +124,7 @@ for i in  202 102 207 404; do
         local/fea.genMultRDT.sh \
             --feagenopt "--stage_last 20" data/$x data-$feakind/$x
     done
-    ../../asr1/run.new.bn.sh --recog_set eval_${i} --stage 2 \
+    ./run/run.new.bn.sh --recog_set eval_${i} --stage 2 \
 	--feakind ${feakind} &                           # Train on new fea
     cd -
 done
@@ -124,8 +139,8 @@ for i in  202 102 207 404; do
     dir=$expdir_root/$i # casenorm
     cd $dir
     #$cmd --lang_id "$i" --stage 3 --backend chainer &                          # E2E on fbank using chainer
-    #../../asr1/run.new.bn.sh --recog_set eval_${i} --backend chainer --feakind bn3L &  # Train on MonoBN
-    ../../asr1/run.new.bn.sh --recog_set eval_${i} --backend chainer \
+    #./run/run.new.bn.sh --recog_set eval_${i} --backend chainer --feakind bn3L &  # Train on MonoBN
+    ./run/run.new.bn.sh --recog_set eval_${i} --backend chainer \
 	--feakind $MultBNlabel --stage 3 & # Train just NN
     cd -
 done
@@ -138,9 +153,9 @@ MultBNlabel=Mult9L_bn3L
 for i in  202 102 207 404; do
     dir=$expdir_root/$i # casenorm 
     cd $dir
-    ../../asr1/run.train_bn.sh --stage 3 --recog_set eval_${i} \
+    ./run/run.train_bn.sh --stage 3 --recog_set eval_${i} \
 	--feadir_bn data-$MultBNlabel --dir $MultBNdir # Forward NN
-    ../../asr1/run.new.bn.sh --recog_set eval_${i} --stage 2 \
+    ./run/run.new.bn.sh --recog_set eval_${i} --stage 2 \
 	--feakind $MultBNlabel & # Train on new fea
     cd -
 done
@@ -154,13 +169,13 @@ for i in  207 404; do
 #    i=202
     dir=$expdir_root/$i # casenorm 
     cd $dir
-    ../../asr1/run.train_bn.8k.sh --recog_set eval_${i} --stage 1 --stage_last 1 \
+    ./run/run.train_bn.8k.sh --recog_set eval_${i} --stage 1 --stage_last 1 \
         --feadir_bn data-$MultBNlabel --dir $MultBNdir     # Make fbank
 
-    ../../asr1/run.train_bn.8k.sh --recog_set eval_${i} --stage 3 \
+    ./run/run.train_bn.8k.sh --recog_set eval_${i} --stage 3 \
         --feadir_bn data-$MultBNlabel --dir $MultBNdir     # Forward NN
 
-    ../../asr1/run.new.bn.sh --recog_set eval_${i}  --stage 2 \
+    ./run/run.new.bn.sh --recog_set eval_${i}  --stage 2 \
 	--feakind $MultBNlabel &                           # Train on new fea
     cd -
 done
@@ -208,7 +223,50 @@ sort -u data/lang.wrd2grp_*/non_lang_syms.txt > ${lang_train}/non_lang_syms.txt
 
 ./local/make_lang.gmm.sh ${lang_train} ${dctdir_tmp} ${lang_train} 
 
-../asr1/run.gmm.sh --recog_set eval_103 --nj_train 200 --stage 3
+./run/run.gmm.sh --recog_set eval_103 --nj_train 200 --stage 3
+
+
+# ----- phoneme based dct+lang
+for i in $train_babel_langs; do
+for i in $train_babel_langs_noCant; do # for Mult.v3
+    lang_train=data/lang.wrd2phnv0_${i} # will be created
+    
+    # Port dictionary from Yenda
+  # cd /export/b19/jtrmal/jsalt2018/babel; 
+  # rsync -rRuvl */*/text* */{lexicon.txt,graphones.corpus,phones.txt,phoneticize_yenda.py,run.sh}  */data/local karafiat@kazi.fit.vutbr.cz:~/tmp/babel.Yenda/
+    mkdir -p ${lang_train}
+    [ $i == 105 ] && loc="tr_TR.UTF-8" || loc="en_US.UTF-8"
+    (
+	export LANG=$loc; export LC_ALL=$loc
+	awk -v linfo=$i 'BEGIN{NONLANGSYM["<noise>"]=1;NONLANGSYM["<v-noise>"]=1;NONLANGSYM["<silence>"]=1;NONLANGSYM["<unk>"]=1}
+{ #sub("@","<v-noise>",$1); sub("\\*","<unk>",$1); sub("%","<silence>",$1);sub("#","<noise>",$1);sub("$","<hes>",$1);gsub("~","_",$1);
+for(i=2;i<=NF;i++) if(!($1 in NONLANGSYM)) $i=$i linfo;
+$1=tolower($1);
+print
+}' ../babel.Yenda/${i}*/data/local/lexicon.txt > ${lang_train}/dct
+    )
+	#    ./local/make_dct.grp.sh --add_langinfo ${i} "data/${i}/data/train data/${i}/data/dev_${i}" ${lang_train}
+	wc ${lang_train}/dct
+done
+
+dctdir_tmp=data/local/dict.wrd2phnv0.tmp
+lang_train=data/lang.wrd2phnv0    # will be created                                                                                                      
+
+mkdir -p $lang_train
+for i in $train_babel_langs; do
+for i in $train_babel_langs_noCant; do  #for Multv3
+    cat ${lang_train}_${i}/dct
+done | sort -u > ${lang_train}/dct
+echo -e "<noise>\n<v-noise>\n<silence>\n<unk>" > ${lang_train}/non_lang_syms.txt   
+#sort -u data/lang.wrd2grp_*/non_lang_syms.txt > ${lang_train}/non_lang_syms.txt
+./local/make_lang.gmm.sh ${lang_train} ${dctdir_tmp} ${lang_train}
+
+./run/run.gmm.sh --recog_set eval_103 \
+    --lang_train ${lang_train} --exp_train "_MultRDTv1_short_wrd2phnv0" \
+    --nj_train 200 --stage 3
+
+
+
 
 
 
@@ -217,12 +275,12 @@ MultBNdir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.
 MultBNlabel=Mult9L_bn3L
 cd ../Multiling.v2/
 dir.LinkToScratch.sh data-$MultBNlabel
-../asr1/run.train_bn.sh --stage 3 --njfea 100 \
+./run/run.train_bn.sh --stage 3 --njfea 100 \
     --dumpdir_name deltafalse \
     --train_set train_mult --train_dev dev_mult --recog_set "" \
     --feadir_bn data-$MultBNlabel --dir $MultBNdir # Forward NN
 
-../asr1/run.new.bn.sh --recog_set "" --stage 2 \
+./run/run.new.bn.sh --recog_set "" --stage 2 \
     --train_set train_mult --train_dev dev_mult  \
     --feakind $MultBNlabel & # Train on new fea
 
@@ -235,15 +293,72 @@ dir.LinkToScratch.sh data-$MultBNlabel
 sed 's: sox -R -t wav - -t wav - rate 16000 dither |::' data/train_mult/wav.scp > data/train_mult/wav.scp.bak # Make original 8k wav.scp
 sed 's: sox -R -t wav - -t wav - rate 16000 dither |::' data/dev_mult/wav.scp   > data/dev_mult/wav.scp.bak
 
-../asr1/run.train_bn.8k.sh --stage 1 --njfea 100 --stage_last 1 \
+./run/run.train_bn.8k.sh --stage 1 --njfea 100 --stage_last 1 \
     --train_set train_mult --train_dev dev_mult --recog_set ""  \
     --feadir_bn data-$MultBNlabel --dir $MultBNdir     # Make fbank
 
-../asr1/run.train_bn.8k.sh --stage 3 --njfea 100 \
+./run/run.train_bn.8k.sh --stage 3 --njfea 100 \
     --train_set train_mult --train_dev dev_mult --recog_set "" \
     --feadir_bn data-$MultBNlabel --dir $MultBNdir # Forward NN
 
-../asr1/run.new.bn.sh --recog_set "" --stage 2 \
+./run/run.new.bn.sh --recog_set "" --stage 2 \
     --train_set train_mult --train_dev dev_mult  \
     --feakind $MultBNlabel & # Train on new fea
 
+# ---------------------
+# Multilingual AM 
+# ---------------------
+lang_id=404
+lang_id=202
+
+#multnn_dir=exp/train_mult_blstmp_e5_subsample1_2_2_1_1_unit320_proj320_ctcchainer_d3_unit30/mnt/matylda6/baskar/espnet_forked/egs/babel/asr1/exp/tr_babel10_blstmp_e5_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs50_mli800_mlo150
+#expname=karthick_v0__ft_102
+#conf_espnet=conf/espnet.older5eL3dL.conf
+
+multnn_dir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.v2/exp/train_mult_blstmp_e5_subsample1_2_2_1_1_unit320_proj320_ctcchainer_d3_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs50_mli800_mlo150_epoch15_ngpu1
+expname=MultNN10-vocab10-older5eL3dL
+conf_espnet=conf/espnet.older5eL3dL.conf
+
+data_train=dump/train/deltafalsecvntrue
+data_dev=dump/dev/deltafalsecvntrue
+data_eval=dump/eval_${lang_id}/deltafalsecvntrue
+
+# -----
+multnn_dir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.v2/exp/train_mult_blstmp_e6_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150
+expname=MultNN10-vocab10-base-Mult9L_bn3L
+conf_espnet=conf/espnet.base.conf
+
+data_train=dump/train/deltafalsecvntrue
+data_dev=dump/dev/deltafalsecvntrue
+data_eval=dump/eval_${lang_id}/deltafalsecvntrue
+# ------
+
+feakind=Mult9L_bn3L
+multnn_dir=/mnt/matylda3/karafiat/BABEL/GIT/espnet.github.v2/egs/babel/Multiling.v2/exp/train_mult_blstmp_e6_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150_${feakind}
+expname=MultNN10-vocab10-base-${feakind}
+conf_espnet=conf/espnet.base.conf
+
+data_train=data-$feakind/train
+data_dev=data-$feakind/dev
+data_eval=data-$feakind/eval_${lang_id}
+# ------
+
+
+
+./run/run_multilingual_finetune_v0.sh \
+    --train_conf $conf_espnet --eval_conf $conf_espnet \
+    --multnn_dir $multnn_dir \
+    --expname $expname \
+    --data_train $data_train \
+    --data_dev   $data_dev \
+    --data_eval  $data_eval &
+
+
+# using adadelta for 1pass
+./run/run_multilingual_finetune_v1.sh \
+    --train_conf $conf_espnet --eval_conf $conf_espnet \
+    --multnn_dir $multnn_dir \
+    --expname $expname \
+    --data_train $data_train \
+    --data_dev   $data_dev \
+    --data_eval  $data_eval &
