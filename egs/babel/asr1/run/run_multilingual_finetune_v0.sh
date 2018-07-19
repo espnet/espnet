@@ -57,7 +57,7 @@ if [ ${stage} -le 1 ]; then
     extra_train_opts="--modify-output true \
         --resume $multnn_resume \
         --opt sgd \
-        --lr 1e-2 \
+        --lr 5e-2 \
         --lr-decay 0.5 \
         --epochs 10 \
         --adapt yes \
@@ -67,9 +67,11 @@ if [ ${stage} -le 1 ]; then
 "
 
     if [ ! -f ${mexpdir}/model.loss.best ]; then
-	mkdir -p $mexpdir/results; cp $multnn_dir/results/{model.acc.best,model.conf} $mexpdir/results
+#	mkdir -p $mexpdir/results; cp $multnn_dir/results/{model.acc.best,model.conf} $mexpdir/results
+	mkdir -p $mexpdir/results; cp $multnn_dir/results/model.acc.best $mexpdir/results
 	
 	./run/train_espnet.sh \
+	    --stage 0 \
 	    --train_conf $train_conf \
 	    --eval_conf $eval_conf \
 	    --expdir ${mexpdir}  \
@@ -86,7 +88,7 @@ if [ ${stage} -le 2 ]; then
     if [ ! -f ${m2expdir}/model.loss.best ]; then
 	mkdir -p $m2expdir/results; cp $mexpdir/results/{model.acc.best,model.conf} $m2expdir/results
 
-	epoch=15
+	epochs=15
 	extra_train_opts="   --opt sgd \
             --lr 1e-2 \
             --epochs ${epochs} \

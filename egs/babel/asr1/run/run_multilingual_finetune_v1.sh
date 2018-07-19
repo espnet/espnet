@@ -64,7 +64,8 @@ if [ ${stage} -le 1 ]; then
 "
 
     if [ ! -f ${mexpdir}/model.loss.best ]; then
-	mkdir -p $mexpdir/results; cp $multnn_dir/results/{model.acc.best,model.conf} $mexpdir/results
+#	mkdir -p $mexpdir/results; cp $multnn_dir/results/{model.acc.best,model.conf} $mexpdir/results
+	mkdir -p $mexpdir/results; cp $multnn_dir/results/model.acc.best $mexpdir/results
 	
 	./run/train_espnet.sh \
 	    --train_conf $train_conf \
@@ -83,7 +84,7 @@ if [ ${stage} -le 2 ]; then
     if [ ! -f ${m2expdir}/model.loss.best ]; then
 	mkdir -p $m2expdir/results; cp $mexpdir/results/{model.acc.best,model.conf} $m2expdir/results
 
-	epoch=15
+	epochs=15
 	extra_train_opts="   --opt sgd \
             --lr 1e-2 \
             --epochs ${epochs} \
