@@ -21,6 +21,7 @@ resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false # true when using CNN
+use_langvecs=false
 
 # network archtecture
 # encoder related
@@ -118,8 +119,8 @@ if [ $stage -le 0 ]; then
   for x in ${train_set} ${train_dev} ${recog_set}; do
 	    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
   done
-  
-  for x in ${train_set} ${train_dev}; do
+
+  for x in ${train_set} ${train_dev} ${recog_set}; do
       if [[ $phoneme_objective_weight > 0.0 ]]; then
           awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
           ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
@@ -136,8 +137,11 @@ if [ $stage -le 1 ]; then
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
   for x in ${train_set} ${train_dev} ${recog_set}; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 data/${x} exp/make_fbank/${x} ${fbankdir}
+      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 40 data/${x} exp/make_fbank/${x} ${fbankdir}
       ./utils/fix_data_dir.sh data/${x} 
+      if ${use_langvecs}; then
+        ./local/add_langvecs.sh --cmd "${train_cmd}" --nj 40 ${fbankdir}_langvecs/${x} data/${x}/feats.scp
+      fi 
   done
 
   # compute global CMVN
@@ -202,7 +206,7 @@ if [ ${stage} -le 2 ]; then
     # Phoneme Objective
     if [[ ${phoneme_objective_weight} > 0.0 ]]; then
         echo "<unk> 1" > ${dict}.phn
-        cut -d' ' -f2- ${phoneme_ali} | tr " " "\n" | sort -u |\
+        cut -d' ' -f2- data/${train_set}/text.phn | tr " " "\n" | sort -u |\
         grep -v '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}.phn
 
         mv ${feat_tr_dir}/data.json ${feat_tr_dir}/data.gph.json
@@ -239,12 +243,20 @@ if [ ${stage} -le 2 ]; then
                                    ${feat_dt_dir}/data.{phn,gph}.json
 
 	## TODO This should support creation of eval data.json files that include phonemes. 
-        #for rtask in ${recog_set}; do
-            #feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-	    #./utils/filter_scp.pl data/${rtask}/text \
-	    #	data/${rtask}/text.phn > data/${train_set}/text.phn.filt
-       	    #mv data/${train_set}/text.phn.filt data/${train_set}/text.phn
-        #done
+        for rtask in ${recog_set}; do
+            feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+	          ./utils/filter_scp.pl data/${rtask}/text \
+	              data/${rtask}/text.phn > data/${rtask}/text.phn.filt
+       	    mv data/${rtask}/text.phn.filt data/${rtask}/text.phn
+          
+            data2json.sh --feat ${feat_recog_dir}/feats.scp \
+                       --nlsyms ${nlsyms} \
+                       --phn-text data/${rtask}/text.phn \
+                       data/${rtask} ${dict}.phn > ${feat_recog_dir}/data.phn.json
+
+            combine_multimodal_json.py ${feat_recog_dir}/data.json \
+                                   ${feat_recog_dir}/data.{phn,gph}.json
+        done
 
     fi
 fi
@@ -334,6 +346,7 @@ if [ ${stage} -le 3 ]; then
         --phoneme_objective_weight ${phoneme_objective_weight}
 fi
 
+exit
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
