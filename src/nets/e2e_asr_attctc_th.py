@@ -383,7 +383,7 @@ class E2E(torch.nn.Module):
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
-         :rtype: float ndarray
+        :rtype: float ndarray
         '''
         if not torch_is_old:
             torch.set_grad_enabled(False)
