@@ -29,4 +29,4 @@ $cmd JOB=1:$nj ${odir}/log/feat.JOB.log \
     ${odir}/feats.JOB ${odir}/split${nj}/${featname}.JOB.scp ${lang_vecs}
 
 mv ${feats} ${feats}.bk
-cat ${odir}/feats.*.scp > ${feats}
+cat ${odir}/split${nj}/feats.*.scp > ${feats}

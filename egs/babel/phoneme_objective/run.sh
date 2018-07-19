@@ -65,7 +65,6 @@ epochs=15
 lm_weight=1.0
 use_lm=false
 
-# decoding parameter
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
