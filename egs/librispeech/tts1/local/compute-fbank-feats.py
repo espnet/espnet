@@ -41,7 +41,7 @@ def main():
                         help='FFT length in point')
     parser.add_argument('--n_shift', type=int, default=512,
                         help='Shift length in point')
-    parser.add_argument('--win_length', type=int, default=None,
+    parser.add_argument('--win_length', type=int, default=None, nargs='?',
                         help='Analisys window length in point')
     parser.add_argument('--window', type=str, default='hann',
                         choices=['hann', 'hamming'],
