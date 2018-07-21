@@ -18,6 +18,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from e2e_asr_attctc_th import AttLoc
+from e2e_asr_attctc_th import to_cuda
 from e2e_asr_attctc_th import torch_is_old
 
 
@@ -62,10 +63,7 @@ def make_mask(lengths, dim=None):
     if torch_is_old:
         mask = Variable(mask)
 
-    if torch.cuda.is_available():
-        return mask.byte().cuda()
-    else:
-        return mask.byte()
+    return mask.byte()
 
 
 class Reporter(chainer.Chain):
@@ -155,15 +153,7 @@ class Tacotron2Loss(torch.nn.Module):
             else:
                 weights = None
             # masking padded values
-            mask = make_mask(olens, ys.size(2))
-            if torch.cuda.is_available():
-                ys = ys.cuda()
-                after_outs = after_outs.cuda()
-                before_outs = before_outs.cuda()
-                labels = labels.cuda()
-                logits = logits.cuda()
-                if weights is not None:
-                    weights = weights.cuda()
+            mask = to_cuda(self, make_mask(olens, ys.size(2)))
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
             before_outs = before_outs.masked_select(mask)
