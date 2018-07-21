@@ -20,7 +20,7 @@ fmax=""     # maximum frequency
 fmin=""     # minimum frequency
 n_mels=80   # number of mel basis
 n_fft=1024  # number of fft points
-n_shift=256 # number of shift points
+n_shift=512 # number of shift points
 # encoder related
 embed_dim=512
 elayers=1
