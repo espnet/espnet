@@ -101,8 +101,8 @@ if [ ${stage} -le 0 ]; then
     # training data
     local/fisher_data_prep.sh ${fisher_dir}
     local/swbd1_data_download.sh ${swbd1_dir}
-    chmod 644 data/local/dict_nosp/lexicon0.txt
     local/fisher_swbd_prepare_dict.sh
+    chmod 644 data/local/dict_nosp/lexicon0.txt
     local/swbd1_data_prep.sh ${swbd1_dir}
     utils/combine_data.sh data/train_all data/train_fisher data/train_swbd
 
@@ -216,7 +216,6 @@ mkdir -p ${expdir}
 lmexpdir=exp/train_rnnlm_2layer_bs256
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
-    (
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
@@ -238,7 +237,6 @@ if [ ${stage} -le 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --dict ${dict}
-    ) &
 fi
 
 if [ ${stage} -le 4 ]; then
