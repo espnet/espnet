@@ -549,7 +549,7 @@ def decode(args):
 
     # check the use of embedding
     # TODO(kan-bayashi): need to remove in the future
-    if not hasattr(train_args, "spk_embed_dim"):
+    if hasattr(train_args, "spk_embed_dim"):
         if train_args.spk_embed_dim is not None:
             train_args.use_speaker_embedding = True
         else:
