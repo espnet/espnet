@@ -39,7 +39,7 @@ for x in ${tmpdir}/feat.scp ${tmpdir}/idim.scp; do
 done
 
 # add to json
-local/add_input2json.py --verbose ${verbose} \
+addjson.py --verbose ${verbose} \
     ${json} ${tmpdir}/feat.json ${tmpdir}/idim.json > ${tmpdir}/data.json
 mkdir -p ${dir}/.backup
 echo "json updated. original json is kept in ${dir}/.backup."
