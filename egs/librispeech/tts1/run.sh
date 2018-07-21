@@ -15,12 +15,13 @@ verbose=0    # verbose option (if set > 1, get more log)
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 # feature extraction related
-fs=16000    # sampling frequency
-fmax=""     # maximum frequency
-fmin=""     # minimum frequency
-n_mels=80   # number of mel basis
-n_fft=1024  # number of fft points
-n_shift=512 # number of shift points
+fs=16000      # sampling frequency
+fmax=""       # maximum frequency
+fmin=""       # minimum frequency
+n_mels=80     # number of mel basis
+n_fft=1024    # number of fft points
+n_shift=512   # number of shift points
+win_length="" # window length
 # encoder related
 embed_dim=512
 elayers=1
@@ -115,10 +116,17 @@ if [ ${stage} -le 1 ]; then
 
     fbankdir=fbank
     for x in dev_clean test_clean train_clean_100 train_clean_360; do
-        local/make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-            --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
-            --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
+        make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            data/${x} \
+            exp/make_fbank/${x} \
+            ${fbankdir}
     done
 
     utils/combine_data.sh data/${train_set}_org data/train_clean_100 data/train_clean_360
@@ -318,9 +326,14 @@ if [ ${stage} -le 6 ];then
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
             ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
-        local/convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
-            --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
-            --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
+        convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
             ${outdir}_denorm/${sets} \
             ${outdir}_denorm/${sets}/log \
             ${outdir}_denorm/${sets}/wav

@@ -21,6 +21,7 @@ fmin=""     # minimum frequency
 n_mels=80   # number of mel basis
 n_fft=1024  # number of fft points
 n_shift=256 # number of shift points
+win_length="" # window length
 # encoder related
 embed_dim=512
 elayers=1
@@ -105,10 +106,17 @@ if [ ${stage} -le 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    local/make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-        --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
-        --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
-        data/train exp/make_fbank/train ${fbankdir}
+    make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+        --fs ${fs} \
+        --fmax "${fmax}" \
+        --fmin "${fmin}" \
+        --n_fft ${n_fft} \
+        --n_shift ${n_shift} \
+        --win_length "${win_length}" \
+        --n_mels ${n_mels} \
+        data/train \
+        exp/make_fbank/train \
+        ${fbankdir}
 
     # make a dev set
     utils/subset_data_dir.sh --last data/train 500 data/deveval
@@ -267,9 +275,14 @@ if [ ${stage} -le 5 ];then
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
             ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
-        local/convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
-            --fs ${fs} --fmax "${fmax}" --fmin "${fmin}" \
-            --n_mels ${n_mels} --n_fft ${n_fft} --n_shift ${n_shift} \
+        convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
             ${outdir}_denorm/${sets} \
             ${outdir}_denorm/${sets}/log \
             ${outdir}_denorm/${sets}/wav
