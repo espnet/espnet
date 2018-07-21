@@ -30,7 +30,6 @@ econv_layers=3 # if set 0, no conv layer is used
 econv_chans=512
 econv_filts=5
 # decoder related
-spk_embed_dim=512
 dlayers=2
 dunits=1024
 prenet_layers=2  # if set 0, no prenet is used
@@ -38,6 +37,7 @@ prenet_units=256
 postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
+use_speaker_embedding=true
 # attention related
 adim=128
 aconv_chans=32
@@ -263,7 +263,6 @@ if [ ${stage} -le 4 ];then
            --econv_layers ${econv_layers} \
            --econv_chans ${econv_chans} \
            --econv_filts ${econv_filts} \
-           --spk_embed_dim ${spk_embed_dim} \
            --dlayers ${dlayers} \
            --dunits ${dunits} \
            --prenet_layers ${prenet_layers} \
@@ -275,6 +274,7 @@ if [ ${stage} -le 4 ];then
            --aconv-chans ${aconv_chans} \
            --aconv-filts ${aconv_filts} \
            --cumulate_att_w ${cumulate_att_w} \
+           --use_speaker_embedding ${use_speaker_embedding} \
            --use_batch_norm ${use_batch_norm} \
            --use_concate ${use_concate} \
            --use_residual ${use_residual} \
