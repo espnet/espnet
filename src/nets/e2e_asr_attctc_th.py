@@ -33,8 +33,6 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
-torch_is_old = torch.__version__.startswith("0.3.")
-
 
 def to_cuda(m, x):
     assert isinstance(m, torch.nn.Module)
@@ -291,9 +289,6 @@ class E2E(torch.nn.Module):
         :param data:
         :return:
         '''
-        if not torch_is_old:
-            torch.set_grad_enabled(self.training)
-
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
@@ -356,7 +351,6 @@ class E2E(torch.nn.Module):
             h = to_cuda(self, Variable(torch.from_numpy(
                 np.array(x, dtype=np.float32)), volatile=True))
         else:
-            torch.set_grad_enabled(False)
             h = to_cuda(self, torch.from_numpy(
                 np.array(x, dtype=np.float32)))
 
@@ -424,6 +418,9 @@ class E2E(torch.nn.Module):
 
         # decoder
         att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
+
+        if not torch_is_old:
+            torch.set_grad_enabled(True)
 
         return att_ws
 
@@ -1796,7 +1793,6 @@ class Decoder(torch.nn.Module):
         if torch_is_old:
             vy = Variable(h.data.new(1).zero_().long(), volatile=True)
         else:
-            torch.set_grad_enabled(False)
             vy = h.new_zeros(1).long()
 
         if recog_args.maxlenratio == 0:
@@ -2104,7 +2100,9 @@ class BLSTMP(torch.nn.Module):
         for layer in six.moves.range(self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
-            bilstm.flatten_parameters()
+            if torch_is_old:
+                # pytorch 0.4.x does not support flatten_parameters() for multiple GPUs
+                bilstm.flatten_parameters()
             ys, (hy, cy) = bilstm(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
