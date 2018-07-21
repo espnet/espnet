@@ -302,6 +302,10 @@ def train(args):
     # reverse input and output dimension
     idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
+    if args.use_speaker_embedding:
+        args.spk_embed_dim = int(valid_json[utts[0]]['input'][1]['shape'][0])
+    else:
+        args.spk_embed_dim = None
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
@@ -404,8 +408,7 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(valid_batchset, 1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    use_speaker_embedding = False if args.spk_embed_dim is None else True
-    converter = CustomConverter(gpu_id, use_speaker_embedding=use_speaker_embedding)
+    converter = CustomConverter(gpu_id, True, args.use_speaker_embedding)
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -428,7 +431,7 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         trainer.extend(PlotAttentionReport(
             tacotron2, data, args.outdir + '/att_ws',
-            CustomConverter(gpu_id, False, use_speaker_embedding), True), trigger=(1, 'epoch'))
+            CustomConverter(gpu_id, False, args.use_speaker_embedding), True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -545,13 +548,8 @@ def decode(args):
         os.makedirs(outdir)
 
     # check the use of embedding
-    if not hasattr(train_args, "spk_embed_dim"):
-        use_speaker_embedding = False
-    else:
-        if train_args.spk_embed_dim is None:
-            use_speaker_embedding = False
-        else:
-            use_speaker_embedding = True
+    if not hasattr(train_args, "use_speaker_embedding"):
+        train_args.use_speaker_embedding = False
 
     # TODO(kan-bayashi): need to be fixed in pytorch v4
     if not torch_is_old:
@@ -572,7 +570,7 @@ def decode(args):
                 x = Variable(x, volatile=True)
 
             # get speaker embedding
-            if use_speaker_embedding:
+            if train_args.use_speaker_embedding:
                 spemb = kaldi_io_py.read_vec_flt(js[utt_id]['input'][1]['feat'])
                 spemb = torch.from_numpy(spemb)
                 # TODO(kan-bayashi): need to be fixed in pytorch v4
