@@ -10,9 +10,9 @@
 # conf/queue.conf in http://kaldi-asr.org/doc/queue.html for more information,
 # or search for the string 'default_config' in utils/queue.pl or utils/slurm.pl.
 
-# export train_cmd="run.pl --mem 2G"
-# export cuda_cmd="run.pl --mem 2G --gpu 1"
-# export decode_cmd="run.pl --mem 4G"
+export train_cmd="run.pl --mem 2G"
+export cuda_cmd="run.pl --mem 2G --gpu 1"
+export decode_cmd="run.pl --mem 4G"
 
 # JHU setup
 # export train_cmd="queue.pl --mem 2G"
@@ -20,6 +20,6 @@
 # export decode_cmd="queue.pl --mem 4G"
 
 # NU setup
-export train_cmd="slurm.pl --config conf/slurm.conf"
-export cuda_cmd="slurm.pl --gpu 1 --config conf/slurm.conf"
-export decode_cmd="slurm.pl --config conf/slurm.conf"
+# export train_cmd="slurm.pl --config conf/slurm.conf"
+# export cuda_cmd="slurm.pl --gpu 1 --config conf/slurm.conf"
+# export decode_cmd="slurm.pl --config conf/slurm.conf"
