@@ -59,10 +59,10 @@ eps=1e-6
 weight_decay=0.0
 dropout=0.5
 zoneout=0.1
-epochs=50
+epochs=30
 # decoding related
 model=model.loss.best
-threshold=0.7    # threshold to stop the generation
+threshold=0.5    # threshold to stop the generation
 maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
 
