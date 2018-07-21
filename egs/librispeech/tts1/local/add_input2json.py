@@ -8,11 +8,15 @@ import argparse
 import json
 import logging
 
+from distutils.util import strtobool
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
+    parser.add_argument('-i', '--is-input', default=True, type=strtobool,
+                        help='If true, add to input. If false, add to output')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     args = parser.parse_args()
@@ -57,23 +61,53 @@ if __name__ == '__main__':
     for id in intersec_org_dic:
         orgdic = intersec_org_dic[id]
         adddic = intersec_add_dic[id]
-        # original input
-        input_list = orgdic['input']
-        # additional input
-        in_add_dic = {}
-        if 'idim' in adddic and 'ilen' in adddic:
-            in_add_dic['shape'] = [int(adddic['ilen']),
-                                   int(adddic['idim'])]
-        elif 'idim' in adddic:
-            in_add_dic['shape'] = [int(adddic['idim'])]
-        in_add_dic['name'] = 'input%d' % (len(input_list) + 1)
-        in_add_dic['feat'] = adddic['feat']
+        # add as input
+        if args.is_input:
+            # original input
+            input_list = orgdic['input']
+            # additional input
+            in_add_dic = {}
+            if 'idim' in adddic and 'ilen' in adddic:
+                in_add_dic['shape'] = [int(adddic['ilen']),
+                                       int(adddic['idim'])]
+            elif 'idim' in adddic:
+                in_add_dic['shape'] = [int(adddic['idim'])]
+            # add all other key value
+            for key, value in adddic.items():
+                if key in ['idim', 'ilen']:
+                    continue
+                in_add_dic[key] = value
+            # add name
+            in_add_dic['name'] = 'input%d' % (len(input_list) + 1)
 
-        input_list.append(in_add_dic)
+            input_list.append(in_add_dic)
+            new_dic[id] = {'input': input_list,
+                           'output': orgdic['output'],
+                           'utt2spk': orgdic['utt2spk']}
+        # add as output
+        else:
+            # original output
+            output_list = orgdic['output']
+            # additional output
+            out_add_dic = {}
+            # add shape
+            if 'odim' in adddic and 'olen' in adddic:
+                out_add_dic['shape'] = [int(adddic['olen']),
+                                        int(adddic['odim'])]
+            elif 'odim' in adddic:
+                out_add_dic['shape'] = [int(adddic['odim'])]
+            # add all other key value
+            for key, value in adddic.items():
+                if key in ['odim', 'olen']:
+                    continue
+                out_add_dic[key] = value
+            # add name
+            out_add_dic['name'] = 'target%d' % (len(output_list) + 1)
 
-        new_dic[id] = {'input': input_list,
-                       'output': orgdic['output'],
-                       'utt2spk': orgdic['utt2spk']}
+            output_list.append(out_add_dic)
+            new_dic[id] = {'input': orgdic['input'],
+                           'output': output_list,
+                           'utt2spk': orgdic['utt2spk']}
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps(
