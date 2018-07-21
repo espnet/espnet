@@ -549,14 +549,13 @@ def decode(args):
 
     # check the use of embedding
     # TODO(kan-bayashi): need to remove in the future
-    if not hasattr(train_args, "use_speaker_embedding"):
-        if not hasattr(train_args, "spk_embed_dim"):
-            if train_args.spk_embed_dim > 0:
-                train_args.use_speaker_embedding = True
-            else:
-                train_args.use_speaker_embedding = False
+    if not hasattr(train_args, "spk_embed_dim"):
+        if train_args.spk_embed_dim is not None:
+            train_args.use_speaker_embedding = True
         else:
             train_args.use_speaker_embedding = False
+    else:
+        train_args.use_speaker_embedding = False
 
     # TODO(kan-bayashi): need to be fixed in pytorch v4
     if not torch_is_old:
