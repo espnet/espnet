@@ -49,7 +49,7 @@ use_residual=false  # whether to use residual connection in encoder convolution
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
 # minibatch related
-batchsize=32
+batchsize=64
 batch_sort_key="output" # empty or input or output (if empty, shuffled batch will be used)
 maxlen_in=150           # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
 maxlen_out=400          # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
