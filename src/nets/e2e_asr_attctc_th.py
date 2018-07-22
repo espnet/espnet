@@ -23,6 +23,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from ctc_prefix_score import CTCPrefixScore
+from ctc_prefix_score import BatchCTCPrefixScoreTH
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
@@ -334,7 +335,7 @@ class E2E(torch.nn.Module):
 
         return loss_ctc, loss_att, acc
 
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
+    def recognize(self, xs, recog_args, char_list, rnnlm=None):
         '''E2E beam search
 
         :param x:
@@ -345,28 +346,29 @@ class E2E(torch.nn.Module):
         prev = self.training
         self.eval()
         # subsample frame
-        x = x[::self.subsample[0], :]
-        ilen = [x.shape[0]]
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
         if torch_is_old:
-            h = to_cuda(self, Variable(torch.from_numpy(
-                np.array(x, dtype=np.float32)), volatile=True))
+            hs = [to_cuda(self, Variable(torch.from_numpy(np.array(xx, dtype=np.float32)),
+                                        volatile=True))
+                 for xx in xs]
         else:
-            h = to_cuda(self, torch.from_numpy(
-                np.array(x, dtype=np.float32)))
-
+            hs = [to_cuda(self, torch.from_numpy(np.array(xx, dtype=np.float32)))
+                 for xx in xs]
+        
         # 1. encoder
-        # make a utt list (1) to use the same interface for encoder
-        h, _ = self.enc(h.unsqueeze(0), ilen)
+        xpad = pad_list(hs, 0.0)
+        hpad, hlens = self.enc(xpad, ilens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(h).data[0]
+            lpz = self.ctc.log_softmax(hpad).data
         else:
             lpz = None
 
         # 2. decoder
         # decode the first utterance
-        y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(hpad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -1647,6 +1649,46 @@ def th_accuracy(y_all, pad_target, ignore_label):
     return float(numerator) / float(denominator)
 
 
+
+def get_last_yseq(exp_yseq):
+    last = []
+    for y_seq in exp_yseq:
+        last.append(y_seq[-1])
+    return last
+
+
+def append_ids(yseq, ids):
+    if isinstance(ids, list):
+        for i, j in enumerate(ids):
+            yseq[i].append(j)
+    else:
+        for i in range(len(yseq)):
+            yseq[i].append(ids)
+    return yseq
+
+
+def expand_yseq(yseqs, next_ids):
+    new_yseq = []
+    for yseq in yseqs:
+        for next_id in next_ids:
+            new_yseq.append(yseq[:])
+            new_yseq[-1].append(next_id)
+    return new_yseq
+
+
+def index_select_list(yseq, lst):
+    new_yseq = []
+    for l in lst:
+        new_yseq.append(yseq[l][:])
+    return new_yseq
+
+
+def index_select_lm_state(rnnlm_state, dim, vidx):
+    state = dict([(k, torch.index_select(rnnlm_state[k], dim, vidx))
+                  for k,v in rnnlm_state.items()])
+    return state
+
+
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
@@ -1674,6 +1716,8 @@ class Decoder(torch.nn.Module):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
 
+        self.odim = odim
+        
     def zero_state(self, hpad):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
 
@@ -1764,7 +1808,7 @@ class Decoder(torch.nn.Module):
 
         return self.loss, acc
 
-    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
+    def recognize_beam(self, h, hlens, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
         :param Variable h:
@@ -1772,165 +1816,171 @@ class Decoder(torch.nn.Module):
         :param char_list:
         :return:
         '''
-        logging.info('input lengths: ' + str(h.size(0)))
-        # initialization
-        c_list = [self.zero_state(h.unsqueeze(0))]
-        z_list = [self.zero_state(h.unsqueeze(0))]
-        for l in six.moves.range(1, self.dlayers):
-            c_list.append(self.zero_state(h.unsqueeze(0)))
-            z_list.append(self.zero_state(h.unsqueeze(0)))
-        a = None
-        self.att.reset()  # reset pre-computation of h
+        logging.info('input lengths[0]: ' + str(h.size(0)))
+        h = mask_by_length(h, hlens, 0)
 
-        # search parms
+        # search params
+        batch = len(hlens)
         beam = recog_args.beam_size
         penalty = recog_args.penalty
         ctc_weight = recog_args.ctc_weight
+        att_weight = 1.0 - ctc_weight
 
-        # preprate sos
-        y = self.sos
-        if torch_is_old:
-            vy = Variable(h.data.new(1).zero_().long(), volatile=True)
-        else:
-            vy = h.new_zeros(1).long()
+        n_bb = batch * beam
+        n_bo = beam * self.odim
+        n_bbo = n_bb * self.odim
 
+        max_hlen = max(hlens)
         if recog_args.maxlenratio == 0:
-            maxlen = h.shape[0]
+            maxlen = max_hlen
         else:
-            # maxlen >= 1
-            maxlen = max(1, int(recog_args.maxlenratio * h.size(0)))
-        minlen = int(recog_args.minlenratio * h.size(0))
+            maxlen = max(1, int(recog_args.maxlenratio * max_hlen))
+        minlen = int(recog_args.minlenratio * max_hlen)
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
 
-        # initialize hypothesis
-        if rnnlm:
-            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list,
-                   'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
-        else:
-            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
-        if lpz is not None:
-            ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
-            hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
-            hyp['ctc_score_prev'] = 0.0
-            if ctc_weight != 1.0:
-                # pre-pruning based on attention scores
-                ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
-            else:
-                ctc_beam = lpz.shape[-1]
-        hyps = [hyp]
-        ended_hyps = []
+        # initialization
+        c_prev = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        z_prev = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        c_list = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        z_list = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        vscores = to_cuda(self, torch.zeros(batch, beam))
+        a_prev = None
+        rnnlm_prev = None
+        
+        self.att.reset()  # reset pre-computation of h
 
+        # preprate search related variable
+        y = self.sos
+        yseq = [[y] for _ in range(n_bb)]
+        stop_search = [False for _ in range(batch)]
+        nbest_hyps = [[] for _ in range(batch)]
+        dummy_hyps = [{'yseq':[self.sos, self.eos], 'score':np.array([-10000000.0])}]
+        
+        if lpz is not None:
+            ctc_prefix_score = BatchCTCPrefixScoreTH(lpz, 0, self.eos, beam, lpz.is_cuda)
+            ctc_states_prev = ctc_prefix_score.initial_state()
+            ctc_scores_prev = to_cuda(self, torch.zeros(batch, n_bo))
+
+        ended_hyps = [[] for _ in range(batch)]
+        exp_hlens = hlens.repeat(beam).view(beam, batch).transpose(0, 1).contiguous()
+        exp_hlens = exp_hlens.view(-1).tolist()
+        exp_h = h.unsqueeze(1).expand(-1, beam, -1, -1).contiguous()
+        exp_h = exp_h.view(n_bb, h.size()[1], h.size()[2])
+        
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
-            hyps_best_kept = []
-            for hyp in hyps:
-                vy.unsqueeze(1)
-                vy[0] = hyp['yseq'][i]
-                ey = self.embed(vy)           # utt list (1) x zdim
-                ey.unsqueeze(0)
-                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
-                ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
-                z_list[0], c_list[0] = self.decoder[0](ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
-                for l in six.moves.range(1, self.dlayers):
-                    z_list[l], c_list[l] = self.decoder[l](
-                        z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
+            vy = to_cuda(self, torch.LongTensor(get_last_yseq(yseq)))
+            ey = self.embed(vy)
+            att_c, att_w = self.att(exp_h, exp_hlens, z_prev[0], a_prev)
+            ey = torch.cat((ey, att_c), dim=1)
 
-                # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
-                if rnnlm:
-                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
-                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
-                else:
-                    local_scores = local_att_scores
+            # attention decoder
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](z_list[l - 1], (z_prev[l], c_prev[l]))
+            local_att_scores = att_weight * F.log_softmax(self.output(z_list[-1]), dim=1)
+            
+            # rnnlm
+            if rnnlm:
+                rnnlm_state, z_rnnlm = rnnlm.predictor(rnnlm_prev, vy)
+                local_lm_scores = F.log_softmax(z_rnnlm, dim=1)
+                local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+            else:
+                local_scores = local_att_scores
+            local_scores = local_scores.view(batch, n_bo)
+            
+            # ctc
+            if lpz is not None:
+                ctc_scores, ctc_states = ctc_prefix_score(yseq, ctc_states_prev)
+                ctc_scores = ctc_scores.view(batch, n_bo)
+                local_scores += ctc_weight * (ctc_scores - ctc_scores_prev)
+            local_scores = list(torch.split(local_scores.view(batch, n_bo), 1, dim=0))
 
-                if lpz is not None:
-                    local_best_scores, local_best_ids = torch.topk(
-                        local_att_scores, ctc_beam, dim=1)
-                    ctc_scores, ctc_states = ctc_prefix_score(
-                        hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
-                    local_scores = \
-                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
-                        + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
-                    if rnnlm:
-                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
-                    local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
-                    local_best_ids = local_best_ids[:, joint_best_ids[0]]
-                else:
-                    local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
-
-                for j in six.moves.range(beam):
-                    new_hyp = {}
-                    # [:] is needed!
-                    new_hyp['z_prev'] = z_list[:]
-                    new_hyp['c_prev'] = c_list[:]
-                    new_hyp['a_prev'] = att_w[:]
-                    new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
-                    new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
-                    new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
-                    new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
-                    if rnnlm:
-                        new_hyp['rnnlm_prev'] = rnnlm_state
-                    if lpz is not None:
-                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
-                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
-                    # will be (2 x beam) hyps at most
-                    hyps_best_kept.append(new_hyp)
-
-                hyps_best_kept = sorted(
-                    hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
-
-            # sort and get nbest
-            hyps = hyps_best_kept
-            logging.debug('number of pruned hypothes: ' + str(len(hyps)))
-            logging.debug(
-                'best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]))
-
+            # convergence
+            z_list = [z_list[li].view(n_bb, -1) for li in six.moves.range(self.dlayers)]
+            c_list = [c_list[li].view(n_bb, -1) for li in six.moves.range(self.dlayers)]
+            local_best_scores = []
+            local_best_odims = []
+            local_padded_beam_ids, local_padded_best_ids = [], []
+            for samp_i in six.moves.range(batch):  # foreach sample: (beam * odim) -> (beam)
+                local_best_score, local_best_id = torch.topk(local_scores[samp_i].view(-1), beam, 0)
+                local_best_scores.append(local_best_score)
+                local_odim_id = torch.fmod(local_best_id, self.odim).int()
+                local_beam_id = torch.div(local_best_id, self.odim).int()
+                
+                local_best_odims.extend(local_odim_id.data.cpu().tolist())
+                local_padded_beam_ids.extend((local_beam_id.data.cpu() + samp_i * beam).tolist())
+                local_padded_best_ids.extend((local_best_id.data.cpu() + samp_i * n_bo).tolist())
+                
+            yseq = index_select_list(yseq, local_padded_beam_ids)
+            yseq = append_ids(yseq, local_best_odims)
+            
+            vidx = to_cuda(self, torch.LongTensor(local_padded_beam_ids))
+            a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
+            z_prev = [torch.index_select(z_list[li], 0, vidx) for li in range(self.dlayers)]
+            c_prev = [torch.index_select(c_list[li], 0, vidx) for li in range(self.dlayers)]
+            vscores = torch.index_select(vscores.view(-1), 0, vidx).view(batch, beam) + torch.stack(local_best_scores)
+            
+            if rnnlm:
+                rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
+                
+            if lpz is not None:
+                ctc_vidx = to_cuda(self, torch.LongTensor(local_padded_best_ids))
+                
+                ctc_scores_prev = torch.index_select(ctc_scores.view(-1), 0, ctc_vidx)
+                ctc_scores_prev = ctc_scores_prev.view(-1, 1).repeat(1, self.odim).view(batch, n_bo)
+                
+                ctc_states = torch.transpose(ctc_states, 1, 3).contiguous()
+                ctc_states = ctc_states.view(n_bbo, 2, -1)
+                ctc_states_prev = torch.index_select(ctc_states, 0, ctc_vidx).view(n_bb, 2, -1)
+                ctc_states_prev = torch.transpose(ctc_states_prev, 1, 2)
+                
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
                 logging.info('adding <eos> in the last postion in the loop')
-                for hyp in hyps:
-                    hyp['yseq'].append(self.eos)
-
+                yseq = append_ids(yseq, self.eos)
+                                    
             # add ended hypothes to a final list, and removed them from current hypothes
-            # (this will be a probmlem, number of hyps < beam)
-            remained_hyps = []
-            for hyp in hyps:
-                if hyp['yseq'][-1] == self.eos:
-                    # only store the sequence that has more than minlen outputs
-                    # also add penalty
-                    if len(hyp['yseq']) > minlen:
-                        hyp['score'] += (i + 1) * penalty
-                        ended_hyps.append(hyp)
-                else:
-                    remained_hyps.append(hyp)
+            penalty_i = (i + 1) * penalty
+            vscore_list = list(torch.split(vscores.view(-1), 1, dim=0))
 
+            # pick ended hyps
+            for y_id, y_hyp in enumerate(yseq):
+                batch_idx = int(y_id / beam)
+                if stop_search[batch_idx] or hlens[batch_idx] <= i:
+                    continue
+                
+                if len(y_hyp) > minlen and y_hyp[-1] == self.eos and (i+2) == len(y_hyp):
+                    _vscore = vscore_list[y_id] + penalty_i
+                    _score = _vscore.data.cpu().numpy()
+                    
+                    ended_hyps[batch_idx].append({'yseq':y_hyp[:], 'vscore':_vscore, 'score':_score})
+                    yseq[y_id] = [self.sos, self.eos]
+                    vscore_list[y_id] = _vscore * 0.0 - 100000000000.0
+
+            vscores = torch.cat(vscore_list).view(batch, beam)
+            # prune hyps
+            for samp_i in six.moves.range(batch):
+                ended_hyps[samp_i] = sorted(ended_hyps[samp_i], key=lambda x: x['score'],
+                                            reverse=True)[:min(len(ended_hyps[samp_i]), beam)]
             # end detection
-            if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
-                logging.info('end detected at %d', i)
+            stop_search = [stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
+                           for samp_i in six.moves.range(batch)]
+            stop_search_summary = list(set(stop_search))
+            if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
-
-            hyps = remained_hyps
-            if len(hyps) > 0:
-                logging.debug('remeined hypothes: ' + str(len(hyps)))
-            else:
-                logging.info('no hypothesis. Finish decoding.')
-                break
-
-            for hyp in hyps:
-                logging.debug(
-                    'hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
-
-            logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
-
-        nbest_hyps = sorted(
-            ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
-        logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
-        logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
-
-        # remove sos
-        return nbest_hyps
+            
+            torch.cuda.empty_cache()
+                                                                                
+        ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
+                      for samp_i in six.moves.range(batch)]
+        nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],
+                             reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+                      for samp_i in six.moves.range(batch)]
+        
+        return nbest_hyps   
 
     def calculate_all_attentions(self, hpad, hlen, ys):
         '''Calculate all of attentions
