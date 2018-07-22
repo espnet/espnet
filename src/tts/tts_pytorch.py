@@ -229,6 +229,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         logging.info('# utts: ' + str(len(sorted_data)))
         # change batchsize depending on the input and output length
         while True:
+            # input and output are reversed due to the use of same json as asr
             ilen = int(sorted_data[start][1]['output'][0]['shape'][0])
             olen = int(sorted_data[start][1]['input'][0]['shape'][0])
             factor = max(int(ilen / max_length_in), int(olen / max_length_out))
@@ -249,6 +250,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         logging.info('# utts: ' + str(len(sorted_data)))
         # change batchsize depending on the input and output length
         while True:
+            # input and output are reversed due to the use of same json as asr
             ilen = int(sorted_data[start][1]['output'][0]['shape'][0])
             olen = int(sorted_data[start][1]['input'][0]['shape'][0])
             factor = max(int(ilen / max_length_in), int(olen / max_length_out))
