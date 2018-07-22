@@ -128,21 +128,24 @@ class CustomConverter(object):
 
         # get target features and input character sequence
         xs = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
-        ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
+        ys_tmp = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
 
         # remove empty sequence and get sort along with length
-        filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(ys)))
+        filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
         sorted_idx = sorted(filtered_idx, key=lambda i: -len(xs[i]))
         xs = [np.fromiter(map(int, xs[i]), dtype=np.int64) for i in sorted_idx]
-        ys = [ys[i] for i in sorted_idx]
+        ys_tmp = [ys_tmp[i] for i in sorted_idx]
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.from_numpy(np.fromiter((x.shape[0] for x in xs), dtype=np.int64))
-        olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys), dtype=np.int64))
+        olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys_tmp), dtype=np.int64))
 
         # perform padding and convert to tensor
         xs = torch.from_numpy(pad_ndarray_list(xs, 0)).long()
-        ys = torch.from_numpy(pad_ndarray_list(ys, 0)).float()
+        ys = torch.from_numpy(pad_ndarray_list(ys_tmp, 0)).float()
+
+        # delete ystmp to avoid memory leak
+        del ys_tmp
 
         # make labels for stop prediction
         labels = ys.new(ys.size(0), ys.size(1)).zero_()
@@ -162,13 +165,18 @@ class CustomConverter(object):
 
         # load speaker embedding
         if self.use_speaker_embedding:
-            spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
-            spembs = [spembs[i] for i in sorted_idx]
-            spembs = torch.from_numpy(np.array(spembs)).float()
+            spembs_tmp = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
+            spembs_tmp = [spembs_tmp[i] for i in sorted_idx]
+            spembs = torch.from_numpy(np.array(spembs_tmp)).float()
+
+            # TODO(kan-bayashi): need to be fixed in pytorch v4
             if torch_is_old:
                 spembs = Variable(spembs, volatile=not is_training)
             if sum(self.device) >= 0:
                 spembs = spembs.cuda()
+
+            # delete spembs_tmp to avoid memory leak
+            del spembs_tmp
         else:
             spembs = None
 
