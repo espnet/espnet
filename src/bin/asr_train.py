@@ -134,8 +134,32 @@ def main():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    # recognition related
+    parser.add_argument('--report-cer', default=False, action='store_true',
+                        help='Compute CER on development set')
+    parser.add_argument('--report-wer', default=False, action='store_true',
+                        help='Compute WER on development set')
+    parser.add_argument('--nbest', type=int, default=1,
+                        help='Output N-best hypotheses')
+    parser.add_argument('--beam-size', type=int, default=20,
+                        help='Beam size')
+    parser.add_argument('--penalty', default=0.0, type=float,
+                        help='Incertion penalty')
+    parser.add_argument('--maxlenratio', default=0.0, type=float,
+                        help="""Input length ratio to obtain max output length.
+                        If maxlenratio=0.0 (default), it uses a end-detect function
+                        to automatically find maximum hypothesis lengths""")
+    parser.add_argument('--minlenratio', default=0.0, type=float,
+                        help='Input length ratio to obtain min output length')
+    parser.add_argument('--ctc-weight', default=0.3, type=float,
+                        help='CTC weight in joint decoding')
+    # rnnlm related
+    parser.add_argument('--rnnlm', type=str, default=None,
+                        help='RNNLM model file to read')
+    parser.add_argument('--lm-weight', default=0.1, type=float,
+                        help='RNNLM weight.')
     args = parser.parse_args()
-
+    
     # logging info
     if args.verbose > 0:
         logging.basicConfig(

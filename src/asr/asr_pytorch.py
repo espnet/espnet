@@ -494,9 +494,6 @@ def recog(args):
             logging.info("groundtruth[%s]: " + seq_true_text, name)
             logging.info("prediction [%s]: " + seq_hat_text, name)
 
-            if seq_hat_text == '<eos>':
-                print(nbest_hyps[i])
-            
             # copy old json info
             new_json[name] = dict()
             new_json[name]['utt2spk'] = recog_json[name]['utt2spk']

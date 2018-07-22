@@ -27,6 +27,8 @@ from ctc_prefix_score import BatchCTCPrefixScoreTH
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
+import argparse
+import editdistance
 
 torch_is_old = torch.__version__.startswith("0.3.")
 
@@ -93,10 +95,12 @@ def linear_tensor(linear, x):
 
 
 class Reporter(chainer.Chain):
-    def report(self, loss_ctc, loss_att, acc, mtl_loss):
+    def report(self, loss_ctc, loss_att, acc, cer, wer, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
         reporter.report({'acc': acc}, self)
+        reporter.report({'cer': cer}, self)
+        reporter.report({'wer': wer}, self)
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
 
@@ -118,7 +122,7 @@ class Loss(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, acc, cer, wer = self.predictor(x)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -135,7 +139,7 @@ class Loss(torch.nn.Module):
 
         loss_data = self.loss.data[0] if torch_is_old else float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, loss_data)
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -263,6 +267,20 @@ class E2E(torch.nn.Module):
         #             if "bias_ih" in name:
         #                 set_forget_bias_to_one(p)
 
+        # options for beam search
+        if 'beam_size' in vars(args):
+            recog_args = {'beam_size':args.beam_size, 'penalty':args.penalty,
+                          'ctc_weight':args.ctc_weight, 'maxlenratio':args.maxlenratio,
+                          'minlenratio':args.minlenratio, 'lm_weight':args.lm_weight,
+                          'nbest':args.nbest}
+            self.rnnlm = None
+            self.recog_args = argparse.Namespace(**recog_args)
+            self.report_cer = args.report_cer
+            self.report_wer = args.report_wer
+        else:
+            self.report_cer = False
+            self.report_wer = False
+        
     def init_like_chainer(self):
         """Initialize weight like chainer
 
@@ -333,7 +351,45 @@ class E2E(torch.nn.Module):
         else:
             loss_att, acc = self.dec(hpad, hlens, ys)
 
-        return loss_ctc, loss_att, acc
+        # 5. compute cer/wer
+        if self.training or not (self.report_cer or self.report_wer):
+            cer, wer = 0.0, 0.0
+        else:
+            if self.recog_args.ctc_weight > 0.0:
+                lpz = self.ctc.log_softmax(hpad).data
+            else:
+                lpz = None
+
+            wers, cers = [], []
+            nbest_hyps = self.dec.recognize_beam(hpad, hlens, lpz,
+                                                 self.recog_args, self.char_list,
+                                                 self.rnnlm)
+            # remove <sos> and <eos>
+            y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
+            for i, y_hat in enumerate(y_hats):
+                y_true = ys[i]
+
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat]
+                seq_true = [self.char_list[int(idx)] for idx in y_true]
+                seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+                seq_hat_text = seq_hat_text.replace('<blank>', '').replace('<unk>', '')
+                seq_true_text = "".join(seq_true).replace('<space>', ' ')
+
+                # wer
+                hyp_words = seq_hat_text.split()
+                ref_words = seq_true_text.split()
+                wers.append(editdistance.eval(hyp_words, ref_words) / len(ref_words))
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+
+                if False:
+                    logging.info("groundtruth: " + seq_true_text)
+                    logging.info("prediction : " + seq_hat_text)
+            wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
+            cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
+            
+        return loss_ctc, loss_att, acc, cer, wer
 
     def recognize(self, xs, recog_args, char_list, rnnlm=None):
         '''E2E beam search
@@ -1855,7 +1911,7 @@ class Decoder(torch.nn.Module):
         yseq = [[y] for _ in range(n_bb)]
         stop_search = [False for _ in range(batch)]
         nbest_hyps = [[] for _ in range(batch)]
-        dummy_hyps = [{'yseq':[self.sos, self.eos], 'score':np.array([-10000000.0])}]
+        dummy_hyps = [{'yseq':[self.sos, self.eos], 'score':np.array([-float('inf')])}]
         
         if lpz is not None:
             ctc_prefix_score = BatchCTCPrefixScoreTH(lpz, 0, self.eos, beam, lpz.is_cuda)
@@ -1938,9 +1994,9 @@ class Decoder(torch.nn.Module):
                 ctc_states_prev = torch.transpose(ctc_states_prev, 1, 2)
                 
             # add eos in the final loop to avoid that there are no ended hyps
-            if i == maxlen - 1:
-                logging.info('adding <eos> in the last postion in the loop')
-                yseq = append_ids(yseq, self.eos)
+            #if i == maxlen - 1:
+            #    logging.info('adding <eos> in the last postion in the loop')
+            #    yseq = append_ids(yseq, self.eos)
                                     
             # add ended hypothes to a final list, and removed them from current hypothes
             penalty_i = (i + 1) * penalty
@@ -1949,10 +2005,15 @@ class Decoder(torch.nn.Module):
             # pick ended hyps
             for y_id, y_hyp in enumerate(yseq):
                 batch_idx = int(y_id / beam)
-                if stop_search[batch_idx] or hlens[batch_idx] <= i:
+                if stop_search[batch_idx]:
                     continue
+                if hlens[batch_idx] < i:
+                    continue
+                if hlens[batch_idx] - 1 == i:
+                    y_hyp.append(self.eos)
                 
-                if len(y_hyp) > minlen and y_hyp[-1] == self.eos and (i+2) == len(y_hyp):
+                if len(y_hyp) > minlen and y_hyp[-1] == self.eos \
+                   and ((i+2) == len(y_hyp) or hlens[batch_idx] - 1 == i):
                     _vscore = vscore_list[y_id] + penalty_i
                     _score = _vscore.data.cpu().numpy()
                     
@@ -1973,7 +2034,7 @@ class Decoder(torch.nn.Module):
                 break
             
             torch.cuda.empty_cache()
-                                                                                
+            
         ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
                       for samp_i in six.moves.range(batch)]
         nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],

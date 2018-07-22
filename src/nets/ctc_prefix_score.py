@@ -82,10 +82,8 @@ class BatchCTCPrefixScoreTH(object):
 
         return r
 
-
     def isnan(self, x):
-        return torch.sum(x != x)
-    
+        return torch.sum(x != x)   
     
     def __call__(self, y, r_prev):
         '''Compute CTC prefix scores for next labels
@@ -103,7 +101,7 @@ class BatchCTCPrefixScoreTH(object):
 
         # new CTC states are prepared as a frame x (n or b) x n_labels tensor
         # that corresponds to r_t^n(h) and r_t^b(h).
-        r = torch.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)  # orig: 0.0
+        r = torch.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)
         if self.use_cuda:
             r = r.cuda()
 
@@ -124,8 +122,8 @@ class BatchCTCPrefixScoreTH(object):
             log_phi = log_phi.cuda()
 
         log_phi[:, :, :] = r_sum.unsqueeze(2).repeat(1, 1, self.odim)
-        for idx, token in enumerate(last):  # n_bb
-            log_phi[idx, :, token] = r_prev[idx, :, 1]
+        for idx in six.moves.range(len(last)):
+            log_phi[idx, :, last[idx]] = r_prev[idx, :, 1]
 
         # compute forward probabilities log(r_t^n(h)), log(r_t^b(h)),
         # and log prefix probabilites log(psi)
