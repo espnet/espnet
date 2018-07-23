@@ -2023,9 +2023,9 @@ class Decoder(torch.nn.Module):
 
             vscores = torch.cat(vscore_list).view(batch, beam)
             # prune hyps
-            for samp_i in six.moves.range(batch):
-                ended_hyps[samp_i] = sorted(ended_hyps[samp_i], key=lambda x: x['score'],
-                                            reverse=True)[:min(len(ended_hyps[samp_i]), beam)]
+            #for samp_i in six.moves.range(batch):
+            #ended_hyps[samp_i] = sorted(ended_hyps[samp_i], key=lambda x: x['score'],
+            #reverse=True)[:min(len(ended_hyps[samp_i]), beam)]
             # end detection
             stop_search = [stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
                            for samp_i in six.moves.range(batch)]
