@@ -414,6 +414,8 @@ def recog(args):
     logging.info('reading model parameters from' + args.model)
     e2e = E2E(idim, grapheme_odim, train_args, phoneme_odim=phoneme_odim)
     model = Loss(e2e, train_args.mtlalpha)
+    # We're going to need to specify the phoneme objective weight, aren't we? or are we?
+    #model = Loss(e2e, args.mtlalpha, phoneme_objective_weight=args.phoneme_objective_weight)
 
     def cpu_loader(storage, location):
         return storage

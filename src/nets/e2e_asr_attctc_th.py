@@ -388,6 +388,143 @@ class E2E(torch.nn.Module):
         else:
             lpz = None
 
+        #if self.phoneme_objective_weight > 0.0:
+        phn_log_softmax = self.phn_ctc.log_softmax(h).data[0]
+        logging.info("phn_ctc.log_softmax:")
+        logging.info(phn_log_softmax)
+        print(torch.topk(phn_log_softmax,1)[1])
+        def collapse_adjacent(seq):
+            """ Removes duplicates for CTC decoding"""
+            collapsed = [seq[0][0]]
+            for val in seq[1:]:
+                if collapsed[-1] != val[0]:
+                    collapsed.append(val[0]) 
+            return collapsed
+        def remove_blanks(seq):
+            return [x for x in seq if x != 0]
+        print(remove_blanks(collapse_adjacent(torch.topk(phn_log_softmax,1)[1])))
+
+        import sys; sys.exit()
+
+        # 2. decoder
+        # decode the first utterance
+        y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+
+        if prev:
+            self.train()
+        return y
+
+    def calculate_all_attentions(self, data):
+        '''E2E attention calculation
+
+        :param list data: list of dicts of the input (B)
+        :return: attention weights with the following shape,
+            1) multi-head case => attention weights (B, H, Lmax, Tmax),
+            2) other case => attention weights (B, Lmax, Tmax).
+         :rtype: float ndarray
+        '''
+        # utt list of frame x dim
+        xs = [d[1]['feat'] for d in data]
+
+        # remove 0-output-length utterances
+        tids = get_tids("grapheme", data)
+        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
+        if len(sorted_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(sorted_index)))
+        xs = [xs[i] for i in sorted_index]
+
+        # utt list of olen
+        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
+              for i in sorted_index]
+        ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+        hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+
+        # encoder
+        xpad = pad_list(hs)
+        hpad, hlens = self.enc(xpad, ilens)
+
+        # decoder
+        att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
+
+        return att_ws
+
+# ------------- CTC Network --------------------------------------------------------------------------------------------
+class _ChainerLikeCTC(warp_ctc._CTC):
+    @staticmethod
+    def forward(ctx, acts, labels, act_lens, label_lens):
+        is_cuda = True if acts.is_cuda else False
+        acts = acts.contiguous()
+        loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
+        grads = torch.zeros(acts.size()).type_as(acts)
+        minibatch_size = acts.size(1)
+        costs = torch.zeros(minibatch_size).cpu()
+        loss_func(acts,
+                  grads,
+                  labels,
+                  label_lens,
+                  act_lens,
+                  minibatch_size,
+                  costs)
+        # modified only here from original
+        costs = torch.FloatTensor([costs.sum()]) / acts.size(1)
+        ctx.grads = Variable(grads)
+        ctx.grads /= ctx.grads.size(1)
+
+        return costs
+
+
+def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
+    """Chainer like CTC Loss
+
+    acts: Tensor of (seqLength x batch x outputDim) containing output from network
+    labels: 1 dimensional Tensor containing all the targets of the batch in one sequence
+    act_lens: Tensor of size (batch) containing size of each output sequence from the network
+    act_lens: Tensor of (batch) containing label length of each example
+    """
+    assert len(labels.size()) == 1  # labels must be 1 dimensional
+    from torch.nn.modules.loss import _assert_no_grad
+    _assert_no_grad(labels)
+    _assert_no_grad(act_lens)
+    _assert_no_grad(label_lens)
+    return _ChainerLikeCTC.apply(acts, labels, act_lens, label_lens)
+
+
+class CTC(torch.nn.Module):
+    def __init__(self, odim, eprojs, dropout_rate):
+        super(CTC, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.loss = None
+        self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        self.loss_fn = chainer_like_ctc_loss  # CTCLoss()
+
+    def forward(self, hpad, ilens, ys):
+        '''CTC forward
+
+        :param hs:
+        :param ys:
+        :return:
+        '''
+        self.loss = None
+        ilens = Variable(torch.from_numpy(np.fromiter(ilens, dtype=np.int32)))
+        olens = Variable(torch.from_numpy(np.fromiter(
+            (x.size(0) for x in ys), dtype=np.int32)))
+
+        # zero padding for hs
+        y_hat = linear_tensor(
+            self.ctc_lo, F.dropout(hpad, p=self.dropout_rate))
+
+        # zero padding for ys
+        y_true = torch.cat(ys).cpu().int()  # batch x olen
+
+        # get length info
+        ogging.log
+
         # 2. decoder
         # decode the first utterance
         y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
@@ -523,7 +660,6 @@ class CTC(torch.nn.Module):
         :return:
         '''
         return F.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
-
 
 def mask_by_length(xs, length, fill=0):
     assert xs.size(0) == len(length)
