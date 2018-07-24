@@ -1872,9 +1872,9 @@ class Decoder(torch.nn.Module):
         :param char_list:
         :return:
         '''
-        logging.info('input lengths[0]: ' + str(h.size(0)))
+        logging.info('input lengths[0]: ' + str(h.size(1)))
         h = mask_by_length(h, hlens, 0)
-
+        
         # search params
         batch = len(hlens)
         beam = recog_args.beam_size
@@ -1909,8 +1909,8 @@ class Decoder(torch.nn.Module):
         # preprate search related variable
         y = self.sos
         yseq = [[y] for _ in range(n_bb)]
-        stop_search = [False for _ in range(batch)]
-        nbest_hyps = [[] for _ in range(batch)]
+        stop_search = [False for _ in six.moves.range(batch)]
+        nbest_hyps = [[] for _ in six.moves.range(batch)]
         dummy_hyps = [{'yseq':[self.sos, self.eos], 'score':np.array([-float('inf')])}]
         
         if lpz is not None:
@@ -1936,32 +1936,37 @@ class Decoder(torch.nn.Module):
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](z_list[l - 1], (z_prev[l], c_prev[l]))
-            local_att_scores = att_weight * F.log_softmax(self.output(z_list[-1]), dim=1)
+
+                
+            local_scores = att_weight * F.log_softmax(self.output(z_list[-1]), dim=1)
             
             # rnnlm
             if rnnlm:
                 rnnlm_state, z_rnnlm = rnnlm.predictor(rnnlm_prev, vy)
                 local_lm_scores = F.log_softmax(z_rnnlm, dim=1)
-                local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
-            else:
-                local_scores = local_att_scores
+                local_scores = local_scores + recog_args.lm_weight * local_lm_scores                
             local_scores = local_scores.view(batch, n_bo)
-            
+                
             # ctc
             if lpz is not None:
                 ctc_scores, ctc_states = ctc_prefix_score(yseq, ctc_states_prev)
                 ctc_scores = ctc_scores.view(batch, n_bo)
-                local_scores += ctc_weight * (ctc_scores - ctc_scores_prev)
-            local_scores = list(torch.split(local_scores.view(batch, n_bo), 1, dim=0))
+                local_scores = local_scores + ctc_weight * (ctc_scores - ctc_scores_prev)
 
+            local_scores = list(torch.split(local_scores.view(batch, n_bo), 1, dim=0))
+            
             # convergence
             z_list = [z_list[li].view(n_bb, -1) for li in six.moves.range(self.dlayers)]
             c_list = [c_list[li].view(n_bb, -1) for li in six.moves.range(self.dlayers)]
             local_best_scores = []
             local_best_odims = []
             local_padded_beam_ids, local_padded_best_ids = [], []
-            for samp_i in six.moves.range(batch):  # foreach sample: (beam * odim) -> (beam)
-                local_best_score, local_best_id = torch.topk(local_scores[samp_i].view(-1), beam, 0)
+            for samp_i in six.moves.range(batch):
+                if i == 0:
+                    local_score = local_scores[samp_i].view(beam, self.odim)[0,:]
+                    local_best_score, local_best_id = torch.topk(local_score, beam, 0)
+                else:
+                    local_best_score, local_best_id = torch.topk(local_scores[samp_i].view(-1), beam, 0)
                 local_best_scores.append(local_best_score)
                 local_odim_id = torch.fmod(local_best_id, self.odim).int()
                 local_beam_id = torch.div(local_best_id, self.odim).int()
@@ -1993,11 +1998,6 @@ class Decoder(torch.nn.Module):
                 ctc_states_prev = torch.index_select(ctc_states, 0, ctc_vidx).view(n_bb, 2, -1)
                 ctc_states_prev = torch.transpose(ctc_states_prev, 1, 2)
                 
-            # add eos in the final loop to avoid that there are no ended hyps
-            #if i == maxlen - 1:
-            #    logging.info('adding <eos> in the last postion in the loop')
-            #    yseq = append_ids(yseq, self.eos)
-                                    
             # add ended hypothes to a final list, and removed them from current hypothes
             penalty_i = (i + 1) * penalty
             vscore_list = list(torch.split(vscores.view(-1), 1, dim=0))
