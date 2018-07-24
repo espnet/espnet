@@ -11,6 +11,7 @@
 
 . ./path.sh
 . ./cmd.sh
+. ./conf/lang.conf
 
 # general configuration
 backend=pytorch
@@ -42,7 +43,8 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.5
+mtlalpha=0.0
+phoneme_objective_weight=0.5
 
 # minibatch related
 batchsize=50
@@ -158,7 +160,26 @@ if [ ${stage} -le 0 ]; then
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/dev            data/dt_babel_${lang_code}
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/eval_${langid} data/et_babel_${lang_code}
     done
+
+	# Append langnames for entries in phoneme_ali file. Eg convert 101_10160_A_20111017_201159_003840 to 101_10160_A_20111017_201159_003840-cantonese
+	langname_phoneme_ali="langname_phoneme_ali.txt"
+	#python3 ./append_langname_to_id.py ${phoneme_ali} > ${langname_phoneme_ali}
+
+	for x in ${train_set} ${train_dev}; do
+		if [[ $phoneme_objective_weight > 0.0 ]]; then
+			awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${langname_phoneme_ali} > data/${x}/text.phn
+				# Remove stress symbols
+			sed -i -r 's/_["%]//g' data/${x}/text.phn
+			## Remove tonal markers
+			sed -i -r 's/_T[A-Z]+//g' data/${x}/text.phn
+				./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
+				mv data/${x}/text.tmp data/${x}/text 
+				./utils/fix_data_dir.sh data/${x}
+		fi
+	done
 fi
+
+exit
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
