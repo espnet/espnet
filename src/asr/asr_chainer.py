@@ -363,7 +363,7 @@ def train(args):
         # actual batchsize is included in a list
         train_iter = chainer.iterators.MultiprocessIterator(
             TransformDataset(train, converter_kaldi),
-            1, n_processes=2, n_prefetch=4)
+            1, n_processes=4, n_prefetch=32)
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
