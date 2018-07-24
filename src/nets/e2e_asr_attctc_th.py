@@ -280,6 +280,8 @@ class E2E(torch.nn.Module):
         else:
             self.report_cer = False
             self.report_wer = False
+
+        self.logzero = -10000000000.0
         
     def init_like_chainer(self):
         """Initialize weight like chainer
@@ -419,11 +421,13 @@ class E2E(torch.nn.Module):
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(hpad).data
+            #for i in six.moves.range(lpz.size(0)):
+            #    if hlens[i].item() != lpz.size(1):
+            #        lpz[i,hlens[i].item():,:] = self.logzero
         else:
             lpz = None
-
+        
         # 2. decoder
-        # decode the first utterance
         y = self.dec.recognize_beam(hpad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
@@ -1912,17 +1916,17 @@ class Decoder(torch.nn.Module):
         stop_search = [False for _ in six.moves.range(batch)]
         nbest_hyps = [[] for _ in six.moves.range(batch)]
         dummy_hyps = [{'yseq':[self.sos, self.eos], 'score':np.array([-float('inf')])}]
-        
-        if lpz is not None:
-            ctc_prefix_score = BatchCTCPrefixScoreTH(lpz, 0, self.eos, beam, lpz.is_cuda)
-            ctc_states_prev = ctc_prefix_score.initial_state()
-            ctc_scores_prev = to_cuda(self, torch.zeros(batch, n_bo))
 
         ended_hyps = [[] for _ in range(batch)]
         exp_hlens = hlens.repeat(beam).view(beam, batch).transpose(0, 1).contiguous()
         exp_hlens = exp_hlens.view(-1).tolist()
         exp_h = h.unsqueeze(1).expand(-1, beam, -1, -1).contiguous()
         exp_h = exp_h.view(n_bb, h.size()[1], h.size()[2])
+       
+        if lpz is not None:
+            ctc_prefix_score = BatchCTCPrefixScoreTH(lpz, 0, self.eos, beam, exp_hlens, lpz.is_cuda)
+            ctc_states_prev = ctc_prefix_score.initial_state()
+            ctc_scores_prev = to_cuda(self, torch.zeros(batch, n_bo))
         
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
@@ -1937,7 +1941,6 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](z_list[l - 1], (z_prev[l], c_prev[l]))
 
-                
             local_scores = att_weight * F.log_softmax(self.output(z_list[-1]), dim=1)
             
             # rnnlm
@@ -2005,13 +2008,16 @@ class Decoder(torch.nn.Module):
             # pick ended hyps
             for y_id, y_hyp in enumerate(yseq):
                 batch_idx = int(y_id / beam)
+                #beam_idx = y_id % beam
                 if stop_search[batch_idx]:
                     continue
                 if hlens[batch_idx] < i:
                     continue
+                #if beam_idx == 0:
+                #    n_eos = 0
                 if hlens[batch_idx] - 1 == i:
                     y_hyp.append(self.eos)
-                
+
                 if len(y_hyp) > minlen and y_hyp[-1] == self.eos \
                    and ((i+2) == len(y_hyp) or hlens[batch_idx] - 1 == i):
                     _vscore = vscore_list[y_id] + penalty_i
@@ -2019,8 +2025,12 @@ class Decoder(torch.nn.Module):
                     
                     ended_hyps[batch_idx].append({'yseq':y_hyp[:], 'vscore':_vscore, 'score':_score})
                     yseq[y_id] = [self.sos, self.eos]
-                    vscore_list[y_id] = _vscore * 0.0 - 100000000000.0
-
+                    vscore_list[y_id] = _vscore * 0.0 -10000000000.0
+                    """
+                    n_eos += 1
+                    if n_eos == beam:
+                        stop_search[batch_idx] = True  # no hyps
+                    """
             vscores = torch.cat(vscore_list).view(batch, beam)
             # prune hyps
             #for samp_i in six.moves.range(batch):
@@ -2034,7 +2044,10 @@ class Decoder(torch.nn.Module):
                 break
             
             torch.cuda.empty_cache()
-            
+
+        cands = [len(ended_hyps[samp_i]) for samp_i in six.moves.range(batch)]
+        print('#ended_hyps: ' + str(cands))
+
         ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
                       for samp_i in six.moves.range(batch)]
         nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],

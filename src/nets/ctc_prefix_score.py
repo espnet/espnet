@@ -43,7 +43,7 @@ class BatchCTCPrefixScoreTH(object):
     simultaneously
     '''
 
-    def __init__(self, x, blank, eos, beam, use_cuda=False):
+    def __init__(self, x, blank, eos, beam, hlens, use_cuda=False):
         self.logzero = -10000000000.0
         self.blank = blank
         self.eos = eos
@@ -53,6 +53,8 @@ class BatchCTCPrefixScoreTH(object):
         self.beam = beam
         self.n_bb = self.batch * beam
 
+        self.hlens = hlens
+        
         self.x = x
         self.use_cuda = use_cuda
 
@@ -84,7 +86,13 @@ class BatchCTCPrefixScoreTH(object):
 
     def isnan(self, x):
         return torch.sum(x != x)   
-    
+
+    def pad_mat(self, mat, seq_idx=1):
+        for i in six.moves.range(self.n_bb):
+            if self.hlens[i] != mat.size(seq_idx):
+                mat[i, self.hlens[i]:, :, :] = self.logzero
+        return mat
+                
     def __call__(self, y, r_prev):
         '''Compute CTC prefix scores for next labels
 
@@ -117,7 +125,7 @@ class BatchCTCPrefixScoreTH(object):
 
         last = [yi[-1] for yi in y]  # (n_bb) list of char
 
-        log_phi = torch.FloatTensor(self.n_bb, self.input_length, self.odim)
+        log_phi = torch.full((self.n_bb, self.input_length, self.odim), self.logzero)
         if self.use_cuda:
             log_phi = log_phi.cuda()
 
@@ -135,6 +143,7 @@ class BatchCTCPrefixScoreTH(object):
                                    dim=0) + self.x[:, t]
             r[:, t, 1] = logsumexp(r[:, t - 1], dim=1) \
                          + self.x[:, t, self.blank].contiguous().view(-1, 1).repeat(1, self.odim)
+
             log_psi = logsumexp(torch.stack([log_psi, log_phi[:, t - 1] + self.x[:, t]]), dim=0)
 
         log_psi[:, self.eos] = r_sum[:, -1]
