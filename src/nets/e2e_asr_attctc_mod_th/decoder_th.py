@@ -182,8 +182,12 @@ class Decoder(torch.nn.Module):
         for i in six.moves.range(olength):
             # Update RNNLM state
             if self.rnnlm is not None:
+                # rnnlm_state, rnnlm_logits = self.rnnlm.predictor(
+                #     rnnlm_state, pad_ys_in[:, i:i + 1])
                 rnnlm_state, rnnlm_logits = self.rnnlm.predictor(
-                    rnnlm_state, pad_ys_in[:, i:i + 1])
+                    rnnlm_state, pad_ys_in[:, i])
+                # pad_ys_in[:, i:i + 1]
+                # pad_ys_in[:, i]
                 # TODO: slice??
 
             att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
@@ -202,10 +206,13 @@ class Decoder(torch.nn.Module):
                 gated_rnnlm_state = gate * rnnlm_state['h2']
                 z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
             elif self.rnnlm_fusion == 'cold_fusion_probinj':
-                rnnlm_logits = linear_tensor(
-                    self.lin_rnnlm_probinj, rnnlm_logits)
-                gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate,
-                                               torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
+                # rnnlm_logits = linear_tensor(
+                #     self.lin_rnnlm_probinj, rnnlm_logits)
+                rnnlm_logits = self.lin_rnnlm_probinj(rnnlm_logits)
+                # gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate,
+                #                                torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
+                gate = F.sigmoid(self.lin_rnnlm_gate(
+                    torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
                 gated_rnnlm_state = gate * rnnlm_logits
                 z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
             else:
