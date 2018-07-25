@@ -84,6 +84,10 @@ recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assa
  dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_zulu et_babel_zulu dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian\
  dt_csj_japanese et_csj_japanese_1 et_csj_japanese_2 et_csj_japanese_3\
  dt_libri_english_clean dt_libri_english_other et_libri_english_clean et_libri_english_other"
+# whole set minus librispeech and csj.
+recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assamese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
+ dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao dt_babel_tagalog et_babel_tagalog\
+ dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_zulu et_babel_zulu dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian"
 
 . utils/parse_options.sh || exit 1;
 
@@ -118,8 +122,8 @@ if [ ${stage} -le 0 ]; then
 
     # CSJ Japanese
     if [ ! -d "$csjdir/asr1/data" ]; then
-	echo "run $csjdir/asr1/run.sh first"
-	exit 1
+    echo "run $csjdir/asr1/run.sh first"
+    exit 1
     fi
     lang_code=csj_japanese
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_nodup data/tr_${lang_code}
@@ -139,8 +143,8 @@ if [ ${stage} -le 0 ]; then
     # librispeech
     lang_code=libri_english
     if [ ! -d "$libridir/asr1/data" ]; then
-	echo "run $libridir/asr1/run.sh first"
-	exit 1
+        echo "run $libridir/asr1/run.sh first"
+        exit 1
     fi
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/train_960  data/tr_${lang_code}
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/dev_clean  data/dt_${lang_code}_clean
@@ -150,36 +154,39 @@ if [ ${stage} -le 0 ]; then
 
     # Babel
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
-	langid=`echo $x | cut -f 1 -d"-"`
-	lang_code=`echo $x | cut -f 2 -d"-"`
-	if [ ! -d "$babeldir/asr1_${lang_code}/data" ]; then
-	    echo "run $babeldir/asr1/local/run_all.sh first"
-	    exit 1
-	fi
+    langid=`echo $x | cut -f 1 -d"-"`
+    lang_code=`echo $x | cut -f 2 -d"-"`
+    if [ ! -d "$babeldir/asr1_${lang_code}/data" ]; then
+        echo "run $babeldir/asr1/local/run_all.sh first"
+        exit 1
+    fi
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/train          data/tr_babel_${lang_code}
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/dev            data/dt_babel_${lang_code}
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/eval_${langid} data/et_babel_${lang_code}
     done
 
-	# Append langnames for entries in phoneme_ali file. Eg convert 101_10160_A_20111017_201159_003840 to 101_10160_A_20111017_201159_003840-cantonese
-	langname_phoneme_ali="langname_phoneme_ali.txt"
-	#python3 ./append_langname_to_id.py ${phoneme_ali} > ${langname_phoneme_ali}
+    # Append langnames for entries in phoneme_ali file. Eg convert 101_10160_A_20111017_201159_003840 to 101_10160_A_20111017_201159_003840-cantonese
+    langname_phoneme_ali="langname_phoneme_ali.txt"
+    python3 ./append_langname_to_id.py ${phoneme_ali} > ${langname_phoneme_ali}
 
-	for x in ${train_set} ${train_dev}; do
-		if [[ $phoneme_objective_weight > 0.0 ]]; then
-			awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${langname_phoneme_ali} > data/${x}/text.phn
-				# Remove stress symbols
-			sed -i -r 's/_["%]//g' data/${x}/text.phn
-			## Remove tonal markers
-			sed -i -r 's/_T[A-Z]+//g' data/${x}/text.phn
-				./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
-				mv data/${x}/text.tmp data/${x}/text 
-				./utils/fix_data_dir.sh data/${x}
-		fi
-	done
+    # Filter out utterances based on phoneme transcriptions and refine phoneme
+    # transcriptions
+    for x in ${train_set} ${train_dev} ${recog_set}; do
+        echo "Creating txt.phn utterances for ${x}"
+        awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${langname_phoneme_ali} > data/${x}/text.phn
+        # Remove stress symbols
+        sed -i -r 's/_["%]//g' data/${x}/text.phn
+        ## Remove tonal markers
+        sed -i -r 's/_T[A-Z]+//g' data/${x}/text.phn
+        ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
+        mv data/${x}/text.tmp data/${x}/text 
+        ./utils/fix_data_dir.sh data/${x}
+    done
 fi
 
-exit
+for x in ${recog_set}; do
+    echo $x
+done
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
@@ -192,7 +199,7 @@ if [ ${stage} -le 1 ]; then
     # remove utt having more than 400 characters or no more than 0 characters
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
-    
+
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
@@ -241,12 +248,61 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
-    done
+    #for rtask in ${recog_set}; do
+    #    feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+    #    data2json.sh --feat ${feat_recog_dir}/feats.scp \
+    #        --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+    #done
+
+    # Phoneme Objective
+    echo "<unk> 1" > ${dict}.phn
+    cut -d' ' -f2- data/${train_set}/text.phn | tr " " "\n" | sort -u |\
+    grep -v '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}.phn
+
+    mv ${feat_tr_dir}/data.json ${feat_tr_dir}/data.gph.json
+    mv ${feat_dt_dir}/data.json ${feat_dt_dir}/data.gph.json
+    #for rtask in ${recog_set}; do
+    #    feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+    #    mv ${feat_recog_dir}/data.json ${feat_recog_dir}/data.gph.json
+    #done
+
+    ./utils/filter_scp.pl data/${train_set}/text \
+        data/${train_set}/text.phn > data/${train_set}/text.phn.filt
+    mv data/${train_set}/text.phn.filt data/${train_set}/text.phn
+
+    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+                 --nlsyms ${nlsyms} \
+                 --phn-text data/${train_set}/text.phn \
+                 data/${train_set} ${dict}.phn \
+                 > ${feat_tr_dir}/data.phn.json
+
+    combine_multimodal_json.py ${feat_tr_dir}/data.json \
+                               ${feat_tr_dir}/data.{phn,gph}.json
+
+    ./utils/filter_scp.pl data/${train_dev}/text \
+        data/${train_dev}/text.phn > data/${train_dev}/text.phn.filt
+    mv data/${train_dev}/text.phn.filt data/${train_dev}/text.phn
+
+    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+                 --nlsyms ${nlsyms} \
+                 --phn-text data/${train_dev}/text.phn \
+                 data/${train_dev} ${dict}.phn \
+                 > ${feat_dt_dir}/data.phn.json
+
+    combine_multimodal_json.py ${feat_dt_dir}/data.json \
+                               ${feat_dt_dir}/data.{phn,gph}.json
+
+    ## TODO This should support creation of eval data.json files that include phonemes. 
+        #for rtask in ${recog_set}; do
+            #feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        #./utils/filter_scp.pl data/${rtask}/text \
+        #    data/${rtask}/text.phn > data/${train_set}/text.phn.filt
+               #mv data/${train_set}/text.phn.filt data/${train_set}/text.phn
+        #done
+
 fi
+
+exit
 
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
