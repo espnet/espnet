@@ -1829,7 +1829,7 @@ class Decoder(torch.nn.Module):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        if rnnlm:
+        if rnnlm is not None:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list,
                    'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
         else:
@@ -1852,10 +1852,8 @@ class Decoder(torch.nn.Module):
 
             hyps_best_kept = []
             for hyp in hyps:
-                vy.unsqueeze(1)
                 vy[0] = hyp['yseq'][i]
                 ey = self.embed(vy)           # utt list (1) x zdim
-                ey.unsqueeze(0)
                 att_c, att_w = self.att(h.unsqueeze(
                     0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
@@ -1868,12 +1866,9 @@ class Decoder(torch.nn.Module):
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(
                     self.output(z_list[-1]), dim=1).data
-                if rnnlm:
+                if rnnlm is not None:
                     rnnlm_state, local_lm_scores = rnnlm.predict(
                         hyp['rnnlm_prev'], vy)
-                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
-                else:
-                    local_scores = local_att_scores
 
                 if lpz is not None:
                     local_best_scores, local_best_ids = torch.topk(
@@ -1884,13 +1879,18 @@ class Decoder(torch.nn.Module):
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
                         + ctc_weight * \
                         torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
-                    if rnnlm:
+                    if rnnlm is not None:
                         local_scores += recog_args.lm_weight * \
                             local_lm_scores[:, local_best_ids[0]]
                     local_best_scores, joint_best_ids = torch.topk(
                         local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
+                    if rnnlm is not None:
+                        local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                    else:
+                        local_scores = local_att_scores
+
                     local_best_scores, local_best_ids = torch.topk(
                         local_scores, beam, dim=1)
 
@@ -1905,7 +1905,7 @@ class Decoder(torch.nn.Module):
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = int(
                         local_best_ids[0, j])
-                    if rnnlm:
+                    if rnnlm is not None:
                         new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
                         new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
