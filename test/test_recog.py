@@ -123,12 +123,12 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
 
         if "_th" in m_str:
             rnnlm = lm_pytorch.ClassifierWithState(
-                lm_pytorch.RNNLM(len(args.char_list), 10))
+                lm_pytorch.RNNLM(len(args.char_list), 10, 2))
             init_torch_weight_const(model, const)
             init_torch_weight_const(rnnlm, const)
         else:
             rnnlm = lm_chainer.ClassifierWithState(
-                lm_chainer.RNNLM(len(args.char_list), 10))
+                lm_chainer.RNNLM(len(args.char_list), 10, 2))
             init_chainer_weight_const(model, const)
             init_chainer_weight_const(rnnlm, const)
 
@@ -138,7 +138,8 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         ]
 
         in_data = data[0][1]["feat"]
-        nbest_hyps = model.predictor.recognize(in_data, args, args.char_list, rnnlm)
+        nbest_hyps = model.predictor.recognize(
+            in_data, args, args.char_list, rnnlm)
         y_hat = nbest_hyps[0]['yseq'][1:]
         seq_hat = [args.char_list[int(idx)] for idx in y_hat]
         seq_hat_text = "".join(seq_hat).replace('<space>', ' ')

@@ -118,7 +118,7 @@ class ClassifierWithState(link.Chain):
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
 
-    def __init__(self, n_vocab, n_units):
+    def __init__(self, n_vocab, n_units, n_layers=2):
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = L.EmbedID(n_vocab, n_units)
@@ -181,12 +181,15 @@ def train(args):
     logging.info('#vocab = ' + str(args.n_vocab))
     logging.info('#words in the training data = ' + str(len(train)))
     logging.info('#words in the validation data = ' + str(len(valid)))
-    logging.info('#iterations per epoch = ' + str(len(train) // (args.batchsize * args.bproplen)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#iterations per epoch = ' +
+                 str(len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#total iterations = ' + str(args.epoch *
+                                              len(train) // (args.batchsize * args.bproplen)))
 
     # Create the dataset iterators
     train_iter = ParallelSequentialIterator(train, args.batchsize)
-    valid_iter = ParallelSequentialIterator(valid, args.batchsize, repeat=False)
+    valid_iter = ParallelSequentialIterator(
+        valid, args.batchsize, repeat=False)
 
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.unit)
@@ -241,7 +244,8 @@ def train(args):
             # (it is chainer.dataset.concat_examples by default)
             x, t = convert.concat_examples(batch, gpu_id)
             # Compute the loss at this time step and accumulate it
-            state, loss_batch = optimizer.target(state, chainer.Variable(x), chainer.Variable(t))
+            state, loss_batch = optimizer.target(
+                state, chainer.Variable(x), chainer.Variable(t))
             loss += loss_batch
             count += 1
 
@@ -253,7 +257,8 @@ def train(args):
 
         if iteration % 100 == 0:
             logging.info('iteration: ' + str(iteration))
-            logging.info('training perplexity: ' + str(np.exp(float(sum_perp) / count)))
+            logging.info('training perplexity: ' +
+                         str(np.exp(float(sum_perp) / count)))
             sum_perp = 0
             count = 0
 
@@ -264,9 +269,11 @@ def train(args):
 
             # Save the model and the optimizer
             logging.info('save the model')
-            serializers.save_npz(args.outdir + '/rnnlm.model.' + str(epoch_now), model)
+            serializers.save_npz(
+                args.outdir + '/rnnlm.model.' + str(epoch_now), model)
             logging.info('save the optimizer')
-            serializers.save_npz(args.outdir + '/rnnlm.state.' + str(epoch_now), optimizer)
+            serializers.save_npz(
+                args.outdir + '/rnnlm.state.' + str(epoch_now), optimizer)
 
             if valid_perp < best_valid:
                 dest = args.outdir + '/rnnlm.model.best'

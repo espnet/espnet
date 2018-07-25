@@ -30,9 +30,12 @@ def transfer_lm(ch_rnnlm, th_rnnlm):
 def test_lm():
     n_vocab = 3
     n_units = 2
+    n_layers = 2
     batchsize = 5
-    rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_units))
-    rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_units))
+    rnnlm_ch = lm_chainer.ClassifierWithState(
+        lm_chainer.RNNLM(n_vocab, n_units, n_layers))
+    rnnlm_th = lm_pytorch.ClassifierWithState(
+        lm_pytorch.RNNLM(n_vocab, n_units, n_layers))
     transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
     import numpy
     # TODO(karita) implement weight transfer
@@ -52,7 +55,8 @@ def test_lm():
             torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))),
             volatile=True).long()
     else:
-        x = torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))).long()
+        x = torch.from_numpy(numpy.random.randint(
+            n_vocab, size=(batchsize))).long()
         torch.set_grad_enabled(False)
     with chainer.no_backprop_mode(), chainer.using_config('train', False):
         rnnlm_th.predictor.eval()
@@ -62,7 +66,8 @@ def test_lm():
             print(k)
             print(state_th[k].data.numpy())
             print(state_ch[k].data)
-            numpy.testing.assert_allclose(state_th[k].data.numpy(), state_ch[k].data, 1e-5)
+            numpy.testing.assert_allclose(
+                state_th[k].data.numpy(), state_ch[k].data, 1e-5)
         print("y")
         print(y_th.data.numpy())
         print(y_ch.data)
