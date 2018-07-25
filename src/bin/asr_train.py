@@ -162,8 +162,7 @@ def main():
 
     # check gpu argument
     if args.gpu is not None:
-        logging.warn(
-            "--gpu option will be deprecated, please use --ngpu option.")
+        logging.warn("--gpu option will be deprecated, please use --ngpu option.")
         if args.gpu == -1:
             args.ngpu = 0
         else:
@@ -187,15 +186,13 @@ def main():
         # python 2 case
         if platform.python_version_tuple()[0] == '2':
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
-                cvd = subprocess.check_output(
-                    ["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
+                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
-                cvd = subprocess.check_output(
-                    ["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
+                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
 

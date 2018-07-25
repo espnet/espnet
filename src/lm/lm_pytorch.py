@@ -183,15 +183,12 @@ def train(args):
     logging.info('#vocab = ' + str(args.n_vocab))
     logging.info('#words in the training data = ' + str(len(train)))
     logging.info('#words in the validation data = ' + str(len(valid)))
-    logging.info('#iterations per epoch = ' +
-                 str(len(train) // (args.batchsize * args.bproplen)))
-    logging.info('#total iterations = ' + str(args.epoch *
-                                              len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#iterations per epoch = ' + str(len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#total iterations = ' + str(args.epoch * len(train) // (args.batchsize * args.bproplen)))
 
     # Create the dataset iterators
     train_iter = ParallelSequentialIterator(train, args.batchsize)
-    valid_iter = ParallelSequentialIterator(
-        valid, args.batchsize, repeat=False)
+    valid_iter = ParallelSequentialIterator(valid, args.batchsize, repeat=False)
 
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.unit, args.layer)
@@ -219,10 +216,8 @@ def train(args):
         for batch in copy.copy(iter):
             batch = np.array(batch)
             if torch_is_old:
-                x = Variable(torch.from_numpy(
-                    batch[:, 0]).long(), volatile=True)
-                t = Variable(torch.from_numpy(
-                    batch[:, 1]).long(), volatile=True)
+                x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
+                t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
             else:
                 x = torch.from_numpy(batch[:, 0]).long()
                 t = torch.from_numpy(batch[:, 1]).long()
@@ -284,8 +279,7 @@ def train(args):
 
         if iteration % 100 == 0:
             logging.info('iteration: ' + str(iteration))
-            logging.info('training perplexity: ' +
-                         str(np.exp(float(sum_perp) / count)))
+            logging.info('training perplexity: ' + str(np.exp(float(sum_perp) / count)))
             sum_perp = 0
             count = 0
 
@@ -296,11 +290,9 @@ def train(args):
 
             # Save the model and the optimizer
             logging.info('save the model')
-            torch.save(model.state_dict(), args.outdir +
-                       '/rnnlm.model.' + str(epoch_now))
+            torch.save(model.state_dict(), args.outdir + '/rnnlm.model.' + str(epoch_now))
             logging.info('save the optimizer')
-            torch.save(optimizer.state_dict(), args.outdir +
-                       '/rnnlm.state.' + str(epoch_now))
+            torch.save(optimizer.state_dict(), args.outdir + '/rnnlm.state.' + str(epoch_now))
 
             if valid_perp < best_valid:
                 dest = args.outdir + '/rnnlm.model.best'

@@ -61,8 +61,7 @@ class NoAtt(torch.nn.Module):
                 l).zero_() + (1.0 / l)) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
-            self.c = torch.sum(
-                self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
+            self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
 
         return self.c, att_prev
 
@@ -575,8 +574,7 @@ class AttLocRec(torch.nn.Module):
         # apply non-linear
         att_conv = F.relu(att_conv)
         # B x C x 1 x T -> B x C x 1 x 1 -> B x C
-        att_conv = F.max_pool2d(
-            att_conv, (1, att_conv.size(3))).view(batch, -1)
+        att_conv = F.max_pool2d(att_conv, (1, att_conv.size(3))).view(batch, -1)
 
         att_h, att_c = self.att_lstm(att_conv, att_states)
 
@@ -784,8 +782,7 @@ class AttMultiHeadDot(torch.nn.Module):
             # weighted sum over flames
             # utt x hdim
             # NOTE use bmm instead of sum(*)
-            c += [torch.sum(self.pre_compute_v[h] *
-                            w[h].view(batch, self.h_length, 1), dim=1)]
+            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
 
         # concat all of c
         c = self.mlp_o(torch.cat(c, dim=1))
@@ -885,8 +882,7 @@ class AttMultiHeadAdd(torch.nn.Module):
             # weighted sum over flames
             # utt x hdim
             # NOTE use bmm instead of sum(*)
-            c += [torch.sum(self.pre_compute_v[h] *
-                            w[h].view(batch, self.h_length, 1), dim=1)]
+            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
 
         # concat all of c
         c = self.mlp_o(torch.cat(c, dim=1))
@@ -926,8 +922,7 @@ class AttMultiHeadLoc(torch.nn.Module):
             self.gvec += [torch.nn.Linear(att_dim_k, 1)]
             self.loc_conv += [torch.nn.Conv2d(
                 1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)]
-            self.mlp_att += [torch.nn.Linear(aconv_chans,
-                                             att_dim_k, bias=False)]
+            self.mlp_att += [torch.nn.Linear(aconv_chans, att_dim_k, bias=False)]
         self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
         self.dunits = dunits
         self.eprojs = eprojs
@@ -993,8 +988,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         c = []
         w = []
         for h in six.moves.range(self.aheads):
-            att_conv = self.loc_conv[h](
-                att_prev[h].view(batch, 1, 1, self.h_length))
+            att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
             att_conv = att_conv.squeeze(2).transpose(1, 2)
             att_conv = linear_tensor(self.mlp_att[h], att_conv)
 
@@ -1008,8 +1002,7 @@ class AttMultiHeadLoc(torch.nn.Module):
             # weighted sum over flames
             # utt x hdim
             # NOTE use bmm instead of sum(*)
-            c += [torch.sum(self.pre_compute_v[h] *
-                            w[h].view(batch, self.h_length, 1), dim=1)]
+            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
 
         # concat all of c
         c = self.mlp_o(torch.cat(c, dim=1))
@@ -1053,8 +1046,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
             afilts = aconv_filts * (h + 1) // aheads
             self.loc_conv += [torch.nn.Conv2d(
                 1, aconv_chans, (1, 2 * afilts + 1), padding=(0, afilts), bias=False)]
-            self.mlp_att += [torch.nn.Linear(aconv_chans,
-                                             att_dim_k, bias=False)]
+            self.mlp_att += [torch.nn.Linear(aconv_chans, att_dim_k, bias=False)]
         self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
         self.dunits = dunits
         self.eprojs = eprojs
@@ -1120,8 +1112,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         c = []
         w = []
         for h in six.moves.range(self.aheads):
-            att_conv = self.loc_conv[h](
-                att_prev[h].view(batch, 1, 1, self.h_length))
+            att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
             att_conv = att_conv.squeeze(2).transpose(1, 2)
             att_conv = linear_tensor(self.mlp_att[h], att_conv)
 
@@ -1135,8 +1126,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
             # weighted sum over flames
             # utt x hdim
             # NOTE use bmm instead of sum(*)
-            c += [torch.sum(self.pre_compute_v[h] *
-                            w[h].view(batch, self.h_length, 1), dim=1)]
+            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
 
         # concat all of c
         c = self.mlp_o(torch.cat(c, dim=1))

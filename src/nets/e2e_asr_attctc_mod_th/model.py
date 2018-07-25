@@ -115,20 +115,16 @@ class Loss(torch.nn.Module):
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
-            loss_att_data = loss_att.data[0] if torch_is_old else float(
-                loss_att)
+            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
             loss_ctc_data = None
         elif alpha == 1:
             self.loss = loss_ctc
             loss_att_data = None
-            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(
-                loss_ctc)
+            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = loss_att.data[0] if torch_is_old else float(
-                loss_att)
-            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(
-                loss_ctc)
+            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
+            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
 
         loss_data = self.loss.data[0] if torch_is_old else float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
@@ -198,8 +194,7 @@ class E2E(torch.nn.Module):
         # label smoothing info
         if args.lsm_type and args.lsm_weight > 0:
             logging.info("Use label smoothing with " + args.lsm_type)
-            labeldist = label_smoothing_dist(
-                odim, args.lsm_type, transcript=args.train_json)
+            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         else:
             labeldist = None
 
@@ -209,7 +204,7 @@ class E2E(torch.nn.Module):
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
 
-        # for RNNLM initialization
+        # for decdoer initialization with pre-trained RNNLM
         if args.rnnlm_init and rnnlm is not None:
             dunits = rnnlm.predictor.n_units
         else:
@@ -290,19 +285,15 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-        # Initialize the decoder with pre-trained RNNLM
+        # Initialize decoder with pre-trained RNNLM
         if self.dec.rnnlm_init:
             logging.info('Initialize the decoder with pre-trained RNNLM')
             for i in range(len(self.dec.decoder)):
                 assert isinstance(self.dec.decoder[i], torch.nn.LSTMCell)
-                self.dec.decoder[i].weight_ih.data = getattr(
-                    self.dec.rnnlm.predictor, 'l' + str(i + 1)).weight_ih.data
-                self.dec.decoder[i].weight_hh.data = getattr(
-                    self.dec.rnnlm.predictor, 'l' + str(i + 1)).weight_hh.data
-                self.dec.decoder[i].bias_ih.data = getattr(
-                    self.dec.rnnlm.predictor, 'l' + str(i + 1)).bias_ih.data
-                self.dec.decoder[i].bias_hh.data = getattr(
-                    self.dec.rnnlm.predictor, 'l' + str(i + 1)).bias_hh.data
+                self.dec.decoder[i].weight_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i + 1)).weight_ih.data
+                self.dec.decoder[i].weight_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i + 1)).weight_hh.data
+                self.dec.decoder[i].bias_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i + 1)).bias_ih.data
+                self.dec.decoder[i].bias_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i + 1)).bias_hh.data
             assert isinstance(self.dec.output, torch.nn.Linear)
             self.dec.output.weight.data = self.dec.rnnlm.predictor.lo.weight.data
         # TODO(hirofumi): these are too hacky
@@ -328,8 +319,7 @@ class E2E(torch.nn.Module):
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
         if torch_is_old:
-            ys = [to_cuda(self, Variable(torch.from_numpy(
-                y), volatile=not self.training)) for y in ys]
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=not self.training)) for y in ys]
         else:
             ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
@@ -337,8 +327,7 @@ class E2E(torch.nn.Module):
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
         if torch_is_old:
-            hs = [to_cuda(self, Variable(torch.from_numpy(
-                xx), volatile=not self.training)) for xx in xs]
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=not self.training)) for xx in xs]
         else:
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
@@ -427,8 +416,7 @@ class E2E(torch.nn.Module):
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
         if torch_is_old:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True))
-                  for y in ys]
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
         else:
             ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
@@ -436,8 +424,7 @@ class E2E(torch.nn.Module):
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
         if torch_is_old:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True))
-                  for xx in xs]
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
         else:
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
@@ -520,16 +507,13 @@ def calculate_all_attentions(self, hpad, hlen, ys):
     # convert to numpy array with the shape (B, Lmax, Tmax)
     if isinstance(self.att, AttLoc2D):
         # att_ws => list of previous concate attentions
-        att_ws = torch.stack([aw[:, -1]
-                              for aw in att_ws], dim=1).data.cpu().numpy()
+        att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).data.cpu().numpy()
     elif isinstance(self.att, (AttCov, AttCovLoc)):
         # att_ws => list of list of previous attentions
-        att_ws = torch.stack([aw[-1]
-                              for aw in att_ws], dim=1).data.cpu().numpy()
+        att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).data.cpu().numpy()
     elif isinstance(self.att, AttLocRec):
         # att_ws => list of tuple of attention and hidden states
-        att_ws = torch.stack([aw[0] for aw in att_ws],
-                             dim=1).data.cpu().numpy()
+        att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).data.cpu().numpy()
     elif isinstance(self.att, (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
         # att_ws => list of list of each head attetion
         n_heads = len(att_ws[0])
@@ -537,8 +521,7 @@ def calculate_all_attentions(self, hpad, hlen, ys):
         for h in six.moves.range(n_heads):
             att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1)
             att_ws_sorted_by_head += [att_ws_head]
-        att_ws = torch.stack(att_ws_sorted_by_head,
-                             dim=1).data.cpu().numpy()
+        att_ws = torch.stack(att_ws_sorted_by_head, dim=1).data.cpu().numpy()
     else:
         # att_ws => list of attetions
         att_ws = torch.stack(att_ws, dim=1).data.cpu().numpy()

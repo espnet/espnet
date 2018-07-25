@@ -89,10 +89,8 @@ class CTC(torch.nn.Module):
         y_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        logging.info(self.__class__.__name__ +
-                     ' input lengths:  ' + ''.join(str(ilens).split('\n')))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + ''.join(str(olens).split('\n')))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + ''.join(str(ilens).split('\n')))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + ''.join(str(olens).split('\n')))
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size

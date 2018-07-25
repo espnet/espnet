@@ -171,8 +171,7 @@ class DataParallel(torch.nn.DataParallel):
     def forward(self, *inputs, **kwargs):
         if not self.device_ids:
             return self.module(*inputs, **kwargs)
-        inputs, kwargs = self.scatter(
-            inputs, kwargs, self.device_ids, self.dim)
+        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids, self.dim)
         if len(self.device_ids) == 1:
             return self.module(*inputs[0], **kwargs[0])
         replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
@@ -236,8 +235,7 @@ def train(args):
         def cpu_loader(storage, location):
             return storage
 
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(odim, args.lm_unit, args.lm_layer))
+        rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(odim, args.lm_unit, args.lm_layer))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
         rnnlm.eval()
         # TODO(hirofumi): add option of joint training with RNNLM
@@ -281,8 +279,7 @@ def train(args):
     parameters = [p for p in model.parameters() if p.requires_grad]
     # NOTE: exclude fixed parameters
     if args.opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(
-            parameters, rho=0.95, eps=args.eps)
+        optimizer = torch.optim.Adadelta(parameters, rho=0.95, eps=args.eps)
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(parameters)
 
@@ -317,8 +314,7 @@ def train(args):
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
         if ngpu > 1:
-            model.module.load_state_dict(
-                torch.load(args.outdir + '/model.acc.best'))
+            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         else:
             model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
         model = trainer.updater.model
@@ -332,8 +328,7 @@ def train(args):
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         data = converter_kaldi([data], device=gpu_id)
-        trainer.extend(PlotAttentionReport(
-            model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
+        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -426,8 +421,7 @@ def recog(args):
     # read rnnlm for RNNLM integration or shallow fusion
     if args.rnnlm_fusion or args.rnnlm:
         assert args.rnnlm is not None
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(len(train_args.char_list), args.lm_unit, args.lm_layer))
+        rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(train_args.char_list), args.lm_unit, args.lm_layer))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
         rnnlm.eval()
     else:
@@ -447,21 +441,17 @@ def recog(args):
             new_state_dict[k] = v
         return new_state_dict
 
-    model.load_state_dict(remove_dataparallel(
-        torch.load(args.model, map_location=cpu_loader)))
+    model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
 
     if args.word_rnnlm:
         if not args.word_dict:
-            logging.error(
-                'word dictionary file is not specified for the word RNNLM.')
+            logging.error('word dictionary file is not specified for the word RNNLM.')
             sys.exit(1)
 
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(len(word_dict), args.lm_unit, args.lm_layer))
-        word_rnnlm.load_state_dict(torch.load(
-            args.word_rnnlm, map_location=cpu_loader))
+        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), args.lm_unit, args.lm_layer))
+        word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
         word_rnnlm.eval()
 
         if rnnlm is not None:
@@ -483,8 +473,7 @@ def recog(args):
     new_json = {}
     for name in recog_json.keys():
         feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
-        nbest_hyps = e2e.recognize(
-            feat, args, train_args.char_list, rnnlm=rnnlm)
+        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
         y_hat = nbest_hyps[0]['yseq'][1:]
         y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
@@ -522,16 +511,11 @@ def recog(args):
                 y_hat = hyp['yseq'][1:]
                 seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
                 seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-                new_json[name]['rec_tokenid' + '[' +
-                               '{:05d}'.format(i) + ']'] = " ".join([str(idx) for idx in y_hat])
-                new_json[name]['rec_token' +
-                               '[' + '{:05d}'.format(i) + ']'] = " ".join(seq_hat)
-                new_json[name]['rec_text' +
-                               '[' + '{:05d}'.format(i) + ']'] = seq_hat_text
-                new_json[name]['score' +
-                               '[' + '{:05d}'.format(i) + ']'] = hyp['score']
+                new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = " ".join([str(idx) for idx in y_hat])
+                new_json[name]['rec_token' + '[' + '{:05d}'.format(i) + ']'] = " ".join(seq_hat)
+                new_json[name]['rec_text' + '[' + '{:05d}'.format(i) + ']'] = seq_hat_text
+                new_json[name]['score' + '[' + '{:05d}'.format(i) + ']'] = hyp['score']
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_json}, indent=4,
-                           sort_keys=True).encode('utf_8'))
+        f.write(json.dumps({'utts': new_json}, indent=4, sort_keys=True).encode('utf_8'))
