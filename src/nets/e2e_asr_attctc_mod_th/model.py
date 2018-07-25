@@ -169,7 +169,7 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, rnnlm):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -196,7 +196,7 @@ class E2E(torch.nn.Module):
         self.subsample = subsample
 
         # label smoothing info
-        if args.lsm_type:
+        if args.lsm_type and args.lsm_weight > 0:
             logging.info("Use label smoothing with " + args.lsm_type)
             labeldist = label_smoothing_dist(
                 odim, args.lsm_type, transcript=args.train_json)
@@ -208,39 +208,46 @@ class E2E(torch.nn.Module):
                            self.subsample, args.dropout_rate)
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+
+        # for RNNLM initialization
+        if args.rnnlm_init and rnnlm is not None:
+            dunits = rnnlm.predictor.n_units
+        else:
+            dunits = args.dunits
+
         # attention
         if args.atype == 'noatt':
             self.att = NoAtt()
         elif args.atype == 'dot':
-            self.att = AttDot(args.eprojs, args.dunits, args.adim)
+            self.att = AttDot(args.eprojs, dunits, args.adim)
         elif args.atype == 'add':
-            self.att = AttAdd(args.eprojs, args.dunits, args.adim)
+            self.att = AttAdd(args.eprojs, dunits, args.adim)
         elif args.atype == 'location':
-            self.att = AttLoc(args.eprojs, args.dunits,
+            self.att = AttLoc(args.eprojs, dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'location2d':
-            self.att = AttLoc2D(args.eprojs, args.dunits,
+            self.att = AttLoc2D(args.eprojs, dunits,
                                 args.adim, args.awin, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'location_recurrent':
-            self.att = AttLocRec(args.eprojs, args.dunits,
+            self.att = AttLocRec(args.eprojs, dunits,
                                  args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'coverage':
-            self.att = AttCov(args.eprojs, args.dunits, args.adim)
+            self.att = AttCov(args.eprojs, dunits, args.adim)
         elif args.atype == 'coverage_location':
-            self.att = AttCovLoc(args.eprojs, args.dunits, args.adim,
+            self.att = AttCovLoc(args.eprojs, dunits, args.adim,
                                  args.aconv_chans, args.aconv_filts)
         elif args.atype == 'multi_head_dot':
-            self.att = AttMultiHeadDot(args.eprojs, args.dunits,
+            self.att = AttMultiHeadDot(args.eprojs, dunits,
                                        args.aheads, args.adim, args.adim)
         elif args.atype == 'multi_head_add':
-            self.att = AttMultiHeadAdd(args.eprojs, args.dunits,
+            self.att = AttMultiHeadAdd(args.eprojs, dunits,
                                        args.aheads, args.adim, args.adim)
         elif args.atype == 'multi_head_loc':
-            self.att = AttMultiHeadLoc(args.eprojs, args.dunits,
+            self.att = AttMultiHeadLoc(args.eprojs, dunits,
                                        args.aheads, args.adim, args.adim,
                                        args.aconv_chans, args.aconv_filts)
         elif args.atype == 'multi_head_multi_res_loc':
-            self.att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
+            self.att = AttMultiHeadMultiResLoc(args.eprojs, dunits,
                                                args.aheads, args.adim, args.adim,
                                                args.aconv_chans, args.aconv_filts)
         else:
@@ -250,7 +257,9 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight)
+                           labeldist, args.lsm_weight, args.gen_feat,
+                           rnnlm, args.rnnlm_fusion, args.rnnlm_init)
+        # TODO(hirofumi): add option of joint training with RNNLM
 
         # weight initialization
         self.init_like_chainer()
@@ -280,6 +289,23 @@ class E2E(torch.nn.Module):
         # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
+
+        # Initialize the decoder with pre-trained RNNLM
+        if self.dec.rnnlm_init:
+            logging.info('Initialize the decoder with pre-trained RNNLM')
+            for i in range(len(self.dec.decoder)):
+                assert isinstance(self.dec.decoder[i], torch.nn.LSTMCell)
+                self.dec.decoder[i].weight_ih.data = getattr(
+                    self.dec.rnnlm.predictor, 'l' + str(i + 1)).weight_ih.data
+                self.dec.decoder[i].weight_hh.data = getattr(
+                    self.dec.rnnlm.predictor, 'l' + str(i + 1)).weight_hh.data
+                self.dec.decoder[i].bias_ih.data = getattr(
+                    self.dec.rnnlm.predictor, 'l' + str(i + 1)).bias_ih.data
+                self.dec.decoder[i].bias_hh.data = getattr(
+                    self.dec.rnnlm.predictor, 'l' + str(i + 1)).bias_hh.data
+            assert isinstance(self.dec.output, torch.nn.Linear)
+            self.dec.output.weight.data = self.dec.rnnlm.predictor.lo.weight.data
+        # TODO(hirofumi): these are too hacky
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):

@@ -21,9 +21,9 @@ import torch.nn.functional as F
 from chainer import reporter
 from torch.autograd import Variable
 
-from e2e_asr_attctc_th import th_accuracy
-from e2e_asr_attctc_th import to_cuda
-from e2e_asr_attctc_th import torch_is_old
+from e2e_asr_attctc_mod_th.model import th_accuracy
+from e2e_asr_attctc_mod_th.model import to_cuda
+from e2e_asr_attctc_mod_th.model import torch_is_old
 from lm_utils import ParallelSequentialIterator
 
 
@@ -112,10 +112,11 @@ class ClassifierWithState(nn.Module):
 
 class RNNLM(nn.Module):
 
-    def __init__(self, n_vocab, n_units):
+    def __init__(self, n_vocab, n_units, n_layers):
         super(RNNLM, self).__init__()
         self.n_vocab = n_vocab
         self.n_units = n_units
+        self.n_layers = n_layers
         self.embed = torch.nn.Embedding(n_vocab, n_units)
         self.d0 = torch.nn.Dropout()
         self.l1 = torch.nn.LSTMCell(n_units, n_units)
@@ -182,15 +183,18 @@ def train(args):
     logging.info('#vocab = ' + str(args.n_vocab))
     logging.info('#words in the training data = ' + str(len(train)))
     logging.info('#words in the validation data = ' + str(len(valid)))
-    logging.info('#iterations per epoch = ' + str(len(train) // (args.batchsize * args.bproplen)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#iterations per epoch = ' +
+                 str(len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#total iterations = ' + str(args.epoch *
+                                              len(train) // (args.batchsize * args.bproplen)))
 
     # Create the dataset iterators
     train_iter = ParallelSequentialIterator(train, args.batchsize)
-    valid_iter = ParallelSequentialIterator(valid, args.batchsize, repeat=False)
+    valid_iter = ParallelSequentialIterator(
+        valid, args.batchsize, repeat=False)
 
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.unit)
+    rnn = RNNLM(args.n_vocab, args.unit, args.layer)
     model = ClassifierWithState(rnn)
     model.compute_accuracy = False  # we only want the perplexity
     if args.ngpu > 1:
@@ -215,8 +219,10 @@ def train(args):
         for batch in copy.copy(iter):
             batch = np.array(batch)
             if torch_is_old:
-                x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
-                t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
+                x = Variable(torch.from_numpy(
+                    batch[:, 0]).long(), volatile=True)
+                t = Variable(torch.from_numpy(
+                    batch[:, 1]).long(), volatile=True)
             else:
                 x = torch.from_numpy(batch[:, 0]).long()
                 t = torch.from_numpy(batch[:, 1]).long()
@@ -278,7 +284,8 @@ def train(args):
 
         if iteration % 100 == 0:
             logging.info('iteration: ' + str(iteration))
-            logging.info('training perplexity: ' + str(np.exp(float(sum_perp) / count)))
+            logging.info('training perplexity: ' +
+                         str(np.exp(float(sum_perp) / count)))
             sum_perp = 0
             count = 0
 
@@ -289,9 +296,11 @@ def train(args):
 
             # Save the model and the optimizer
             logging.info('save the model')
-            torch.save(model.state_dict(), args.outdir + '/rnnlm.model.' + str(epoch_now))
+            torch.save(model.state_dict(), args.outdir +
+                       '/rnnlm.model.' + str(epoch_now))
             logging.info('save the optimizer')
-            torch.save(optimizer.state_dict(), args.outdir + '/rnnlm.state.' + str(epoch_now))
+            torch.save(optimizer.state_dict(), args.outdir +
+                       '/rnnlm.state.' + str(epoch_now))
 
             if valid_perp < best_valid:
                 dest = args.outdir + '/rnnlm.model.best'

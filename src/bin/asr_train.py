@@ -105,6 +105,21 @@ def main():
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
+    parser.add_argument('--gen_feat', default='s', type=str,
+                        choices=['s', 'sc', 'scy'],
+                        help='Input features for the generate function before the softmax layer')
+    # RNNLM related
+    parser.add_argument('--lm_unit', type=int, default=650,
+                        help='Number of LSTM units in each layer')
+    parser.add_argument('--lm_layer', type=int, default=2,
+                        help='Number of layers')
+    parser.add_argument('--rnnlm', type=str, default=None,
+                        help='RNNLM model file to read')
+    parser.add_argument('--rnnlm_fusion', default='', nargs='?',
+                        choices=['cold_fusion', 'cold_fusion_probinj', ''],
+                        help='Method for RNNLM integration')
+    parser.add_argument('--rnnlm_init', default='', nargs='?',
+                        help='Initialize the decoder part with pre-trained RNNLM')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
@@ -147,7 +162,8 @@ def main():
 
     # check gpu argument
     if args.gpu is not None:
-        logging.warn("--gpu option will be deprecated, please use --ngpu option.")
+        logging.warn(
+            "--gpu option will be deprecated, please use --ngpu option.")
         if args.gpu == -1:
             args.ngpu = 0
         else:
@@ -171,13 +187,15 @@ def main():
         # python 2 case
         if platform.python_version_tuple()[0] == '2':
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
+                cvd = subprocess.check_output(
+                    ["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
+                cvd = subprocess.check_output(
+                    ["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
 
