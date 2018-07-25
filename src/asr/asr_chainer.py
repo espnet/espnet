@@ -408,8 +408,9 @@ def train(args):
     # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid_iter = chainer.iterators.SerialIterator(
-        TransformDataset(valid, converter_kaldi), 1, repeat=False, shuffle=False)
+    valid_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(valid, converter_kaldi), 1, n_processes=2, n_prefetch=4,
+        repeat=False, shuffle=False)
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(valid_iter, model,
                                         converter=lambda x, device: x[0],
@@ -419,7 +420,7 @@ def train(args):
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        data = converter_kaldi(data)
+        data = converter_kaldi(data, device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
