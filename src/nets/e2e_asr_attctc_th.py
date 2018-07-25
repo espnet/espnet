@@ -121,16 +121,20 @@ class Loss(torch.nn.Module):
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
-            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
+            loss_att_data = loss_att.data[0] if torch_is_old else float(
+                loss_att)
             loss_ctc_data = None
         elif alpha == 1:
             self.loss = loss_ctc
             loss_att_data = None
-            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
+            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(
+                loss_ctc)
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
-            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
+            loss_att_data = loss_att.data[0] if torch_is_old else float(
+                loss_att)
+            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(
+                loss_ctc)
 
         loss_data = self.loss.data[0] if torch_is_old else float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
@@ -171,7 +175,7 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, rnnlm=None):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -198,9 +202,10 @@ class E2E(torch.nn.Module):
         self.subsample = subsample
 
         # label smoothing info
-        if args.lsm_type:
+        if args.lsm_type and args.lsm_weight > 0:
             logging.info("Use label smoothing with " + args.lsm_type)
-            labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
+            labeldist = label_smoothing_dist(
+                odim, args.lsm_type, transcript=args.train_json)
         else:
             labeldist = None
 
@@ -303,7 +308,8 @@ class E2E(torch.nn.Module):
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
         if torch_is_old:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=not self.training)) for y in ys]
+            ys = [to_cuda(self, Variable(torch.from_numpy(
+                y), volatile=not self.training)) for y in ys]
         else:
             ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
@@ -311,7 +317,8 @@ class E2E(torch.nn.Module):
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
         if torch_is_old:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=not self.training)) for xx in xs]
+            hs = [to_cuda(self, Variable(torch.from_numpy(
+                xx), volatile=not self.training)) for xx in xs]
         else:
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
@@ -400,7 +407,8 @@ class E2E(torch.nn.Module):
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
         if torch_is_old:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True))
+                  for y in ys]
         else:
             ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
@@ -408,7 +416,8 @@ class E2E(torch.nn.Module):
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
         if torch_is_old:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True))
+                  for xx in xs]
         else:
             hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
@@ -494,8 +503,10 @@ class CTC(torch.nn.Module):
         y_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + ''.join(str(ilens).split('\n')))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + ''.join(str(olens).split('\n')))
+        logging.info(self.__class__.__name__ +
+                     ' input lengths:  ' + ''.join(str(ilens).split('\n')))
+        logging.info(self.__class__.__name__ +
+                     ' output lengths: ' + ''.join(str(olens).split('\n')))
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
@@ -564,7 +575,8 @@ class NoAtt(torch.nn.Module):
                 l).zero_() + (1.0 / l)) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
-            self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
+            self.c = torch.sum(
+                self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
 
         return self.c, att_prev
 
@@ -1077,7 +1089,8 @@ class AttLocRec(torch.nn.Module):
         # apply non-linear
         att_conv = F.relu(att_conv)
         # B x C x 1 x T -> B x C x 1 x 1 -> B x C
-        att_conv = F.max_pool2d(att_conv, (1, att_conv.size(3))).view(batch, -1)
+        att_conv = F.max_pool2d(
+            att_conv, (1, att_conv.size(3))).view(batch, -1)
 
         att_h, att_c = self.att_lstm(att_conv, att_states)
 
@@ -1285,7 +1298,8 @@ class AttMultiHeadDot(torch.nn.Module):
             # weighted sum over flames
             # utt x hdim
             # NOTE use bmm instead of sum(*)
-            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
+            c += [torch.sum(self.pre_compute_v[h] *
+                            w[h].view(batch, self.h_length, 1), dim=1)]
 
         # concat all of c
         c = self.mlp_o(torch.cat(c, dim=1))
@@ -1385,7 +1399,8 @@ class AttMultiHeadAdd(torch.nn.Module):
             # weighted sum over flames
             # utt x hdim
             # NOTE use bmm instead of sum(*)
-            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
+            c += [torch.sum(self.pre_compute_v[h] *
+                            w[h].view(batch, self.h_length, 1), dim=1)]
 
         # concat all of c
         c = self.mlp_o(torch.cat(c, dim=1))
@@ -1425,7 +1440,8 @@ class AttMultiHeadLoc(torch.nn.Module):
             self.gvec += [torch.nn.Linear(att_dim_k, 1)]
             self.loc_conv += [torch.nn.Conv2d(
                 1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)]
-            self.mlp_att += [torch.nn.Linear(aconv_chans, att_dim_k, bias=False)]
+            self.mlp_att += [torch.nn.Linear(aconv_chans,
+                                             att_dim_k, bias=False)]
         self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
         self.dunits = dunits
         self.eprojs = eprojs
@@ -1491,7 +1507,8 @@ class AttMultiHeadLoc(torch.nn.Module):
         c = []
         w = []
         for h in six.moves.range(self.aheads):
-            att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
+            att_conv = self.loc_conv[h](
+                att_prev[h].view(batch, 1, 1, self.h_length))
             att_conv = att_conv.squeeze(2).transpose(1, 2)
             att_conv = linear_tensor(self.mlp_att[h], att_conv)
 
@@ -1505,7 +1522,8 @@ class AttMultiHeadLoc(torch.nn.Module):
             # weighted sum over flames
             # utt x hdim
             # NOTE use bmm instead of sum(*)
-            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
+            c += [torch.sum(self.pre_compute_v[h] *
+                            w[h].view(batch, self.h_length, 1), dim=1)]
 
         # concat all of c
         c = self.mlp_o(torch.cat(c, dim=1))
@@ -1549,7 +1567,8 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
             afilts = aconv_filts * (h + 1) // aheads
             self.loc_conv += [torch.nn.Conv2d(
                 1, aconv_chans, (1, 2 * afilts + 1), padding=(0, afilts), bias=False)]
-            self.mlp_att += [torch.nn.Linear(aconv_chans, att_dim_k, bias=False)]
+            self.mlp_att += [torch.nn.Linear(aconv_chans,
+                                             att_dim_k, bias=False)]
         self.mlp_o = torch.nn.Linear(aheads * att_dim_v, eprojs, bias=False)
         self.dunits = dunits
         self.eprojs = eprojs
@@ -1615,7 +1634,8 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         c = []
         w = []
         for h in six.moves.range(self.aheads):
-            att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
+            att_conv = self.loc_conv[h](
+                att_prev[h].view(batch, 1, 1, self.h_length))
             att_conv = att_conv.squeeze(2).transpose(1, 2)
             att_conv = linear_tensor(self.mlp_att[h], att_conv)
 
@@ -1629,7 +1649,8 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
             # weighted sum over flames
             # utt x hdim
             # NOTE use bmm instead of sum(*)
-            c += [torch.sum(self.pre_compute_v[h] * w[h].view(batch, self.h_length, 1), dim=1)]
+            c += [torch.sum(self.pre_compute_v[h] *
+                            w[h].view(batch, self.h_length, 1), dim=1)]
 
         # concat all of c
         c = self.mlp_o(torch.cat(c, dim=1))
@@ -1703,7 +1724,8 @@ class Decoder(torch.nn.Module):
         batch = pad_ys_out.size(0)
         olength = pad_ys_out.size(1)
         logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlen))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
+        logging.info(self.__class__.__name__ +
+                     ' output lengths: ' + str([y.size(0) for y in ys_out]))
 
         # initialization
         c_list = [self.zero_state(hpad)]
@@ -1758,9 +1780,12 @@ class Decoder(torch.nn.Module):
 
         if self.labeldist is not None:
             if self.vlabeldist is None:
-                self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
-            loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
-            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
+                self.vlabeldist = to_cuda(self, Variable(
+                    torch.from_numpy(self.labeldist)))
+            loss_reg = - torch.sum((F.log_softmax(
+                y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
+            self.loss = (1. - self.lsm_weight) * self.loss + \
+                self.lsm_weight * loss_reg
 
         return self.loss, acc
 
@@ -1808,7 +1833,8 @@ class Decoder(torch.nn.Module):
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list,
                    'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
         else:
-            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+            hyp = {'score': 0.0, 'yseq': [
+                y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         if lpz is not None:
             ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
@@ -1830,17 +1856,21 @@ class Decoder(torch.nn.Module):
                 vy[0] = hyp['yseq'][i]
                 ey = self.embed(vy)           # utt list (1) x zdim
                 ey.unsqueeze(0)
-                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
+                att_c, att_w = self.att(h.unsqueeze(
+                    0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
-                z_list[0], c_list[0] = self.decoder[0](ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
+                z_list[0], c_list[0] = self.decoder[0](
+                    ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
                 for l in six.moves.range(1, self.dlayers):
                     z_list[l], c_list[l] = self.decoder[l](
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
 
                 # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
+                local_att_scores = F.log_softmax(
+                    self.output(z_list[-1]), dim=1).data
                 if rnnlm:
-                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
+                    rnnlm_state, local_lm_scores = rnnlm.predict(
+                        hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
                     local_scores = local_att_scores
@@ -1852,13 +1882,17 @@ class Decoder(torch.nn.Module):
                         hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
                     local_scores = \
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
-                        + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
+                        + ctc_weight * \
+                        torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
                     if rnnlm:
-                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
-                    local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
+                        local_scores += recog_args.lm_weight * \
+                            local_lm_scores[:, local_best_ids[0]]
+                    local_best_scores, joint_best_ids = torch.topk(
+                        local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
-                    local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
+                    local_best_scores, local_best_ids = torch.topk(
+                        local_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
@@ -1869,7 +1903,8 @@ class Decoder(torch.nn.Module):
                     new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
-                    new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
+                    new_hyp['yseq'][len(hyp['yseq'])] = int(
+                        local_best_ids[0, j])
                     if rnnlm:
                         new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
@@ -1927,7 +1962,8 @@ class Decoder(torch.nn.Module):
         nbest_hyps = sorted(
             ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
-        logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
+        logging.info('normalized log probability: ' +
+                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         # remove sos
         return nbest_hyps
@@ -1980,13 +2016,16 @@ class Decoder(torch.nn.Module):
         # convert to numpy array with the shape (B, Lmax, Tmax)
         if isinstance(self.att, AttLoc2D):
             # att_ws => list of previous concate attentions
-            att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[:, -1]
+                                  for aw in att_ws], dim=1).data.cpu().numpy()
         elif isinstance(self.att, (AttCov, AttCovLoc)):
             # att_ws => list of list of previous attentions
-            att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[-1]
+                                  for aw in att_ws], dim=1).data.cpu().numpy()
         elif isinstance(self.att, AttLocRec):
             # att_ws => list of tuple of attention and hidden states
-            att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[0] for aw in att_ws],
+                                 dim=1).data.cpu().numpy()
         elif isinstance(self.att, (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
             # att_ws => list of list of each head attetion
             n_heads = len(att_ws[0])
@@ -1994,7 +2033,8 @@ class Decoder(torch.nn.Module):
             for h in six.moves.range(n_heads):
                 att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1)
                 att_ws_sorted_by_head += [att_ws_head]
-            att_ws = torch.stack(att_ws_sorted_by_head, dim=1).data.cpu().numpy()
+            att_ws = torch.stack(att_ws_sorted_by_head,
+                                 dim=1).data.cpu().numpy()
         else:
             # att_ws => list of attetions
             att_ws = torch.stack(att_ws, dim=1).data.cpu().numpy()
