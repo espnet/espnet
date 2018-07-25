@@ -289,9 +289,6 @@ class E2E(torch.nn.Module):
         :param data:
         :return:
         '''
-        if not torch_is_old:
-            torch.set_grad_enabled(self.training)
-
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
@@ -354,7 +351,6 @@ class E2E(torch.nn.Module):
             h = to_cuda(self, Variable(torch.from_numpy(
                 np.array(x, dtype=np.float32)), volatile=True))
         else:
-            torch.set_grad_enabled(False)
             h = to_cuda(self, torch.from_numpy(
                 np.array(x, dtype=np.float32)))
 
@@ -422,6 +418,9 @@ class E2E(torch.nn.Module):
 
         # decoder
         att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
+
+        if not torch_is_old:
+            torch.set_grad_enabled(True)
 
         return att_ws
 
@@ -1793,7 +1792,6 @@ class Decoder(torch.nn.Module):
         if torch_is_old:
             vy = Variable(h.data.new(1).zero_().long(), volatile=True)
         else:
-            torch.set_grad_enabled(False)
             vy = h.new_zeros(1).long()
 
         if recog_args.maxlenratio == 0:
