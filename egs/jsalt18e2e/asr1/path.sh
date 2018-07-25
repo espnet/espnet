@@ -8,7 +8,7 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin
 . $KALDI_ROOT/tools/config/common_path.sh
 export LC_ALL=C
 
-export PATH=$MAIN_ROOT/tools/sentencepiece/src:$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sph2pipe_v2.5/:$MAIN_ROOT/tools/nkf/nkf-2.1.4/:$PWD:$PATH
+export PATH=$MAIN_ROOT/tools/sentencepiece/build/src:$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sph2pipe_v2.5/:$MAIN_ROOT/tools/nkf/nkf-2.1.4/:$PWD:$PATH
 
 export PATH=$SPNET_ROOT/utils/:$SPNET_ROOT/bin/:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
