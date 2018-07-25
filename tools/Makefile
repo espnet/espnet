@@ -47,7 +47,7 @@ chainer_ctc: venv/bin/activate
 
 sentencepiece:
 	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && ./autogen.sh && ./configure && $(MAKE)
+	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 
 clean:
 	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece
