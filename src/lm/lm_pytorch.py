@@ -119,10 +119,9 @@ class RNNLM(nn.Module):
         self.n_layers = n_layers
         self.embed = torch.nn.Embedding(n_vocab, n_units)
         self.d0 = torch.nn.Dropout()
-        self.l1 = torch.nn.LSTMCell(n_units, n_units)
-        self.d1 = torch.nn.Dropout()
-        self.l2 = torch.nn.LSTMCell(n_units, n_units)
-        self.d2 = torch.nn.Dropout()
+        for l in range(1, n_layers + 1, 1):
+            setattr(self, 'l' + str(l), torch.nn.LSTMCell(n_units, n_units))
+            setattr(self, 'd' + str(l), torch.nn.Dropout())
         self.lo = torch.nn.Linear(n_units, n_vocab)
 
         # initialize parameters from uniform distribution
@@ -134,17 +133,20 @@ class RNNLM(nn.Module):
 
     def forward(self, state, x):
         if state is None:
-            state = {
-                'c1': to_cuda(self, self.zero_state(x.size(0))),
-                'h1': to_cuda(self, self.zero_state(x.size(0))),
-                'c2': to_cuda(self, self.zero_state(x.size(0))),
-                'h2': to_cuda(self, self.zero_state(x.size(0)))
-            }
-        h0 = self.embed(x)
-        h1, c1 = self.l1(self.d0(h0), (state['h1'], state['c1']))
-        h2, c2 = self.l2(self.d1(h1), (state['h2'], state['c2']))
-        y = self.lo(self.d2(h2))
-        state = {'c1': c1, 'h1': h1, 'c2': c2, 'h2': h2}
+            state = {}
+            for l in range(1, self.n_layers, 1):
+                state['c_' + str(l)] = to_cuda(self, self.zero_state(x.size(0)))
+                state['h_' + str(l)] = to_cuda(self, self.zero_state(x.size(0)))
+
+        h_d = self.d0(self.embed(x))
+        for l in range(1, self.n_layers, 1):
+            h, c = getattr(self, 'l' + str(l))(
+                h_d, (state['h' + str(l)], state['c' + str(l)]))
+            h_d = getattr(self, 'd' + str(l))
+            state['c' + str(l)] = c
+            state['h' + str(l)] = h
+
+        y = self.lo(h)
         return state, y
 
 
