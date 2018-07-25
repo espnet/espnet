@@ -347,6 +347,25 @@ if [ ${stage} -le 3 ]; then
         --phoneme_objective_weight ${phoneme_objective_weight}
 fi
 
+nj=32
+decode_dir=decode_devset
+${decode_cmd} ${expdir}/${decode_dir}/log/decode.log \
+    asr_recog.py \
+    --ngpu ${ngpu} \
+    --backend ${backend} \
+    --recog-json ${feat_dt_dir}/data.json \
+    --result-label ${expdir}/${decode_dir}/data.json \
+    --model ${expdir}/results/model.${recog_model}  \
+    --model-conf ${expdir}/results/model.conf  \
+    --beam-size ${beam_size} \
+    --penalty ${penalty} \
+    --ctc-weight ${ctc_weight} \
+    --maxlenratio ${maxlenratio} \
+    --minlenratio ${minlenratio} 
+wait
+
+exit
+
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32

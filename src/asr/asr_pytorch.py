@@ -469,13 +469,23 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
+    with open("data/lang_1char/train_units.txt.phn") as f:
+        phn_inv_list = [line.split()[0] for line in f.readlines()]
+
     new_json = {}
     for name in recog_json.keys():
         feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
-        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
+        nbest_hyps, phn_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
         y_hat = nbest_hyps[0]['yseq'][1:]
-        y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
+        for output in recog_json[name]['output']:
+            if output['name'] == "grapheme":
+                y_true = map(int, output['tokenid'].split())
+                break
+        for output in recog_json[name]['output']:
+            if output['name'] == "phn":
+                phn_true = map(int, output['tokenid'].split())
+                break
 
         # print out decoding result
         seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
@@ -484,6 +494,12 @@ def recog(args):
         seq_true_text = "".join(seq_true).replace('<space>', ' ')
         logging.info("groundtruth[%s]: " + seq_true_text, name)
         logging.info("prediction [%s]: " + seq_hat_text, name)
+
+        #print out phoneme CTC decoding result
+        phn_hat = [phn_inv_list[idx] for idx in phn_hyps]
+        phn_true = [phn_inv_list[idx] for idx in phn_true]
+        logging.info("ground truth phns: {}".format(phn_true))
+        logging.info("predicted phns: {}".format(phn_hat))
 
         # copy old json info
         new_json[name] = dict()

@@ -390,21 +390,12 @@ class E2E(torch.nn.Module):
 
         #if self.phoneme_objective_weight > 0.0:
         phn_log_softmax = self.phn_ctc.log_softmax(h).data[0]
-        logging.info("phn_ctc.log_softmax:")
-        logging.info(phn_log_softmax)
-        print(torch.topk(phn_log_softmax,1)[1])
-        def collapse_adjacent(seq):
-            """ Removes duplicates for CTC decoding"""
-            collapsed = [seq[0][0]]
-            for val in seq[1:]:
-                if collapsed[-1] != val[0]:
-                    collapsed.append(val[0]) 
-            return collapsed
-        def remove_blanks(seq):
-            return [x for x in seq if x != 0]
-        print(remove_blanks(collapse_adjacent(torch.topk(phn_log_softmax,1)[1])))
-
-        import sys; sys.exit()
+        #logging.info("phn_ctc.log_softmax:")
+        #logging.info(phn_log_softmax)
+        #print(torch.topk(phn_log_softmax,1)[1])
+        #print(remove_blanks(collapse_adjacent(torch.topk(phn_log_softmax,1)[1])))
+        #print(char_list)
+        #import sys; sys.exit()
 
         # 2. decoder
         # decode the first utterance
@@ -412,7 +403,7 @@ class E2E(torch.nn.Module):
 
         if prev:
             self.train()
-        return y
+        return y, remove_blanks(collapse_adjacent(torch.topk(phn_log_softmax,1)[1]))
 
     def calculate_all_attentions(self, data):
         '''E2E attention calculation
@@ -494,7 +485,6 @@ def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
     _assert_no_grad(label_lens)
     return _ChainerLikeCTC.apply(acts, labels, act_lens, label_lens)
 
-
 class CTC(torch.nn.Module):
     def __init__(self, odim, eprojs, dropout_rate):
         super(CTC, self).__init__()
@@ -523,7 +513,6 @@ class CTC(torch.nn.Module):
         y_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        ogging.log
 
         # 2. decoder
         # decode the first utterance
@@ -2332,3 +2321,14 @@ class VGG2L(torch.nn.Module):
         xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens
+
+def collapse_adjacent(seq):
+    """ Removes duplicates for CTC decoding"""
+    collapsed = [seq[0][0]]
+    for val in seq[1:]:
+        if collapsed[-1] != val[0]:
+            collapsed.append(val[0]) 
+    return collapsed
+def remove_blanks(seq):
+    """Removes blanks for CTC decoding"""
+    return [x for x in seq if x != 0]
