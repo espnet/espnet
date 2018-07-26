@@ -253,7 +253,8 @@ class E2E(torch.nn.Module):
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
                            labeldist, args.lsm_weight, args.gen_feat,
-                           rnnlm, args.rnnlm_fusion, args.rnnlm_init)
+                           rnnlm, args.rnnlm_fusion, args.rnnlm_init,
+                           args.rnnlm_loss_weight)
         # TODO(hirofumi): add option of joint training with RNNLM
 
         # weight initialization

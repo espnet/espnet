@@ -237,7 +237,8 @@ def train(args):
 
         rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(odim, args.lm_unit, args.lm_layer))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
-        rnnlm.eval()
+        # rnnlm.eval()
+        # NOTE: now run cold fusion with the training mode
         # TODO(hirofumi): add option of joint training with RNNLM
     else:
         rnnlm = None
@@ -418,12 +419,22 @@ def recog(args):
     def cpu_loader(storage, location):
         return storage
 
-    # read rnnlm for RNNLM integration or shallow fusion
-    if args.rnnlm_fusion or args.rnnlm:
+    # read rnnlm for cold or shallow fusion
+    if train_args.rnnlm_fusion:
+        # cold fusion
         assert args.rnnlm is not None
-        rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(train_args.char_list), args.lm_unit, args.lm_layer))
+        rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
+            len(train_args.char_list), train_args.lm_unit, train_args.lm_layer))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
         rnnlm.eval()
+        # TODO(hirofumi): Is it necessary to reload RNNLM?
+    elif args.rnnlm:
+        # shallow fusion
+        assert args.rnnlm is not None
+        rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(train_args.char_list), 650, 2))
+        rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
+        rnnlm.eval()
+        # TODO(hirofumi): create a config file when training RNNLM
     else:
         rnnlm = None
 

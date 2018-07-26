@@ -66,7 +66,8 @@ class Decoder(torch.nn.Module):
             dunits = rnnlm.predictor.n_units
             dlayers = rnnlm.predictor.n_layers
             emb_dim = rnnlm.predictor.n_units - eprojs
-            self.rnnlm_emb = rnnlm.predictor.embed
+            if rnnlm_loss_weight > 0:
+                self.rnnlm_embed = rnnlm.predictor.embed
             # NOTE: fit the decoder to RNNLM
         else:
             self.rnnlm_init = False
@@ -207,7 +208,7 @@ class Decoder(torch.nn.Module):
                     z_list[l - 1], (z_list[l], c_list[l]))
 
             # update decoder with RNNLM embedding to prevent catastrophic forgetting
-            if self.rnnlm_init:
+            if self.rnnlm_init and self.rnnlm_loss_weight > 0:
                 rnnlm_in = self.rnnlm_embed(pad_ys_in[:, i])
                 z_list_rnnlmreg[0], c_list_rnnlmreg[0] = self.decoder[0](
                     rnnlm_in, (z_list_rnnlmreg[0], c_list_rnnlmreg[0]))
@@ -376,10 +377,10 @@ class Decoder(torch.nn.Module):
                     z_list[l], c_list[l] = self.decoder[l](
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
 
-                # Update RNNLM state
+                # update RNNLM state
                 if rnnlm is not None:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
-                    if self.rnnlm_fusion == 'cold_fusion':
+                    if self.rnnlm_fusion:
                         _, lm_logits = rnnlm.predictor(hyp['rnnlm_prev'], vy)
 
                 # RNNLM integration

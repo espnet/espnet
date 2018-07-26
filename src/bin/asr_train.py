@@ -120,6 +120,8 @@ def main():
                         help='Method for RNNLM integration')
     parser.add_argument('--rnnlm_init', default='', nargs='?',
                         help='Initialize the decoder part with pre-trained RNNLM')
+    parser.add_argument('--rnnlm_loss_weight', type=float, default=0,
+                        help='Weight for RNNLM loss in RNNLM integration or initialization')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
