@@ -362,6 +362,29 @@ class E2E(torch.nn.Module):
 
         return loss_ctc, loss_att, loss_phn, acc
 
+    def recognize_phn(self, x):
+        """ Performs 1-best CTC decoding for predicting phonemes."""
+
+        self.eval()
+        x = x[::self.subsample[0], :]
+        ilen = [x.shape[0]]
+        h = to_cuda(self, Variable(torch.from_numpy(
+            np.array(x, dtype=np.float32)), volatile=True))
+
+        # 1. encoder
+        h, _ = self.enc(h.unsqueeze(0), ilen)
+
+        # 2. calculate log P(z_t|X) for CTC scores
+        phn_log_softmax = self.phn_ctc.log_softmax(h).data[0]
+
+        # 3. Calculate the one best hypothesis:
+        one_best = torch.topk(phn_log_softmax,1)[1]
+
+        # 4. Collapse repeated phonemes and then remove blanks
+        phn_hyp = remove_blanks(collapse_adjacent(one_best))
+
+        return phn_hyp
+
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E beam search
 

@@ -469,22 +469,20 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
-    with open("data/lang_1char/train_units.txt.phn") as f:
-        phn_inv_list = [line.split()[0] for line in f.readlines()]
+    # TODO REMOVE hardcoding
+    if train_args.phoneme_objective_weight > 0:
+        with open("data/lang_1char/train_units.txt.phn") as f:
+            phn_inv_list = [line.split()[0] for line in f.readlines()]
 
     new_json = {}
     for name in recog_json.keys():
         feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
-        nbest_hyps, phn_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
+        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
         # get 1best and remove sos
         y_hat = nbest_hyps[0]['yseq'][1:]
         for output in recog_json[name]['output']:
             if output['name'] == "grapheme":
                 y_true = map(int, output['tokenid'].split())
-                break
-        for output in recog_json[name]['output']:
-            if output['name'] == "phn":
-                phn_true = map(int, output['tokenid'].split())
                 break
 
         # print out decoding result
@@ -494,12 +492,6 @@ def recog(args):
         seq_true_text = "".join(seq_true).replace('<space>', ' ')
         logging.info("groundtruth[%s]: " + seq_true_text, name)
         logging.info("prediction [%s]: " + seq_hat_text, name)
-
-        #print out phoneme CTC decoding result
-        phn_hat = [phn_inv_list[idx] for idx in phn_hyps]
-        phn_true = [phn_inv_list[idx] for idx in phn_true]
-        logging.info("ground truth phns: {}".format(phn_true))
-        logging.info("predicted phns: {}".format(phn_hat))
 
         # copy old json info
         new_json[name] = dict()
@@ -517,6 +509,28 @@ def recog(args):
         out_dic['rec_token'] = " ".join(seq_hat)
         logging.debug("dump text")
         out_dic['rec_text'] = seq_hat_text
+
+        if train_args.phoneme_objective_weight > 0:
+            # Then do basic one-best CTC phoneme decoding
+            phn_hyps = e2e.recognize_phn(feat)
+            phn_hat = [phn_inv_list[idx] for idx in phn_hyps]
+
+            # Try and read the ground truth phonemes.
+            for output in recog_json[name]['output']:
+                if output['name'] == "phn":
+                    phn_true = map(int, output['tokenid'].split())
+                    break
+
+            #print out phoneme CTC decoding result
+            if phn_true:
+                # We might not have ground truth phonemes
+                phn_true = [phn_inv_list[idx] for idx in phn_true]
+                logging.info("ground truth phns: {}".format(phn_true))
+            logging.info("predicted phns: {}".format(phn_hat))
+
+            # Add phoneme-related info to the output JSON
+            out_dic['rec_phn_tokenid'] = " ".join([str(idx) for idx in phn_hyps])
+            out_dic['rec_pnn_token'] = " ".join(phn_hat)
 
         new_json[name]['output'] = [out_dic]
         # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
