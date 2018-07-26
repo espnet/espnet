@@ -1744,7 +1744,7 @@ def index_select_list(yseq, lst):
 
 
 def index_select_lm_state(rnnlm_state, dim, vidx):
-    state = dict([(k, torch.index_select(rnnlm_state[k], dim, vidx))
+    state = dict([(k, torch.index_select(v, dim, vidx))
                   for k,v in rnnlm_state.items()])
     return state
 
@@ -1945,11 +1945,11 @@ class Decoder(torch.nn.Module):
             
             # rnnlm
             if rnnlm:
-                rnnlm_state, z_rnnlm = rnnlm.predictor(rnnlm_prev, vy)
-                local_lm_scores = F.log_softmax(z_rnnlm, dim=1)
-                local_scores = local_scores + recog_args.lm_weight * local_lm_scores                
-            local_scores = local_scores.view(batch, n_bo)
+                rnnlm_state, local_lm_scores = rnnlm.predict(rnnlm_prev, vy)
+                local_scores = local_scores + recog_args.lm_weight * local_lm_scores
                 
+            local_scores = local_scores.view(batch, n_bo)
+
             # ctc
             if lpz is not None:
                 ctc_scores, ctc_states = ctc_prefix_score(yseq, ctc_states_prev)
@@ -1986,7 +1986,7 @@ class Decoder(torch.nn.Module):
             z_prev = [torch.index_select(z_list[li], 0, vidx) for li in range(self.dlayers)]
             c_prev = [torch.index_select(c_list[li], 0, vidx) for li in range(self.dlayers)]
             vscores = torch.index_select(vscores.view(-1), 0, vidx).view(batch, beam) + torch.stack(local_best_scores)
-            
+
             if rnnlm:
                 rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
                 
