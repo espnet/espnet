@@ -11,6 +11,7 @@ fmin=
 n_mels=80
 n_fft=1024
 n_shift=512
+win_length=
 cmd=run.pl
 # End configuration section.
 
@@ -67,13 +68,14 @@ done
 utils/split_scp.pl $scp $split_scps || exit 1;
 
 $cmd JOB=1:$nj $logdir/make_fbank_${name}.JOB.log \
-    local/compute-fbank-feats.py \
+    compute-fbank-feats.py \
         --fs $fs \
         --fmax $fmax \
         --fmin $fmin \
-        --n_mels $n_mels \
         --n_fft $n_fft \
         --n_shift $n_shift \
+        --win_length $win_length \
+        --n_mels $n_mels \
         $logdir/wav.JOB.scp \
         $fbankdir/raw_fbank_$name.JOB
 
