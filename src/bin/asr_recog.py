@@ -66,6 +66,8 @@ def main():
                         help='Word RNNLM model file to read')
     parser.add_argument('--word-dict', type=str, default=None,
                         help='Word list to read')
+    parser.add_argument('--phoneme-dict', type=str, default=None,
+                        help="Inventory of phonemes for phoneme decoding.")
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
     args = parser.parse_args()

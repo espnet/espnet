@@ -384,6 +384,7 @@ if [ ${stage} -le 4 ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
+            --phoneme-dict ${dict}.phn
             &
         wait
 

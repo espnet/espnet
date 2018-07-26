@@ -479,7 +479,8 @@ def recog(args):
 
     # TODO REMOVE hardcoding
     if train_args.phoneme_objective_weight > 0:
-        with open("data/lang_1char/train_units.txt.phn") as f:
+        assert args.phoneme_dict
+        with open(args.phoneme_dict) as f:
             # The zero is because of the CTC blank symbol and because the
             # phoneme inventory list starts indexing from 1.
             phn_inv_list = [0]+[line.split()[0] for line in f.readlines()]
