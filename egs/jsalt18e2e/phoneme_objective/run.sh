@@ -184,10 +184,6 @@ if [ ${stage} -le 0 ]; then
     done
 fi
 
-for x in ${recog_set}; do
-    echo $x
-done
-
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ]; then
@@ -225,13 +221,14 @@ if [ ${stage} -le 1 ]; then
             ${feat_recog_dir}
     done
 fi
+
 dict=data/lang_1char/train_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
-    echo "stage 2: Dictionary and Json Data Preparation"
+   echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
@@ -248,24 +245,29 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    #for rtask in ${recog_set}; do
-    #    feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-    #    data2json.sh --feat ${feat_recog_dir}/feats.scp \
-    #        --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
-    #done
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+    done
 
-    # Phoneme Objective
+    #### Phoneme Objective ####
+
+    # Create phoneme dictionary
     echo "<unk> 1" > ${dict}.phn
     cut -d' ' -f2- data/${train_set}/text.phn | tr " " "\n" | sort -u |\
     grep -v '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}.phn
 
+    # Stash current graphame data.json files.
     mv ${feat_tr_dir}/data.json ${feat_tr_dir}/data.gph.json
     mv ${feat_dt_dir}/data.json ${feat_dt_dir}/data.gph.json
-    #for rtask in ${recog_set}; do
-    #    feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-    #    mv ${feat_recog_dir}/data.json ${feat_recog_dir}/data.gph.json
-    #done
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        mv ${feat_recog_dir}/data.json ${feat_recog_dir}/data.gph.json
+    done
 
+    # Filters out phoneme utterances that don't have a corresponding grapheme
+    # transcription
     ./utils/filter_scp.pl data/${train_set}/text \
         data/${train_set}/text.phn > data/${train_set}/text.phn.filt
     mv data/${train_set}/text.phn.filt data/${train_set}/text.phn
@@ -292,20 +294,28 @@ if [ ${stage} -le 2 ]; then
     combine_multimodal_json.py ${feat_dt_dir}/data.json \
                                ${feat_dt_dir}/data.{phn,gph}.json
 
-    ## TODO This should support creation of eval data.json files that include phonemes. 
-        #for rtask in ${recog_set}; do
-            #feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        #./utils/filter_scp.pl data/${rtask}/text \
-        #    data/${rtask}/text.phn > data/${train_set}/text.phn.filt
-               #mv data/${train_set}/text.phn.filt data/${train_set}/text.phn
-        #done
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        ./utils/filter_scp.pl data/${rtask}/text \
+            data/${rtask}/text.phn > data/${rtask}/text.phn.filt
+        mv data/${rtask}/text.phn.filt data/${rtask}/text.phn
+
+        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+                     --nlsyms ${nlsyms} \
+                     --phn-text data/${rtask}/text.phn \
+                     data/${rtask} ${dict}.phn \
+                     > ${feat_recog_dir}/data.phn.json
+
+        combine_multimodal_json.py ${feat_recog_dir}/data.json \
+                                   ${feat_recog_dir}/data.{phn,gph}.json
+    done
 
 fi
 
 exit
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_phonemeweight${phoneme_objective_weight}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -344,7 +354,8 @@ if [ ${stage} -le 3 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --phoneme_objective_weight ${phoneme_objective_weight}
 fi
 
 if [ ${stage} -le 4 ]; then
