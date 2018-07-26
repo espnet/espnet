@@ -168,6 +168,12 @@ class DataParallel(torch.nn.DataParallel):
         outputs = self.parallel_apply(replicas, inputs, kwargs)
         return self.gather(outputs, self.output_device)
 
+class EspnetException(Exception):
+    pass
+
+class NoOdimException(EspnetException):
+    pass
+
 def get_odim(output_name, valid_json):
     """ Return the output dimension for a given output type.
     For example, output type might be 'phn' (phonemes) or 'grapheme'"""
@@ -175,6 +181,8 @@ def get_odim(output_name, valid_json):
     for output in valid_json[utts[0]]['output']:
         if output['name'] == output_name:
             return int(output['shape'][1])
+    # Raise an exception because we couldn't find the odim
+    raise NoOdimException("Couldn't determine output dimension (odim) for output named '{}'".format(output_name))
 
 def train(args):
     '''Run training'''
