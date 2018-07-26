@@ -9,17 +9,19 @@ import os
 
 import librosa
 import numpy as np
+import soundfile as sf
 
 import kaldi_io_py
 
 EPS = 1e-10
 
 
-def logmelspectrogram(x, fs, n_mels, n_fft, n_shift, window='hann', fmin=None, fmax=None):
+def logmelspectrogram(x, fs, n_mels, n_fft, n_shift,
+                      win_length, window='hann', fmin=None, fmax=None):
     fmin = 0 if fmin is None else fmin
     fmax = fs / 2 if fmax is None else fmax
     mel_basis = librosa.filters.mel(fs, n_fft, n_mels, fmin, fmax)
-    spc = np.abs(librosa.stft(x, n_fft, n_shift, window=window))
+    spc = np.abs(librosa.stft(x, n_fft, n_shift, win_length, window=window))
     lmspc = np.log10(np.maximum(EPS, np.dot(mel_basis, spc).T))
 
     return lmspc
@@ -27,7 +29,7 @@ def logmelspectrogram(x, fs, n_mels, n_fft, n_shift, window='hann', fmin=None, f
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fs', type=int, default=22050,
+    parser.add_argument('--fs', type=int,
                         help='Sampling frequency')
     parser.add_argument('--fmax', type=int, default=None, nargs='?',
                         help='Maximum frequency')
@@ -39,6 +41,8 @@ def main():
                         help='FFT length in point')
     parser.add_argument('--n_shift', type=int, default=512,
                         help='Shift length in point')
+    parser.add_argument('--win_length', type=int, default=None, nargs='?',
+                        help='Analisys window length in point')
     parser.add_argument('--window', type=str, default='hann',
                         choices=['hann', 'hamming'],
                         help='Type of window')
@@ -56,6 +60,10 @@ def main():
     # load scp
     with open(args.scp, 'r') as f:
         scp = [x.replace('\n', '').split() for x in f.readlines()]
+    if len(scp[0]) != 2:
+        utt_ids = [scp_[0] for scp_ in scp]
+        paths = [scp_[-2] for scp_ in scp]
+        scp = [[utt_id, path] for utt_id, path in zip(utt_ids, paths)]
 
     # chech direcitory
     outdir = os.path.dirname(args.out)
@@ -68,7 +76,7 @@ def main():
     # extract feature and then write as ark with scp format
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, (utt_id, path) in enumerate(scp, 1):
-            x, fs = librosa.core.load(path, sr=None)
+            x, fs = sf.read(path)
             assert fs == args.fs
             lmspc = logmelspectrogram(
                 x=x,
@@ -76,6 +84,7 @@ def main():
                 n_mels=args.n_mels,
                 n_fft=args.n_fft,
                 n_shift=args.n_shift,
+                win_length=args.win_length,
                 window=args.window,
                 fmin=args.fmin,
                 fmax=args.fmax)
