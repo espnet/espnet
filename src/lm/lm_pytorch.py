@@ -119,7 +119,7 @@ class RNNLM(nn.Module):
         self.n_layers = n_layers
         self.embed = torch.nn.Embedding(n_vocab, n_units)
         self.d0 = torch.nn.Dropout()
-        for l in range(1, n_layers + 1, 1):
+        for l in range(1, n_layers + 1):
             setattr(self, 'l' + str(l), torch.nn.LSTMCell(n_units, n_units))
             setattr(self, 'd' + str(l), torch.nn.Dropout())
         self.lo = torch.nn.Linear(n_units, n_vocab)
@@ -134,19 +134,18 @@ class RNNLM(nn.Module):
     def forward(self, state, x):
         if state is None:
             state = {}
-            for l in range(1, self.n_layers, 1):
+            for l in range(1, self.n_layers + 1):
                 state['c' + str(l)] = to_cuda(self, self.zero_state(x.size(0)))
                 state['h' + str(l)] = to_cuda(self, self.zero_state(x.size(0)))
 
         h_d = self.d0(self.embed(x))
-        for l in range(1, self.n_layers, 1):
+        for l in range(1, self.n_layers + 1):
             h, c = getattr(self, 'l' + str(l))(
                 h_d, (state['h' + str(l)], state['c' + str(l)]))
             h_d = getattr(self, 'd' + str(l))
             state['c' + str(l)] = c
             state['h' + str(l)] = h
-
-        y = self.lo(h)
+        y = self.lo(h_d)
         return state, y
 
 
