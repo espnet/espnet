@@ -34,8 +34,8 @@ venv/lib/python2.7/site-packages/torch: venv/bin/activate
 	. venv/bin/activate; pip install pip --upgrade; pip install torch
 
 warp-ctc: venv/lib/python2.7/site-packages/torch
-	git clone https://github.com/SeanNaren/warp-ctc.git
-	. venv/bin/activate; cd warp-ctc && git checkout 9e5b238f8d9337b0c39b3fd01bbaff98ba523aa5 && mkdir build && cd build && cmake .. && make -j4 ; true
+	git clone https://github.com/jnishi/warp-ctc.git
+	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
@@ -47,7 +47,7 @@ chainer_ctc: venv/bin/activate
 
 sentencepiece:
 	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && ./autogen.sh && ./configure && $(MAKE)
+	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 
 clean:
 	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece
