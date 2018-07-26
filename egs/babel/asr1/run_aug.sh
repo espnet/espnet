@@ -75,7 +75,9 @@ aug_pretrain=0
 aug_alternate=1
 aug_arch=0
 aug_layers=1
+aug_optim='aug'
 aug_path=/export/b12/arenduc1/datasets/babel-mono-txt/tl-paracrawl/aug.rep
+
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -143,12 +145,12 @@ if [ $stage -le 1 ]; then
   # dump features for training
   if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
   utils/create_split_dir.pl \
-      /export/b{10,11,12,13}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_set}/delta${do_delta}/storage \
+      /export/b{03,04,05,06}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_set}/delta${do_delta}/storage \
       ${feat_tr_dir}/storage
   fi
   if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
   utils/create_split_dir.pl \
-      /export/b{10,11,12,13}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
+      /export/b{03,04,05,06}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
       ${feat_dt_dir}/storage
   fi
   dump.sh --cmd "$train_cmd" --nj 20 --do_delta $do_delta \
@@ -204,6 +206,7 @@ if [ $stage -le 3 ]; then
     fi
 fi
 
+
 if $use_lm; then
   lm_train_set=data/local/train.txt
   lm_valid_set=data/local/dev.txt
@@ -253,7 +256,7 @@ fi
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
-    echo "stage 3: Network Training"
+    echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -275,6 +278,7 @@ if [ ${stage} -le 4 ]; then
         --aug-alternate ${aug_alternate} \
         --aug-layers ${aug_layers} \
         --aug-arch ${aug_arch} \
+        --aug-optim ${aug_optim} \
         --train-aug ${feat_tr_dir}/aug.json \
         --dict-aug ${dict_aug} \
         --etype ${etype} \
