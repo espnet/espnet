@@ -5,6 +5,7 @@
 
 
 import copy
+import functools
 import json
 import logging
 import math
@@ -281,10 +282,10 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(train, converter_kaldi), 1, n_processes=2, n_prefetch=4)
-    valid_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(valid, converter_kaldi), 1, n_processes=2, n_prefetch=4,
+    train_iter = chainer.iterators.MultithreadIterator(
+        TransformDataset(train, functools.partial(converter_kaldi, device=gpu_id)), 1, n_threads=2)
+    valid_iter = chainer.iterators.MultithreadIterator(
+        TransformDataset(valid, functools.partial(converter_kaldi, device=gpu_id)), 1, n_threads=2,
         repeat=False, shuffle=False)
 
     # Set up a trainer
