@@ -411,22 +411,13 @@ class E2E(torch.nn.Module):
         else:
             lpz = None
 
-        #if self.phoneme_objective_weight > 0.0:
-        phn_log_softmax = self.phn_ctc.log_softmax(h).data[0]
-        #logging.info("phn_ctc.log_softmax:")
-        #logging.info(phn_log_softmax)
-        #print(torch.topk(phn_log_softmax,1)[1])
-        #print(remove_blanks(collapse_adjacent(torch.topk(phn_log_softmax,1)[1])))
-        #print(char_list)
-        #import sys; sys.exit()
-
         # 2. decoder
         # decode the first utterance
         y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
-        return y, remove_blanks(collapse_adjacent(torch.topk(phn_log_softmax,1)[1]))
+        return y
 
     def calculate_all_attentions(self, data):
         '''E2E attention calculation
