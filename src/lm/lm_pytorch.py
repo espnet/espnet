@@ -142,7 +142,7 @@ class RNNLM(nn.Module):
         for l in range(1, self.n_layers + 1):
             h, c = getattr(self, 'l' + str(l))(
                 h_d, (state['h' + str(l)], state['c' + str(l)]))
-            h_d = getattr(self, 'd' + str(l))
+            h_d = getattr(self, 'd' + str(l))(h)
             state['c' + str(l)] = c
             state['h' + str(l)] = h
         y = self.lo(h_d)
