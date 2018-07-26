@@ -54,16 +54,20 @@ class Decoder(torch.nn.Module):
                  rnnlm_loss_weight=0):
         super(Decoder, self).__init__()
 
+        if rnnlm_fusion and rnnlm_init:
+            raise NotImplementedError('Both RNNLM fusion and initialization are not supported.')
+
         # for decdoer initialization with pre-trained RNNLM
-        if rnnlm_init and rnnlm is not None:
+        if rnnlm_init:
+            assert rnnlm is not None
             assert rnnlm.predictor.n_vocab == odim
             assert gen_feat == 's'
             self.rnnlm_init = True
             dunits = rnnlm.predictor.n_units
             dlayers = rnnlm.predictor.n_layers
             emb_dim = rnnlm.predictor.n_units - eprojs
+            self.rnnlm_emb = rnnlm.predictor.embed
             # NOTE: fit the decoder to RNNLM
-            # TODO(hirofumi): add LM objective
         else:
             self.rnnlm_init = False
             emb_dim = dunits
@@ -78,6 +82,7 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
         self.ignore_id = -1
+        # TODO(hirofumi): add dropout layer
 
         self.loss = None
         self.att = att
@@ -109,14 +114,14 @@ class Decoder(torch.nn.Module):
         if self.rnnlm_fusion == 'cold_fusion':
             logging.info('Cold fusion')
             # fine-grained gating
-            self.lin_rnnlm_gate = torch.nn.Linear(rnnlm.predictor.n_units + dunits, rnnlm.predictor.n_units)
+            self.mlp_lm_gate = torch.nn.Linear(rnnlm.predictor.n_units + dunits, rnnlm.predictor.n_units)
             self.output = torch.nn.Linear(gen_dim + rnnlm.predictor.n_units, odim)
         elif self.rnnlm_fusion == 'cold_fusion_probinj':
             logging.info('Cold fusion w/ probability injection')
             # probability injection
-            self.lin_rnnlm_probinj = torch.nn.Linear(rnnlm.predictor.n_vocab, rnnlm.predictor.n_units)
+            self.mlp_lm_probinj = torch.nn.Linear(rnnlm.predictor.n_vocab, rnnlm.predictor.n_units)
             # fine-grained gating
-            self.lin_rnnlm_gate = torch.nn.Linear(rnnlm.predictor.n_units + dunits, rnnlm.predictor.n_units)
+            self.mlp_lm_gate = torch.nn.Linear(rnnlm.predictor.n_units + dunits, rnnlm.predictor.n_units)
             self.output = torch.nn.Linear(gen_dim + rnnlm.predictor.n_units, odim)
         else:
             self.output = torch.nn.Linear(gen_dim, odim)
@@ -170,10 +175,16 @@ class Decoder(torch.nn.Module):
         rnnlm_state = None
 
         # for joint training with RNNLM
-        y_all_rnnlm = []
+        y_all_lm = []
+
         # for preventing catastrophic forgetting
-        rnnlm_state_lmreg = {}
-        y_all_rnnlm_lmreg = []
+        if self.rnnlm_init:
+            c_list_rnnlmreg = [self.zero_state(hpad)]
+            z_list_rnnlmreg = [self.zero_state(hpad)]
+            for l in range(1, self.dlayers):
+                c_list_rnnlmreg.append(self.zero_state(hpad))
+                z_list_rnnlmreg.append(self.zero_state(hpad))
+            z_all_rnnlmreg = []
 
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
@@ -181,15 +192,12 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         for i in six.moves.range(olength):
             # update RNNLM state
-            if self.rnnlm is not None:
-                # rnnlm_state, rnnlm_logits = self.rnnlm.predictor(
-                #     rnnlm_state, pad_ys_in[:, i:i + 1])
-                rnnlm_state, rnnlm_logits = self.rnnlm.predictor(rnnlm_state, pad_ys_in[:, i])
-                # pad_ys_in[:, i:i + 1]
-                # pad_ys_in[:, i]
-                # TODO(hirofumi): slice??
-                y_all_rnnlm.append(rnnlm_logits)
+            if self.rnnlm_fusion:
+                # rnnlm_state, lm_logits = self.rnnlm.predictor(rnnlm_state, pad_ys_in[:, i:i + 1])
+                rnnlm_state, lm_logits = self.rnnlm.predictor(rnnlm_state, pad_ys_in[:, i])
+                y_all_lm.append(lm_logits)
 
+            # update decoder state
             att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
             dec_in = torch.cat((eys[:, i, :], att_c), dim=1)   # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](
@@ -198,24 +206,29 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
 
-            # update RNNLM to prevent catastrophic forgetting
-            z_list[0], c_list[0] = self.decoder[0](
-                dec_in, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
+            # update decoder with RNNLM embedding to prevent catastrophic forgetting
+            if self.rnnlm_init:
+                rnnlm_in = self.rnnlm_embed(pad_ys_in[:, i])
+                z_list_rnnlmreg[0], c_list_rnnlmreg[0] = self.decoder[0](
+                    rnnlm_in, (z_list_rnnlmreg[0], c_list_rnnlmreg[0]))
+                for l in six.moves.range(1, self.dlayers):
+                    z_list_rnnlmreg[l], c_list_rnnlmreg[l] = self.decoder[l](
+                        z_list_rnnlmreg[l - 1], (z_list_rnnlmreg[l], c_list_rnnlmreg[l]))
+                # TODO(hirofumi): add dropout layer as in RNNLM
+                z_all_rnnlmreg.append(z_list_rnnlmreg[-1])
 
             # RNNLM integration
             if self.rnnlm_fusion == 'cold_fusion':
-                gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate, torch.cat([z_list[-1], rnnlm_state['h2']], dim=-1)))
+                # gate = F.sigmoid(linear_tensor(self.mlp_lm_gate, torch.cat([z_list[-1], rnnlm_state['h2']], dim=-1)))
+                gate = F.sigmoid(self.mlp_lm_gate(torch.cat([z_list[-1], rnnlm_state['h2']], dim=-1)))
                 gated_rnnlm_state = gate * rnnlm_state['h' + str(self.rnnlm.predictor.n_layers)]
                 z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
             elif self.rnnlm_fusion == 'cold_fusion_probinj':
-                # rnnlm_logits = linear_tensor(self.lin_rnnlm_probinj, rnnlm_logits)
-                rnnlm_logits = self.lin_rnnlm_probinj(rnnlm_logits)
-                # gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate, torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
-                gate = F.sigmoid(self.lin_rnnlm_gate(torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
-                gated_rnnlm_state = gate * rnnlm_logits
+                # lm_logits = linear_tensor(self.mlp_lm_probinj, lm_logits)
+                lm_logits = self.mlp_lm_probinj(lm_logits)
+                # gate = F.sigmoid(linear_tensor(self.mlp_lm_gate, torch.cat([z_list[-1], lm_logits], dim=-1)))
+                gate = F.sigmoid(self.mlp_lm_gate(torch.cat([z_list[-1], lm_logits], dim=-1)))
+                gated_rnnlm_state = gate * lm_logits
                 z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
             else:
                 z_step = z_list[-1]
@@ -240,17 +253,31 @@ class Decoder(torch.nn.Module):
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
         logging.info('att loss:' + ''.join(str(self.loss.data).split('\n')))
 
-        # joint training with RNNLM
         if self.rnnlm_loss_weight > 0:
-            loss_rnnlm = F.cross_entropy(y_all_rnnlm, pad_ys_out.view(-1),
-                                         ignore_index=self.ignore_id,
-                                         size_average=True)
-            # -1: eos, which is removed in the loss computation
-            loss_rnnlm *= (np.mean([len(x) for x in ys_in]) - 1)
-            loss_rnnlm *= self.rnnlm_loss_weight
-            # acc_rnnlm = th_accuracy(y_all_rnnlm, pad_ys_out, ignore_label=self.ignore_id)
-            logging.info('RNNLM loss:' + ''.join(str(loss_rnnlm.data).split('\n')))
-            self.loss += loss_rnnlm
+            # joint training with RNNLM
+            if self.rnnlm_fusion:
+                loss_lm = F.cross_entropy(y_all_lm, pad_ys_out.view(-1),
+                                          ignore_index=self.ignore_id,
+                                          size_average=True)
+                # -1: eos, which is removed in the loss computation
+                loss_lm *= (np.mean([len(x) for x in ys_in]) - 1)
+                loss_lm *= self.rnnlm_loss_weight
+                # acc_rnnlm = th_accuracy(y_all_lm, pad_ys_out, ignore_label=self.ignore_id)
+                logging.info('RNNLM loss:' + ''.join(str(loss_lm.data).split('\n')))
+                self.loss += loss_lm
+            # RNNLM objective for RNNLM initialization to prevent catastrophic forgetting
+            elif self.rnnlm_init:
+                z_all_rnnlmreg = torch.stack(z_all_rnnlmreg, dim=1).view(batch * olength, -1)
+                # compute loss
+                y_all_rnnlmreg = self.output(z_all_rnnlmreg)
+                if self.rnnlm_fusion in ['cold_fusion', 'cold_fusion_probinj']:
+                    y_all_rnnlmreg = F.relu(y_all_rnnlmreg)
+                self.loss = F.cross_entropy(y_all_rnnlmreg, pad_ys_out.view(-1),
+                                            ignore_index=self.ignore_id,
+                                            size_average=True)
+                # TODO(hirofumi): fix label smoothing
+                # -1: eos, which is removed in the loss computation
+                self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
@@ -353,19 +380,22 @@ class Decoder(torch.nn.Module):
                 if rnnlm is not None:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     if self.rnnlm_fusion == 'cold_fusion':
-                        _, rnnlm_logits = rnnlm.predictor(hyp['rnnlm_prev'], vy)
+                        _, lm_logits = rnnlm.predictor(hyp['rnnlm_prev'], vy)
 
                 # RNNLM integration
                 if self.rnnlm_fusion == 'cold_fusion':
-                    gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate,
-                                                   torch.cat([z_list[-1], rnnlm_state['h2']], dim=-1)))
+                    # gate = F.sigmoid(linear_tensor(self.mlp_lm_gate,
+                    #                                torch.cat([z_list[-1], rnnlm_state['h2']], dim=-1)))
+                    gate = F.sigmoid(self.mlp_lm_gate(torch.cat([z_list[-1], rnnlm_state['h2']], dim=-1)))
                     gated_rnnlm_state = gate * rnnlm_state['h2']
                     z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
                 elif self.rnnlm_fusion == 'cold_fusion_probinj':
-                    rnnlm_logits = linear_tensor(self.lin_rnnlm_probinj, rnnlm_logits)
-                    gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate, torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
-                    gated_rnnlm_state = gate * rnnlm_logits
-                    z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
+                    # lm_logits = linear_tensor(self.mlp_lm_probinj, lm_logits)
+                    lm_logits = self.mlp_lm_probinj(lm_logits)
+                    # gate = F.sigmoid(linear_tensor(self.mlp_lm_gate, torch.cat([z_list[-1], lm_logits], dim=-1)))
+                    gate = F.sigmoid(self.mlp_lm_gate(torch.cat([z_list[-1], lm_logits], dim=-1)))
+                    gated_lm_logits = gate * lm_logits
+                    z_step = torch.cat([z_list[-1], gated_lm_logits], dim=-1)
                 else:
                     z_step = z_list[-1]
 
