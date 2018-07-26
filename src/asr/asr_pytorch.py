@@ -399,6 +399,7 @@ def recog(args):
     logging.info('reading model parameters from' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
+    e2e.recog_args = args
 
     def cpu_loader(storage, location):
         return storage
@@ -515,14 +516,14 @@ def recog(args):
             # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
             # add n-best recognition results with scores
             if args.beam_size > 1 and len(nbest_hyps[i]) > 1:
-                for i, hyp_ij in enumerate(nbest_hyps[i]):
+                for j, hyp_ij in enumerate(nbest_hyps[i]):
                     y_hat_ij = hyp_ij['yseq'][1:]
                     seq_hat_ij = [train_args.char_list[int(idx)] for idx in y_hat_ij]
                     seq_hat_text = "".join(seq_hat_ij).replace('<space>', ' ')
                     new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(j) + ']'] = " ".join([str(idx) for idx in y_hat_ij])
                     new_json[name]['rec_token' + '[' + '{:05d}'.format(j) + ']'] = " ".join(seq_hat_ij)
                     new_json[name]['rec_text' + '[' + '{:05d}'.format(j) + ']'] = seq_hat_text
-                    new_json[name]['score' + '[' + '{:05d}'.format(j) + ']'] = hyp['score']
+                    new_json[name]['score' + '[' + '{:05d}'.format(j) + ']'] = float(hyp_ij['score'])
                     
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:

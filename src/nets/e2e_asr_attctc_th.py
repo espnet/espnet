@@ -2045,15 +2045,13 @@ class Decoder(torch.nn.Module):
             
             torch.cuda.empty_cache()
 
-        cands = [len(ended_hyps[samp_i]) for samp_i in six.moves.range(batch)]
-        print('#ended_hyps: ' + str(cands))
-
+        cands = [len(ended_hyps[samp_i]) for samp_i in six.moves.range(batch)]        
         ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
                       for samp_i in six.moves.range(batch)]
         nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],
-                             reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+                             reverse=True)[:min(len(ended_hyps[samp_i]), recog_args.nbest)]
                       for samp_i in six.moves.range(batch)]
-        
+
         return nbest_hyps   
 
     def calculate_all_attentions(self, hpad, hlen, ys):
