@@ -18,6 +18,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from e2e_asr_attctc_th import AttLoc
+from e2e_asr_attctc_th import to_cuda
 from e2e_asr_attctc_th import torch_is_old
 
 
@@ -62,10 +63,7 @@ def make_mask(lengths, dim=None):
     if torch_is_old:
         mask = Variable(mask)
 
-    if torch.cuda.is_available():
-        return mask.byte().cuda()
-    else:
-        return mask.byte()
+    return mask.byte()
 
 
 class Reporter(chainer.Chain):
@@ -131,7 +129,7 @@ class Tacotron2Loss(torch.nn.Module):
         self.bce_pos_weight = bce_pos_weight
         self.reporter = Reporter()
 
-    def forward(self, xs, ilens, ys, labels, olens=None):
+    def forward(self, xs, ilens, ys, labels, olens=None, spembs=None):
         """TACOTRON2 LOSS FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -139,10 +137,11 @@ class Tacotron2Loss(torch.nn.Module):
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
         :param list olens: batch of the lengths of each target (B)
+        :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
         :return: loss value
         :rtype: torch.Tensor
         """
-        after_outs, before_outs, logits = self.model(xs, ilens, ys)
+        after_outs, before_outs, logits = self.model(xs, ilens, ys, spembs)
         if self.use_masking and olens is not None:
             # weight positive samples
             if self.bce_pos_weight != 1.0:
@@ -154,15 +153,7 @@ class Tacotron2Loss(torch.nn.Module):
             else:
                 weights = None
             # masking padded values
-            mask = make_mask(olens, ys.size(2))
-            if torch.cuda.is_available():
-                ys = ys.cuda()
-                after_outs = after_outs.cuda()
-                before_outs = before_outs.cuda()
-                labels = labels.cuda()
-                logits = logits.cuda()
-                if weights is not None:
-                    weights = weights.cuda()
+            mask = to_cuda(self, make_mask(olens, ys.size(2)))
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
             before_outs = before_outs.masked_select(mask)
@@ -198,6 +189,7 @@ class Tacotron2(torch.nn.Module):
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
+    :param int spk_embed_dim: dimension of the speaker embedding
     :param int embed_dim: dimension of character embedding
     :param int elayers: the number of encoder blstm layers
     :param int eunits: the number of encoder blstm units
@@ -226,6 +218,7 @@ class Tacotron2(torch.nn.Module):
     """
 
     def __init__(self, idim, odim,
+                 spk_embed_dim=None,
                  embed_dim=512,
                  elayers=1,
                  eunits=512,
@@ -254,6 +247,7 @@ class Tacotron2(torch.nn.Module):
         super(Tacotron2, self).__init__()
         # store hyperparameters
         self.idim = idim
+        self.spk_embed_dim = spk_embed_dim
         self.odim = odim
         self.embed_dim = embed_dim
         self.elayers = elayers
@@ -290,10 +284,11 @@ class Tacotron2(torch.nn.Module):
                            econv_filts=self.econv_filts,
                            use_batch_norm=self.use_batch_norm,
                            dropout=self.dropout)
-        self.dec = Decoder(idim=self.eunits,
+        dec_idim = self.eunits if self.spk_embed_dim is None else self.eunits + self.spk_embed_dim
+        self.dec = Decoder(idim=dec_idim,
                            odim=self.odim,
                            att=AttLoc(
-                               self.eunits,
+                               dec_idim,
                                self.dunits,
                                self.adim,
                                self.aconv_chans,
@@ -318,12 +313,13 @@ class Tacotron2(torch.nn.Module):
         self.enc.apply(encoder_init)
         self.dec.apply(decoder_init)
 
-    def forward(self, xs, ilens, ys):
+    def forward(self, xs, ilens, ys, spembs=None):
         """TACOTRON2 FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
         :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
         :return: outputs without postnets (B, Lmax, odim)
@@ -338,14 +334,18 @@ class Tacotron2(torch.nn.Module):
             ilens = list(map(int, ilens))
 
         hs, hlens = self.enc(xs, ilens)
+        if self.spk_embed_dim is not None:
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
 
         return after_outs, before_outs, logits
 
-    def inference(self, x):
+    def inference(self, x, spemb=None):
         """GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
 
         :param tensor x: the sequence of characters (T)
+        :param tensor spemb: speaker embedding vector (spk_embed_dim)
         :return: the sequence of features (L, odim)
         :rtype: tensor
         :return: the sequence of stop probabilities (L)
@@ -354,16 +354,20 @@ class Tacotron2(torch.nn.Module):
         :rtype: tensor
         """
         h = self.enc.inference(x)
+        if self.spk_embed_dim is not None:
+            spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
+            h = torch.cat([h, spemb], dim=-1)
         outs, probs, att_ws = self.dec.inference(h)
 
         return outs, probs, att_ws
 
-    def calculate_all_attentions(self, xs, ilens, ys):
+    def calculate_all_attentions(self, xs, ilens, ys, spembs=None):
         """TACOTRON2 FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: numpy array
         """
@@ -376,6 +380,9 @@ class Tacotron2(torch.nn.Module):
         if not torch_is_old:
             torch.set_grad_enabled(False)
         hs, hlens = self.enc(xs, ilens)
+        if self.spk_embed_dim is not None:
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = torch.cat([hs, spembs], dim=-1)
         att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
         if not torch_is_old:
             torch.set_grad_enabled(True)

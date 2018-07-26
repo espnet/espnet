@@ -4,5 +4,6 @@ python_speech_features>=0.6
 setuptools>=38.5.1
 joblib==0.11.0
 librosa>=0.6.1
+soundfile>=0.10.2
 inflect
 unidecode
