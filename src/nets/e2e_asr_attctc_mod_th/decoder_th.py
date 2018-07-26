@@ -51,10 +51,10 @@ class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., gen_feat='sc',
                  rnnlm=None, rnnlm_fusion=False, rnnlm_init=False,
-                 freeze_rnnlm=False):
+                 rnnlm_loss_weight=0):
         super(Decoder, self).__init__()
 
-        # for RNNLM initialization
+        # for decdoer initialization with pre-trained RNNLM
         if rnnlm_init and rnnlm is not None:
             assert rnnlm.predictor.n_vocab == odim
             assert gen_feat == 's'
@@ -68,6 +68,7 @@ class Decoder(torch.nn.Module):
             self.rnnlm_init = False
             emb_dim = dunits
         self.rnnlm = rnnlm
+        self.rnnlm_loss_weight = rnnlm_loss_weight
 
         self.dunits = dunits
         self.dlayers = dlayers
@@ -108,29 +109,23 @@ class Decoder(torch.nn.Module):
         if self.rnnlm_fusion == 'cold_fusion':
             logging.info('Cold fusion')
             # fine-grained gating
-            self.lin_rnnlm_gate = torch.nn.Linear(
-                rnnlm.predictor.n_units + dunits, rnnlm.predictor.n_units)
-            self.output = torch.nn.Linear(
-                gen_dim + rnnlm.predictor.n_units, odim)
+            self.lin_rnnlm_gate = torch.nn.Linear(rnnlm.predictor.n_units + dunits, rnnlm.predictor.n_units)
+            self.output = torch.nn.Linear(gen_dim + rnnlm.predictor.n_units, odim)
         elif self.rnnlm_fusion == 'cold_fusion_probinj':
             logging.info('Cold fusion w/ probability injection')
             # probability injection
-            self.lin_rnnlm_probinj = torch.nn.Linear(
-                rnnlm.predictor.n_vocab, rnnlm.predictor.n_units)
+            self.lin_rnnlm_probinj = torch.nn.Linear(rnnlm.predictor.n_vocab, rnnlm.predictor.n_units)
             # fine-grained gating
-            self.lin_rnnlm_gate = torch.nn.Linear(
-                rnnlm.predictor.n_units + dunits, rnnlm.predictor.n_units)
-            self.output = torch.nn.Linear(
-                gen_dim + rnnlm.predictor.n_units, odim)
+            self.lin_rnnlm_gate = torch.nn.Linear(rnnlm.predictor.n_units + dunits, rnnlm.predictor.n_units)
+            self.output = torch.nn.Linear(gen_dim + rnnlm.predictor.n_units, odim)
         else:
             self.output = torch.nn.Linear(gen_dim, odim)
-        # TODO: add dropout layer
+        # TODO(hirofumi): add dropout layer
 
-        # Fix RNNLM parameters
-        if rnnlm_fusion and freeze_rnnlm:
+        # fix RNNLM parameters
+        if rnnlm_fusion and rnnlm_loss_weight == 0:
             for name, param in self.rnnlm.named_parameters():
                 param.requires_grad = False
-        # TODO(hirofumi): consider the joint training
 
     def zero_state(self, hpad):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
@@ -161,8 +156,7 @@ class Decoder(torch.nn.Module):
         batch = pad_ys_out.size(0)
         olength = pad_ys_out.size(1)
         logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlen))
-        logging.info(self.__class__.__name__ +
-                     ' output lengths: ' + str([y.size(0) for y in ys_out]))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
 
         # initialization
         c_list = [self.zero_state(hpad)]
@@ -175,24 +169,36 @@ class Decoder(torch.nn.Module):
         self.att.reset()  # reset pre-computation of h
         rnnlm_state = None
 
+        # for joint training with RNNLM
+        y_all_rnnlm = []
+        # for preventing catastrophic forgetting
+        rnnlm_state_lmreg = {}
+        y_all_rnnlm_lmreg = []
+
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            # Update RNNLM state
+            # update RNNLM state
             if self.rnnlm is not None:
                 # rnnlm_state, rnnlm_logits = self.rnnlm.predictor(
                 #     rnnlm_state, pad_ys_in[:, i:i + 1])
-                rnnlm_state, rnnlm_logits = self.rnnlm.predictor(
-                    rnnlm_state, pad_ys_in[:, i])
+                rnnlm_state, rnnlm_logits = self.rnnlm.predictor(rnnlm_state, pad_ys_in[:, i])
                 # pad_ys_in[:, i:i + 1]
                 # pad_ys_in[:, i]
-                # TODO: slice??
+                # TODO(hirofumi): slice??
+                y_all_rnnlm.append(rnnlm_logits)
 
             att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
-            dec_in = torch.cat((eys[:, i, :], att_c), dim=1)
-            # utt x (zdim + hdim)
+            dec_in = torch.cat((eys[:, i, :], att_c), dim=1)   # utt x (zdim + hdim)
+            z_list[0], c_list[0] = self.decoder[0](
+                dec_in, (z_list[0], c_list[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](
+                    z_list[l - 1], (z_list[l], c_list[l]))
+
+            # update RNNLM to prevent catastrophic forgetting
             z_list[0], c_list[0] = self.decoder[0](
                 dec_in, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
@@ -201,18 +207,14 @@ class Decoder(torch.nn.Module):
 
             # RNNLM integration
             if self.rnnlm_fusion == 'cold_fusion':
-                gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate,
-                                               torch.cat([z_list[-1], rnnlm_state['h2']], dim=-1)))
-                gated_rnnlm_state = gate * rnnlm_state['h2']
+                gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate, torch.cat([z_list[-1], rnnlm_state['h2']], dim=-1)))
+                gated_rnnlm_state = gate * rnnlm_state['h' + str(self.rnnlm.predictor.n_layers)]
                 z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
             elif self.rnnlm_fusion == 'cold_fusion_probinj':
-                # rnnlm_logits = linear_tensor(
-                #     self.lin_rnnlm_probinj, rnnlm_logits)
+                # rnnlm_logits = linear_tensor(self.lin_rnnlm_probinj, rnnlm_logits)
                 rnnlm_logits = self.lin_rnnlm_probinj(rnnlm_logits)
-                # gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate,
-                #                                torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
-                gate = F.sigmoid(self.lin_rnnlm_gate(
-                    torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
+                # gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate, torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
+                gate = F.sigmoid(self.lin_rnnlm_gate(torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
                 gated_rnnlm_state = gate * rnnlm_logits
                 z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
             else:
@@ -238,6 +240,18 @@ class Decoder(torch.nn.Module):
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
         logging.info('att loss:' + ''.join(str(self.loss.data).split('\n')))
 
+        # joint training with RNNLM
+        if self.rnnlm_loss_weight > 0:
+            loss_rnnlm = F.cross_entropy(y_all_rnnlm, pad_ys_out.view(-1),
+                                         ignore_index=self.ignore_id,
+                                         size_average=True)
+            # -1: eos, which is removed in the loss computation
+            loss_rnnlm *= (np.mean([len(x) for x in ys_in]) - 1)
+            loss_rnnlm *= self.rnnlm_loss_weight
+            # acc_rnnlm = th_accuracy(y_all_rnnlm, pad_ys_out, ignore_label=self.ignore_id)
+            logging.info('RNNLM loss:' + ''.join(str(loss_rnnlm.data).split('\n')))
+            self.loss += loss_rnnlm
+
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
             y_hat = y_all.view(batch, olength, -1)
@@ -257,12 +271,9 @@ class Decoder(torch.nn.Module):
 
         if self.labeldist is not None:
             if self.vlabeldist is None:
-                self.vlabeldist = to_cuda(self, Variable(
-                    torch.from_numpy(self.labeldist)))
-            loss_reg = - torch.sum((F.log_softmax(
-                y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
-            self.loss = (1. - self.lsm_weight) * self.loss + \
-                self.lsm_weight * loss_reg
+                self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
+            loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
+            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc
 
@@ -310,8 +321,7 @@ class Decoder(torch.nn.Module):
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list,
                    'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
         else:
-            hyp = {'score': 0.0, 'yseq': [
-                y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
+            hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         if lpz is not None:
             ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
@@ -331,23 +341,19 @@ class Decoder(torch.nn.Module):
             for hyp in hyps:
                 vy[0] = hyp['yseq'][i]
                 ey = self.embed(vy)           # utt list (1) x zdim
-                att_c, att_w = self.att(h.unsqueeze(
-                    0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
-                dec_in = torch.cat((ey, att_c), dim=1)
-                # utt(1) x (zdim + hdim)
-                z_list[0], c_list[0] = self.decoder[0](
-                    dec_in, (hyp['z_prev'][0], hyp['c_prev'][0]))
+                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
+                dec_in = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
+
+                z_list[0], c_list[0] = self.decoder[0](dec_in, (hyp['z_prev'][0], hyp['c_prev'][0]))
                 for l in six.moves.range(1, self.dlayers):
                     z_list[l], c_list[l] = self.decoder[l](
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
 
                 # Update RNNLM state
                 if rnnlm is not None:
-                    rnnlm_state, local_lm_scores = rnnlm.predict(
-                        hyp['rnnlm_prev'], vy)
+                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     if self.rnnlm_fusion == 'cold_fusion':
-                        _, rnnlm_logits = rnnlm.predictor(
-                            hyp['rnnlm_prev'], vy)
+                        _, rnnlm_logits = rnnlm.predictor(hyp['rnnlm_prev'], vy)
 
                 # RNNLM integration
                 if self.rnnlm_fusion == 'cold_fusion':
@@ -356,10 +362,8 @@ class Decoder(torch.nn.Module):
                     gated_rnnlm_state = gate * rnnlm_state['h2']
                     z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
                 elif self.rnnlm_fusion == 'cold_fusion_probinj':
-                    rnnlm_logits = linear_tensor(
-                        self.lin_rnnlm_probinj, rnnlm_logits)
-                    gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate,
-                                                   torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
+                    rnnlm_logits = linear_tensor(self.lin_rnnlm_probinj, rnnlm_logits)
+                    gate = F.sigmoid(linear_tensor(self.lin_rnnlm_gate, torch.cat([z_list[-1], rnnlm_logits], dim=-1)))
                     gated_rnnlm_state = gate * rnnlm_logits
                     z_step = torch.cat([z_list[-1], gated_rnnlm_state], dim=-1)
                 else:
@@ -371,8 +375,7 @@ class Decoder(torch.nn.Module):
                     z_step = torch.cat([z_step, ey])
 
                 # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(
-                    self.output(z_step), dim=1).data
+                local_att_scores = F.log_softmax(self.output(z_step), dim=1).data
 
                 if lpz is not None:
                     local_best_scores, local_best_ids = torch.topk(
@@ -381,13 +384,10 @@ class Decoder(torch.nn.Module):
                         hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
                     local_scores = \
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
-                        + ctc_weight * \
-                        torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
+                        + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
                     if rnnlm is not None:
-                        local_scores += recog_args.lm_weight * \
-                            local_lm_scores[:, local_best_ids[0]]
-                    local_best_scores, joint_best_ids = torch.topk(
-                        local_scores, beam, dim=1)
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
+                    local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
                     if rnnlm is not None:
@@ -395,8 +395,7 @@ class Decoder(torch.nn.Module):
                     else:
                         local_scores = local_att_scores
 
-                    local_best_scores, local_best_ids = torch.topk(
-                        local_scores, beam, dim=1)
+                    local_best_scores, local_best_ids = torch.topk(local_scores, beam, dim=1)
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
@@ -407,8 +406,7 @@ class Decoder(torch.nn.Module):
                     new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
-                    new_hyp['yseq'][len(hyp['yseq'])] = int(
-                        local_best_ids[0, j])
+                    new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
                     if rnnlm is not None:
                         new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
@@ -466,8 +464,7 @@ class Decoder(torch.nn.Module):
         nbest_hyps = sorted(
             ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
-        logging.info('normalized log probability: ' +
-                     str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
+        logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         # remove sos
         return nbest_hyps
@@ -520,16 +517,13 @@ class Decoder(torch.nn.Module):
         # convert to numpy array with the shape (B, Lmax, Tmax)
         if isinstance(self.att, AttLoc2D):
             # att_ws => list of previous concate attentions
-            att_ws = torch.stack([aw[:, -1]
-                                  for aw in att_ws], dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).data.cpu().numpy()
         elif isinstance(self.att, (AttCov, AttCovLoc)):
             # att_ws => list of list of previous attentions
-            att_ws = torch.stack([aw[-1]
-                                  for aw in att_ws], dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).data.cpu().numpy()
         elif isinstance(self.att, AttLocRec):
             # att_ws => list of tuple of attention and hidden states
-            att_ws = torch.stack([aw[0] for aw in att_ws],
-                                 dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).data.cpu().numpy()
         elif isinstance(self.att, (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
             # att_ws => list of list of each head attetion
             n_heads = len(att_ws[0])
@@ -537,8 +531,7 @@ class Decoder(torch.nn.Module):
             for h in six.moves.range(n_heads):
                 att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1)
                 att_ws_sorted_by_head += [att_ws_head]
-            att_ws = torch.stack(att_ws_sorted_by_head,
-                                 dim=1).data.cpu().numpy()
+            att_ws = torch.stack(att_ws_sorted_by_head, dim=1).data.cpu().numpy()
         else:
             # att_ws => list of attetions
             att_ws = torch.stack(att_ws, dim=1).data.cpu().numpy()

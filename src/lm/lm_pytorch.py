@@ -135,8 +135,8 @@ class RNNLM(nn.Module):
         if state is None:
             state = {}
             for l in range(1, self.n_layers, 1):
-                state['c_' + str(l)] = to_cuda(self, self.zero_state(x.size(0)))
-                state['h_' + str(l)] = to_cuda(self, self.zero_state(x.size(0)))
+                state['c' + str(l)] = to_cuda(self, self.zero_state(x.size(0)))
+                state['h' + str(l)] = to_cuda(self, self.zero_state(x.size(0)))
 
         h_d = self.d0(self.embed(x))
         for l in range(1, self.n_layers, 1):
