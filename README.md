@@ -27,6 +27,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Cuda 8.0 or 9.1 (for the use of GPU)  
 - Cudnn 6+ (for the use of GPU)  
 - NCCL 2.0+ (for the use of multi-GPUs)
+- protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.x+ (**mainly support PyTorch 0.4.x**)
 - Chainer 4.x+
