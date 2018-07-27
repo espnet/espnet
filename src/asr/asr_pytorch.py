@@ -176,13 +176,30 @@ class NoOdimException(EspnetException):
 
 def get_odim(output_name, valid_json):
     """ Return the output dimension for a given output type.
-    For example, output type might be 'phn' (phonemes) or 'grapheme'"""
+    For example, output type might be 'phn' (phonemes) or 'grapheme'.
+
+    Note this is based off the first utterance, so it's assumed the output
+    dimension doesn't change across utterances in the JSON."""
+
     utts = list(valid_json.keys())
     for output in valid_json[utts[0]]['output']:
         if output['name'] == output_name:
             return int(output['shape'][1])
     # Raise an exception because we couldn't find the odim
     raise NoOdimException("Couldn't determine output dimension (odim) for output named '{}'".format(output_name))
+
+def get_output(output_name, utterance_name, json_utter):
+    """ Returns the dictionary corresponding to a given output_name in some
+    espnet utterance JSON. For example. Example output_names include "grapheme" and
+    "phn" (phoneme).
+
+    Better would be to have json[utter_name]["output"] be a dictionary, but this
+    function is to remove hardcoding of magic numbers like 0 for graphemes."""
+
+    utts = list(json.keys())
+    for output in json[utterance_name]["output"]:
+        if output["name"] == output_name:
+            return output
 
 def train(args):
     '''Run training'''
@@ -477,7 +494,6 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
-    # TODO REMOVE hardcoding
     if train_args.phoneme_objective_weight > 0:
         assert args.phoneme_dict
         with open(args.phoneme_dict) as f:
@@ -508,42 +524,44 @@ def recog(args):
         new_json[name] = dict()
         new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
-        # added recognition results to json
+        # Adding recognition results to the JSON. Start by copying our original
+        # JSON outputs.
         logging.debug("dump token id")
-        out_dic = dict()
-        for _key in recog_json[name]['output'][0]:
-            out_dic[_key] = recog_json[name]['output'][0][_key]
+        grapheme_output = get_output("grapheme", name, recog_json)
+        grapheme_out_dict = copy.deepcopy(grapheme_output)
 
         # TODO(karita) make consistent to chainer as idx[0] not idx
-        out_dic['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
+        grapheme_out_dict['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
         logging.debug("dump token")
-        out_dic['rec_token'] = " ".join(seq_hat)
+        grapheme_out_dict['rec_token'] = " ".join(seq_hat)
         logging.debug("dump text")
-        out_dic['rec_text'] = seq_hat_text
+        grapheme_out_dict['rec_text'] = seq_hat_text
+
+        new_json[name]['output'] = [grapheme_out_dict]
 
         if train_args.phoneme_objective_weight > 0:
+            phn_output = get_output("phn", name, recog_json)
+            if phn_output:
+                phn_out_dict = copy.deepcopy(phn_output)
+                phn_true = phn_out_dict["token"]
+                logging.info("ground truth phns: {}".format(phn_true))
+            else:
+                # Then there was no ground truth phonemes, so we create a new
+                # output.
+                phn_out_dict = {}
+                phn_out_dict["name"] = "phn"
+
             # Then do basic one-best CTC phoneme decoding
             phn_hyps = e2e.recognize_phn(feat)
             phn_hat = [phn_inv_list[idx] for idx in phn_hyps]
-
-            # Try and read the ground truth phonemes.
-            for output in recog_json[name]['output']:
-                if output['name'] == "phn":
-                    phn_true = map(int, output['tokenid'].split())
-                    break
-
-            #print out phoneme CTC decoding result
-            if phn_true:
-                # We might not have ground truth phonemes
-                phn_true = [phn_inv_list[idx] for idx in phn_true]
-                logging.info("ground truth phns: {}".format(phn_true))
             logging.info("predicted phns: {}".format(phn_hat))
 
             # Add phoneme-related info to the output JSON
-            out_dic['rec_phn_tokenid'] = " ".join([str(idx) for idx in phn_hyps])
-            out_dic['rec_pnn_token'] = " ".join(phn_hat)
+            phn_out_dict['rec_tokenid'] = " ".join([str(idx) for idx in phn_hyps])
+            phn_out_dict['rec_token'] = " ".join(phn_hat)
 
-        new_json[name]['output'] = [out_dic]
+            new_json[name]['output'].append(phn_out_dict)
+
         # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
         # add n-best recognition results with scores
         if args.beam_size > 1 and len(nbest_hyps) > 1:
