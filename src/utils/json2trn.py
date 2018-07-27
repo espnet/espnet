@@ -14,8 +14,9 @@ if __name__ == '__main__':
     parser.add_argument('dict', type=str, help='dict')
     parser.add_argument('ref', type=str, help='ref')
     parser.add_argument('hyp', type=str, help='hyp')
+    parser.add_argument('output_type', type=str, default="grapheme", help='output type ("grapheme" or "phn")')
     args = parser.parse_args()
-    
+
     # logging info
     logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
@@ -37,10 +38,16 @@ if __name__ == '__main__':
     r = open(args.ref, 'w')
 
     for x in j['utts']:
-        seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['rec_tokenid'].split()]
-        h.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
-        h.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x +")\n")
+        found_output = False
+        for output in j['utts'][x]['output']:
+            if output['name'] == args.output_type:
+                found_output = True
+                seq = [char_list[int(i)] for i in output['rec_tokenid'].split()]
+                h.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
+                h.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x +")\n")
 
-        seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid'].split()]
-        r.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
-        r.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x +")\n")
+                seq = [char_list[int(i)] for i in output['tokenid'].split()]
+                r.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
+                r.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x +")\n")
+        if not found_output:
+            logging.warning("Didn't find output type: {}".format(args.output_type))

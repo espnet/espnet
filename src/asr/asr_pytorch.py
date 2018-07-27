@@ -188,7 +188,7 @@ def get_odim(output_name, valid_json):
     # Raise an exception because we couldn't find the odim
     raise NoOdimException("Couldn't determine output dimension (odim) for output named '{}'".format(output_name))
 
-def get_output(output_name, utterance_name, json_utter):
+def get_output(output_name, utterance_name, json):
     """ Returns the dictionary corresponding to a given output_name in some
     espnet utterance JSON. For example. Example output_names include "grapheme" and
     "phn" (phoneme).
