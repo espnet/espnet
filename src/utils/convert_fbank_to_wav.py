@@ -29,14 +29,14 @@ def logmelspc_to_linearspc(lmspc, fs, n_mels, n_fft, fmin=None, fmax=None):
     return spc
 
 
-def griffin_lim(spc, n_fft, n_shift, window='hann', iters=100):
+def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', iters=100):
     assert spc.shape[1] == n_fft // 2 + 1
     cspc = np.abs(spc).astype(np.complex).T
     angles = np.exp(2j * np.pi * np.random.rand(*cspc.shape))
-    y = librosa.istft(cspc * angles, n_shift, window=window)
+    y = librosa.istft(cspc * angles, n_shift, win_length, window=window)
     for i in range(iters):
-        angles = np.exp(1j * np.angle(librosa.stft(y, n_fft, n_shift, window=window)))
-        y = librosa.istft(cspc * angles, n_shift, window=window)
+        angles = np.exp(1j * np.angle(librosa.stft(y, n_fft, n_shift, win_length, window=window)))
+        y = librosa.istft(cspc * angles, n_shift, win_length, window=window)
 
     return y
 
@@ -49,12 +49,14 @@ def main():
                         help='Maximum frequency')
     parser.add_argument('--fmin', type=int, default=None, nargs='?',
                         help='Minimum frequency')
-    parser.add_argument('--n_mels', type=int, default=80,
-                        help='Number of mel basis')
     parser.add_argument('--n_fft', type=int, default=1024,
                         help='FFT length in point')
     parser.add_argument('--n_shift', type=int, default=512,
                         help='Shift length in point')
+    parser.add_argument('--win_length', type=int, default=None, nargs='?',
+                        help='Analisys window length in point')
+    parser.add_argument('--n_mels', type=int, default=80,
+                        help='Number of mel basis')
     parser.add_argument('--window', type=str, default='hann',
                         choices=['hann', 'hamming'],
                         help='Type of window')
@@ -89,6 +91,7 @@ def main():
             spc,
             n_fft=args.n_fft,
             n_shift=args.n_shift,
+            win_length=args.win_length,
             window=args.window)
         logging.info("(%d) %s" % (idx, utt_id))
         write(args.outdir + "/%s.wav" % utt_id,

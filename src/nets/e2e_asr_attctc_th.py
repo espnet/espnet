@@ -794,8 +794,7 @@ class AttLoc(torch.nn.Module):
 
         # weighted sum over flames
         # utt x hdim
-        # NOTE equivalent to c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
-        c = torch.matmul(w.unsqueeze(1), self.enc_h).squeeze(1)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
 
         return c, w
 
