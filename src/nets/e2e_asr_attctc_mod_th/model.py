@@ -20,21 +20,21 @@ from torch.autograd import Variable
 
 from e2e_asr_common import label_smoothing_dist
 
-from e2e_asr_attctc_mod_th.encoder_th import Encoder
-from e2e_asr_attctc_mod_th.decoder_th import Decoder
-from e2e_asr_attctc_mod_th.ctc_th import CTC
-from e2e_asr_attctc_mod_th.attention_th import NoAtt
-from e2e_asr_attctc_mod_th.attention_th import AttDot
 from e2e_asr_attctc_mod_th.attention_th import AttAdd
+from e2e_asr_attctc_mod_th.attention_th import AttCov
+from e2e_asr_attctc_mod_th.attention_th import AttCovLoc
+from e2e_asr_attctc_mod_th.attention_th import AttDot
 from e2e_asr_attctc_mod_th.attention_th import AttLoc
 from e2e_asr_attctc_mod_th.attention_th import AttLoc2D
 from e2e_asr_attctc_mod_th.attention_th import AttLocRec
-from e2e_asr_attctc_mod_th.attention_th import AttCov
-from e2e_asr_attctc_mod_th.attention_th import AttCovLoc
-from e2e_asr_attctc_mod_th.attention_th import AttMultiHeadDot
 from e2e_asr_attctc_mod_th.attention_th import AttMultiHeadAdd
+from e2e_asr_attctc_mod_th.attention_th import AttMultiHeadDot
 from e2e_asr_attctc_mod_th.attention_th import AttMultiHeadLoc
 from e2e_asr_attctc_mod_th.attention_th import AttMultiHeadMultiResLoc
+from e2e_asr_attctc_mod_th.attention_th import NoAtt
+from e2e_asr_attctc_mod_th.ctc_th import CTC
+from e2e_asr_attctc_mod_th.decoder_th import Decoder
+from e2e_asr_attctc_mod_th.encoder_th import Encoder
 
 torch_is_old = torch.__version__.startswith("0.3.")
 
@@ -255,7 +255,6 @@ class E2E(torch.nn.Module):
                            labeldist, args.lsm_weight, args.gen_feat,
                            rnnlm, args.rnnlm_fusion, args.rnnlm_init,
                            args.rnnlm_loss_weight)
-        # TODO(hirofumi): add option of joint training with RNNLM
 
         # weight initialization
         self.init_like_chainer()
@@ -289,14 +288,13 @@ class E2E(torch.nn.Module):
         # Initialize decoder with pre-trained RNNLM
         if self.dec.rnnlm_init:
             logging.info('Initialize the decoder with pre-trained RNNLM')
-            for i in range(len(self.dec.decoder)):
-                assert isinstance(self.dec.decoder[i], torch.nn.LSTMCell)
-                self.dec.decoder[i].weight_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i + 1)).weight_ih.data
-                self.dec.decoder[i].weight_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i + 1)).weight_hh.data
-                self.dec.decoder[i].bias_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i + 1)).bias_ih.data
-                self.dec.decoder[i].bias_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i + 1)).bias_hh.data
-            assert isinstance(self.dec.output, torch.nn.Linear)
-            self.dec.output.weight.data = self.dec.rnnlm.predictor.lo.weight.data
+            for i in range(1, len(self.dec.decoder) + 1):
+                self.dec.decoder[i].weight_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).weight_ih.data
+                self.dec.decoder[i].weight_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).weight_hh.data
+                self.dec.decoder[i].bias_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).bias_ih.data
+                self.dec.decoder[i].bias_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).bias_hh.data
+            if not self.rnnlm_fusion:
+                self.dec.output.weight.data = self.dec.rnnlm.predictor.lo.weight.data
         # TODO(hirofumi): these are too hacky
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
