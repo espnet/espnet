@@ -332,6 +332,10 @@ def train(args):
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    # save the model after each epoch
+    trainer.extend(extensions.snapshot_object(model, 'model_epoch{.updater.epoch}', savefun=torch_save),
+                   trigger=(1, 'epoch'))
+
     if mtl_mode is not 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
