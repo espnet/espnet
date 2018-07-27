@@ -95,6 +95,10 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
         if not torch_is_old:
             torch.set_grad_enabled(True)
 
+        # for cold fusion
+        if self.model.predictor.dec.rnnlm_fusion:
+            self.model.predictor.dec.rnnlm.eval()
+
         return summary.compute_mean()
 
 
@@ -237,8 +241,7 @@ def train(args):
 
         rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(odim, args.lm_unit, args.lm_layer))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
-        # rnnlm.eval()
-        # NOTE: now run cold fusion with the training mode
+        rnnlm.eval()
         # TODO(hirofumi): add option of joint training with RNNLM
     else:
         rnnlm = None
