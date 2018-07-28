@@ -138,8 +138,13 @@ def main():
                         help='Batch size is reduced if the output sequence length > ML')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam'],
+                        choices=['adadelta', 'adam', 'datadelta'],
                         help='Optimizer')
+    parser.add_argument('--check-batch-types', default='main aug', type=str,
+                        help='which batches to check (only used in datadelta optimizer)')
+    parser.add_argument('--undo-type', default='undo_step', type=str,
+                        choices=set(['undo_step', 'undo_learning_rate', 'undo_square_avg']),
+                        help='type of undo mechanism to use.')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,

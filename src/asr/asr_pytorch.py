@@ -37,6 +37,7 @@ from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
+from Datadelta import Datadelta
 from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss
 from e2e_asr_attctc_th import torch_is_old
@@ -202,7 +203,6 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
             is_aug = False
 
         # Compute the loss at this time step and accumulate it
-        print('is aug', is_aug, 'done_aug', self.done_augment, 'done_pretrain_aug', self.done_pretrain_aug)
         loss = 1. / self.num_gpu * self.model(x, is_aug=is_aug)
         # loss = self.model(x, is_aug=is_aug)
         optimizer.zero_grad()  # Clear the parameter gradients
@@ -219,7 +219,10 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
             logging.warning('grad norm is nan. Do not update model.')
             logging.warning(str(batch[0]))
         else:
-            optimizer.step()
+            if isinstance(optimizer, Datadelta):
+                optimizer.step('aug' if is_aug else 'main')
+            else:
+                optimizer.step()
         if is_aug:
             delete_feat_augment(x)
         else:
@@ -337,17 +340,6 @@ def train(args):
     else:
         gpu_id = [-1]
 
-    # Setup an optimizer
-    if args.opt == 'adadelta':
-        optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps)
-    elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters())
-
-    # FIXME: TOO DIRTY HACK
-    setattr(optimizer, "target", reporter)
-    setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
-
     # read json data
     with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
@@ -363,6 +355,33 @@ def train(args):
     train_iter = chainer.iterators.SerialIterator(train, 1)
     valid_iter = chainer.iterators.SerialIterator(
         valid, 1, repeat=False, shuffle=False)
+
+
+    # Setup an optimizer
+    if args.opt == 'adadelta':
+        optimizer = torch.optim.Adadelta(
+            model.parameters(), rho=0.95, eps=args.eps)
+    elif args.opt == 'adam':
+        optimizer = torch.optim.Adam(model.parameters())
+    elif args.opt == 'datadelta':
+        optimizer = Datadelta(model.parameters(),
+                              model.predictor.forward,
+                              converter=converter_kaldi,
+                              undo_type=args.undo_type,
+                              lr=1.0,
+                              rho=0.95,
+                              eps=args.eps,
+                              weight_decay=0.,
+                              valid_batches=valid,
+                              which_batches_to_check=args.check_batch_types.strip().split(),
+                              diff_threshold=0.)
+    else:
+        raise NotImplementedError("i dont know what optimizer to use")
+
+
+    # FIXME: TOO DIRTY HACK
+    setattr(optimizer, "target", reporter)
+    setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # prepare Kaldi reader
     #train_reader = lazy_io.read_dict_scp(args.train_feat)
@@ -452,7 +471,7 @@ def train(args):
         else:
             model.load_state_dict(torch.load(path))
         return obj
-    if args.opt == 'adadelta':
+    if args.opt == 'adadelta' or args.opt == 'datadelta':
         if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
@@ -477,7 +496,7 @@ def train(args):
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
-    if args.opt == 'adadelta':
+    if args.opt == 'adadelta' or args.opt == 'datadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(100, 'iteration'))
