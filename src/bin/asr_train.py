@@ -74,6 +74,8 @@ def main():
                         help='number of layers in the AugmentEncoder')
     parser.add_argument('--aug-idim', default=83, type=int,
                         help='augment symbol embedding dim')
+    parser.add_argument('--aug-optim', default='aug', type=str, choices=set(['main', 'aug']),
+                        help='Enables using a single optimizer for both primary and aug if set to main.')
 
     # network archtecture
     # encoder

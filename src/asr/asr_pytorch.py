@@ -153,7 +153,7 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
 
     def __init__(self, model, grad_clip_threshold, train_iter,
                  train_augment_iter, augment_metadata, augment_ratio, alternate_aug, pretrain_aug, expand_iline,
-                 optimizer, converter_kaldi, converter_augment, device):
+                 optimizer, converter_kaldi, converter_augment, device, aug_optim='aug'):
         super(PytorchSeqUpdaterKaldiWithAugment, self).__init__(model, grad_clip_threshold,
                                                                 train_iter, optimizer, converter=converter_kaldi, device=device)
         self.augment_metadata = augment_metadata
@@ -176,12 +176,13 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
         self.odict = self.augment_metadata['odict']
         self.ifile = codecs.open(self.augment_metadata['ifilename'], 'r', encoding='utf-8')
         self.ofile = codecs.open(self.augment_metadata['ofilename'], 'r', encoding='utf-8')
+        self.aug_optim = aug_optim
 
     def update_core(self,):
         train_iter = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
         if (self.done_pretrain_aug < self.pretrain_aug) or (random.random() < self.a2a_ratio):
-            # if (self.done_augment < self.a2a_ratio):
+            optimizer = self.get_optimizer(self.aug_optim)
+            print("AUG Optim ID: ", id(optimizer))
             batch = self.train_augment_iter.__next__()
             x = self.converter_augment(batch[0], self.idict, self.odict, self.ifile, self.ofile, self.expand_iline)
             if self.done_pretrain_aug < self.pretrain_aug:
@@ -190,6 +191,8 @@ class PytorchSeqUpdaterKaldiWithAugment(PytorchSeqUpdaterKaldi):
                 self.done_augment += 1
             is_aug = True
         else:
+            optimizer = self.get_optimizer('main')
+            print("MAIN Optim ID: ", id(optimizer))
             batch = train_iter.__next__()
             if len(batch[0]) < self.num_gpu:
                 logging.warning('batch size is less than number of gpus. Ignored')
@@ -395,6 +398,12 @@ def train(args):
                                                     args.minibatches,
                                                     args.subsample)
         train_augment_iter = chainer.iterators.SerialIterator(train_augment, 1)
+
+        aug_optimizer = torch.optim.Adadelta(model.parameters(), rho=0.95, eps=args.eps)
+        # FIXME: TOO DIRTY HACK
+        setattr(aug_optimizer, "target", reporter)
+        setattr(aug_optimizer, "serialize", lambda s: reporter.serialize(s))
+
         updater = PytorchSeqUpdaterKaldiWithAugment(model,
                                                     args.grad_clip,
                                                     train_iter,
@@ -404,10 +413,10 @@ def train(args):
                                                     args.aug_alternate,
                                                     args.aug_pretrain,
                                                     4 if args.aug_arch == 1 else 1,
-                                                    optimizer,
+                                                    {'main': optimizer, 'aug': aug_optimizer}, 
                                                     converter_kaldi=converter_kaldi,
                                                     converter_augment=converter_augment,
-                                                    device=gpu_id)
+                                                    device=gpu_id, aug_optim=args.aug_optim)
         trainer = training.Trainer(updater,
                                    (args.epochs, 'epoch'),
                                    out=args.outdir)
@@ -471,6 +480,7 @@ def train(args):
         else:
             model.load_state_dict(torch.load(path))
         return obj
+
     if args.opt == 'adadelta' or args.opt == 'datadelta':
         if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
@@ -492,7 +502,7 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(8, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']

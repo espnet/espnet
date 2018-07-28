@@ -101,7 +101,7 @@ class Reporter(chainer.Chain):
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
 
-
+    
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
     def __init__(self, predictor, mtlalpha):
