@@ -295,7 +295,6 @@ class E2E(torch.nn.Module):
                 self.dec.decoder[i].bias_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).bias_hh.data
             if not self.rnnlm_fusion:
                 self.dec.output.weight.data = self.dec.rnnlm.predictor.lo.weight.data
-        # TODO(hirofumi): these are too hacky
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):

@@ -67,6 +67,8 @@ def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
         labelcount[labelcount == 0] = 1  # flooring
         labelcount[blank] = 0  # remove counts for blank
         labeldist = labelcount.astype(np.float32) / np.sum(labelcount)
+    elif lsm_type == 'uniform':
+        labeldist = np.ones(odim).astype(np.float32) / odim
     else:
         logging.error(
             "Error: unexpected label smoothing type: %s" % lsm_type)

@@ -15,7 +15,7 @@ else
 kaldi:
 	git clone https://github.com/kaldi-asr/kaldi.git kaldi_github; cd kaldi_github/tools; $(MAKE) all
 	cd kaldi_github/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
-	ln -s kaldi_github kaldi	
+	ln -s kaldi_github kaldi
 endif
 
 # for some reason, including matplotlib in requirements.txt causes errors, and

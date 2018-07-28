@@ -8,7 +8,7 @@
 
 # general configuration
 backend=chainer # chainer or pytorch
-stage=0         # start from 0 if you need to start from data preparation
+stage=1         # start from 0 if you need to start from data preparation
 gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -63,8 +63,10 @@ ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
-CSJDATATOP=/export/corpora5/CSJ/USB
-CSJVER=usb                          # see kaldi/egs/csj/s5/run.sh about the version
+# CSJDATATOP=/export/corpora5/CSJ/USB
+CSJDATATOP=/n/rd25/mimura/corpus/CSJ
+# CSJVER=usb                          # see kaldi/egs/csj/s5/run.sh about the version
+CSJVER=dvd                          # see kaldi/egs/csj/s5/run.sh about the version
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -268,7 +270,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0

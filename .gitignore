@@ -4,6 +4,7 @@ B*~
 .\#*
 *DS_Store
 slurm-*.out
+__pycache__
 
 doc/_build
 
@@ -34,5 +35,6 @@ tools/nkf*
 tools/chainer_ctc*
 tools/warp-ctc*
 tools/sentencepiece/*
+tools/subword-nmt/*
 
 .pytest_cache

@@ -111,14 +111,14 @@ class Decoder(torch.nn.Module):
             logging.info('Cold fusion')
             self.mlp_lm_state = torch.nn.Linear(rnnlm.predictor.n_units, dunits)
             # fine-grained gating
-            self.mlp_lm_gate = torch.nn.Linear(dunits * 2, rnnlm.predictor.n_units)
+            self.mlp_lm_gate = torch.nn.Linear(dunits * 2, dunits)
             self.output = torch.nn.Linear(gen_dim + dunits, odim)
         elif self.rnnlm_fusion == 'cold_fusion_probinj':
             logging.info('Cold fusion w/ probability injection')
             # probability injection
             self.mlp_lm_probinj = torch.nn.Linear(rnnlm.predictor.n_vocab, dunits)
             # fine-grained gating
-            self.mlp_lm_gate = torch.nn.Linear(dunits * 2, rnnlm.predictor.n_units)
+            self.mlp_lm_gate = torch.nn.Linear(dunits * 2, dunits)
             self.output = torch.nn.Linear(gen_dim + dunits, odim)
         elif self.rnnlm_fusion == 'logits_fusion':
             raise NotImplementedError
