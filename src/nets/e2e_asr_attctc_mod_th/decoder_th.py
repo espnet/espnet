@@ -74,11 +74,13 @@ class Decoder(torch.nn.Module):
         self.dlayers = dlayers
         self.embed = torch.nn.Embedding(odim, emb_dim)
         self.decoder = torch.nn.ModuleList()
+        # self.decoder += [torch.nn.Dropout(p=dropout)]
         self.decoder += [torch.nn.LSTMCell(emb_dim + eprojs, dunits)]
+        # self.decoder += [torch.nn.Dropout(p=dropout)]
         for l in six.moves.range(1, self.dlayers):
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
+            # self.decoder += [torch.nn.Dropout(p=dropout)]
         self.ignore_id = -1
-        # TODO(hirofumi): add dropout layer
 
         self.loss = None
         self.att = att
@@ -182,7 +184,7 @@ class Decoder(torch.nn.Module):
         if self.rnnlm_init:
             c_list_rnnlmreg = [self.zero_state(hpad)]
             z_list_rnnlmreg = [self.zero_state(hpad)]
-            for l in range(1, self.dlayers):
+            for l in six.moves.range(1, self.dlayers):
                 c_list_rnnlmreg.append(self.zero_state(hpad))
                 z_list_rnnlmreg.append(self.zero_state(hpad))
             z_all_rnnlmreg = []
@@ -206,7 +208,7 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
 
-            # update decoder with RNNLM embedding to prevent catastrophic forgetting
+            # update decoder state with RNNLM embedding to prevent catastrophic forgetting
             if self.rnnlm_init and self.rnnlm_loss_weight > 0:
                 rnnlm_in = self.rnnlm_embed(pad_ys_in[:, i])
                 z_list_rnnlmreg[0], c_list_rnnlmreg[0] = self.decoder[0](
@@ -245,37 +247,34 @@ class Decoder(torch.nn.Module):
         self.loss = F.cross_entropy(y_all, pad_ys_out.view(-1),
                                     ignore_index=self.ignore_id,
                                     size_average=True)
-        # TODO(hirofumi): fix label smoothing
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
         logging.info('att loss:' + ''.join(str(self.loss.data).split('\n')))
 
+        # compute loss for RNNLM
         if self.rnnlm_loss_weight > 0:
+            assert not (self.rnnlm_fusion and self.rnnlm_init)
             # joint training with RNNLM
             if self.rnnlm_fusion:
                 loss_lm = F.cross_entropy(y_all_lm, pad_ys_out.view(-1),
                                           ignore_index=self.ignore_id,
                                           size_average=True)
-                # -1: eos, which is removed in the loss computation
-                loss_lm *= (np.mean([len(x) for x in ys_in]) - 1)
-                loss_lm *= self.rnnlm_loss_weight
-                # acc_rnnlm = th_accuracy(y_all_lm, pad_ys_out, ignore_label=self.ignore_id)
-                logging.info('RNNLM loss:' + ''.join(str(loss_lm.data).split('\n')))
-                self.loss += loss_lm
+
             # RNNLM objective for RNNLM initialization to prevent catastrophic forgetting
             elif self.rnnlm_init:
                 z_all_rnnlmreg = torch.stack(z_all_rnnlmreg, dim=1).view(batch * olength, -1)
-                # compute loss
                 y_all_rnnlmreg = self.output(z_all_rnnlmreg)
                 if self.rnnlm_fusion in ['cold_fusion', 'cold_fusion_probinj']:
                     y_all_rnnlmreg = F.relu(y_all_rnnlmreg)
-                self.loss = F.cross_entropy(y_all_rnnlmreg, pad_ys_out.view(-1),
-                                            ignore_index=self.ignore_id,
-                                            size_average=True)
-                # TODO(hirofumi): fix label smoothing
-                # -1: eos, which is removed in the loss computation
-                self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
+                loss_lm = F.cross_entropy(y_all_rnnlmreg, pad_ys_out.view(-1),
+                                          ignore_index=self.ignore_id,
+                                          size_average=True)
+
+            loss_lm *= (np.mean([len(x) for x in ys_in]) - 1)
+            loss_lm *= self.rnnlm_loss_weight
+            logging.info('RNNLM loss:' + ''.join(str(loss_lm.data).split('\n')))
+            self.loss += loss_lm
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
