@@ -54,6 +54,8 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
+datadelta_check_batch_types="aug"
+datadelta_undo_type='undo_step'
 epochs=15
 
 # rnnlm related
@@ -301,6 +303,8 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
+        --check-batch-types "${datadelta_check_batch_types}" \
+        --undo-type ${datadelta_undo_type} \
         --epochs ${epochs}
 fi
 
