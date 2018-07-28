@@ -152,7 +152,7 @@ def pad_list(xs, pad_value):
         pad = xs[0].data.new(
             n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value
 
-    for i in range(n_batch):
+    for i in six.moves.range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
 
     return pad
@@ -183,7 +183,7 @@ class E2E(torch.nn.Module):
         subsample = np.ones(args.elayers + 1, dtype=np.int)
         if args.etype == 'blstmp':
             ss = args.subsample.split("_")
-            for j in range(min(args.elayers + 1, len(ss))):
+            for j in six.moves.range(min(args.elayers + 1, len(ss))):
                 subsample[j] = int(ss[j])
         else:
             logging.warning(
@@ -288,13 +288,18 @@ class E2E(torch.nn.Module):
         # Initialize decoder with pre-trained RNNLM
         if self.dec.rnnlm_init:
             logging.info('Initialize the decoder with pre-trained RNNLM')
-            for i in range(1, len(self.dec.decoder) + 1):
-                self.dec.decoder[i].weight_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).weight_ih.data
-                self.dec.decoder[i].weight_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).weight_hh.data
-                self.dec.decoder[i].bias_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).bias_ih.data
-                self.dec.decoder[i].bias_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(i)).bias_hh.data
-            if not self.rnnlm_fusion:
+            for l in six.moves.range(self.dec.dlayers):
+                self.dec.decoder[l].weight_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(l + 1)).weight_ih.data
+                self.dec.decoder[l].weight_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(l + 1)).weight_hh.data
+                self.dec.decoder[l].bias_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(l + 1)).bias_ih.data
+                self.dec.decoder[l].bias_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(l + 1)).bias_hh.data
+            if not self.dec.rnnlm_fusion:
                 self.dec.output.weight.data = self.dec.rnnlm.predictor.lo.weight.data
+                self.dec.output.bias.data = self.dec.rnnlm.predictor.lo.bias.data
+
+        # Initialize bias in the gating part with -1
+        if self.dec.rnnlm_fusion:
+            self.dec.output.bias.data.fill_(-1)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):
@@ -307,7 +312,7 @@ class E2E(torch.nn.Module):
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
         tids = [d[1]['output'][0]['tokenid'].split() for d in data]
-        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        filtered_index = filter(lambda i: len(tids[i]) > 0, six.moves.range(len(xs)))
         sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
         if len(sorted_index) != len(xs):
             logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
