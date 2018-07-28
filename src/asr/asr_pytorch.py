@@ -5,6 +5,7 @@
 
 
 import copy
+import functools
 import json
 import logging
 import math
@@ -15,6 +16,7 @@ import sys
 # chainer related
 import chainer
 
+from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -27,16 +29,19 @@ from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
+from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss
+from e2e_asr_attctc_th import torch_is_old
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
+import extlm_pytorch
 import lm_pytorch
 
 # matplotlib related
@@ -67,20 +72,25 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         summary = reporter_module.DictSummary()
 
+        self.model.eval()
+        if not torch_is_old:
+            torch.set_grad_enabled(False)
+
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
                 # read scp files
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
-                x = self.converter(batch)
-                self.model.eval()
+                x = batch[0]
                 self.model(x)
                 delete_feat(x)
 
             summary.add(observation)
 
         self.model.train()
+        if not torch_is_old:
+            torch.set_grad_enabled(True)
 
         return summary.compute_mean()
 
@@ -105,15 +115,15 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.__next__()
-
+        x = batch[0]
+        
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
         # batch only has one minibatch utterance, which is specified by batch[0]
-        if len(batch[0]) < self.num_gpu:
+        if len(x) < self.num_gpu:
             logging.warning('batch size is less than number of gpus. Ignored')
             return
-        x = self.converter(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = 1. / self.num_gpu * self.model(x)
@@ -124,7 +134,11 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm(
+        if torch_is_old:
+            clip = torch.nn.utils.clip_grad_norm
+        else:
+            clip = torch.nn.utils.clip_grad_norm_
+        grad_norm = clip(
             self.model.parameters(), self.grad_clip_threshold)
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
@@ -268,9 +282,11 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
+    train_iter = chainer.iterators.MultithreadIterator(
+        TransformDataset(train, functools.partial(converter_kaldi, device=gpu_id)), 1, n_threads=2)
+    valid_iter = chainer.iterators.MultithreadIterator(
+        TransformDataset(valid, functools.partial(converter_kaldi, device=gpu_id)), 1, n_threads=2,
+        repeat=False, shuffle=False)
 
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
@@ -293,9 +309,9 @@ def train(args):
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
-        data = sorted(valid_json.items()[:args.num_save_attention],
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        data = converter_kaldi([data], device=gpu_id)
+        data = converter_kaldi(data, device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
@@ -411,9 +427,32 @@ def recog(args):
     else:
         rnnlm = None
 
+    if args.word_rnnlm:
+        if not args.word_dict:
+            logging.error('word dictionary file is not specified for the word RNNLM.')
+            sys.exit(1)
+
+        word_dict = load_labeldict(args.word_dict)
+        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
+        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), 650))
+        word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
+        word_rnnlm.eval()
+
+        if rnnlm is not None:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
+                                           rnnlm.predictor, word_dict, char_dict))
+        else:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
+
     # read json data
     with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
+
+    if not torch_is_old:
+        torch.set_grad_enabled(False)
 
     new_json = {}
     for name in recog_json.keys():

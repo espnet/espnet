@@ -6,6 +6,7 @@
 from __future__ import division
 
 import collections
+import functools
 import json
 import logging
 import math
@@ -33,6 +34,7 @@ from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
+from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
@@ -43,6 +45,7 @@ from e2e_asr_attctc import Loss
 import kaldi_io_py
 
 # rnnlm
+import extlm_chainer
 import lm_chainer
 
 # numpy related
@@ -71,7 +74,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
-        x = self.converter(batch)
+        x = batch[0]
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(x)
@@ -359,7 +362,9 @@ def train(args):
                               args.maxlen_in, args.maxlen_out, args.minibatches)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iter = chainer.iterators.SerialIterator(train, 1)
+        train_iter = chainer.iterators.MultithreadIterator(
+            TransformDataset(train, functools.partial(converter_kaldi, device=gpu_id)),
+            1, n_threads=4)
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
@@ -384,9 +389,9 @@ def train(args):
 
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iters = [chainer.iterators.MultiprocessIterator(
-            TransformDataset(train_subsets[gid], converter_kaldi),
-            1, n_processes=ngpu, n_prefetch=ngpu+1, maxtasksperchild=10)
+        train_iters = [chainer.iterators.MultithreadIterator(
+            TransformDataset(train_subsets[gid], functools.partial(converter_kaldi, device=gpu_id)),
+            1, n_threads=4 * ngpu)
             for gid in six.moves.xrange(ngpu)]
 
         # set up updater
@@ -404,16 +409,19 @@ def train(args):
     # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
-
+    valid_iter = chainer.iterators.MultithreadIterator(
+        TransformDataset(valid,
+                         functools.partial(converter_kaldi, device=gpu_id)),
+        1, n_threads=2,
+        repeat=False, shuffle=False)
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(
-        valid_iter, model, converter=converter_kaldi, device=gpu_id))
+    trainer.extend(extensions.Evaluator(valid_iter, model,
+                                        converter=lambda x, device: x[0],
+                                        device=gpu_id))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
-        data = sorted(valid_json.items()[:args.num_save_attention],
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         data = converter_kaldi(data, device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
@@ -505,6 +513,25 @@ def recog(args):
         chainer.serializers.load_npz(args.rnnlm, rnnlm)
     else:
         rnnlm = None
+
+    if args.word_rnnlm:
+        if not args.word_dict:
+            logging.error('word dictionary file is not specified for the word RNNLM.')
+            sys.exit(1)
+
+        word_dict = load_labeldict(args.word_dict)
+        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
+        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), 650))
+        chainer.serializers.load_npz(args.word_rnnlm, word_rnnlm)
+
+        if rnnlm is not None:
+            rnnlm = lm_chainer.ClassifierWithState(
+                extlm_chainer.MultiLevelLM(word_rnnlm.predictor,
+                                           rnnlm.predictor, word_dict, char_dict))
+        else:
+            rnnlm = lm_chainer.ClassifierWithState(
+                extlm_chainer.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
 
     # read json data
     with open(args.recog_json, 'rb') as f:
