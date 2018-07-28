@@ -63,7 +63,7 @@ ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
-CSJDATATOP=/opt/data/asr/data/usb/
+CSJDATATOP=/export/corpora5/CSJ/USB
 CSJVER=usb                          # see kaldi/egs/csj/s5/run.sh about the version
 
 # bpemode (unigram or bpe)
@@ -273,7 +273,7 @@ if [ ${stage} -le 5 ]; then
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
-        split data
+        # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json 
 
         #### use CPU for decoding
