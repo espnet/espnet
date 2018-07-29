@@ -8,6 +8,7 @@ import torch
 import numpy as np
 import six
 
+torch_is_old = torch.__version__.startswith("0.3.")
 
 def logsumexp(inputs, dim=None, keepdim=False):
     """Numerically stable logsumexp.
@@ -73,10 +74,11 @@ class CTCPrefixScoreTH(object):
         # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
         # superscripts n and b (non-blank and blank), respectively.
 
-        # torch 0.3
-        r = torch.FloatTensor(self.n_bb, self.input_length, 2)
-        r[:,:,:] = self.logzero
-        # r = torch.full((self.n_bb, self.input_length, 2), self.logzero)
+        if torch_is_old:
+            r = torch.FloatTensor(self.n_bb, self.input_length, 2)
+            r[:,:,:] = self.logzero
+        else:
+            r = torch.full((self.n_bb, self.input_length, 2), self.logzero)
         if self.use_cuda:
             r = r.cuda()
 
@@ -111,9 +113,11 @@ class CTCPrefixScoreTH(object):
 
         # new CTC states are prepared as a frame x (n or b) x n_labels tensor
         # that corresponds to r_t^n(h) and r_t^b(h).
-        #r = torch.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)
-        r = torch.FloatTensor(self.n_bb, self.input_length, 2, self.odim)
-        r[:,:,:,:] = self.logzero
+        if torch_is_old:
+            r = torch.FloatTensor(self.n_bb, self.input_length, 2, self.odim)
+            r[:,:,:,:] = self.logzero
+        else:
+            r = torch.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)
         if self.use_cuda:
             r = r.cuda()
 
@@ -129,9 +133,11 @@ class CTCPrefixScoreTH(object):
 
         last = [yi[-1] for yi in y]  # (n_bb) list of char
 
-        #log_phi = torch.full((self.n_bb, self.input_length, self.odim), self.logzero)
-        log_phi = torch.FloatTensor(self.n_bb, self.input_length, self.odim)
-        log_phi[:,:,:] = self.logzero
+        if torch_is_old:
+            log_phi = torch.FloatTensor(self.n_bb, self.input_length, self.odim)
+            log_phi[:,:,:] = self.logzero
+        else:
+            log_phi = torch.full((self.n_bb, self.input_length, self.odim), self.logzero)
         if self.use_cuda:
             log_phi = log_phi.cuda()
 

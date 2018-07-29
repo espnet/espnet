@@ -1882,8 +1882,12 @@ class Decoder(torch.nn.Module):
         n_bb = batch * beam
         n_bo = beam * self.odim
         n_bbo = n_bb * self.odim
-        pad_b = to_cuda(self, Variable(torch.LongTensor([i * beam for i in six.moves.range(batch)]).view(-1, 1)))
-        pad_bo = to_cuda(self, Variable(torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1)))
+        if torch_is_old:
+            pad_b = to_cuda(self, Variable(torch.LongTensor([i * beam for i in six.moves.range(batch)]).view(-1, 1)))
+            pad_bo = to_cuda(self, Variable(torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1)))
+        else:
+            pad_b = to_cuda(self, torch.LongTensor([i * beam for i in six.moves.range(batch)]).view(-1, 1))
+            pad_bo = to_cuda(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
         beam0 = torch.LongTensor([0 for _ in range(n_bb)])
 
         max_hlen = max(hlens)
@@ -1896,11 +1900,22 @@ class Decoder(torch.nn.Module):
         logging.info('min output length: ' + str(minlen))
 
         # initialization
-        c_prev = [to_cuda(self, Variable(torch.zeros(n_bb, self.dunits), volatile=True)) for _ in range(self.dlayers)]
-        z_prev = [to_cuda(self, Variable(torch.zeros(n_bb, self.dunits), volatile=True)) for _ in range(self.dlayers)]
-        c_list = [to_cuda(self, Variable(torch.zeros(n_bb, self.dunits), volatile=True)) for _ in range(self.dlayers)]
-        z_list = [to_cuda(self, Variable(torch.zeros(n_bb, self.dunits), volatile=True)) for _ in range(self.dlayers)]
-        vscores = to_cuda(self, Variable(torch.zeros(batch, beam), volatile=True))
+        if torch_is_old:
+            c_prev = [to_cuda(self, Variable(torch.zeros(n_bb, self.dunits), volatile=True))
+                      for _ in range(self.dlayers)]
+            z_prev = [to_cuda(self, Variable(torch.zeros(n_bb, self.dunits), volatile=True))
+                      for _ in range(self.dlayers)]
+            c_list = [to_cuda(self, Variable(torch.zeros(n_bb, self.dunits), volatile=True))
+                      for _ in range(self.dlayers)]
+            z_list = [to_cuda(self, Variable(torch.zeros(n_bb, self.dunits), volatile=True))
+                      for _ in range(self.dlayers)]
+            vscores = to_cuda(self, Variable(torch.zeros(batch, beam), volatile=True))
+        else:
+            c_prev = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+            z_prev = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+            c_list = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+            z_list = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+            vscores = to_cuda(self, torch.zeros(batch, beam))
         a_prev = None
         rnnlm_prev = None
 
@@ -1913,22 +1928,29 @@ class Decoder(torch.nn.Module):
         dummy_hyps = [{'yseq':[self.sos, self.eos], 'score':np.array([-float('inf')])}]
 
         ended_hyps = [[] for _ in range(batch)]
-        #exp_hlens = hlens.repeat(beam).view(beam, batch).transpose(0, 1).contiguous()
-        exp_hlens = torch.LongTensor(hlens * beam).view(beam, batch).transpose(0, 1).contiguous()
+        if torch_is_old:
+            exp_hlens = torch.LongTensor(hlens * beam).view(beam, batch).transpose(0, 1).contiguous()
+        else:
+            exp_hlens = hlens.repeat(beam).view(beam, batch).transpose(0, 1).contiguous()
         exp_hlens = exp_hlens.view(-1).tolist()
-        #exp_h = h.unsqueeze(1).expand(-1, beam, -1, -1).contiguous()
         exp_h = h.unsqueeze(1).repeat(1, beam, 1, 1).contiguous()
         exp_h = exp_h.view(n_bb, h.size()[1], h.size()[2])
 
         if lpz is not None:
             ctc_prefix_score = CTCPrefixScoreTH(lpz, 0, self.eos, beam, exp_hlens, lpz.is_cuda)
-            ctc_states_prev = Variable(ctc_prefix_score.initial_state())
-            ctc_scores_prev = to_cuda(self, Variable(torch.zeros(batch, n_bo), volatile=True))
+            ctc_states_prev = ctc_prefix_score.initial_state()
+            ctc_scores_prev = to_cuda(self, torch.zeros(batch, n_bo))
+            if torch_is_old:
+                ctc_states_prev = Variable(ctc_states_prev)
+                ctc_scores_prev = Variable(ctc_scores_prev, volatile=True))
 
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
-            vy = to_cuda(self, Variable(torch.LongTensor(get_last_yseq(yseq)), volatile=True))
+            if torch_is_old:
+                vy = to_cuda(self, Variable(torch.LongTensor(get_last_yseq(yseq)), volatile=True))
+            else:
+                vy = to_cuda(self, torch.LongTensor(get_last_yseq(yseq)))
             ey = self.embed(vy)
             att_c, att_w = self.att(exp_h, exp_hlens, z_prev[0], a_prev)
             ey = torch.cat((ey, att_c), dim=1)
@@ -1949,8 +1971,10 @@ class Decoder(torch.nn.Module):
             # ctc
             if lpz is not None:
                 ctc_scores, ctc_states = ctc_prefix_score(yseq, ctc_states_prev.data)
-                ctc_scores = Variable(ctc_scores.view(batch, n_bo))
-                ctc_states = Variable(ctc_states)
+                ctc_scores = ctc_scores.view(batch, n_bo)
+                if torch_is_old:
+                    ctc_scores = Variable(ctc_scores, volatile=True)
+                    ctc_states = Variable(ctc_states, volatile=True)
                 local_scores = local_scores + ctc_weight * (ctc_scores - ctc_scores_prev)
 
             local_best_scores = []
@@ -1963,19 +1987,25 @@ class Decoder(torch.nn.Module):
                 local_scores = local_scores[:,0,:]
                 local_best_scores, local_best_odims = torch.topk(local_scores, beam, 1)
                 yseq = append_ids(yseq, local_best_odims.view(-1).data.cpu().tolist())
-                vidx = to_cuda(self, Variable(torch.LongTensor(beam0), volatile=True))
+                vidx = to_cuda(self, torch.LongTensor(beam0))
+                if torch_is_old:
+                    vidx = Variable(vidx, volatile=True)
                 local_padded_odim_ids = []
                 local_padded_odim_ids = (torch.fmod(local_best_odims, self.odim) + pad_bo).view(-1).data.cpu().tolist()
                 vscores = local_best_scores
             else:
                 local_best_scores, local_best_odims = torch.topk(local_scores.view(batch, beam, self.odim),
                                                                  beam, 2)
-                #local_scures = torch.full((batch, beam, self.odim), -10000000000.0)
-                local_scores = to_cuda(self, Variable(torch.FloatTensor(batch, beam, self.odim)))
-                local_scores[:,:,:] = -10000000000.0
-
-                _best_odims = local_best_odims.data
-                _best_score = local_best_scores.data
+                if torch_is_old:
+                    local_scores = to_cuda(self, Variable(torch.FloatTensor(batch, beam, self.odim)))
+                    local_scores[:,:,:] = -10000000000.0
+                    _best_odims = local_best_odims.data
+                    _best_score = local_best_scores.data
+                else:
+                    local_scures = torch.full((batch, beam, self.odim), -10000000000.0)
+                    _best_odims = local_best_odims
+                    _best_score = local_best_scores
+                    
                 # :should be modified
                 for si in six.moves.range(batch):
                     for bj in six.moves.range(beam):
@@ -1995,7 +2025,9 @@ class Decoder(torch.nn.Module):
                 yseq = index_select_list(yseq, local_padded_beam_ids)
                 yseq = append_ids(yseq, local_odim_ids)
                 vscores = accum_best_scores
-                vidx = to_cuda(self, Variable(torch.LongTensor(local_padded_beam_ids), volatile=True))
+                vidx = to_cuda(self, torch.LongTensor(local_padded_beam_ids))
+                if torch_is_old:
+                    vidx = Variable(vidx, volatile=True)
 
             a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
             z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
@@ -2004,7 +2036,9 @@ class Decoder(torch.nn.Module):
             if rnnlm:
                 rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
             if lpz is not None:
-                ctc_vidx = to_cuda(self, Variable(torch.LongTensor(local_padded_odim_ids), volatile=True))
+                ctc_vidx = to_cuda(self, torch.LongTensor(local_padded_odim_ids))
+                if torch_is_old:
+                    ctc_vidx = Variable(ctc_vidx, volatile=True)
                 ctc_scores_prev = torch.index_select(ctc_scores.view(-1), 0, ctc_vidx)
                 ctc_scores_prev = ctc_scores_prev.view(-1, 1).repeat(1, self.odim).view(batch, n_bo)
 

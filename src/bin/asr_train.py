@@ -112,7 +112,7 @@ def main():
                         help='Compute WER on development set')
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
-    parser.add_argument('--beam-size', type=int, default=20,
+    parser.add_argument('--beam-size', type=int, default=4,
                         help='Beam size')
     parser.add_argument('--penalty', default=0.0, type=float,
                         help='Incertion penalty')
