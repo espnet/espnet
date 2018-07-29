@@ -105,6 +105,25 @@ def main():
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
+    # recognition related
+    parser.add_argument('--report-cer', default=False, action='store_true',
+                        help='Compute CER on development set')
+    parser.add_argument('--report-wer', default=False, action='store_true',
+                        help='Compute WER on development set')
+    parser.add_argument('--nbest', type=int, default=1,
+                        help='Output N-best hypotheses')
+    parser.add_argument('--beam-size', type=int, default=20,
+                        help='Beam size')
+    parser.add_argument('--penalty', default=0.0, type=float,
+                        help='Incertion penalty')
+    parser.add_argument('--maxlenratio', default=0.0, type=float,
+                        help="""Input length ratio to obtain max output length.
+                        If maxlenratio=0.0 (default), it uses a end-detect function
+                        to automatically find maximum hypothesis lengths""")
+    parser.add_argument('--minlenratio', default=0.0, type=float,
+                        help='Input length ratio to obtain min output length')
+    parser.add_argument('--ctc-weight', default=0.3, type=float,
+                        help='CTC weight in joint decoding')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')

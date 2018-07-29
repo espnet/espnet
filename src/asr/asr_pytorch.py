@@ -373,6 +373,10 @@ def train(args):
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(100, 'iteration'))
         report_keys.append('eps')
+    if args.report_cer:
+        report_keys.append('validation/main/cer')
+    if args.report_wer:
+        report_keys.append('validation/main/wer')
     trainer.extend(extensions.PrintReport(
         report_keys), trigger=(100, 'iteration'))
 
