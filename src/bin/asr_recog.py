@@ -19,7 +19,7 @@ def main():
     # general configuration
     parser.add_argument('--gpu', default=None, type=int, nargs='?',
                         help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--ngpu', default=0, type=int,
+    parser.add_argument('--rec-ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
                         choices=['chainer', 'pytorch'],
@@ -30,6 +30,8 @@ def main():
                         help='Random seed')
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
+    parser.add_argument('--rec-batchsize', default=1, type=int,
+                        help='Batch size for beam search')
     # task related
     parser.add_argument('--recog-feat', type=str,
                         help='Filename of recognition feature data (Kaldi scp)')
@@ -83,19 +85,19 @@ def main():
         logging.warning("Skip DEBUG/INFO messages")
 
     # check gpu argument
-    if args.gpu is not None:
-        logging.warn("--gpu option will be deprecated, please use --ngpu option.")
-        if args.gpu == -1:
-            args.ngpu = 0
+    if args.rec_gpu is not None:
+        logging.warn("--gpu option will be deprecated, please use --rec-ngpu option.")
+        if args.rec_gpu == -1:
+            args.rec_ngpu = 0
         else:
-            args.ngpu = 1
+            args.rec_ngpu = 1
 
     # check CUDA_VISIBLE_DEVICES
-    if args.ngpu > 0:
+    if args.rec_ngpu > 0:
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
             logging.warn("CUDA_VISIBLE_DEVICES is not set.")
-        elif args.ngpu != len(cvd.split(",")):
+        elif args.rec_ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
 
