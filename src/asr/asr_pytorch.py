@@ -449,7 +449,8 @@ def recog(args):
                                               word_dict, char_dict))
 
     # gpu
-    if args.rec_ngpu == 1:
+    ngpu = args.rec_ngpu
+    if ngpu == 1:
         gpu_id = range(ngpu)
         logging.info('gpu id: ' + str(gpu_id))
         model.cuda()
@@ -461,8 +462,8 @@ def recog(args):
         model = DataParallel(model, device_ids=gpu_id)
         model.cuda()
         logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * args.ngpu))
-        args.batch_size *= args.ngpu
+            args.rec_batchsize, args.rec_batchsize * ngpu))
+        args.batch_size *= ngpu
         if rnnlm:
             rnnlm.cuda()
 
@@ -477,6 +478,7 @@ def recog(args):
         from itertools import zip_longest as zip_longest
     except:
         from itertools import izip_longest as zip_longest
+
     def grouper(n, iterable, fillvalue=None):
         kargs = [iter(iterable)] * n
         return zip_longest(*kargs, fillvalue=fillvalue)
@@ -533,12 +535,17 @@ def recog(args):
             if args.beam_size > 1 and len(nbest_hyps[i]) > 1:
                 for j, hyp_ij in enumerate(nbest_hyps[i]):
                     y_hat_ij = hyp_ij['yseq'][1:]
-                    seq_hat_ij = [train_args.char_list[int(idx)] for idx in y_hat_ij]
+                    seq_hat_ij = [train_args.char_list[int(idx)]
+                                  for idx in y_hat_ij]
                     seq_hat_text = "".join(seq_hat_ij).replace('<space>', ' ')
-                    new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(j) + ']'] = " ".join([str(idx) for idx in y_hat_ij])
-                    new_json[name]['rec_token' + '[' + '{:05d}'.format(j) + ']'] = " ".join(seq_hat_ij)
-                    new_json[name]['rec_text' + '[' + '{:05d}'.format(j) + ']'] = seq_hat_text
-                    new_json[name]['score' + '[' + '{:05d}'.format(j) + ']'] = float(hyp_ij['score'])
+                    new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(j) + ']'] = \
+                        " ".join([str(idx) for idx in y_hat_ij])
+                    new_json[name]['rec_token' + '[' + '{:05d}'.format(j) + ']'] = \
+                        " ".join(seq_hat_ij)
+                    new_json[name]['rec_text' + '[' + '{:05d}'.format(j) + ']'] = \
+                        seq_hat_text
+                    new_json[name]['score' + '[' + '{:05d}'.format(j) + ']'] = \
+                        float(hyp_ij['score'])
 
                     logging.info("rec_text[%s]: " + seq_hat_text, str(j))
 
