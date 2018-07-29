@@ -1704,6 +1704,45 @@ def th_accuracy(y_all, pad_target, ignore_label):
     return float(numerator) / float(denominator)
 
 
+def get_last_yseq(exp_yseq):
+    last = []
+    for y_seq in exp_yseq:
+        last.append(y_seq[-1])
+    return last
+
+
+def append_ids(yseq, ids):
+    if isinstance(ids, list):
+        for i, j in enumerate(ids):
+            yseq[i].append(j)
+    else:
+        for i in range(len(yseq)):
+            yseq[i].append(ids)
+    return yseq
+
+
+def expand_yseq(yseqs, next_ids):
+    new_yseq = []
+    for yseq in yseqs:
+        for next_id in next_ids:
+            new_yseq.append(yseq[:])
+            new_yseq[-1].append(next_id)
+    return new_yseq
+
+
+def index_select_list(yseq, lst):
+    new_yseq = []
+    for l in lst:
+        new_yseq.append(yseq[l][:])
+    return new_yseq
+
+
+def index_select_lm_state(rnnlm_state, dim, vidx):
+    state = dict([(k, torch.index_select(v, dim, vidx))
+                  for k,v in rnnlm_state.items()])
+    return state
+
+
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
