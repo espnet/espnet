@@ -361,7 +361,7 @@ def train(args):
                               args.maxlen_in, args.maxlen_out, args.minibatches)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iter = chainer.iterators.MultiProcessIterator(
+        train_iter = chainer.iterators.MultiprocessIterator(
             TransformDataset(train, converter_kaldi), 1,
             n_process=4, n_prefetch=32, maxtasksperchild=20)
 
