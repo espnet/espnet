@@ -10,6 +10,7 @@ import six
 
 torch_is_old = torch.__version__.startswith("0.3.")
 
+
 def logsumexp(inputs, dim=None, keepdim=False):
     """Numerically stable logsumexp.
 
@@ -76,7 +77,7 @@ class CTCPrefixScoreTH(object):
 
         if torch_is_old:
             r = torch.FloatTensor(self.n_bb, self.input_length, 2)
-            r[:,:,:] = self.logzero
+            r[:, :, :] = self.logzero
         else:
             r = torch.full((self.n_bb, self.input_length, 2), self.logzero)
         if self.use_cuda:
@@ -115,7 +116,7 @@ class CTCPrefixScoreTH(object):
         # that corresponds to r_t^n(h) and r_t^b(h).
         if torch_is_old:
             r = torch.FloatTensor(self.n_bb, self.input_length, 2, self.odim)
-            r[:,:,:,:] = self.logzero
+            r[:, :, :, :] = self.logzero
         else:
             r = torch.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)
         if self.use_cuda:
@@ -135,7 +136,7 @@ class CTCPrefixScoreTH(object):
 
         if torch_is_old:
             log_phi = torch.FloatTensor(self.n_bb, self.input_length, self.odim)
-            log_phi[:,:,:] = self.logzero
+            log_phi[:, :, :] = self.logzero
         else:
             log_phi = torch.full((self.n_bb, self.input_length, self.odim), self.logzero)
         if self.use_cuda:
