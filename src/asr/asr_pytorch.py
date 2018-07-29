@@ -5,7 +5,6 @@
 
 
 import copy
-import functools
 import json
 import logging
 import math
@@ -284,7 +283,7 @@ def train(args):
     # actual bathsize is included in a list
     train_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(train, converter_kaldi), 1, n_process=4, maxtasksperchild=20)
-    valid_iter = chainer.iterators.MultithreadIterator(
+    valid_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(valid, converter_kaldi), 1, n_process=4,
         repeat=False, shuffle=False, maxtasksperchild=20)
 
