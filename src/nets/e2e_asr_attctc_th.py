@@ -93,10 +93,12 @@ def linear_tensor(linear, x):
 
 
 class Reporter(chainer.Chain):
-    def report(self, loss_ctc, loss_att, acc, mtl_loss):
+    def report(self, loss_ctc, loss_att, acc, cer, wer, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
         reporter.report({'acc': acc}, self)
+        reporter.report({'cer': cer}, self)
+        reporter.report({'wer': wer}, self)
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
 
@@ -118,7 +120,7 @@ class Loss(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, acc, cer, wer = self.predictor(x)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -135,7 +137,7 @@ class Loss(torch.nn.Module):
 
         loss_data = self.loss.data[0] if torch_is_old else float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, loss_data)
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
@@ -263,6 +265,22 @@ class E2E(torch.nn.Module):
         #             if "bias_ih" in name:
         #                 set_forget_bias_to_one(p)
 
+        # options for beam search (trainig stage)
+        if 'beam_size' in vars(args):
+            recog_args = {'beam_size':args.beam_size, 'penalty':args.penalty,
+                          'ctc_weight':args.ctc_weight, 'maxlenratio':args.maxlenratio,
+                          'minlenratio':args.minlenratio, 'lm_weight':args.lm_weight,
+                          'nbest':args.nbest}
+            self.rnnlm = None
+            self.recog_args = argparse.Namespace(**recog_args)
+            self.report_cer = args.report_cer
+            self.report_wer = args.report_wer
+        else:
+            self.report_cer = False
+            self.report_wer = False
+
+        self.logzero = -10000000000.0
+
     def init_like_chainer(self):
         """Initialize weight like chainer
 
@@ -333,7 +351,46 @@ class E2E(torch.nn.Module):
         else:
             loss_att, acc = self.dec(hpad, hlens, ys)
 
-        return loss_ctc, loss_att, acc
+        # 5. compute cer/wer
+        if self.training or not (self.report_cer or self.report_wer):
+            cer, wer = 0.0, 0.0
+            oracle_cer, oracle_wer = 0.0, 0.0
+        else:
+            if self.recog_args.ctc_weight > 0.0:
+                lpz = self.ctc.log_softmax(hpad).data
+            else:
+                lpz = None
+
+            wers, cers = [], []
+            nbest_hyps = self.dec.recognize_beam(hpad, hlens, lpz,
+                                                 self.recog_args, self.char_list,
+                                                 self.rnnlm)
+            # remove <sos> and <eos>
+            y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
+            for i, y_hat in enumerate(y_hats):
+                y_true = ys[i]
+
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat]
+                seq_true = [self.char_list[int(idx)] for idx in y_true]
+                seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+                seq_hat_text = seq_hat_text.replace('<blank>', '').replace('<unk>', '')
+                seq_true_text = "".join(seq_true).replace('<space>', ' ')
+
+                # wer
+                hyp_words = seq_hat_text.split()
+                ref_words = seq_true_text.split()
+                wers.append(editdistance.eval(hyp_words, ref_words) / len(ref_words))
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+
+                if False:
+                    logging.info("groundtruth: " + seq_true_text)
+                    logging.info("prediction : " + seq_hat_text)
+            wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
+            cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
+
+        return loss_ctc, loss_att, acc, cer, wer
 
     def recognize(self, xs, recog_args, char_list, rnnlm=None):
         '''E2E beam search
