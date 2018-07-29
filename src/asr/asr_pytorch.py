@@ -310,9 +310,6 @@ def train(args):
         data = converter_kaldi([data], device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
-    # Take a snapshot for each specified epoch
-    trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
-
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
@@ -332,6 +329,10 @@ def train(args):
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    # save the model after each epoch
+    trainer.extend(extensions.snapshot_object(model, 'model_epoch{.updater.epoch}', savefun=torch_save),
+                   trigger=(1, 'epoch'))
+
     if mtl_mode is not 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
