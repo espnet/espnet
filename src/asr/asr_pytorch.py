@@ -282,11 +282,11 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.MultithreadIterator(
-        TransformDataset(train, functools.partial(converter_kaldi, device=gpu_id)), 1, n_threads=2)
+    train_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(train, converter_kaldi), 1, n_process=4, maxtasksperchild=20)
     valid_iter = chainer.iterators.MultithreadIterator(
-        TransformDataset(valid, functools.partial(converter_kaldi, device=gpu_id)), 1, n_threads=2,
-        repeat=False, shuffle=False)
+        TransformDataset(valid, converter_kaldi), 1, n_process=4,
+        repeat=False, shuffle=False, maxtasksperchild=20)
 
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
