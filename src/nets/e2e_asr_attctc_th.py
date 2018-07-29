@@ -1771,6 +1771,8 @@ class Decoder(torch.nn.Module):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
 
+        self.logzero = -10000000000.0
+
     def zero_state(self, hpad):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
 
@@ -1925,7 +1927,6 @@ class Decoder(torch.nn.Module):
         yseq = [[self.sos] for _ in range(n_bb)]
         stop_search = [False for _ in six.moves.range(batch)]
         nbest_hyps = [[] for _ in six.moves.range(batch)]
-        dummy_hyps = [{'yseq':[self.sos, self.eos], 'score':np.array([-float('inf')])}]
 
         ended_hyps = [[] for _ in range(batch)]
         if torch_is_old:
@@ -1998,11 +1999,11 @@ class Decoder(torch.nn.Module):
                                                                  beam, 2)
                 if torch_is_old:
                     local_scores = to_cuda(self, Variable(torch.FloatTensor(batch, beam, self.odim)))
-                    local_scores[:,:,:] = -10000000000.0
+                    local_scores[:,:,:] = self.logzero
                     _best_odims = local_best_odims.data
                     _best_score = local_best_scores.data
                 else:
-                    local_scures = torch.full((batch, beam, self.odim), -10000000000.0)
+                    local_scures = torch.full((batch, beam, self.odim), self.logzero)
                     _best_odims = local_best_odims
                     _best_score = local_best_scores
                     
@@ -2067,7 +2068,7 @@ class Decoder(torch.nn.Module):
                     _score = _vscore.data.cpu().numpy()
                     ended_hyps[batch_idx].append({'yseq':y_hyp[:], 'vscore':_vscore, 'score':_score})
                     yseq[y_id] = [self.sos, self.eos]
-                    vscore_list[y_id] = _vscore * 0.0 -10000000000.0
+                    vscore_list[y_id] = _vscore * 0.0 + self.logzero
                     """
                     n_eos += 1
                     if n_eos == beam:
@@ -2083,7 +2084,7 @@ class Decoder(torch.nn.Module):
 
             torch.cuda.empty_cache()
 
-        cands = [len(ended_hyps[samp_i]) for samp_i in six.moves.range(batch)]
+        dummy_hyps = [{'yseq':[self.sos, self.eos], 'score':np.array([-float('inf')])}]
         ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
                       for samp_i in six.moves.range(batch)]
         nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],
