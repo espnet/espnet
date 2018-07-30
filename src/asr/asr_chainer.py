@@ -21,6 +21,7 @@ import chainer
 from chainer import cuda
 from chainer import reporter as reporter_module
 from chainer import training
+from chainer.datasets import TransformDataset
 from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
@@ -72,7 +73,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
-        x = self.converter(batch)
+        x = batch[0]
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(x)
@@ -108,8 +109,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             self._master.cleargrads()
 
             optimizer = self.get_optimizer('main')
-            batch = self.get_iterator('main').next()
-            x = self.converter(batch)
+            x = self.get_iterator('main').next()[0]
 
             loss = self._master(x)
 
@@ -217,8 +217,7 @@ class CustomWorker(multiprocessing.Process):
                 # For reducing memory
                 self.model.cleargrads()
 
-                batch = self.iterator.next()
-                x = converter_kaldi(batch)
+                x = self.iterator.next()[0]
                 observation = {}
                 with self.reporter.scope(observation):
                     loss = self.model(x)
@@ -362,7 +361,9 @@ def train(args):
                               args.maxlen_in, args.maxlen_out, args.minibatches)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iter = chainer.iterators.SerialIterator(train, 1)
+        train_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(train, converter_kaldi), 1,
+            n_processes=4, n_prefetch=32, maxtasksperchild=20)
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
@@ -388,7 +389,8 @@ def train(args):
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         train_iters = [chainer.iterators.MultiprocessIterator(
-            train_subsets[gid], 1, n_processes=1)
+            TransformDataset(train_subsets[gid], converter_kaldi),
+            1, n_processes=4 * ngpu, n_prefetch=32, maxtasksperchild=20)
             for gid in six.moves.xrange(ngpu)]
 
         # set up updater
@@ -406,18 +408,19 @@ def train(args):
     # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
-
+    valid_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(valid, converter_kaldi),
+        1, n_processes=2, n_prefetch=32, repeat=False, shuffle=False, maxtasksperchild=20)
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(
-        valid_iter, model, converter=converter_kaldi, device=gpu_id))
+    trainer.extend(extensions.Evaluator(valid_iter, model,
+                                        converter=lambda x, device: x[0],
+                                        device=gpu_id))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        data = converter_kaldi([data], device=gpu_id)
+        data = converter_kaldi(data, device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch

@@ -15,6 +15,7 @@ import sys
 # chainer related
 import chainer
 
+from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -80,7 +81,7 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 # read scp files
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
-                x = self.converter(batch)
+                x = batch[0]
                 self.model(x)
                 delete_feat(x)
 
@@ -113,15 +114,15 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.__next__()
+        x = batch[0]
 
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
         # batch only has one minibatch utterance, which is specified by batch[0]
-        if len(batch[0]) < self.num_gpu:
+        if len(x) < self.num_gpu:
             logging.warning('batch size is less than number of gpus. Ignored')
             return
-        x = self.converter(batch)
 
         # Compute the loss at this time step and accumulate it
         loss = 1. / self.num_gpu * self.model(x)
@@ -280,9 +281,11 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
+    train_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(train, converter_kaldi), 1, n_processes=4, maxtasksperchild=20)
+    valid_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(valid, converter_kaldi), 1, n_processes=4,
+        repeat=False, shuffle=False, maxtasksperchild=20)
 
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
@@ -307,7 +310,7 @@ def train(args):
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        data = converter_kaldi([data], device=gpu_id)
+        data = converter_kaldi(data, device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
