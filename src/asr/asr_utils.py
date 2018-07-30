@@ -11,6 +11,7 @@ import os
 import chainer
 from chainer import training
 from chainer.training import extension
+from chainer.backends import cuda
 
 # io related
 import kaldi_io_py
@@ -53,11 +54,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
 # and remove the data dump process in run.sh
 def converter_kaldi(batch, device=None):
     # batch only has one minibatch utterance, which is specified by batch[0]
-    batch = batch[0]
     for data in batch:
         feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])
+        if device is None and device < 0:
+            cuda.to_cpu(feat)
+        else:
+            cuda.to_gpu(feat, device)
         data[1]['feat'] = feat
-
     return batch
 
 
