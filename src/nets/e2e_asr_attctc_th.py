@@ -94,12 +94,19 @@ def linear_tensor(linear, x):
 
 
 class Reporter(chainer.Chain):
+    def __init__(self, name=None):
+        super(Reporter, self).__init__()
+        self.name = name
+
     def report(self, loss_ctc, loss_att, acc, mtl_loss):
-        reporter.report({'loss_ctc': loss_ctc}, self)
-        reporter.report({'loss_att': loss_att}, self)
-        reporter.report({'acc': acc}, self)
-        logging.info('mtl loss:' + str(mtl_loss))
-        reporter.report({'loss': mtl_loss}, self)
+        if self.name == 'aug':
+            logging.info('Aug')
+        else:
+            reporter.report({'loss_ctc': loss_ctc}, self)
+            reporter.report({'loss_att': loss_att}, self)
+            reporter.report({'acc': acc}, self)
+            logging.info('mtl loss:' + str(mtl_loss))
+            reporter.report({'loss': mtl_loss}, self)
 
     
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
@@ -111,6 +118,7 @@ class Loss(torch.nn.Module):
         self.accuracy = None
         self.predictor = predictor
         self.reporter = Reporter()
+        self.reporter2 = Reporter('aug')
 
     def forward(self, x, is_aug=False):
         '''Loss forward

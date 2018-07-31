@@ -32,7 +32,7 @@ class Datadelta(torch.optim.Optimizer):
                  eps=1e-6,
                  weight_decay=0,
                  valid_batches=None,
-                 num_samples = 1,
+                 num_samples = 10,
                  which_batches_to_check=['main', 'aug'],
                  diff_threshold=0.):
 
@@ -46,22 +46,35 @@ class Datadelta(torch.optim.Optimizer):
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
 
         defaults = dict(lr=lr, rho=rho, eps=eps, weight_decay=weight_decay)
+        super(Datadelta, self).__init__(params, defaults)
         self.valid_batches = valid_batches
+        self.valid_batches_idx = list(range(len(valid_batches)))
         self.score_func = score_func
         self.converter = converter
+        if len(self.valid_batches_idx) < num_samples:
+            print(str(self.valid_batches_idx) + ' < ' + str(num_samples))
+            print('num samples is greater than num batches!')
+            print('decreasing num_samples to num batches')
+            num_samples = len(self.valid_batches_idx)
         self.num_samples = num_samples
         self.diff_threshold = diff_threshold
-        self.pv_idx = 0
+        self.sample_idxs = self._sample_valid_batch_idxs()
         assert score_func is not None
         self.which_batches_to_check = which_batches_to_check
-        super(Datadelta, self).__init__(params, defaults)
-        self.init_pv_scores()
+        self.init_batch_scores()
         self.undo_type = undo_type
         self.undo_func = {
                 'undo_step': self.undo_step,
                 'undo_square_avg': self.undo_square_avg,
                 'undo_learning_rate': self.undo_learning_rate
                }
+
+    def _sample_valid_batch_idxs(self,):
+        #print(self.valid_batches_idx)
+        #print(self.num_samples)
+        _l = np.random.choice(self.valid_batches_idx, self.num_samples, replace=False).tolist()
+        return _l
+
 
     def undo_step(self):
         #print('undo step')
@@ -106,43 +119,39 @@ class Datadelta(torch.optim.Optimizer):
         return True
 
 
-    def init_pv_scores(self):
+    def init_batch_scores(self):
         #print('init prev valid scores...')
-        self.pv_scores = []
+        self.batch_scores = []
         for b in self.valid_batches:
             #TODO: too dirty hack
             b = self.converter([b])
             x_ctc, x_att, x_acc = self.score_func(b, False)
-            self.pv_scores.append(x_acc)
-        #print('init score', self.pv_scores)
+            self.batch_scores.append(x_acc)
+        #print('init score', self.batch_scores)
         return True
 
-    def check(self, batch_type):
+    def _update_scores(self, batch_idxs):
+        for b_idx in batch_idxs:
+            converted_batch = self.converter([self.valid_batches[b_idx]])
+            self.batch_scores[b_idx] = self.score_func(converted_batch, False)[2]
+
+
+    def _check(self, batch_type, batch_idxs):
         #chaining of batch samples so that we can compare param updates on the same randomly sampled batch 
-        return_val = True
         if batch_type in self.which_batches_to_check:
-            pv_batch = self.converter([self.valid_batches[self.pv_idx]])
-            remaining_valid_batch_idxs = [idx for idx, v in enumerate(self.valid_batches) if idx != self.pv_idx]
-            #print('remainging', remaining_valid_batch_idxs)
-            nv_idx = np.random.choice(remaining_valid_batch_idxs)
-            #print('pv_idx->nv_idx', self.pv_idx, nv_idx)
-            pv_score = self.pv_scores[self.pv_idx]
-            _, _, valid_score = self.score_func(pv_batch, False)
-            diff = valid_score - pv_score
-            #print('diff', diff, valid_score, pv_score)
-            if diff > self.diff_threshold:  #will apply the grad, so we update the valid score list
-                self.pv_scores[self.pv_idx] = valid_score
-                nv_batch = self.converter([self.valid_batches[nv_idx]])
-                _, _, self.pv_scores[nv_idx] = self.score_func(nv_batch)
-                return_val = True
-                #print('APPLY -----'+ batch_type)
-            else:
-                return_val = False
-                #print('REJECT -----'+ batch_type)
-            self.pv_idx = nv_idx
+            valid_scores = []
+            pv_scores = []
+            for pv in batch_idxs:
+                pv_scores.append(self.batch_scores[pv])
+                pv_batch = self.converter([self.valid_batches[pv]])
+                valid_scores.append(self.score_func(pv_batch, False)[2])
+
+            diff = np.mean(valid_scores) - np.mean(pv_scores)
+            #print('diff', diff, np.mean(valid_scores), np.mean(pv_scores))
+            assert len(valid_scores) == len(pv_scores) == self.num_samples
+            return diff > self.diff_threshold
         else:
-            return_val = True
-        return return_val
+            return True
 
 
     def _step(self, batch_type, closure=None):
@@ -157,8 +166,8 @@ class Datadelta(torch.optim.Optimizer):
         if closure is not None:
             loss = closure()
 
-        for g_idx, group in enumerate(self.param_groups):
-            for p_idx, p in enumerate(group['params']):
+        for group in self.param_groups:
+            for p in group['params']:
                 if p.grad is None:
                     continue
                 grad = p.grad.data
@@ -177,11 +186,6 @@ class Datadelta(torch.optim.Optimizer):
 
                 square_avg, acc_delta = state['square_avg'], state['acc_delta']
                 rho, eps = group['rho'], group['eps']
-                if p_idx == 0 and g_idx == 0:
-                    #print(state['step'])
-                    #print(state['square_avg'])
-                    #print(state['acc_delta'])
-                    pass
 
                 state['step'] += 1
 
@@ -210,11 +214,17 @@ class Datadelta(torch.optim.Optimizer):
         return loss
 
     def step(self, batch_type):
-        #print('\n===================================================')
         self._step(batch_type)
-        if not self.check(batch_type):
+        if not self._check(batch_type, self.sample_idxs):
             #print('undoing step...')
             self.undo_func[self.undo_type]()
         else:
             #print('keeping step...')
             pass
+        next_sample_idxs = self._sample_valid_batch_idxs()
+        #print('samples', ' '.join([str(p) for p in self.sample_idxs]))
+        self._update_scores(next_sample_idxs)
+        self.sample_idxs = next_sample_idxs
+        #print('next samples', ' '.join([str(p) for p in self.sample_idxs]))
+        #print('===================================================\n')
+

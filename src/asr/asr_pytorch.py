@@ -401,8 +401,9 @@ def train(args):
 
         aug_optimizer = torch.optim.Adadelta(model.parameters(), rho=0.95, eps=args.eps)
         # FIXME: TOO DIRTY HACK
-        setattr(aug_optimizer, "target", reporter)
-        setattr(aug_optimizer, "serialize", lambda s: reporter.serialize(s))
+        reporter2 = model.reporter2
+        setattr(aug_optimizer, "target", reporter2)
+        setattr(aug_optimizer, "serialize", lambda s: reporter2.serialize(s))
 
         updater = PytorchSeqUpdaterKaldiWithAugment(model,
                                                     args.grad_clip,
@@ -413,7 +414,7 @@ def train(args):
                                                     args.aug_alternate,
                                                     args.aug_pretrain,
                                                     4 if args.aug_arch == 1 else 1,
-                                                    {'main': optimizer, 'aug': aug_optimizer}, 
+                                                    {'main': optimizer, 'aug': aug_optimizer},
                                                     converter_kaldi=converter_kaldi,
                                                     converter_augment=converter_augment,
                                                     device=gpu_id, aug_optim=args.aug_optim)
@@ -502,7 +503,7 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(8, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
