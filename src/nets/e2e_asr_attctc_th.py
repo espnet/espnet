@@ -1893,7 +1893,6 @@ class Decoder(torch.nn.Module):
         else:
             pad_b = to_cuda(self, torch.LongTensor([i * beam for i in six.moves.range(batch)]).view(-1, 1))
             pad_bo = to_cuda(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
-        beam0 = torch.LongTensor([0 for _ in range(n_bb)])
 
         max_hlen = max(hlens)
         if recog_args.maxlenratio == 0:
@@ -1926,12 +1925,11 @@ class Decoder(torch.nn.Module):
 
         self.att.reset()  # reset pre-computation of h
 
-        # prepare search related variable
         yseq = [[self.sos] for _ in range(n_bb)]
         stop_search = [False for _ in six.moves.range(batch)]
         nbest_hyps = [[] for _ in six.moves.range(batch)]
-
         ended_hyps = [[] for _ in range(batch)]
+
         if torch_is_old:
             exp_hlens = torch.LongTensor(hlens * beam).view(beam, batch).transpose(0, 1).contiguous()
         else:
@@ -1967,7 +1965,7 @@ class Decoder(torch.nn.Module):
 
             # rnnlm
             if rnnlm:
-                rnnlm_state, local_lm_scores = rnnlm.predict(rnnlm_prev, vy)
+                rnnlm_state, local_lm_scores = rnnlm.predict(rnnlm_prev, vy)  # truncated
                 local_scores = local_scores + recog_args.lm_weight * local_lm_scores
             local_scores = local_scores.view(batch, n_bo)
 
@@ -2009,16 +2007,15 @@ class Decoder(torch.nn.Module):
 
             # global pruning
             accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
-            local_padded_beam_ids, local_padded_odim_ids = [], []
-            local_odim_ids = torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
-            local_padded_odim_ids = (torch.fmod(accum_best_ids, n_bo) + pad_bo).view(-1).data.cpu().tolist()
-            local_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
+            accum_odim_ids = torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
+            accum_padded_odim_ids = (torch.fmod(accum_best_ids, n_bo) + pad_bo).view(-1).data.cpu().tolist()
+            accum_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
 
             y_prev = yseq[:][:]
-            yseq = index_select_list(yseq, local_padded_beam_ids)
-            yseq = append_ids(yseq, local_odim_ids)
+            yseq = index_select_list(yseq, accum_padded_beam_ids)
+            yseq = append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
-            vidx = to_cuda(self, torch.LongTensor(local_padded_beam_ids))
+            vidx = to_cuda(self, torch.LongTensor(accum_padded_beam_ids))
             if torch_is_old:
                 vidx = Variable(vidx, volatile=True)
 
@@ -2029,7 +2026,7 @@ class Decoder(torch.nn.Module):
             if rnnlm:
                 rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
             if lpz is not None:
-                ctc_vidx = to_cuda(self, torch.LongTensor(local_padded_odim_ids))
+                ctc_vidx = to_cuda(self, torch.LongTensor(accum_padded_odim_ids))
                 if torch_is_old:
                     ctc_vidx = Variable(ctc_vidx, volatile=True)
                 ctc_scores_prev = torch.index_select(ctc_scores.view(-1), 0, ctc_vidx)
