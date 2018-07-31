@@ -2048,10 +2048,9 @@ class Decoder(torch.nn.Module):
                             yk = y_prev[k][:]
                             yk.append(self.eos)
                             if len(yk) < hlens[samp_i]:
+                                _vscore = eos_vscores[samp_i][beam_j] + penalty_i
                                 if normalize_score:
-                                    _vscore = eos_vscores[samp_i][beam_j] / len(yk)
-                                else:
-                                    _vscore = eos_vscores[samp_i][beam_j]
+                                    _vscore = _vscore / len(yk)
                                 _score = _vscore.data.cpu().numpy()
                                 ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
                         k = k + 1
