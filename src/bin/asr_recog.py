@@ -85,9 +85,9 @@ def main():
         logging.warning("Skip DEBUG/INFO messages")
 
     # check gpu argument
-    if args.rec_ngpu is not None:
+    if args.gpu is not None:
         logging.warn("--gpu option will be deprecated, please use --rec-ngpu option.")
-        if args.rec_ngpu == -1:
+        if args.gpu == -1:
             args.rec_ngpu = 0
         else:
             args.rec_ngpu = 1
