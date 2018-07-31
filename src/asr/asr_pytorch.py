@@ -418,7 +418,7 @@ def recog(args):
         return new_state_dict
 
     model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
-
+    
     # read rnnlm
     if args.rnnlm:
         rnnlm = lm_pytorch.ClassifierWithState(
@@ -463,7 +463,7 @@ def recog(args):
         model.cuda()
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.rec_batchsize, args.rec_batchsize * ngpu))
-        args.batch_size *= ngpu
+        args.rec_batchsize *= ngpu
         if rnnlm:
             rnnlm.cuda()
 

@@ -1865,7 +1865,8 @@ class Decoder(torch.nn.Module):
 
         return self.loss, acc
 
-    def recognize_beam(self, h, hlens, lpz, recog_args, char_list, rnnlm=None):
+    def recognize_beam(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
+                       normalize_score=True):
         '''beam search implementation
 
         :param Variable h:
@@ -1966,8 +1967,7 @@ class Decoder(torch.nn.Module):
 
             # rnnlm
             if rnnlm:
-                rnnlm_state, z_rnnlm = rnnlm.predictor(rnnlm_prev, vy)
-                local_lm_scores = F.log_softmax(z_rnnlm, dim=1)
+                rnnlm_state, local_lm_scores = rnnlm.predict(rnnlm_prev, vy)
                 local_scores = local_scores + recog_args.lm_weight * local_lm_scores
             local_scores = local_scores.view(batch, n_bo)
 
@@ -1983,51 +1983,47 @@ class Decoder(torch.nn.Module):
             local_best_scores = []
             local_best_odims = []
             local_padded_beam_ids = []
+            
             local_scores = local_scores.view(batch, beam, self.odim)
-
             if i == 0:
-                local_scores = local_scores[:, 0, :]
-                local_best_scores, local_best_odims = torch.topk(local_scores, beam, 1)
-                yseq = append_ids(yseq, local_best_odims.view(-1).data.cpu().tolist())
-                vidx = to_cuda(self, torch.LongTensor(beam0))
-                if torch_is_old:
-                    vidx = Variable(vidx, volatile=True)
-                local_padded_odim_ids = []
-                local_padded_odim_ids = (torch.fmod(local_best_odims, self.odim) + pad_bo).view(-1).data.cpu().tolist()
-                vscores = local_best_scores
+                local_scores[:, 1:, :] = self.logzero
+            local_best_scores, local_best_odims = torch.topk(local_scores.view(batch, beam, self.odim),
+                                                             beam, 2)
+            if torch_is_old:
+                local_scores = to_cuda(self, Variable(torch.FloatTensor(batch, beam, self.odim)))
+                local_scores[:, :, :] = self.logzero
+                _best_odims = local_best_odims.data
+                _best_score = local_best_scores.data
             else:
-                local_best_scores, local_best_odims = torch.topk(local_scores.view(batch, beam, self.odim),
-                                                                 beam, 2)
-                if torch_is_old:
-                    local_scores = to_cuda(self, Variable(torch.FloatTensor(batch, beam, self.odim)))
-                    local_scores[:, :, :] = self.logzero
-                    _best_odims = local_best_odims.data
-                    _best_score = local_best_scores.data
-                else:
-                    local_scores = torch.full((batch, beam, self.odim), self.logzero)
-                    _best_odims = local_best_odims
-                    _best_score = local_best_scores
+                local_scores = to_cuda(self, torch.full((batch, beam, self.odim), self.logzero))
+                _best_odims = local_best_odims
+                _best_score = local_best_scores
 
-                # :should be modified
-                for si in six.moves.range(batch):
-                    for bj in six.moves.range(beam):
-                        for bk in six.moves.range(beam):
-                            local_scores[si, bj, _best_odims[si, bj, bk]] = _best_score[si, bj, bk]
-                vscores = vscores.view(batch, beam, 1).repeat(1, 1, self.odim)
-                vscores = (vscores + local_scores).view(batch, n_bo)
+            # :should be modified
+            for si in six.moves.range(batch):
+                for bj in six.moves.range(beam):
+                    for bk in six.moves.range(beam):
+                        local_scores[si, bj, _best_odims[si, bj, bk]] = _best_score[si, bj, bk]
 
-                accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
-                local_padded_beam_ids, local_padded_odim_ids = [], []
-                local_odim_ids = torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
-                local_padded_odim_ids = (torch.fmod(accum_best_ids, self.odim) + pad_bo).view(-1).data.cpu().tolist()
-                local_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
+            _vscores = vscores
+            vscores = vscores.view(batch, beam, 1).repeat(1, 1, self.odim)
+            eos_vscores = local_scores[:, :, self.eos] + _vscores
+            vscores[:, :, self.eos] = self.logzero            
+            vscores = (vscores + local_scores).view(batch, n_bo)
+            
+            accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
+            local_padded_beam_ids, local_padded_odim_ids = [], []
+            local_odim_ids = torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
+            local_padded_odim_ids = (torch.fmod(accum_best_ids, self.odim) + pad_bo).view(-1).data.cpu().tolist()
+            local_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
 
-                yseq = index_select_list(yseq, local_padded_beam_ids)
-                yseq = append_ids(yseq, local_odim_ids)
-                vscores = accum_best_scores
-                vidx = to_cuda(self, torch.LongTensor(local_padded_beam_ids))
-                if torch_is_old:
-                    vidx = Variable(vidx, volatile=True)
+            y_prev = yseq[:][:]
+            yseq = index_select_list(yseq, local_padded_beam_ids)
+            yseq = append_ids(yseq, local_odim_ids)
+            vscores = accum_best_scores
+            vidx = to_cuda(self, torch.LongTensor(local_padded_beam_ids))
+            if torch_is_old:
+                vidx = Variable(vidx, volatile=True)
 
             a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
             z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
@@ -2047,40 +2043,32 @@ class Decoder(torch.nn.Module):
                 ctc_states_prev = torch.index_select(ctc_states, 0, ctc_vidx).view(n_bb, 2, -1)
                 ctc_states_prev = torch.transpose(ctc_states_prev, 1, 2)
 
-            # add ended hypothes to a final list, and removed them from current hypothes
-            penalty_i = (i + 1) * penalty
-            vscore_list = list(torch.split(vscores.view(-1), 1, dim=0))
-
             # pick ended hyps
-            for y_id, y_hyp in enumerate(yseq):
-                batch_idx = int(y_id / beam)
-                if stop_search[batch_idx] or hlens[batch_idx] < i:
-                    continue
-                # if y_id % beam == 0:  # beam_idx
-                #    n_eos = 0
-                if hlens[batch_idx] - 1 == i:
-                    y_hyp.append(self.eos)
+            if i > 0:
+                k = 0
+                penalty_i = (i + 1) * penalty
+                thr = accum_best_scores[:, -1]
+                for samp_i in six.moves.range(batch):
+                    for beam_j in six.moves.range(beam):
+                        if eos_vscores[samp_i, beam_j] > thr[samp_i]:
+                            yi = y_prev[k][:]
+                            yi.append(self.eos)
 
-                if len(y_hyp) > minlen and y_hyp[-1] == self.eos \
-                   and ((i + 2) == len(y_hyp) or hlens[batch_idx] - 1 == i):
-                    _vscore = vscore_list[y_id] + penalty_i
-                    _score = _vscore.data.cpu().numpy()
-                    ended_hyps[batch_idx].append({'yseq': y_hyp[:], 'vscore': _vscore, 'score': _score})
-                    yseq[y_id] = [self.sos, self.eos]
-                    vscore_list[y_id] = _vscore * 0.0 + self.logzero
-                    """
-                    n_eos += 1
-                    if n_eos == beam:
-                    stop_search[batch_idx] = True  # no hyps
-                    """
-            vscores = torch.cat(vscore_list).view(batch, beam)
+                            if normalize_score:
+                                _vscore = eos_vscores[samp_i][beam_j] / len(yi)
+                            else:
+                                _vscore = eos_vscores[samp_i][beam_j]
+                            _score = _vscore.data.cpu().numpy()
+                            ended_hyps[samp_i].append({'yseq': yi, 'vscore': _vscore, 'score': _score})
+                        k = k + 1
+            
             # end detection
             stop_search = [stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
                            for samp_i in six.moves.range(batch)]
             stop_search_summary = list(set(stop_search))
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
-
+            
             torch.cuda.empty_cache()
 
         dummy_hyps = [{'yseq': [self.sos, self.eos], 'score':np.array([-float('inf')])}]
