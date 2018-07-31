@@ -92,12 +92,6 @@ class CTCPrefixScoreTH(object):
     def isnan(self, x):
         return torch.sum(x != x)
 
-    def pad_mat(self, mat, seq_idx=1):
-        for i in six.moves.range(self.n_bb):
-            if self.hlens[i] != mat.size(seq_idx):
-                mat[i, self.hlens[i]:, :, :] = self.logzero
-        return mat
-
     def __call__(self, y, r_prev):
         '''Compute CTC prefix scores for next labels
 
@@ -107,9 +101,6 @@ class CTCPrefixScoreTH(object):
         :return ctc_scores, ctc_states
         '''
 
-        # y: n_bb list of yseq
-        # x: (n_bb, input_length, odim)
-        # r_prev: (n_bb, input_length, 2)
         output_length = len(y[0]) - 1  # ignore sos
 
         # new CTC states are prepared as a frame x (n or b) x n_labels tensor
@@ -129,10 +120,8 @@ class CTCPrefixScoreTH(object):
             r[:, output_length - 1, :, :] = self.logzero
 
         # prepare forward probabilities for the last label
-        # r_sum: (n_bb, input_length, 2) -> (n_bb, input_length)
         r_sum = logsumexp(r_prev, dim=2)
-
-        last = [yi[-1] for yi in y]  # (n_bb) list of char
+        last = [yi[-1] for yi in y]
 
         if torch_is_old:
             log_phi = torch.FloatTensor(self.n_bb, self.input_length, self.odim)
@@ -158,7 +147,8 @@ class CTCPrefixScoreTH(object):
                          + self.x[:, t, self.blank].contiguous().view(-1, 1).repeat(1, self.odim)
             log_psi = logsumexp(torch.stack([log_psi, log_phi[:, t - 1] + self.x[:, t]]), dim=0)
 
-        log_psi[:, self.eos] = r_sum[:, -1]
+        for si in six.moves.range(self.n_bb):
+            log_psi[si, self.eos] = r_sum[si, self.hlens[si] - 1]
 
         return log_psi, r
 
