@@ -1979,12 +1979,8 @@ class Decoder(torch.nn.Module):
                     ctc_scores = Variable(ctc_scores, volatile=True)
                     ctc_states = Variable(ctc_states, volatile=True)
                 local_scores = local_scores + ctc_weight * (ctc_scores - ctc_scores_prev)
-
-            local_best_scores = []
-            local_best_odims = []
-            local_padded_beam_ids = []
-            
             local_scores = local_scores.view(batch, beam, self.odim)
+            
             if i == 0:
                 local_scores[:, 1:, :] = self.logzero
             local_best_scores, local_best_odims = torch.topk(local_scores.view(batch, beam, self.odim),
@@ -1999,22 +1995,23 @@ class Decoder(torch.nn.Module):
                 _best_odims = local_best_odims
                 _best_score = local_best_scores
 
+            # local pruning
             # :should be modified
             for si in six.moves.range(batch):
                 for bj in six.moves.range(beam):
                     for bk in six.moves.range(beam):
                         local_scores[si, bj, _best_odims[si, bj, bk]] = _best_score[si, bj, bk]
 
-            _vscores = vscores
+            eos_vscores = local_scores[:, :, self.eos] + vscores
             vscores = vscores.view(batch, beam, 1).repeat(1, 1, self.odim)
-            eos_vscores = local_scores[:, :, self.eos] + _vscores
-            vscores[:, :, self.eos] = self.logzero            
+            vscores[:, :, self.eos] = self.logzero
             vscores = (vscores + local_scores).view(batch, n_bo)
-            
+
+            # global pruning
             accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
             local_padded_beam_ids, local_padded_odim_ids = [], []
             local_odim_ids = torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
-            local_padded_odim_ids = (torch.fmod(accum_best_ids, self.odim) + pad_bo).view(-1).data.cpu().tolist()
+            local_padded_odim_ids = (torch.fmod(accum_best_ids, n_bo) + pad_bo).view(-1).data.cpu().tolist()
             local_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
 
             y_prev = yseq[:][:]
@@ -2044,22 +2041,21 @@ class Decoder(torch.nn.Module):
                 ctc_states_prev = torch.transpose(ctc_states_prev, 1, 2)
 
             # pick ended hyps
-            if i > 0:
+            if i > minlen:
                 k = 0
                 penalty_i = (i + 1) * penalty
                 thr = accum_best_scores[:, -1]
                 for samp_i in six.moves.range(batch):
                     for beam_j in six.moves.range(beam):
                         if eos_vscores[samp_i, beam_j] > thr[samp_i]:
-                            yi = y_prev[k][:]
-                            yi.append(self.eos)
-
+                            yk = y_prev[k][:]
+                            yk.append(self.eos)
                             if normalize_score:
-                                _vscore = eos_vscores[samp_i][beam_j] / len(yi)
+                                _vscore = eos_vscores[samp_i][beam_j] / len(yk)
                             else:
                                 _vscore = eos_vscores[samp_i][beam_j]
                             _score = _vscore.data.cpu().numpy()
-                            ended_hyps[samp_i].append({'yseq': yi, 'vscore': _vscore, 'score': _score})
+                            ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
                         k = k + 1
             
             # end detection
