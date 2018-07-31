@@ -2050,12 +2050,13 @@ class Decoder(torch.nn.Module):
                         if eos_vscores[samp_i, beam_j] > thr[samp_i]:
                             yk = y_prev[k][:]
                             yk.append(self.eos)
-                            if normalize_score:
-                                _vscore = eos_vscores[samp_i][beam_j] / len(yk)
-                            else:
-                                _vscore = eos_vscores[samp_i][beam_j]
-                            _score = _vscore.data.cpu().numpy()
-                            ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
+                            if len(yk) < hlens[samp_i]:
+                                if normalize_score:
+                                    _vscore = eos_vscores[samp_i][beam_j] / len(yk)
+                                else:
+                                    _vscore = eos_vscores[samp_i][beam_j]
+                                _score = _vscore.data.cpu().numpy()
+                                ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
                         k = k + 1
             
             # end detection
