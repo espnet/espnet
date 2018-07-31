@@ -483,6 +483,9 @@ def recog(args):
         kargs = [iter(iterable)] * n
         return zip_longest(*kargs, fillvalue=fillvalue)
 
+    if args.oracle_hyp:
+        import editdistance
+
     # sort data
     keys = recog_json.keys()
     feat_lens = [recog_json[key]['input'][0]['shape'][0] for key in keys]
@@ -498,7 +501,24 @@ def recog(args):
                   for name in names]
 
         nbest_hyps = e2e.recognize(feats, args, train_args.char_list, rnnlm=rnnlm)
-        y_hat = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in nbest_hyps]
+        if not args.oracle_hyp:
+            y_hat = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in nbest_hyps]
+        else:
+            y_hat = []
+            for i, y_hat_i in enumerate(nbest_hyps):  # per sample
+                y_true_i = y_true[i]
+                best_idx = 0
+                best_wer = 100.0
+
+                for j, y_hat_ij in enumerate(y_hat_i):
+                    seq_true = [train_args.char_list[int(idx)] for idx in y_true_i]
+                    seq_true_text = "".join(seq_true).replace('<space>', ' ').split()
+                    seq_hat_ij = [train_args.char_list[int(idx)] for idx in y_hat_ij['yseq'][1:]]
+                    seq_hat_text = "".join(seq_hat_ij).replace('<space>', ' ').split()
+                    wer = editdistance.eval(seq_hat_text, seq_true_text)
+                    if wer < best_wer:
+                        best_idx = j
+                y_hat.append(nbest_hyps[i][best_idx]['yseq'][1:])
 
         for i, y_hat_i in enumerate(y_hat):  # per sample
             name = names[i]

@@ -61,6 +61,8 @@ def main():
                         help='Input length ratio to obtain min output length')
     parser.add_argument('--ctc-weight', default=0.0, type=float,
                         help='CTC weight in joint decoding')
+    parser.add_argument('--oracle-hyp', default=False, action='store_true',
+                        help='output oracle hypothesis instead of one-best')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
