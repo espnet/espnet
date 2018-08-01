@@ -507,17 +507,18 @@ def recog(args):
             y_hat = []
             for i, y_hat_i in enumerate(nbest_hyps):  # per sample
                 y_true_i = y_true[i]
+                seq_true = [train_args.char_list[int(idx)] for idx in y_true_i]
+                seq_true_text = "".join(seq_true).replace('<space>', ' ').split()
                 best_idx = 0
                 best_wer = 100.0
 
                 for j, y_hat_ij in enumerate(y_hat_i):
-                    seq_true = [train_args.char_list[int(idx)] for idx in y_true_i]
-                    seq_true_text = "".join(seq_true).replace('<space>', ' ').split()
-                    seq_hat_ij = [train_args.char_list[int(idx)] for idx in y_hat_ij['yseq'][1:]]
+                    seq_hat_ij = [train_args.char_list[int(idx)] for idx in y_hat_ij['yseq'][1:-1]]
                     seq_hat_text = "".join(seq_hat_ij).replace('<space>', ' ').split()
                     wer = editdistance.eval(seq_hat_text, seq_true_text)
                     if wer < best_wer:
                         best_idx = j
+                        best_wer = wer
                 y_hat.append(nbest_hyps[i][best_idx]['yseq'][1:])
 
         for i, y_hat_i in enumerate(y_hat):  # per sample
