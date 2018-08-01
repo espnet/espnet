@@ -1978,7 +1978,7 @@ class Decoder(torch.nn.Module):
                     ctc_states = Variable(ctc_states, volatile=True)
                 local_scores = local_scores + ctc_weight * (ctc_scores - ctc_scores_prev)
             local_scores = local_scores.view(batch, beam, self.odim)
-            
+
             if i == 0:
                 local_scores[:, 1:, :] = self.logzero
             local_best_scores, local_best_odims = torch.topk(local_scores.view(batch, beam, self.odim),
@@ -2054,14 +2054,14 @@ class Decoder(torch.nn.Module):
                                 _score = _vscore.data.cpu().numpy()
                                 ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
                         k = k + 1
-            
+
             # end detection
             stop_search = [stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
                            for samp_i in six.moves.range(batch)]
             stop_search_summary = list(set(stop_search))
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
-            
+
             torch.cuda.empty_cache()
 
         dummy_hyps = [{'yseq': [self.sos, self.eos], 'score':np.array([-float('inf')])}]

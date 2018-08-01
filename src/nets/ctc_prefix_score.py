@@ -143,8 +143,9 @@ class CTCPrefixScoreTH(object):
         for t in six.moves.range(start, self.input_length):
             r[:, t, 0] = logsumexp(torch.stack([r[:, t - 1, 0], log_phi[:, t - 1]]),
                                    dim=0) + self.x[:, t]
-            r[:, t, 1] = logsumexp(r[:, t - 1], dim=1) \
-                         + self.x[:, t, self.blank].contiguous().view(-1, 1).repeat(1, self.odim)
+            r[:, t, 1] = logsumexp(r[:, t - 1],
+                                   dim=1) + self.x[:, t, self.blank].contiguous().view(-1, 1).repeat(1, self.odim)
+            logsumexp(r[:, t - 1], dim=1)
             log_psi = logsumexp(torch.stack([log_psi, log_phi[:, t - 1] + self.x[:, t]]), dim=0)
 
         for si in six.moves.range(self.n_bb):
