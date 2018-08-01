@@ -418,7 +418,7 @@ def recog(args):
         return new_state_dict
 
     model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
-    
+
     # read rnnlm
     if args.rnnlm:
         rnnlm = lm_pytorch.ClassifierWithState(
