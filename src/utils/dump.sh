@@ -47,12 +47,12 @@ if ${do_delta};then
     $cmd JOB=1:$nj $logdir/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true $cvmnark scp:$logdir/feats.JOB.scp ark:- \| \
         add-deltas ark:- ark:- \| \
-        copy-feats --compress=$compress ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
+        copy-feats --compress=$compress --compression-method=2 ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
         || exit 1
 else
     $cmd JOB=1:$nj $logdir/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true $cvmnark scp:$logdir/feats.JOB.scp ark:- \| \
-        copy-feats --compress=$compress ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
+        copy-feats --compress=$compress --compression-method=2 ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
         || exit 1
 fi
 
