@@ -363,7 +363,7 @@ def train(args):
         # actual batchsize is included in a list
         train_iter = chainer.iterators.MultiprocessIterator(
             TransformDataset(train, converter_kaldi), 1,
-            n_processes=4, n_prefetch=32, maxtasksperchild=20)
+            n_processes=2, n_prefetch=8, maxtasksperchild=20)
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
@@ -390,7 +390,7 @@ def train(args):
         # actual batchsize is included in a list
         train_iters = [chainer.iterators.MultiprocessIterator(
             TransformDataset(train_subsets[gid], converter_kaldi),
-            1, n_processes=4 * ngpu, n_prefetch=32, maxtasksperchild=20)
+            1, n_processes=2 * ngpu, n_prefetch=8, maxtasksperchild=20)
             for gid in six.moves.xrange(ngpu)]
 
         # set up updater
@@ -410,7 +410,7 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     valid_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(valid, converter_kaldi),
-        1, n_processes=2, n_prefetch=32, repeat=False, shuffle=False, maxtasksperchild=20)
+        1, n_processes=2, n_prefetch=8, repeat=False, shuffle=False, maxtasksperchild=20)
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(valid_iter, model,
                                         converter=lambda x, device: x[0],

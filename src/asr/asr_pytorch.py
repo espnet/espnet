@@ -282,9 +282,9 @@ def train(args):
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
     train_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(train, converter_kaldi), 1, n_processes=4, maxtasksperchild=20)
+        TransformDataset(train, converter_kaldi), 1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
     valid_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(valid, converter_kaldi), 1, n_processes=4,
+        TransformDataset(valid, converter_kaldi), 1, n_processes=2, n_prefetch=8,
         repeat=False, shuffle=False, maxtasksperchild=20)
 
     # Set up a trainer
