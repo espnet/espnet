@@ -56,10 +56,6 @@ def converter_kaldi(batch, device=None):
     # batch only has one minibatch utterance, which is specified by batch[0]
     for data in batch:
         feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])
-        if device is None and device < 0:
-            cuda.to_cpu(feat)
-        else:
-            cuda.to_gpu(feat, device)
         data[1]['feat'] = feat
     return batch
 
