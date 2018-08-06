@@ -96,8 +96,8 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
             torch.set_grad_enabled(True)
 
         # for cold fusion
-        if self.model.predictor.dec.rnnlm_fusion:
-            self.model.predictor.dec.rnnlm.eval()
+        # if self.model.predictor.dec.cf_type:
+        #     self.model.predictor.dec.rnnlm_cf.eval()
 
         return summary.compute_mean()
 
@@ -232,22 +232,27 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
-    # read rnnlm for RNNLM integration & initialization
-    if args.rnnlm_fusion or args.rnnlm_init:
-        assert args.rnnlm is not None
+    def cpu_loader(storage, location):
+        return storage
 
-        def cpu_loader(storage, location):
-            return storage
-
-        rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(odim, args.lm_unit, args.lm_layer))
-        rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
-        rnnlm.eval()
-        # TODO(hirofumi): add option of joint training with RNNLM
+    # load rnnlm for cold fusion
+    if args.cf_type:
+        assert args.rnnlm_cf
+        rnnlm_cf = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(odim, args.lm_unit, args.lm_layer))
+        rnnlm_cf.load_state_dict(torch.load(args.rnnlm_cf, map_location=cpu_loader))
+        # rnnlm_cf.eval()
     else:
-        rnnlm = None
+        rnnlm_cf = None
+
+    # load rnnlm for RNNLM initialization
+    if args.rnnlm_init:
+        rnnlm_init = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(odim, args.dunits, 1))
+        rnnlm_init.load_state_dict(torch.load(args.rnnlm_init, map_location=cpu_loader))
+    else:
+        rnnlm_init = None
 
     # specify model architecture
-    e2e = E2E(idim, odim, args, rnnlm)
+    e2e = E2E(idim, odim, args, rnnlm_cf, rnnlm_init)
     model = Loss(e2e, args.mtlalpha)
 
     # write model config
@@ -422,18 +427,27 @@ def recog(args):
     def cpu_loader(storage, location):
         return storage
 
-    # read rnnlm for cold or shallow fusion
-    if train_args.rnnlm_fusion:
-        # cold fusion
-        assert args.rnnlm is not None
-        rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
+    # read rnnlm for cold fusion
+    if train_args.cf_type:
+        assert train_args.rnnlm_cf
+        rnnlm_cf = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
             len(train_args.char_list), train_args.lm_unit, train_args.lm_layer))
-        rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
-        rnnlm.eval()
-        # TODO(hirofumi): Is it necessary to reload RNNLM?
-    elif args.rnnlm:
-        # shallow fusion
-        assert args.rnnlm is not None
+        rnnlm_cf.load_state_dict(torch.load(train_args.rnnlm_cf, map_location=cpu_loader))
+        rnnlm_cf.eval()
+    else:
+        rnnlm_cf = None
+
+    # read rnnlm for RNNLM initialization
+    if train_args.rnnlm_init:
+        rnnlm_init = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
+            len(train_args.char_list), train_args.dunits, 1))
+        rnnlm_init.load_state_dict(torch.load(train_args.rnnlm_init, map_location=cpu_loader))
+        rnnlm_init.eval()
+    else:
+        rnnlm_init = None
+
+    # read rnnlm for shallow fusion
+    if args.rnnlm is not None:
         rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(train_args.char_list), 650, 2))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
         rnnlm.eval()
@@ -443,7 +457,7 @@ def recog(args):
 
     # specify model architecture
     logging.info('reading model parameters from' + args.model)
-    e2e = E2E(idim, odim, train_args, rnnlm)
+    e2e = E2E(idim, odim, train_args, rnnlm_cf, rnnlm_init)
     model = Loss(e2e, train_args.mtlalpha)
 
     def remove_dataparallel(state_dict):

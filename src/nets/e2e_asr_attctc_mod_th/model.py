@@ -8,6 +8,7 @@ from __future__ import division
 
 import logging
 import math
+import os
 import sys
 
 import chainer
@@ -52,8 +53,13 @@ def to_cuda(m, x):
 
 
 def lecun_normal_init_parameters(module):
-    for p in module.parameters():
+    for n, p in module.named_parameters():
         data = p.data
+
+        # Skip pre-trained RNNLM
+        if 'rnnlm_cf' in n:
+            continue
+
         if data.dim() == 1:
             # bias
             data.zero_()
@@ -165,7 +171,7 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args, rnnlm):
+    def __init__(self, idim, odim, args, rnnlm_cf, rnnlm_init):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -192,7 +198,7 @@ class E2E(torch.nn.Module):
         self.subsample = subsample
 
         # label smoothing info
-        if args.lsm_type and args.lsm_weight > 0:
+        if args.lsm_type and args.lsm_weight > 0 and os.path.isfile(args.train_json):
             logging.info("Use label smoothing with " + args.lsm_type)
             labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         else:
@@ -203,46 +209,39 @@ class E2E(torch.nn.Module):
                            self.subsample, args.dropout_rate)
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
-
-        # for decdoer initialization with pre-trained RNNLM
-        if args.rnnlm_init and rnnlm is not None:
-            dunits = rnnlm.predictor.n_units
-        else:
-            dunits = args.dunits
-
         # attention
         if args.atype == 'noatt':
             self.att = NoAtt()
         elif args.atype == 'dot':
-            self.att = AttDot(args.eprojs, dunits, args.adim)
+            self.att = AttDot(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'add':
-            self.att = AttAdd(args.eprojs, dunits, args.adim)
+            self.att = AttAdd(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'location':
-            self.att = AttLoc(args.eprojs, dunits,
+            self.att = AttLoc(args.eprojs, args.dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'location2d':
-            self.att = AttLoc2D(args.eprojs, dunits,
+            self.att = AttLoc2D(args.eprojs, args.dunits,
                                 args.adim, args.awin, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'location_recurrent':
-            self.att = AttLocRec(args.eprojs, dunits,
+            self.att = AttLocRec(args.eprojs, args.dunits,
                                  args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'coverage':
-            self.att = AttCov(args.eprojs, dunits, args.adim)
+            self.att = AttCov(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'coverage_location':
-            self.att = AttCovLoc(args.eprojs, dunits, args.adim,
+            self.att = AttCovLoc(args.eprojs, args.dunits, args.adim,
                                  args.aconv_chans, args.aconv_filts)
         elif args.atype == 'multi_head_dot':
-            self.att = AttMultiHeadDot(args.eprojs, dunits,
+            self.att = AttMultiHeadDot(args.eprojs, args.dunits,
                                        args.aheads, args.adim, args.adim)
         elif args.atype == 'multi_head_add':
-            self.att = AttMultiHeadAdd(args.eprojs, dunits,
+            self.att = AttMultiHeadAdd(args.eprojs, args.dunits,
                                        args.aheads, args.adim, args.adim)
         elif args.atype == 'multi_head_loc':
-            self.att = AttMultiHeadLoc(args.eprojs, dunits,
+            self.att = AttMultiHeadLoc(args.eprojs, args.dunits,
                                        args.aheads, args.adim, args.adim,
                                        args.aconv_chans, args.aconv_filts)
         elif args.atype == 'multi_head_multi_res_loc':
-            self.att = AttMultiHeadMultiResLoc(args.eprojs, dunits,
+            self.att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
                                                args.aheads, args.adim, args.adim,
                                                args.aconv_chans, args.aconv_filts)
         else:
@@ -253,8 +252,10 @@ class E2E(torch.nn.Module):
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
                            labeldist, args.lsm_weight, args.gen_feat,
-                           rnnlm, args.rnnlm_fusion, args.rnnlm_init,
-                           args.rnnlm_loss_weight)
+                           rnnlm_cf, args.cf_type,
+                           rnnlm_init, args.lm_loss_weight, args.internal_lm,
+                           args.share_softmax)
+        # TODO(hirofumi): add dropout
 
         # weight initialization
         self.init_like_chainer()
@@ -286,20 +287,25 @@ class E2E(torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
         # Initialize decoder with pre-trained RNNLM
-        if self.dec.rnnlm_init:
+        if self.dec.rnnlm_init is not None:
             logging.info('Initialize the decoder with pre-trained RNNLM')
-            for l in six.moves.range(self.dec.dlayers):
-                self.dec.decoder[l].weight_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(l + 1)).weight_ih.data
-                self.dec.decoder[l].weight_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(l + 1)).weight_hh.data
-                self.dec.decoder[l].bias_ih.data = getattr(self.dec.rnnlm.predictor, 'l' + str(l + 1)).bias_ih.data
-                self.dec.decoder[l].bias_hh.data = getattr(self.dec.rnnlm.predictor, 'l' + str(l + 1)).bias_hh.data
-            if not self.dec.rnnlm_fusion:
-                self.dec.output.weight.data = self.dec.rnnlm.predictor.lo.weight.data
-                self.dec.output.bias.data = self.dec.rnnlm.predictor.lo.bias.data
+            # LSTM
+            self.dec.decoder_lm.weight_ih.data = self.dec.rnnlm_init.predictor.l1.weight_ih.data
+            self.dec.decoder_lm.weight_hh.data = self.dec.rnnlm_init.predictor.l1.weight_hh.data
+            self.dec.decoder_lm.bias_ih.data = self.dec.rnnlm_init.predictor.l1.bias_ih.data
+            self.dec.decoder_lm.bias_hh.data = self.dec.rnnlm_init.predictor.l1.bias_hh.data
+            # embedding
+            self.dec.embed.weight.data = self.dec.rnnlm_init.predictor.embed.weight.data
+            # softmax
+            self.dec.output.weight.data = self.dec.rnnlm_init.predictor.lo.weight.data
+            self.dec.output.bias.data = self.dec.rnnlm_init.predictor.lo.bias.data
+            if self.dec.lm_loss_weight > 0 and not self.dec.share_softmax:
+                self.dec.rnnlm_lo.weight.data = self.dec.rnnlm_init.predictor.lo.weight.data
+                self.dec.rnnlm_lo.bias.data = self.dec.rnnlm_init.predictor.lo.bias.data
 
         # Initialize bias in the gating part with -1
-        if self.dec.rnnlm_fusion:
-            self.dec.output.bias.data.fill_(-1)
+        if self.dec.cf_type:
+            self.dec.fc_lm_gate.bias.data.fill_(-1)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):

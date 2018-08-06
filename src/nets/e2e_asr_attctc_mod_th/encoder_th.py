@@ -34,7 +34,7 @@ def _get_vgg2l_odim(idim, in_channel=3, out_channel=128):
 
 # get output dim for latter BLSTM
 def _get_max_pooled_size(idim, out_channel=128, n_layers=2, ksize=2, stride=2):
-    for _ in range(n_layers):
+    for _ in six.moves.range(n_layers):
         idim = math.floor((idim - (ksize - 1) - 1) / stride)
     return idim  # numer of channels
 
@@ -118,8 +118,11 @@ class BLSTMP(torch.nn.Module):
                 inputdim = hdim
             setattr(self, "bilstm%d" % i, torch.nn.LSTM(inputdim, cdim, dropout=dropout,
                                                         num_layers=1, bidirectional=True, batch_first=True))
+            # Dropout for hidden-hidden or hidden-output connection
+            setattr(self, 'd_bilstm' + str(i), torch.nn.Dropout(p=dropout))
             # bottleneck layer to merge
             setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
+            setattr(self, 'd_p' + str(i), torch.nn.Dropout(p=dropout))
 
         self.elayers = elayers
         self.cdim = cdim
@@ -142,6 +145,7 @@ class BLSTMP(torch.nn.Module):
             ys, (hy, cy) = bilstm(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
+            ypad = getattr(self, 'd_bilstm' + str(layer))(ypad)
             sub = self.subsample[layer + 1]
             if sub > 1:
                 ypad = ypad[:, ::sub]
@@ -149,6 +153,7 @@ class BLSTMP(torch.nn.Module):
             # (sum _utt frame_utt) x dim
             projected = getattr(self, 'bt' + str(layer)
                                 )(ypad.contiguous().view(-1, ypad.size(2)))
+            projected = getattr(self, 'd_p' + str(layer))(projected)
             xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
             del hy, cy
 
@@ -228,6 +233,6 @@ class VGG2L(torch.nn.Module):
         xs = xs.transpose(1, 2)
         xs = xs.contiguous().view(
             xs.size(0), xs.size(1), xs.size(2) * xs.size(3))
-        xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
+        xs = [xs[i, :ilens[i]] for i in six.moves.range(len(ilens))]
         xs = pad_list(xs, 0.0)
         return xs, ilens

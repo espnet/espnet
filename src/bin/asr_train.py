@@ -106,22 +106,27 @@ def main():
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
     parser.add_argument('--gen_feat', default='s', type=str,
-                        choices=['s', 'sc', 'scy'],
+                        choices=['s', 'sc'],
                         help='Input features for the generate function before the softmax layer')
-    # RNNLM related
-    parser.add_argument('--lm_unit', type=int, default=650,
+    # cold fusion related
+    parser.add_argument('--lm_unit', default=650, type=int,
                         help='Number of LSTM units in each layer')
-    parser.add_argument('--lm_layer', type=int, default=2,
+    parser.add_argument('--lm_layer',  default=2, type=int,
                         help='Number of layers')
-    parser.add_argument('--rnnlm', type=str, default=None,
-                        help='RNNLM model file to read')
-    parser.add_argument('--rnnlm_fusion', default='', nargs='?',
-                        choices=['cold_fusion', 'cold_fusion_probinj', ''],
-                        help='Method for RNNLM integration')
-    parser.add_argument('--rnnlm_init', default='', nargs='?',
-                        help='Initialize the decoder part with pre-trained RNNLM')
-    parser.add_argument('--rnnlm_loss_weight', type=float, default=0,
-                        help='Weight for RNNLM loss in RNNLM integration or initialization')
+    parser.add_argument('--rnnlm_cf', default='', type=str, nargs='?',
+                        help='RNNLM model file for cold fusion')
+    parser.add_argument('--cf_type', default='', type=str, nargs='?',
+                        choices=['hidden', 'prob', ''],
+                        help='RNNLM features used for cold fusion')
+    # RNNLM initialization, RNNLM objective related
+    parser.add_argument('--rnnlm_init', default='', type=str, nargs='?',
+                        help='RNNLM model file to initialize the decoder')
+    parser.add_argument('--lm_loss_weight', default=0, type=float, nargs='?',
+                        help='Weight for RNNLM objective')
+    parser.add_argument('--internal_lm', default=False, type=bool, nargs='?',
+                        help='Add internal LM to the decoder')
+    parser.add_argument('--share_softmax', default=False, type=bool, nargs='?',
+                        help='Share the output softmax layer between ASR and LM tasks')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
