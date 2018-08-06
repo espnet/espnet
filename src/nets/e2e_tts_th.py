@@ -13,31 +13,21 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from e2e_asr_attctc_th import AttLoc
 from e2e_asr_attctc_th import to_cuda
-from e2e_asr_attctc_th import torch_is_old
 
 
 def encoder_init(m):
     if isinstance(m, torch.nn.Conv1d):
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if torch_is_old:
-            torch.nn.init.xavier_uniform(m.weight, torch.nn.init.calculate_gain('relu'))
-        else:
-            torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('relu'))
+        torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('relu'))
 
 
 def decoder_init(m):
     if isinstance(m, torch.nn.Conv1d):
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if torch_is_old:
-            torch.nn.init.xavier_uniform(m.weight, torch.nn.init.calculate_gain('tanh'))
-        else:
-            torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
+        torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
 
 
 def make_mask(lengths, dim=None):
@@ -58,10 +48,6 @@ def make_mask(lengths, dim=None):
         mask = torch.zeros(batch, maxlen, dim)
     for i, l in enumerate(lengths):
         mask[i, :l] = 1
-
-    # TODO(kan-bayashi): need to be fixed in pytorch v4
-    if torch_is_old:
-        mask = Variable(mask)
 
     return mask.byte()
 
@@ -105,10 +91,7 @@ class ZoneOutCell(torch.nn.Module):
             return tuple([self._zoneout(h[i], next_h[i], prob[i]) for i in range(num_h)])
 
         if self.training:
-            # TODO(kan-bayashi): need to be fixed in pytorch v4
-            mask = h.data.new(*h.size()).bernoulli_(prob)
-            if torch_is_old:
-                mask = Variable(mask, volatile=h.volatile)
+            mask = h.new(*h.size()).bernoulli_(prob)
             return mask * h + (1 - mask) * next_h
         else:
             return prob * h + (1 - prob) * next_h
@@ -145,10 +128,7 @@ class Tacotron2Loss(torch.nn.Module):
         if self.use_masking and olens is not None:
             # weight positive samples
             if self.bce_pos_weight != 1.0:
-                # TODO(kan-bayashi): need to be fixed in pytorch v4
-                weights = ys.data.new(*labels.size()).fill_(1)
-                if torch_is_old:
-                    weights = Variable(weights, volatile=ys.volatile)
+                weights = ys.new(*labels.size()).fill_(1)
                 weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
             else:
                 weights = None
@@ -173,13 +153,9 @@ class Tacotron2Loss(torch.nn.Module):
             loss = l1_loss + mse_loss + bce_loss
 
         # report loss values for logging
-        loss_data = loss.data[0] if torch_is_old else loss.item()
-        l1_loss_data = l1_loss.data[0] if torch_is_old else l1_loss.item()
-        bce_loss_data = bce_loss.data[0] if torch_is_old else bce_loss.item()
-        mse_loss_data = mse_loss.data[0] if torch_is_old else mse_loss.item()
         logging.debug("loss = %.3e (bce: %.3e, l1: %.3e, mse: %.3e)" % (
-            loss_data, bce_loss_data, l1_loss_data, mse_loss_data))
-        self.reporter.report(l1_loss_data, mse_loss_data, bce_loss_data, loss_data)
+            loss.item(), bce_loss.item(), l1_loss.item(), mse_loss.item()))
+        self.reporter.report(l1_loss.item(), mse_loss.item(), bce_loss.item(), loss.item())
 
         return loss
 
@@ -376,19 +352,15 @@ class Tacotron2(torch.nn.Module):
             ilens = list(map(int, ilens))
 
         self.eval()
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if not torch_is_old:
-            torch.set_grad_enabled(False)
-        hs, hlens = self.enc(xs, ilens)
-        if self.spk_embed_dim is not None:
-            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
-            hs = torch.cat([hs, spembs], dim=-1)
-        att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
-        if not torch_is_old:
-            torch.set_grad_enabled(True)
+        with torch.no_grad():
+            hs, hlens = self.enc(xs, ilens)
+            if self.spk_embed_dim is not None:
+                spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+                hs = torch.cat([hs, spembs], dim=-1)
+            att_ws = self.dec.calculate_all_attentions(hs, hlens, ys)
         self.train()
 
-        return att_ws.data.cpu().numpy()
+        return att_ws.cpu().numpy()
 
 
 class Encoder(torch.nn.Module):
@@ -622,10 +594,7 @@ class Decoder(torch.nn.Module):
         self.prob_out = torch.nn.Linear(iunits, 1)
 
     def zero_state(self, hs):
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        init_hs = hs.data.new(hs.size(0), self.dunits).zero_()
-        if torch_is_old:
-            init_hs = Variable(init_hs, volatile=hs.volatile)
+        init_hs = hs.new_zeros(hs.size(0), self.dunits)
         return init_hs
 
     def forward(self, hs, hlens, ys, att_w_maxlen=None):
@@ -650,10 +619,7 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        prev_out = hs.data.new(hs.size(0), self.odim).zero_()
-        if torch_is_old:
-            prev_out = Variable(prev_out, volatile=hs.volatile)
+        prev_out = hs.new_zeros(hs.size(0), self.odim)
 
         # initialize attention
         prev_att_w = None
@@ -715,10 +681,7 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        prev_out = hs.data.new(1, self.odim).zero_()
-        if torch_is_old:
-            prev_out = Variable(prev_out, volatile=hs.volatile)
+        prev_out = hs.new_zeros(1, self.odim)
 
         # initialize attention
         prev_att_w = None
@@ -745,7 +708,7 @@ class Decoder(torch.nn.Module):
                 outs += [self.output_activation_fn(self.feat_out(zcs))]
             else:
                 outs += [self.feat_out(zcs)]
-            probs += [F.sigmoid(self.prob_out(zcs))[0]]
+            probs += [torch.sigmoid(self.prob_out(zcs))[0]]
             prev_out = outs[-1]
             if self.cumulate_att_w and prev_att_w is not None:
                 prev_att_w = prev_att_w + att_w  # Note: error when use +=
@@ -778,10 +741,7 @@ class Decoder(torch.nn.Module):
         for l in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        prev_out = hs.data.new(hs.size(0), self.odim).zero_()
-        if torch_is_old:
-            prev_out = Variable(prev_out, volatile=hs.volatile)
+        prev_out = hs.new_zeros(hs.size(0), self.odim)
 
         # initialize attention
         prev_att_w = None
