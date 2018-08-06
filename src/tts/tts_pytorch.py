@@ -24,7 +24,6 @@ import kaldi_io_py
 from asr_utils import PlotAttentionReport
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
-from e2e_tts_th import torch_is_old
 
 import matplotlib
 matplotlib.use('Agg')
@@ -54,19 +53,14 @@ class CustomEvaluator(extensions.Evaluator):
         summary = chainer.reporter.DictSummary()
 
         self.model.eval()
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if not torch_is_old:
-            torch.set_grad_enabled(False)
-        for batch in it:
-            observation = {}
-            with chainer.reporter.report_scope(observation):
-                # convert to torch tensor
-                batch = self.converter(batch, self.model.training)
-                self.model(*batch)
-            summary.add(observation)
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if not torch_is_old:
-            torch.set_grad_enabled(True)
+        with torch.no_grad():
+            for batch in it:
+                observation = {}
+                with chainer.reporter.report_scope(observation):
+                    # convert to torch tensor
+                    batch = self.converter(batch, self.model.training)
+                    self.model(*batch)
+                summary.add(observation)
         self.model.train()
 
         return summary.compute_mean()
@@ -80,11 +74,7 @@ class CustomUpdater(training.StandardUpdater):
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if torch_is_old:
-            self.clip_grad_norm = torch.nn.utils.clip_grad_norm
-        else:
-            self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
+        self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -137,23 +127,17 @@ class CustomConverter(object):
         ys = [ys[i] for i in sorted_idx]
 
         # get list of lengths (must be tensor for DataParallel)
-        ilens = torch.from_numpy(np.fromiter((x.shape[0] for x in xs), dtype=np.int64))
-        olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys), dtype=np.int64))
+        ilens = torch.LongTensor([x.shape[0] for x in xs])
+        olens = torch.LongTensor([y.shape[0] for y in ys])
 
         # perform padding and convert to tensor
-        xs = torch.from_numpy(pad_ndarray_list(xs, 0)).long()
-        ys = torch.from_numpy(pad_ndarray_list(ys, 0)).float()
+        xs = torch.LongTensor(pad_ndarray_list(xs, 0))
+        ys = torch.FloatTensor(pad_ndarray_list(ys, 0))
 
         # make labels for stop prediction
-        labels = ys.new(ys.size(0), ys.size(1)).zero_()
+        labels = ys.new_zeros(ys.size(0), ys.size(1))
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1
-
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if torch_is_old:
-            xs = Variable(xs, volatile=not is_training)
-            ys = Variable(ys, volatile=not is_training)
-            labels = Variable(labels, volatile=not is_training)
 
         if sum(self.device) >= 0:
             xs = xs.cuda()
@@ -164,11 +148,8 @@ class CustomConverter(object):
         if self.use_speaker_embedding:
             spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
             spembs = [spembs[i] for i in sorted_idx]
-            spembs = torch.from_numpy(np.array(spembs)).float()
+            spembs = torch.FloatTensor(np.array(spembs))
 
-            # TODO(kan-bayashi): need to be fixed in pytorch v4
-            if torch_is_old:
-                spembs = Variable(spembs, volatile=not is_training)
             if sum(self.device) >= 0:
                 spembs = spembs.cuda()
         else:
@@ -197,6 +178,8 @@ def pad_ndarray_list(batch, pad_value):
     batch_pad.fill(pad_value)
     for i, b in enumerate(batch):
         batch_pad[i, :b.shape[0]] = b
+
+    del batch
 
     return batch_pad
 
@@ -484,15 +467,12 @@ def decode(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # define output activation function
-    if hasattr(train_args, 'output_activation'):
-        if train_args.output_activation is None:
-            output_activation_fn = None
-        elif hasattr(torch.nn.functional, train_args.output_activation):
-            output_activation_fn = getattr(torch.nn.functional, train_args.output_activation)
-        else:
-            raise ValueError('there is no such an activation function. (%s)' % train_args.output_activation)
-    else:
+    if train_args.output_activation is None:
         output_activation_fn = None
+    elif hasattr(torch.nn.functional, train_args.output_activation):
+        output_activation_fn = getattr(torch.nn.functional, train_args.output_activation)
+    else:
+        raise ValueError('there is no such an activation function. (%s)' % train_args.output_activation)
 
     # define model
     tacotron2 = Tacotron2(
@@ -561,31 +541,20 @@ def decode(args):
     else:
         train_args.use_speaker_embedding = False
 
-    # TODO(kan-bayashi): need to be fixed in pytorch v4
-    if not torch_is_old:
-        torch.set_grad_enabled(False)
-
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
-    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+    with torch.no_grad(), kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
-            x = torch.from_numpy(x)
+            x = torch.LongTensor(x)
             if args.ngpu > 0:
                 x = x.cuda()
-
-            # TODO(kan-bayashi): need to be fixed in pytorch v4
-            if torch_is_old:
-                x = Variable(x, volatile=True)
 
             # get speaker embedding
             if train_args.use_speaker_embedding:
                 spemb = kaldi_io_py.read_vec_flt(js[utt_id]['input'][1]['feat'])
-                spemb = torch.from_numpy(spemb)
-                # TODO(kan-bayashi): need to be fixed in pytorch v4
-                if torch_is_old:
-                    spemb = Variable(spemb, volatile=True)
+                spemb = torch.FloatTensor(spemb)
                 if args.ngpu > 0:
                     spemb = spemb.cuda()
             else:
@@ -597,4 +566,4 @@ def decode(args):
                 logging.warn("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
-            kaldi_io_py.write_mat(f, outs.data.cpu().numpy(), utt_id)
+            kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
