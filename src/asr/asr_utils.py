@@ -11,7 +11,6 @@ import os
 import chainer
 from chainer import training
 from chainer.training import extension
-from chainer.backends import cuda
 
 # io related
 import kaldi_io_py

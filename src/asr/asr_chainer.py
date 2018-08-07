@@ -19,9 +19,9 @@ import sys
 import chainer
 
 from chainer import cuda
+from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
-from chainer.datasets import TransformDataset
 from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
