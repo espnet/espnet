@@ -67,7 +67,7 @@ CSJDATATOP=/export/corpora5/CSJ/USB
 CSJVER=usb                          # see kaldi/egs/csj/s5/run.sh about the version
 
 # bpemode (unigram or bpe)
-nbpe=8000
+nbpe=5000
 bpemode=unigram
 
 # exp tag
