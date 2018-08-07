@@ -390,53 +390,13 @@ class E2E(torch.nn.Module):
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
-class _ChainerLikeCTC(warp_ctc._CTC):
-    @staticmethod
-    def forward(ctx, acts, labels, act_lens, label_lens):
-        is_cuda = True if acts.is_cuda else False
-        acts = acts.contiguous()
-        loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
-        grads = torch.zeros(acts.size()).type_as(acts)
-        minibatch_size = acts.size(1)
-        costs = torch.zeros(minibatch_size).cpu()
-        loss_func(acts,
-                  grads,
-                  labels,
-                  label_lens,
-                  act_lens,
-                  minibatch_size,
-                  costs)
-        # modified only here from original
-        costs = torch.FloatTensor([costs.sum()]) / acts.size(1)
-        ctx.grads = grads
-        ctx.grads /= ctx.grads.size(1)
-
-        return costs
-
-
-def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
-    """Chainer like CTC Loss
-
-    acts: Tensor of (seqLength x batch x outputDim) containing output from network
-    labels: 1 dimensional Tensor containing all the targets of the batch in one sequence
-    act_lens: Tensor of size (batch) containing size of each output sequence from the network
-    act_lens: Tensor of (batch) containing label length of each example
-    """
-    assert len(labels.size()) == 1  # labels must be 1 dimensional
-    from torch.nn.modules.loss import _assert_no_grad
-    _assert_no_grad(labels)
-    _assert_no_grad(act_lens)
-    _assert_no_grad(label_lens)
-    return _ChainerLikeCTC.apply(acts, labels, act_lens, label_lens)
-
-
 class CTC(torch.nn.Module):
     def __init__(self, odim, eprojs, dropout_rate):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.loss_fn = chainer_like_ctc_loss  # CTCLoss()
+        self.loss_fn = warp_ctc.CTCLoss(size_average=True)
 
     def forward(self, hpad, ilens, ys):
         '''CTC forward
@@ -1760,7 +1720,7 @@ class Decoder(torch.nn.Module):
         else:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
         if lpz is not None:
-            ctc_prefix_score = CTCPrefixScore(lpz.numpy(), 0, self.eos, np)
+            ctc_prefix_score = CTCPrefixScore(lpz.detach().numpy(), 0, self.eos, np)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
             hyp['ctc_score_prev'] = 0.0
             if ctc_weight != 1.0:
@@ -1788,7 +1748,7 @@ class Decoder(torch.nn.Module):
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
 
                 # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
+                local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1)
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
