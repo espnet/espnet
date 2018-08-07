@@ -17,7 +17,6 @@ import torch
 
 from chainer import training
 from chainer.training import extensions
-from torch.autograd import Variable
 
 import kaldi_io_py
 

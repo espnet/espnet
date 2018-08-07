@@ -18,7 +18,6 @@ import torch.nn.functional as F
 import warpctc_pytorch as warp_ctc
 
 from chainer import reporter
-from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
@@ -26,8 +25,6 @@ from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
-
-torch_is_old = torch.__version__.startswith("0.3.")
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -83,9 +80,9 @@ def linear_tensor(linear, x):
     '''Apply linear matrix operation only for the last dimension of a tensor
 
     :param Link linear: Linear link (M x N matrix)
-    :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
+    :param Tensor x: Tensor (D_1 x D_2 x ... x M matrix)
     :return:
-    :param Variable x: Tensor (D_1 x D_2 x ... x N matrix)
+    :param Tensor x: Tensor (D_1 x D_2 x ... x N matrix)
     '''
     y = linear(x.contiguous().view((-1, x.size()[-1])))
     return y.view((x.size()[:-1] + (-1,)))
@@ -121,22 +118,22 @@ class Loss(torch.nn.Module):
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
-            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
+            loss_att_data = float(loss_att)
             loss_ctc_data = None
         elif alpha == 1:
             self.loss = loss_ctc
             loss_att_data = None
-            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
+            loss_ctc_data = float(loss_ctc)
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
-            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
+            loss_att_data = float(loss_att)
+            loss_ctc_data = float(loss_ctc)
 
-        loss_data = self.loss.data[0] if torch_is_old else float(self.loss)
+        loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             self.reporter.report(loss_ctc_data, loss_att_data, acc, loss_data)
         else:
-            logging.warning('loss (=%f) is not correct', self.loss.data)
+            logging.warning('loss (=%f) is not correct', loss_data)
 
         return self.loss
 
@@ -144,19 +141,7 @@ class Loss(torch.nn.Module):
 def pad_list(xs, pad_value):
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
-    if torch_is_old:
-        if isinstance(xs[0], Variable):
-            new = xs[0].data.new
-            v = xs[0].volatile
-        else:
-            new = xs[0].new
-            v = False
-        pad = Variable(
-            new(n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
-            volatile=v)
-    else:
-        pad = xs[0].data.new(
-            n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value
+    pad = xs[0].new_zeros(n_batch, max_len, * xs[0].size()[1:]) + pad_value
 
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
@@ -302,18 +287,12 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        if torch_is_old:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=not self.training)) for y in ys]
-        else:
-            ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
+        ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        if torch_is_old:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=not self.training)) for xx in xs]
-        else:
-            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
+        hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # 1. encoder
         xpad = pad_list(hs, 0.0)
@@ -347,12 +326,8 @@ class E2E(torch.nn.Module):
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
-        if torch_is_old:
-            h = to_cuda(self, Variable(torch.from_numpy(
-                np.array(x, dtype=np.float32)), volatile=True))
-        else:
-            h = to_cuda(self, torch.from_numpy(
-                np.array(x, dtype=np.float32)))
+        h = to_cuda(self, torch.from_numpy(
+            np.array(x, dtype=np.float32)))
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
@@ -360,7 +335,7 @@ class E2E(torch.nn.Module):
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(h).data[0]
+            lpz = self.ctc.log_softmax(h)[0]
         else:
             lpz = None
 
@@ -381,9 +356,6 @@ class E2E(torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
          :rtype: float ndarray
         '''
-        if not torch_is_old:
-            torch.set_grad_enabled(False)
-
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
 
@@ -399,28 +371,20 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        if torch_is_old:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
-        else:
-            ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
+        ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        if torch_is_old:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
-        else:
-            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
+        hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
-        # encoder
-        xpad = pad_list(hs, 0.0)
-        hpad, hlens = self.enc(xpad, ilens)
+        with torch.no_grad():
+            # encoder
+            xpad = pad_list(hs, 0.0)
+            hpad, hlens = self.enc(xpad, ilens)
 
-        # decoder
-        att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
-
-        if not torch_is_old:
-            torch.set_grad_enabled(True)
+            # decoder
+            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
 
         return att_ws
 
@@ -444,7 +408,7 @@ class _ChainerLikeCTC(warp_ctc._CTC):
                   costs)
         # modified only here from original
         costs = torch.FloatTensor([costs.sum()]) / acts.size(1)
-        ctx.grads = Variable(grads)
+        ctx.grads = grads
         ctx.grads /= ctx.grads.size(1)
 
         return costs
@@ -482,9 +446,9 @@ class CTC(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        ilens = Variable(torch.from_numpy(np.fromiter(ilens, dtype=np.int32)))
-        olens = Variable(torch.from_numpy(np.fromiter(
-            (x.size(0) for x in ys), dtype=np.int32)))
+        ilens = torch.from_numpy(np.fromiter(ilens, dtype=np.int32))
+        olens = torch.from_numpy(np.fromiter(
+            (x.size(0) for x in ys), dtype=np.int32))
 
         # zero padding for hs
         y_hat = linear_tensor(
@@ -501,7 +465,7 @@ class CTC(torch.nn.Module):
         # expected shape of seqLength x batchSize x alphabet_size
         y_hat = y_hat.transpose(0, 1)
         self.loss = to_cuda(self, self.loss_fn(y_hat, y_true, ilens, olens))
-        logging.info('ctc loss:' + str(self.loss.data[0]))
+        logging.info('ctc loss:' + str(float(self.loss)))
 
         return self.loss
 
@@ -516,7 +480,7 @@ class CTC(torch.nn.Module):
 
 def mask_by_length(xs, length, fill=0):
     assert xs.size(0) == len(length)
-    ret = Variable(xs.data.new(*xs.size()).fill_(fill))
+    ret = xs.new(*xs.size()).fill_(fill)
     for i, l in enumerate(length):
         ret[i, :l] = xs[i, :l]
     return ret
@@ -543,14 +507,14 @@ class NoAtt(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''NoAtt forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: dummy (does not use)
-        :param Variable att_prev: dummy (does not use)
+        :param Tensor dec_z: dummy (does not use)
+        :param Tensor att_prev: dummy (does not use)
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: previous attentioin weights
-        :rtype: Variable
+        :rtype: Tensor
         '''
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
@@ -560,8 +524,7 @@ class NoAtt(torch.nn.Module):
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [Variable(enc_hs_pad.data.new(
-                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
             self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
@@ -598,15 +561,15 @@ class AttDot(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttDot forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: dummy (does not use)
-        :param Variable att_prev: dummy (does not use)
+        :param Tensor dec_z: dummy (does not use)
+        :param Tensor att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: previous attentioin weight (B x T_max)
-        :rtype: Variable
+        :rtype: Tensor
         '''
 
         batch = enc_hs_pad.size(0)
@@ -619,7 +582,7 @@ class AttDot(torch.nn.Module):
                 linear_tensor(self.mlp_enc, self.enc_h))
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
@@ -663,15 +626,15 @@ class AttAdd(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: docoder hidden state (B x D_dec)
-        :param Variable att_prev: dummy (does not use)
+        :param Tensor dec_z: docoder hidden state (B x D_dec)
+        :param Tensor att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: previous attentioin weights (B x T_max)
-        :rtype: Variable
+        :rtype: Tensor
         '''
 
         batch = len(enc_hs_pad)
@@ -683,7 +646,7 @@ class AttAdd(torch.nn.Module):
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
@@ -744,15 +707,15 @@ class AttLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: docoder hidden state (B x D_dec)
-        :param Variable att_prev: previous attetion weight (B x T_max)
+        :param Tensor dec_z: docoder hidden state (B x D_dec)
+        :param Tensor att_prev: previous attetion weight (B x T_max)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: previous attentioin weights (B x T_max)
-        :rtype: Variable
+        :rtype: Tensor
         '''
 
         batch = len(enc_hs_pad)
@@ -764,14 +727,13 @@ class AttLoc(torch.nn.Module):
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [Variable(enc_hs_pad.data.new(
-                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
 
@@ -833,13 +795,13 @@ class AttCov(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
         '''AttCov forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param Tensor dec_z: docoder hidden state (B x D_dec)
         :param list att_prev_list: list of previous attetion weight
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: list of previous attentioin weights
         :rtype: list
         '''
@@ -853,14 +815,13 @@ class AttCov(torch.nn.Module):
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
         # initialize attention weight with uniform dist.
         if att_prev_list is None:
-            att_prev = [Variable(enc_hs_pad.data.new(
-                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev_list = [pad_list(att_prev, 0)]
 
@@ -930,15 +891,15 @@ class AttLoc2D(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc2D forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: docoder hidden state (B x D_dec)
-        :param Variable att_prev: previous attetion weight (B x att_win x T_max)
+        :param Tensor dec_z: docoder hidden state (B x D_dec)
+        :param Tensor att_prev: previous attetion weight (B x att_win x T_max)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: previous attentioin weights (B x att_win x T_max)
-        :rtype: Variable
+        :rtype: Tensor
         '''
 
         batch = len(enc_hs_pad)
@@ -950,15 +911,14 @@ class AttLoc2D(torch.nn.Module):
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
             # B * [Li x att_win]
-            att_prev = [Variable(
-                enc_hs_pad.data.new(l, self.att_win).zero_() + 1.0 / l) for l in enc_hs_len]
+            att_prev = [enc_hs_pad.new(l, self.att_win).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0).transpose(1, 2)
 
@@ -1030,14 +990,14 @@ class AttLocRec(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_states, scaling=2.0):
         '''AttLocRec forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param Tensor dec_z: docoder hidden state (B x D_dec)
         :param tuple att_prev_states: previous attetion weight and lstm states
                                       ((B, T_max), ((B, att_dim), (B, att_dim)))
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: previous attention weights and lstm states (w, (hx, cx))
                  ((B, T_max), ((B, att_dim), (B, att_dim)))
         :rtype: tuple
@@ -1052,20 +1012,19 @@ class AttLocRec(torch.nn.Module):
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
         if att_prev_states is None:
             # initialize attention weight with uniform dist.
-            att_prev = [Variable(
-                enc_hs_pad.data.new(l).fill_(1.0 / l)) for l in enc_hs_len]
+            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev = pad_list(att_prev, 0)
 
             # initialize lstm states
-            att_h = Variable(enc_hs_pad.data.new(batch, self.att_dim).zero_())
-            att_c = Variable(enc_hs_pad.data.new(batch, self.att_dim).zero_())
+            att_h = enc_hs_pad.new_zeros(batch, self.att_dim)
+            att_c = enc_hs_pad.new_zeros(batch, self.att_dim)
             att_states = (att_h, att_c)
         else:
             att_prev = att_prev_states[0]
@@ -1137,13 +1096,13 @@ class AttCovLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
         '''AttCovLoc forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: docoder hidden state (B x D_dec)
+        :param Tensor dec_z: docoder hidden state (B x D_dec)
         :param list att_prev_list: list of previous attetion weight
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: list of previous attentioin weights
         :rtype: list
         '''
@@ -1157,14 +1116,13 @@ class AttCovLoc(torch.nn.Module):
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
         # initialize attention weight with uniform dist.
         if att_prev_list is None:
-            att_prev = [Variable(enc_hs_pad.data.new(
-                l).zero_() + (1.0 / l)) for l in enc_hs_len]
+            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
             att_prev_list = [pad_list(att_prev, 0)]
 
@@ -1242,13 +1200,13 @@ class AttMultiHeadDot(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadDot forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: decoder hidden state (B x D_dec)
-        :param Variable att_prev: dummy (does not use)
+        :param Tensor dec_z: decoder hidden state (B x D_dec)
+        :param Tensor att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: list of previous attentioin weight (B x T_max) * aheads
         :rtype: list
         '''
@@ -1270,7 +1228,7 @@ class AttMultiHeadDot(torch.nn.Module):
                 linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
@@ -1340,13 +1298,13 @@ class AttMultiHeadAdd(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadAdd forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: decoder hidden state (B x D_dec)
-        :param Variable att_prev: dummy (does not use)
+        :param Tensor dec_z: decoder hidden state (B x D_dec)
+        :param Tensor att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: list of previous attentioin weight (B x T_max) * aheads
         :rtype: list
         '''
@@ -1368,7 +1326,7 @@ class AttMultiHeadAdd(torch.nn.Module):
                 linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
@@ -1447,13 +1405,13 @@ class AttMultiHeadLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttMultiHeadLoc forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: decoder hidden state (B x D_dec)
-        :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :param Tensor dec_z: decoder hidden state (B x D_dec)
+        :param Tensor att_prev: list of previous attentioin weight (B x T_max) * aheads
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: list of previous attentioin weight (B x T_max) * aheads
         :rtype: list
         '''
@@ -1475,15 +1433,14 @@ class AttMultiHeadLoc(torch.nn.Module):
                 linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
         if att_prev is None:
             att_prev = []
             for h in six.moves.range(self.aheads):
-                att_prev += [[Variable(enc_hs_pad.data.new(
-                    l).zero_() + (1.0 / l)) for l in enc_hs_len]]
+                att_prev += [[enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]]
                 # if no bias, 0 0-pad goes 0
                 att_prev[h] = pad_list(att_prev[h], 0)
 
@@ -1571,13 +1528,13 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadMultiResLoc forward
 
-        :param Variable enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Variable dec_z: decoder hidden state (B x D_dec)
-        :param Variable att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :param Tensor dec_z: decoder hidden state (B x D_dec)
+        :param Tensor att_prev: list of previous attentioin weight (B x T_max) * aheads
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
-        :rtype: Variable
+        :rtype: Tensor
         :return: list of previous attentioin weight (B x T_max) * aheads
         :rtype: list
         '''
@@ -1599,15 +1556,14 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
                 linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
-            dec_z = Variable(enc_hs_pad.data.new(batch, self.dunits).zero_())
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
         else:
             dec_z = dec_z.view(batch, self.dunits)
 
         if att_prev is None:
             att_prev = []
             for h in six.moves.range(self.aheads):
-                att_prev += [[Variable(enc_hs_pad.data.new(
-                    l).zero_() + (1.0 / l)) for l in enc_hs_len]]
+                att_prev += [[enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]]
                 # if no bias, 0 0-pad goes 0
                 att_prev[h] = pad_list(att_prev[h], 0)
 
@@ -1637,11 +1593,9 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
 
 def th_accuracy(y_all, pad_target, ignore_label):
-    pad_pred = y_all.data.view(pad_target.size(
-        0), pad_target.size(1), y_all.size(1)).max(2)[1]
-    mask = pad_target.data != ignore_label
-    numerator = torch.sum(pad_pred.masked_select(
-        mask) == pad_target.data.masked_select(mask))
+    pad_pred = y_all.view(pad_target.size(0), pad_target.size(1), y_all.size(1)).argmax(2)
+    mask = pad_target != ignore_label
+    numerator = torch.sum(pad_pred.masked_select(mask) == pad_target.masked_select(mask))
     denominator = torch.sum(mask)
     return float(numerator) / float(denominator)
 
@@ -1674,7 +1628,7 @@ class Decoder(torch.nn.Module):
         self.lsm_weight = lsm_weight
 
     def zero_state(self, hpad):
-        return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
+        return hpad.new_zeros(hpad.size(0), self.dunits)
 
     def forward(self, hpad, hlen, ys):
         '''Decoder forward
@@ -1688,8 +1642,8 @@ class Decoder(torch.nn.Module):
 
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
-        eos = Variable(ys[0].data.new([self.eos]))
-        sos = Variable(ys[0].data.new([self.sos]))
+        eos = ys[0].new([self.eos])
+        sos = ys[0].new([self.sos])
         ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_out = [torch.cat([y, eos], dim=0) for y in ys]
 
@@ -1736,14 +1690,14 @@ class Decoder(torch.nn.Module):
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
-        logging.info('att loss:' + ''.join(str(self.loss.data).split('\n')))
+        logging.info('att loss:' + ''.join(str(self.loss.item()).split('\n')))
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
             y_hat = y_all.view(batch, olength, -1)
             y_true = pad_ys_out
-            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data.cpu().numpy()),
-                                            y_true.data.cpu().numpy()):
+            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.detach().cpu().numpy()),
+                                            y_true.detach().cpu().numpy()):
                 if i == MAX_DECODER_OUTPUT:
                     break
                 idx_hat = np.argmax(y_hat_[y_true_ != self.ignore_id], axis=1)
@@ -1757,7 +1711,7 @@ class Decoder(torch.nn.Module):
 
         if self.labeldist is not None:
             if self.vlabeldist is None:
-                self.vlabeldist = to_cuda(self, Variable(torch.from_numpy(self.labeldist)))
+                self.vlabeldist = to_cuda(self, torch.from_numpy(self.labeldist))
             loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
@@ -1766,7 +1720,7 @@ class Decoder(torch.nn.Module):
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
-        :param Variable h:
+        :param Tensor h:
         :param Namespace recog_args:
         :param char_list:
         :return:
@@ -1788,10 +1742,7 @@ class Decoder(torch.nn.Module):
 
         # preprate sos
         y = self.sos
-        if torch_is_old:
-            vy = Variable(h.data.new(1).zero_().long(), volatile=True)
-        else:
-            vy = h.new_zeros(1).long()
+        vy = h.new_zeros(1).long()
 
         if recog_args.maxlenratio == 0:
             maxlen = h.shape[0]
@@ -1940,8 +1891,8 @@ class Decoder(torch.nn.Module):
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
-        eos = Variable(ys[0].data.new([self.eos]))
-        sos = Variable(ys[0].data.new([self.sos]))
+        eos = ys[0].new([self.eos])
+        sos = ys[0].new([self.sos])
         ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_out = [torch.cat([y, eos], dim=0) for y in ys]
 
@@ -1979,13 +1930,13 @@ class Decoder(torch.nn.Module):
         # convert to numpy array with the shape (B, Lmax, Tmax)
         if isinstance(self.att, AttLoc2D):
             # att_ws => list of previous concate attentions
-            att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).cpu().numpy()
         elif isinstance(self.att, (AttCov, AttCovLoc)):
             # att_ws => list of list of previous attentions
-            att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).cpu().numpy()
         elif isinstance(self.att, AttLocRec):
             # att_ws => list of tuple of attention and hidden states
-            att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).data.cpu().numpy()
+            att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).cpu().numpy()
         elif isinstance(self.att, (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
             # att_ws => list of list of each head attetion
             n_heads = len(att_ws[0])
@@ -1993,10 +1944,10 @@ class Decoder(torch.nn.Module):
             for h in six.moves.range(n_heads):
                 att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1)
                 att_ws_sorted_by_head += [att_ws_head]
-            att_ws = torch.stack(att_ws_sorted_by_head, dim=1).data.cpu().numpy()
+            att_ws = torch.stack(att_ws_sorted_by_head, dim=1).cpu().numpy()
         else:
             # att_ws => list of attetions
-            att_ws = torch.stack(att_ws, dim=1).data.cpu().numpy()
+            att_ws = torch.stack(att_ws, dim=1).cpu().numpy()
         return att_ws
 
 
@@ -2098,9 +2049,8 @@ class BLSTMP(torch.nn.Module):
         for layer in six.moves.range(self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
-            if torch_is_old:
-                # pytorch 0.4.x does not support flatten_parameters() for multiple GPUs
-                bilstm.flatten_parameters()
+            # pytorch 0.4.x does not support flatten_parameters() for multiple GPUs
+            # bilstm.flatten_parameters()
             ys, (hy, cy) = bilstm(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
