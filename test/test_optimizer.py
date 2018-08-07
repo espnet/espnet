@@ -66,4 +66,3 @@ def test_optimizer(ch_opt_t, th_opt_t):
         ch_model.a.W.data, th_model.a.weight.data.numpy())
     numpy.testing.assert_allclose(
         ch_model.a.b.data, th_model.a.bias.data.numpy(), rtol=1e-6)
-
