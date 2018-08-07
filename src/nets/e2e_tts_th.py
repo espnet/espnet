@@ -40,11 +40,12 @@ def make_mask(lengths, dim=None):
     Return:
         (torch.ByteTensor) binary mask tensor (B, Lmax, dim)
     """
-    batch = len(lengths)
-    maxlen = max(lengths)
+    batch = int(len(lengths))
+    maxlen = int(max(lengths))
     if dim is None:
         mask = torch.zeros(batch, maxlen)
     else:
+        dim = int(dim)
         mask = torch.zeros(batch, maxlen, dim)
     for i, l in enumerate(lengths):
         mask[i, :l] = 1
@@ -449,9 +450,7 @@ class Encoder(torch.nn.Module):
             else:
                 xs = self.convs[l](xs)
         xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
-        # does not work with dataparallel
-        # see https://github.com/pytorch/pytorch/issues/7092#issuecomment-388194623
-        # self.blstm.flatten_parameters()
+        self.blstm.flatten_parameters()
         xs, _ = self.blstm(xs)  # (B, Tmax, C)
         xs, hlens = pad_packed_sequence(xs, batch_first=True)
 
