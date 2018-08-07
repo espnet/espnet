@@ -10,6 +10,7 @@ import importlib
 import chainer
 import numpy
 import pytest
+import torch
 
 
 def make_arg(**kwargs):
@@ -79,7 +80,7 @@ def test_model_trainable_and_decodable(module, etype, atype):
     attn_loss = model(data)
     attn_loss.backward()  # trainable
 
-    with chainer.no_backprop_mode():
+    with torch.no_grad(), chainer.no_backprop_mode():
         in_data = data[0][1]["feat"]
         model.predictor.recognize(in_data, args, args.char_list)  # decodable
 
@@ -162,12 +163,12 @@ def test_loss_and_ctc_grad(etype):
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
-    th_ench = th_model.att.pre_compute_enc_h.data.numpy()
+    th_ench = th_model.att.pre_compute_enc_h.detach().numpy()
     numpy.testing.assert_equal(ch_ench == 0.0, th_ench == 0.0)
 
     # test loss with constant weights (1.0) and bias (0.0) except for foget-bias (1.0)
-    numpy.testing.assert_allclose(ch_ctc.data, th_ctc.data.numpy())
-    numpy.testing.assert_allclose(ch_att.data, th_att.data.numpy())
+    numpy.testing.assert_allclose(ch_ctc.data, th_ctc.detach().numpy())
+    numpy.testing.assert_allclose(ch_att.data, th_att.detach().numpy())
 
     # test ctc grads
     ch_ctc.backward()
