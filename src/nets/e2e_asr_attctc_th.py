@@ -1893,6 +1893,7 @@ class Decoder(torch.nn.Module):
         else:
             pad_b = to_cuda(self, torch.LongTensor([i * beam for i in six.moves.range(batch)]).view(-1, 1))
             pad_bo = to_cuda(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
+            pad_o = to_cuda(self, torch.LongTensor([i * self.odim for i in six.moves.range(n_bb)]).view(-1, 1))
 
         max_hlen = max(hlens)
         if recog_args.maxlenratio == 0:
@@ -1988,17 +1989,24 @@ class Decoder(torch.nn.Module):
                 local_scores[:, :, :] = self.logzero
                 _best_odims = local_best_odims.data
                 _best_score = local_best_scores.data
-            else:
+
+            # local pruning
+            if False:
                 local_scores = to_cuda(self, torch.full((batch, beam, self.odim), self.logzero))
                 _best_odims = local_best_odims
                 _best_score = local_best_scores
 
-            # local pruning
-            # :should be modified
-            for si in six.moves.range(batch):
-                for bj in six.moves.range(beam):
-                    for bk in six.moves.range(beam):
-                        local_scores[si, bj, _best_odims[si, bj, bk]] = _best_score[si, bj, bk]
+                for si in six.moves.range(batch):
+                    for bj in six.moves.range(beam):
+                        for bk in six.moves.range(beam):
+                            local_scores[si, bj, _best_odims[si, bj, bk]] = _best_score[si, bj, bk]
+            else:
+                local_scores = np.full((n_bbo,), self.logzero)
+                _best_odims = local_best_odims.view(n_bb, beam) + pad_o
+                _best_odims = _best_odims.view(-1).cpu().numpy()
+                _best_score = local_best_scores.view(-1).cpu().numpy()
+                local_scores[_best_odims] = _best_score
+                local_scores = to_cuda(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
 
             eos_vscores = local_scores[:, :, self.eos] + vscores
             vscores = vscores.view(batch, beam, 1).repeat(1, 1, self.odim)
