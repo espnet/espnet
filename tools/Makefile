@@ -15,7 +15,7 @@ else
 kaldi:
 	git clone https://github.com/kaldi-asr/kaldi.git kaldi_github; cd kaldi_github/tools; $(MAKE) all
 	cd kaldi_github/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
-	ln -s kaldi_github kaldi	
+	ln -s kaldi_github kaldi
 endif
 
 # for some reason, including matplotlib in requirements.txt causes errors, and
@@ -34,7 +34,7 @@ venv/lib/python2.7/site-packages/torch: venv/bin/activate
 	. venv/bin/activate; pip install pip --upgrade; pip install torch==0.4.0
 
 warp-ctc: venv/lib/python2.7/site-packages/torch
-	git clone https://github.com/jnishi/warp-ctc.git
+	git clone https://github.com/SeanNaren/warp-ctc.git
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
