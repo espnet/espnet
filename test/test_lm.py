@@ -1,7 +1,7 @@
 import chainer
 import torch
 
-from e2e_asr_attctc_th import torch_is_old
+from e2e_asr_th import torch_is_old
 import lm_chainer
 import lm_pytorch
 

@@ -31,9 +31,9 @@ from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
-from e2e_asr_attctc_th import E2E
-from e2e_asr_attctc_th import Loss
-from e2e_asr_attctc_th import torch_is_old
+from e2e_asr_th import E2E
+from e2e_asr_th import Loss
+from e2e_asr_th import torch_is_old
 
 # for kaldi io
 import kaldi_io_py
