@@ -120,7 +120,7 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         loss = 1. / self.num_gpu * self.model(x)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.num_gpu > 1:
-            loss.backward(torch.ones(self.num_gpu))  # Backprop
+            loss.backward(torch.ones(self.num_gpu).cuda())  # Backprop
         else:
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
@@ -283,9 +283,9 @@ def train(args):
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
         if ngpu > 1:
-            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         else:
-            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            model.load_state_dict(torch.load(args.outdir + '/model.acc.best' % trainer.updater.epoch))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -311,13 +311,14 @@ def train(args):
     def torch_save(path, _):
         if ngpu > 1:
             torch.save(model.module.state_dict(), path)
-            torch.save(model.module, path + ".pkl")
         else:
             torch.save(model.state_dict(), path)
-            torch.save(model, path + ".pkl")
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    # save snapshot to save the information of #interations or #epochs
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'),
+                   trigger=(1, 'epoch'))
     # save the model after each epoch
     trainer.extend(extensions.snapshot_object(model, 'model_epoch{.updater.epoch}', savefun=torch_save),
                    trigger=(1, 'epoch'))
