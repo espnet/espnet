@@ -9,8 +9,7 @@
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-gpu=            # will be deprecated, please use ngpu
-ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 seed=1
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -75,17 +74,6 @@ langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 4
 recog="107 201 307 404"
 
 . utils/parse_options.sh || exit 1;
-
-# check gpu option usage
-if [ ! -z $gpu ]; then
-    echo "WARNING: --gpu option will be deprecated."
-    echo "WARNING: please use --ngpu option."
-    if [ $gpu -eq -1 ]; then
-        ngpu=0
-    else
-        ngpu=1
-    fi
-fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
