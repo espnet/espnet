@@ -390,13 +390,27 @@ class E2E(torch.nn.Module):
 
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
+class SquareGrad(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input):
+        return input
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return grad_output * grad_output
+
+
+def chainer_like_ctc(y_hat, y_true, ilens, olens):
+    return warp_ctc.CTCLoss(size_average=True)(SquareGrad.apply(y_hat), y_true, ilens, olens)
+
+
 class CTC(torch.nn.Module):
     def __init__(self, odim, eprojs, dropout_rate):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.loss_fn = warp_ctc.CTCLoss(size_average=True)
+        self.loss_fn = chainer_like_ctc
 
     def forward(self, hpad, ilens, ys):
         '''CTC forward
