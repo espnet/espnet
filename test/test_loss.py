@@ -13,8 +13,8 @@ def test_ctc_loss():
     pytest.importorskip("torch")
     pytest.importorskip("warpctc_pytorch")
     import torch
+    import warpctc_pytorch
 
-    from e2e_asr_attctc_th import chainer_like_ctc
     from e2e_asr_attctc_th import pad_list
 
     n_out = 7
@@ -36,7 +36,8 @@ def test_ctc_loss():
     th_target = torch.from_numpy(numpy.concatenate(np_target))
     th_ilen = torch.from_numpy(input_length)
     th_olen = torch.from_numpy(label_length)
-    th_loss = chainer_like_ctc(th_pred, th_target, th_ilen, th_olen).data.numpy()[0]
+    th_loss = warpctc_pytorch.CTCLoss(size_average=True)(
+        th_pred, th_target, th_ilen, th_olen).data.numpy()[0]
     numpy.testing.assert_allclose(th_loss, ch_loss, 0.05)
 
 
