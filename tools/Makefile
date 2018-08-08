@@ -34,7 +34,7 @@ venv/lib/python2.7/site-packages/torch: venv/bin/activate
 	. venv/bin/activate; pip install pip --upgrade; pip install torch==0.4.1
 
 warp-ctc: venv/lib/python2.7/site-packages/torch
-	git clone https://github.com/SeanNaren/warp-ctc.git
+	git clone -b follows-upstream https://github.com/jnishi/warp-ctc.git
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
