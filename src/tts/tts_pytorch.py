@@ -57,7 +57,7 @@ class CustomEvaluator(extensions.Evaluator):
                 observation = {}
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
-                    batch = self.converter(batch, self.model.training)
+                    batch = self.converter(batch)
                     self.model(*batch)
                 summary.add(observation)
         self.model.train()
@@ -83,7 +83,7 @@ class CustomUpdater(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
 
         # Get the next batch (a list of json files)
-        batch = self.converter(train_iter.next(), self.model.training)
+        batch = self.converter(train_iter.next())
 
         # compute loss and gradient
         loss = self.model(*batch)
@@ -107,7 +107,7 @@ class CustomConverter(object):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
 
-    def __call__(self, batch, is_training=True):
+    def __call__(self, batch):
         # batch should be located in list
         assert len(batch) == 1
         batch = batch[0]
@@ -477,7 +477,7 @@ def decode(args):
     tacotron2 = Tacotron2(
         idim=idim,
         odim=odim,
-        spk_embed_dim=train_args.spk_embed_dim if hasattr(train_args, "spk_embed_dim") else None,
+        spk_embed_dim=train_args.spk_embed_dim,
         embed_dim=train_args.embed_dim,
         elayers=train_args.elayers,
         eunits=train_args.eunits,
@@ -529,16 +529,6 @@ def decode(args):
     outdir = os.path.dirname(args.out)
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
-
-    # check the use of embedding
-    # TODO(kan-bayashi): need to remove in the future
-    if hasattr(train_args, "spk_embed_dim"):
-        if train_args.spk_embed_dim is not None:
-            train_args.use_speaker_embedding = True
-        else:
-            train_args.use_speaker_embedding = False
-    else:
-        train_args.use_speaker_embedding = False
 
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
