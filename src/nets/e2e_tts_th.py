@@ -638,7 +638,7 @@ class Decoder(torch.nn.Module):
 
         return after_outs, before_outs, logits
 
-    def inference(self, h, threshold, minlenratio, maxlenratio):
+    def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0):
         """GENERATE THE SEQUENCE OF FEATURES FROM ENCODER HIDDEN STATES
 
         :param tensor h: the sequence of encoder states (T, C)
