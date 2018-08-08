@@ -13,12 +13,11 @@ def test_ctc_loss():
     pytest.importorskip("torch")
     pytest.importorskip("warpctc_pytorch")
     import torch
-    from warpctc_pytorch import CTCLoss
 
+    from e2e_asr_attctc_th import chainer_like_ctc
     from e2e_asr_attctc_th import pad_list
 
     n_out = 7
-    n_batch = 3
     input_length = numpy.array([11, 17, 15], dtype=numpy.int32)
     label_length = numpy.array([4, 2, 3], dtype=numpy.int32)
     np_pred = [numpy.random.rand(il, n_out).astype(
@@ -37,9 +36,7 @@ def test_ctc_loss():
     th_target = torch.from_numpy(numpy.concatenate(np_target))
     th_ilen = torch.from_numpy(input_length)
     th_olen = torch.from_numpy(label_length)
-    # NOTE: warpctc_pytorch.CTCLoss does not normalize itself by batch-size while chainer's default setting does
-    th_loss = (CTCLoss()(th_pred, th_target, th_ilen,
-                         th_olen) / n_batch).data.numpy()[0]
+    th_loss = chainer_like_ctc(th_pred, th_target, th_ilen, th_olen).data.numpy()[0]
     numpy.testing.assert_allclose(th_loss, ch_loss, 0.05)
 
 
