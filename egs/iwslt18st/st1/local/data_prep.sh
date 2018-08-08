@@ -1,85 +1,95 @@
 #!/bin/bash
 
-# Copyright 2014  Vassil Panayotov
-#           2014  Johns Hopkins University (author: Daniel Povey)
+# Copyright 2018  Hirofumi Inaguma
+#           2018  Kyoto Univerity (author: Hirofumi Inaguma)
 # Apache 2.0
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <src-dir> <dst-dir>"
-  echo "e.g.: $0 /export/a15/vpanayotov/data/LibriSpeech/dev-clean data/dev-clean"
+  echo "e.g.: $0 /export/corpora4/IWSLT/iwslt-corpus data/dev2010"
   exit 1
 fi
 
 src=$1
 dst=$2
+part=$(basename $dst)
 
-# all utterances are FLAC compressed
-if ! which flac >&/dev/null; then
-   echo "Please install 'flac' on ALL worker nodes!"
-   exit 1
-fi
-
-spk_file=$src/../SPEAKERS.TXT
+wav_dir=$src/wav
+trans_dir=$src/parallel
+yml=$trans_dir/$part.yaml
+en=$trans_dir/$part.en
+de=$trans_dir/$part.de
 
 mkdir -p $dst || exit 1;
 
-[ ! -d $src ] && echo "$0: no such directory $src" && exit 1;
-[ ! -f $spk_file ] && echo "$0: expected file $spk_file to exist" && exit 1;
+[ ! -d $wav_dir ] && echo "$0: no such directory $wav_dir" && exit 1;
+[ ! -d $trans_dir ] && echo "$0: no such directory $trans_dir" && exit 1;
+[ ! -f $yml ] && echo "$0: expected file $yml to exist" && exit 1;
+[ ! -f $en ] && echo "$0: expected file $en to exist" && exit 1;
+[ ! -f $de ] && echo "$0: expected file $de to exist" && exit 1;
 
 
 wav_scp=$dst/wav.scp; [[ -f "$wav_scp" ]] && rm $wav_scp
-trans=$dst/text; [[ -f "$trans" ]] && rm $trans
+trans_en=$dst/text_en; [[ -f "$trans_en" ]] && rm $trans_en
+trans_de=$dst/text_de; [[ -f "$trans_de" ]] && rm $trans_de
 utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
-spk2gender=$dst/spk2gender; [[ -f $spk2gender ]] && rm $spk2gender
 
-for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
-  reader=$(basename $reader_dir)
-  if ! [ $reader -eq $reader ]; then  # not integer.
-    echo "$0: unexpected subdirectory name $reader"
-    exit 1;
-  fi
+n=`cat $yml | grep duration | wc -l`
+[ $n -ne `cat $en | wc -l` ] && echo "Warning: expected 171121 data data files, found $n" && exit 1;
+[ $n -ne `cat $de | wc -l` ] && echo "Warning: expected 171121 data data files, found $n" && exit 1;
 
-  reader_gender=$(egrep "^$reader[ ]+\|" $spk_file | awk -F'|' '{gsub(/[ ]+/, ""); print tolower($2)}')
-  if [ "$reader_gender" != 'm' ] && [ "$reader_gender" != 'f' ]; then
-    echo "Unexpected gender: '$reader_gender'"
-    exit 1;
-  fi
 
-  for chapter_dir in $(find -L $reader_dir/ -mindepth 1 -maxdepth 1 -type d | sort); do
-    chapter=$(basename $chapter_dir)
-    if ! [ "$chapter" -eq "$chapter" ]; then
-      echo "$0: unexpected chapter-subdirectory name $chapter"
-      exit 1;
-    fi
+# (1a) Transcriptions preparation
+# make basic transcription file (add segments info)
 
-    find -L $chapter_dir/ -iname "*.flac" | sort | xargs -I% basename % .flac | \
-      awk -v "dir=$chapter_dir" '{printf "%s flac -c -d -s %s/%s.flac |\n", $0, dir, $0}' >>$wav_scp|| exit 1
+##e.g A01F0055_0172 00380.213 00385.951 => A01F0055_0380213_0385951
+cat $yml | grep duration > .tmp
+count=0
+awk '{
+    duration=$3; offset=$5; spkid=$7; wav=$9; speaker=$9;
+    gsub(",","",duration);
+    gsub(",","",offset);
+    gsub(",","",spkid);
+    gsub("}","",wav);
+    gsub(".wav}","",speaker);
+    duration=sprintf("%.3f", duration);
+    offset=sprintf("%.3f", offset);
+    printf("%s_%06.0f_%06.0f\n",
+           speaker, int(100*offset+0.5), int(100*offset+100*duration+0.5));
+}' .tmp > .tmp2
+rm .tmp
 
-    chapter_trans=$chapter_dir/${reader}-${chapter}.trans.txt
-    [ ! -f  $chapter_trans ] && echo "$0: expected file $chapter_trans to exist" && exit 1
-    cat $chapter_trans >>$trans
+paste --delimiters " " .tmp2 $en | awk '{ print tolower($0) }' > $dst/text_en
+paste --delimiters " " .tmp2 $de | awk '{ print tolower($0) }' > $dst/text_de
+rm .tmp2
 
-    # NOTE: For now we are using per-chapter utt2spk. That is each chapter is considered
-    #       to be a different speaker. This is done for simplicity and because we want
-    #       e.g. the CMVN to be calculated per-chapter
-    awk -v "reader=$reader" -v "chapter=$chapter" '{printf "%s %s-%s\n", $1, reader, chapter}' \
-      <$chapter_trans >>$utt2spk || exit 1
 
-    # reader -> gender map (again using per-chapter granularity)
-    echo "${reader}-${chapter} $reader_gender" >>$spk2gender
-  done
+# (1c) Make segments files from transcript
+#segments file format is: utt-id start-time end-time, e.g.:
+#A01F0055_0380213_0385951 => A01F0055_0380213_0385951 A01F0055 00380.213 00385.951
+awk '{
+    segment=$1; split(segment,S,"[_]");
+    spkid=S[1] "_" S[2]; startf=S[3]; endf=S[4];
+    print segment " " spkid " " startf/1000 " " endf/1000
+}' < $dst/text_en > $dst/segments
+
+awk '{
+    segment=$1; split(segment,S,"[_]");
+    spkid=S[1] "_" S[2];
+    printf("%s cat '$wav_dir'/%s.wav |\n",spkid,spkid);
+}' < $dst/text_en | uniq > $dst/wav.scp || exit 1;
+
+awk '{
+    segment=$1; split(segment,S,"[_]");
+    spkid=S[1] "_" S[2]; print $1 " " spkid
+}' $dst/segments > $dst/utt2spk || exit 1;
+
+cat $dst/utt2spk | utils/utt2spk_to_spk2utt.pl > $dst/spk2utt || exit 1;
+
+# Copy stuff into its final locations [this has been moved from the format_data script]
+mkdir -p data/$part
+for f in spk2utt utt2spk wav.scp text_en text_de segments; do
+  cp data/local/$part/$f data/$part/ || exit 1;
 done
 
-spk2utt=$dst/spk2utt
-utils/utt2spk_to_spk2utt.pl <$utt2spk >$spk2utt || exit 1
-
-ntrans=$(wc -l <$trans)
-nutt2spk=$(wc -l <$utt2spk)
-! [ "$ntrans" -eq "$nutt2spk" ] && \
-  echo "Inconsistent #transcripts($ntrans) and #utt2spk($nutt2spk)" && exit 1;
-
-utils/validate_data_dir.sh --no-feats $dst || exit 1;
-
 echo "$0: successfully prepared data in $dst"
-
-exit 0
