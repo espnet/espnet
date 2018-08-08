@@ -166,91 +166,66 @@ class Tacotron2(torch.nn.Module):
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
-    :param int spk_embed_dim: dimension of the speaker embedding
-    :param int embed_dim: dimension of character embedding
-    :param int elayers: the number of encoder blstm layers
-    :param int eunits: the number of encoder blstm units
-    :param int econv_layers: the number of encoder conv layers
-    :param int econv_filts: the number of encoder conv filter size
-    :param int econv_chans: the number of encoder conv filter channels
-    :param int dlayers: the number of decoder lstm layers
-    :param int dunits: the number of decoder lstm units
-    :param int prenet_layers: the number of prenet layers
-    :param int prenet_units: the number of prenet units
-    :param int postnet_layers: the number of postnet layers
-    :param int postnet_filts: the number of postnet filter size
-    :param int postnet_chans: the number of postnet filter channels
-    :param function output_activation_fn: activation function for outputs
-    :param int adim: the number of dimension of mlp in attention
-    :param int aconv_chans: the number of attention conv filter channels
-    :param int aconv_filts: the number of attention conv filter size
-    :param bool cumulate_att_w: whether to cumulate previous attention weight
-    :param bool use_batch_norm: whether to use batch normalization
-    :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
-    :param float dropout: dropout rate
-    :param float zoneout: zoneout rate
-    :param float threshold: threshold in inference
-    :param float minlenratio: minimum length ratio in inference
-    :param float maxlenratio: maximum length ratio in inference
+    :param namespace args: argments containing following attributes
+        (int) spk_embed_dim: dimension of the speaker embedding
+        (int) embed_dim: dimension of character embedding
+        (int) elayers: the number of encoder blstm layers
+        (int) eunits: the number of encoder blstm units
+        (int) econv_layers: the number of encoder conv layers
+        (int) econv_filts: the number of encoder conv filter size
+        (int) econv_chans: the number of encoder conv filter channels
+        (int) dlayers: the number of decoder lstm layers
+        (int) dunits: the number of decoder lstm units
+        (int) prenet_layers: the number of prenet layers
+        (int) prenet_units: the number of prenet units
+        (int) postnet_layers: the number of postnet layers
+        (int) postnet_filts: the number of postnet filter size
+        (int) postnet_chans: the number of postnet filter channels
+        (str) output_activation: the name of activation function for outputs
+        (int) adim: the number of dimension of mlp in attention
+        (int) aconv_chans: the number of attention conv filter channels
+        (int) aconv_filts: the number of attention conv filter size
+        (bool) cumulate_att_w: whether to cumulate previous attention weight
+        (bool) use_batch_norm: whether to use batch normalization
+        (bool) use_concate: whether to concatenate encoder embedding with decoder lstm outputs
+        (float) dropout: dropout rate
+        (float) zoneout: zoneout rate
     """
 
-    def __init__(self, idim, odim,
-                 spk_embed_dim=None,
-                 embed_dim=512,
-                 elayers=1,
-                 eunits=512,
-                 econv_layers=3,
-                 econv_filts=5,
-                 econv_chans=512,
-                 dlayers=2,
-                 dunits=1024,
-                 prenet_layers=2,
-                 prenet_units=256,
-                 postnet_layers=5,
-                 postnet_filts=5,
-                 postnet_chans=512,
-                 output_activation_fn=None,
-                 adim=512,
-                 aconv_chans=32,
-                 aconv_filts=15,
-                 cumulate_att_w=True,
-                 use_batch_norm=True,
-                 use_concate=True,
-                 dropout=0.5,
-                 zoneout=0.1,
-                 threshold=0.5,
-                 maxlenratio=5.0,
-                 minlenratio=0.0):
+    def __init__(self, idim, odim, args):
         super(Tacotron2, self).__init__()
         # store hyperparameters
         self.idim = idim
-        self.spk_embed_dim = spk_embed_dim
         self.odim = odim
-        self.embed_dim = embed_dim
-        self.elayers = elayers
-        self.eunits = eunits
-        self.econv_layers = econv_layers
-        self.econv_filts = econv_filts
-        self.econv_chans = econv_chans
-        self.dlayers = dlayers
-        self.dunits = dunits
-        self.prenet_layers = prenet_layers
-        self.prenet_units = prenet_units
-        self.postnet_layers = postnet_layers
-        self.postnet_chans = postnet_chans
-        self.postnet_filts = postnet_filts
-        self.output_activation_fn = output_activation_fn
-        self.adim = adim
-        self.aconv_filts = aconv_filts
-        self.aconv_chans = aconv_chans
-        self.cumulate_att_w = cumulate_att_w
-        self.use_batch_norm = use_batch_norm
-        self.use_concate = use_concate
-        self.dropout = dropout
-        self.zoneout = zoneout
-        self.threshold = threshold
-        self.maxlenratio = maxlenratio
-        self.minlenratio = minlenratio
+        self.spk_embed_dim = args.spk_embed_dim
+        self.embed_dim = args.embed_dim
+        self.elayers = args.elayers
+        self.eunits = args.eunits
+        self.econv_layers = args.econv_layers
+        self.econv_filts = args.econv_filts
+        self.econv_chans = args.econv_chans
+        self.dlayers = args.dlayers
+        self.dunits = args.dunits
+        self.prenet_layers = args.prenet_layers
+        self.prenet_units = args.prenet_units
+        self.postnet_layers = args.postnet_layers
+        self.postnet_chans = args.postnet_chans
+        self.postnet_filts = args.postnet_filts
+        self.adim = args.adim
+        self.aconv_filts = args.aconv_filts
+        self.aconv_chans = args.aconv_chans
+        self.cumulate_att_w = args.cumulate_att_w
+        self.use_batch_norm = args.use_batch_norm
+        self.use_concate = args.use_concate
+        self.dropout = args.dropout
+        self.zoneout = args.zoneout
+        # define activation function for the final output
+        if args.output_activation is None:
+            self.output_activation_fn = None
+        elif hasattr(F, args.output_activation):
+            self.output_activation_fn = getattr(F, args.output_activation)
+        else:
+            raise ValueError('there is no such an activation function. (%s)' % args.output_activation)
         # define network modules
         self.enc = Encoder(idim=self.idim,
                            embed_dim=self.embed_dim,
@@ -282,10 +257,7 @@ class Tacotron2(torch.nn.Module):
                            use_batch_norm=self.use_batch_norm,
                            use_concate=self.use_concate,
                            dropout=self.dropout,
-                           zoneout=self.zoneout,
-                           threshold=self.threshold,
-                           maxlenratio=self.maxlenratio,
-                           minlenratio=self.minlenratio)
+                           zoneout=self.zoneout)
         # initialize
         self.enc.apply(encoder_init)
         self.dec.apply(decoder_init)
@@ -318,10 +290,14 @@ class Tacotron2(torch.nn.Module):
 
         return after_outs, before_outs, logits
 
-    def inference(self, x, spemb=None):
+    def inference(self, x, inference_args, spemb=None):
         """GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
 
         :param tensor x: the sequence of characters (T)
+        :param namespace inference_args: argments containing following attributes
+            (float) threshold: threshold in inference
+            (float) minlenratio: minimum length ratio in inference
+            (float) maxlenratio: maximum length ratio in inference
         :param tensor spemb: speaker embedding vector (spk_embed_dim)
         :return: the sequence of features (L, odim)
         :rtype: tensor
@@ -330,11 +306,17 @@ class Tacotron2(torch.nn.Module):
         :return: the sequence of attetion weight (L, T)
         :rtype: tensor
         """
+        # get options
+        threshold = inference_args.threshold
+        minlenratio = inference_args.minlenratio
+        maxlenratio = inference_args.maxlenratio
+
+        # inference
         h = self.enc.inference(x)
         if self.spk_embed_dim is not None:
             spemb = F.normalize(spemb, dim=0).unsqueeze(0).expand(h.size(0), -1)
             h = torch.cat([h, spemb], dim=-1)
-        outs, probs, att_ws = self.dec.inference(h)
+        outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio)
 
         return outs, probs, att_ws
 
@@ -656,10 +638,13 @@ class Decoder(torch.nn.Module):
 
         return after_outs, before_outs, logits
 
-    def inference(self, h):
+    def inference(self, h, threshold, minlenratio, maxlenratio):
         """GENERATE THE SEQUENCE OF FEATURES FROM ENCODER HIDDEN STATES
 
         :param tensor h: the sequence of encoder states (T, C)
+        :param float threshold: threshold in inference
+        :param float minlenratio: minimum length ratio in inference
+        :param float maxlenratio: maximum length ratio in inference
         :return: the sequence of features (L, D)
         :rtype: tensor
         :return: the sequence of stop probabilities (L)
@@ -671,8 +656,8 @@ class Decoder(torch.nn.Module):
         assert len(h.size()) == 2
         hs = h.unsqueeze(0)
         ilens = [h.size(0)]
-        maxlen = int(h.size(0) * self.maxlenratio)
-        minlen = int(h.size(0) * self.minlenratio)
+        maxlen = int(h.size(0) * maxlenratio)
+        minlen = int(h.size(0) * minlenratio)
 
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
@@ -715,7 +700,7 @@ class Decoder(torch.nn.Module):
                 prev_att_w = att_w
 
             # check whether to finish generation
-            if (int(probs[-1] >= self.threshold) and idx >= minlen) or idx == maxlen:
+            if (int(probs[-1] >= threshold) and idx >= minlen) or idx == maxlen:
                 outs = torch.stack(outs, dim=2)  # (1, odim, L)
                 outs = outs + self._postnet_forward(outs)  # (1, odim, L)
                 outs = outs.transpose(2, 1).squeeze(0)  # (Lx, odim)
