@@ -17,9 +17,9 @@ from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from e2e_asr_attctc_th import AttLoc
-from e2e_asr_attctc_th import to_cuda
-from e2e_asr_attctc_th import torch_is_old
+from e2e_asr_th import AttLoc
+from e2e_asr_th import to_cuda
+from e2e_asr_th import torch_is_old
 
 
 def encoder_init(m):

@@ -47,7 +47,7 @@ def test_lecun_init_torch():
     torch.manual_seed(nseed)
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
-    import e2e_asr_attctc_th as m
+    import e2e_asr_th as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.bias.data.numpy()
     assert numpy.all(b == 0.0)
@@ -78,7 +78,7 @@ def test_lecun_init_chainer():
     random.seed(nseed)
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
-    import e2e_asr_attctc as m
+    import e2e_asr as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.b.data
     assert numpy.all(b == 0.0)

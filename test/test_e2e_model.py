@@ -48,23 +48,23 @@ def make_arg(**kwargs):
 
 @pytest.mark.parametrize(
     "module, etype, atype", [
-        ('e2e_asr_attctc', 'vggblstmp', 'location'),
-        ('e2e_asr_attctc', 'blstmp', 'noatt'),
-        ('e2e_asr_attctc', 'blstmp', 'dot'),
-        ('e2e_asr_attctc', 'blstmp', 'location'),
-        ('e2e_asr_attctc_th', 'vggblstmp', 'location'),
-        ('e2e_asr_attctc_th', 'blstmp', 'noatt'),
-        ('e2e_asr_attctc_th', 'blstmp', 'dot'),
-        ('e2e_asr_attctc_th', 'blstmp', 'add'),
-        ('e2e_asr_attctc_th', 'blstmp', 'location'),
-        ('e2e_asr_attctc_th', 'blstmp', 'coverage'),
-        ('e2e_asr_attctc_th', 'blstmp', 'coverage_location'),
-        ('e2e_asr_attctc_th', 'blstmp', 'location2d'),
-        ('e2e_asr_attctc_th', 'blstmp', 'location_recurrent'),
-        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_dot'),
-        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_add'),
-        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_loc'),
-        ('e2e_asr_attctc_th', 'blstmp', 'multi_head_multi_res_loc')
+        ('e2e_asr', 'vggblstmp', 'location'),
+        ('e2e_asr', 'blstmp', 'noatt'),
+        ('e2e_asr', 'blstmp', 'dot'),
+        ('e2e_asr', 'blstmp', 'location'),
+        ('e2e_asr_th', 'vggblstmp', 'location'),
+        ('e2e_asr_th', 'blstmp', 'noatt'),
+        ('e2e_asr_th', 'blstmp', 'dot'),
+        ('e2e_asr_th', 'blstmp', 'add'),
+        ('e2e_asr_th', 'blstmp', 'location'),
+        ('e2e_asr_th', 'blstmp', 'coverage'),
+        ('e2e_asr_th', 'blstmp', 'coverage_location'),
+        ('e2e_asr_th', 'blstmp', 'location2d'),
+        ('e2e_asr_th', 'blstmp', 'location_recurrent'),
+        ('e2e_asr_th', 'blstmp', 'multi_head_dot'),
+        ('e2e_asr_th', 'blstmp', 'multi_head_add'),
+        ('e2e_asr_th', 'blstmp', 'multi_head_loc'),
+        ('e2e_asr_th', 'blstmp', 'multi_head_multi_res_loc')
     ]
 )
 def test_model_trainable_and_decodable(module, etype, atype):
@@ -100,7 +100,7 @@ def test_chainer_ctc_type():
     import logging
     logging.basicConfig(
         level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr_attctc as ch
+    import e2e_asr as ch
 
     out_data = "1 2 3 4"
     numpy.random.seed(0)
@@ -137,8 +137,8 @@ def test_loss_and_ctc_grad(etype):
     import logging
     logging.basicConfig(
         level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr_attctc as ch
-    import e2e_asr_attctc_th as th
+    import e2e_asr as ch
+    import e2e_asr_th as th
     ch_model = ch.E2E(40, 5, args)
     ch_model.cleargrads()
     th_model = th.E2E(40, 5, args)
@@ -198,8 +198,8 @@ def test_zero_length_target(etype):
     import logging
     logging.basicConfig(
         level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr_attctc as ch
-    import e2e_asr_attctc_th as th
+    import e2e_asr as ch
+    import e2e_asr_th as th
     ch_model = ch.E2E(40, 5, args)
     ch_model.cleargrads()
     th_model = th.E2E(40, 5, args)
@@ -226,21 +226,21 @@ def test_zero_length_target(etype):
 
 @pytest.mark.parametrize(
     "module, atype", [
-        ('e2e_asr_attctc', 'noatt'),
-        ('e2e_asr_attctc', 'dot'),
-        ('e2e_asr_attctc', 'location'),
-        ('e2e_asr_attctc_th', 'noatt'),
-        ('e2e_asr_attctc_th', 'dot'),
-        ('e2e_asr_attctc_th', 'add'),
-        ('e2e_asr_attctc_th', 'location'),
-        ('e2e_asr_attctc_th', 'coverage'),
-        ('e2e_asr_attctc_th', 'coverage_location'),
-        ('e2e_asr_attctc_th', 'location2d'),
-        ('e2e_asr_attctc_th', 'location_recurrent'),
-        ('e2e_asr_attctc_th', 'multi_head_dot'),
-        ('e2e_asr_attctc_th', 'multi_head_add'),
-        ('e2e_asr_attctc_th', 'multi_head_loc'),
-        ('e2e_asr_attctc_th', 'multi_head_multi_res_loc')
+        ('e2e_asr', 'noatt'),
+        ('e2e_asr', 'dot'),
+        ('e2e_asr', 'location'),
+        ('e2e_asr_th', 'noatt'),
+        ('e2e_asr_th', 'dot'),
+        ('e2e_asr_th', 'add'),
+        ('e2e_asr_th', 'location'),
+        ('e2e_asr_th', 'coverage'),
+        ('e2e_asr_th', 'coverage_location'),
+        ('e2e_asr_th', 'location2d'),
+        ('e2e_asr_th', 'location_recurrent'),
+        ('e2e_asr_th', 'multi_head_dot'),
+        ('e2e_asr_th', 'multi_head_add'),
+        ('e2e_asr_th', 'multi_head_loc'),
+        ('e2e_asr_th', 'multi_head_multi_res_loc')
     ]
 )
 def test_calculate_all_attentions(module, atype):
