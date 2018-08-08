@@ -8,6 +8,7 @@ import torch
 
 from torch.autograd import Variable
 
+from e2e_tts_th import CBHG
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
 from e2e_tts_th import torch_is_old
@@ -187,3 +188,27 @@ def test_tacotron2_with_speaker_embedding_trainable_and_decodable(model_dict, lo
     assert att_ws.shape[0] == bs
     assert att_ws.shape[1] == max(olens)
     assert att_ws.shape[2] == max(ilens)
+
+
+def test_cbhg_trainable_and_decodable():
+    bs = 2
+    maxin_len = 10
+    idim = 80
+    odim = 256
+    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
+    xs = pad_ndarray_list([np.random.randn(l, idim) for l in ilens], 0)
+    ys = pad_ndarray_list([np.random.randn(l, odim) for l in ilens], 0)
+    xs = torch.from_numpy(xs).float()
+    ys = torch.from_numpy(ys).float()
+
+    model = CBHG(idim, odim)
+    criterion = torch.nn.L1Loss()
+    optimizer = torch.optim.Adam(model.parameters())
+    ys_hat, _ = model(xs, ilens)
+    loss = criterion(ys_hat, ys)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    with torch.no_grad():
+        model.inference(xs[0])
