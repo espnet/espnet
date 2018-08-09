@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=-1       # start from -1 if you need to start from data download
+stage=0       # start from -1 if you need to start from data download
 gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -88,10 +88,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_asr
-train_dev=dev_asr
-# train_set=train_st
-# train_dev=dev_st
+train_set=train
+train_dev=dev2010
 recog_set="offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015"
 
 # if [ ${stage} -le -1 ]; then
@@ -108,72 +106,89 @@ if [ ${stage} -le 0 ]; then
     done
 fi
 
+feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+if [ ${stage} -le 1 ]; then
+    ### Task dependent. You have to design training and dev sets by yourself.
+    ### But you can utilize Kaldi recipes in most cases
+    echo "stage 1: Feature Generation"
+    fbankdir=fbank
+    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+    # for x in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
+    for x in dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 data/${x} exp/make_fbank/${x} ${fbankdir}
+    done
+
+    cp -rf data/${train_set} data/${train_set}_org
+    cp -rf data/${train_dev} data/${train_dev}_org
+
+    # remove utt having more than 3000 frames
+    # remove utt having more than 400 characters
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
+    rm -rf data/${train_set}_org
+    rm -rf data/${train_dev}_org
+
+    # compute global CMVN
+    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+
+    # dump features for training
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18st/asr1/dump/${train_set}/delta${do_delta}/storage \
+        ${feat_tr_dir}/storage
+    fi
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+    utils/create_split_dir.pl \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18st/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        ${feat_dt_dir}/storage
+    fi
+    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+            ${feat_recog_dir}
+    done
+fi
+
+dict_en=data/lang_1char/${train_set}_units_en.txt
+dict_de=data/lang_1char/${train_set}_units_de.txt
+echo "dictionary (English): ${dict_en}"
+echo "dictionary (Germany): ${dict_de}"
+if [ ${stage} -le 2 ]; then
+    ### Task dependent. You have to check non-linguistic symbols used in the corpus.
+    echo "stage 2: Dictionary and Json Data Preparation"
+    mkdir -p data/lang_1char/
+    # Character
+    echo "<unk> 1" > ${dict_en} # <unk> must be 1, 0 will be used for "blank" in CTC
+    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_en}
+    wc -l ${dict_en}
+    echo "<unk> 1" > ${dict_de} # <unk> must be 1, 0 will be used for "blank" in CTC ??
+    text2token.py -s 1 -n 1 data/${train_set}/text_de | cut -f 2- -d" " | tr " " "\n" \
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_de}
+    wc -l ${dict_de}
+
+    # BPE (300)
+
+
+    # BPE (10000)
+
+    # make json labels
+    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+         data/${train_set} ${dict_en} > ${feat_tr_dir}/data.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+         data/${train_dev} ${dict_en} > ${feat_dt_dir}/data.json
+    # TODO(Hirofumi): DEのtrans，マルチタスク拡張，BPE
+    # TODO(hiforumi): 記号の処理
+fi
+
 exit 1
 
-# feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-# feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-# if [ ${stage} -le 1 ]; then
-#     ### Task dependent. You have to design training and dev sets by yourself.
-#     ### But you can utilize Kaldi recipes in most cases
-#     echo "stage 1: Feature Generation"
-#     fbankdir=fbank
-#     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-#     for x in dev_clean test_clean dev_other test_other train_clean_100 train_clean_360 train_other_500; do
-#         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${x} exp/make_fbank/${x} ${fbankdir}
-#     done
-#
-#     utils/combine_data.sh data/${train_set}_org data/train_clean_100 data/train_clean_360 data/train_other_500
-#     utils/combine_data.sh data/${train_dev}_org data/dev_clean data/dev_other
-#
-#     # remove utt having more than 3000 frames
-#     # remove utt having more than 400 characters
-#     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
-#     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
-#
-#     # compute global CMVN
-#     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-#
-#     # dump features for training
-#     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-#     utils/create_split_dir.pl \
-#         /export/b{14,15,16,17}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
-#         ${feat_tr_dir}/storage
-#     fi
-#     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-#     utils/create_split_dir.pl \
-#         /export/b{14,15,16,17}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
-#         ${feat_dt_dir}/storage
-#     fi
-#     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
-#         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-#     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-#         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-#     for rtask in ${recog_set}; do
-#         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-#         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-#             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
-#             ${feat_recog_dir}
-#     done
-# fi
-#
-# dict=data/lang_1char/${train_set}_units.txt
-# echo "dictionary: ${dict}"
-# if [ ${stage} -le 2 ]; then
-#     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
-#     echo "stage 2: Dictionary and Json Data Preparation"
-#     mkdir -p data/lang_1char/
-#     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-#     text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-#     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-#     wc -l ${dict}
-#
-#     # make json labels
-#     data2json.sh --feat ${feat_tr_dir}/feats.scp \
-#          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-#     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-#          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-# fi
-#
 # # You can skip this and remove --rnnlm option in the recognition (stage 5)
 # lmexpdir=exp/train_rnnlm_2layer_bs256
 # mkdir -p ${lmexpdir}
@@ -199,7 +214,7 @@ exit 1
 #         --valid-label ${lmdatadir}/valid.txt \
 #         --epoch 60 \
 #         --batchsize 256 \
-#         --dict ${dict}
+#         --dict_en ${dict_en}
 # fi
 #
 # if [ -z ${tag} ]; then
@@ -220,7 +235,7 @@ exit 1
 #         --backend ${backend} \
 #         --outdir ${expdir}/results \
 #         --debugmode ${debugmode} \
-#         --dict ${dict} \
+#         --dict_en ${dict_en} \
 #         --debugdir ${expdir} \
 #         --minibatches ${N} \
 #         --verbose ${verbose} \
@@ -262,7 +277,7 @@ exit 1
 #         # make json labels for recognition
 #         for j in `seq 1 ${nj}`; do
 #             data2json.sh --feat ${feat_recog_dir}/feats.scp \
-#                 ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
+#                 ${sdata}/${j} ${dict_en} > ${sdata}/${j}/data.json
 #         done
 #
 #         #### use CPU for decoding
@@ -286,7 +301,7 @@ exit 1
 #             &
 #         wait
 #
-#         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+#         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict_en}
 #
 #     ) &
 #     done

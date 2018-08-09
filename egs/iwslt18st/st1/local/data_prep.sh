@@ -35,8 +35,10 @@ trans_de=$dst/text_de; [[ -f "$trans_de" ]] && rm $trans_de
 utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
 
 n=`cat $yml | grep duration | wc -l`
-[ $n -ne `cat $en | wc -l` ] && echo "Warning: expected 171121 data data files, found $n" && exit 1;
-[ $n -ne `cat $de | wc -l` ] && echo "Warning: expected 171121 data data files, found $n" && exit 1;
+n_en=`cat $en | wc -l`
+n_de=`cat $de | wc -l`
+[ $n -ne $n_en ] && echo "Warning: expected $n data data files, found $n_en" && exit 1;
+[ $n -ne $n_de ] && echo "Warning: expected $n data data files, found $n_de" && exit 1;
 
 
 # (1a) Transcriptions preparation
@@ -44,19 +46,43 @@ n=`cat $yml | grep duration | wc -l`
 
 ##e.g A01F0055_0172 00380.213 00385.951 => A01F0055_0380213_0385951
 cat $yml | grep duration > .tmp
-count=0
-awk '{
-    duration=$3; offset=$5; spkid=$7;
-    gsub(",","",duration);
-    gsub(",","",offset);
-    gsub(",","",spkid);
-    gsub("spk.","",spkid);
-    duration=sprintf("%.3f", duration);
-    offset=sprintf("%.3f", offset);
-    printf("ted_%04d_%06.0f_%06.0f\n",
-           spkid, int(100*offset+0.5), int(100*offset+100*duration+0.5));
-}' .tmp > .tmp2
+if [ $part != train ] && [ $part != dev2010 ]; then
+  awk '{
+      duration=$3; offset=$5; spkid=$7;
+      gsub(",","",duration);
+      gsub(",","",offset);
+      gsub(",","",spkid);
+      gsub("spk.","",spkid);
+      offset=sprintf("%.6f", offset);
+      duration=sprintf("%.6f", duration);
+      if ( duration < 0.1 ) extendt=sprintf("%.6f", (0.1-duration)/2);
+      else extendt=0;
+      startt=offset-extendt;
+      endt=offset+duration+extendt;
+      printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
+  }' .tmp > .tmp2
+  # NOTE: Extend the lengths of short utterances (< 0.1s) rather than exclude them in test sets
+else
+  awk '{
+      duration=$3; offset=$5; spkid=$7;
+      gsub(",","",duration);
+      gsub(",","",offset);
+      gsub(",","",spkid);
+      gsub("spk.","",spkid);
+      duration=sprintf("%.6f", duration);
+      offset=sprintf("%.6f", offset);
+      startt=offset;
+      endt=offset+duration;
+      # print duration;
+      printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
+  }' .tmp > .tmp2
+  # NOTE: Exclude short utterances (< 0.1s) in train and dev sets
+fi
 rm .tmp
+
+n=`cat .tmp2 | wc -l`
+[ $n -ne $n_en ] && echo "Warning: expected $n data data files, found $n_en" && exit 1;
+[ $n -ne $n_de ] && echo "Warning: expected $n data data files, found $n_de" && exit 1;
 
 paste --delimiters " " .tmp2 $en | awk '{ print tolower($0) }' | sort > $dst/text
 paste --delimiters " " .tmp2 $de | awk '{ print tolower($0) }' | sort > $dst/text_de
