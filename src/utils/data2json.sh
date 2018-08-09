@@ -27,11 +27,13 @@ rm -f ${tmpdir}/*.scp
 # input, which is not necessary for decoding mode, and make it as an option
 if [ ! -z ${feat} ]; then
     if [ ${verbose} -eq 0 ]; then
-        feat-to-len scp:${feat} ark,t:${tmpdir}/ilen.scp &> /dev/null
+        utils/data/get_utt2num_frames.sh ${dir} &> /dev/null
+        cp ${dir}/utt2num_frames ${tmpdir}/ilen.scp
         feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp &> /dev/null
     else
-        feat-to-len scp:${feat} ark,t:${tmpdir}/ilen.scp 
-        feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp 
+        utils/data/get_utt2num_frames.sh ${dir}
+        cp ${dir}/utt2num_frames ${tmpdir}/ilen.scp
+        feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp
     fi
 fi
 
