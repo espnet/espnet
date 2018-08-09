@@ -116,7 +116,8 @@ if [ ${stage} -le 1 ]; then
     for x in ${tasks}; do
         utils/copy_data_dir.sh data/${x} data-fbank/${x}
         utils/copy_data_dir.sh data/${x} data-stft/${x}
-        steps/make_fbank_pitch.sh --nj 8 --cmd "${train_cmd}" data-fbank/${x} exp/make_fbank/${x} ${fbankdir}
+        steps/make_fbank_pitch.sh --nj 8 --cmd "${train_cmd}" --write_utt2num_frames true \
+            data-fbank/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
     echo "combine real and simulation data"

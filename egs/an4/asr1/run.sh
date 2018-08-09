@@ -113,7 +113,8 @@ if [ ${stage} -le 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in test train; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 data/${x} exp/make_fbank/${x} ${fbankdir}
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
     # make a dev set
