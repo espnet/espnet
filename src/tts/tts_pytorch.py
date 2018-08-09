@@ -17,14 +17,12 @@ import torch
 
 from chainer import training
 from chainer.training import extensions
-from torch.autograd import Variable
 
 import kaldi_io_py
 
 from asr_utils import PlotAttentionReport
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
-from e2e_tts_th import torch_is_old
 
 import matplotlib
 matplotlib.use('Agg')
@@ -54,19 +52,14 @@ class CustomEvaluator(extensions.Evaluator):
         summary = chainer.reporter.DictSummary()
 
         self.model.eval()
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if not torch_is_old:
-            torch.set_grad_enabled(False)
-        for batch in it:
-            observation = {}
-            with chainer.reporter.report_scope(observation):
-                # convert to torch tensor
-                batch = self.converter(batch, self.model.training)
-                self.model(*batch)
-            summary.add(observation)
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if not torch_is_old:
-            torch.set_grad_enabled(True)
+        with torch.no_grad():
+            for batch in it:
+                observation = {}
+                with chainer.reporter.report_scope(observation):
+                    # convert to torch tensor
+                    batch = self.converter(batch)
+                    self.model(*batch)
+                summary.add(observation)
         self.model.train()
 
         return summary.compute_mean()
@@ -80,11 +73,7 @@ class CustomUpdater(training.StandardUpdater):
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if torch_is_old:
-            self.clip_grad_norm = torch.nn.utils.clip_grad_norm
-        else:
-            self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
+        self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -94,7 +83,7 @@ class CustomUpdater(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
 
         # Get the next batch (a list of json files)
-        batch = self.converter(train_iter.next(), self.model.training)
+        batch = self.converter(train_iter.next())
 
         # compute loss and gradient
         loss = self.model(*batch)
@@ -118,7 +107,7 @@ class CustomConverter(object):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
 
-    def __call__(self, batch, is_training=True):
+    def __call__(self, batch):
         # batch should be located in list
         assert len(batch) == 1
         batch = batch[0]
@@ -137,23 +126,17 @@ class CustomConverter(object):
         ys = [ys[i] for i in sorted_idx]
 
         # get list of lengths (must be tensor for DataParallel)
-        ilens = torch.from_numpy(np.fromiter((x.shape[0] for x in xs), dtype=np.int64))
-        olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys), dtype=np.int64))
+        ilens = torch.LongTensor([x.shape[0] for x in xs])
+        olens = torch.LongTensor([y.shape[0] for y in ys])
 
         # perform padding and convert to tensor
-        xs = torch.from_numpy(pad_ndarray_list(xs, 0)).long()
-        ys = torch.from_numpy(pad_ndarray_list(ys, 0)).float()
+        xs = torch.LongTensor(pad_ndarray_list(xs, 0))
+        ys = torch.FloatTensor(pad_ndarray_list(ys, 0))
 
         # make labels for stop prediction
-        labels = ys.new(ys.size(0), ys.size(1)).zero_()
+        labels = ys.new_zeros(ys.size(0), ys.size(1))
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1
-
-        # TODO(kan-bayashi): need to be fixed in pytorch v4
-        if torch_is_old:
-            xs = Variable(xs, volatile=not is_training)
-            ys = Variable(ys, volatile=not is_training)
-            labels = Variable(labels, volatile=not is_training)
 
         if sum(self.device) >= 0:
             xs = xs.cuda()
@@ -164,11 +147,8 @@ class CustomConverter(object):
         if self.use_speaker_embedding:
             spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
             spembs = [spembs[i] for i in sorted_idx]
-            spembs = torch.from_numpy(np.array(spembs)).float()
+            spembs = torch.FloatTensor(np.array(spembs))
 
-            # TODO(kan-bayashi): need to be fixed in pytorch v4
-            if torch_is_old:
-                spembs = Variable(spembs, volatile=not is_training)
             if sum(self.device) >= 0:
                 spembs = spembs.cuda()
         else:
@@ -197,6 +177,8 @@ def pad_ndarray_list(batch, pad_value):
     batch_pad.fill(pad_value)
     for i, b in enumerate(batch):
         batch_pad[i, :b.shape[0]] = b
+
+    del batch
 
     return batch_pad
 
@@ -323,41 +305,8 @@ def train(args):
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
-    # define output activation function
-    if args.output_activation is None:
-        output_activation_fn = None
-    elif hasattr(torch.nn.functional, args.output_activation):
-        output_activation_fn = getattr(torch.nn.functional, args.output_activation)
-    else:
-        raise ValueError('there is no such an activation function. (%s)' % args.output_activation)
-
     # specify model architecture
-    tacotron2 = Tacotron2(
-        idim=idim,
-        odim=odim,
-        spk_embed_dim=args.spk_embed_dim,
-        embed_dim=args.embed_dim,
-        elayers=args.elayers,
-        eunits=args.eunits,
-        econv_layers=args.econv_layers,
-        econv_chans=args.econv_chans,
-        econv_filts=args.econv_filts,
-        dlayers=args.dlayers,
-        dunits=args.dunits,
-        prenet_layers=args.prenet_layers,
-        prenet_units=args.prenet_units,
-        postnet_layers=args.postnet_layers,
-        postnet_chans=args.postnet_chans,
-        postnet_filts=args.postnet_filts,
-        output_activation_fn=output_activation_fn,
-        adim=args.adim,
-        aconv_chans=args.aconv_chans,
-        aconv_filts=args.aconv_filts,
-        cumulate_att_w=args.cumulate_att_w,
-        use_batch_norm=args.use_batch_norm,
-        use_concate=args.use_concate,
-        dropout=args.dropout_rate,
-        zoneout=args.zoneout_rate)
+    tacotron2 = Tacotron2(idim, odim, args)
     logging.info(tacotron2)
 
     # Set gpu
@@ -378,10 +327,7 @@ def train(args):
         gpu_id = [-1]
 
     # define loss
-    model = Tacotron2Loss(
-        model=tacotron2,
-        use_masking=args.use_masking,
-        bce_pos_weight=args.bce_pos_weight)
+    model = Tacotron2Loss(tacotron2, args.use_masking, args.bce_pos_weight)
     reporter = model.reporter
 
     # Setup an optimizer
@@ -483,48 +429,8 @@ def decode(args):
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
-    # define output activation function
-    if hasattr(train_args, 'output_activation'):
-        if train_args.output_activation is None:
-            output_activation_fn = None
-        elif hasattr(torch.nn.functional, train_args.output_activation):
-            output_activation_fn = getattr(torch.nn.functional, train_args.output_activation)
-        else:
-            raise ValueError('there is no such an activation function. (%s)' % train_args.output_activation)
-    else:
-        output_activation_fn = None
-
     # define model
-    tacotron2 = Tacotron2(
-        idim=idim,
-        odim=odim,
-        spk_embed_dim=train_args.spk_embed_dim if hasattr(train_args, "spk_embed_dim") else None,
-        embed_dim=train_args.embed_dim,
-        elayers=train_args.elayers,
-        eunits=train_args.eunits,
-        econv_layers=train_args.econv_layers,
-        econv_chans=train_args.econv_chans,
-        econv_filts=train_args.econv_filts,
-        dlayers=train_args.dlayers,
-        dunits=train_args.dunits,
-        prenet_layers=train_args.prenet_layers,
-        prenet_units=train_args.prenet_units,
-        postnet_layers=train_args.postnet_layers,
-        postnet_chans=train_args.postnet_chans,
-        postnet_filts=train_args.postnet_filts,
-        adim=train_args.adim,
-        aconv_chans=train_args.aconv_chans,
-        aconv_filts=train_args.aconv_filts,
-        output_activation_fn=output_activation_fn,
-        cumulate_att_w=train_args.cumulate_att_w,
-        use_batch_norm=train_args.use_batch_norm,
-        use_concate=train_args.use_concate,
-        dropout=train_args.dropout_rate,
-        zoneout=train_args.zoneout_rate,
-        threshold=args.threshold,
-        maxlenratio=args.maxlenratio,
-        minlenratio=args.minlenratio,
-    )
+    tacotron2 = Tacotron2(idim, odim, train_args)
     eos = str(tacotron2.idim - 1)
 
     # load trained model parameters
@@ -551,50 +457,29 @@ def decode(args):
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    # check the use of embedding
-    # TODO(kan-bayashi): need to remove in the future
-    if hasattr(train_args, "spk_embed_dim"):
-        if train_args.spk_embed_dim is not None:
-            train_args.use_speaker_embedding = True
-        else:
-            train_args.use_speaker_embedding = False
-    else:
-        train_args.use_speaker_embedding = False
-
-    # TODO(kan-bayashi): need to be fixed in pytorch v4
-    if not torch_is_old:
-        torch.set_grad_enabled(False)
-
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
     arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
-    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+    with torch.no_grad(), kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
         for idx, utt_id in enumerate(js.keys()):
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
-            x = torch.from_numpy(x)
+            x = torch.LongTensor(x)
             if args.ngpu > 0:
                 x = x.cuda()
-
-            # TODO(kan-bayashi): need to be fixed in pytorch v4
-            if torch_is_old:
-                x = Variable(x, volatile=True)
 
             # get speaker embedding
             if train_args.use_speaker_embedding:
                 spemb = kaldi_io_py.read_vec_flt(js[utt_id]['input'][1]['feat'])
-                spemb = torch.from_numpy(spemb)
-                # TODO(kan-bayashi): need to be fixed in pytorch v4
-                if torch_is_old:
-                    spemb = Variable(spemb, volatile=True)
+                spemb = torch.FloatTensor(spemb)
                 if args.ngpu > 0:
                     spemb = spemb.cuda()
             else:
                 spemb = None
 
             # decode and write
-            outs, _, _ = tacotron2.inference(x, spemb)
+            outs, _, _ = tacotron2.inference(x, args, spemb)
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warn("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
-            kaldi_io_py.write_mat(f, outs.data.cpu().numpy(), utt_id)
+            kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
