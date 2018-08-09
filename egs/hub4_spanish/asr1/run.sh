@@ -9,8 +9,7 @@
 # general configuration
 backend=chainer
 stage=0        # start from 0 if you need to start from data preparation
-gpu=            # will be deprecated, please use ngpu
-ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -68,17 +67,6 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-# check gpu option usage
-if [ ! -z $gpu ]; then
-    echo "WARNING: --gpu option will be deprecated."
-    echo "WARNING: please use --ngpu option."
-    if [ $gpu -eq -1 ]; then
-        ngpu=0
-    else
-        ngpu=1
-    fi
-fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',

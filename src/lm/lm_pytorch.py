@@ -20,8 +20,8 @@ import torch.nn.functional as F
 
 from chainer import reporter
 
-from e2e_asr_attctc_th import th_accuracy
-from e2e_asr_attctc_th import to_cuda
+from e2e_asr_th import th_accuracy
+from e2e_asr_th import to_cuda
 from lm_utils import ParallelSequentialIterator
 
 
