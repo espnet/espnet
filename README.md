@@ -29,8 +29,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.x+ (**mainly support PyTorch 0.4.x**)
-- Chainer 4.x+
+- PyTorch 0.4.1+
+- Chainer 4.0+
 
 ## Installation
 ### Step 1) setting of  the environment
