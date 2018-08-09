@@ -36,8 +36,8 @@ from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
-from e2e_asr_attctc import E2E
-from e2e_asr_attctc import Loss
+from e2e_asr import E2E
+from e2e_asr import Loss
 
 # for kaldi io
 import kaldi_io_py
@@ -280,12 +280,6 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    # TODO(nelson) remove in future
-    if 'input' not in valid_json[utts[0]]:
-        logging.error(
-            "input file format (json) is modified, please redo"
-            "stage 2: Dictionary and Json Data Preparation")
-        sys.exit(1)
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
