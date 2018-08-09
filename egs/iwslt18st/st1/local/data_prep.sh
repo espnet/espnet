@@ -30,7 +30,7 @@ mkdir -p $dst || exit 1;
 
 
 wav_scp=$dst/wav.scp; [[ -f "$wav_scp" ]] && rm $wav_scp
-trans_en=$dst/text_en; [[ -f "$trans_en" ]] && rm $trans_en
+trans_en=$dst/text; [[ -f "$trans_en" ]] && rm $trans_en
 trans_de=$dst/text_de; [[ -f "$trans_de" ]] && rm $trans_de
 utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
 
@@ -46,21 +46,20 @@ n=`cat $yml | grep duration | wc -l`
 cat $yml | grep duration > .tmp
 count=0
 awk '{
-    duration=$3; offset=$5; spkid=$7; wav=$9; speaker=$9;
+    duration=$3; offset=$5; spkid=$7;
     gsub(",","",duration);
     gsub(",","",offset);
     gsub(",","",spkid);
-    gsub("}","",wav);
-    gsub(".wav}","",speaker);
+    gsub("spk.","",spkid);
     duration=sprintf("%.3f", duration);
     offset=sprintf("%.3f", offset);
-    printf("%s_%06.0f_%06.0f\n",
-           speaker, int(100*offset+0.5), int(100*offset+100*duration+0.5));
+    printf("ted_%04d_%06.0f_%06.0f\n",
+           spkid, int(100*offset+0.5), int(100*offset+100*duration+0.5));
 }' .tmp > .tmp2
 rm .tmp
 
-paste --delimiters " " .tmp2 $en | awk '{ print tolower($0) }' > $dst/text_en
-paste --delimiters " " .tmp2 $de | awk '{ print tolower($0) }' > $dst/text_de
+paste --delimiters " " .tmp2 $en | awk '{ print tolower($0) }' | sort > $dst/text
+paste --delimiters " " .tmp2 $de | awk '{ print tolower($0) }' | sort > $dst/text_de
 rm .tmp2
 
 
@@ -71,24 +70,24 @@ awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2]; startf=S[3]; endf=S[4];
     print segment " " spkid " " startf/1000 " " endf/1000
-}' < $dst/text_en > $dst/segments
+}' < $dst/text | sort > $dst/segments
 
 awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2];
-    printf("%s cat '$wav_dir'/%s.wav |\n",spkid,spkid);
-}' < $dst/text_en | uniq > $dst/wav.scp || exit 1;
+    printf("%s cat '$wav_dir'/%s_%d.wav |\n", spkid, S[1], S[2]);
+}' < $dst/text | uniq | sort > $dst/wav.scp || exit 1;
 
 awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2]; print $1 " " spkid
-}' $dst/segments > $dst/utt2spk || exit 1;
+}' $dst/segments | sort > $dst/utt2spk || exit 1;
 
-cat $dst/utt2spk | utils/utt2spk_to_spk2utt.pl > $dst/spk2utt || exit 1;
+sort $dst/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > $dst/spk2utt || exit 1;
 
 # Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/$part
-for f in spk2utt utt2spk wav.scp text_en text_de segments; do
+for f in spk2utt utt2spk wav.scp text text_de segments; do
   cp data/local/$part/$f data/$part/ || exit 1;
 done
 
