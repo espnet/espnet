@@ -174,8 +174,7 @@ class PlotAttentionReport(extension.Extension):
 
     def __call__(self, trainer):
         if self.converter is not None:
-            # TODO(kan-bayashi): need to be fixed due to hard coding
-            x = self.converter([self.data], False)
+            x = self.converter([self.data])
         else:
             x = self.data
         if isinstance(x, tuple):
