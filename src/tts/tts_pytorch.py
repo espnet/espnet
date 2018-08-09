@@ -126,31 +126,23 @@ class CustomConverter(object):
         ys = [ys[i] for i in sorted_idx]
 
         # get list of lengths (must be tensor for DataParallel)
-        ilens = torch.LongTensor([x.shape[0] for x in xs])
-        olens = torch.LongTensor([y.shape[0] for y in ys])
+        ilens = torch.LongTensor([x.shape[0] for x in xs]).to(self.device)
+        olens = torch.LongTensor([y.shape[0] for y in ys]).to(self.device)
 
         # perform padding and convert to tensor
-        xs = torch.LongTensor(pad_ndarray_list(xs, 0))
-        ys = torch.FloatTensor(pad_ndarray_list(ys, 0))
+        xs = torch.LongTensor(pad_ndarray_list(xs, 0)).to(self.device)
+        ys = torch.FloatTensor(pad_ndarray_list(ys, 0)).to(self.device)
 
         # make labels for stop prediction
         labels = ys.new_zeros(ys.size(0), ys.size(1))
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1
 
-        if sum(self.device) >= 0:
-            xs = xs.cuda()
-            ys = ys.cuda()
-            labels = labels.cuda()
-
         # load speaker embedding
         if self.use_speaker_embedding:
             spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
             spembs = [spembs[i] for i in sorted_idx]
-            spembs = torch.FloatTensor(np.array(spembs))
-
-            if sum(self.device) >= 0:
-                spembs = spembs.cuda()
+            spembs = torch.FloatTensor(np.array(spembs)).to(self.device)
         else:
             spembs = None
 
@@ -309,22 +301,16 @@ def train(args):
     tacotron2 = Tacotron2(idim, odim, args)
     logging.info(tacotron2)
 
-    # Set gpu
-    ngpu = args.ngpu
-    if ngpu == 1:
-        gpu_id = range(ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        tacotron2.cuda()
-    elif ngpu > 1:
-        gpu_id = range(ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        tacotron2 = torch.nn.DataParallel(tacotron2, device_ids=gpu_id)
-        tacotron2.cuda()
+    # check the use of multi-gpu
+    if args.ngpu > 1:
+        tacotron2 = torch.nn.DataParallel(tacotron2, device_ids=list(range(args.ngpu)))
         logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * ngpu))
-        args.batch_size *= ngpu
-    else:
-        gpu_id = [-1]
+            args.batch_size, args.batch_size * args.ngpu))
+        args.batch_size *= args.ngpu
+
+    # set torch device
+    device = torch.device("cuda" if args.ngpu > 0 else "cpu")
+    tacotron2 = tacotron2.to(device)
 
     # define loss
     model = Tacotron2Loss(tacotron2, args.use_masking, args.bce_pos_weight)
@@ -358,7 +344,7 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(valid_batchset, 1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    converter = CustomConverter(gpu_id, True, args.use_speaker_embedding)
+    converter = CustomConverter(device, True, args.use_speaker_embedding)
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -381,7 +367,7 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         trainer.extend(PlotAttentionReport(
             tacotron2, data, args.outdir + '/att_ws',
-            CustomConverter(gpu_id, False, args.use_speaker_embedding), True), trigger=(1, 'epoch'))
+            CustomConverter(device, False, args.use_speaker_embedding), True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -439,14 +425,9 @@ def decode(args):
         torch.load(args.model, map_location=lambda storage, loc: storage))
     tacotron2.eval()
 
-    # Set gpu
-    ngpu = args.ngpu
-    if ngpu >= 1:
-        gpu_id = range(ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        tacotron2.cuda()
-    else:
-        gpu_id = [-1]
+    # set torch device
+    device = torch.device("cuda" if args.ngpu > 0 else "cpu")
+    tacotron2 = tacotron2.to(device)
 
     # read json data
     with open(args.json, 'rb') as f:
@@ -463,16 +444,12 @@ def decode(args):
         for idx, utt_id in enumerate(js.keys()):
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
-            x = torch.LongTensor(x)
-            if args.ngpu > 0:
-                x = x.cuda()
+            x = torch.LongTensor(x).to(device)
 
             # get speaker embedding
             if train_args.use_speaker_embedding:
                 spemb = kaldi_io_py.read_vec_flt(js[utt_id]['input'][1]['feat'])
-                spemb = torch.FloatTensor(spemb)
-                if args.ngpu > 0:
-                    spemb = spemb.cuda()
+                spemb = torch.FloatTensor(spemb).to(device)
             else:
                 spemb = None
 
