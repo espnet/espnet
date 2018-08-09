@@ -15,7 +15,7 @@ def test_ctc_loss():
     import torch
     import warpctc_pytorch
 
-    from e2e_asr_attctc_th import pad_list
+    from e2e_asr_th import pad_list
 
     n_out = 7
     input_length = numpy.array([11, 17, 15], dtype=numpy.int32)
@@ -25,7 +25,7 @@ def test_ctc_loss():
     np_target = [numpy.random.randint(
         0, n_out, size=ol, dtype=numpy.int32) for ol in label_length]
 
-    # NOTE: np_pred[i] seems to be transposed and used axis=-1 in e2e_asr_attctc.py
+    # NOTE: np_pred[i] seems to be transposed and used axis=-1 in e2e_asr.py
     ch_pred = F.separate(F.pad_sequence(np_pred), axis=-2)
     ch_target = F.pad_sequence(np_target, padding=-1)
     ch_loss = F.connectionist_temporal_classification(
@@ -45,7 +45,7 @@ def test_attn_loss():
     pytest.importorskip("torch")
     import torch
 
-    from e2e_asr_attctc_th import pad_list
+    from e2e_asr_th import pad_list
 
     n_out = 7
     _eos = n_out - 1
@@ -87,8 +87,8 @@ def test_train_acc():
     pytest.importorskip("torch")
     import torch
 
-    from e2e_asr_attctc_th import pad_list
-    from e2e_asr_attctc_th import th_accuracy
+    from e2e_asr_th import pad_list
+    from e2e_asr_th import th_accuracy
 
     n_out = 7
     _eos = n_out - 1
