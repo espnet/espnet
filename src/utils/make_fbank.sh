@@ -3,6 +3,7 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+# TODO accept --write_utt2num_frames option
 # Begin configuration section.
 nj=4
 fs=22050
