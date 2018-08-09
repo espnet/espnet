@@ -99,7 +99,8 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/all_${lang} exp/make_fbank/train_${lang} ${fbankdir}
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+        data/all_${lang} exp/make_fbank/train_${lang} ${fbankdir}
 
     # remove utt having more than 2000 frames or less than 10 frames or
     # remove utt having more than 200 characters or no more than 0 characters
