@@ -33,7 +33,6 @@ from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_th import E2E
 from e2e_asr_th import Loss
-from e2e_asr_th import torch_is_old
 
 # for kaldi io
 import kaldi_io_py
@@ -71,24 +70,18 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
         summary = reporter_module.DictSummary()
 
         self.model.eval()
-        if not torch_is_old:
-            torch.set_grad_enabled(False)
-
-        for batch in it:
-            observation = {}
-            with reporter_module.report_scope(observation):
-                # read scp files
-                # x: original json with loaded features
-                #    will be converted to chainer variable later
-                x = self.converter(batch)
-                self.model(x)
-                delete_feat(x)
-
-            summary.add(observation)
-
+        with torch.no_grad():
+            for batch in it:
+                observation = {}
+                with reporter_module.report_scope(observation):
+                    # read scp files
+                    # x: original json with loaded features
+                    #    will be converted to chainer variable later
+                    x = self.converter(batch)
+                    self.model(x)
+                    delete_feat(x)
+                summary.add(observation)
         self.model.train()
-        if not torch_is_old:
-            torch.set_grad_enabled(True)
 
         return summary.compute_mean()
 
@@ -127,16 +120,12 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         loss = 1. / self.num_gpu * self.model(x)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.num_gpu > 1:
-            loss.backward(torch.ones(self.num_gpu))  # Backprop
+            loss.backward(torch.ones(self.num_gpu).cuda())  # Backprop
         else:
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        if torch_is_old:
-            clip = torch.nn.utils.clip_grad_norm
-        else:
-            clip = torch.nn.utils.clip_grad_norm_
-        grad_norm = clip(
+        grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
@@ -443,54 +432,53 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
 
-    if not torch_is_old:
-        torch.set_grad_enabled(False)
-
     new_json = {}
-    for name in recog_json.keys():
-        feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
-        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
-        # get 1best and remove sos
-        y_hat = nbest_hyps[0]['yseq'][1:]
-        y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
+    with torch.no_grad():
+        for name in recog_json.keys():
+            feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
+            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm=rnnlm)
+            # get 1best and remove sos
+            y_hat = nbest_hyps[0]['yseq'][1:]
+            y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
 
-        # print out decoding result
-        seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
-        seq_true = [train_args.char_list[int(idx)] for idx in y_true]
-        seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-        seq_true_text = "".join(seq_true).replace('<space>', ' ')
-        logging.info("groundtruth[%s]: " + seq_true_text, name)
-        logging.info("prediction [%s]: " + seq_hat_text, name)
+            # print out decoding result
+            seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
+            seq_true = [train_args.char_list[int(idx)] for idx in y_true]
+            seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+            seq_true_text = "".join(seq_true).replace('<space>', ' ')
+            logging.info("groundtruth[%s]: " + seq_true_text, name)
+            logging.info("prediction [%s]: " + seq_hat_text, name)
 
-        # copy old json info
-        new_json[name] = dict()
-        new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
+            # copy old json info
+            new_json[name] = dict()
+            new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
 
-        # added recognition results to json
-        logging.debug("dump token id")
-        out_dic = dict()
-        for _key in recog_json[name]['output'][0]:
-            out_dic[_key] = recog_json[name]['output'][0][_key]
+            # added recognition results to json
+            logging.debug("dump token id")
+            out_dic = dict()
+            for _key in recog_json[name]['output'][0]:
+                out_dic[_key] = recog_json[name]['output'][0][_key]
 
-        # TODO(karita) make consistent to chainer as idx[0] not idx
-        out_dic['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
-        logging.debug("dump token")
-        out_dic['rec_token'] = " ".join(seq_hat)
-        logging.debug("dump text")
-        out_dic['rec_text'] = seq_hat_text
+            # TODO(karita) make consistent to chainer as idx[0] not idx
+            out_dic['rec_tokenid'] = " ".join([str(idx) for idx in y_hat])
+            logging.debug("dump token")
+            out_dic['rec_token'] = " ".join(seq_hat)
+            logging.debug("dump text")
+            out_dic['rec_text'] = seq_hat_text
 
-        new_json[name]['output'] = [out_dic]
-        # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
-        # add n-best recognition results with scores
-        if args.beam_size > 1 and len(nbest_hyps) > 1:
-            for i, hyp in enumerate(nbest_hyps):
-                y_hat = hyp['yseq'][1:]
-                seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
-                seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-                new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = " ".join([str(idx) for idx in y_hat])
-                new_json[name]['rec_token' + '[' + '{:05d}'.format(i) + ']'] = " ".join(seq_hat)
-                new_json[name]['rec_text' + '[' + '{:05d}'.format(i) + ']'] = seq_hat_text
-                new_json[name]['score' + '[' + '{:05d}'.format(i) + ']'] = hyp['score']
+            new_json[name]['output'] = [out_dic]
+            # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
+            # add n-best recognition results with scores
+            if args.beam_size > 1 and len(nbest_hyps) > 1:
+                for i, hyp in enumerate(nbest_hyps):
+                    y_hat = hyp['yseq'][1:]
+                    seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
+                    seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
+                    new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] = \
+                        " ".join([str(idx) for idx in y_hat])
+                    new_json[name]['rec_token' + '[' + '{:05d}'.format(i) + ']'] = " ".join(seq_hat)
+                    new_json[name]['rec_text' + '[' + '{:05d}'.format(i) + ']'] = seq_hat_text
+                    new_json[name]['score' + '[' + '{:05d}'.format(i) + ']'] = hyp['score']
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
