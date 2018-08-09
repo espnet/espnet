@@ -45,6 +45,8 @@ $ autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-li
 $ test ! -s check_autopep8
 ```
 
+You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
+
 ### Configuration files
 
 - [setup.cfg](setup.cfg) configures pytest and flake8.

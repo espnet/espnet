@@ -33,7 +33,7 @@ def test_ctc_loss():
         ch_pred, ch_target, 0, input_length, label_length).data
 
     th_pred = pad_list([torch.autograd.Variable(torch.from_numpy(x))
-                        for x in np_pred]).transpose(0, 1)
+                        for x in np_pred], 0.0).transpose(0, 1)
     th_target = torch.autograd.Variable(
         torch.from_numpy(numpy.concatenate(np_target)))
     th_ilen = torch.autograd.Variable(torch.from_numpy(input_length))
@@ -49,6 +49,7 @@ def test_attn_loss():
     import torch
 
     from e2e_asr_attctc_th import pad_list
+    from e2e_asr_attctc_th import torch_is_old
 
     n_out = 7
     _eos = n_out - 1
@@ -82,7 +83,8 @@ def test_attn_loss():
     print(th_loss)
 
     # NOTE: warpctc_pytorch.CTCLoss does not normalize itself by batch-size while chainer's default setting does
-    numpy.testing.assert_allclose(th_loss.data[0], ch_loss.data, 0.05)
+    loss_data = th_loss.data[0] if torch_is_old else float(th_loss)
+    numpy.testing.assert_allclose(loss_data, ch_loss.data, 0.05)
 
 
 def test_train_acc():

@@ -101,8 +101,8 @@ if [ ${stage} -le 0 ]; then
     # training data
     local/fisher_data_prep.sh ${fisher_dir}
     local/swbd1_data_download.sh ${swbd1_dir}
-    chmod 644 data/local/dict_nosp/lexicon0.txt
     local/fisher_swbd_prepare_dict.sh
+    chmod 644 data/local/dict_nosp/lexicon0.txt
     local/swbd1_data_prep.sh ${swbd1_dir}
     utils/combine_data.sh data/train_all data/train_fisher data/train_swbd
 
@@ -196,6 +196,11 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+    done
 fi
 
 if [ -z ${tag} ]; then
@@ -211,7 +216,6 @@ mkdir -p ${expdir}
 lmexpdir=exp/train_rnnlm_2layer_bs256
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
-    (
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
@@ -233,7 +237,6 @@ if [ ${stage} -le 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --dict ${dict}
-    ) &
 fi
 
 if [ ${stage} -le 4 ]; then
@@ -281,15 +284,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        data=data/${rtask}
-        split_data.sh --per-utt ${data} ${nj};
-        sdata=${data}/split${nj}utt;
-
-        # make json labels for recognition
-        for j in `seq 1 ${nj}`; do
-            data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
-                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
-        done
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
 
         #### use CPU for decoding
         ngpu=0
@@ -298,7 +293,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${sdata}/JOB/data.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
