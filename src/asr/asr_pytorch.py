@@ -31,8 +31,8 @@ from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
-from e2e_asr_attctc_th import E2E
-from e2e_asr_attctc_th import Loss
+from e2e_asr_th import E2E
+from e2e_asr_th import Loss
 
 # for kaldi io
 import kaldi_io_py
@@ -190,12 +190,6 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    # TODO(nelson) remove in future
-    if 'input' not in valid_json[utts[0]]:
-        logging.error(
-            "input file format (json) is modified, please redo"
-            "stage 2: Dictionary and Json Data Preparation")
-        sys.exit(1)
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
@@ -285,7 +279,7 @@ def train(args):
         if ngpu > 1:
             model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         else:
-            model.load_state_dict(torch.load(args.outdir + '/model.acc.best' % trainer.updater.epoch))
+            model.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -319,8 +313,8 @@ def train(args):
     # save snapshot to save the information of #interations or #epochs
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'),
                    trigger=(1, 'epoch'))
-    # save the model after each epoch
-    trainer.extend(extensions.snapshot_object(model, 'model_epoch{.updater.epoch}', savefun=torch_save),
+    # save model states
+    trainer.extend(extensions.snapshot_object(model, 'model.ep.{.updater.epoch}', savefun=torch_save),
                    trigger=(1, 'epoch'))
 
     if mtl_mode is not 'ctc':
