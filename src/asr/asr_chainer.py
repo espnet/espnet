@@ -19,6 +19,7 @@ import sys
 import chainer
 
 from chainer import cuda
+from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -36,8 +37,8 @@ from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
-from e2e_asr_attctc import E2E
-from e2e_asr_attctc import Loss
+from e2e_asr import E2E
+from e2e_asr import Loss
 
 # for kaldi io
 import kaldi_io_py
@@ -72,7 +73,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         # read scp files
         # x: original json with loaded features
         #    will be converted to chainer variable later
-        x = self.converter(batch)
+        x = batch[0]
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(x)
@@ -108,8 +109,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             self._master.cleargrads()
 
             optimizer = self.get_optimizer('main')
-            batch = self.get_iterator('main').next()
-            x = self.converter(batch)
+            x = self.get_iterator('main').next()[0]
 
             loss = self._master(x)
 
@@ -217,8 +217,7 @@ class CustomWorker(multiprocessing.Process):
                 # For reducing memory
                 self.model.cleargrads()
 
-                batch = self.iterator.next()
-                x = converter_kaldi(batch)
+                x = self.iterator.next()[0]
                 observation = {}
                 with self.reporter.scope(observation):
                     loss = self.model(x)
@@ -280,12 +279,6 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    # TODO(nelson) remove in future
-    if 'input' not in valid_json[utts[0]]:
-        logging.error(
-            "input file format (json) is modified, please redo"
-            "stage 2: Dictionary and Json Data Preparation")
-        sys.exit(1)
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
@@ -362,7 +355,9 @@ def train(args):
                               args.maxlen_in, args.maxlen_out, args.minibatches)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iter = chainer.iterators.SerialIterator(train, 1)
+        train_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(train, converter_kaldi), 1,
+            n_processes=2, n_prefetch=8, maxtasksperchild=20)
 
         # set up updater
         updater = ChainerSeqUpdaterKaldi(
@@ -388,7 +383,8 @@ def train(args):
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         train_iters = [chainer.iterators.MultiprocessIterator(
-            train_subsets[gid], 1, n_processes=1)
+            TransformDataset(train_subsets[gid], converter_kaldi),
+            1, n_processes=2 * ngpu, n_prefetch=8, maxtasksperchild=20)
             for gid in six.moves.xrange(ngpu)]
 
         # set up updater
@@ -406,18 +402,19 @@ def train(args):
     # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
-
+    valid_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(valid, converter_kaldi),
+        1, n_processes=2, n_prefetch=8, repeat=False, shuffle=False, maxtasksperchild=20)
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(
-        valid_iter, model, converter=converter_kaldi, device=gpu_id))
+    trainer.extend(extensions.Evaluator(valid_iter, model,
+                                        converter=lambda x, device: x[0],
+                                        device=gpu_id))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        data = converter_kaldi([data], device=gpu_id)
+        data = converter_kaldi(data, device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
