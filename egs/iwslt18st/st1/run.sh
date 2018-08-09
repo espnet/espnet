@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0       # start from -1 if you need to start from data download
+stage=2       # start from -1 if you need to start from data download
 gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -114,8 +114,7 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    # for x in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
-    for x in dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
+    for x in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
@@ -155,36 +154,71 @@ if [ ${stage} -le 1 ]; then
     done
 fi
 
-dict_en=data/lang_1char/${train_set}_units_en.txt
-dict_de=data/lang_1char/${train_set}_units_de.txt
-echo "dictionary (English): ${dict_en}"
-echo "dictionary (Germany): ${dict_de}"
+# bpemode (unigram or bpe)
+nbpe_en_small=300
+nbpe_en_large=10000
+nbpe_de=10000
+bpemode=unigram
+
+# En
+dict_char_en=data/lang_1char/${train_set}_units_en.txt
+dict_bpe_en_small=data/lang_1char/${train_set}_${bpemode}${nbpe_en_small}_char_units_en.txt
+dict_bpe_en_large=data/lang_1char/${train_set}_${bpemode}${nbpe_en_large}_char_units_en.txt
+bpemodel_en_small=data/lang_1char/${train_set}_${bpemode}${nbpe_de}_en_small
+bpemodel_en_large=data/lang_1char/${train_set}_${bpemode}${nbpe_de}_en_large
+# De
+dict_bpe_de=data/lang_1char/${train_set}_${bpemode}${nbpe_de}_units_de.txt
+bpemodel_de=data/lang_1char/${train_set}_${bpemode}${nbpe_de}_de
+echo "dictionary (English, character): ${dict_char_en}"
+echo "dictionary (English, BPE, small): ${dict_bpe_en_small}"
+echo "dictionary (English, BPE, large): ${dict_bpe_en_large}"
+echo "dictionary (Germany, BPE): ${dict_bpe_de}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
-    # Character
-    echo "<unk> 1" > ${dict_en} # <unk> must be 1, 0 will be used for "blank" in CTC
+    # En, char
+    echo "<unk> 1" > ${dict_char_en} # <unk> must be 1, 0 will be used for "blank" in CTC
     text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_en}
-    wc -l ${dict_en}
-    echo "<unk> 1" > ${dict_de} # <unk> must be 1, 0 will be used for "blank" in CTC ??
-    text2token.py -s 1 -n 1 data/${train_set}/text_de | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_de}
-    wc -l ${dict_de}
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_char_en}
+    wc -l ${dict_char_en}
 
-    # BPE (300)
+    # En, BPE (300)
+    echo "<unk> 1" > ${dict_bpe_en_small} # <unk> must be 1, 0 will be used for "blank" in CTC
+    cut -f 2- -d" " data/${train_set}/text > data/lang_1char/input.txt
+    spm_train --input=data/lang_1char/input.txt --vocab_size=${nbpe_en_small} --model_type=${bpemode} --model_prefix=${bpemodel_en_small} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel_en_small}.model --output_format=piece < data/lang_1char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict_bpe_en_small}
+    wc -l ${dict_bpe_en_small}
 
+    # En, BPE (10000)
+    echo "<unk> 1" > ${dict_bpe_en_large} # <unk> must be 1, 0 will be used for "blank" in CTC
+    cut -f 2- -d" " data/${train_set}/text > data/lang_1char/input.txt
+    spm_train --input=data/lang_1char/input.txt --vocab_size=${nbpe_en_large} --model_type=${bpemode} --model_prefix=${bpemodel_en_large} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel_en_large}.model --output_format=piece < data/lang_1char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict_bpe_en_large}
+    wc -l ${dict_bpe_en_large}
 
-    # BPE (10000)
+    # De, BPE (10000)
+    echo "<unk> 1" > ${dict_bpe_de} # <unk> must be 1, 0 will be used for "blank" in CTC
+    cut -f 2- -d" " data/${train_set}/text > data/lang_1char/input.txt
+    spm_train --input=data/lang_1char/input.txt --vocab_size=${nbpe_de} --model_type=${bpemode} --model_prefix=${bpemodel_de} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel_de}.model --output_format=piece < data/lang_1char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict_bpe_de}
+    wc -l ${dict_bpe_de}
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set} ${dict_en} > ${feat_tr_dir}/data.json
+         data/${train_set} ${dict_char_en} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev} ${dict_en} > ${feat_dt_dir}/data.json
-    # TODO(Hirofumi): DEのtrans，マルチタスク拡張，BPE
+         data/${train_dev} ${dict_char_en} > ${feat_dt_dir}/data.json
+    # TODO(Hirofumi): DEのtrans，マルチタスク拡張
     # TODO(hiforumi): 記号の処理
+
+    exit 1
+
+    
+    # Update json
+    for name in ${train_set} ${train_dev} ${recog_set}; do
+        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
+    done
 fi
 
 exit 1
@@ -214,7 +248,7 @@ exit 1
 #         --valid-label ${lmdatadir}/valid.txt \
 #         --epoch 60 \
 #         --batchsize 256 \
-#         --dict_en ${dict_en}
+#         --dict_char_en ${dict_char_en}
 # fi
 #
 # if [ -z ${tag} ]; then
@@ -235,7 +269,7 @@ exit 1
 #         --backend ${backend} \
 #         --outdir ${expdir}/results \
 #         --debugmode ${debugmode} \
-#         --dict_en ${dict_en} \
+#         --dict_char_en ${dict_char_en} \
 #         --debugdir ${expdir} \
 #         --minibatches ${N} \
 #         --verbose ${verbose} \
@@ -277,7 +311,7 @@ exit 1
 #         # make json labels for recognition
 #         for j in `seq 1 ${nj}`; do
 #             data2json.sh --feat ${feat_recog_dir}/feats.scp \
-#                 ${sdata}/${j} ${dict_en} > ${sdata}/${j}/data.json
+#                 ${sdata}/${j} ${dict_char_en} > ${sdata}/${j}/data.json
 #         done
 #
 #         #### use CPU for decoding
@@ -301,7 +335,7 @@ exit 1
 #             &
 #         wait
 #
-#         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict_en}
+#         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict_char_en}
 #
 #     ) &
 #     done
