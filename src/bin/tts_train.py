@@ -93,9 +93,9 @@ def main():
                         help='Whether to concatenate encoder embedding with decoder outputs')
     parser.add_argument('--use_residual', default=True, type=strtobool,
                         help='Whether to use residual connection in conv layer')
-    parser.add_argument('--dropout-rate', default=0.5, type=float,
+    parser.add_argument('--dropout', default=0.5, type=float,
                         help='Dropout rate')
-    parser.add_argument('--zoneout-rate', default=0.1, type=float,
+    parser.add_argument('--zoneout', default=0.1, type=float,
                         help='Zoneout rate')
     # loss related
     parser.add_argument('--use_masking', default=False, type=strtobool,
