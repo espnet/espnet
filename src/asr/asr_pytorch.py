@@ -297,9 +297,9 @@ def train(args):
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
         if ngpu > 1:
-            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         else:
-            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            model.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -325,15 +325,16 @@ def train(args):
     def torch_save(path, _):
         if ngpu > 1:
             torch.save(model.module.state_dict(), path)
-            torch.save(model.module, path + ".pkl")
         else:
             torch.save(model.state_dict(), path)
-            torch.save(model, path + ".pkl")
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    # save the model after each epoch
-    trainer.extend(extensions.snapshot_object(model, 'model_epoch{.updater.epoch}', savefun=torch_save),
+    # save snapshot to save the information of #interations or #epochs
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'),
+                   trigger=(1, 'epoch'))
+    # save model states
+    trainer.extend(extensions.snapshot_object(model, 'model.ep.{.updater.epoch}', savefun=torch_save),
                    trigger=(1, 'epoch'))
 
     if mtl_mode is not 'ctc':
