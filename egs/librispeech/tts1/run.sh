@@ -282,8 +282,8 @@ if [ ${stage} -le 4 ];then
            --bce_pos_weight ${bce_pos_weight} \
            --lr ${lr} \
            --eps ${eps} \
-           --dropout-rate ${dropout} \
-           --zoneout-rate ${zoneout} \
+           --dropout ${dropout} \
+           --zoneout ${zoneout} \
            --weight-decay ${weight_decay} \
            --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \
