@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 import torch
 
+from argparse import Namespace
+
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
 from tts_pytorch import pad_ndarray_list
@@ -27,7 +29,7 @@ def make_model_args(**kwargs):
         postnet_layers=5,
         postnet_filts=5,
         postnet_chans=512,
-        output_activation_fn=None,
+        output_activation=None,
         adim=512,
         aconv_chans=32,
         aconv_filts=15,
@@ -53,6 +55,16 @@ def make_loss_args(**kwargs):
     return defaults
 
 
+def make_inference_args(**kwargs):
+    defaults = dict(
+        threshold=0.5,
+        maxlenratio=5.0,
+        minlenratio=0.0
+    )
+    defaults.update(kwargs)
+    return defaults
+
+
 @pytest.mark.parametrize(
     "model_dict, loss_dict", [
         ({}, {}),
@@ -61,7 +73,7 @@ def make_loss_args(**kwargs):
         ({"prenet_layers": 0}, {}),
         ({"postnet_layers": 0}, {}),
         ({"prenet_layers": 0, "postnet_layers": 0}, {}),
-        ({"output_activation_fn": torch.tanh}, {}),
+        ({"output_activation": "relu"}, {}),
         ({"cumulate_att_w": False}, {}),
         ({"use_batch_norm": False}, {}),
         ({"use_concate": False}, {}),
@@ -88,7 +100,8 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     # define model
     model_args = make_model_args(**model_dict)
     loss_args = make_loss_args(**loss_dict)
-    model = Tacotron2(idim, odim, **model_args)
+    inference_args = make_inference_args()
+    model = Tacotron2(idim, odim, Namespace(**model_args))
     criterion = Tacotron2Loss(model, **loss_args)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -102,7 +115,7 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     # decodable
     model.eval()
     with torch.no_grad():
-        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]])
+        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]], Namespace(**inference_args))
         att_ws = model.calculate_all_attentions(xs, ilens, ys)
     assert att_ws.shape[0] == bs
     assert att_ws.shape[1] == max(olens)
@@ -117,7 +130,7 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
         ({"prenet_layers": 0}, {}),
         ({"postnet_layers": 0}, {}),
         ({"prenet_layers": 0, "postnet_layers": 0}, {}),
-        ({"output_activation_fn": torch.tanh}, {}),
+        ({"output_activation": "relu"}, {}),
         ({"cumulate_att_w": False}, {}),
         ({"use_batch_norm": False}, {}),
         ({"use_concate": False}, {}),
@@ -146,7 +159,8 @@ def test_tacotron2_with_speaker_embedding_trainable_and_decodable(model_dict, lo
     # define model
     model_args = make_model_args(spk_embed_dim=spk_embed_dim, **model_dict)
     loss_args = make_loss_args(**loss_dict)
-    model = Tacotron2(idim, odim, **model_args)
+    inference_args = make_inference_args()
+    model = Tacotron2(idim, odim, Namespace(**model_args))
     criterion = Tacotron2Loss(model, **loss_args)
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -160,7 +174,9 @@ def test_tacotron2_with_speaker_embedding_trainable_and_decodable(model_dict, lo
     # decodable
     model.eval()
     with torch.no_grad():
-        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]], spembs[0])
+        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]],
+                                              Namespace(**inference_args),
+                                              spembs[0])
         att_ws = model.calculate_all_attentions(xs, ilens, ys, spembs)
     assert att_ws.shape[0] == bs
     assert att_ws.shape[1] == max(olens)
