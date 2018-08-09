@@ -31,7 +31,15 @@ CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
+# ------------- Utility functions --------------------------------------------------------------------------------------
 def to_cuda(m, x):
+    """Function to send tensor into corresponding device
+
+    :param torch.nn.Module m: torch module
+    :param torch.Tensor x: torch tensor
+    :return: torch tensor located in the same place as torch module
+    :rtype: torch.Tensor
+    """
     assert isinstance(m, torch.nn.Module)
     device_id = torch.cuda.device_of(next(m.parameters()).data).idx
     if device_id == -1:
@@ -39,53 +47,41 @@ def to_cuda(m, x):
     return x.cuda(device_id)
 
 
-def lecun_normal_init_parameters(module):
-    for p in module.parameters():
-        data = p.data
-        if data.dim() == 1:
-            # bias
-            data.zero_()
-        elif data.dim() == 2:
-            # linear weight
-            n = data.size(1)
-            stdv = 1. / math.sqrt(n)
-            data.normal_(0, stdv)
-        elif data.dim() == 4:
-            # conv weight
-            n = data.size(1)
-            for k in data.size()[2:]:
-                n *= k
-            stdv = 1. / math.sqrt(n)
-            data.normal_(0, stdv)
-        else:
-            raise NotImplementedError
+def pad_list(xs, pad_value):
+    """Function to pad values
+
+    :param list xs: list of torch.Tensor [(L1, D), (L2, D), ...]
+    :param float pad_value: value for padding
+    :return: padded tensor (B, Lmax, D)
+    :rtype: torch.Tensor
+    """
+    n_batch = len(xs)
+    max_len = max(x.size(0) for x in xs)
+    pad = xs[0].new_zeros(n_batch, max_len, * xs[0].size()[1:]) + pad_value
+
+    for i in range(n_batch):
+        pad[i, :xs[i].size(0)] = xs[i]
+
+    return pad
 
 
-# get output dim for latter BLSTM
-def _get_vgg2l_odim(idim, in_channel=3, out_channel=128):
-    idim = idim / in_channel
-    idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
-    idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
-    return int(idim) * out_channel  # numer of channels
+def th_accuracy(pad_outputs, pad_targets, ignore_label):
+    """Function to calculate accuracy
 
-
-# get output dim for latter BLSTM
-def _get_max_pooled_size(idim, out_channel=128, n_layers=2, ksize=2, stride=2):
-    for _ in range(n_layers):
-        idim = math.floor((idim - (ksize - 1) - 1) / stride)
-    return idim  # numer of channels
-
-
-def linear_tensor(linear, x):
-    '''Apply linear matrix operation only for the last dimension of a tensor
-
-    :param Link linear: Linear link (M x N matrix)
-    :param Tensor x: Tensor (D_1 x D_2 x ... x M matrix)
-    :return:
-    :param Tensor x: Tensor (D_1 x D_2 x ... x N matrix)
-    '''
-    y = linear(x.contiguous().view((-1, x.size()[-1])))
-    return y.view((x.size()[:-1] + (-1,)))
+    :param torch.Tensor pad_outputs: prediction tensors (B*Lmax, D)
+    :param torch.Tensor pad_targets: target tensors (B, Lmax, D)
+    :param int ignore_label: ignore label id
+    :retrun: accuracy value (0.0 - 1.0)
+    :rtype: float
+    """
+    pad_pred = pad_targets.view(
+        pad_targets.size(0),
+        pad_targets.size(1),
+        pad_outputs.size(1)).argmax(2)
+    mask = pad_targets != ignore_label
+    numerator = torch.sum(pad_pred.masked_select(mask) == pad_targets.masked_select(mask))
+    denominator = torch.sum(mask)
+    return float(numerator) / float(denominator)
 
 
 class Reporter(chainer.Chain):
@@ -107,14 +103,14 @@ class Loss(torch.nn.Module):
         self.predictor = predictor
         self.reporter = Reporter()
 
-    def forward(self, x):
+    def forward(self, xs_pad, ilens, ys):
         '''Loss forward
 
         :param x:
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, acc = self.predictor(xs_pad, ilens, ys)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -136,23 +132,6 @@ class Loss(torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
 
         return self.loss
-
-
-def pad_list(xs, pad_value):
-    n_batch = len(xs)
-    max_len = max(x.size(0) for x in xs)
-    pad = xs[0].new_zeros(n_batch, max_len, * xs[0].size()[1:]) + pad_value
-
-    for i in range(n_batch):
-        pad[i, :xs[i].size(0)] = xs[i]
-
-    return pad
-
-
-def set_forget_bias_to_one(bias):
-    n = bias.size(0)
-    start, end = n // 4, n // 2
-    bias.data[start:end].fill_(1.)
 
 
 class E2E(torch.nn.Module):
@@ -240,12 +219,6 @@ class E2E(torch.nn.Module):
 
         # weight initialization
         self.init_like_chainer()
-        # additional forget-bias init in encoder ?
-        # for m in self.modules():
-        #     if isinstance(m, torch.nn.LSTM):
-        #         for name, p in m.named_parameters():
-        #             if "bias_ih" in name:
-        #                 set_forget_bias_to_one(p)
 
     def init_like_chainer(self):
         """Initialize weight like chainer
@@ -257,8 +230,33 @@ class E2E(torch.nn.Module):
         - EmbedID.W ~ Normal(0, 1)
         - LSTM.upward.b[forget_gate_range] = 1 (but not used in NStepLSTM)
         """
-        lecun_normal_init_parameters(self)
+        def lecun_normal_init_parameters(module):
+            for p in module.parameters():
+                data = p.data
+                if data.dim() == 1:
+                    # bias
+                    data.zero_()
+                elif data.dim() == 2:
+                    # linear weight
+                    n = data.size(1)
+                    stdv = 1. / math.sqrt(n)
+                    data.normal_(0, stdv)
+                elif data.dim() == 4:
+                    # conv weight
+                    n = data.size(1)
+                    for k in data.size()[2:]:
+                        n *= k
+                    stdv = 1. / math.sqrt(n)
+                    data.normal_(0, stdv)
+                else:
+                    raise NotImplementedError
 
+        def set_forget_bias_to_one(bias):
+            n = bias.size(0)
+            start, end = n // 4, n // 2
+            bias.data[start:end].fill_(1.)
+
+        lecun_normal_init_parameters(self)
         # exceptions
         # embed weight ~ Normal(0, 1)
         self.dec.embed.weight.data.normal_(0, 1)
@@ -267,49 +265,34 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    # x[i]: ('utt_id', {'ilen':'xxx',...}})
-    def forward(self, data):
+    def forward(self, xs_pad, ilens, ys):
         '''E2E forward
 
-        :param data:
-        :return:
+        :param torch.Tensor xs: batch of padded input sequences (B, Tmax, idim)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
+        :return: ctc loass value
+        :rtype: torch.Tensor
+        :return: attention loss value
+        :rtype: torch.Tensor
+        :return: accuracy in attention decoder
+        :rtype: float
         '''
-        # utt list of frame x dim
-        xs = [d[1]['feat'] for d in data]
-        # remove 0-output-length utterances
-        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
-        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
-        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
-        if len(sorted_index) != len(xs):
-            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-                len(xs), len(sorted_index)))
-        xs = [xs[i] for i in sorted_index]
-        # utt list of olen
-        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
-              for i in sorted_index]
-        ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
-
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
-
         # 1. encoder
-        xpad = pad_list(hs, 0.0)
-        hpad, hlens = self.enc(xpad, ilens)
+        hs_pad, hlens = self.enc(xs_pad, ilens)
 
-        # # 3. CTC loss
+        # 2. CTC loss
         if self.mtlalpha == 0:
             loss_ctc = None
         else:
-            loss_ctc = self.ctc(hpad, hlens, ys)
+            loss_ctc = self.ctc(hs_pad, hlens, ys)
 
-        # 4. attention loss
+        # 3. attention loss
         if self.mtlalpha == 1:
             loss_att = None
             acc = None
         else:
-            loss_att, acc = self.dec(hpad, hlens, ys)
+            loss_att, acc = self.dec(hs_pad, hlens, ys)
 
         return loss_ctc, loss_att, acc
 
@@ -411,8 +394,7 @@ class CTC(torch.nn.Module):
             (x.size(0) for x in ys), dtype=np.int32))
 
         # zero padding for hs
-        y_hat = linear_tensor(
-            self.ctc_lo, F.dropout(hpad, p=self.dropout_rate))
+        y_hat = self.ctc_lo(F.dropout(hpad, p=self.dropout_rate))
 
         # zero padding for ys
         y_true = torch.cat(ys).cpu().int()  # batch x olen
@@ -435,15 +417,7 @@ class CTC(torch.nn.Module):
         :param hs:
         :return:
         '''
-        return F.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
-
-
-def mask_by_length(xs, length, fill=0):
-    assert xs.size(0) == len(length)
-    ret = xs.new(*xs.size()).fill_(fill)
-    for i, l in enumerate(length):
-        ret[i, :l] = xs[i, :l]
-    return ret
+        return F.log_softmax(self.ctc_lo(hpad), dim=2)
 
 
 # ------------- Attention Network --------------------------------------------------------------------------------------
@@ -538,8 +512,7 @@ class AttDot(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_enc_h = torch.tanh(
-                linear_tensor(self.mlp_enc, self.enc_h))
+            self.pre_compute_enc_h = torch.tanh(self.mlp_enc(self.enc_h))
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -603,7 +576,7 @@ class AttAdd(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -616,8 +589,7 @@ class AttAdd(torch.nn.Module):
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
         # NOTE consider zero padding when compute w.
-        e = linear_tensor(self.gvec, torch.tanh(
-            self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -684,7 +656,7 @@ class AttLoc(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -702,7 +674,7 @@ class AttLoc(torch.nn.Module):
         # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
         att_conv = att_conv.squeeze(2).transpose(1, 2)
         # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
-        att_conv = linear_tensor(self.mlp_att, att_conv)
+        att_conv = self.mlp_att(att_conv)
 
         # dec_z_tiled: utt x frame x att_dim
         dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
@@ -710,8 +682,7 @@ class AttLoc(torch.nn.Module):
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
         # NOTE consider zero padding when compute w.
-        e = linear_tensor(self.gvec, torch.tanh(
-            att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -772,7 +743,7 @@ class AttCov(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -788,7 +759,7 @@ class AttCov(torch.nn.Module):
         # att_prev_list: L' * [B x T] => cov_vec B x T
         cov_vec = sum(att_prev_list)
         # cov_vec: B x T => B x T x 1 => B x T x att_dim
-        cov_vec = linear_tensor(self.wvec, cov_vec.unsqueeze(-1))
+        cov_vec = self.wvec(cov_vec.unsqueeze(-1))
 
         # dec_z_tiled: utt x frame x att_dim
         dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
@@ -796,8 +767,7 @@ class AttCov(torch.nn.Module):
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
         # NOTE consider zero padding when compute w.
-        e = linear_tensor(self.gvec, torch.tanh(
-            cov_vec + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        e = self.gvec(torch.tanh(cov_vec + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         w = F.softmax(scaling * e, dim=1)
         att_prev_list += [w]
@@ -868,7 +838,7 @@ class AttLoc2D(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -887,7 +857,7 @@ class AttLoc2D(torch.nn.Module):
         # att_conv: B x C x 1 x Tmax -> B x Tmax x C
         att_conv = att_conv.squeeze(2).transpose(1, 2)
         # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
-        att_conv = linear_tensor(self.mlp_att, att_conv)
+        att_conv = self.mlp_att(att_conv)
 
         # dec_z_tiled: utt x frame x att_dim
         dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
@@ -895,8 +865,7 @@ class AttLoc2D(torch.nn.Module):
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
         # NOTE consider zero padding when compute w.
-        e = linear_tensor(self.gvec, torch.tanh(
-            att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         w = F.softmax(scaling * e, dim=1)
 
@@ -969,7 +938,7 @@ class AttLocRec(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1005,8 +974,7 @@ class AttLocRec(torch.nn.Module):
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
         # NOTE consider zero padding when compute w.
-        e = linear_tensor(self.gvec, torch.tanh(
-            att_h.unsqueeze(1) + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        e = self.gvec(torch.tanh(att_h.unsqueeze(1) + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         w = F.softmax(scaling * e, dim=1)
 
@@ -1073,7 +1041,7 @@ class AttCovLoc(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1094,7 +1062,7 @@ class AttCovLoc(torch.nn.Module):
         # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
         att_conv = att_conv.squeeze(2).transpose(1, 2)
         # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
-        att_conv = linear_tensor(self.mlp_att, att_conv)
+        att_conv = self.mlp_att(att_conv)
 
         # dec_z_tiled: utt x frame x att_dim
         dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
@@ -1102,8 +1070,7 @@ class AttCovLoc(torch.nn.Module):
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
         # NOTE consider zero padding when compute w.
-        e = linear_tensor(self.gvec, torch.tanh(
-            att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         w = F.softmax(scaling * e, dim=1)
         att_prev_list += [w]
@@ -1178,14 +1145,14 @@ class AttMultiHeadDot(torch.nn.Module):
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
-                torch.tanh(linear_tensor(self.mlp_k[h], self.enc_h)) for h in six.moves.range(self.aheads)]
+                torch.tanh(self.mlp_k[h](self.enc_h)) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_v = [
-                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
+                self.mlp_v[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1276,14 +1243,14 @@ class AttMultiHeadAdd(torch.nn.Module):
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
-                linear_tensor(self.mlp_k[h], self.enc_h) for h in six.moves.range(self.aheads)]
+                self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_v = [
-                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
+                self.mlp_v[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1293,10 +1260,8 @@ class AttMultiHeadAdd(torch.nn.Module):
         c = []
         w = []
         for h in six.moves.range(self.aheads):
-            e = linear_tensor(
-                self.gvec[h],
-                torch.tanh(
-                    self.pre_compute_k[h] + self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
+            e = self.gvec[h](torch.tanh(
+                self.pre_compute_k[h] + self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1383,14 +1348,14 @@ class AttMultiHeadLoc(torch.nn.Module):
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
-                linear_tensor(self.mlp_k[h], self.enc_h) for h in six.moves.range(self.aheads)]
+                self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_v = [
-                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
+                self.mlp_v[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1409,13 +1374,11 @@ class AttMultiHeadLoc(torch.nn.Module):
         for h in six.moves.range(self.aheads):
             att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
             att_conv = att_conv.squeeze(2).transpose(1, 2)
-            att_conv = linear_tensor(self.mlp_att[h], att_conv)
+            att_conv = self.mlp_att[h](att_conv)
 
-            e = linear_tensor(
-                self.gvec[h],
-                torch.tanh(
-                    self.pre_compute_k[h] + att_conv + self.mlp_q[h](dec_z).view(
-                        batch, 1, self.att_dim_k))).squeeze(2)
+            e = self.gvec[h](torch.tanh(
+                self.pre_compute_k[h] + att_conv + self.mlp_q[h](dec_z).view(
+                    batch, 1, self.att_dim_k))).squeeze(2)
             w += [F.softmax(scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1506,14 +1469,14 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
-                linear_tensor(self.mlp_k[h], self.enc_h) for h in six.moves.range(self.aheads)]
+                self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
         if self.pre_compute_v is None:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_v = [
-                linear_tensor(self.mlp_v[h], self.enc_h) for h in six.moves.range(self.aheads)]
+                self.mlp_v[h](self.enc_h) for h in six.moves.range(self.aheads)]
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1532,13 +1495,11 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         for h in six.moves.range(self.aheads):
             att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
             att_conv = att_conv.squeeze(2).transpose(1, 2)
-            att_conv = linear_tensor(self.mlp_att[h], att_conv)
+            att_conv = self.mlp_att[h](att_conv)
 
-            e = linear_tensor(
-                self.gvec[h],
-                torch.tanh(
-                    self.pre_compute_k[h] + att_conv + self.mlp_q[h](dec_z).view(
-                        batch, 1, self.att_dim_k))).squeeze(2)
+            e = self.gvec[h](torch.tanh(
+                self.pre_compute_k[h] + att_conv + self.mlp_q[h](dec_z).view(
+                    batch, 1, self.att_dim_k))).squeeze(2)
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1550,14 +1511,6 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         c = self.mlp_o(torch.cat(c, dim=1))
 
         return c, w
-
-
-def th_accuracy(y_all, pad_target, ignore_label):
-    pad_pred = y_all.view(pad_target.size(0), pad_target.size(1), y_all.size(1)).argmax(2)
-    mask = pad_target != ignore_label
-    numerator = torch.sum(pad_pred.masked_select(mask) == pad_target.masked_select(mask))
-    denominator = torch.sum(mask)
-    return float(numerator) / float(denominator)
 
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
@@ -1597,7 +1550,6 @@ class Decoder(torch.nn.Module):
         :param ys:
         :return:
         '''
-        hpad = mask_by_length(hpad, hlen, 0)
         hlen = list(map(int, hlen))
 
         self.loss = None
@@ -1848,7 +1800,6 @@ class Decoder(torch.nn.Module):
         :return: numpy array format attentions
         '''
         hlen = list(map(int, hlen))
-        hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
         eos = ys[0].new([self.eos])
@@ -1940,13 +1891,13 @@ class Encoder(torch.nn.Module):
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
             self.enc1 = VGG2L(in_channel)
-            self.enc2 = BLSTMP(_get_vgg2l_odim(idim, in_channel=in_channel),
+            self.enc2 = BLSTMP(self._get_vgg2l_odim(idim, in_channel=in_channel),
                                elayers, eunits, eprojs,
                                subsample, dropout)
             logging.info('Use CNN-VGG + BLSTMP for encoder')
         elif etype == 'vggblstm':
             self.enc1 = VGG2L(in_channel)
-            self.enc2 = BLSTM(_get_vgg2l_odim(idim, in_channel=in_channel),
+            self.enc2 = BLSTM(self._get_vgg2l_odim(idim, in_channel=in_channel),
                               elayers, eunits, eprojs, dropout)
             logging.info('Use CNN-VGG + BLSTM for encoder')
         else:
@@ -1979,6 +1930,12 @@ class Encoder(torch.nn.Module):
             sys.exit()
 
         return xs, ilens
+
+    def _get_vgg2l_odim(self, idim, in_channel=3, out_channel=128):
+        idim = idim / in_channel
+        idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
+        idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
+        return int(idim) * out_channel  # numer of channels
 
 
 class BLSTMP(torch.nn.Module):
@@ -2088,8 +2045,6 @@ class VGG2L(torch.nn.Module):
         xs = F.relu(self.conv2_1(xs))
         xs = F.relu(self.conv2_2(xs))
         xs = F.max_pool2d(xs, 2, stride=2, ceil_mode=True)
-        # change ilens accordingly
-        # ilens = [_get_max_pooled_size(i) for i in ilens]
         ilens = np.array(
             np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
         ilens = np.array(
