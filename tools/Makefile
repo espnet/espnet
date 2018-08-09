@@ -22,7 +22,7 @@ endif
 # matplotlib should be separately pip installed
 venv/bin/activate: requirements.txt
 	test -d venv || virtualenv -p /usr/bin/python2.7 venv
-	. venv/bin/activate; pip install pip --upgrade; pip install -r requirements.txt; pip install matplotlib
+	. venv/bin/activate; pip install pip --upgrade; pip install -r requirements.txt; pip install matplotlib; patch venv/lib/python2.7/site-packages/chainer/iterators/multiprocess_iterator.py < prefetch.patch
 	touch venv/bin/activate
 
 nkf:
