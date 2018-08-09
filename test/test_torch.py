@@ -7,7 +7,7 @@
 import pytest
 pytest.importorskip('torch')
 import torch  # NOQA
-from e2e_asr_attctc_th import pad_list, mask_by_length  # NOQA
+from e2e_asr_th import pad_list, mask_by_length  # NOQA
 
 
 def test_pad_list():
