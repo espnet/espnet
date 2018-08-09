@@ -1,19 +1,19 @@
 espnet nets package
 ===================
 
-e2e_asr_attctc module
+e2e_asr module
 ---------------------------
 
-.. automodule:: e2e_asr_attctc
+.. automodule:: e2e_asr
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-e2e_asr_attctc_th module
+e2e_asr_th module
 ------------------------------
 
-.. automodule:: e2e_asr_attctc_th
+.. automodule:: e2e_asr_th
     :members:
     :undoc-members:
     :show-inheritance:
