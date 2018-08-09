@@ -107,8 +107,10 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/train exp/make_fbank/train ${fbankdir}
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 data/dev exp/make_fbank/dev ${fbankdir}
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/train exp/make_fbank/train ${fbankdir}
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+        data/dev exp/make_fbank/dev ${fbankdir}
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 4000 data/${train_dev}
