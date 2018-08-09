@@ -30,7 +30,7 @@ mkdir -p $dst || exit 1;
 
 
 wav_scp=$dst/wav.scp; [[ -f "$wav_scp" ]] && rm $wav_scp
-trans_en=$dst/text; [[ -f "$trans_en" ]] && rm $trans_en
+trans_en=$dst/text_en; [[ -f "$trans_en" ]] && rm $trans_en
 trans_de=$dst/text_de; [[ -f "$trans_de" ]] && rm $trans_de
 utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
 
@@ -45,48 +45,59 @@ n_de=`cat $de | wc -l`
 # make basic transcription file (add segments info)
 
 ##e.g A01F0055_0172 00380.213 00385.951 => A01F0055_0380213_0385951
-cat $yml | grep duration > .tmp
-if [ $part != train ] && [ $part != dev2010 ]; then
-  awk '{
-      duration=$3; offset=$5; spkid=$7;
-      gsub(",","",duration);
-      gsub(",","",offset);
-      gsub(",","",spkid);
-      gsub("spk.","",spkid);
-      offset=sprintf("%.6f", offset);
-      duration=sprintf("%.6f", duration);
-      if ( duration < 0.1 ) extendt=sprintf("%.6f", (0.1-duration)/2);
-      else extendt=0;
-      startt=offset-extendt;
-      endt=offset+duration+extendt;
-      printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
-  }' .tmp > .tmp2
-  # NOTE: Extend the lengths of short utterances (< 0.1s) rather than exclude them in test sets
-else
-  awk '{
-      duration=$3; offset=$5; spkid=$7;
-      gsub(",","",duration);
-      gsub(",","",offset);
-      gsub(",","",spkid);
-      gsub("spk.","",spkid);
-      duration=sprintf("%.6f", duration);
-      offset=sprintf("%.6f", offset);
-      startt=offset;
-      endt=offset+duration;
-      # print duration;
-      printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
-  }' .tmp > .tmp2
-  # NOTE: Exclude short utterances (< 0.1s) in train and dev sets
-fi
-rm .tmp
+cat $yml | grep duration > ${dst}/.yaml1
+awk '{
+    duration=$3; offset=$5; spkid=$7;
+    gsub(",","",duration);
+    gsub(",","",offset);
+    gsub(",","",spkid);
+    gsub("spk.","",spkid);
+    duration=sprintf("%.6f", duration);
+    offset=sprintf("%.6f", offset);
+    startt=offset;
+    endt=offset+duration;
+    printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
+}' ${dst}/.yaml1 > ${dst}/.yaml2
+# NOTE: Exclude short utterances (< 0.1s) in train and dev sets
 
-n=`cat .tmp2 | wc -l`
+# awk '{
+#     duration=$3; offset=$5; spkid=$7;
+#     gsub(",","",duration);
+#     gsub(",","",offset);
+#     gsub(",","",spkid);
+#     gsub("spk.","",spkid);
+#     offset=sprintf("%.6f", offset);
+#     duration=sprintf("%.6f", duration);
+#     if ( duration < 0.1 ) extendt=sprintf("%.6f", (0.1-duration)/2);
+#     else extendt=0;
+#     startt=offset-extendt;
+#     endt=offset+duration+extendt;
+#     printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
+# }' ${dst}/.yaml1 > ${dst}/.yaml2
+# NOTE: Extend the lengths of short utterances (< 0.1s) rather than exclude them in test sets
+
+cat $en > ${dst}/.en0
+cat $de > ${dst}/.de0
+
+# TODO(hirofumi): remove punctuation marks
+# cat ${dst}/.en0 | \
+#   sed -e 's/[][!?;-\"]//g' \
+# > ${dst}/.en1
+# cat ${dst}/.de0 | \
+#   sed -e 's/[][!?;-\"]//g' \
+# > ${dst}/.de1
+
+cat $en > ${dst}/.en1
+cat $de > ${dst}/.de1
+
+n=`cat ${dst}/.yaml2 | wc -l`
+n_en=`cat ${dst}/.en1 | wc -l`
+n_de=`cat ${dst}/.de1 | wc -l`
 [ $n -ne $n_en ] && echo "Warning: expected $n data data files, found $n_en" && exit 1;
 [ $n -ne $n_de ] && echo "Warning: expected $n data data files, found $n_de" && exit 1;
 
-paste --delimiters " " .tmp2 $en | awk '{ print tolower($0) }' | sort > $dst/text
-paste --delimiters " " .tmp2 $de | awk '{ print tolower($0) }' | sort > $dst/text_de
-rm .tmp2
+paste --delimiters " " ${dst}/.yaml2 ${dst}/.en1 | awk '{ print tolower($0) }' | sort > $dst/text_en
+paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{ print tolower($0) }' | sort > $dst/text_de
 
 
 # (1c) Make segments files from transcript
@@ -96,13 +107,13 @@ awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2]; startf=S[3]; endf=S[4];
     print segment " " spkid " " startf/1000 " " endf/1000
-}' < $dst/text | sort > $dst/segments
+}' < $dst/text_en | sort > $dst/segments
 
 awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2];
     printf("%s cat '$wav_dir'/%s_%d.wav |\n", spkid, S[1], S[2]);
-}' < $dst/text | uniq | sort > $dst/wav.scp || exit 1;
+}' < $dst/text_en | uniq | sort > $dst/wav.scp || exit 1;
 
 awk '{
     segment=$1; split(segment,S,"[_]");
@@ -112,9 +123,15 @@ awk '{
 sort $dst/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > $dst/spk2utt || exit 1;
 
 # Copy stuff into its final locations [this has been moved from the format_data script]
-mkdir -p data/$part
-for f in spk2utt utt2spk wav.scp text text_de segments; do
-  cp data/local/$part/$f data/$part/ || exit 1;
+mkdir -p data/${part}_en
+for f in spk2utt utt2spk wav.scp segments; do
+  cp data/local/$part/$f data/${part}_en/ || exit 1;
+done
+cp data/local/$part/text_en data/${part}_en/text || exit 1;
+
+mkdir -p data/${part}_de
+for f in spk2utt utt2spk wav.scp text_de segments; do
+  cp data/local/$part/$f data/${part}_de/ || exit 1;
 done
 
 echo "$0: successfully prepared data in $dst"
