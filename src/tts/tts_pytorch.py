@@ -305,41 +305,8 @@ def train(args):
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
-    # define output activation function
-    if args.output_activation is None:
-        output_activation_fn = None
-    elif hasattr(torch.nn.functional, args.output_activation):
-        output_activation_fn = getattr(torch.nn.functional, args.output_activation)
-    else:
-        raise ValueError('there is no such an activation function. (%s)' % args.output_activation)
-
     # specify model architecture
-    tacotron2 = Tacotron2(
-        idim=idim,
-        odim=odim,
-        spk_embed_dim=args.spk_embed_dim,
-        embed_dim=args.embed_dim,
-        elayers=args.elayers,
-        eunits=args.eunits,
-        econv_layers=args.econv_layers,
-        econv_chans=args.econv_chans,
-        econv_filts=args.econv_filts,
-        dlayers=args.dlayers,
-        dunits=args.dunits,
-        prenet_layers=args.prenet_layers,
-        prenet_units=args.prenet_units,
-        postnet_layers=args.postnet_layers,
-        postnet_chans=args.postnet_chans,
-        postnet_filts=args.postnet_filts,
-        output_activation_fn=output_activation_fn,
-        adim=args.adim,
-        aconv_chans=args.aconv_chans,
-        aconv_filts=args.aconv_filts,
-        cumulate_att_w=args.cumulate_att_w,
-        use_batch_norm=args.use_batch_norm,
-        use_concate=args.use_concate,
-        dropout=args.dropout_rate,
-        zoneout=args.zoneout_rate)
+    tacotron2 = Tacotron2(idim, odim, args)
     logging.info(tacotron2)
 
     # Set gpu
@@ -360,10 +327,7 @@ def train(args):
         gpu_id = [-1]
 
     # define loss
-    model = Tacotron2Loss(
-        model=tacotron2,
-        use_masking=args.use_masking,
-        bce_pos_weight=args.bce_pos_weight)
+    model = Tacotron2Loss(tacotron2, args.use_masking, args.bce_pos_weight)
     reporter = model.reporter
 
     # Setup an optimizer
@@ -465,45 +429,8 @@ def decode(args):
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
-    # define output activation function
-    if train_args.output_activation is None:
-        output_activation_fn = None
-    elif hasattr(torch.nn.functional, train_args.output_activation):
-        output_activation_fn = getattr(torch.nn.functional, train_args.output_activation)
-    else:
-        raise ValueError('there is no such an activation function. (%s)' % train_args.output_activation)
-
     # define model
-    tacotron2 = Tacotron2(
-        idim=idim,
-        odim=odim,
-        spk_embed_dim=train_args.spk_embed_dim,
-        embed_dim=train_args.embed_dim,
-        elayers=train_args.elayers,
-        eunits=train_args.eunits,
-        econv_layers=train_args.econv_layers,
-        econv_chans=train_args.econv_chans,
-        econv_filts=train_args.econv_filts,
-        dlayers=train_args.dlayers,
-        dunits=train_args.dunits,
-        prenet_layers=train_args.prenet_layers,
-        prenet_units=train_args.prenet_units,
-        postnet_layers=train_args.postnet_layers,
-        postnet_chans=train_args.postnet_chans,
-        postnet_filts=train_args.postnet_filts,
-        adim=train_args.adim,
-        aconv_chans=train_args.aconv_chans,
-        aconv_filts=train_args.aconv_filts,
-        output_activation_fn=output_activation_fn,
-        cumulate_att_w=train_args.cumulate_att_w,
-        use_batch_norm=train_args.use_batch_norm,
-        use_concate=train_args.use_concate,
-        dropout=train_args.dropout_rate,
-        zoneout=train_args.zoneout_rate,
-        threshold=args.threshold,
-        maxlenratio=args.maxlenratio,
-        minlenratio=args.minlenratio,
-    )
+    tacotron2 = Tacotron2(idim, odim, train_args)
     eos = str(tacotron2.idim - 1)
 
     # load trained model parameters
@@ -550,7 +477,7 @@ def decode(args):
                 spemb = None
 
             # decode and write
-            outs, _, _ = tacotron2.inference(x, spemb)
+            outs, _, _ = tacotron2.inference(x, args, spemb)
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warn("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
