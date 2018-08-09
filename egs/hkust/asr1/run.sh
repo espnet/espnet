@@ -127,7 +127,8 @@ if [ ${stage} -le 1 ]; then
     utils/perturb_data_dir_speed.sh 1.1 data/train_nodup data/temp3
     utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
     rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
