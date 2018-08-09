@@ -152,6 +152,11 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    for rtask in ${recog_set}; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+            data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+    done
 fi
 
 if [ -z ${tag} ]; then
@@ -236,15 +241,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        data=data/${rtask}
-        split_data.sh --per-utt ${data} ${nj};
-        sdata=${data}/split${nj}utt;
-
-         # make json labels for recognition
-        for j in `seq 1 ${nj}`; do
-            data2json.sh --feat ${feat_recog_dir}/feats.scp \
-                ${sdata}/${j} ${dict} > ${sdata}/${j}/data.json
-        done
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
 
         #### use CPU for decoding
         ngpu=0
@@ -255,7 +252,7 @@ if [ ${stage} -le 5 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-json ${sdata}/JOB/data.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \

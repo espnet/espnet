@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 
-ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition.
+ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition, and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine, 
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
@@ -20,14 +20,16 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
 - State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Moderate performance in standard English benchmarks
+- Tacotron2 based end-to-end TTS (new!)
 
 ## Requirements
 - Python2.7+  
 - Cuda 8.0 or 9.1 (for the use of GPU)  
 - Cudnn 6+ (for the use of GPU)  
 - NCCL 2.0+ (for the use of multi-GPUs)
+- protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.3.x (**no support for PyTorch 0.4.x**)
+- PyTorch 0.4.x+ (**mainly support PyTorch 0.4.x**)
 - Chainer 4.x+
 
 ## Installation
@@ -56,7 +58,19 @@ export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
 
-### Step 2) installation
+### Step 2-A) installation with compiled Kaldi
+Install Python libraries and other required tools using system python and virtualenv
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi
+```
+or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi -f conda.mk
+```
+
+### Step 2-B) installation including Kaldi installation
 Install Kaldi, Python libraries and other required tools using system python and virtualenv
 ```sh
 $ cd tools
@@ -67,14 +81,6 @@ or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossar
 $ cd tools
 $ make -f conda.mk -j
 ```
-
-For higher version (>4.9) of gcc and cuda 9.1 use following command:
-```sh
-$ cd tools
-$ make -j -f Makefile.cuda91.gcc6
-```
-
-You can compare Makefile and Makefile.cuda91.gcc6 to change makefile accordingly for other version of gcc/cuda.
 
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
@@ -98,6 +104,27 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Dictionary and JSON format data preparation
 - Training based on [chainer](https://chainer.org/) or [pytorch](http://pytorch.org/).
 - Recognition and scoring
+
+The training progress (loss and accuracy for training and validation data) can be monitored with the following command
+```
+$ tail -f exp/${expdir}/train.log
+```
+With the default verbose (=0), it gives you the following information
+```
+epoch       iteration   main/loss   main/loss_ctc  main/loss_att  validation/main/loss  validation/main/loss_ctc  validation/main/loss_att  main/acc    validation/main/acc  elapsed_time  eps
+:
+:
+6           89700       63.7861     83.8041        43.768                                                                                   0.731425                         136184        1e-08
+6           89800       71.5186     93.9897        49.0475                                                                                  0.72843                          136320        1e-08
+6           89900       72.1616     94.3773        49.9459                                                                                  0.730052                         136473        1e-08
+7           90000       64.2985     84.4583        44.1386        72.506                94.9823                   50.0296                   0.740617    0.72476              137936        1e-08
+7           90100       81.6931     106.74         56.6462                                                                                  0.733486                         138049        1e-08
+7           90200       74.6084     97.5268        51.6901                                                                                  0.731593                         138175        1e-08
+     total [#################.................................] 35.54%
+this epoch [#####.............................................] 10.84%
+     91300 iter, 7 epoch / 20 epochs
+   0.71428 iters/sec. Estimated time to finish: 2 days, 16:23:34.613215.
+```
 
 ### Use of GPU
 If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
@@ -190,8 +217,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 | 5.3 | 12.4 |
-| WSJ eval92| 3.6 |  8.9 |
+| WSJ dev93 | 4.9 | 10.9 |
+| WSJ eval92| 3.1 |  7.1 |
 | CSJ eval1 | 8.5 | N/A  |
 | CSJ eval2 | 6.1 | N/A  |
 | CSJ eval3 | 6.8 | N/A  |
@@ -204,12 +231,13 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | Chainer | Pytorch |
 |-----------|:----:|:----:|
-| Performance | ◎ | ○ |
+| Performance | ◎ | ◎ |
 | Speed | ○ | ◎ |
 | Multi-GPU | supported | supported |
-| VGG-like encoder | supported | no support |
+| VGG-like encoder | supported | supported |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
+| TTS recipe suuport | no support | supported |
 
 ## References (Please cite the following articles)
 [1] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)

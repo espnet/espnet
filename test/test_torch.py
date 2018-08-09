@@ -35,3 +35,14 @@ def test_mask_by_length():
           [1, 2, 0, 0],
           [1, 2, 3, 4]]
     assert ys.data.tolist() == es
+
+
+def test_bmm_attention():
+    b, t, h = 3, 2, 5
+    enc_h = torch.randn(b, t, h)
+    w = torch.randn(b, t)
+    naive = torch.sum(enc_h * w.view(b, t, 1), dim=1)
+    # (b, 1, t) x (b, t, h) -> (b, 1, h)
+    fast = torch.matmul(w.unsqueeze(1), enc_h).squeeze(1)
+    import numpy
+    numpy.testing.assert_allclose(naive.numpy(), fast.numpy(), 1e-6, 1e-6)

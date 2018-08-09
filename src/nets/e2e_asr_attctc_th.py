@@ -26,6 +26,9 @@ from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import label_smoothing_dist
 
+
+torch_is_old = torch.__version__.startswith("0.3.")
+
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -118,35 +121,46 @@ class Loss(torch.nn.Module):
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
-            loss_att_data = loss_att.data[0]
+            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
             loss_ctc_data = None
         elif alpha == 1:
             self.loss = loss_ctc
             loss_att_data = None
-            loss_ctc_data = loss_ctc.data[0]
+            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = loss_att.data[0]
-            loss_ctc_data = loss_ctc.data[0]
+            loss_att_data = loss_att.data[0] if torch_is_old else float(loss_att)
+            loss_ctc_data = loss_ctc.data[0] if torch_is_old else float(loss_ctc)
 
-        if self.loss.data[0] < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data[0]):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, self.loss.data[0])
+        loss_data = self.loss.data[0] if torch_is_old else float(self.loss)
+        if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
         return self.loss
 
 
-def pad_list(xs, pad_value=float("nan")):
-    assert isinstance(xs[0], Variable)
+def pad_list(xs, pad_value):
     n_batch = len(xs)
     max_len = max(x.size(0) for x in xs)
-    pad = Variable(
-        xs[0].data.new(
-            n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
-        volatile=xs[0].volatile)
+    if torch_is_old:
+        if isinstance(xs[0], Variable):
+            new = xs[0].data.new
+            v = xs[0].volatile
+        else:
+            new = xs[0].new
+            v = False
+        pad = Variable(
+            new(n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value,
+            volatile=v)
+    else:
+        pad = xs[0].data.new(
+            n_batch, max_len, * xs[0].size()[1:]).zero_() + pad_value
+
     for i in range(n_batch):
         pad[i, :xs[i].size(0)] = xs[i]
+
     return pad
 
 
@@ -288,21 +302,21 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        if self.training:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+        if torch_is_old:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=not self.training)) for y in ys]
         else:
-            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+            ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        if self.training:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
+        if torch_is_old:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=not self.training)) for xx in xs]
         else:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # 1. encoder
-        xpad = pad_list(hs)
+        xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
 
         # # 3. CTC loss
@@ -333,8 +347,12 @@ class E2E(torch.nn.Module):
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
-        h = to_cuda(self, Variable(torch.from_numpy(
-            np.array(x, dtype=np.float32)), volatile=True))
+        if torch_is_old:
+            h = to_cuda(self, Variable(torch.from_numpy(
+                np.array(x, dtype=np.float32)), volatile=True))
+        else:
+            h = to_cuda(self, torch.from_numpy(
+                np.array(x, dtype=np.float32)))
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
@@ -363,6 +381,9 @@ class E2E(torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
          :rtype: float ndarray
         '''
+        if not torch_is_old:
+            torch.set_grad_enabled(False)
+
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
 
@@ -378,19 +399,28 @@ class E2E(torch.nn.Module):
         # utt list of olen
         ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
               for i in sorted_index]
-        ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+        if torch_is_old:
+            ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+        else:
+            ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+        if torch_is_old:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+        else:
+            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
 
         # encoder
-        xpad = pad_list(hs)
+        xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
 
         # decoder
         att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
+
+        if not torch_is_old:
+            torch.set_grad_enabled(True)
 
         return att_ws
 
@@ -522,7 +552,6 @@ class NoAtt(torch.nn.Module):
         :return: previous attentioin weights
         :rtype: Variable
         '''
-
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -765,7 +794,6 @@ class AttLoc(torch.nn.Module):
 
         # weighted sum over flames
         # utt x hdim
-        # NOTE use bmm instead of sum(*)
         c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
 
         return c, w
@@ -1630,7 +1658,7 @@ class Decoder(torch.nn.Module):
         self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
         for l in six.moves.range(1, self.dlayers):
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
-        self.ignore_id = 0  # NOTE: 0 for CTC?
+        self.ignore_id = -1
         self.output = torch.nn.Linear(dunits, odim)
 
         self.loss = None
@@ -1656,6 +1684,8 @@ class Decoder(torch.nn.Module):
         :return:
         '''
         hpad = mask_by_length(hpad, hlen, 0)
+        hlen = list(map(int, hlen))
+
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
         eos = Variable(ys[0].data.new([self.eos]))
@@ -1712,7 +1742,8 @@ class Decoder(torch.nn.Module):
         if self.verbose > 0 and self.char_list is not None:
             y_hat = y_all.view(batch, olength, -1)
             y_true = pad_ys_out
-            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data.cpu().numpy()), y_true.data.cpu().numpy()):
+            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data.cpu().numpy()),
+                                            y_true.data.cpu().numpy()):
                 if i == MAX_DECODER_OUTPUT:
                     break
                 idx_hat = np.argmax(y_hat_[y_true_ != self.ignore_id], axis=1)
@@ -1757,7 +1788,11 @@ class Decoder(torch.nn.Module):
 
         # preprate sos
         y = self.sos
-        vy = Variable(h.data.new(1).zero_().long(), volatile=True)
+        if torch_is_old:
+            vy = Variable(h.data.new(1).zero_().long(), volatile=True)
+        else:
+            vy = h.new_zeros(1).long()
+
         if recog_args.maxlenratio == 0:
             maxlen = h.shape[0]
         else:
@@ -1804,8 +1839,7 @@ class Decoder(torch.nn.Module):
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
                 if rnnlm:
-                    rnnlm_state, z_rnnlm = rnnlm.predictor(hyp['rnnlm_prev'], vy)
-                    local_lm_scores = F.log_softmax(z_rnnlm, dim=1).data
+                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
                     local_scores = local_att_scores
@@ -1819,7 +1853,7 @@ class Decoder(torch.nn.Module):
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
                         + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
                     if rnnlm:
-                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
                     local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
@@ -1834,7 +1868,7 @@ class Decoder(torch.nn.Module):
                     new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
-                    new_hyp['yseq'][len(hyp['yseq'])] = local_best_ids[0, j]
+                    new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
                     if rnnlm:
                         new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
@@ -1902,6 +1936,7 @@ class Decoder(torch.nn.Module):
 
         :return: numpy array format attentions
         '''
+        hlen = list(map(int, hlen))
         hpad = mask_by_length(hpad, hlen, 0)
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
@@ -2063,14 +2098,16 @@ class BLSTMP(torch.nn.Module):
         for layer in six.moves.range(self.elayers):
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
-            bilstm.flatten_parameters()
+            if torch_is_old:
+                # pytorch 0.4.x does not support flatten_parameters() for multiple GPUs
+                bilstm.flatten_parameters()
             ys, (hy, cy) = bilstm(xpack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ypad, ilens = pad_packed_sequence(ys, batch_first=True)
             sub = self.subsample[layer + 1]
             if sub > 1:
                 ypad = ypad[:, ::sub]
-                ilens = [(i + 1) // sub for i in ilens]
+                ilens = [int(i + 1) // sub for i in ilens]
             # (sum _utt frame_utt) x dim
             projected = getattr(self, 'bt' + str(layer)
                                 )(ypad.contiguous().view(-1, ypad.size(2)))

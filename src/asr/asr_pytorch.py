@@ -27,16 +27,19 @@ from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
+from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss
+from e2e_asr_attctc_th import torch_is_old
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
+import extlm_pytorch
 import lm_pytorch
 
 # matplotlib related
@@ -67,6 +70,10 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         summary = reporter_module.DictSummary()
 
+        self.model.eval()
+        if not torch_is_old:
+            torch.set_grad_enabled(False)
+
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
@@ -74,13 +81,14 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                 # x: original json with loaded features
                 #    will be converted to chainer variable later
                 x = self.converter(batch)
-                self.model.eval()
                 self.model(x)
                 delete_feat(x)
 
             summary.add(observation)
 
         self.model.train()
+        if not torch_is_old:
+            torch.set_grad_enabled(True)
 
         return summary.compute_mean()
 
@@ -124,7 +132,11 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm(
+        if torch_is_old:
+            clip = torch.nn.utils.clip_grad_norm
+        else:
+            clip = torch.nn.utils.clip_grad_norm_
+        grad_norm = clip(
             self.model.parameters(), self.grad_clip_threshold)
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
@@ -282,9 +294,9 @@ def train(args):
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
         if ngpu > 1:
-            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         else:
-            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            model.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -293,13 +305,10 @@ def train(args):
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
-        data = sorted(valid_json.items()[:args.num_save_attention],
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         data = converter_kaldi([data], device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
-
-    # Take a snapshot for each specified epoch
-    trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -313,13 +322,18 @@ def train(args):
     def torch_save(path, _):
         if ngpu > 1:
             torch.save(model.module.state_dict(), path)
-            torch.save(model.module, path + ".pkl")
         else:
             torch.save(model.state_dict(), path)
-            torch.save(model, path + ".pkl")
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    # save snapshot to save the information of #interations or #epochs
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'),
+                   trigger=(1, 'epoch'))
+    # save model states
+    trainer.extend(extensions.snapshot_object(model, 'model.ep.{.updater.epoch}', savefun=torch_save),
+                   trigger=(1, 'epoch'))
+
     if mtl_mode is not 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
@@ -407,12 +421,36 @@ def recog(args):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(len(train_args.char_list), 650))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
+        rnnlm.eval()
     else:
         rnnlm = None
+
+    if args.word_rnnlm:
+        if not args.word_dict:
+            logging.error('word dictionary file is not specified for the word RNNLM.')
+            sys.exit(1)
+
+        word_dict = load_labeldict(args.word_dict)
+        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
+        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), 650))
+        word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
+        word_rnnlm.eval()
+
+        if rnnlm is not None:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
+                                           rnnlm.predictor, word_dict, char_dict))
+        else:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
+                                              word_dict, char_dict))
 
     # read json data
     with open(args.recog_json, 'rb') as f:
         recog_json = json.load(f)['utts']
+
+    if not torch_is_old:
+        torch.set_grad_enabled(False)
 
     new_json = {}
     for name in recog_json.keys():

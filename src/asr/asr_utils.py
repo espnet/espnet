@@ -152,40 +152,77 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 
 class PlotAttentionReport(extension.Extension):
-    def __init__(self, model, data, outdir):
+    def __init__(self, model, data, outdir, converter=None, reverse=False):
         self.data = copy.deepcopy(data)
         self.outdir = outdir
+        self.converter = converter
+        self.reverse = reverse
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
+
+        # TODO(kan-bayashi): clean up this process
         if hasattr(model, "module"):
-            self.att_vis_fn = model.module.predictor.calculate_all_attentions
+            if hasattr(model.module, "predictor"):
+                self.att_vis_fn = model.module.predictor.calculate_all_attentions
+            else:
+                self.att_vis_fn = model.module.calculate_all_attentions
         else:
-            self.att_vis_fn = model.predictor.calculate_all_attentions
+            if hasattr(model, "predictor"):
+                self.att_vis_fn = model.predictor.calculate_all_attentions
+            else:
+                self.att_vis_fn = model.calculate_all_attentions
 
     def __call__(self, trainer):
-        att_ws = self.att_vis_fn(self.data)
+        if self.converter is not None:
+            # TODO(kan-bayashi): need to be fixed due to hard coding
+            x = self.converter([self.data], False)
+        else:
+            x = self.data
+        if isinstance(x, tuple):
+            att_ws = self.att_vis_fn(*x)
+        elif isinstance(x, dict):
+            att_ws = self.att_vis_fn(**x)
+        else:
+            att_ws = self.att_vis_fn(x)
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])
-            if len(att_w.shape) == 3:
-                att_w = att_w[:, :int(self.data[idx][1]['output'][0]['shape'][0]),
-                              :int(self.data[idx][1]['input'][0]['shape'][0])]
+            if self.reverse:
+                dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
+                enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
             else:
-                att_w = att_w[:int(self.data[idx][1]['output'][0]['shape'][0]),
-                              :int(self.data[idx][1]['input'][0]['shape'][0])]
+                dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
+                enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
+            if len(att_w.shape) == 3:
+                att_w = att_w[:, :dec_len, :enc_len]
+            else:
+                att_w = att_w[:dec_len, :enc_len]
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def _plot_and_save_attention(self, att_w, filename):
+        # dynamically import matplotlib due to not found error
+        import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
-                matplotlib.pyplot.subplot(1, len(att_w), h)
-                matplotlib.pyplot.imshow(aw, aspect="auto")
-                matplotlib.pyplot.xlabel("Encoder Index")
-                matplotlib.pyplot.ylabel("Decoder Index")
+                plt.subplot(1, len(att_w), h)
+                plt.imshow(aw, aspect="auto")
+                plt.xlabel("Encoder Index")
+                plt.ylabel("Decoder Index")
         else:
-            matplotlib.pyplot.imshow(att_w, aspect="auto")
-            matplotlib.pyplot.xlabel("Encoder Index")
-            matplotlib.pyplot.ylabel("Decoder Index")
-        matplotlib.pyplot.tight_layout()
-        matplotlib.pyplot.savefig(filename)
-        matplotlib.pyplot.close()
+            plt.imshow(att_w, aspect="auto")
+            plt.xlabel("Encoder Index")
+            plt.ylabel("Decoder Index")
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
+
+
+# * -------------------- language model related -------------------- *
+def load_labeldict(dict_file):
+    labeldict = {'<blank>': 0}  # <blank>'s Id is 0
+    for ln in open(dict_file, 'r').readlines():
+        s, i = ln.split()
+        labeldict[s] = int(i)
+    if '<eos>' not in labeldict:
+        labeldict['<eos>'] = len(labeldict)
+    return labeldict
