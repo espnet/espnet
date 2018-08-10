@@ -177,7 +177,17 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 
 class PlotAttentionReport(extension.Extension):
-    def __init__(self, model, data, outdir, converter=None, reverse=False):
+    """Plot attention reporter
+
+    :param function att_vis_fn: function of attention visualization
+    :param list data: list json utt key items
+    :param str outdir: directory to save figures
+    :param function converter: function to convert data
+    :param bool reverse: If True, input and output length are reversed
+    """
+
+    def __init__(self, att_vis_fn, data, outdir, converter, reverse=False):
+        self.att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
         self.converter = converter
@@ -185,29 +195,9 @@ class PlotAttentionReport(extension.Extension):
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
-        # TODO(kan-bayashi): clean up this process
-        if hasattr(model, "module"):
-            if hasattr(model.module, "predictor"):
-                self.att_vis_fn = model.module.predictor.calculate_all_attentions
-            else:
-                self.att_vis_fn = model.module.calculate_all_attentions
-        else:
-            if hasattr(model, "predictor"):
-                self.att_vis_fn = model.predictor.calculate_all_attentions
-            else:
-                self.att_vis_fn = model.calculate_all_attentions
-
     def __call__(self, trainer):
-        if self.converter is not None:
-            x = self.converter([self.data])
-        else:
-            x = self.data
-        if isinstance(x, tuple):
-            att_ws = self.att_vis_fn(*x)
-        elif isinstance(x, dict):
-            att_ws = self.att_vis_fn(**x)
-        else:
-            att_ws = self.att_vis_fn(x)
+        batch = self.converter([self.data])
+        att_ws = self.att_vis_fn(*batch)
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])

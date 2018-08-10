@@ -365,8 +365,12 @@ def train(args):
     if args.num_save_attention > 0:
         data = sorted(valid_json.items()[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
+        if hasattr(tacotron2, "module"):
+            att_vis_fn = tacotron2.module.calculate_all_attentions
+        else:
+            att_vis_fn = tacotron2.predictor.calculate_all_attentions
         trainer.extend(PlotAttentionReport(
-            tacotron2, data, args.outdir + '/att_ws',
+            att_vis_fn, data, args.outdir + '/att_ws',
             CustomConverter(device, False, args.use_speaker_embedding), True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values

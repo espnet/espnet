@@ -449,7 +449,11 @@ def train(args):
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws", converter),
+        if hasattr(model, "module"):
+            att_vis_fn = model.module.predictor.calculate_all_attentions
+        else:
+            att_vis_fn = model.predictor.calculate_all_attentions
+        trainer.extend(PlotAttentionReport(att_vis_fn, data, args.outdir + "/att_ws", converter),
                        trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
