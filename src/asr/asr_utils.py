@@ -228,7 +228,7 @@ def load_labeldict(dict_file):
     return labeldict
 
 
-# * -------------------- common -------------------- *
+# * -------------------- general -------------------- *
 class AttributeDict(object):
     def __init__(self, obj):
         self.obj = obj
