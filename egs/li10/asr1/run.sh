@@ -21,7 +21,7 @@ verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 
 # feature configuration
-do_delta=false # true when using CNN
+do_delta=false
 
 # network archtecture
 # encoder related

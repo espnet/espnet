@@ -18,7 +18,7 @@ resume=         # Resume the training from snapshot
 seed=1          # seed to generate random number
 
 # feature configuration
-do_delta=false # true when using CNN
+do_delta=false
 
 # network archtecture
 # encoder related
