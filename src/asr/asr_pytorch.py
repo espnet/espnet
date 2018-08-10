@@ -27,10 +27,9 @@ import torch
 # spnet related
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
-from asr_utils import converter_kaldi
-from asr_utils import delete_feat
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
+from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_th import E2E
@@ -139,8 +138,9 @@ class CustomConverter(object):
     """CUSTOM CONVERTER"""
 
     def __init__(self, device, subsamping_factor=1):
-        self.device = torch.device("cuda" if sum(device) >= 0 else "cpu")
+        self.device = device
         self.subsamping_factor = subsamping_factor
+        self.ignore_id = -1
 
     def __call__(self, batch):
         # batch should be located in list
@@ -171,32 +171,10 @@ class CustomConverter(object):
         xs_pad = pad_ndarray_list(xs, 0.0)
         xs_pad = torch.FloatTensor(xs_pad).to(self.device)
         ilens = torch.LongTensor(ilens).to(self.device)
-        ys = [torch.LongTensor(y).to(self.device) for y in ys]
+        ys_pad = pad_ndarray_list(ys, self.ignore_id)
+        ys_pad = torch.LongTensor(ys_pad).to(self.device)
 
-        return xs_pad, ilens, ys
-
-
-def pad_ndarray_list(batch, pad_value):
-    """FUNCTION TO PERFORM PADDING OF NDARRAY LIST
-
-    :param list batch: list of the ndarray [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :param float pad_value: value to pad
-    :return: padded batch with the shape (B, Tmax, D)
-    :rtype: ndarray
-    """
-    bs = len(batch)
-    maxlen = max([b.shape[0] for b in batch])
-    if len(batch[0].shape) >= 2:
-        batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
-    else:
-        batch_pad = np.zeros((bs, maxlen))
-    batch_pad.fill(pad_value)
-    for i, b in enumerate(batch):
-        batch_pad[i, :b.shape[0]] = b
-
-    del batch
-
-    return batch_pad
+        return xs_pad, ilens, ys_pad
 
 
 def train(args):

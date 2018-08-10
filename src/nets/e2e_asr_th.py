@@ -74,7 +74,7 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
     :retrun: accuracy value (0.0 - 1.0)
     :rtype: float
     """
-    pad_pred = pad_targets.view(
+    pad_pred = pad_outputs.view(
         pad_targets.size(0),
         pad_targets.size(1),
         pad_outputs.size(1)).argmax(2)
@@ -265,12 +265,12 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def forward(self, xs_pad, ilens, ys):
+    def forward(self, xs_pad, ilens, ys_pad):
         '''E2E forward
 
-        :param torch.Tensor xs: batch of padded input sequences (B, Tmax, idim)
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
+        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
         :return: ctc loass value
         :rtype: torch.Tensor
         :return: attention loss value
@@ -285,14 +285,14 @@ class E2E(torch.nn.Module):
         if self.mtlalpha == 0:
             loss_ctc = None
         else:
-            loss_ctc = self.ctc(hs_pad, hlens, ys)
+            loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
 
         # 3. attention loss
         if self.mtlalpha == 1:
             loss_att = None
             acc = None
         else:
-            loss_att, acc = self.dec(hs_pad, hlens, ys)
+            loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
 
         return loss_ctc, loss_att, acc
 
@@ -330,44 +330,23 @@ class E2E(torch.nn.Module):
             self.train()
         return y
 
-    def calculate_all_attentions(self, data):
+    def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         '''E2E attention calculation
 
-        :param list data: list of dicts of the input (B)
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
          :rtype: float ndarray
         '''
-        # utt list of frame x dim
-        xs = [d[1]['feat'] for d in data]
-
-        # remove 0-output-length utterances
-        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
-        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
-        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
-        if len(sorted_index) != len(xs):
-            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-                len(xs), len(sorted_index)))
-        xs = [xs[i] for i in sorted_index]
-
-        # utt list of olen
-        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
-              for i in sorted_index]
-        ys = [to_cuda(self, torch.from_numpy(y)) for y in ys]
-
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
-
         with torch.no_grad():
             # encoder
-            xpad = pad_list(hs, 0.0)
-            hpad, hlens = self.enc(xpad, ilens)
+            hpad, hlens = self.enc(xs_pad, ilens)
 
             # decoder
-            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
+            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
 
         return att_ws
 
@@ -380,14 +359,18 @@ class CTC(torch.nn.Module):
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.loss_fn = warp_ctc.CTCLoss(size_average=True)
+        self.ignore_id = -1
 
-    def forward(self, hpad, ilens, ys):
+    def forward(self, hpad, ilens, ys_pad):
         '''CTC forward
 
         :param hs:
         :param ys:
         :return:
         '''
+        # TODO(kan-bayashi): need to make more smart way
+        ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+
         self.loss = None
         ilens = torch.from_numpy(np.fromiter(ilens, dtype=np.int32))
         olens = torch.from_numpy(np.fromiter(
@@ -1543,13 +1526,17 @@ class Decoder(torch.nn.Module):
     def zero_state(self, hpad):
         return hpad.new_zeros(hpad.size(0), self.dunits)
 
-    def forward(self, hpad, hlen, ys):
+    def forward(self, hpad, hlen, ys_pad):
         '''Decoder forward
 
         :param hs:
         :param ys:
         :return:
         '''
+        # TODO(kan-bayashi): need to make more smart way
+        ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+
+        # hlen should be list of integer
         hlen = list(map(int, hlen))
 
         self.loss = None
@@ -1794,12 +1781,17 @@ class Decoder(torch.nn.Module):
         # remove sos
         return nbest_hyps
 
-    def calculate_all_attentions(self, hpad, hlen, ys):
+    def calculate_all_attentions(self, hpad, hlen, ys_pad):
         '''Calculate all of attentions
 
         :return: numpy array format attentions
         '''
+        # TODO(kan-bayashi): need to make more smart way
+        ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+
+        # hlen should be list of integer
         hlen = list(map(int, hlen))
+
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
         eos = ys[0].new([self.eos])
