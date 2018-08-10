@@ -94,7 +94,7 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3]):
         ('e2e_asr_th', 'blstmp', 'multi_head_multi_res_loc')
     ]
 )
-def test_chainer_trainable_and_decodable(module, etype, atype):
+def test_model_trainable_and_decodable(module, etype, atype):
     args = make_arg(etype=etype, atype=atype)
     if module[-3:] == "_th":
         pytest.importorskip('torch')
