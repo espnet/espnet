@@ -368,7 +368,7 @@ def train(args):
         if hasattr(tacotron2, "module"):
             att_vis_fn = tacotron2.module.calculate_all_attentions
         else:
-            att_vis_fn = tacotron2.predictor.calculate_all_attentions
+            att_vis_fn = tacotron2.calculate_all_attentions
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + '/att_ws',
             CustomConverter(device, False, args.use_speaker_embedding), True), trigger=(1, 'epoch'))
