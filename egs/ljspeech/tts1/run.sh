@@ -257,7 +257,7 @@ if [ ${stage} -le 4 ];then
                 --out ${outdir}/${sets}/feats.JOB \
                 --json ${outdir}/${sets}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
-                --model-conf ${expdir}/results/model.conf \
+                --model-conf ${expdir}/results/model.json \
                 --threshold ${threshold} \
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
