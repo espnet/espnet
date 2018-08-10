@@ -11,7 +11,6 @@ import logging
 import math
 import multiprocessing
 import os
-import pickle
 import six
 import sys
 
@@ -29,6 +28,7 @@ from chainer.training.updaters.multiprocess_parallel_updater import scatter_para
 
 # espnet related
 from asr_utils import adadelta_eps_decay
+from asr_utils import AttributeDict
 from asr_utils import CompareValueTrigger
 from asr_utils import converter_kaldi
 from asr_utils import delete_feat
@@ -310,8 +310,7 @@ def train(args):
     model_conf = args.outdir + '/model.conf'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
-        # TODO(watanabe) use others than pickle, possibly json, and save as a text
-        pickle.dump((idim, odim, args), f)
+        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -484,7 +483,7 @@ def recog(args):
     # read training config
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = pickle.load(f)
+        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
 
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
