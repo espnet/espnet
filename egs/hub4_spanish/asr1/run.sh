@@ -18,7 +18,7 @@ resume=        # Resume the training from snapshot
 seed=1
 
 # feature configuration
-do_delta=false # true when using CNN
+do_delta=false
 
 # network archtecture
 # encoder related
