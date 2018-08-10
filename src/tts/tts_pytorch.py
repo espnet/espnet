@@ -20,6 +20,7 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
+from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
@@ -150,29 +151,6 @@ class CustomConverter(object):
             return xs, ilens, ys, labels, olens, spembs
         else:
             return xs, ilens, ys, spembs
-
-
-def pad_ndarray_list(batch, pad_value):
-    """FUNCTION TO PERFORM PADDING OF NDARRAY LIST
-
-    :param list batch: list of the ndarray [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :param float pad_value: value to pad
-    :return: padded batch with the shape (B, Tmax, D)
-    :rtype: ndarray
-    """
-    bs = len(batch)
-    maxlen = max([b.shape[0] for b in batch])
-    if len(batch[0].shape) >= 2:
-        batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
-    else:
-        batch_pad = np.zeros((bs, maxlen))
-    batch_pad.fill(pad_value)
-    for i, b in enumerate(batch):
-        batch_pad[i, :b.shape[0]] = b
-
-    del batch
-
-    return batch_pad
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
