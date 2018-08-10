@@ -312,7 +312,7 @@ def train(args):
 
     # Save best models
     def torch_save(path, _):
-        if ngpu > 1:
+        if hasattr(model, "module"):
             torch.save(model.module.state_dict(), path)
         else:
             torch.save(model.state_dict(), path)
@@ -332,11 +332,12 @@ def train(args):
 
     # epsilon decay in the optimizer
     def torch_load(path, obj):
-        if ngpu > 1:
+        if hasattr(model, "module"):
             model.module.load_state_dict(torch.load(path))
         else:
             model.load_state_dict(torch.load(path))
         return obj
+
     if args.opt == 'adadelta':
         if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
