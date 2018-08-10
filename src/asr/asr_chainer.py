@@ -253,7 +253,7 @@ class CustomConverter(object):
         self.subsamping_factor = subsamping_factor
         self.xp = cuda.cupy if device != -1 else np
 
-    def __call__(self, batch):
+    def __call__(self, batch, *args):
         # batch should be located in list
         assert len(batch) == 1
         batch = batch[0]
