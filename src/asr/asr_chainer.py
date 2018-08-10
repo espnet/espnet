@@ -21,6 +21,8 @@ import chainer
 from chainer import cuda
 from chainer import reporter as reporter_module
 from chainer import training
+from chainer import Variable
+
 from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
@@ -52,11 +54,23 @@ import numpy as np
 matplotlib.use('Agg')
 
 
-class ChainerSeqUpdaterKaldi(training.StandardUpdater):
+# copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
+def sum_sqnorm(arr):
+    sq_sum = collections.defaultdict(float)
+    for x in arr:
+        with cuda.get_device_from_array(x) as dev:
+            if x is not None:
+                x = x.ravel()
+                s = x.dot(x)
+                sq_sum[int(dev)] += s
+    return sum([float(i) for i in six.itervalues(sq_sum)])
+
+
+class CustomUpdater(training.StandardUpdater):
     '''Custom updater for chainer'''
 
     def __init__(self, train_iter, optimizer, converter, device):
-        super(ChainerSeqUpdaterKaldi, self).__init__(
+        super(CustomUpdater, self).__init__(
             train_iter, optimizer, converter=converter, device=device)
 
     # The core part of the update routine can be customized by overriding.
@@ -75,7 +89,7 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         x = self.converter(batch)
 
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(x)
+        loss = optimizer.target(*x)
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
@@ -87,14 +101,13 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.update()
-        delete_feat(x)
 
 
-class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessParallelUpdater):
+class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     '''Custom parallel updater for chainer'''
 
     def __init__(self, train_iters, optimizer, converter, devices):
-        super(ChainerMultiProcessParallelUpdaterKaldi, self).__init__(
+        super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices)
 
     # The core part of the update routine can be customized by overriding.
@@ -111,7 +124,7 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             batch = self.get_iterator('main').next()
             x = self.converter(batch)
 
-            loss = self._master(x)
+            loss = self._master(*x)
 
             self._master.cleargrads()
             loss.backward()
@@ -144,8 +157,6 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                 self.comm.bcast(gp.data.ptr, gp.size, nccl.NCCL_FLOAT,
                                 0, null_stream.ptr)
 
-            delete_feat(x)
-
     def setup_workers(self):
         if self._initialized:
             return
@@ -169,18 +180,6 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                                                   comm_id, 0)
 
 
-# copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-def sum_sqnorm(arr):
-    sq_sum = collections.defaultdict(float)
-    for x in arr:
-        with cuda.get_device_from_array(x) as dev:
-            if x is not None:
-                x = x.ravel()
-                s = x.dot(x)
-                sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
-
-
 class CustomWorker(multiprocessing.Process):
 
     def __init__(self, proc_id, pipe, master):
@@ -188,6 +187,7 @@ class CustomWorker(multiprocessing.Process):
         self.proc_id = proc_id
         self.pipe = pipe
         self.model = master._master
+        self.converter = master.converter
         self.device = master._devices[proc_id]
         self.iterator = master._mpu_iterators[proc_id]
         self.n_devices = len(master._devices)
@@ -218,10 +218,10 @@ class CustomWorker(multiprocessing.Process):
                 self.model.cleargrads()
 
                 batch = self.iterator.next()
-                x = converter_kaldi(batch)
+                x = self.converter(batch)
                 observation = {}
                 with self.reporter.scope(observation):
-                    loss = self.model(x)
+                    loss = self.model(*x)
 
                 self.model.cleargrads()
                 loss.backward()
@@ -244,7 +244,46 @@ class CustomWorker(multiprocessing.Process):
                 scatter_params(self.model, gp)
                 gp = None
 
-                delete_feat(x)
+
+class CustomConverter(object):
+    """CUSTOM CONVERTER"""
+
+    def __init__(self, device, subsamping_factor=1):
+        self.device = device
+        self.subsamping_factor = subsamping_factor
+        self.xp = cuda.cupy if device != -1 else np
+
+    def __call__(self, batch):
+        # batch should be located in list
+        assert len(batch) == 1
+        batch = batch[0]
+
+        # load acoustic features and target sequence of token ids
+        xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
+        tids = [b[1]['output'][0]['tokenid'].split() for b in batch]
+
+        # remove 0-output-length utterances
+        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
+        if len(sorted_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(sorted_index)))
+        xs = [xs[i] for i in sorted_index]
+        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64) for i in sorted_index]
+
+        # perform subsamping
+        if self.subsamping_factor > 1:
+            xs = [x[::self.subsampling_factor, :] for x in xs]
+
+        # get batch of lengths of input sequences
+        ilens = [x.shape[0] for x in xs]
+
+        # convert to Variable
+        xs = [Variable(self.xp.array(x, dtype=np.float32)) for x in xs]
+        ilens = self.xp.array(ilens, dtype=np.int32)
+        ys = [Variable(self.xp.array(y, dtype=np.int32)) for y in ys]
+
+        return xs, ilens, ys
 
 
 def train(args):
@@ -350,6 +389,7 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
+    converter = CustomConverter(gpu_id, e2e.subsample[0])
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -359,8 +399,8 @@ def train(args):
         train_iter = chainer.iterators.SerialIterator(train, 1)
 
         # set up updater
-        updater = ChainerSeqUpdaterKaldi(
-            train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
+        updater = CustomUpdater(
+            train_iter, optimizer, converter=converter, device=gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -386,8 +426,8 @@ def train(args):
             for gid in six.moves.xrange(ngpu)]
 
         # set up updater
-        updater = ChainerMultiProcessParallelUpdaterKaldi(
-            train_iters, optimizer, converter=converter_kaldi, devices=devices)
+        updater = CustomParallelUpdater(
+            train_iters, optimizer, converter=converter, devices=devices)
 
     # Set up a trainer
     trainer = training.Trainer(
@@ -405,14 +445,14 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(
-        valid_iter, model, converter=converter_kaldi, device=gpu_id))
+        valid_iter, model, converter=converter, device=gpu_id))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        data = converter_kaldi([data], device=gpu_id)
-        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
+        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws", converter),
+                       trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
