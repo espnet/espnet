@@ -209,7 +209,7 @@ fi
 
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_taco2_enc${embed_dim}
+    expdir=exp/${train_set}_${backend}_taco2_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
         expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
@@ -242,7 +242,7 @@ if [ -z ${tag} ];then
     fi
     expdir=${expdir}_sd${seed}
 else
-    expdir=exp/${train_set}_${tag}
+    expdir=exp/${train_set}_${backend}_${tag}
 fi
 if [ ${stage} -le 4 ];then
     echo "stage 4: Text-to-speech model training"
