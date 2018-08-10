@@ -127,22 +127,24 @@ class CustomConverter(object):
         eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
 
         # get target features and input character sequence
-        xs = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
-        ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
+        xs_tmp = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
+        ys_tmp = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
 
         # remove empty sequence and get sort along with length
-        filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
-        sorted_idx = sorted(filtered_idx, key=lambda i: -len(xs[i]))
-        xs = [np.fromiter(map(int, xs[i]), dtype=np.int64) for i in sorted_idx]
-        ys = [ys[i] for i in sorted_idx]
+        sorted_non_zero_idx = self._get_none_zero_length_index(xs_tmp)
+        xs_tmp = [np.fromiter(map(int, xs_tmp[i]), dtype=np.int64) for i in sorted_non_zero_idx]
+        ys_tmp = [ys_tmp[i] for i in sorted_non_zero_idx]
 
         # get list of lengths (must be tensor for DataParallel)
-        ilens = torch.from_numpy(np.fromiter((x.shape[0] for x in xs), dtype=np.int64))
-        olens = torch.from_numpy(np.fromiter((y.shape[0] for y in ys), dtype=np.int64))
+        ilens = torch.LongTensor([x_tmp.shape[0] for x_tmp in xs_tmp])
+        olens = torch.LongTensor([y_tmp.shape[0] for y_tmp in ys_tmp])
 
         # perform padding and convert to tensor
-        xs = torch.from_numpy(pad_ndarray_list(xs, 0)).long()
-        ys = torch.from_numpy(pad_ndarray_list(ys, 0)).float()
+        xs_tmp = pad_ndarray_list(xs_tmp, 0)
+        ys_tmp = pad_ndarray_list(ys_tmp, 0)
+        xs = torch.LongTensor(xs_tmp)
+        ys = torch.FloatTensor(ys_tmp)
+        del xs_tmp, ys_tmp
 
         # make labels for stop prediction
         labels = ys.new(ys.size(0), ys.size(1)).zero_()
@@ -162,9 +164,10 @@ class CustomConverter(object):
 
         # load speaker embedding
         if self.use_speaker_embedding:
-            spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
-            spembs = [spembs[i] for i in sorted_idx]
-            spembs = torch.from_numpy(np.array(spembs)).float()
+            spembs_tmp = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
+            spembs_tmp = np.array([spembs_tmp[i] for i in sorted_non_zero_idx])
+            spembs = torch.FloatTensor(spembs_tmp)
+            del spembs_tmp
 
             # TODO(kan-bayashi): need to be fixed in pytorch v4
             if torch_is_old:
@@ -178,6 +181,12 @@ class CustomConverter(object):
             return xs, ilens, ys, labels, olens, spembs
         else:
             return xs, ilens, ys, spembs
+
+    def _get_none_zero_length_index(self, xs):
+        filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
+        sorted_idx = sorted(filtered_idx, key=lambda i: -len(xs[i]))
+
+        return sorted_idx
 
 
 def pad_ndarray_list(batch, pad_value):
@@ -197,6 +206,8 @@ def pad_ndarray_list(batch, pad_value):
     batch_pad.fill(pad_value)
     for i, b in enumerate(batch):
         batch_pad[i, :b.shape[0]] = b
+
+    del batch
 
     return batch_pad
 
