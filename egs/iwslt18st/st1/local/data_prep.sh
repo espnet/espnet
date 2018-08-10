@@ -97,7 +97,7 @@ n_de=`cat ${dst}/.de1 | wc -l`
 [ $n -ne $n_de ] && echo "Warning: expected $n data data files, found $n_de" && exit 1;
 
 paste --delimiters " " ${dst}/.yaml2 ${dst}/.en1 | awk '{ print tolower($0) }' | sort > $dst/text_en
-paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{ print tolower($0) }' | sort > $dst/text_de
+paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{ print tolower($0) }' | sort | nkf -e > $dst/text_de
 
 
 # (1c) Make segments files from transcript
@@ -130,8 +130,9 @@ done
 cp data/local/$part/text_en data/${part}_en/text || exit 1;
 
 mkdir -p data/${part}_de
-for f in spk2utt utt2spk wav.scp text_de segments; do
+for f in spk2utt utt2spk wav.scp segments; do
   cp data/local/$part/$f data/${part}_de/ || exit 1;
 done
+cp data/local/$part/text_de data/${part}_de/text || exit 1;
 
 echo "$0: successfully prepared data in $dst"
