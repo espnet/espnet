@@ -65,7 +65,7 @@ RUN git clone https://github.com/kaldi-asr/kaldi
 WORKDIR /kaldi
 RUN cd tools && \
     make all && \
-    rm -r tools/openfst-*/src && \
+    rm -r openfst-*/src && \
     ./extras/install_beamformit.sh
 
 RUN cd src && \ 
