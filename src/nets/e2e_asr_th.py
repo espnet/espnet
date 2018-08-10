@@ -103,14 +103,17 @@ class Loss(torch.nn.Module):
         self.predictor = predictor
         self.reporter = Reporter()
 
-    def forward(self, xs_pad, ilens, ys):
+    def forward(self, xs_pad, ilens, ys_pad):
         '''Loss forward
 
-        :param x:
-        :return:
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :return: loss value
+        :rtype: torch.Tensor
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(xs_pad, ilens, ys)
+        loss_ctc, loss_att, acc = self.predictor(xs_pad, ilens, ys_pad)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -339,7 +342,7 @@ class E2E(torch.nn.Module):
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
-         :rtype: float ndarray
+        :rtype: float ndarray
         '''
         with torch.no_grad():
             # encoder
@@ -361,46 +364,48 @@ class CTC(torch.nn.Module):
         self.loss_fn = warp_ctc.CTCLoss(size_average=True)
         self.ignore_id = -1
 
-    def forward(self, hpad, ilens, ys_pad):
+    def forward(self, hs_pad, hlens, ys_pad):
         '''CTC forward
 
-        :param hs:
-        :param ys:
-        :return:
+        :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
+        :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
+        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :return: ctc loss value
+        :rtype: torch.Tensor
         '''
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
 
         self.loss = None
-        ilens = torch.from_numpy(np.fromiter(ilens, dtype=np.int32))
+        hlens = torch.from_numpy(np.fromiter(hlens, dtype=np.int32))
         olens = torch.from_numpy(np.fromiter(
             (x.size(0) for x in ys), dtype=np.int32))
 
         # zero padding for hs
-        y_hat = self.ctc_lo(F.dropout(hpad, p=self.dropout_rate))
+        ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate))
 
         # zero padding for ys
-        y_true = torch.cat(ys).cpu().int()  # batch x olen
+        ys_true = torch.cat(ys).cpu().int()  # batch x olen
 
         # get length info
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + ''.join(str(ilens).split('\n')))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + ''.join(str(hlens).split('\n')))
         logging.info(self.__class__.__name__ + ' output lengths: ' + ''.join(str(olens).split('\n')))
 
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
-        y_hat = y_hat.transpose(0, 1)
-        self.loss = to_cuda(self, self.loss_fn(y_hat, y_true, ilens, olens))
+        ys_hat = ys_hat.transpose(0, 1)
+        self.loss = to_cuda(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
         logging.info('ctc loss:' + str(float(self.loss)))
 
         return self.loss
 
-    def log_softmax(self, hpad):
+    def log_softmax(self, hs_pad):
         '''log_softmax of frame activations
 
         :param hs:
         :return:
         '''
-        return F.log_softmax(self.ctc_lo(hpad), dim=2)
+        return F.log_softmax(self.ctc_lo(hs_pad), dim=2)
 
 
 # ------------- Attention Network --------------------------------------------------------------------------------------
@@ -1523,21 +1528,25 @@ class Decoder(torch.nn.Module):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
 
-    def zero_state(self, hpad):
-        return hpad.new_zeros(hpad.size(0), self.dunits)
+    def zero_state(self, hs_pad):
+        return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
 
-    def forward(self, hpad, hlen, ys_pad):
+    def forward(self, hs_pad, hlens, ys_pad):
         '''Decoder forward
 
-        :param hs:
-        :param ys:
-        :return:
+        :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
+        :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
+        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :return: attention loss value
+        :rtype: torch.Tensor
+        :return: accuracy
+        :rtype: float
         '''
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
 
         # hlen should be list of integer
-        hlen = list(map(int, hlen))
+        hlens = list(map(int, hlens))
 
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
@@ -1548,31 +1557,31 @@ class Decoder(torch.nn.Module):
 
         # padding for ys with -1
         # pys: utt x olen
-        pad_ys_in = pad_list(ys_in, self.eos)
-        pad_ys_out = pad_list(ys_out, self.ignore_id)
+        ys_in_pad = pad_list(ys_in, self.eos)
+        ys_out_pad = pad_list(ys_out, self.ignore_id)
 
         # get dim, length info
-        batch = pad_ys_out.size(0)
-        olength = pad_ys_out.size(1)
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlen))
+        batch = ys_out_pad.size(0)
+        olength = ys_out_pad.size(1)
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlens))
         logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
 
         # initialization
-        c_list = [self.zero_state(hpad)]
-        z_list = [self.zero_state(hpad)]
+        c_list = [self.zero_state(hs_pad)]
+        z_list = [self.zero_state(hs_pad)]
         for l in six.moves.range(1, self.dlayers):
-            c_list.append(self.zero_state(hpad))
-            z_list.append(self.zero_state(hpad))
+            c_list.append(self.zero_state(hs_pad))
+            z_list.append(self.zero_state(hs_pad))
         att_w = None
         z_all = []
         self.att.reset()  # reset pre-computation of h
 
         # pre-computation of embedding
-        eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        eys = self.embed(ys_in_pad)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
+            att_c, att_w = self.att(hs_pad, hlens, z_list[0], att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
@@ -1583,24 +1592,24 @@ class Decoder(torch.nn.Module):
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
-        self.loss = F.cross_entropy(y_all, pad_ys_out.view(-1),
+        self.loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
                                     ignore_index=self.ignore_id,
                                     size_average=True)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
-        acc = th_accuracy(y_all, pad_ys_out, ignore_label=self.ignore_id)
+        acc = th_accuracy(y_all, ys_out_pad, ignore_label=self.ignore_id)
         logging.info('att loss:' + ''.join(str(self.loss.item()).split('\n')))
 
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
-            y_hat = y_all.view(batch, olength, -1)
-            y_true = pad_ys_out
-            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.detach().cpu().numpy()),
-                                            y_true.detach().cpu().numpy()):
+            ys_hat = y_all.view(batch, olength, -1)
+            ys_true = ys_out_pad
+            for (i, y_hat), y_true in zip(enumerate(ys_hat.detach().cpu().numpy()),
+                                          ys_true.detach().cpu().numpy()):
                 if i == MAX_DECODER_OUTPUT:
                     break
-                idx_hat = np.argmax(y_hat_[y_true_ != self.ignore_id], axis=1)
-                idx_true = y_true_[y_true_ != self.ignore_id]
+                idx_hat = np.argmax(y_hat[y_true != self.ignore_id], axis=1)
+                idx_true = y_true[y_true != self.ignore_id]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true]
                 seq_hat = "".join(seq_hat)
@@ -1781,10 +1790,16 @@ class Decoder(torch.nn.Module):
         # remove sos
         return nbest_hyps
 
-    def calculate_all_attentions(self, hpad, hlen, ys_pad):
+    def calculate_all_attentions(self, hs_pad, hlen, ys_pad):
         '''Calculate all of attentions
 
-        :return: numpy array format attentions
+        :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
+        :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
+        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :return: attention weights with the following shape,
+            1) multi-head case => attention weights (B, H, Lmax, Tmax),
+            2) other case => attention weights (B, Lmax, Tmax).
+        :rtype: float ndarray
         '''
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
@@ -1801,28 +1816,28 @@ class Decoder(torch.nn.Module):
 
         # padding for ys with -1
         # pys: utt x olen
-        pad_ys_in = pad_list(ys_in, self.eos)
-        pad_ys_out = pad_list(ys_out, self.ignore_id)
+        ys_in_pad = pad_list(ys_in, self.eos)
+        ys_out_pad = pad_list(ys_out, self.ignore_id)
 
         # get length info
-        olength = pad_ys_out.size(1)
+        olength = ys_out_pad.size(1)
 
         # initialization
-        c_list = [self.zero_state(hpad)]
-        z_list = [self.zero_state(hpad)]
+        c_list = [self.zero_state(hs_pad)]
+        z_list = [self.zero_state(hs_pad)]
         for l in six.moves.range(1, self.dlayers):
-            c_list.append(self.zero_state(hpad))
-            z_list.append(self.zero_state(hpad))
+            c_list.append(self.zero_state(hs_pad))
+            z_list.append(self.zero_state(hs_pad))
         att_w = None
         att_ws = []
         self.att.reset()  # reset pre-computation of h
 
         # pre-computation of embedding
-        eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        eys = self.embed(ys_in_pad)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
+            att_c, att_w = self.att(hs_pad, hlen, z_list[0], att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
@@ -1899,29 +1914,30 @@ class Encoder(torch.nn.Module):
 
         self.etype = etype
 
-    def forward(self, xs, ilens):
+    def forward(self, xs_pad, ilens):
         '''Encoder forward
 
-        :param xs:
-        :param ilens:
-        :return:
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :return: batch of hidden state sequences (B, Tmax, erojs)
+        :rtype: torch.Tensor
         '''
         if self.etype == 'blstm':
-            xs, ilens = self.enc1(xs, ilens)
+            xs_pad, ilens = self.enc1(xs_pad, ilens)
         elif self.etype == 'blstmp':
-            xs, ilens = self.enc1(xs, ilens)
+            xs_pad, ilens = self.enc1(xs_pad, ilens)
         elif self.etype == 'vggblstmp':
-            xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
+            xs_pad, ilens = self.enc1(xs_pad, ilens)
+            xs_pad, ilens = self.enc2(xs_pad, ilens)
         elif self.etype == 'vggblstm':
-            xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
+            xs_pad, ilens = self.enc1(xs_pad, ilens)
+            xs_pad, ilens = self.enc2(xs_pad, ilens)
         else:
             logging.error(
                 "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
 
-        return xs, ilens
+        return xs_pad, ilens
 
     def _get_vgg2l_odim(self, idim, in_channel=3, out_channel=128):
         idim = idim / in_channel
@@ -1947,7 +1963,7 @@ class BLSTMP(torch.nn.Module):
         self.cdim = cdim
         self.subsample = subsample
 
-    def forward(self, xpad, ilens):
+    def forward(self, xs_pad, ilens):
         '''BLSTMP forward
 
         :param xs:
@@ -1956,23 +1972,22 @@ class BLSTMP(torch.nn.Module):
         '''
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         for layer in six.moves.range(self.elayers):
-            xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
+            xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
             bilstm.flatten_parameters()
-            ys, (hy, cy) = bilstm(xpack)
+            ys, _ = bilstm(xs_pack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
-            ypad, ilens = pad_packed_sequence(ys, batch_first=True)
+            ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
             sub = self.subsample[layer + 1]
             if sub > 1:
-                ypad = ypad[:, ::sub]
+                ys_pad = ys_pad[:, ::sub]
                 ilens = [int(i + 1) // sub for i in ilens]
             # (sum _utt frame_utt) x dim
             projected = getattr(self, 'bt' + str(layer)
-                                )(ypad.contiguous().view(-1, ypad.size(2)))
-            xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
-            del hy, cy
+                                )(ys_pad.contiguous().view(-1, ys_pad.size(2)))
+            xs_pad = torch.tanh(projected.view(ys_pad.size(0), ys_pad.size(1), -1))
 
-        return xpad, ilens  # x: utt list of frame x dim
+        return xs_pad, ilens  # x: utt list of frame x dim
 
 
 class BLSTM(torch.nn.Module):
@@ -1982,7 +1997,7 @@ class BLSTM(torch.nn.Module):
                                     dropout=dropout, bidirectional=True)
         self.l_last = torch.nn.Linear(cdim * 2, hdim)
 
-    def forward(self, xpad, ilens):
+    def forward(self, xs_pad, ilens):
         '''BLSTM forward
 
         :param xs:
@@ -1990,16 +2005,15 @@ class BLSTM(torch.nn.Module):
         :return:
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
-        ys, (hy, cy) = self.nblstm(xpack)
-        del hy, cy
+        xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
+        ys, _ = self.nblstm(xs_pack)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
-        ypad, ilens = pad_packed_sequence(ys, batch_first=True)
+        ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
         # (sum _utt frame_utt) x dim
         projected = torch.tanh(self.l_last(
-            ypad.contiguous().view(-1, ypad.size(2))))
-        xpad = projected.view(ypad.size(0), ypad.size(1), -1)
-        return xpad, ilens  # x: utt list of frame x dim
+            ys_pad.contiguous().view(-1, ys_pad.size(2))))
+        xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
+        return xs_pad, ilens  # x: utt list of frame x dim
 
 
 class VGG2L(torch.nn.Module):
@@ -2013,39 +2027,39 @@ class VGG2L(torch.nn.Module):
 
         self.in_channel = in_channel
 
-    def forward(self, xs, ilens):
+    def forward(self, xs_pad, ilens):
         '''VGG2L forward
 
-        :param xs:
+        :param xs_pad:
         :param ilens:
         :return:
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
 
         # x: utt x frame x dim
-        # xs = F.pad_sequence(xs)
+        # xs_pad = F.pad_sequence(xs_pad)
 
         # x: utt x 1 (input channel num) x frame x dim
-        xs = xs.view(xs.size(0), xs.size(1), self.in_channel,
-                     xs.size(2) // self.in_channel).transpose(1, 2)
+        xs_pad = xs_pad.view(xs_pad.size(0), xs_pad.size(1), self.in_channel,
+                             xs_pad.size(2) // self.in_channel).transpose(1, 2)
 
         # NOTE: max_pool1d ?
-        xs = F.relu(self.conv1_1(xs))
-        xs = F.relu(self.conv1_2(xs))
-        xs = F.max_pool2d(xs, 2, stride=2, ceil_mode=True)
+        xs_pad = F.relu(self.conv1_1(xs_pad))
+        xs_pad = F.relu(self.conv1_2(xs_pad))
+        xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
 
-        xs = F.relu(self.conv2_1(xs))
-        xs = F.relu(self.conv2_2(xs))
-        xs = F.max_pool2d(xs, 2, stride=2, ceil_mode=True)
+        xs_pad = F.relu(self.conv2_1(xs_pad))
+        xs_pad = F.relu(self.conv2_2(xs_pad))
+        xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
         ilens = np.array(
             np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
         ilens = np.array(
             np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
-        xs = xs.transpose(1, 2)
-        xs = xs.contiguous().view(
-            xs.size(0), xs.size(1), xs.size(2) * xs.size(3))
-        xs = [xs[i, :ilens[i]] for i in range(len(ilens))]
-        xs = pad_list(xs, 0.0)
-        return xs, ilens
+        xs_pad = xs_pad.transpose(1, 2)
+        xs_pad = xs_pad.contiguous().view(
+            xs_pad.size(0), xs_pad.size(1), xs_pad.size(2) * xs_pad.size(3))
+        xs_pad = [xs_pad[i, :ilens[i]] for i in range(len(ilens))]
+        xs_pad = pad_list(xs_pad, 0.0)
+        return xs_pad, ilens
