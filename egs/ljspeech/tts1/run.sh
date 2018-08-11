@@ -7,6 +7,7 @@
 . ./cmd.sh
 
 # genearl configuration
+backend=pytorch
 stage=-1
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
@@ -200,6 +201,7 @@ if [ ${stage} -le 3 ];then
     dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         tts_train.py \
+           --backend ${backend} \
            --ngpu ${ngpu} \
            --outdir ${expdir}/results \
            --verbose ${verbose} \
@@ -251,7 +253,7 @@ if [ ${stage} -le 4 ];then
         # decode in parallel
         ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
-                --backend pytorch \
+                --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
                 --out ${outdir}/${sets}/feats.JOB \
