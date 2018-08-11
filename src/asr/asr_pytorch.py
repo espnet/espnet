@@ -9,7 +9,6 @@ import json
 import logging
 import math
 import os
-import pickle
 import sys
 
 import numpy as np
@@ -26,6 +25,7 @@ import torch
 
 # spnet related
 from asr_utils import adadelta_eps_decay
+from asr_utils import AttributeDict
 from asr_utils import CompareValueTrigger
 from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
@@ -218,11 +218,10 @@ def train(args):
     # write model config
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
-    model_conf = args.outdir + '/model.conf'
+    model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
-        # TODO(watanabe) use others than pickle, possibly json, and save as a text
-        pickle.dump((idim, odim, args), f)
+        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -380,7 +379,7 @@ def recog(args):
     # read training config
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = pickle.load(f)
+        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
 
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))

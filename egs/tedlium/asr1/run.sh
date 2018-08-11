@@ -17,7 +17,7 @@ verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 
 # feature configuration
-do_delta=false # true when using CNN
+do_delta=false
 
 # network archtecture
 # encoder related
@@ -100,7 +100,8 @@ if [ ${stage} -le 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in test dev train; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${x} exp/make_fbank/${x} ${fbankdir}
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
     # remove utt having more than 2000 frames or less than 10 frames or
@@ -148,18 +149,18 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_adim${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_adim${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
 else
-    expdir=exp/${train_set}_${tag}
+    expdir=exp/${train_set}_${backend}_${tag}
 fi
 mkdir -p ${expdir}
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
-lmexpdir=exp/train_rnnlm_2layer_bs2048
+lmexpdir=exp/train_rnnlm_${backend}_2layer_bs2048
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
@@ -243,7 +244,7 @@ if [ ${stage} -le 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
-            --model-conf ${expdir}/results/model.conf  \
+            --model-conf ${expdir}/results/model.json  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
