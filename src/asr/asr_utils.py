@@ -51,28 +51,31 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
     return minibatch
 
 
-def load_inputs_and_targets(batch, use_speaker_embedding=False):
+def load_inputs_and_targets(batch, sort_in_outputs=False, use_speaker_embedding=False):
     """Function to load inputs and targets from list of dicts
 
     :param list batch: list of dict which is subset of loaded data.json
+    :param bool sort_in_outputs: whether to sort in output lengths
     :param bool use_speaker_embedding: whether to load speaker embedding vector
     :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
     :rtype: list of float ndarray
-    :return: list of target token id sequences [(T_1), (T_2), ..., (T_B)]
+    ireturn: list of target token id sequences [(T_1), (T_2), ..., (T_B)]
     :rtype: list of int ndarray
     :return: list of speaker embedding vectors (only if use_speaker_embedding = True)
     :rtype: list of float adarray
     """
-    # check input format
-    assert isinstance(batch[0], dict)
-
     # load acoustic features and target sequence of token ids
     xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
     ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
 
     # get index of non-zero length samples
     nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
-    nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+    if sort_in_outputs:
+        # sort in output lengths
+        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(ys[i]))
+    else:
+        # sort in input lengths
+        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
     if len(nonzero_sorted_idx) != len(xs):
         logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
             len(xs), len(nonzero_sorted_idx)))
@@ -203,20 +206,22 @@ class PlotAttentionReport(extension.Extension):
     :param list data: list json utt key items
     :param str outdir: directory to save figures
     :param function converter: function to convert data
+    :param int device: device id
     :param bool reverse: If True, input and output length are reversed
     """
 
-    def __init__(self, att_vis_fn, data, outdir, converter, reverse=False):
+    def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
         self.converter = converter
+        self.device = device
         self.reverse = reverse
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
     def __call__(self, trainer):
-        batch = self.converter([self.data])
+        batch = self.converter([self.data], self.device)
         att_ws = self.att_vis_fn(*batch)
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (

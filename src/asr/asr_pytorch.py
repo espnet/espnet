@@ -51,10 +51,11 @@ matplotlib.use('Agg')
 class CustomEvaluator(extensions.Evaluator):
     '''Custom evaluater for pytorch'''
 
-    def __init__(self, model, iterator, target, converter):
+    def __init__(self, model, iterator, target, converter, device):
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
         self.converter = converter
+        self.device = device
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -79,8 +80,8 @@ class CustomEvaluator(extensions.Evaluator):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    batch = self.converter(batch)
-                    self.model(*batch)
+                    x = self.converter(batch, self.device)
+                    self.model(*x)
                 summary.add(observation)
         self.model.train()
 
@@ -91,11 +92,12 @@ class CustomUpdater(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, ngpu):
+                 optimizer, converter, device, ngpu):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.converter = converter
+        self.device = device
         self.ngpu = ngpu
 
     # The core part of the update routine can be customized by overriding.
@@ -107,18 +109,10 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
-
-        # read scp files
-        # x: original json with loaded features
-        #    will be converted to chainer variable later
-        # batch only has one minibatch utterance, which is specified by batch[0]
-        if len(batch[0]) < self.ngpu:
-            logging.warning('batch size is less than number of gpus. Ignored')
-            return
-        batch = self.converter(batch)
+        x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = 1. / self.ngpu * self.model(*batch)
+        loss = 1. / self.ngpu * self.model(*x)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.ngpu > 1:
             loss.backward(loss.new_ones(self.ngpu))  # Backprop
@@ -138,12 +132,11 @@ class CustomUpdater(training.StandardUpdater):
 class CustomConverter(object):
     """CUSTOM CONVERTER"""
 
-    def __init__(self, device, subsamping_factor=1):
-        self.device = device
+    def __init__(self, subsamping_factor=1):
         self.subsamping_factor = subsamping_factor
         self.ignore_id = -1
 
-    def __call__(self, batch):
+    def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
         batch = batch[0]
@@ -160,10 +153,10 @@ class CustomConverter(object):
 
         # perform padding and convert to tensor
         xs_pad = pad_ndarray_list(xs, 0.0)
-        xs_pad = torch.FloatTensor(xs_pad).to(self.device)
-        ilens = torch.LongTensor(ilens).to(self.device)
+        xs_pad = torch.FloatTensor(xs_pad).to(device)
+        ilens = torch.LongTensor(ilens).to(device)
         ys_pad = pad_ndarray_list(ys, self.ignore_id)
-        ys_pad = torch.LongTensor(ys_pad).to(self.device)
+        ys_pad = torch.LongTensor(ys_pad).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -267,9 +260,9 @@ def train(args):
         valid, 1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    converter = CustomConverter(device, e2e.subsample[0])
+    converter = CustomConverter(e2e.subsample[0])
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, args.ngpu)
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -283,7 +276,7 @@ def train(args):
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
@@ -293,8 +286,9 @@ def train(args):
             att_vis_fn = model.module.predictor.calculate_all_attentions
         else:
             att_vis_fn = model.predictor.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(att_vis_fn, data, args.outdir + "/att_ws", converter),
-                       trigger=(1, 'epoch'))
+        trainer.extend(PlotAttentionReport(
+            att_vis_fn, data, args.outdir + "/att_ws",
+            converter=converter, device=device), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',

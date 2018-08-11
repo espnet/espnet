@@ -9,7 +9,6 @@ import collections
 import json
 import logging
 import math
-import multiprocessing
 import os
 import six
 import sys
@@ -18,7 +17,6 @@ import sys
 import chainer
 
 from chainer import cuda
-from chainer import reporter as reporter_module
 from chainer import training
 from chainer import Variable
 
@@ -26,7 +24,6 @@ from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
-from chainer.training.updaters.multiprocess_parallel_updater import scatter_params
 
 # espnet related
 from asr_utils import adadelta_eps_decay
@@ -79,13 +76,9 @@ class CustomUpdater(training.StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
-        # Get the next batch ( a list of json files)
-        batch = train_iter.__next__()
-
-        # read scp files
-        # x: original json with loaded features
-        #    will be converted to chainer variable later
-        x = self.converter(batch)
+        # Get batch and convert into variables
+        batch = train_iter.next()
+        x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(*x)
@@ -121,7 +114,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
-            x = self.converter(batch)
+            x = self.converter(batch, self._devices[0])
 
             loss = self._master(*x)
 
@@ -156,103 +149,17 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
                 self.comm.bcast(gp.data.ptr, gp.size, nccl.NCCL_FLOAT,
                                 0, null_stream.ptr)
 
-    def setup_workers(self):
-        if self._initialized:
-            return
-        self._initialized = True
-
-        self._master.cleargrads()
-        for i in six.moves.range(1, len(self._devices)):
-            pipe, worker_end = multiprocessing.Pipe()
-            worker = CustomWorker(i, worker_end, self)
-            worker.start()
-            self._workers.append(worker)
-            self._pipes.append(pipe)
-
-        with cuda.Device(self._devices[0]):
-            from cupy.cuda import nccl
-            self._master.to_gpu(self._devices[0])
-            if len(self._devices) > 1:
-                comm_id = nccl.get_unique_id()
-                self._send_message(("set comm_id", comm_id))
-                self.comm = nccl.NcclCommunicator(len(self._devices),
-                                                  comm_id, 0)
-
-
-class CustomWorker(multiprocessing.Process):
-
-    def __init__(self, proc_id, pipe, master):
-        super(CustomWorker, self).__init__()
-        self.proc_id = proc_id
-        self.pipe = pipe
-        self.model = master._master
-        self.converter = master.converter
-        self.device = master._devices[proc_id]
-        self.iterator = master._mpu_iterators[proc_id]
-        self.n_devices = len(master._devices)
-
-    def setup(self):
-        from cupy.cuda import nccl
-        _, comm_id = self.pipe.recv()
-        self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
-                                          self.proc_id)
-
-        self.model.to_gpu(self.device)
-        self.reporter = reporter_module.Reporter()
-        self.reporter.add_observer('main', self.model)
-
-    def run(self):
-        from cupy.cuda import nccl
-        dev = cuda.Device(self.device)
-        dev.use()
-        self.setup()
-        gp = None
-        while True:
-            job, data = self.pipe.recv()
-            if job == 'finalize':
-                dev.synchronize()
-                break
-            if job == 'update':
-                # For reducing memory
-                self.model.cleargrads()
-
-                batch = self.iterator.next()
-                x = self.converter(batch)
-                observation = {}
-                with self.reporter.scope(observation):
-                    loss = self.model(*x)
-
-                self.model.cleargrads()
-                loss.backward()
-                loss.unchain_backward()
-
-                del loss
-
-                gg = gather_grads(self.model)
-                null_stream = cuda.Stream.null
-                self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 nccl.NCCL_FLOAT,
-                                 nccl.NCCL_SUM, 0,
-                                 null_stream.ptr)
-                del gg
-                self.model.cleargrads()
-                gp = gather_params(self.model)
-                self.comm.bcast(gp.data.ptr, gp.size,
-                                nccl.NCCL_FLOAT, 0,
-                                null_stream.ptr)
-                scatter_params(self.model, gp)
-                gp = None
-
 
 class CustomConverter(object):
     """CUSTOM CONVERTER"""
 
     def __init__(self, device, subsamping_factor=1):
-        self.device = device
         self.subsamping_factor = subsamping_factor
-        self.xp = cuda.cupy if device != -1 else np
 
-    def __call__(self, batch, *args):
+    def __call__(self, batch, device):
+        # set device
+        xp = cuda.cupy if device != -1 else np
+
         # batch should be located in list
         assert len(batch) == 1
         batch = batch[0]
@@ -268,9 +175,9 @@ class CustomConverter(object):
         ilens = [x.shape[0] for x in xs]
 
         # convert to Variable
-        xs = [Variable(self.xp.array(x, dtype=np.float32)) for x in xs]
-        ilens = self.xp.array(ilens, dtype=np.int32)
-        ys = [Variable(self.xp.array(y, dtype=np.int32)) for y in ys]
+        xs = [Variable(xp.array(x, dtype=xp.float32)) for x in xs]
+        ilens = xp.array(ilens, dtype=xp.int32)
+        ys = [Variable(xp.array(y, dtype=xp.int32)) for y in ys]
 
         return xs, ilens, ys
 
@@ -377,7 +284,7 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
-    converter = CustomConverter(gpu_id, e2e.subsample[0])
+    converter = CustomConverter(e2e.subsample[0])
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -443,8 +350,9 @@ def train(args):
             att_vis_fn = model.module.predictor.calculate_all_attentions
         else:
             att_vis_fn = model.predictor.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(att_vis_fn, data, args.outdir + "/att_ws", converter),
-                       trigger=(1, 'epoch'))
+        trainer.extend(PlotAttentionReport(
+            att_vis_fn, data, args.outdir + "/att_ws",
+            converter=converter, device=gpu_id), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
