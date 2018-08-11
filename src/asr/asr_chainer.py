@@ -357,7 +357,7 @@ def train(args):
             converter=converter, device=gpu_id), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
-    trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
