@@ -7,7 +7,8 @@
 import pytest
 pytest.importorskip('torch')
 import torch  # NOQA
-from e2e_asr_th import pad_list, mask_by_length  # NOQA
+
+from e2e_asr_th import pad_list  # NOQA
 
 
 def test_pad_list():
@@ -21,19 +22,6 @@ def test_pad_list():
           [1, 2, -1, -1],
           [1, 2, 3, 4]]
     assert xpad.data.tolist() == es
-
-
-def test_mask_by_length():
-    xs = [[1, 2, 3, -1],
-          [1, 2, -1, -1],
-          [1, 2, 3, 4]]
-    xs = torch.LongTensor(xs)
-    xlen = [3, 2, 4]
-    ys = mask_by_length(xs, xlen, fill=0)
-    es = [[1, 2, 3, 0],
-          [1, 2, 0, 0],
-          [1, 2, 3, 4]]
-    assert ys.data.tolist() == es
 
 
 def test_bmm_attention():
