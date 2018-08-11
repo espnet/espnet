@@ -213,7 +213,7 @@ def train(args):
         os.makedirs(args.outdir)
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to' + model_conf)
+        logging.info('writing a model config file to ' + model_conf)
         f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
