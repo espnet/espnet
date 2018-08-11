@@ -21,6 +21,7 @@ from chainer import reporter
 from chainer_ctc.warpctc import ctc as warp_ctc
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
+from e2e_asr_common import get_vgg2l_odim
 from e2e_asr_common import label_smoothing_dist
 
 import deterministic_embed_id as DL
@@ -855,12 +856,12 @@ class Encoder(chainer.Chain):
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
                 self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTMP(self._get_vgg2l_odim(
+                self.enc2 = BLSTMP(get_vgg2l_odim(
                     idim, in_channel=in_channel), elayers, eunits, eprojs, subsample, dropout)
                 logging.info('Use CNN-VGG + BLSTMP for encoder')
             elif etype == 'vggblstm':
                 self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTM(self._get_vgg2l_odim(
+                self.enc2 = BLSTM(get_vgg2l_odim(
                     idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
                 logging.info('Use CNN-VGG + BLSTM for encoder')
             else:
@@ -893,13 +894,6 @@ class Encoder(chainer.Chain):
             sys.exit()
 
         return xs, ilens
-
-    def _get_vgg2l_odim(self, idim, in_channel=3, out_channel=128):
-        idim = idim / in_channel
-        idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
-        idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
-        idim = np.array(idim, dtype=np.int32)
-        return idim * out_channel  # numer of channels
 
 
 # TODO(watanabe) explanation of BLSTMP
