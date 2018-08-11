@@ -27,6 +27,7 @@ import torch
 # spnet related
 from asr_utils import adadelta_eps_decay
 from asr_utils import CompareValueTrigger
+from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import pad_ndarray_list
@@ -147,18 +148,8 @@ class CustomConverter(object):
         assert len(batch) == 1
         batch = batch[0]
 
-        # load acoustic features and target sequence of token ids
-        xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-        tids = [b[1]['output'][0]['tokenid'].split() for b in batch]
-
-        # remove 0-output-length utterances
-        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
-        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
-        if len(sorted_index) != len(xs):
-            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-                len(xs), len(sorted_index)))
-        xs = [xs[i] for i in sorted_index]
-        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64) for i in sorted_index]
+        # load inputs and targets
+        xs, ys = load_inputs_and_targets(batch)
 
         # perform subsamping
         if self.subsamping_factor > 1:

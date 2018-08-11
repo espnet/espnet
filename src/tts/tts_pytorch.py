@@ -20,6 +20,7 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
+from asr_utils import load_inputs_and_targets
 from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
 from e2e_tts_th import Tacotron2
@@ -113,18 +114,19 @@ class CustomConverter(object):
         assert len(batch) == 1
         batch = batch[0]
 
-        # get eos
+        # load inputs and targets
+        inputs_and_targets = load_inputs_and_targets(batch, self.use_speaker_embedding)
+
+        # parse inputs and targets
+        if len(inputs_and_targets) == 2:
+            ys, xs = inputs_and_targets
+            spembs = None
+        else:
+            ys, xs, spembs = inputs_and_targets
+
+        # added eos into input sequence
         eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
-
-        # get target features and input character sequence
-        xs = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
-        ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-
-        # remove empty sequence and get sort along with length
-        filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
-        sorted_idx = sorted(filtered_idx, key=lambda i: -len(xs[i]))
-        xs = [np.fromiter(map(int, xs[i]), dtype=np.int64) for i in sorted_idx]
-        ys = [ys[i] for i in sorted_idx]
+        ys = [np.append(y, eos) for y in ys]
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.LongTensor([x.shape[0] for x in xs]).to(self.device)
@@ -140,12 +142,8 @@ class CustomConverter(object):
             labels[i, l - 1:] = 1
 
         # load speaker embedding
-        if self.use_speaker_embedding:
-            spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
-            spembs = [spembs[i] for i in sorted_idx]
+        if spembs is not None:
             spembs = torch.FloatTensor(np.array(spembs)).to(self.device)
-        else:
-            spembs = None
 
         if self.return_targets:
             return xs, ilens, ys, labels, olens, spembs
