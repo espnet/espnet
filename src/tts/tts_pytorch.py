@@ -20,6 +20,8 @@ from chainer.training import extensions
 import kaldi_io_py
 
 from asr_utils import AttributeDict
+from asr_utils import load_inputs_and_targets
+from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
@@ -31,10 +33,11 @@ matplotlib.use('Agg')
 class CustomEvaluator(extensions.Evaluator):
     '''CUSTOM EVALUATER FOR TACOTRON2 TRAINING'''
 
-    def __init__(self, model, iterator, target, converter):
+    def __init__(self, model, iterator, target, converter, device):
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
         self.converter = converter
+        self.device = device
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -57,8 +60,8 @@ class CustomEvaluator(extensions.Evaluator):
                 observation = {}
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
-                    batch = self.converter(batch)
-                    self.model(*batch)
+                    x = self.converter(batch, self.device)
+                    self.model(*x)
                 summary.add(observation)
         self.model.train()
 
@@ -68,11 +71,12 @@ class CustomEvaluator(extensions.Evaluator):
 class CustomUpdater(training.StandardUpdater):
     '''CUSTOM UPDATER FOR TACOTRON2 TRAINING'''
 
-    def __init__(self, model, grad_clip, train_iter, optimizer, converter):
+    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
+        self.device = device
         self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
 
     # The core part of the update routine can be customized by overriding.
@@ -83,10 +87,11 @@ class CustomUpdater(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
 
         # Get the next batch (a list of json files)
-        batch = self.converter(train_iter.next())
+        batch = train_iter.next()
+        x = self.converter(batch, self.device)
 
         # compute loss and gradient
-        loss = self.model(*batch)
+        loss = self.model(*x)
         optimizer.zero_grad()
         loss.backward()
 
@@ -102,85 +107,50 @@ class CustomUpdater(training.StandardUpdater):
 class CustomConverter(object):
     '''CUSTOM CONVERTER FOR TACOTRON2'''
 
-    def __init__(self, device, return_targets=True, use_speaker_embedding=False):
-        self.device = device
+    def __init__(self, return_targets=True, use_speaker_embedding=False):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
 
-    def __call__(self, batch):
+    def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
         batch = batch[0]
 
-        # get eos
+        # load inputs and targets
+        inputs_and_targets = load_inputs_and_targets(batch, True, self.use_speaker_embedding)
+
+        # parse inputs and targets
+        if len(inputs_and_targets) == 2:
+            ys, xs = inputs_and_targets
+            spembs = None
+        else:
+            ys, xs, spembs = inputs_and_targets
+
+        # added eos into input sequence
         eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
-
-        # get target features and input character sequence
-        xs = [b[1]['output'][0]['tokenid'].split() + [eos] for b in batch]
-        ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-
-        # remove empty sequence and get sort along with length
-        filtered_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
-        sorted_idx = sorted(filtered_idx, key=lambda i: -len(xs[i]))
-        xs = [np.fromiter(map(int, xs[i]), dtype=np.int64) for i in sorted_idx]
-        ys = [ys[i] for i in sorted_idx]
+        xs = [np.append(x, eos) for x in xs]
 
         # get list of lengths (must be tensor for DataParallel)
-        ilens = torch.LongTensor([x.shape[0] for x in xs])
-        olens = torch.LongTensor([y.shape[0] for y in ys])
+        ilens = torch.LongTensor([x.shape[0] for x in xs]).to(device)
+        olens = torch.LongTensor([y.shape[0] for y in ys]).to(device)
 
         # perform padding and convert to tensor
-        xs = torch.LongTensor(pad_ndarray_list(xs, 0))
-        ys = torch.FloatTensor(pad_ndarray_list(ys, 0))
+        xs = torch.LongTensor(pad_ndarray_list(xs, 0)).to(device)
+        ys = torch.FloatTensor(pad_ndarray_list(ys, 0)).to(device)
 
         # make labels for stop prediction
         labels = ys.new_zeros(ys.size(0), ys.size(1))
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1
 
-        if sum(self.device) >= 0:
-            xs = xs.cuda()
-            ys = ys.cuda()
-            labels = labels.cuda()
-
         # load speaker embedding
-        if self.use_speaker_embedding:
-            spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
-            spembs = [spembs[i] for i in sorted_idx]
-            spembs = torch.FloatTensor(np.array(spembs))
-
-            if sum(self.device) >= 0:
-                spembs = spembs.cuda()
-        else:
-            spembs = None
+        if spembs is not None:
+            spembs = torch.FloatTensor(np.array(spembs)).to(device)
 
         if self.return_targets:
             return xs, ilens, ys, labels, olens, spembs
         else:
             return xs, ilens, ys, spembs
-
-
-def pad_ndarray_list(batch, pad_value):
-    """FUNCTION TO PERFORM PADDING OF NDARRAY LIST
-
-    :param list batch: list of the ndarray [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :param float pad_value: value to pad
-    :return: padded batch with the shape (B, Tmax, D)
-    :rtype: ndarray
-    """
-    bs = len(batch)
-    maxlen = max([b.shape[0] for b in batch])
-    if len(batch[0].shape) >= 2:
-        batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
-    else:
-        batch_pad = np.zeros((bs, maxlen))
-    batch_pad.fill(pad_value)
-    for i, b in enumerate(batch):
-        batch_pad[i, :b.shape[0]] = b
-
-    del batch
-
-    return batch_pad
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
@@ -309,22 +279,16 @@ def train(args):
     tacotron2 = Tacotron2(idim, odim, args)
     logging.info(tacotron2)
 
-    # Set gpu
-    ngpu = args.ngpu
-    if ngpu == 1:
-        gpu_id = range(ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        tacotron2.cuda()
-    elif ngpu > 1:
-        gpu_id = range(ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        tacotron2 = torch.nn.DataParallel(tacotron2, device_ids=gpu_id)
-        tacotron2.cuda()
+    # check the use of multi-gpu
+    if args.ngpu > 1:
+        tacotron2 = torch.nn.DataParallel(tacotron2, device_ids=list(range(args.ngpu)))
         logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batch_size, args.batch_size * ngpu))
-        args.batch_size *= ngpu
-    else:
-        gpu_id = [-1]
+            args.batch_size, args.batch_size * args.ngpu))
+        args.batch_size *= args.ngpu
+
+    # set torch device
+    device = torch.device("cuda" if args.ngpu > 0 else "cpu")
+    tacotron2 = tacotron2.to(device)
 
     # define loss
     model = Tacotron2Loss(tacotron2, args.use_masking, args.bce_pos_weight)
@@ -358,8 +322,8 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(valid_batchset, 1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    converter = CustomConverter(gpu_id, True, args.use_speaker_embedding)
-    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter)
+    converter = CustomConverter(True, args.use_speaker_embedding)
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -370,18 +334,23 @@ def train(args):
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
-        data = sorted(valid_json.items()[:args.num_save_attention],
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
+        if hasattr(tacotron2, "module"):
+            att_vis_fn = tacotron2.module.calculate_all_attentions
+        else:
+            att_vis_fn = tacotron2.calculate_all_attentions
         trainer.extend(PlotAttentionReport(
-            tacotron2, data, args.outdir + '/att_ws',
-            CustomConverter(gpu_id, False, args.use_speaker_embedding), True), trigger=(1, 'epoch'))
+            att_vis_fn, data, args.outdir + '/att_ws',
+            converter=CustomConverter(False, args.use_speaker_embedding),
+            device=device, reverse=True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -439,14 +408,9 @@ def decode(args):
         torch.load(args.model, map_location=lambda storage, loc: storage))
     tacotron2.eval()
 
-    # Set gpu
-    ngpu = args.ngpu
-    if ngpu >= 1:
-        gpu_id = range(ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        tacotron2.cuda()
-    else:
-        gpu_id = [-1]
+    # set torch device
+    device = torch.device("cuda" if args.ngpu > 0 else "cpu")
+    tacotron2 = tacotron2.to(device)
 
     # read json data
     with open(args.json, 'rb') as f:
@@ -463,16 +427,12 @@ def decode(args):
         for idx, utt_id in enumerate(js.keys()):
             x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
             x = np.fromiter(map(int, x), dtype=np.int64)
-            x = torch.LongTensor(x)
-            if args.ngpu > 0:
-                x = x.cuda()
+            x = torch.LongTensor(x).to(device)
 
             # get speaker embedding
             if train_args.use_speaker_embedding:
                 spemb = kaldi_io_py.read_vec_flt(js[utt_id]['input'][1]['feat'])
-                spemb = torch.FloatTensor(spemb)
-                if args.ngpu > 0:
-                    spemb = spemb.cuda()
+                spemb = torch.FloatTensor(spemb).to(device)
             else:
                 spemb = None
 
