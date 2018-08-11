@@ -19,7 +19,7 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
-from asr_utils import AttributeDict
+from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
@@ -392,9 +392,7 @@ def train(args):
 def decode(args):
     '''RUN DECODING'''
     # read training config
-    with open(args.model_conf, 'rb') as f:
-        logging.info('reading a model config file from ' + args.model_conf)
-        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     # show argments
     for key in sorted(vars(args).keys()):
