@@ -10,6 +10,7 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
+import json
 import logging
 import numpy as np
 import os
@@ -197,6 +198,12 @@ def train(args):
         # Make the specified GPU current
         gpu_id = 0
         model.cuda(gpu_id)
+
+    # Save model conf to json
+    model_conf = args.outdir + '/model.json'
+    with open(model_conf, 'wb') as f:
+        logging.info('writing a model config file to ' + model_conf)
+        f.write(json.dumps(vars(args), indent=4, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=1.0)

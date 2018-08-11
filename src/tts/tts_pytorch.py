@@ -19,7 +19,7 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
-from asr_utils import AttributeDict
+from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
@@ -28,6 +28,8 @@ from e2e_tts_th import Tacotron2Loss
 
 import matplotlib
 matplotlib.use('Agg')
+
+REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
@@ -374,14 +376,14 @@ def train(args):
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'elapsed_time',
                    'main/loss', 'main/l1_loss',
                    'main/mse_loss', 'main/bce_loss',
                    'validation/main/loss', 'validation/main/l1_loss',
                    'validation/main/mse_loss', 'validation/main/bce_loss']
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(100, 'iteration'))
-    trainer.extend(extensions.ProgressBar())
+    trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
     # Run the training
     trainer.run()
@@ -390,9 +392,7 @@ def train(args):
 def decode(args):
     '''RUN DECODING'''
     # read training config
-    with open(args.model_conf, 'rb') as f:
-        logging.info('reading a model config file from ' + args.model_conf)
-        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     # show argments
     for key in sorted(vars(args).keys()):
