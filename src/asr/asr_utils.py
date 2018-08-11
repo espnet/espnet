@@ -7,6 +7,8 @@ import copy
 import logging
 import os
 
+import numpy as np
+
 # chainer related
 import chainer
 from chainer import training
@@ -49,21 +51,69 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
     return minibatch
 
 
-# TODO(watanabe) perform mean and variance normalization during the python program
-# and remove the data dump process in run.sh
-def converter_kaldi(batch, device=None):
-    # batch only has one minibatch utterance, which is specified by batch[0]
-    for data in batch:
-        feat = kaldi_io_py.read_mat(data[1]['input'][0]['feat'])
-        data[1]['feat'] = feat
-    return batch
+def load_inputs_and_targets(batch, sort_in_outputs=False, use_speaker_embedding=False):
+    """Function to load inputs and targets from list of dicts
+
+    :param list batch: list of dict which is subset of loaded data.json
+    :param bool sort_in_outputs: whether to sort in output lengths
+    :param bool use_speaker_embedding: whether to load speaker embedding vector
+    :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
+    :rtype: list of float ndarray
+    ireturn: list of target token id sequences [(T_1), (T_2), ..., (T_B)]
+    :rtype: list of int ndarray
+    :return: list of speaker embedding vectors (only if use_speaker_embedding = True)
+    :rtype: list of float adarray
+    """
+    # load acoustic features and target sequence of token ids
+    xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
+    ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
+
+    # get index of non-zero length samples
+    nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
+    if sort_in_outputs:
+        # sort in output lengths
+        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(ys[i]))
+    else:
+        # sort in input lengths
+        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+    if len(nonzero_sorted_idx) != len(xs):
+        logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+            len(xs), len(nonzero_sorted_idx)))
+
+    # remove zero-length samples
+    xs = [xs[i] for i in nonzero_sorted_idx]
+    ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
+
+    # load speaker embedding
+    if use_speaker_embedding:
+        spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
+        spembs = [spembs[i] for i in nonzero_sorted_idx]
+        return xs, ys, spembs
+    else:
+        return xs, ys
 
 
-def delete_feat(batch):
-    for data in batch:
-        del data[1]['feat']
+def pad_ndarray_list(batch, pad_value):
+    """FUNCTION TO PERFORM PADDING OF NDARRAY LIST
 
-    return batch
+    :param list batch: list of the ndarray [(T_1, D), (T_2, D), ..., (T_B, D)]
+    :param float pad_value: value to pad
+    :return: padded batch with the shape (B, Tmax, D)
+    :rtype: ndarray
+    """
+    bs = len(batch)
+    maxlen = max([b.shape[0] for b in batch])
+    if len(batch[0].shape) >= 2:
+        batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
+    else:
+        batch_pad = np.zeros((bs, maxlen))
+    batch_pad.fill(pad_value)
+    for i, b in enumerate(batch):
+        batch_pad[i, :b.shape[0]] = b
+
+    del batch
+
+    return batch_pad
 
 
 # * -------------------- chainer extension related -------------------- *
@@ -150,38 +200,29 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 
 class PlotAttentionReport(extension.Extension):
-    def __init__(self, model, data, outdir, converter=None, reverse=False):
+    """Plot attention reporter
+
+    :param function att_vis_fn: function of attention visualization
+    :param list data: list json utt key items
+    :param str outdir: directory to save figures
+    :param function converter: function to convert data
+    :param int device: device id
+    :param bool reverse: If True, input and output length are reversed
+    """
+
+    def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
+        self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
         self.converter = converter
+        self.device = device
         self.reverse = reverse
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
-        # TODO(kan-bayashi): clean up this process
-        if hasattr(model, "module"):
-            if hasattr(model.module, "predictor"):
-                self.att_vis_fn = model.module.predictor.calculate_all_attentions
-            else:
-                self.att_vis_fn = model.module.calculate_all_attentions
-        else:
-            if hasattr(model, "predictor"):
-                self.att_vis_fn = model.predictor.calculate_all_attentions
-            else:
-                self.att_vis_fn = model.calculate_all_attentions
-
     def __call__(self, trainer):
-        if self.converter is not None:
-            # TODO(kan-bayashi): need to be fixed due to hard coding
-            x = self.converter([self.data], False)
-        else:
-            x = self.data
-        if isinstance(x, tuple):
-            att_ws = self.att_vis_fn(*x)
-        elif isinstance(x, dict):
-            att_ws = self.att_vis_fn(**x)
-        else:
-            att_ws = self.att_vis_fn(x)
+        batch = self.converter([self.data], self.device)
+        att_ws = self.att_vis_fn(*batch)
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])
@@ -224,3 +265,30 @@ def load_labeldict(dict_file):
     if '<eos>' not in labeldict:
         labeldict['<eos>'] = len(labeldict)
     return labeldict
+
+
+# * -------------------- general -------------------- *
+class AttributeDict(object):
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __getstate__(self):
+        return self.obj.items()
+
+    def __setstate__(self, items):
+        if not hasattr(self, 'obj'):
+            self.obj = {}
+        for key, val in items:
+            self.obj[key] = val
+
+    def __getattr__(self, name):
+        if name in self.obj:
+            return self.obj.get(name)
+        else:
+            return None
+
+    def fields(self):
+        return self.obj
+
+    def keys(self):
+        return self.obj.keys()

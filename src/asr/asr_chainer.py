@@ -9,9 +9,7 @@ import collections
 import json
 import logging
 import math
-import multiprocessing
 import os
-import pickle
 import six
 import sys
 
@@ -19,20 +17,19 @@ import sys
 import chainer
 
 from chainer import cuda
-from chainer.datasets import TransformDataset
-from chainer import reporter as reporter_module
 from chainer import training
+from chainer import Variable
+
 from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
-from chainer.training.updaters.multiprocess_parallel_updater import scatter_params
 
 # espnet related
 from asr_utils import adadelta_eps_decay
+from asr_utils import AttributeDict
 from asr_utils import CompareValueTrigger
-from asr_utils import converter_kaldi
-from asr_utils import delete_feat
+from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
@@ -53,11 +50,23 @@ import numpy as np
 matplotlib.use('Agg')
 
 
-class ChainerSeqUpdaterKaldi(training.StandardUpdater):
+# copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
+def sum_sqnorm(arr):
+    sq_sum = collections.defaultdict(float)
+    for x in arr:
+        with cuda.get_device_from_array(x) as dev:
+            if x is not None:
+                x = x.ravel()
+                s = x.dot(x)
+                sq_sum[int(dev)] += s
+    return sum([float(i) for i in six.itervalues(sq_sum)])
+
+
+class CustomUpdater(training.StandardUpdater):
     '''Custom updater for chainer'''
 
     def __init__(self, train_iter, optimizer, converter, device):
-        super(ChainerSeqUpdaterKaldi, self).__init__(
+        super(CustomUpdater, self).__init__(
             train_iter, optimizer, converter=converter, device=device)
 
     # The core part of the update routine can be customized by overriding.
@@ -67,16 +76,12 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
-        # Get the next batch ( a list of json files)
-        batch = train_iter.__next__()
-
-        # read scp files
-        # x: original json with loaded features
-        #    will be converted to chainer variable later
-        x = batch[0]
+        # Get batch and convert into variables
+        batch = train_iter.next()
+        x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(x)
+        loss = optimizer.target(*x)
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
@@ -88,14 +93,13 @@ class ChainerSeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.update()
-        delete_feat(x)
 
 
-class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessParallelUpdater):
+class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     '''Custom parallel updater for chainer'''
 
     def __init__(self, train_iters, optimizer, converter, devices):
-        super(ChainerMultiProcessParallelUpdaterKaldi, self).__init__(
+        super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices)
 
     # The core part of the update routine can be customized by overriding.
@@ -109,9 +113,10 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
             self._master.cleargrads()
 
             optimizer = self.get_optimizer('main')
-            x = self.get_iterator('main').next()[0]
+            batch = self.get_iterator('main').next()
+            x = self.converter(batch, self._devices[0])
 
-            loss = self._master(x)
+            loss = self._master(*x)
 
             self._master.cleargrads()
             loss.backward()
@@ -144,106 +149,37 @@ class ChainerMultiProcessParallelUpdaterKaldi(training.updaters.MultiprocessPara
                 self.comm.bcast(gp.data.ptr, gp.size, nccl.NCCL_FLOAT,
                                 0, null_stream.ptr)
 
-            delete_feat(x)
 
-    def setup_workers(self):
-        if self._initialized:
-            return
-        self._initialized = True
+class CustomConverter(object):
+    """CUSTOM CONVERTER"""
 
-        self._master.cleargrads()
-        for i in six.moves.range(1, len(self._devices)):
-            pipe, worker_end = multiprocessing.Pipe()
-            worker = CustomWorker(i, worker_end, self)
-            worker.start()
-            self._workers.append(worker)
-            self._pipes.append(pipe)
+    def __init__(self, device, subsamping_factor=1):
+        self.subsamping_factor = subsamping_factor
 
-        with cuda.Device(self._devices[0]):
-            from cupy.cuda import nccl
-            self._master.to_gpu(self._devices[0])
-            if len(self._devices) > 1:
-                comm_id = nccl.get_unique_id()
-                self._send_message(("set comm_id", comm_id))
-                self.comm = nccl.NcclCommunicator(len(self._devices),
-                                                  comm_id, 0)
+    def __call__(self, batch, device):
+        # set device
+        xp = cuda.cupy if device != -1 else np
 
+        # batch should be located in list
+        assert len(batch) == 1
+        batch = batch[0]
 
-# copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
-def sum_sqnorm(arr):
-    sq_sum = collections.defaultdict(float)
-    for x in arr:
-        with cuda.get_device_from_array(x) as dev:
-            if x is not None:
-                x = x.ravel()
-                s = x.dot(x)
-                sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
+        # load inputs and targets
+        xs, ys = load_inputs_and_targets(batch)
 
+        # perform subsamping
+        if self.subsamping_factor > 1:
+            xs = [x[::self.subsampling_factor, :] for x in xs]
 
-class CustomWorker(multiprocessing.Process):
+        # get batch of lengths of input sequences
+        ilens = [x.shape[0] for x in xs]
 
-    def __init__(self, proc_id, pipe, master):
-        super(CustomWorker, self).__init__()
-        self.proc_id = proc_id
-        self.pipe = pipe
-        self.model = master._master
-        self.device = master._devices[proc_id]
-        self.iterator = master._mpu_iterators[proc_id]
-        self.n_devices = len(master._devices)
+        # convert to Variable
+        xs = [Variable(xp.array(x, dtype=xp.float32)) for x in xs]
+        ilens = xp.array(ilens, dtype=xp.int32)
+        ys = [Variable(xp.array(y, dtype=xp.int32)) for y in ys]
 
-    def setup(self):
-        from cupy.cuda import nccl
-        _, comm_id = self.pipe.recv()
-        self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
-                                          self.proc_id)
-
-        self.model.to_gpu(self.device)
-        self.reporter = reporter_module.Reporter()
-        self.reporter.add_observer('main', self.model)
-
-    def run(self):
-        from cupy.cuda import nccl
-        dev = cuda.Device(self.device)
-        dev.use()
-        self.setup()
-        gp = None
-        while True:
-            job, data = self.pipe.recv()
-            if job == 'finalize':
-                dev.synchronize()
-                break
-            if job == 'update':
-                # For reducing memory
-                self.model.cleargrads()
-
-                x = self.iterator.next()[0]
-                observation = {}
-                with self.reporter.scope(observation):
-                    loss = self.model(x)
-
-                self.model.cleargrads()
-                loss.backward()
-                loss.unchain_backward()
-
-                del loss
-
-                gg = gather_grads(self.model)
-                null_stream = cuda.Stream.null
-                self.comm.reduce(gg.data.ptr, gg.data.ptr, gg.size,
-                                 nccl.NCCL_FLOAT,
-                                 nccl.NCCL_SUM, 0,
-                                 null_stream.ptr)
-                del gg
-                self.model.cleargrads()
-                gp = gather_params(self.model)
-                self.comm.bcast(gp.data.ptr, gp.size,
-                                nccl.NCCL_FLOAT, 0,
-                                null_stream.ptr)
-                scatter_params(self.model, gp)
-                gp = None
-
-                delete_feat(x)
+        return xs, ilens, ys
 
 
 def train(args):
@@ -306,11 +242,10 @@ def train(args):
     # write model config
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
-    model_conf = args.outdir + '/model.conf'
+    model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
-        # TODO(watanabe) use others than pickle, possibly json, and save as a text
-        pickle.dump((idim, odim, args), f)
+        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -349,6 +284,7 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
+    converter = CustomConverter(e2e.subsample[0])
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -360,8 +296,8 @@ def train(args):
             n_processes=2, n_prefetch=8, maxtasksperchild=20)
 
         # set up updater
-        updater = ChainerSeqUpdaterKaldi(
-            train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
+        updater = CustomUpdater(
+            train_iter, optimizer, converter=converter, device=gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -388,8 +324,8 @@ def train(args):
             for gid in six.moves.xrange(ngpu)]
 
         # set up updater
-        updater = ChainerMultiProcessParallelUpdaterKaldi(
-            train_iters, optimizer, converter=converter_kaldi, devices=devices)
+        updater = CustomParallelUpdater(
+            train_iters, optimizer, converter=converter, devices=devices)
 
     # Set up a trainer
     trainer = training.Trainer(
@@ -406,16 +342,20 @@ def train(args):
         TransformDataset(valid, converter_kaldi),
         1, n_processes=2, n_prefetch=8, repeat=False, shuffle=False, maxtasksperchild=20)
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(valid_iter, model,
-                                        converter=lambda x, device: x[0],
-                                        device=gpu_id))
+    trainer.extend(extensions.Evaluator(
+        valid_iter, model, converter=converter, device=gpu_id))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        data = converter_kaldi(data, device=gpu_id)
-        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
+        if hasattr(model, "module"):
+            att_vis_fn = model.module.predictor.calculate_all_attentions
+        else:
+            att_vis_fn = model.predictor.calculate_all_attentions
+        trainer.extend(PlotAttentionReport(
+            att_vis_fn, data, args.outdir + "/att_ws",
+            converter=converter, device=gpu_id), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
@@ -487,7 +427,7 @@ def recog(args):
     # read training config
     with open(args.model_conf, "rb") as f:
         logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = pickle.load(f)
+        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
 
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
