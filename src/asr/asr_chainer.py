@@ -20,6 +20,8 @@ from chainer import cuda
 from chainer import training
 from chainer import Variable
 
+from chainer.datasets import TransformDataset
+
 from chainer.training import extensions
 from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
 from chainer.training.updaters.multiprocess_parallel_updater import gather_params
@@ -156,16 +158,16 @@ class CustomConverter(object):
     def __init__(self, device, subsamping_factor=1):
         self.subsamping_factor = subsamping_factor
 
+    def transform(self, item):
+        return load_inputs_and_targets(item)
+
     def __call__(self, batch, device):
         # set device
         xp = cuda.cupy if device != -1 else np
 
         # batch should be located in list
         assert len(batch) == 1
-        batch = batch[0]
-
-        # load inputs and targets
-        xs, ys = load_inputs_and_targets(batch)
+        xs, ys = batch[0]
 
         # perform subsamping
         if self.subsamping_factor > 1:
@@ -292,7 +294,7 @@ def train(args):
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         train_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(train, converter_kaldi), 1,
+            TransformDataset(train, converter.transform), 1,
             n_processes=2, n_prefetch=8, maxtasksperchild=20)
 
         # set up updater
@@ -319,7 +321,7 @@ def train(args):
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         train_iters = [chainer.iterators.MultiprocessIterator(
-            TransformDataset(train_subsets[gid], converter_kaldi),
+            TransformDataset(train_subsets[gid], converter.transform),
             1, n_processes=2 * ngpu, n_prefetch=8, maxtasksperchild=20)
             for gid in six.moves.xrange(ngpu)]
 
@@ -339,7 +341,7 @@ def train(args):
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     valid_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(valid, converter_kaldi),
+        TransformDataset(valid, converter.transform),
         1, n_processes=2, n_prefetch=8, repeat=False, shuffle=False, maxtasksperchild=20)
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(

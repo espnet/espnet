@@ -135,13 +135,13 @@ class CustomConverter(object):
         self.subsamping_factor = subsamping_factor
         self.ignore_id = -1
 
+    def transform(self, item):
+        return load_inputs_and_targets(item)
+
     def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
-        batch = batch[0]
-
-        # load inputs and targets
-        xs, ys = load_inputs_and_targets(batch)
+        xs, ys = batch[0]
 
         # perform subsamping
         if self.subsamping_factor > 1:
@@ -241,6 +241,9 @@ def train(args):
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
+    # Setup a converter
+    converter = CustomConverter(e2e.subsample[0])
+
     # read json data
     with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
@@ -255,13 +258,14 @@ def train(args):
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
     train_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(train, converter_kaldi), 1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
+        TransformDataset(train, converter.transform),
+        1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
     valid_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(valid, converter_kaldi), 1, n_processes=2, n_prefetch=8,
+        TransformDataset(valid, converter.transform),
+        1, n_processes=2, n_prefetch=8,
         repeat=False, shuffle=False, maxtasksperchild=20)
 
     # Set up a trainer
-    converter = CustomConverter(e2e.subsample[0])
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     trainer = training.Trainer(
@@ -283,10 +287,6 @@ def train(args):
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-<<<<<<< HEAD
-        data = converter_kaldi(data, device=gpu_id)
-        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
-=======
         if hasattr(model, "module"):
             att_vis_fn = model.module.predictor.calculate_all_attentions
         else:
@@ -294,7 +294,6 @@ def train(args):
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=device), trigger=(1, 'epoch'))
->>>>>>> upstream/dev
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',

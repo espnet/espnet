@@ -59,11 +59,12 @@ def load_inputs_and_targets(batch, sort_in_outputs=False, use_speaker_embedding=
     :param bool use_speaker_embedding: whether to load speaker embedding vector
     :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
     :rtype: list of float ndarray
-    ireturn: list of target token id sequences [(T_1), (T_2), ..., (T_B)]
+    :return: list of target token id sequences [(T_1), (T_2), ..., (T_B)]
     :rtype: list of int ndarray
     :return: list of speaker embedding vectors (only if use_speaker_embedding = True)
     :rtype: list of float adarray
     """
+
     # load acoustic features and target sequence of token ids
     xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
     ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
@@ -221,7 +222,7 @@ class PlotAttentionReport(extension.Extension):
             os.makedirs(self.outdir)
 
     def __call__(self, trainer):
-        batch = self.converter([self.data], self.device)
+        batch = self.converter([self.converter.transform(self.data)], self.device)
         att_ws = self.att_vis_fn(*batch)
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
