@@ -63,6 +63,10 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # if you're not on the CLSP grid.
 datadir=/export/corpora4/IWSLT/iwslt-corpus
 
+# bpemode (unigram or bpe)
+# nbpe=300
+nbpe=10000
+bpemode=unigram
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -151,41 +155,43 @@ if [ ${stage} -le 1 ]; then
 fi
 
 # En
-dict=data/lang_1char/${train_set}_units.txt
-echo "dictionary (English, character): ${dict}"
+dict=data/lang_spm/${train_set}_${bpemode}${nbpe}_units.txt
+bpemodel=data/lang_spm/${train_set}_${bpemode}${nbpe}
+echo "dictionary (English, BPE): ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
-    # En, char
+    mkdir -p data/lang_spm/
+    # En, BPE
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    cut -f 2- -d" " data/${train_set}/text > data/lang_spm/input.txt
+    spm_train --input=data/lang_spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_spm/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set}_trim ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev}_trim ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
+        data/${train_set}_trim ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
+        data/${train_dev}_trim ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
-        data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
+            data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
     done
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 3)
-lmexpdir=exp/train_rnnlm_2layer_bs256_en
+lmexpdir=exp/train_rnnlm_2layer_bs256_en_${bpemode}${nbpe}
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train
+    lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 data/${train_dev}_trim/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmdatadir}/valid.txt
+    cut -f 2- -d" " data/${train_set}_trim/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
+    > ${lmdatadir}/train.txt
+    cut -f 2- -d" " data/${train_dev}_trim/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
+    > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -204,7 +210,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -226,8 +232,8 @@ if [ ${stage} -le 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -257,7 +263,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
 
         #### use CPU for decoding
         ngpu=0
@@ -266,7 +272,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
             --model-conf ${expdir}/results/model.conf  \
@@ -280,7 +286,7 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
