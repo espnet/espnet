@@ -5,8 +5,8 @@ WORKDIR /kaldi
 
 RUN cd src && \ 
     ./configure --shared --use-cuda=no && \
-    make depend && \
-    make all && \
+    make depend -j 4 && \
+    make all -j 4 && \
     find ./kaldi/src -name "*.o" -exec rm -f {} \; && \
     find ./kaldi/src -name "*.o" -exec rm -f {} \; 
 
