@@ -33,6 +33,8 @@ wav_scp=$dst/wav.scp; [[ -f "$wav_scp" ]] && rm $wav_scp
 trans_en=$dst/text_en; [[ -f "$trans_en" ]] && rm $trans_en
 trans_de=$dst/text_de; [[ -f "$trans_de" ]] && rm $trans_de
 utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
+spk2utt=$dst/spk2utt; [[ -f "$spk2utt" ]] && rm $spk2utt
+segments=$dst/segments; [[ -f "$segments" ]] && rm $segments
 
 n=`cat $yml | grep duration | wc -l`
 n_en=`cat $en | wc -l`
@@ -58,7 +60,7 @@ awk '{
     endt=offset+duration;
     printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
 }' ${dst}/.yaml1 > ${dst}/.yaml2
-# NOTE: Exclude short utterances (< 0.1s) in train and dev sets
+# NOTE: Exclude short utterances (< 0.1s)
 
 # awk '{
 #     duration=$3; offset=$5; spkid=$7;
@@ -74,21 +76,19 @@ awk '{
 #     endt=offset+duration+extendt;
 #     printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
 # }' ${dst}/.yaml1 > ${dst}/.yaml2
-# NOTE: Extend the lengths of short utterances (< 0.1s) rather than exclude them in test sets
+# NOTE: Extend the lengths of short utterances (< 0.1s) rather than exclude them
 
 cat $en > ${dst}/.en0
 cat $de > ${dst}/.de0
 
-# TODO(hirofumi): remove punctuation marks
-# cat ${dst}/.en0 | \
-#   sed -e 's/[][!?;-\"]//g' \
-# > ${dst}/.en1
-# cat ${dst}/.de0 | \
-#   sed -e 's/[][!?;-\"]//g' \
-# > ${dst}/.de1
+# local/fix_trans.py ${dst}/.de0
 
-cat $en > ${dst}/.en1
-cat $de > ${dst}/.de1
+# Remove punctuation marks
+local/fix_trans.py ${dst}/.en0 > ${dst}/.en1
+local/fix_trans.py ${dst}/.de0 > ${dst}/.de1
+
+# nkf -g ${dst}/.en1
+# nkf -g ${dst}/.de1
 
 n=`cat ${dst}/.yaml2 | wc -l`
 n_en=`cat ${dst}/.en1 | wc -l`
@@ -97,8 +97,10 @@ n_de=`cat ${dst}/.de1 | wc -l`
 [ $n -ne $n_de ] && echo "Warning: expected $n data data files, found $n_de" && exit 1;
 
 paste --delimiters " " ${dst}/.yaml2 ${dst}/.en1 | awk '{ print tolower($0) }' | sort > $dst/text_en
-paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{ print tolower($0) }' | sort | nkf -e > $dst/text_de
+paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{ print tolower($0) }' | sort > $dst/text_de
 
+
+local/fix_trans.py $dst/text_de > ${dst}/.de2
 
 # (1c) Make segments files from transcript
 #segments file format is: utt-id start-time end-time, e.g.:
