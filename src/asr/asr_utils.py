@@ -295,7 +295,13 @@ class AttributeDict(object):
         return self.obj.keys()
 
 
-def get_model_conf(model_path, conf_path):
+def get_model_conf(model_path, conf_path=None):
+    """Get model config information by reading a model config file (model.json)
+
+    :param str model_path: model path
+    :param str conf_path: optional model config path
+    """
+
     if conf_path is None:
         model_conf = os.path.dirname(model_path) + '/model.json'
     else:
