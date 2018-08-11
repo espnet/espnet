@@ -42,7 +42,7 @@ def to_cuda(m, x):
     :rtype: torch.Tensor
     """
     assert isinstance(m, torch.nn.Module)
-    device = m.parameters().next().device
+    device = next(m.parameters()).device
     return x.to(device)
 
 
