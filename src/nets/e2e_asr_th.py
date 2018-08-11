@@ -102,7 +102,7 @@ class Loss(torch.nn.Module):
 
     def __init__(self, predictor, mtlalpha):
         super(Loss, self).__init__()
-        assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha shoule be [0.0, 1.0]"
+        assert 0.0 <= mtlalpha <= 1.0, "mtlalpha shoule be [0.0, 1.0]"
         self.mtlalpha = mtlalpha
         self.loss = None
         self.accuracy = None
