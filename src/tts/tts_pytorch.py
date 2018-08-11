@@ -33,10 +33,11 @@ matplotlib.use('Agg')
 class CustomEvaluator(extensions.Evaluator):
     '''CUSTOM EVALUATER FOR TACOTRON2 TRAINING'''
 
-    def __init__(self, model, iterator, target, converter):
+    def __init__(self, model, iterator, target, converter, device):
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
         self.converter = converter
+        self.device = device
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -59,8 +60,8 @@ class CustomEvaluator(extensions.Evaluator):
                 observation = {}
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
-                    batch = self.converter(batch)
-                    self.model(*batch)
+                    x = self.converter(batch, self.device)
+                    self.model(*x)
                 summary.add(observation)
         self.model.train()
 
@@ -70,11 +71,12 @@ class CustomEvaluator(extensions.Evaluator):
 class CustomUpdater(training.StandardUpdater):
     '''CUSTOM UPDATER FOR TACOTRON2 TRAINING'''
 
-    def __init__(self, model, grad_clip, train_iter, optimizer, converter):
+    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
+        self.device = device
         self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
 
     # The core part of the update routine can be customized by overriding.
@@ -85,10 +87,11 @@ class CustomUpdater(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
 
         # Get the next batch (a list of json files)
-        batch = self.converter(train_iter.next())
+        batch = train_iter.next()
+        x = self.converter(batch, self.device)
 
         # compute loss and gradient
-        loss = self.model(*batch)
+        loss = self.model(*x)
         optimizer.zero_grad()
         loss.backward()
 
@@ -104,18 +107,17 @@ class CustomUpdater(training.StandardUpdater):
 class CustomConverter(object):
     '''CUSTOM CONVERTER FOR TACOTRON2'''
 
-    def __init__(self, device, return_targets=True, use_speaker_embedding=False):
-        self.device = device
+    def __init__(self, return_targets=True, use_speaker_embedding=False):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
 
-    def __call__(self, batch):
+    def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
         batch = batch[0]
 
         # load inputs and targets
-        inputs_and_targets = load_inputs_and_targets(batch, self.use_speaker_embedding)
+        inputs_and_targets = load_inputs_and_targets(batch, True, self.use_speaker_embedding)
 
         # parse inputs and targets
         if len(inputs_and_targets) == 2:
@@ -126,15 +128,15 @@ class CustomConverter(object):
 
         # added eos into input sequence
         eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
-        ys = [np.append(y, eos) for y in ys]
+        xs = [np.append(x, eos) for x in xs]
 
         # get list of lengths (must be tensor for DataParallel)
-        ilens = torch.LongTensor([x.shape[0] for x in xs]).to(self.device)
-        olens = torch.LongTensor([y.shape[0] for y in ys]).to(self.device)
+        ilens = torch.LongTensor([x.shape[0] for x in xs]).to(device)
+        olens = torch.LongTensor([y.shape[0] for y in ys]).to(device)
 
         # perform padding and convert to tensor
-        xs = torch.LongTensor(pad_ndarray_list(xs, 0)).to(self.device)
-        ys = torch.FloatTensor(pad_ndarray_list(ys, 0)).to(self.device)
+        xs = torch.LongTensor(pad_ndarray_list(xs, 0)).to(device)
+        ys = torch.FloatTensor(pad_ndarray_list(ys, 0)).to(device)
 
         # make labels for stop prediction
         labels = ys.new_zeros(ys.size(0), ys.size(1))
@@ -143,7 +145,7 @@ class CustomConverter(object):
 
         # load speaker embedding
         if spembs is not None:
-            spembs = torch.FloatTensor(np.array(spembs)).to(self.device)
+            spembs = torch.FloatTensor(np.array(spembs)).to(device)
 
         if self.return_targets:
             return xs, ilens, ys, labels, olens, spembs
@@ -320,8 +322,8 @@ def train(args):
     valid_iter = chainer.iterators.SerialIterator(valid_batchset, 1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    converter = CustomConverter(device, True, args.use_speaker_embedding)
-    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter)
+    converter = CustomConverter(True, args.use_speaker_embedding)
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -332,7 +334,7 @@ def train(args):
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
@@ -347,7 +349,8 @@ def train(args):
             att_vis_fn = tacotron2.calculate_all_attentions
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + '/att_ws',
-            CustomConverter(device, False, args.use_speaker_embedding), True), trigger=(1, 'epoch'))
+            converter=CustomConverter(False, args.use_speaker_embedding),
+            device=device, reverse=True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
