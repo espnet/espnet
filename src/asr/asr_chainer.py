@@ -27,8 +27,8 @@ from chainer.training.updaters.multiprocess_parallel_updater import scatter_grad
 
 # espnet related
 from asr_utils import adadelta_eps_decay
-from asr_utils import AttributeDict
 from asr_utils import CompareValueTrigger
+from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
@@ -424,9 +424,7 @@ def recog(args):
     logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
 
     # read training config
-    with open(args.model_conf, "rb") as f:
-        logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
@@ -439,7 +437,8 @@ def recog(args):
 
     # read rnnlm
     if args.rnnlm:
-        rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(train_args.char_list), 650))
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(train_args.char_list), rnnlm_args.unit))
         chainer.serializers.load_npz(args.rnnlm, rnnlm)
     else:
         rnnlm = None
@@ -449,9 +448,10 @@ def recog(args):
             logging.error('word dictionary file is not specified for the word RNNLM.')
             sys.exit(1)
 
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), 650))
+        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), rnnlm_args.unit))
         chainer.serializers.load_npz(args.word_rnnlm, word_rnnlm)
 
         if rnnlm is not None:

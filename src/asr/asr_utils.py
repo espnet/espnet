@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import copy
+import json
 import logging
 import os
 
@@ -292,3 +293,13 @@ class AttributeDict(object):
 
     def keys(self):
         return self.obj.keys()
+
+
+def get_model_conf(model_path, conf_path):
+    if conf_path is None:
+        model_conf = os.path.dirname(model_path) + '/model.json'
+    else:
+        model_conf = conf_path
+    with open(model_conf, "rb") as f:
+        logging.info('reading a config file from' + model_conf)
+        return json.load(f, object_hook=AttributeDict)

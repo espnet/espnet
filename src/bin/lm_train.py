@@ -41,9 +41,9 @@ def main():
                         help='Verbose option')
     # task related
     parser.add_argument('--train-label', type=str, required=True,
-                        help='Filename of train label data (json)')
+                        help='Filename of train label data')
     parser.add_argument('--valid-label', type=str, required=True,
-                        help='Filename of validation label data (json)')
+                        help='Filename of validation label data')
     # LSTMLM training configuration
     parser.add_argument('--batchsize', '-b', type=int, default=2048,
                         help='Number of examples in each mini-batch')

@@ -23,8 +23,8 @@ import torch
 
 # spnet related
 from asr_utils import adadelta_eps_decay
-from asr_utils import AttributeDict
 from asr_utils import CompareValueTrigger
+from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
@@ -371,12 +371,7 @@ def recog(args):
     torch.manual_seed(args.seed)
 
     # read training config
-    with open(args.model_conf, "rb") as f:
-        logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
-
-    for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     # specify model architecture
     logging.info('reading model parameters from' + args.model)
@@ -399,8 +394,9 @@ def recog(args):
 
     # read rnnlm
     if args.rnnlm:
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(len(train_args.char_list), 650))
+            lm_pytorch.RNNLM(len(train_args.char_list), rnnlm_args.unit))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
         rnnlm.eval()
     else:
@@ -411,9 +407,10 @@ def recog(args):
             logging.error('word dictionary file is not specified for the word RNNLM.')
             sys.exit(1)
 
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), 650))
+        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), rnnlm_args.unit))
         word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
         word_rnnlm.eval()
 
