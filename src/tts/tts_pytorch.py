@@ -29,6 +29,8 @@ from e2e_tts_th import Tacotron2Loss
 import matplotlib
 matplotlib.use('Agg')
 
+REPORT_INTERVAL = 100
+
 
 class CustomEvaluator(extensions.Evaluator):
     '''CUSTOM EVALUATER FOR TACOTRON2 TRAINING'''
@@ -374,14 +376,14 @@ def train(args):
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'elapsed_time',
                    'main/loss', 'main/l1_loss',
                    'main/mse_loss', 'main/bce_loss',
                    'validation/main/loss', 'validation/main/l1_loss',
                    'validation/main/mse_loss', 'validation/main/bce_loss']
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(100, 'iteration'))
-    trainer.extend(extensions.ProgressBar())
+    trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
     # Run the training
     trainer.run()
