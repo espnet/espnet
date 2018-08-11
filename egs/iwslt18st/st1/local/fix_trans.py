@@ -10,8 +10,7 @@ import argparse
 import re
 import sys
 
-reload(sys)
-sys.setdefaultencoding('utf8')
+WHITESPACE = ' '
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -24,24 +23,24 @@ if __name__ == '__main__':
     else:
         f = sys.stdin
 
-    i = 0
     for line in f:
         x = unicode(line, 'utf_8').strip()
 
-        # Remove disallowed Unicode whitespaces :\x{0009}\x{000a}\x{0020}
-        x = x.replace(' ', ' ')
+        # Remove disallowed Unicode whitespaces other than \u0009,\u000a,\u0020
+        # x = x.replace(ur'\u0009', WHITESPACE)
+        # x = x.replace(ur'\u000a', WHITESPACE)
+        # x = x.replace(ur'\u0020', WHITESPACE)
+
+        # ted_2128_0054026_0054442 auf 40 kilowatt[stunden]  pro quadratmeter im jahr.
+        x = x.replace(' ', WHITESPACE)
+
+        # TODO(hirofumi): ted_1890_0010122_0011316 und obwohl es stimmt, dass afrika ein rauer ort ist, kenne ich es auch als einen ort, an dem menschen, tiere undÖkosysteme uns von einer verbundenen welt erzählen.
 
         # TODO(hirofumi): Remove punctuation marks here
 
-        # Remove other unnecessary marks
-        # x = x.replace('–', '')
-        # x = x.replace('—', '')  # different from above
-        # x = x.replace('…', '')
-        # x = x.replace('♪', '')
-        # x = x.replace('♫', '')
-        # [][!?;-\"
+        # TODO(hirofumi): Remove other unnecessary marks here
 
-        # Remove consecutive spaces
-        x = re.sub(r'[\s]+', ' ', x)
+        # Remove consecutive whitespaces
+        x = re.sub(r'[\s]+', WHITESPACE, x)
 
         print x.encode('utf-8')
