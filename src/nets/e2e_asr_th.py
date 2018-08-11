@@ -42,16 +42,14 @@ def to_cuda(m, x):
     :rtype: torch.Tensor
     """
     assert isinstance(m, torch.nn.Module)
-    device_id = torch.cuda.device_of(next(m.parameters()).data).idx
-    if device_id == -1:
-        return x
-    return x.cuda(device_id)
+    device = m.parameters().next().device
+    return x.to(device)
 
 
 def pad_list(xs, pad_value):
     """Function to pad values
 
-    :param list xs: list of torch.Tensor [(L1, D), (L2, D), ...]
+    :param list xs: list of torch.Tensor [(L_1, D), (L_2, D), ..., (L_B, D)]
     :param float pad_value: value for padding
     :return: padded tensor (B, Lmax, D)
     :rtype: torch.Tensor
@@ -96,8 +94,15 @@ class Reporter(chainer.Chain):
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
+    """Multi-task learning loss module
+
+    :param torch.nn.Module predictor: E2E model instance
+    :param float mtlalpha: mtl coefficient value (0.0 ~ 1.0)
+    """
+
     def __init__(self, predictor, mtlalpha):
         super(Loss, self).__init__()
+        assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha shoule be [0.0, 1.0]"
         self.mtlalpha = mtlalpha
         self.loss = None
         self.accuracy = None
@@ -105,7 +110,7 @@ class Loss(torch.nn.Module):
         self.reporter = Reporter()
 
     def forward(self, xs_pad, ilens, ys_pad):
-        '''Loss forward
+        '''Multi-task learning loss forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -139,6 +144,13 @@ class Loss(torch.nn.Module):
 
 
 class E2E(torch.nn.Module):
+    """E2E module
+
+    :param int idim: dimension of inputs
+    :param int odim: dimension of outputs
+    :param namespace args: argument namespace containing options
+    """
+
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
         self.etype = args.etype
@@ -303,10 +315,12 @@ class E2E(torch.nn.Module):
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E beam search
 
-        :param x:
-        :param recog_args:
-        :param char_list:
-        :return:
+        :param ndarray x: input acouctic feature (T, D)
+        :param namespace recog_args: argment namespace contraining options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
         '''
         prev = self.training
         self.eval()
@@ -357,6 +371,13 @@ class E2E(torch.nn.Module):
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
 class CTC(torch.nn.Module):
+    """CTC module
+
+    :param int odim: dimension of outputs
+    :param int eprojs: number of encoder projection units
+    :param float dropout_rate: dropout rate (0.0 ~ 1.0)
+    """
+
     def __init__(self, odim, eprojs, dropout_rate):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
@@ -403,8 +424,9 @@ class CTC(torch.nn.Module):
     def log_softmax(self, hs_pad):
         '''log_softmax of frame activations
 
-        :param hs:
-        :return:
+        :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
+        :return: log softmax applied 3d tensor (B, Tmax, odim)
+        :rtype: torch.Tensor
         '''
         return F.log_softmax(self.ctc_lo(hs_pad), dim=2)
 
@@ -430,14 +452,14 @@ class NoAtt(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''NoAtt forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, T_max, D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: dummy (does not use)
-        :param Tensor att_prev: dummy (does not use)
+        :param torch.Tensor dec_z: dummy (does not use)
+        :param torch.Tensor att_prev: dummy (does not use)
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: previous attentioin weights
-        :rtype: Tensor
+        :rtype: torch.Tensor
         '''
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
@@ -484,15 +506,15 @@ class AttDot(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttDot forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: dummy (does not use)
-        :param Tensor att_prev: dummy (does not use)
+        :param torch.Tensor dec_z: dummy (does not use)
+        :param torch.Tensor att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: previous attentioin weight (B x T_max)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         '''
 
         batch = enc_hs_pad.size(0)
@@ -548,15 +570,15 @@ class AttAdd(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: docoder hidden state (B x D_dec)
-        :param Tensor att_prev: dummy (does not use)
+        :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: previous attentioin weights (B x T_max)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         '''
 
         batch = len(enc_hs_pad)
@@ -628,15 +650,15 @@ class AttLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: docoder hidden state (B x D_dec)
-        :param Tensor att_prev: previous attetion weight (B x T_max)
+        :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: previous attetion weight (B x T_max)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: previous attentioin weights (B x T_max)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         '''
 
         batch = len(enc_hs_pad)
@@ -715,13 +737,13 @@ class AttCov(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
         '''AttCov forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: docoder hidden state (B x D_dec)
+        :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
         :param list att_prev_list: list of previous attetion weight
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: list of previous attentioin weights
         :rtype: list
         '''
@@ -810,15 +832,15 @@ class AttLoc2D(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc2D forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: docoder hidden state (B x D_dec)
-        :param Tensor att_prev: previous attetion weight (B x att_win x T_max)
+        :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: previous attetion weight (B x att_win x T_max)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: previous attentioin weights (B x att_win x T_max)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         '''
 
         batch = len(enc_hs_pad)
@@ -908,14 +930,14 @@ class AttLocRec(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_states, scaling=2.0):
         '''AttLocRec forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: docoder hidden state (B x D_dec)
+        :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
         :param tuple att_prev_states: previous attetion weight and lstm states
                                       ((B, T_max), ((B, att_dim), (B, att_dim)))
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: previous attention weights and lstm states (w, (hx, cx))
                  ((B, T_max), ((B, att_dim), (B, att_dim)))
         :rtype: tuple
@@ -1013,13 +1035,13 @@ class AttCovLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
         '''AttCovLoc forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: docoder hidden state (B x D_dec)
+        :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
         :param list att_prev_list: list of previous attetion weight
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: list of previous attentioin weights
         :rtype: list
         '''
@@ -1116,13 +1138,13 @@ class AttMultiHeadDot(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadDot forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: decoder hidden state (B x D_dec)
-        :param Tensor att_prev: dummy (does not use)
+        :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: list of previous attentioin weight (B x T_max) * aheads
         :rtype: list
         '''
@@ -1214,13 +1236,13 @@ class AttMultiHeadAdd(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadAdd forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: decoder hidden state (B x D_dec)
-        :param Tensor att_prev: dummy (does not use)
+        :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: dummy (does not use)
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: list of previous attentioin weight (B x T_max) * aheads
         :rtype: list
         '''
@@ -1319,13 +1341,13 @@ class AttMultiHeadLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttMultiHeadLoc forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: decoder hidden state (B x D_dec)
-        :param Tensor att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: list of previous attentioin weight (B x T_max) * aheads
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: list of previous attentioin weight (B x T_max) * aheads
         :rtype: list
         '''
@@ -1440,13 +1462,13 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadMultiResLoc forward
 
-        :param Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_h_len: padded encoder hidden state lenght (B)
-        :param Tensor dec_z: decoder hidden state (B x D_dec)
-        :param Tensor att_prev: list of previous attentioin weight (B x T_max) * aheads
+        :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: list of previous attentioin weight (B x T_max) * aheads
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B x D_enc)
-        :rtype: Tensor
+        :rtype: torch.Tensor
         :return: list of previous attentioin weight (B x T_max) * aheads
         :rtype: list
         '''
@@ -1504,6 +1526,21 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
+    """Decoder module
+
+    :param int eprojs: # encoder projection units
+    :param int odim: dimension of outputs
+    :param int dlayers: # decoder layers
+    :param int dunits: # decoder units
+    :param int sos: start of sequence symbol id
+    :param int eos: end of sequence symbol id
+    :param torch.nn.Module att: attention module
+    :param int verbose: verbose level
+    :param list char_list: list of character strings
+    :param ndarray labeldist: distribution of label smoothing
+    :param float lsm_weight: label smoothing weight
+    """
+
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0.):
         super(Decoder, self).__init__()
@@ -1629,10 +1666,13 @@ class Decoder(torch.nn.Module):
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         '''beam search implementation
 
-        :param Tensor h:
-        :param Namespace recog_args:
-        :param char_list:
-        :return:
+        :param torch.Tensor h: encoder hidden state (T, eprojs)
+        :param torch.Tensor lpz: ctc log softmax output (T, odim)
+        :param Namespace recog_args: argument namespace contraining options
+        :param char_list: list of character strings
+        :param torch.nn.Module rnnlm: language module
+        :return: N-best decoding results
+        :rtype: list of dicts
         '''
         logging.info('input lengths: ' + str(h.size(0)))
         # initialization
@@ -1872,19 +1912,16 @@ class Decoder(torch.nn.Module):
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
 class Encoder(torch.nn.Module):
-    '''ENCODER NETWORK CLASS
-
-    This is the example of docstring.
+    '''Encoder module
 
     :param str etype: type of encoder network
     :param int idim: number of dimensions of encoder network
     :param int elayers: number of layers of encoder network
     :param int eunits: number of lstm units of encoder network
     :param int epojs: number of projection units of encoder network
-    :param str subsample: subsampling number e.g. 1_2_2_2_1
+    :param list subsample: list of subsampling numbers
     :param float dropout: dropout rate
-    :return:
-
+    :param int in_channel: number of input channels
     '''
 
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
@@ -1942,6 +1979,16 @@ class Encoder(torch.nn.Module):
 
 
 class BLSTMP(torch.nn.Module):
+    """Bidirectional LSTM with projection layer module
+
+    :param int idim: dimension of inputs
+    :param int elayers: number of encoder layers
+    :param int cdim: number of lstm units (resulted in cdim * 2 due to biderectional)
+    :param int hdim: number of projection units
+    :param list subsample: list of subsampling numbers
+    :param float dropout: dropout rate
+    """
+
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
         for i in six.moves.range(elayers):
@@ -1961,9 +2008,10 @@ class BLSTMP(torch.nn.Module):
     def forward(self, xs_pad, ilens):
         '''BLSTMP forward
 
-        :param xs:
-        :param ilens:
-        :return:
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :return: batch of hidden state sequences (B, Tmax, hdim)
+        :rtype: torch.Tensor
         '''
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         for layer in six.moves.range(self.elayers):
@@ -1986,6 +2034,16 @@ class BLSTMP(torch.nn.Module):
 
 
 class BLSTM(torch.nn.Module):
+    """Bidirectional LSTM module
+
+    :param int idim: dimension of inputs
+    :param int elayers: number of encoder layers
+    :param int cdim: number of lstm units (resulted in cdim * 2 due to biderectional)
+    :param int hdim: number of final projection units
+    :param list subsample: list of subsampling numbers
+    :param float dropout: dropout rate
+    """
+
     def __init__(self, idim, elayers, cdim, hdim, dropout):
         super(BLSTM, self).__init__()
         self.nblstm = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
@@ -1995,9 +2053,10 @@ class BLSTM(torch.nn.Module):
     def forward(self, xs_pad, ilens):
         '''BLSTM forward
 
-        :param xs:
-        :param ilens:
-        :return:
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :return: batch of hidden state sequences (B, Tmax, erojs)
+        :rtype: torch.Tensor
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
@@ -2012,6 +2071,11 @@ class BLSTM(torch.nn.Module):
 
 
 class VGG2L(torch.nn.Module):
+    """VGG-like module
+
+    :param int in_channel: number of input channels
+    """
+
     def __init__(self, in_channel=1):
         super(VGG2L, self).__init__()
         # CNN layer (VGG motivated)
@@ -2025,9 +2089,10 @@ class VGG2L(torch.nn.Module):
     def forward(self, xs_pad, ilens):
         '''VGG2L forward
 
-        :param xs_pad:
-        :param ilens:
-        :return:
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :return: batch of padded hidden state sequences (B, Tmax // 4, 128)
+        :rtype: torch.Tensor
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
 
