@@ -8,9 +8,8 @@
 
 # general configuration
 backend=pytorch
-stage=0       # start from -1 if you need to start from data download
-gpu=            # will be deprecated, please use ngpu
-ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
+stage=0        # start from -1 if you need to start from data download
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -18,7 +17,7 @@ verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 
 # feature configuration
-do_delta=false # true when using CNN
+do_delta=false
 
 # network archtecture
 # encoder related
@@ -32,6 +31,7 @@ dlayers=1
 dunits=300
 # attention related
 atype=location
+adim=320
 aconv_chans=10
 aconv_filts=100
 
@@ -71,16 +71,6 @@ tag="" # tag for managing experiments.
 . ./path.sh
 . ./cmd.sh
 
-# check gpu option usage
-if [ ! -z $gpu ]; then
-    echo "WARNING: --gpu option will be deprecated."
-    echo "WARNING: please use --ngpu option."
-    if [ $gpu -eq -1 ]; then
-        ngpu=0
-    else
-        ngpu=1
-    fi
-fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -116,7 +106,9 @@ if [ ${stage} -le 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${x}_de exp/make_fbank/${x} ${fbankdir}
+      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 data/${x}_de exp/make_fbank/${x} ${fbankdir}
+      # steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+      #     data/${x}_de exp/make_fbank/${x} ${fbankdir}
     done
 
     # remove utt having more than 3000 frames
@@ -152,7 +144,7 @@ fi
 
 # De
 dict=data/lang_1char/${train_set}_units.txt
-echo "dictionary (Germany, character): ${dict}"
+echo "dictionary (German, character): ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
@@ -171,12 +163,13 @@ if [ ${stage} -le 2 ]; then
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
-        data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 3)
 lmexpdir=exp/train_rnnlm_2layer_bs256_de
+# lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_de
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
@@ -205,11 +198,13 @@ fi
 
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    # expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
 else
     expdir=exp/${train_set}_${tag}
+    # expdir=exp/${train_set}_${backend}_${tag}
 fi
 mkdir -p ${expdir}
 
@@ -236,6 +231,7 @@ if [ ${stage} -le 4 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
+        --adim ${adim} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
