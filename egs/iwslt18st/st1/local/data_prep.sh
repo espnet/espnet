@@ -45,8 +45,7 @@ n_de=`cat $de | wc -l`
 
 # (1a) Transcriptions preparation
 # make basic transcription file (add segments info)
-
-##e.g A01F0055_0172 00380.213 00385.951 => A01F0055_0380213_0385951
+##e.g ted_0001_0172 003.501 0003.684 => ted_0001_0003501_0003684
 cat $yml | grep duration > ${dst}/.yaml1
 awk '{
     duration=$3; offset=$5; spkid=$7;
@@ -81,14 +80,9 @@ awk '{
 cat $en > ${dst}/.en0
 cat $de > ${dst}/.de0
 
-# local/fix_trans.py ${dst}/.de0
-
-# Remove punctuation marks
+# Text normalization
 local/fix_trans.py ${dst}/.en0 > ${dst}/.en1
 local/fix_trans.py ${dst}/.de0 > ${dst}/.de1
-
-# nkf -g ${dst}/.en1
-# nkf -g ${dst}/.de1
 
 n=`cat ${dst}/.yaml2 | wc -l`
 n_en=`cat ${dst}/.en1 | wc -l`
@@ -100,11 +94,9 @@ paste --delimiters " " ${dst}/.yaml2 ${dst}/.en1 | awk '{ print tolower($0) }' |
 paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{ print tolower($0) }' | sort > $dst/text_de
 
 
-local/fix_trans.py $dst/text_de > ${dst}/.de2
-
 # (1c) Make segments files from transcript
 #segments file format is: utt-id start-time end-time, e.g.:
-#A01F0055_0380213_0385951 => A01F0055_0380213_0385951 A01F0055 00380.213 00385.951
+#ted_0001_0003501_0003684 => ted_0001_0003501_0003684 ted_0001 003.501 0003.684
 awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2]; startf=S[3]; endf=S[4];
