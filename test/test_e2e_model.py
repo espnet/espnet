@@ -29,6 +29,7 @@ def make_arg(**kwargs):
         mtlalpha=0.5,
         lsm_type="",
         lsm_weight=0.0,
+        scheduled_sampling_ratio=0.0,
         adim=320,
         dropout_rate=0.0,
         nbest=5,
