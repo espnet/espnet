@@ -26,11 +26,6 @@ if __name__ == '__main__':
     for line in f:
         x = unicode(line, 'utf_8').strip()
 
-        # Remove disallowed Unicode whitespaces other than \u0009,\u000a,\u0020
-        # x = x.replace(ur'\u0009', WHITESPACE)
-        # x = x.replace(ur'\u000a', WHITESPACE)
-        # x = x.replace(ur'\u0020', WHITESPACE)
-
         # ted_2128_0054026_0054442 auf 40 kilowatt[stunden]  pro quadratmeter im jahr.
         x = x.replace(' ', WHITESPACE)
 
