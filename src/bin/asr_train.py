@@ -105,6 +105,9 @@ def main():
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
+    parser.add_argument('--scheduled-sampling-ratio', default=0.0, type=float,
+                        help='Ratio of predicted labels fed back to decoder')
+
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
@@ -174,6 +177,18 @@ def main():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+            elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]):
+                command='nvidia-smi --query-gpu=memory.free,memory.total \
+                    --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1/$3 > 0.98) print NR-1}\''
+                try:
+                    cvd = str(subprocess.check_output(command, shell=True).rsplit('\n')[0:args.ngpu])
+                    cvd = cvd.replace("]","")
+                    cvd = cvd.replace("[","")
+                    cvd = cvd.replace("'","")
+                    logging.warn(cvd)
+                    os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+                except subprocess.CalledProcessError:
+                    logging.info("No GPU seems to be available")
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
