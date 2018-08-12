@@ -36,7 +36,7 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.5
+mtlalpha=0
 
 # minibatch related
 batchsize=50
@@ -45,17 +45,17 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=20
 
 # rnnlm related
 lm_weight=0.3
 
 # decoding parameter
-beam_size=20
+beam_size=8
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.3
+ctc_weight=0
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # Set this to somewhere where you want to put your data, or where
@@ -98,7 +98,7 @@ if [ ${stage} -le 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
     for part in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
-        local/data_prep.sh ${datadir} data/local/${part}
+        local/data_prep.sh ${datadir} ${part}
     done
 fi
 
@@ -156,7 +156,7 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_spm/
     # De, BPE
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cut -f 2- -d" " data/${train_set}_trim/text > data/lang_spm/input.txt
+    cut -f 2- -d " " data/${train_set}_trim/text > data/lang_spm/input.txt
     spm_train --input=data/lang_spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_spm/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
@@ -174,16 +174,15 @@ if [ ${stage} -le 2 ]; then
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 3)
-lmexpdir=exp/train_rnnlm_2layer_bs256_de_${bpemode}${nbpe}
-# lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_en_${bpemode}${nbpe}
+lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_en_${bpemode}${nbpe}
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
-    cut -f 2- -d" " data/${train_set}_trim/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
+    cut -f 2- -d " " data/${train_set}_trim/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
     > ${lmdatadir}/train.txt
-    cut -f 2- -d" " data/${train_dev}_trim/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
+    cut -f 2- -d " " data/${train_dev}_trim/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
     > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
@@ -197,20 +196,18 @@ if [ ${stage} -le 3 ]; then
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-        --epoch 60 \
+        --epoch 100 \
         --batchsize 256 \
         --dict ${dict}
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
-    # expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
 else
-    expdir=exp/${train_set}_${tag}
-    # expdir=exp/${train_set}_${backend}_${tag}
+    expdir=exp/${train_set}_${backend}_${tag}
 fi
 mkdir -p ${expdir}
 
@@ -282,8 +279,9 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
+        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+
         # TODO(hirofumi): evaluate by BLEU
-        # score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
