@@ -307,5 +307,5 @@ def get_model_conf(model_path, conf_path=None):
     else:
         model_conf = conf_path
     with open(model_conf, "rb") as f:
-        logging.info('reading a config file from' + model_conf)
+        logging.info('reading a config file from ' + model_conf)
         return json.load(f, object_hook=AttributeDict)

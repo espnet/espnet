@@ -374,7 +374,7 @@ def recog(args):
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     # specify model architecture
-    logging.info('reading model parameters from' + args.model)
+    logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
 
@@ -407,7 +407,7 @@ def recog(args):
             logging.error('word dictionary file is not specified for the word RNNLM.')
             sys.exit(1)
 
-        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        rnnlm_args = get_model_conf(args.word_rnnlm, args.rnnlm_conf)
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), rnnlm_args.unit))

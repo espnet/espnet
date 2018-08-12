@@ -430,7 +430,7 @@ def recog(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # specify model architecture
-    logging.info('reading model parameters from' + args.model)
+    logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
     chainer.serializers.load_npz(args.model, model)
@@ -448,7 +448,7 @@ def recog(args):
             logging.error('word dictionary file is not specified for the word RNNLM.')
             sys.exit(1)
 
-        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        rnnlm_args = get_model_conf(args.word_rnnlm, args.rnnlm_conf)
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), rnnlm_args.unit))
