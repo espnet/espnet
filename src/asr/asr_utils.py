@@ -94,29 +94,6 @@ def load_inputs_and_targets(batch, sort_in_outputs=False, use_speaker_embedding=
         return xs, ys
 
 
-def pad_ndarray_list(batch, pad_value):
-    """FUNCTION TO PERFORM PADDING OF NDARRAY LIST
-
-    :param list batch: list of the ndarray [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :param float pad_value: value to pad
-    :return: padded batch with the shape (B, Tmax, D)
-    :rtype: ndarray
-    """
-    bs = len(batch)
-    maxlen = max([b.shape[0] for b in batch])
-    if len(batch[0].shape) >= 2:
-        batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
-    else:
-        batch_pad = np.zeros((bs, maxlen))
-    batch_pad.fill(pad_value)
-    for i, b in enumerate(batch):
-        batch_pad[i, :b.shape[0]] = b
-
-    del batch
-
-    return batch_pad
-
-
 # * -------------------- chainer extension related -------------------- *
 class CompareValueTrigger(object):
     '''Trigger invoked when key value getting bigger or lower than before

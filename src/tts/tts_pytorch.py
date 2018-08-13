@@ -21,8 +21,8 @@ import kaldi_io_py
 
 from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
-from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
+from e2e_asr_th import pad_list
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
 
@@ -129,25 +129,25 @@ class CustomConverter(object):
             ys, xs, spembs = inputs_and_targets
 
         # added eos into input sequence
-        eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
+        eos = int(batch[0][1]['output'][0]['shape'][1]) - 1
         xs = [np.append(x, eos) for x in xs]
 
         # get list of lengths (must be tensor for DataParallel)
-        ilens = torch.LongTensor([x.shape[0] for x in xs]).to(device)
-        olens = torch.LongTensor([y.shape[0] for y in ys]).to(device)
+        ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
+        olens = torch.from_numpy(np.array([y.shape[0] for y in ys])).long().to(device)
 
-        # perform padding and convert to tensor
-        xs = torch.LongTensor(pad_ndarray_list(xs, 0)).to(device)
-        ys = torch.FloatTensor(pad_ndarray_list(ys, 0)).to(device)
+        # perform padding and conversion to tensor
+        xs = pad_list([torch.from_numpy(x).long() for x in xs], 0).to(device)
+        ys = pad_list([torch.from_numpy(y).float() for y in ys], 0).to(device)
 
         # make labels for stop prediction
         labels = ys.new_zeros(ys.size(0), ys.size(1))
         for i, l in enumerate(olens):
-            labels[i, l - 1:] = 1
+            labels[i, l - 1:] = 1.0
 
         # load speaker embedding
         if spembs is not None:
-            spembs = torch.FloatTensor(np.array(spembs)).to(device)
+            spembs = torch.from_numpy(np.array(spembs)).float().to(device)
 
         if self.return_targets:
             return xs, ilens, ys, labels, olens, spembs
