@@ -3,7 +3,6 @@
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
 import argparse
 import logging
 import os
@@ -136,6 +135,9 @@ def main():
                         help='Number of samples of attention to be saved')
     parser.add_argument('--phoneme_objective_weight', default=0.0, type=float,
                         help='Train with an additional phoneme transcription objective if weight > 0')
+    parser.add_argument('--phoneme_objective_layer', default=None, type=int,
+                        help='The layer of the BLSTM encoder to connect to the
+                        phoneme objective')
     args = parser.parse_args()
 
     # logging info

@@ -217,7 +217,8 @@ class E2E(torch.nn.Module):
 
         # encoder
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
-                           self.subsample, args.dropout_rate)
+                           self.subsample, args.dropout_rate,
+                           phoneme_objective_layer=args.phoneme_objective_layer)
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
         # Phoneme CTC objective
@@ -358,7 +359,7 @@ class E2E(torch.nn.Module):
         # 5. Phoneme loss
         loss_phn = None
         if self.phoneme_objective_weight > 0.0:
-            loss_phn = self.phn_ctc(hpad, hlens, phoneme_ys)
+            loss_phn = self.phn_ctc(self.enc.phoneme_layer_hpad, hlens, phoneme_ys)
 
         return loss_ctc, loss_att, loss_phn, acc
 
@@ -2165,7 +2166,9 @@ class Encoder(torch.nn.Module):
 
     '''
 
-    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
+    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample,
+                 dropout, in_channel=1,
+                 phoneme_objective_layer=None):
         super(Encoder, self).__init__()
 
         if etype == 'blstm':
@@ -2173,7 +2176,8 @@ class Encoder(torch.nn.Module):
             logging.info('BLSTM without projection for encoder')
         elif etype == 'blstmp':
             self.enc1 = BLSTMP(idim, elayers, eunits,
-                               eprojs, subsample, dropout)
+                               eprojs, subsample, dropout,
+                               phoneme_objective_layer=phoneme_objective_layer)
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
             self.enc1 = VGG2L(in_channel)
@@ -2219,7 +2223,8 @@ class Encoder(torch.nn.Module):
 
 
 class BLSTMP(torch.nn.Module):
-    def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
+    def __init__(self, idim, elayers, cdim, hdim, subsample, dropout,
+                 phoneme_objective_layer=None):
         super(BLSTMP, self).__init__()
         for i in six.moves.range(elayers):
             if i == 0:
@@ -2244,6 +2249,7 @@ class BLSTMP(torch.nn.Module):
         '''
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         for layer in six.moves.range(self.elayers):
+            logging.info('layer ' + str(layer))
             xpack = pack_padded_sequence(xpad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
             bilstm.flatten_parameters()
@@ -2258,10 +2264,13 @@ class BLSTMP(torch.nn.Module):
             projected = getattr(self, 'bt' + str(layer)
                                 )(ypad.contiguous().view(-1, ypad.size(2)))
             xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
+            if layer == phoneme_objective_layer:
+                # If we want the phoneme objective to be based on one of the
+                # earlier layers, then store this for later use.
+                self.phoneme_layer_hpad = xpad
             del hy, cy
 
         return xpad, ilens  # x: utt list of frame x dim
-
 
 class BLSTM(torch.nn.Module):
     def __init__(self, idim, elayers, cdim, hdim, dropout):
