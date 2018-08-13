@@ -8,9 +8,9 @@ import torch
 
 from argparse import Namespace
 
+from e2e_asr_th import pad_list
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
-from tts_pytorch import pad_ndarray_list
 
 
 def make_model_args(**kwargs):
@@ -89,10 +89,10 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     odim = 10
     ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
     olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
-    xs = pad_ndarray_list([np.random.randint(0, idim, l) for l in ilens], 0)
-    ys = pad_ndarray_list([np.random.randn(l, odim) for l in olens], 0)
-    xs = torch.LongTensor(xs)
-    ys = torch.FloatTensor(ys)
+    xs = [np.random.randint(0, idim, l) for l in ilens]
+    ys = [np.random.randn(l, odim) for l in olens]
+    xs = pad_list([torch.from_numpy(x).long() for x in xs], 0)
+    ys = pad_list([torch.from_numpy(y).float() for y in ys], 0)
     labels = ys.new_zeros(ys.size(0), ys.size(1))
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
@@ -147,11 +147,11 @@ def test_tacotron2_with_speaker_embedding_trainable_and_decodable(model_dict, lo
     spk_embed_dim = 128
     ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
     olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
-    xs = pad_ndarray_list([np.random.randint(0, idim, l) for l in ilens], 0)
-    ys = pad_ndarray_list([np.random.randn(l, odim) for l in olens], 0)
-    xs = torch.LongTensor(xs)
-    ys = torch.FloatTensor(ys)
-    spembs = torch.FloatTensor(np.random.randn(bs, spk_embed_dim))
+    xs = [np.random.randint(0, idim, l) for l in ilens]
+    ys = [np.random.randn(l, odim) for l in olens]
+    xs = pad_list([torch.from_numpy(x).long() for x in xs], 0)
+    ys = pad_list([torch.from_numpy(y).float() for y in ys], 0)
+    spembs = torch.from_numpy(np.random.randn(bs, spk_embed_dim)).float()
     labels = ys.new_zeros(ys.size(0), ys.size(1))
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
