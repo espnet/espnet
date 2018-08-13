@@ -30,6 +30,16 @@ if ! [[ -n ${docker_image}  ]]; then
   (docker build ${build_args} -f ${docker_file} -t ${image_label} .) || exit 1
 fi
 
+
+vols="-v ${PWD}/egs:/espnet/egs -v ${PWD}/src:/espnet/src -v ${PWD}/test:/espnet/test"
+if [ ! -z "${docker_folders}" ]; then
+  docker_folders=$(echo ${docker_folders} | tr "," "\n")
+  for i in ${docker_folders[@]}
+  do
+    vols=${vols}" -v $i:$i";
+  done
+fi
+
 # Test if link to kaldi_io.py has been created
 if ! [[ -L ./src/utils/kaldi_io_py.py ]]; then
   my_dir=${PWD}

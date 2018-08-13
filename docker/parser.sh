@@ -35,8 +35,8 @@ if [ -z "${docker_egs}" ]; then
   exit 1
 fi
 
-if [ ${docker_prebuilt} eq 1 ]; then
-  from_image="fhrozen/dev_espnet:cpu"
+if [ ${docker_prebuilt} -eq 1 ]; then
+  from_image="espnet/dev_espnet:cpu"
   image_label="espnet:ubuntu16.04"
   if [ ! "${docker_gpu}" == "-1" ]; then
     if [ -z "${docker_cuda}" ]; then
@@ -45,10 +45,10 @@ if [ ${docker_prebuilt} eq 1 ]; then
     else 
       if [ -z "${docker_cudnn}" ]; then
         image_label="espnet:cuda${docker_cuda}-ubuntu16.04"
-        from_image="fhrozen/dev_espnet:cuda${docker_cuda}"
+        from_image="espnet/dev_espnet:cuda${docker_cuda}"
       else
         image_label="espnet:cuda${docker_cuda}-cudnn${docker_cudnn}-ubuntu16.04"
-        from_image="fhrozen/dev_espnet:cuda${docker_cuda}-cudnn${docker_cudnn}"
+        from_image="espnet/dev_espnet:cuda${docker_cuda}-cudnn${docker_cudnn}"
       fi
     fi
   fi   
@@ -88,23 +88,14 @@ fi
 echo "Using image ${from_image}."
 docker_image=$( docker images -q ${image_label} ) 
 
-
-vols="-v ${PWD}/egs:/espnet/egs -v ${PWD}/src:/espnet/src -v ${PWD}/test:/espnet/test"
-if [ ! -z "${docker_folders}" ]; then
-  docker_folders=$(echo ${docker_folders} | tr "," "\n")
-  for i in ${docker_folders[@]}
-  do
-    vols=${vols}" -v $i:$i";
-  done
-fi
-
+this_time="$(date '+%Y%m%dT%H%M')"
 if [ "${docker_gpu}" == "-1" ]; then
   cmd0="docker"
-  container_name="espnet_cpu"
+  container_name="espnet_cpu_${this_time}"
 else
   # --rm erase the container when the training is finished.
-  container_name="espnet_gpu${docker_gpu//,/_}"
   cmd0="NV_GPU='${docker_gpu}' nvidia-docker"
+  container_name="espnet_gpu${docker_gpu//,/_}_${this_time}"
 fi
 
 true; # so this script returns exit code 0.

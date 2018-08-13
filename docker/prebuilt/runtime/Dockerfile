@@ -1,6 +1,11 @@
 FROM ubuntu:16.04
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
+ENV DOCKER_BUILT_VER 18.06.0-ce
+
+ARG NUM_BUILD_CORES=8
+ENV NUM_BUILD_CORES ${NUM_BUILD_CORES}
+
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-install-recommends \ 
         automake \
         autoconf \
@@ -62,3 +67,28 @@ RUN curl -fSsL -O https://bootstrap.pypa.io/get-pip.py && \
 RUN pip install -U virtualenv
 
 RUN git clone https://github.com/kaldi-asr/kaldi
+
+# Install Kaldi
+WORKDIR /kaldi
+
+RUN cd tools && \
+    make all && \
+    rm -r openfst-*/src && \
+    ./extras/install_beamformit.sh
+
+RUN cd src && \
+    ./configure --shared --use-cuda=no && \
+    make depend -j${NUM_BUILD_CORES} && \
+    make -j${NUM_BUILD_CORES} && \
+    find /kaldi/src -name "*.o" -exec rm -f {} \; && \
+    find /kaldi/src -name "*.o" -exec rm -f {} \; 
+
+RUN mkdir -p /espnet/tools 
+
+WORKDIR /espnet/tools
+
+RUN wget https://raw.githubusercontent.com/espnet/espnet/master/tools/Makefile && \
+    wget https://raw.githubusercontent.com/espnet/espnet/master/tools/requirements.txt && \
+    wget https://github.com/espnet/espnet/blob/master/tools/test_requirements.txt
+
+WORKDIR /
