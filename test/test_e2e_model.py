@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 import torch
 
-from asr_utils import pad_ndarray_list
+from e2e_asr_th import pad_list
 
 
 def make_arg(**kwargs):
@@ -64,9 +64,9 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3]):
         return xs, ilens, ys
 
     elif mode == "pytorch":
-        xs_pad = torch.FloatTensor(pad_ndarray_list(xs, 0.0))
-        ilens = torch.LongTensor(ilens)
-        ys_pad = torch.LongTensor(pad_ndarray_list(ys, -1))
+        ilens = torch.from_numpy(ilens).long()
+        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
+        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
 
         return xs_pad, ilens, ys_pad
     else:

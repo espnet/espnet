@@ -28,11 +28,11 @@ from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
-from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_th import E2E
 from e2e_asr_th import Loss
+from e2e_asr_th import pad_list
 
 # for kaldi io
 import kaldi_io_py
@@ -43,6 +43,7 @@ import lm_pytorch
 
 # matplotlib related
 import matplotlib
+import numpy as np
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
@@ -149,14 +150,12 @@ class CustomConverter(object):
             xs = [x[::self.subsampling_factor, :] for x in xs]
 
         # get batch of lengths of input sequences
-        ilens = [x.shape[0] for x in xs]
+        ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
-        xs_pad = pad_ndarray_list(xs, 0.0)
-        xs_pad = torch.FloatTensor(xs_pad).to(device)
-        ilens = torch.LongTensor(ilens).to(device)
-        ys_pad = pad_ndarray_list(ys, self.ignore_id)
-        ys_pad = torch.LongTensor(ys_pad).to(device)
+        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+        ilens = torch.from_numpy(ilens).to(device)
+        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
