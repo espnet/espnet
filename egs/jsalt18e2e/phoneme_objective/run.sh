@@ -388,7 +388,8 @@ if [ ${stage} -le 4 ]; then
             &
         wait
 
-        score_sclite.sh --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict} grapheme
+        score_sclite.sh --nlsyms ${nlsyms} --wer false ${expdir}/${decode_dir} ${dict}.phn phn
 
     ) &
     done

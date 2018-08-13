@@ -2070,6 +2070,10 @@ class Decoder(torch.nn.Module):
 
         nbest_hyps = sorted(
             ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+        if len(nbest_hyps) == 0:
+           logging.warn('there is no nbest results, re-decode with less small minlenratio.')
+           recog_args.minlenratio = max(0.0, recog_args.minlenratio - 0.05)
+           return self.recognize_beam(h, lpz, recog_args, char_list, rnnlm)
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 

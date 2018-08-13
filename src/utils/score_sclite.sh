@@ -14,7 +14,7 @@ filter=""
 
 . utils/parse_options.sh
 
-if [ $# != 2 ]; then
+if [ $# -lt 2 ]; then
     echo "Usage: $0 <data-dir> <dict> <output_type>";
     exit 1;
 fi
@@ -42,8 +42,8 @@ if [ ! -z ${filter} ]; then
     sed -i.bak3 -f ${filter} ${dir}/${hyptrn}
     sed -i.bak3 -f ${filter} ${dir}/${reftrn}
 fi
-    
-sclite -r ${dir}/${reftrn} trn -h ${dir}/${hyptrn} trn -i rm -o all stdout > ${dir}/result.txt
+
+sclite -r ${dir}/${reftrn} trn -h ${dir}/${hyptrn} trn -i rm -o all stdout > ${dir}/result.${output_type}.txt
 
 echo "write a CER (or TER) result in ${dir}/result.txt"
 grep -e Avg -e SPKR -m 2 ${dir}/result.txt
