@@ -45,6 +45,7 @@ aconv_filts=100
 # hybrid CTC/attention
 mtlalpha=0.0
 phoneme_objective_weight=0.5
+phoneme_objective_layer=""
 
 # minibatch related
 batchsize=50
@@ -317,6 +318,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
+    if [ ${phoneme_objective_layer} ]; then
+        expdir=${expdir}_phonemelayer${phoneme_objective_layer}
+    fi
 else
     expdir=exp/${train_set}_${tag}
 fi
@@ -353,7 +357,8 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --phoneme_objective_weight ${phoneme_objective_weight}
+        --phoneme_objective_weight ${phoneme_objective_weight} \
+        --phoneme_objective_layer ${phoneme_objective_layer}
 fi
 
 if [ ${stage} -le 4 ]; then

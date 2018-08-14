@@ -135,7 +135,7 @@ class Loss(torch.nn.Module):
         loss_ctc_data = None
         loss_att_data = None
         loss_phn_data = None
-        
+
         # If any of these losses are None from self.predictor, then we are not using them and can zero them.
         if loss_ctc is None:
             loss_ctc = 0
@@ -189,6 +189,12 @@ class E2E(torch.nn.Module):
         self.outdir = args.outdir
         self.mtlalpha = args.mtlalpha
         self.phoneme_objective_weight = args.phoneme_objective_weight
+        try:
+            self.phoneme_objective_layer = args.phoneme_objective_layer
+        except AttributeError:
+            # Then the model may have been trained before
+            # phoneme_objective_layers were an option
+            self.phoneme_objective_layer = None
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -218,7 +224,7 @@ class E2E(torch.nn.Module):
         # encoder
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                            self.subsample, args.dropout_rate,
-                           phoneme_objective_layer=args.phoneme_objective_layer)
+                           phoneme_objective_layer=self.phoneme_objective_layer)
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
         # Phoneme CTC objective
@@ -359,7 +365,10 @@ class E2E(torch.nn.Module):
         # 5. Phoneme loss
         loss_phn = None
         if self.phoneme_objective_weight > 0.0:
-            loss_phn = self.phn_ctc(self.enc.phoneme_layer_hpad, hlens, phoneme_ys)
+            if self.phoneme_objective_layer:
+                loss_phn = self.phn_ctc(self.enc.enc1.phoneme_layer_hpad, hlens, phoneme_ys)
+            else:
+                loss_phn = self.phn_ctc(hpad, hlens, phoneme_ys)
 
         return loss_ctc, loss_att, loss_phn, acc
 
@@ -2226,6 +2235,7 @@ class BLSTMP(torch.nn.Module):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout,
                  phoneme_objective_layer=None):
         super(BLSTMP, self).__init__()
+        self.phoneme_objective_layer = phoneme_objective_layer
         for i in six.moves.range(elayers):
             if i == 0:
                 inputdim = idim
@@ -2264,10 +2274,13 @@ class BLSTMP(torch.nn.Module):
             projected = getattr(self, 'bt' + str(layer)
                                 )(ypad.contiguous().view(-1, ypad.size(2)))
             xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
-            if layer == phoneme_objective_layer:
+            if layer == self.phoneme_objective_layer:
+                logging.info("layer " + str(layer) + " == " + str(self.phoneme_objective_layer) + ". Stashing hpad.")
                 # If we want the phoneme objective to be based on one of the
                 # earlier layers, then store this for later use.
                 self.phoneme_layer_hpad = xpad
+            else:
+                logging.info("layer " + str(layer) + " != " + str(self.phoneme_objective_layer) + ". Not stashing hpad.")
             del hy, cy
 
         return xpad, ilens  # x: utt list of frame x dim
