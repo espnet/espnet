@@ -19,15 +19,17 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
-from asr_utils import AttributeDict
+from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
-from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
+from e2e_asr_th import pad_list
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
 
 import matplotlib
 matplotlib.use('Agg')
+
+REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
@@ -127,25 +129,25 @@ class CustomConverter(object):
             ys, xs, spembs = inputs_and_targets
 
         # added eos into input sequence
-        eos = str(int(batch[0][1]['output'][0]['shape'][1]) - 1)
+        eos = int(batch[0][1]['output'][0]['shape'][1]) - 1
         xs = [np.append(x, eos) for x in xs]
 
         # get list of lengths (must be tensor for DataParallel)
-        ilens = torch.LongTensor([x.shape[0] for x in xs]).to(device)
-        olens = torch.LongTensor([y.shape[0] for y in ys]).to(device)
+        ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
+        olens = torch.from_numpy(np.array([y.shape[0] for y in ys])).long().to(device)
 
-        # perform padding and convert to tensor
-        xs = torch.LongTensor(pad_ndarray_list(xs, 0)).to(device)
-        ys = torch.FloatTensor(pad_ndarray_list(ys, 0)).to(device)
+        # perform padding and conversion to tensor
+        xs = pad_list([torch.from_numpy(x).long() for x in xs], 0).to(device)
+        ys = pad_list([torch.from_numpy(y).float() for y in ys], 0).to(device)
 
         # make labels for stop prediction
         labels = ys.new_zeros(ys.size(0), ys.size(1))
         for i, l in enumerate(olens):
-            labels[i, l - 1:] = 1
+            labels[i, l - 1:] = 1.0
 
         # load speaker embedding
         if spembs is not None:
-            spembs = torch.FloatTensor(np.array(spembs)).to(device)
+            spembs = torch.from_numpy(np.array(spembs)).float().to(device)
 
         if self.return_targets:
             return xs, ilens, ys, labels, olens, spembs
@@ -374,14 +376,14 @@ def train(args):
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'elapsed_time',
                    'main/loss', 'main/l1_loss',
                    'main/mse_loss', 'main/bce_loss',
                    'validation/main/loss', 'validation/main/l1_loss',
                    'validation/main/mse_loss', 'validation/main/bce_loss']
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(100, 'iteration'))
-    trainer.extend(extensions.ProgressBar())
+    trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
     # Run the training
     trainer.run()
@@ -390,9 +392,7 @@ def train(args):
 def decode(args):
     '''RUN DECODING'''
     # read training config
-    with open(args.model_conf, 'rb') as f:
-        logging.info('reading a model config file from ' + args.model_conf)
-        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     # show argments
     for key in sorted(vars(args).keys()):
