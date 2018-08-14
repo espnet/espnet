@@ -431,7 +431,7 @@ def train(args):
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
-        data = sorted(valid_json.items()[:args.num_save_attention],
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         trainer.extend(PlotAttentionReport(
             tacotron2, data, args.outdir + '/att_ws',
