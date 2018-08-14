@@ -29,8 +29,8 @@ from chainer.training.updaters.multiprocess_parallel_updater import scatter_grad
 
 # espnet related
 from asr_utils import adadelta_eps_decay
-from asr_utils import AttributeDict
 from asr_utils import CompareValueTrigger
+from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
@@ -50,6 +50,8 @@ import lm_chainer
 import matplotlib
 import numpy as np
 matplotlib.use('Agg')
+
+REPORT_INTERVAL = 100
 
 
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
@@ -246,7 +248,7 @@ def train(args):
         os.makedirs(args.outdir)
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to' + model_conf)
+        logging.info('writing a model config file to ' + model_conf)
         f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
@@ -360,7 +362,7 @@ def train(args):
             converter=converter, device=gpu_id), trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
-    trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -399,19 +401,19 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').eps),
-            trigger=(100, 'iteration'))
+            trigger=(REPORT_INTERVAL, 'iteration'))
         report_keys.append('eps')
     trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(100, 'iteration'))
+        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
-    trainer.extend(extensions.ProgressBar())
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
     # Run the training
     trainer.run()
@@ -427,22 +429,21 @@ def recog(args):
     logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
 
     # read training config
-    with open(args.model_conf, "rb") as f:
-        logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # specify model architecture
-    logging.info('reading model parameters from' + args.model)
+    logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
     chainer.serializers.load_npz(args.model, model)
 
     # read rnnlm
     if args.rnnlm:
-        rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(train_args.char_list), 650))
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(train_args.char_list), rnnlm_args.unit))
         chainer.serializers.load_npz(args.rnnlm, rnnlm)
     else:
         rnnlm = None
@@ -452,9 +453,10 @@ def recog(args):
             logging.error('word dictionary file is not specified for the word RNNLM.')
             sys.exit(1)
 
+        rnnlm_args = get_model_conf(args.word_rnnlm, args.rnnlm_conf)
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), 650))
+        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), rnnlm_args.unit))
         chainer.serializers.load_npz(args.word_rnnlm, word_rnnlm)
 
         if rnnlm is not None:

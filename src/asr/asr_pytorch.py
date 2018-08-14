@@ -24,16 +24,16 @@ import torch
 
 # spnet related
 from asr_utils import adadelta_eps_decay
-from asr_utils import AttributeDict
 from asr_utils import CompareValueTrigger
+from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
-from asr_utils import pad_ndarray_list
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_th import E2E
 from e2e_asr_th import Loss
+from e2e_asr_th import pad_list
 
 # for kaldi io
 import kaldi_io_py
@@ -44,7 +44,10 @@ import lm_pytorch
 
 # matplotlib related
 import matplotlib
+import numpy as np
 matplotlib.use('Agg')
+
+REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
@@ -148,14 +151,12 @@ class CustomConverter(object):
             xs = [x[::self.subsampling_factor, :] for x in xs]
 
         # get batch of lengths of input sequences
-        ilens = [x.shape[0] for x in xs]
+        ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
-        xs_pad = pad_ndarray_list(xs, 0.0)
-        xs_pad = torch.FloatTensor(xs_pad).to(device)
-        ilens = torch.LongTensor(ilens).to(device)
-        ys_pad = pad_ndarray_list(ys, self.ignore_id)
-        ys_pad = torch.LongTensor(ys_pad).to(device)
+        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+        ilens = torch.from_numpy(ilens).to(device)
+        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -212,7 +213,7 @@ def train(args):
         os.makedirs(args.outdir)
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to' + model_conf)
+        logging.info('writing a model config file to ' + model_conf)
         f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
@@ -352,19 +353,19 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
-            trigger=(100, 'iteration'))
+            trigger=(REPORT_INTERVAL, 'iteration'))
         report_keys.append('eps')
     trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(100, 'iteration'))
+        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
-    trainer.extend(extensions.ProgressBar())
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
     # Run the training
     trainer.run()
@@ -376,15 +377,10 @@ def recog(args):
     torch.manual_seed(args.seed)
 
     # read training config
-    with open(args.model_conf, "rb") as f:
-        logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
-
-    for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     # specify model architecture
-    logging.info('reading model parameters from' + args.model)
+    logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
 
@@ -404,8 +400,9 @@ def recog(args):
 
     # read rnnlm
     if args.rnnlm:
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(len(train_args.char_list), 650))
+            lm_pytorch.RNNLM(len(train_args.char_list), rnnlm_args.unit))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
         rnnlm.eval()
     else:
@@ -416,9 +413,10 @@ def recog(args):
             logging.error('word dictionary file is not specified for the word RNNLM.')
             sys.exit(1)
 
+        rnnlm_args = get_model_conf(args.word_rnnlm, args.rnnlm_conf)
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), 650))
+        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), rnnlm_args.unit))
         word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
         word_rnnlm.eval()
 

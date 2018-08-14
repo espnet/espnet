@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import copy
+import json
 import logging
 import os
 
@@ -92,29 +93,6 @@ def load_inputs_and_targets(batch, sort_in_outputs=False, use_speaker_embedding=
         return xs, ys, spembs
     else:
         return xs, ys
-
-
-def pad_ndarray_list(batch, pad_value):
-    """FUNCTION TO PERFORM PADDING OF NDARRAY LIST
-
-    :param list batch: list of the ndarray [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :param float pad_value: value to pad
-    :return: padded batch with the shape (B, Tmax, D)
-    :rtype: ndarray
-    """
-    bs = len(batch)
-    maxlen = max([b.shape[0] for b in batch])
-    if len(batch[0].shape) >= 2:
-        batch_pad = np.zeros((bs, maxlen) + batch[0].shape[1:])
-    else:
-        batch_pad = np.zeros((bs, maxlen))
-    batch_pad.fill(pad_value)
-    for i, b in enumerate(batch):
-        batch_pad[i, :b.shape[0]] = b
-
-    del batch
-
-    return batch_pad
 
 
 # * -------------------- chainer extension related -------------------- *
@@ -293,3 +271,19 @@ class AttributeDict(object):
 
     def keys(self):
         return self.obj.keys()
+
+
+def get_model_conf(model_path, conf_path=None):
+    """Get model config information by reading a model config file (model.json)
+
+    :param str model_path: model path
+    :param str conf_path: optional model config path
+    """
+
+    if conf_path is None:
+        model_conf = os.path.dirname(model_path) + '/model.json'
+    else:
+        model_conf = conf_path
+    with open(model_conf, "rb") as f:
+        logging.info('reading a config file from ' + model_conf)
+        return json.load(f, object_hook=AttributeDict)

@@ -36,7 +36,7 @@ def main():
     # model (parameter) related
     parser.add_argument('--model', type=str, required=True,
                         help='Model file parameters to read')
-    parser.add_argument('--model-conf', type=str, required=True,
+    parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
@@ -56,6 +56,8 @@ def main():
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
+    parser.add_argument('--rnnlm-conf', type=str, default=None,
+                        help='RNNLM model config file to read')
     parser.add_argument('--word-rnnlm', type=str, default=None,
                         help='Word RNNLM model file to read')
     parser.add_argument('--word-dict', type=str, default=None,
