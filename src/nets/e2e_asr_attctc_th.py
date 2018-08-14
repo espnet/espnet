@@ -252,7 +252,7 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight, args.scheduled_sampling_ratio)
+                           labeldist, args.lsm_weight, args.sampling_probability)
 
         # weight initialization
         self.init_like_chainer()
@@ -1651,7 +1651,7 @@ def th_accuracy(y_all, pad_target, ignore_label):
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., scheduled_sampling_ratio=0.0):
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -1674,7 +1674,7 @@ class Decoder(torch.nn.Module):
         self.labeldist = labeldist
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
-        self.scheduled_sampling_ratio = scheduled_sampling_ratio
+        self.sampling_probability = sampling_probability
 
     def zero_state(self, hpad):
         return Variable(hpad.data.new(hpad.size(0), self.dunits).zero_())
@@ -1723,7 +1723,7 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
-            if random.random() < self.scheduled_sampling_ratio:
+            if random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_list[0])
                 z_out = torch.max(F.log_softmax(z_out, dim=1), dim=1)[1]

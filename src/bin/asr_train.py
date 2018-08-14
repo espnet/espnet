@@ -105,7 +105,7 @@ def main():
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
-    parser.add_argument('--scheduled-sampling-ratio', default=0.0, type=float,
+    parser.add_argument('--sampling-probability', default=0.0, type=float,
                         help='Ratio of predicted labels fed back to decoder')
 
     # model (parameter) related
