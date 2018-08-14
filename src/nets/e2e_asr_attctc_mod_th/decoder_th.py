@@ -47,39 +47,42 @@ class Decoder(torch.nn.Module):
     '''
 
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., gen_feat='s',
+                 char_list=None, dropout=0, labeldist=None, lsm_weight=0., gen_feat='s',
                  rnnlm_cf=None, cf_type='',
-                 rnnlm_init=None, lm_loss_weight=0, internal_lm=False,
+                 rnnlm_init=None, internal_lm=False, lm_loss_weight=0,
                  share_softmax=False):
         super(Decoder, self).__init__()
 
-        # for decoder initialization with pre-trained RNNLM
+        # for decoder pretraining
         if rnnlm_init is not None:
-            assert internal_lm
+            internal_lm = True
+            assert rnnlm_init.predictor.n_layers == 1
             assert rnnlm_init.predictor.n_vocab == odim
-            assert rnnlm_init.predictor.n_units == dunits
-            assert rnnlm_init.predictor.n_layers == 1  # on-the-fly
         self.rnnlm_init = rnnlm_init
 
         # for MTL with RNNLM objective
         if lm_loss_weight > 0:
-            assert internal_lm
+            internal_lm = True
             if not share_softmax:
                 self.rnnlm_lo = torch.nn.Linear(dunits, odim)
         self.lm_loss_weight = lm_loss_weight
-        self.internal_lm = internal_lm
         self.share_softmax = share_softmax
+        self.internal_lm = internal_lm
 
         self.dunits = dunits
         self.dlayers = dlayers
         self.embed = torch.nn.Embedding(odim, dunits)
         self.decoder = torch.nn.ModuleList()
-        # self.decoder += [torch.nn.Dropout(p=dropout)]
         if internal_lm:
             # Internal LM
-            self.decoder_lm = torch.nn.LSTMCell(dunits, dunits)
-            # self.decoder += [torch.nn.Dropout(p=dropout)]
-            self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
+            if rnnlm_init is not None:
+                self.decoder_lm = torch.nn.LSTMCell(rnnlm_init.predictor.n_units, dunits)
+                # self.decoder += [torch.nn.Dropout(p=dropout)]
+                self.decoder += [torch.nn.LSTMCell(rnnlm_init.predictor.n_units + eprojs, dunits)]
+            else:
+                self.decoder_lm = torch.nn.LSTMCell(dunits, dunits)
+                # self.decoder += [torch.nn.Dropout(p=dropout)]
+                self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
             # self.decoder += [torch.nn.Dropout(p=dropout)]
         else:
             self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
@@ -88,7 +91,6 @@ class Decoder(torch.nn.Module):
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
             # self.decoder += [torch.nn.Dropout(p=dropout)]
         self.ignore_id = -1
-        # TODO(hirofumi): add dropout layer
 
         self.loss = None
         self.att = att
@@ -116,13 +118,13 @@ class Decoder(torch.nn.Module):
 
             if cf_type == 'hidden':
                 logging.info('Cold fusion w/o probability projection')
-                self.fc_lm_feat = torch.nn.Linear(rnnlm_cf.predictor.n_units, dunits)
+                self.mlp_cf_lm_feat = torch.nn.Linear(rnnlm_cf.predictor.n_units, dunits)
             elif cf_type == 'prob':
                 logging.info('Cold fusion w/ probability projection')
                 # probability projection
-                self.fc_lm_feat = torch.nn.Linear(rnnlm_cf.predictor.n_vocab, dunits)
-            self.fc_lm_gate = torch.nn.Linear(dunits * 2, dunits)
-            self.fc_bottle = torch.nn.Linear(dunits * 2, dunits)
+                self.mlp_cf_lm_feat = torch.nn.Linear(rnnlm_cf.predictor.n_vocab, dunits)
+            self.mlp_cf_lm_gate = torch.nn.Linear(dunits * 2, dunits)
+            self.mlp_cf_bottle = torch.nn.Linear(dunits * 2, dunits)
             self.output = torch.nn.Linear(dunits, odim)
 
             # fix RNNLM parameters
@@ -130,7 +132,7 @@ class Decoder(torch.nn.Module):
                 param.requires_grad = False
         else:
             if gen_feat == 'sc' and (share_softmax or rnnlm_init is not None):
-                self.fc_bottle = torch.nn.Linear(dunits + eprojs, dunits)
+                self.mlp_cf_bottle = torch.nn.Linear(dunits + eprojs, dunits)
                 self.output = torch.nn.Linear(dunits, odim)
             elif gen_feat == 'sc':
                 self.output = torch.nn.Linear(dunits + eprojs, odim)
@@ -216,25 +218,25 @@ class Decoder(torch.nn.Module):
             # cold fusion
             if self.cf_type:
                 if self.cf_type == 'hidden':
-                    lm_feat = self.fc_lm_feat(rnnlm_state['h' + str(self.rnnlm.predictor.n_layers)])
+                    lm_feat = self.mlp_cf_lm_feat(rnnlm_state['h' + str(self.rnnlm_cf.predictor.n_layers)])
                 elif self.cf_type == 'prob':
-                    lm_feat = self.fc_lm_feat(lm_logits)
+                    lm_feat = self.mlp_cf_lm_feat(lm_logits)
                 if self.gen_feat == 's':
                     dec_feat = z_list[-1]
                 elif self.gen_feat == 'sc':
                     dec_feat = torch.cat([z_list[-1], att_c], dim=-1)
                     dec_feat = self.fc_dec_feat(dec_feat)
-                gate = F.sigmoid(self.fc_lm_gate(torch.cat([dec_feat, lm_feat], dim=-1)))
+                gate = F.sigmoid(self.mlp_cf_lm_gate(torch.cat([dec_feat, lm_feat], dim=-1)))
                 gated_lm_feat = gate * lm_feat
                 z_step = torch.cat([dec_feat, gated_lm_feat], dim=-1)
-                z_step = self.fc_bottle(z_step)  # utt x dunits
+                z_step = self.mlp_cf_bottle(z_step)  # utt x dunits
             else:
                 if self.gen_feat == 's':
                     z_step = z_list[-1]  # utt x dunits
                 elif self.gen_feat == 'sc':
                     z_step = torch.cat([z_list[-1], att_c], dim=-1)  # utt x (zdim + hdim)
                     if self.share_softmax or self.rnnlm_init is not None:
-                        z_step = self.fc_bottle(z_step)  # utt x dunits
+                        z_step = self.mlp_cf_bottle(z_step)  # utt x dunits
 
             # residual connection
             if self.rnnlm_init is not None and self.internal_lm:
@@ -390,25 +392,25 @@ class Decoder(torch.nn.Module):
                 # cold fusion
                 if self.cf_type:
                     if self.cf_type == 'hidden':
-                        lm_feat = self.fc_lm_feat(rnnlm_state['h' + str(self.rnnlm.predictor.n_layers)])
+                        lm_feat = self.mlp_cf_lm_feat(rnnlm_state['h' + str(self.rnnlm_cf.predictor.n_layers)])
                     elif self.cf_type == 'prob':
-                        lm_feat = self.fc_lm_feat(lm_logits)
+                        lm_feat = self.mlp_cf_lm_feat(lm_logits)
                     if self.gen_feat == 's':
                         dec_feat = z_list[-1]
                     elif self.gen_feat == 'sc':
                         dec_feat = torch.cat([z_list[-1], att_c], dim=-1)
                         dec_feat = self.fc_dec_feat(dec_feat)
-                    gate = F.sigmoid(self.fc_lm_gate(torch.cat([dec_feat, lm_feat], dim=-1)))
+                    gate = F.sigmoid(self.mlp_cf_lm_gate(torch.cat([dec_feat, lm_feat], dim=-1)))
                     gated_lm_feat = gate * lm_feat
                     z_step = torch.cat([dec_feat, gated_lm_feat], dim=-1)
-                    z_step = self.fc_bottle(z_step)
+                    z_step = self.mlp_cf_bottle(z_step)
                 else:
                     if self.gen_feat == 's':
                         z_step = z_list[-1]
                     elif self.gen_feat == 'sc':
                         z_step = torch.cat([z_list[-1], att_c], dim=-1)
-                    if self.share_softmax or self.rnnlm_init is not None:
-                        z_step = self.fc_bottle(z_step)
+                        if self.share_softmax or self.rnnlm_init is not None:
+                            z_step = self.mlp_cf_bottle(z_step)
 
                 # residual connection
                 if self.rnnlm_init is not None and self.internal_lm:

@@ -237,7 +237,7 @@ def train(args):
 
     # load rnnlm for cold fusion
     if args.cf_type:
-        assert args.rnnlm_cf
+        assert args.rnnlm_cf is not None
         rnnlm_cf = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(odim, args.lm_unit, args.lm_layer))
         rnnlm_cf.load_state_dict(torch.load(args.rnnlm_cf, map_location=cpu_loader))
         # rnnlm_cf.eval()
@@ -245,7 +245,7 @@ def train(args):
         rnnlm_cf = None
 
     # load rnnlm for RNNLM initialization
-    if args.rnnlm_init:
+    if args.rnnlm_init is not None:
         rnnlm_init = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(odim, args.dunits, 1))
         rnnlm_init.load_state_dict(torch.load(args.rnnlm_init, map_location=cpu_loader))
     else:
@@ -323,9 +323,9 @@ def train(args):
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
         if ngpu > 1:
-            model.module.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         else:
-            model.load_state_dict(torch.load(args.outdir + '/model.acc.best'))
+            model.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
@@ -339,9 +339,6 @@ def train(args):
         data = converter_kaldi([data], device=gpu_id)
         trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
 
-    # Take a snapshot for each specified epoch
-    trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
-
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
@@ -354,13 +351,19 @@ def train(args):
     def torch_save(path, _):
         if ngpu > 1:
             torch.save(model.module.state_dict(), path)
-            torch.save(model.module, path + ".pkl")
         else:
             torch.save(model.state_dict(), path)
-            torch.save(model, path + ".pkl")
 
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+
+    # save snapshot to save the information of #interations or #epochs
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'),
+                   trigger=(1, 'epoch'))
+    # save model states
+    trainer.extend(extensions.snapshot_object(model, 'model.ep.{.updater.epoch}', savefun=torch_save),
+                   trigger=(1, 'epoch'))
+
     if mtl_mode is not 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
@@ -440,7 +443,7 @@ def recog(args):
     # read rnnlm for RNNLM initialization
     if train_args.rnnlm_init:
         rnnlm_init = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
-            len(train_args.char_list), train_args.dunits, 1))
+            len(train_args.char_list), 1024, 1))
         rnnlm_init.load_state_dict(torch.load(train_args.rnnlm_init, map_location=cpu_loader))
         rnnlm_init.eval()
     else:

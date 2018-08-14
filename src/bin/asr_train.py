@@ -113,13 +113,13 @@ def main():
                         help='Number of LSTM units in each layer')
     parser.add_argument('--lm_layer',  default=2, type=int,
                         help='Number of layers')
-    parser.add_argument('--rnnlm_cf', default='', type=str, nargs='?',
+    parser.add_argument('--rnnlm_cf', default=None, type=str, nargs='?',
                         help='RNNLM model file for cold fusion')
     parser.add_argument('--cf_type', default='', type=str, nargs='?',
                         choices=['hidden', 'prob', ''],
                         help='RNNLM features used for cold fusion')
     # RNNLM initialization, RNNLM objective related
-    parser.add_argument('--rnnlm_init', default='', type=str, nargs='?',
+    parser.add_argument('--rnnlm_init', default=None, type=str, nargs='?',
                         help='RNNLM model file to initialize the decoder')
     parser.add_argument('--lm_loss_weight', default=0, type=float, nargs='?',
                         help='Weight for RNNLM objective')

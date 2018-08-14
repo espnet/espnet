@@ -122,7 +122,6 @@ class BLSTMP(torch.nn.Module):
             setattr(self, 'd_bilstm' + str(i), torch.nn.Dropout(p=dropout))
             # bottleneck layer to merge
             setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
-            setattr(self, 'd_p' + str(i), torch.nn.Dropout(p=dropout))
 
         self.elayers = elayers
         self.cdim = cdim
@@ -153,7 +152,6 @@ class BLSTMP(torch.nn.Module):
             # (sum _utt frame_utt) x dim
             projected = getattr(self, 'bt' + str(layer)
                                 )(ypad.contiguous().view(-1, ypad.size(2)))
-            projected = getattr(self, 'd_p' + str(layer))(projected)
             xpad = torch.tanh(projected.view(ypad.size(0), ypad.size(1), -1))
             del hy, cy
 

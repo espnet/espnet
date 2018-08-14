@@ -56,7 +56,7 @@ def lecun_normal_init_parameters(module):
     for n, p in module.named_parameters():
         data = p.data
 
-        # Skip pre-trained RNNLM
+        # Skip pre-trained RNNLM for cold fusion
         if 'rnnlm_cf' in n:
             continue
 
@@ -171,7 +171,7 @@ def set_forget_bias_to_one(bias):
 
 
 class E2E(torch.nn.Module):
-    def __init__(self, idim, odim, args, rnnlm_cf, rnnlm_init):
+    def __init__(self, idim, odim, args, rnnlm_cf=None, rnnlm_init=None):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -251,9 +251,9 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight, args.gen_feat,
+                           args.dropout_rate, labeldist, args.lsm_weight, args.gen_feat,
                            rnnlm_cf, args.cf_type,
-                           rnnlm_init, args.lm_loss_weight, args.internal_lm,
+                           rnnlm_init, args.internal_lm, args.lm_loss_weight,
                            args.share_softmax)
         # TODO(hirofumi): add dropout
 
@@ -284,7 +284,8 @@ class E2E(torch.nn.Module):
         # forget-bias = 1.0
         # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
         for l in six.moves.range(len(self.dec.decoder)):
-            set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
+            if not isinstance(self.dec.decoder[l], torch.nn.Dropout):
+                set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
         # Initialize decoder with pre-trained RNNLM
         if self.dec.rnnlm_init is not None:
@@ -305,7 +306,7 @@ class E2E(torch.nn.Module):
 
         # Initialize bias in the gating part with -1
         if self.dec.cf_type:
-            self.dec.fc_lm_gate.bias.data.fill_(-1)
+            self.dec.mlp_cf_lm_gate.bias.data.fill_(-1)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def forward(self, data):
