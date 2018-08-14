@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
@@ -56,7 +56,7 @@ ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # scheduled sampling option
-samp_ratio=0.0
+samp_prob=0.0
 
 # data
 voxforge=downloads # original data directory to be stored
@@ -174,7 +174,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampratio${samp_ratio}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_epochs${epochs}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -213,7 +213,7 @@ if [ ${stage} -le 3 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --scheduled-sampling-ratio ${samp_ratio} \
+        --sampling-probability ${samp_prob} \
         --epochs ${epochs}
 fi
 

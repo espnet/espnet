@@ -54,6 +54,9 @@ maxlenratio=0.8
 minlenratio=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
+# scheduled sampling option
+samp_prob=0.0
+
 # data
 chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
 
@@ -192,7 +195,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -229,6 +232,7 @@ if [ ${stage} -le 3 ]; then
         --mtlalpha ${mtlalpha} \
         --batch-size ${batchsize} \
         --maxlen-in ${maxlen_in} \
+        --sampling-probability ${samp_prob} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
         --epochs ${epochs}
