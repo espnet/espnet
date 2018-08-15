@@ -53,11 +53,11 @@ awk '{
     gsub(",","",offset);
     gsub(",","",spkid);
     gsub("spk.","",spkid);
-    duration=sprintf("%.6f", duration);
-    offset=sprintf("%.6f", offset);
+    duration=sprintf("%.7f", duration);
+    offset=sprintf("%.7f", offset);
     startt=offset;
     endt=offset+duration;
-    printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(100*startt+0.5), int(100*endt+0.5));
+    printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
 }' ${dst}/.yaml1 > ${dst}/.yaml2
 cat $en > ${dst}/.en0
 cat $de > ${dst}/.de0
@@ -76,9 +76,9 @@ n_de=`cat ${dst}/.de1 | wc -l`
 paste --delimiters " " ${dst}/.yaml2 ${dst}/.en1 | awk '{
   print tolower($0) }' | sort > $dst/text_en
 paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{
-  if (length($0) > 25) print tolower($0) }' | grep -v ted_1890_0010122_0011316 |sort > $dst/text_de
+  if (length($0) > 25) print tolower($0) }' | grep -v ted_1890_0101220_0113160 |sort > $dst/text_de
 # **NOTE: empty utterances are includes in original German transcripts
-# **NOTE: ted_1890_0010122_0011316 includes a disallowed whitespace
+# **NOTE: ted_1890_0101220_0113160 includes a disallowed whitespace
 
 
 # (1c) Make segments files from transcript
