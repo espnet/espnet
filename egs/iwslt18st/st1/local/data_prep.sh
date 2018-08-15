@@ -62,9 +62,9 @@ awk '{
 cat $en > ${dst}/.en0
 cat $de > ${dst}/.de0
 
-# Text normalization (remove punctuation here)
-local/fix_trans.py ${dst}/.en0 > ${dst}/.en1
-local/fix_trans.py ${dst}/.de0 > ${dst}/.de1
+# Tokenization
+local/tokenize.sh ${dst}/.en0 en > ${dst}/.en1
+local/tokenize.sh ${dst}/.de0 de > ${dst}/.de1
 
 # error check
 n=`cat ${dst}/.yaml2 | wc -l`
@@ -76,9 +76,8 @@ n_de=`cat ${dst}/.de1 | wc -l`
 paste --delimiters " " ${dst}/.yaml2 ${dst}/.en1 | awk '{
   print tolower($0) }' | sort > $dst/text_en
 paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{
-  if (length($0) > 25) print tolower($0) }' | grep -v ted_1890_0101220_0113160 |sort > $dst/text_de
+  if (length($0) > 25) print tolower($0) }' | sort > $dst/text_de
 # **NOTE: empty utterances are includes in original German transcripts
-# **NOTE: ted_1890_0101220_0113160 includes a disallowed whitespace
 
 
 # (1c) Make segments files from transcript
