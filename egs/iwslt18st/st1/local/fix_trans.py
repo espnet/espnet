@@ -29,7 +29,7 @@ if __name__ == '__main__':
         # ted_2128_0054026_0054442 auf 40 kilowatt[stunden]  pro quadratmeter im jahr.
         x = x.replace(' ', WHITESPACE)
 
-        # TODO(hirofumi): ted_1890_0010122_0011316 und obwohl es stimmt, dass afrika ein rauer ort ist, kenne ich es auch als einen ort, an dem menschen, tiere undÖkosysteme uns von einer verbundenen welt erzählen.
+        # TODO(hirofumi): ted_1890_0101220_0113160 und obwohl es stimmt, dass afrika ein rauer ort ist, kenne ich es auch als einen ort, an dem menschen, tiere undÖkosysteme uns von einer verbundenen welt erzählen.
 
         # TODO(hirofumi): Remove punctuation marks here
 
