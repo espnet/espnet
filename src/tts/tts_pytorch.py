@@ -14,8 +14,8 @@ import chainer
 import numpy as np
 import torch
 
-from chainer import training
 from chainer.datasets import TransformDataset
+from chainer import training
 from chainer.training import extensions
 
 import kaldi_io_py
@@ -124,7 +124,7 @@ class CustomConverter(object):
             return batch[0], xs, batch[2]
         else:
             return batch[0], xs
-        
+
     def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
@@ -312,7 +312,7 @@ def train(args):
 
     # Setup a converter
     converter = CustomConverter(True, args.use_speaker_embedding)
-   
+
     # read json data
     with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
