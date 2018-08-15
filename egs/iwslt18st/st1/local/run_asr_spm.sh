@@ -21,17 +21,17 @@ do_delta=false
 
 # network archtecture
 # encoder related
-etype=blstmp     # encoder architecture type
-elayers=6
-eunits=320
-eprojs=320
+etype=vggblstm     # encoder architecture type
+elayers=3
+eunits=1024
+eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
-dunits=300
+dunits=1024
 # attention related
 atype=location
-adim=320
+adim=1024
 aconv_chans=10
 aconv_filts=100
 
@@ -39,13 +39,13 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=50
+batchsize=32
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
-epochs=20
+epochs=15
 
 # rnnlm related
 lm_weight=0.3
@@ -64,8 +64,8 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 datadir=/export/corpora4/IWSLT/iwslt-corpus
 
 # bpemode (unigram or bpe)
-# nbpe=300
-nbpe=10000
+nbpe=300
+# nbpe=10000
 bpemode=unigram
 
 # exp tag
@@ -75,7 +75,6 @@ tag="" # tag for managing experiments.
 
 . ./path.sh
 . ./cmd.sh
-
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -196,7 +195,7 @@ if [ ${stage} -le 3 ]; then
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-        --epoch 100 \
+        --epoch 60 \
         --batchsize 256 \
         --dict ${dict}
 fi
