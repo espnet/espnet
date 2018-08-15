@@ -6,11 +6,9 @@
 
 import argparse
 import importlib
-
 import chainer
 import numpy
 import pytest
-
 
 def make_arg(**kwargs):
     defaults = dict(
@@ -260,3 +258,52 @@ def test_calculate_all_attentions(module, atype):
     with chainer.no_backprop_mode():
         att_ws = model.calculate_all_attentions(data)
         print(att_ws.shape)
+
+@pytest.mark.parametrize(
+    "module", [
+        ('e2e_asr_attctc_th'),
+        ])
+
+
+def test_sampling(module):
+    if module[-3:] == "_th":
+        pytest.importorskip('torch')
+    m = importlib.import_module(module)
+
+    args = make_arg(sampling_probability=0.0)
+    args_sampled = make_arg(sampling_probability=0.5)
+
+    # condition1: probability lies in the range
+    assert (0.0 <= args_sampled.sampling_probability <= 1.0)
+    #condition2: Predictions and groundt truth are of same shape
+    import torch; from e2e_asr_attctc_th import pad_list
+    n_out = 7
+    _eos = n_out - 1
+    n_batch = 3
+    label_length = numpy.array([4, 2, 3], dtype=numpy.int32)
+    np_pred = numpy.random.rand(n_batch, max(
+        label_length) + 1, n_out).astype(numpy.float32)
+    # NOTE: 0 is only used for CTC, never appeared in attn target
+    np_target = [numpy.random.randint(
+        1, n_out - 1, size=ol, dtype=numpy.int32) for ol in label_length]
+    eos = numpy.array([_eos], 'i')
+    dec = m.Decoder(args.eprojs, n_out, args.dlayers, args.dunits,
+                    _eos, _eos, att, sampling_probability=0.5)
+
+    # condition3: Decoded outputs varies with change in labels
+    if module[-3:] == "_th":
+        pytest.importorskip('torch')
+    m = importlib.import_module(module)
+    out_data = "1 2 3 4"
+    data = [("aaa", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32),
+                         output=[dict(tokenid=out_data)])),
+            ("bbb", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32),
+                         output=[dict(tokenid=out_data)]))]
+    model = m.E2E(40, 5, args)
+    model_sampled = m.E2E(40, 5, args_sampled)
+    _, att, acc = model(data)
+    _, att_sampled, acc_sampled = model_sampled(data)
+    print(acc)
+    print(acc_sampled)
+    numpy.testing.assert_allclose(att.data[0],
+                                  att_sampled.data[0], 5.76, 1e-2)
