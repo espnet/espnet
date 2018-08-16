@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0        # start from -1 if you need to start from data download
+stage=0       # start from -1 if you need to start from data download
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -39,6 +39,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
+# batchsize=20
 batchsize=32
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
@@ -61,10 +62,13 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-datadir=/export/corpora4/IWSLT/iwslt-corpus
+datadir=/export/corpora4/IWSLT
+data_url=http://i13pc106.ira.uka.de/~mmueller/iwslt-corpus.zip
+
 
 # bpemode (unigram or bpe)
-nbpe=300
+# nbpe=300
+nbpe=2000
 # nbpe=10000
 bpemode=unigram
 
@@ -87,17 +91,17 @@ train_dev=dev2010_en
 recog_set="offlimit2018_en tst2010_en tst2011_en tst2012_en tst2013_en tst2014_en tst2015_en"
 
 
-# if [ ${stage} -le -1 ]; then
-#     echo "stage -1: Data Download"
-#       local/download_and_untar.sh ${datadir} ${data_url} ${part}
-# fi
+if [ ${stage} -le -1 ]; then
+    echo "stage -1: Data Download"
+    local/download_and_untar.sh ${datadir} ${data_url}
+fi
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
     for part in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
-        local/data_prep.sh ${datadir} ${part}
+        local/data_prep.sh ${datadir}/iwslt-corpus ${part}
     done
 fi
 
