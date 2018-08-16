@@ -14,6 +14,7 @@ import sys
 # chainer related
 import chainer
 
+from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -137,13 +138,13 @@ class CustomConverter(object):
         self.subsamping_factor = subsamping_factor
         self.ignore_id = -1
 
+    def transform(self, item):
+        return load_inputs_and_targets(item)
+
     def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
-        batch = batch[0]
-
-        # load inputs and targets
-        xs, ys = load_inputs_and_targets(batch)
+        xs, ys = batch[0]
 
         # perform subsamping
         if self.subsamping_factor > 1:
@@ -241,6 +242,9 @@ def train(args):
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
+    # Setup a converter
+    converter = CustomConverter(e2e.subsample[0])
+
     # read json data
     with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
@@ -254,12 +258,15 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
+    train_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(train, converter.transform),
+        1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
+    valid_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(valid, converter.transform),
+        1, n_processes=2, n_prefetch=8,
+        repeat=False, shuffle=False, maxtasksperchild=20)
 
     # Set up a trainer
-    converter = CustomConverter(e2e.subsample[0])
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     trainer = training.Trainer(
