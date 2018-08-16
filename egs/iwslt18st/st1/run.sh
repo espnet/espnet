@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0        # start from -1 if you need to start from data download
+stage=0       # start from -1 if you need to start from data download
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -61,7 +61,9 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-datadir=/export/corpora4/IWSLT/iwslt-corpus
+datadir=/export/corpora4/IWSLT
+data_url=http://i13pc106.ira.uka.de/~mmueller/iwslt-corpus.zip
+
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -82,17 +84,17 @@ train_dev=dev2010_de
 recog_set="offlimit2018_de tst2010_de tst2011_de tst2012_de tst2013_de tst2014_de tst2015_de"
 
 
-# if [ ${stage} -le -1 ]; then
-#     echo "stage -1: Data Download"
-#       local/download_and_untar.sh ${datadir} ${data_url} ${part}
-# fi
+if [ ${stage} -le -1 ]; then
+    echo "stage -1: Data Download"
+    local/download_and_untar.sh ${datadir} ${data_url}
+fi
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
     for part in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
-        local/data_prep.sh ${datadir} ${part}
+        local/data_prep.sh ${datadir}/iwslt-corpus ${part}
     done
 fi
 
@@ -105,8 +107,8 @@ if [ ${stage} -le 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-          data/${x}_de exp/make_fbank/${x} ${fbankdir}
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${x}_de exp/make_fbank/${x} ${fbankdir}
     done
 
     # remove utt having more than 3000 frames
