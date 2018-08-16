@@ -53,19 +53,22 @@ awk '{
     gsub(",","",spkid);
     gsub("spk.","",spkid);
     duration=sprintf("%.7f", duration);
+    if ( duration < 0.1 ) extendt=sprintf("%.7f", (0.1-duration)/2);
+    else extendt=0;
     offset=sprintf("%.7f", offset);
-    startt=offset;
-    endt=offset+duration;
+    startt=offset-extendt;
+    endt=offset+duration+extendt;
     printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
 }' ${dst}/.yaml1 > ${dst}/.yaml2
 cat $en > ${dst}/.en0
 cat $de > ${dst}/.de0
+# NOTE: Extend the lengths of short utterances (< 0.1s) rather than exclude them
 
-# Tokenization
+# normalize punctuation
 normalize-punctuation.perl -l en < ${dst}/.en0 | \
   tokenizer.perl -a -l en > ${dst}/.en1
 normalize-punctuation.perl -l de < ${dst}/.de0 | \
-  tokenizer.perl -a -l de > ${dst}/.en1
+  tokenizer.perl -a -l de > ${dst}/.de1
 
 # error check
 n=`cat ${dst}/.yaml2 | wc -l`
