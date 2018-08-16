@@ -14,6 +14,7 @@ import chainer
 import numpy as np
 import torch
 
+from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
 
@@ -113,13 +114,21 @@ class CustomConverter(object):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
 
+    def transform(self, item):
+        batch = load_inputs_and_targets(item, True, self.use_speaker_embedding)
+
+        # added eos into input sequence
+        eos = int(item[0][1]['output'][0]['shape'][1]) - 1
+        xs = [np.append(x, eos) for x in batch[1]]
+        if self.use_speaker_embedding:
+            return batch[0], xs, batch[2]
+        else:
+            return batch[0], xs
+
     def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
-        batch = batch[0]
-
-        # load inputs and targets
-        inputs_and_targets = load_inputs_and_targets(batch, True, self.use_speaker_embedding)
+        inputs_and_targets = batch[0]
 
         # parse inputs and targets
         if len(inputs_and_targets) == 2:
@@ -127,10 +136,6 @@ class CustomConverter(object):
             spembs = None
         else:
             ys, xs, spembs = inputs_and_targets
-
-        # added eos into input sequence
-        eos = int(batch[0][1]['output'][0]['shape'][1]) - 1
-        xs = [np.append(x, eos) for x in xs]
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
@@ -305,6 +310,9 @@ def train(args):
     setattr(optimizer, 'target', reporter)
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
 
+    # Setup a converter
+    converter = CustomConverter(True, args.use_speaker_embedding)
+
     # read json data
     with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
@@ -320,11 +328,15 @@ def train(args):
                                    args.minibatches, args.batch_sort_key)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(train_batchset, 1)
-    valid_iter = chainer.iterators.SerialIterator(valid_batchset, 1, repeat=False, shuffle=False)
+    train_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(train_batchset, converter.transform),
+        1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
+    valid_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(valid_batchset, converter.transform),
+        1, repeat=False, shuffle=False, n_processes=2, n_prefetch=8,
+        maxtasksperchild=20)
 
     # Set up a trainer
-    converter = CustomConverter(True, args.use_speaker_embedding)
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
