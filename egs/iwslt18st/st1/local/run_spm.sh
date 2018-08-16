@@ -27,7 +27,7 @@ eunits=1024
 eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
-dlayers=1
+dlayers=2
 dunits=1024
 # attention related
 atype=location
@@ -39,6 +39,7 @@ aconv_filts=100
 mtlalpha=0
 
 # minibatch related
+# batchsize=20
 batchsize=32
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
@@ -64,7 +65,8 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 datadir=/export/corpora4/IWSLT/iwslt-corpus
 
 # bpemode (unigram or bpe)
-nbpe=300
+# nbpe=300
+nbpe=2000
 # nbpe=10000
 bpemode=unigram
 
@@ -84,7 +86,7 @@ set -o pipefail
 
 train_set=train_de
 train_dev=dev2010_de
-recog_set="offlimit2018_de tst2010_de tst2011_de tst2012_de tst2013_de tst2014_de tst2015_de"
+# recog_set="offlimit2018_de tst2010_de tst2011_de tst2012_de tst2013_de tst2014_de tst2015_de"
 
 
 # if [ ${stage} -le -1 ]; then
@@ -278,9 +280,7 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
-
-        # TODO(hirofumi): evaluate by BLEU
+        local/score_bleu.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --word true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done

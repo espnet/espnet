@@ -27,7 +27,7 @@ eunits=1024
 eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
-dlayers=1
+dlayers=2
 dunits=1024
 # attention related
 atype=location
@@ -39,7 +39,7 @@ aconv_filts=100
 mtlalpha=0
 
 # minibatch related
-batchsize=20
+batchsize=15
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -271,9 +271,7 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
-
-        # TODO(hirofumi): evaluate by BLEU
+        local/score_bleu.sh --word true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
