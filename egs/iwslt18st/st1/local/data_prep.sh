@@ -53,7 +53,7 @@ awk '{
     gsub(",","",spkid);
     gsub("spk.","",spkid);
     duration=sprintf("%.7f", duration);
-    if ( duration < 0.1 ) extendt=sprintf("%.7f", (0.1-duration)/2);
+    if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
     else extendt=0;
     offset=sprintf("%.7f", offset);
     startt=offset-extendt;
@@ -62,7 +62,7 @@ awk '{
 }' ${dst}/.yaml1 > ${dst}/.yaml2
 cat $en > ${dst}/.en0
 cat $de > ${dst}/.de0
-# NOTE: Extend the lengths of short utterances (< 0.1s) rather than exclude them
+# NOTE: Extend the lengths of short utterances (< 0.2s) rather than exclude them
 
 # normalize punctuation
 normalize-punctuation.perl -l en < ${dst}/.en0 | \
@@ -90,7 +90,7 @@ paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{
 awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2]; startf=S[3]; endf=S[4];
-    print segment " " spkid " " startf/1000 " " endf/1000
+    printf("%s %s %.2f %.2f\n", segment, spkid, startf/1000, endf/1000);
 }' < $dst/text_de | sort > $dst/segments
 
 awk '{
