@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0       # start from -1 if you need to start from data download
+stage=3       # start from -1 if you need to start from data download
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -142,24 +142,23 @@ if [ ${stage} -le 1 ]; then
     done
 fi
 
-# De
-dict=data/lang_1char/${train_set}_units.txt
-echo "dictionary (German, character): ${dict}"
+dict=data/lang_1char/train_units.txt
+echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     # De, char
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d " " | tr " " "\n" \
+    text2token.py -s 1 -n 1 < data/train_en_trim/text data/train_de_trim/text | cut -f 2- -d " " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set}_trim ${dict} > ${feat_tr_dir}/data.json
+        data/${train_set}_trim ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev}_trim ${dict} > ${feat_dt_dir}/data.json
+        data/${train_dev}_trim ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
@@ -172,7 +171,7 @@ lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_de
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train
+    lmdatadir=data/local/lm_train_de
     mkdir -p ${lmdatadir}
     text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train.txt
