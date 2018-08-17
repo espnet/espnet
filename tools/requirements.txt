@@ -2,8 +2,7 @@ chainer>=3.0.0
 cupy>=2.0.0
 python_speech_features>=0.6
 setuptools>=38.5.1
-joblib==0.11.0
-librosa>=0.6.1
+librosa>=0.6.2
 soundfile>=0.10.2
 inflect
 unidecode
