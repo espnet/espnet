@@ -354,13 +354,17 @@ def torch_save(path, model):
 def torch_load(path, model):
     """Function to load torch model states
 
-    :param str path: file path to be loaded
+    :param str path: model file or snapshot to be loaded
     :param torch.nn.Module model: torch model
     """
-    if hasattr(model, 'module'):
-        model.module.load_state_dict(torch.load(path))
+    if 'snapshot' in path:
+        model_state_dict = torch.load(path)['model']
     else:
-        model.load_state_dict(torch.load(path))
+        model_state_dict = torch.load(path)
+    if hasattr(model, 'module'):
+        model.module.load_state_dict(model_state_dict)
+    else:
+        model.load_state_dict(model_state_dict)
 
 
 def torch_resume(snapshot_path, trainer):
