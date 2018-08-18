@@ -279,7 +279,7 @@ def train(args):
     # Resume from a snapshot
     if args.resume:
         logging.info('resumed from %s' % args.resume)
-        trainer = torch_resume(args.resume, trainer)
+        torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))

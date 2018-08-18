@@ -358,9 +358,9 @@ def torch_load(path, model):
     :param torch.nn.Module model: torch model
     """
     if 'snapshot' in path:
-        model_state_dict = torch.load(path)['model']
+        model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)['model']
     else:
-        model_state_dict = torch.load(path)
+        model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)
     if hasattr(model, 'module'):
         model.module.load_state_dict(model_state_dict)
     else:
@@ -398,4 +398,5 @@ def torch_resume(snapshot_path, trainer):
     # retore optimizer states
     trainer.updater.get_optimizer('main').load_state_dict(snapshot_dict['optimizer'])
 
-    return trainer
+    # delete opened snapshot
+    del snapshot_dict
