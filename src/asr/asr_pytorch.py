@@ -362,31 +362,18 @@ def recog(args):
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
-    # specify model architecture
+    # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
-
-    def cpu_loader(storage, location):
-        return storage
-
-    def remove_dataparallel(state_dict):
-        from collections import OrderedDict
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            if k.startswith("module."):
-                k = k[7:]
-            new_state_dict[k] = v
-        return new_state_dict
-
-    model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
+    torch_load(args.model, model)
 
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(len(train_args.char_list), rnnlm_args.unit))
-        rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
+        torch_load(args.rnnlm, rnnlm)
         rnnlm.eval()
     else:
         rnnlm = None
@@ -400,7 +387,7 @@ def recog(args):
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), rnnlm_args.unit))
-        word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
+        torch_load(args.word_rnnlm, word_rnnlm)
         word_rnnlm.eval()
 
         if rnnlm is not None:
