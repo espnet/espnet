@@ -252,28 +252,13 @@ def torch_snapshot(savefun=torch.save,
 
 
 def _torch_snapshot_object(trainer, target, filename, savefun):
-    # make snapshot_dict dictionary
     s = DictionarySerializer()
     s.save(trainer)
-    if hasattr(trainer.updater.model, "model"):
-        # (for TTS)
-        if hasattr(trainer.updater.model.model, "module"):
-            model_state_dict = trainer.updater.model.model.module.state_dict()
-        else:
-            model_state_dict = trainer.updater.model.model.state_dict()
-    else:
-        # (for ASR)
-        if hasattr(trainer.updater.model, "module"):
-            model_state_dict = trainer.updater.model.module.state_dict()
-        else:
-            model_state_dict = trainer.updater.model.state_dict()
     snapshot_dict = {
         "trainer": s.target,
-        "model": model_state_dict,
+        "model": trainer.updater.model.state_dict(),
         "optimizer": trainer.updater.get_optimizer('main').state_dict()
     }
-
-    # save snapshot dictionary
     fn = filename.format(trainer)
     prefix = 'tmp' + fn
     tmpdir = tempfile.mkdtemp(prefix=prefix, dir=trainer.out)
@@ -378,18 +363,7 @@ def torch_resume(snapshot_path, trainer):
     d.load(trainer)
 
     # restore model states
-    if hasattr(trainer.updater.model, "model"):
-        # (for TTS model)
-        if hasattr(trainer.updater.model.model, "module"):
-            trainer.updater.model.model.module.load_state_dict(snapshot_dict['model'])
-        else:
-            trainer.updater.model.model.load_state_dict(snapshot_dict['model'])
-    else:
-        # (for ASR model)
-        if hasattr(trainer.updater.model, "module"):
-            trainer.updater.model.module.load_state_dict(snapshot_dict['model'])
-        else:
-            trainer.updater.model.load_state_dict(snapshot_dict['model'])
+    trainer.updater.model.load_state_dict(snapshot_dict['model'])
 
     # retore optimizer states
     trainer.updater.get_optimizer('main').load_state_dict(snapshot_dict['optimizer'])
