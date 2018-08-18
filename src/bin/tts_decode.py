@@ -28,7 +28,7 @@ def main():
                         help='Filename of train label data (json)')
     parser.add_argument('--model', type=str, required=True,
                         help='Model file parameters to read')
-    parser.add_argument('--model-conf', type=str, required=True,
+    parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
     # decoding related
     parser.add_argument('--maxlenratio', type=float, default=5,
