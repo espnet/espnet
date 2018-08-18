@@ -374,7 +374,6 @@ def torch_resume(snapshot_path, trainer):
 
     :param str snapshot_path: snapshot file path
     :param instance trainer: chainer trainer instance
-    :return: trainer instance whose states are loaded
     """
     # load snapshot
     snapshot_dict = torch.load(snapshot_path, map_location=lambda storage, loc: storage)
