@@ -31,7 +31,9 @@ from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
+from asr_utils import torch_load
 from asr_utils import torch_resume
+from asr_utils import torch_save
 from asr_utils import torch_snapshot
 from e2e_asr_th import E2E
 from e2e_asr_th import Loss
@@ -262,10 +264,10 @@ def train(args):
     # actual bathsize is included in a list
     train_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(train, converter.transform),
-        1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
+        batch_size=1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
     valid_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(valid, converter.transform),
-        1, n_processes=2, n_prefetch=8,
+        batch_size=1, n_processes=2, n_prefetch=8,
         repeat=False, shuffle=False, maxtasksperchild=20)
 
     # Set up a trainer
@@ -303,11 +305,6 @@ def train(args):
                                          'epoch', file_name='acc.png'))
 
     # Save best models
-    def torch_save(path, model):
-        if hasattr(model, "module"):
-            torch.save(model.module.state_dict(), path)
-        else:
-            torch.save(model.state_dict(), path)
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
     if mtl_mode is not 'ctc':
@@ -318,12 +315,6 @@ def train(args):
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
     # epsilon decay in the optimizer
-    def torch_load(path, obj):
-        if hasattr(model, "module"):
-            model.module.load_state_dict(torch.load(path))
-        else:
-            model.load_state_dict(torch.load(path))
-        return obj
     if args.opt == 'adadelta':
         if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
