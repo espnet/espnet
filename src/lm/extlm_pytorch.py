@@ -53,8 +53,8 @@ class MultiLevelLM(nn.Module):
         self.subwordlm = subwordlm
         self.word_eos = word_dict['<eos>']
         self.word_unk = word_dict['<unk>']
-        self.var_word_eos = Variable(torch.LongTensor([self.word_eos]), volatile=True)
-        self.var_word_unk = Variable(torch.LongTensor([self.word_unk]), volatile=True)
+        self.var_word_eos = Variable(torch.LongTensor([self.word_eos]))
+        self.var_word_unk = Variable(torch.LongTensor([self.word_unk]))
         self.space = subword_dict['<space>']
         self.eos = subword_dict['<eos>']
         self.lexroot = make_lexical_tree(word_dict, subword_dict, self.word_unk)
@@ -79,7 +79,7 @@ class MultiLevelLM(nn.Module):
             xi = int(x)
             if xi == self.space:  # inter-word transition
                 if node is not None and node[1] >= 0:  # check if the node is word end
-                    w = Variable(torch.LongTensor([node[1]]), volatile=True)
+                    w = Variable(torch.LongTensor([node[1]]))
                 else:  # this node is not a word end, which means <unk>
                     w = self.var_word_unk
                 # update wordlm state and log-prob vector
@@ -125,8 +125,8 @@ class LookAheadWordLM(nn.Module):
         self.wordlm = wordlm
         self.word_eos = word_dict['<eos>']
         self.word_unk = word_dict['<unk>']
-        self.var_word_eos = Variable(torch.LongTensor([self.word_eos]), volatile=True)
-        self.var_word_unk = Variable(torch.LongTensor([self.word_unk]), volatile=True)
+        self.var_word_eos = Variable(torch.LongTensor([self.word_eos]))
+        self.var_word_unk = Variable(torch.LongTensor([self.word_unk]))
         self.space = subword_dict['<space>']
         self.eos = subword_dict['<eos>']
         self.lexroot = make_lexical_tree(word_dict, subword_dict, self.word_unk)
@@ -147,7 +147,7 @@ class LookAheadWordLM(nn.Module):
             xi = int(x)
             if xi == self.space:  # inter-word transition
                 if node is not None and node[1] >= 0:  # check if the node is word end
-                    w = Variable(torch.LongTensor([node[1]]), volatile=True)
+                    w = Variable(torch.LongTensor([node[1]]))
                 else:  # this node is not a word end, which means <unk>
                     w = self.var_word_unk
                 # update wordlm state and cumlative probability vector
