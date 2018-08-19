@@ -296,8 +296,6 @@ def test_torch_save_and_load():
 def test_torch_multi_gpu_trainable():
     import e2e_asr_th as m
     ngpu = 2
-    if torch.cuda.device_count() < ngpu:
-        pytest.skip
     device_ids = list(range(ngpu))
     args = make_arg()
     model = m.Loss(m.E2E(40, 5, args), 0.5)
