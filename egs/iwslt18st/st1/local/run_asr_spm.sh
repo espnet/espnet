@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0       # start from -1 if you need to start from data download
+stage=-1       # start from -1 if you need to start from data download
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -39,14 +39,13 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-# batchsize=20
 batchsize=32
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=10
 
 # rnnlm related
 lm_weight=0.3
@@ -62,14 +61,10 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-datadir=/export/corpora4/IWSLT
-data_url=http://i13pc106.ira.uka.de/~mmueller/iwslt-corpus.zip
-
+datadir=/export/b08/inaguma/IWSLT
 
 # bpemode (unigram or bpe)
-# nbpe=300
 nbpe=2000
-# nbpe=10000
 bpemode=unigram
 
 # exp tag
@@ -88,21 +83,27 @@ set -o pipefail
 
 train_set=train_en
 train_dev=dev2010_en
-recog_set="offlimit2018_en tst2010_en tst2011_en tst2012_en tst2013_en tst2014_en tst2015_en"
+recog_set="dev2010_en tst2010_en tst2013_en tst2014_en tst2015_en"
+eval_set=tst2018_en
 
 
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"
-    local/download_and_untar.sh ${datadir} ${data_url}
+    for part in train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
+        local/download_and_untar.sh ${datadir} ${part}
+    done
 fi
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    for part in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
+    for part in train dev2010 tst2010 tst2013 tst2014 tst2015; do
         local/data_prep.sh ${datadir}/iwslt-corpus ${part}
     done
+
+    # for IWSLT 2018 submission
+    local/data_prep_eval.sh ${datadir}/IWSLT.tst2018
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -113,7 +114,7 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
+    for x in train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x}_en exp/make_fbank/${x} ${fbankdir}
     done
@@ -149,20 +150,16 @@ if [ ${stage} -le 1 ]; then
     done
 fi
 
-# En
-dict=data/lang_spm/${train_set}_${bpemode}${nbpe}_units.txt
-bpemodel=data/lang_spm/${train_set}_${bpemode}${nbpe}
-echo "dictionary (English, BPE): ${dict}"
+dict=data/lang_spm/train_${bpemode}${nbpe}_units.txt
+bpemodel=data/lang_spm/train_${bpemode}${nbpe}
+echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_spm/
-    # En, BPE
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cut -f 2- -d " " data/${train_set}_trim/text > data/lang_spm/input.txt
-    spm_train --input=data/lang_spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_spm/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
+    if [ ! -d "data/lang_spm" ]; then
+      echo "run local/run_spm.sh first"
+      exit 1
+    fi
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
@@ -181,7 +178,7 @@ lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_en_${bpemode}${nbpe}
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train_${bpemode}${nbpe}
+    lmdatadir=data/local/lm_train_en_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
     cut -f 2- -d " " data/${train_set}_trim/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
     > ${lmdatadir}/train.txt

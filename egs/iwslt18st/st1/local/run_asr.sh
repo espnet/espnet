@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0       # start from -1 if you need to start from data download
+stage=-1       # start from -1 if you need to start from data download
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -45,7 +45,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=10
 
 # rnnlm related
 lm_weight=0.3
@@ -61,8 +61,7 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-datadir=/export/corpora4/IWSLT
-data_url=http://i13pc106.ira.uka.de/~mmueller/iwslt-corpus.zip
+datadir=/export/b08/inaguma/IWSLT
 
 
 # exp tag
@@ -81,21 +80,27 @@ set -o pipefail
 
 train_set=train_en
 train_dev=dev2010_en
-recog_set="offlimit2018_en tst2010_en tst2011_en tst2012_en tst2013_en tst2014_en tst2015_en"
+recog_set="dev2010_en tst2010_en tst2013_en tst2014_en tst2015_en"
+eval_set=tst2018_en
 
 
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"
-    local/download_and_untar.sh ${datadir} ${data_url}
+    for part in train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
+        local/download_and_untar.sh ${datadir} ${part}
+    done
 fi
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    for part in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
+    for part in train dev2010 tst2010 tst2013 tst2014 tst2015; do
         local/data_prep.sh ${datadir}/iwslt-corpus ${part}
     done
+
+    # for IWSLT 2018 submission
+    local/data_prep_eval.sh ${datadir}/IWSLT.tst2018
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -106,7 +111,7 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train dev2010 offlimit2018 tst2010 tst2011 tst2012 tst2013 tst2014 tst2015; do
+    for x in train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x}_en exp/make_fbank/${x} ${fbankdir}
     done
@@ -142,24 +147,21 @@ if [ ${stage} -le 1 ]; then
     done
 fi
 
-# En
-dict=data/lang_1char/${train_set}_units.txt
-echo "dictionary (English, character): ${dict}"
+dict=data/lang_1char/train_units.txt
+echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
-    # En, char
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d " " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
+    if [ ! -d "data/lang_1char" ]; then
+      echo "run local/run.sh first"
+      exit 1
+    fi
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set}_trim ${dict} > ${feat_tr_dir}/data.json
+        data/${train_set}_trim ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev}_trim ${dict} > ${feat_dt_dir}/data.json
+        data/${train_dev}_trim ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
@@ -172,7 +174,7 @@ lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_en
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train
+    lmdatadir=data/local/lm_train_en
     mkdir -p ${lmdatadir}
     text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train.txt
