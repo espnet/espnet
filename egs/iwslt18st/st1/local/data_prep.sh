@@ -27,7 +27,6 @@ mkdir -p $dst || exit 1;
 [ ! -f $en ] && echo "$0: expected file $en to exist" && exit 1;
 [ ! -f $de ] && echo "$0: expected file $de to exist" && exit 1;
 
-
 wav_scp=$dst/wav.scp; [[ -f "$wav_scp" ]] && rm $wav_scp
 trans_en=$dst/text_en; [[ -f "$trans_en" ]] && rm $trans_en
 trans_de=$dst/text_de; [[ -f "$trans_de" ]] && rm $trans_de
@@ -44,8 +43,8 @@ n_de=`cat $de | wc -l`
 
 # (1a) Transcriptions preparation
 # make basic transcription file (add segments info)
-cat $yml > ${dst}/.yaml0
-cat ${dst}/.yaml0 | grep duration > ${dst}/.yaml1
+cat $yml > $dst/.yaml0
+cat $dst/.yaml0 | grep duration > $dst/.yaml1
 awk '{
     duration=$3; offset=$5; spkid=$7;
     gsub(",","",duration);
@@ -59,30 +58,31 @@ awk '{
     startt=offset-extendt;
     endt=offset+duration+extendt;
     printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
-}' ${dst}/.yaml1 > ${dst}/.yaml2
-cat $en > ${dst}/.en0
-cat $de > ${dst}/.de0
+}' $dst/.yaml1 > $dst/.yaml2 || exit 1;
+cat $en > $dst/.en0
+cat $de > $dst/.de0
 # NOTE: Extend the lengths of short utterances (< 0.2s) rather than exclude them
 
-# normalize punctuation
-normalize-punctuation.perl -l en < ${dst}/.en0 | \
-  tokenizer.perl -a -l en > ${dst}/.en1
-normalize-punctuation.perl -l de < ${dst}/.de0 | \
-  tokenizer.perl -a -l de > ${dst}/.de1
+# normalize punctuation & tokenize
+normalize-punctuation.perl -l en < $dst/.en0 | \
+  tokenizer.perl -a -l en > $dst/.en1
+normalize-punctuation.perl -l de < $dst/.de0 | \
+  tokenizer.perl -a -l de > $dst/.de1
 
 # error check
-n=`cat ${dst}/.yaml2 | wc -l`
-n_en=`cat ${dst}/.en1 | wc -l`
-n_de=`cat ${dst}/.de1 | wc -l`
+n=`cat $dst/.yaml2 | wc -l`
+n_en=`cat $dst/.en1 | wc -l`
+n_de=`cat $dst/.de1 | wc -l`
 [ $n -ne $n_en ] && echo "Warning: expected $n data data files, found $n_en" && exit 1;
 [ $n -ne $n_de ] && echo "Warning: expected $n data data files, found $n_de" && exit 1;
 
-paste --delimiters " " ${dst}/.yaml2 ${dst}/.en1 | awk '{
+paste --delimiters " " $dst/.yaml2 $dst/.en1 | awk '{
   print $0 }' | sort > $dst/text_en
-paste --delimiters " " ${dst}/.yaml2 ${dst}/.de1 | awk '{
+paste --delimiters " " $dst/.yaml2 $dst/.de1 | awk '{
   if (length($0) > 25) print $0 }' | sort > $dst/text_de
 # **NOTE: empty utterances are includes in original German transcripts
 # **NOTE: case-sensitive
+
 
 # (1c) Make segments files from transcript
 #segments file format is: utt-id start-time end-time, e.g.:
@@ -91,7 +91,7 @@ awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2]; startf=S[3]; endf=S[4];
     printf("%s %s %.2f %.2f\n", segment, spkid, startf/1000, endf/1000);
-}' < $dst/text_de | sort > $dst/segments
+}' < $dst/text_de | sort > $dst/segments || exit 1;
 
 awk '{
     segment=$1; split(segment,S,"[_]");
@@ -116,21 +116,21 @@ rm $dst/text_en
 mv $dst/text_en_tmp $dst/text_en
 
 # error check
-n_en=`cat ${dst}/text_en | wc -l`
-n_de=`cat ${dst}/text_de | wc -l`
+n_en=`cat $dst/text_en | wc -l`
+n_de=`cat $dst/text_de | wc -l`
 [ $n_en -ne $n_de ] && echo "Warning: expected $n_en data data files, found $n_de" && exit 1;
 
 
 # Copy stuff intoc its final locations [this has been moved from the format_data script]
 mkdir -p data/${part}_en
 for f in spk2utt utt2spk wav.scp segments; do
-  cp data/local/$part/$f data/${part}_en/ || exit 1;
+  cp $dst/$f data/${part}_en/ || exit 1;
 done
 cp $dst/text_en data/${part}_en/text || exit 1;
 
 mkdir -p data/${part}_de
 for f in spk2utt utt2spk wav.scp segments; do
-  cp data/local/$part/$f data/${part}_de/ || exit 1;
+  cp $dst/$f data/${part}_de/ || exit 1;
 done
 cp $dst/text_de data/${part}_de/text || exit 1;
 
