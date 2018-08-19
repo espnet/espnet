@@ -14,6 +14,7 @@ import sys
 # chainer related
 import chainer
 
+from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -23,16 +24,16 @@ import torch
 
 # spnet related
 from asr_utils import adadelta_eps_decay
-from asr_utils import AttributeDict
 from asr_utils import CompareValueTrigger
-from asr_utils import converter_kaldi
-from asr_utils import delete_feat
+from asr_utils import get_model_conf
+from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_th import E2E
 from e2e_asr_th import Loss
+from e2e_asr_th import pad_list
 
 # for kaldi io
 import kaldi_io_py
@@ -43,16 +44,20 @@ import lm_pytorch
 
 # matplotlib related
 import matplotlib
+import numpy as np
 matplotlib.use('Agg')
 
+REPORT_INTERVAL = 100
 
-class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
+
+class CustomEvaluator(extensions.Evaluator):
     '''Custom evaluater for pytorch'''
 
     def __init__(self, model, iterator, target, converter, device):
-        super(PytorchSeqEvaluaterKaldi, self).__init__(
-            iterator, target, converter=converter, device=device)
+        super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
+        self.converter = converter
+        self.device = device
 
     # The core part of the update routine can be customized by overriding.
     def evaluate(self):
@@ -77,25 +82,25 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    x = self.converter(batch)
-                    self.model(x)
-                    delete_feat(x)
+                    x = self.converter(batch, self.device)
+                    self.model(*x)
                 summary.add(observation)
         self.model.train()
 
         return summary.compute_mean()
 
 
-class PytorchSeqUpdaterKaldi(training.StandardUpdater):
+class CustomUpdater(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device):
-        super(PytorchSeqUpdaterKaldi, self).__init__(
-            train_iter, optimizer, converter=converter, device=None)
+                 optimizer, converter, device, ngpu):
+        super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
-        self.num_gpu = len(device)
+        self.converter = converter
+        self.device = device
+        self.ngpu = ngpu
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -105,22 +110,14 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
 
         # Get the next batch ( a list of json files)
-        batch = train_iter.__next__()
-
-        # read scp files
-        # x: original json with loaded features
-        #    will be converted to chainer variable later
-        # batch only has one minibatch utterance, which is specified by batch[0]
-        if len(batch[0]) < self.num_gpu:
-            logging.warning('batch size is less than number of gpus. Ignored')
-            return
-        x = self.converter(batch)
+        batch = train_iter.next()
+        x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = 1. / self.num_gpu * self.model(x)
+        loss = 1. / self.ngpu * self.model(*x)
         optimizer.zero_grad()  # Clear the parameter gradients
-        if self.num_gpu > 1:
-            loss.backward(torch.ones(self.num_gpu).cuda())  # Backprop
+        if self.ngpu > 1:
+            loss.backward(loss.new_ones(self.ngpu))  # Backprop
         else:
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
@@ -132,35 +129,36 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
-        delete_feat(x)
 
 
-class DataParallel(torch.nn.DataParallel):
-    def scatter(self, inputs, kwargs, device_ids, dim):
-        r"""Scatter with support for kwargs dictionary"""
-        if len(inputs) == 1:
-            inputs = inputs[0]
-        avg = int(math.ceil(len(inputs) * 1. / len(device_ids)))
-        # inputs = scatter(inputs, device_ids, dim) if inputs else []
-        inputs = [[inputs[i:i + avg]] for i in range(0, len(inputs), avg)]
-        kwargs = torch.nn.scatter(kwargs, device_ids, dim) if kwargs else []
-        if len(inputs) < len(kwargs):
-            inputs.extend([() for _ in range(len(kwargs) - len(inputs))])
-        elif len(kwargs) < len(inputs):
-            kwargs.extend([{} for _ in range(len(inputs) - len(kwargs))])
-        inputs = tuple(inputs)
-        kwargs = tuple(kwargs)
-        return inputs, kwargs
+class CustomConverter(object):
+    """CUSTOM CONVERTER"""
 
-    def forward(self, *inputs, **kwargs):
-        if not self.device_ids:
-            return self.module(*inputs, **kwargs)
-        inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids, self.dim)
-        if len(self.device_ids) == 1:
-            return self.module(*inputs[0], **kwargs[0])
-        replicas = self.replicate(self.module, self.device_ids[:len(inputs)])
-        outputs = self.parallel_apply(replicas, inputs, kwargs)
-        return self.gather(outputs, self.output_device)
+    def __init__(self, subsamping_factor=1):
+        self.subsamping_factor = subsamping_factor
+        self.ignore_id = -1
+
+    def transform(self, item):
+        return load_inputs_and_targets(item)
+
+    def __call__(self, batch, device):
+        # batch should be located in list
+        assert len(batch) == 1
+        xs, ys = batch[0]
+
+        # perform subsamping
+        if self.subsamping_factor > 1:
+            xs = [x[::self.subsampling_factor, :] for x in xs]
+
+        # get batch of lengths of input sequences
+        ilens = np.array([x.shape[0] for x in xs])
+
+        # perform padding and convert to tensor
+        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+        ilens = torch.from_numpy(ilens).to(device)
+        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
+
+        return xs_pad, ilens, ys_pad
 
 
 def train(args):
@@ -215,28 +213,23 @@ def train(args):
         os.makedirs(args.outdir)
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to' + model_conf)
+        logging.info('writing a model config file to ' + model_conf)
         f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
-    # Set gpu
     reporter = model.reporter
-    ngpu = args.ngpu
-    if ngpu == 1:
-        gpu_id = range(ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        model.cuda()
-    elif ngpu > 1:
-        gpu_id = range(ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        model = DataParallel(model, device_ids=gpu_id)
-        model.cuda()
+
+    # check the use of multi-gpu
+    if args.ngpu > 1:
+        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
         args.batch_size *= args.ngpu
-    else:
-        gpu_id = [-1]
+
+    # set torch device
+    device = torch.device("cuda" if args.ngpu > 0 else "cpu")
+    model = model.to(device)
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -248,6 +241,9 @@ def train(args):
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
+
+    # Setup a converter
+    converter = CustomConverter(e2e.subsample[0])
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -262,35 +258,43 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(train, 1)
-    valid_iter = chainer.iterators.SerialIterator(
-        valid, 1, repeat=False, shuffle=False)
+    train_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(train, converter.transform),
+        1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
+    valid_iter = chainer.iterators.MultiprocessIterator(
+        TransformDataset(valid, converter.transform),
+        1, n_processes=2, n_prefetch=8,
+        repeat=False, shuffle=False, maxtasksperchild=20)
 
     # Set up a trainer
-    updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
+    updater = CustomUpdater(
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
-        if ngpu > 1:
+        if args.ngpu > 1:
             model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         else:
             model.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
         model = trainer.updater.model
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(PytorchSeqEvaluaterKaldi(
-        model, valid_iter, reporter, converter=converter_kaldi, device=gpu_id))
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        data = converter_kaldi([data], device=gpu_id)
-        trainer.extend(PlotAttentionReport(model, data, args.outdir + "/att_ws"), trigger=(1, 'epoch'))
+        if hasattr(model, "module"):
+            att_vis_fn = model.module.predictor.calculate_all_attentions
+        else:
+            att_vis_fn = model.predictor.calculate_all_attentions
+        trainer.extend(PlotAttentionReport(
+            att_vis_fn, data, args.outdir + "/att_ws",
+            converter=converter, device=device), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -302,7 +306,7 @@ def train(args):
 
     # Save best models
     def torch_save(path, _):
-        if ngpu > 1:
+        if hasattr(model, "module"):
             torch.save(model.module.state_dict(), path)
         else:
             torch.save(model.state_dict(), path)
@@ -322,11 +326,12 @@ def train(args):
 
     # epsilon decay in the optimizer
     def torch_load(path, obj):
-        if ngpu > 1:
+        if hasattr(model, "module"):
             model.module.load_state_dict(torch.load(path))
         else:
             model.load_state_dict(torch.load(path))
         return obj
+
     if args.opt == 'adadelta':
         if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
@@ -348,19 +353,19 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
-            trigger=(100, 'iteration'))
+            trigger=(REPORT_INTERVAL, 'iteration'))
         report_keys.append('eps')
     trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(100, 'iteration'))
+        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
-    trainer.extend(extensions.ProgressBar())
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
     # Run the training
     trainer.run()
@@ -372,15 +377,10 @@ def recog(args):
     torch.manual_seed(args.seed)
 
     # read training config
-    with open(args.model_conf, "rb") as f:
-        logging.info('reading a model config file from' + args.model_conf)
-        idim, odim, train_args = json.load(f, object_hook=AttributeDict)
-
-    for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
     # specify model architecture
-    logging.info('reading model parameters from' + args.model)
+    logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
 
@@ -400,8 +400,9 @@ def recog(args):
 
     # read rnnlm
     if args.rnnlm:
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(len(train_args.char_list), 650))
+            lm_pytorch.RNNLM(len(train_args.char_list), rnnlm_args.unit))
         rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
         rnnlm.eval()
     else:
@@ -412,9 +413,10 @@ def recog(args):
             logging.error('word dictionary file is not specified for the word RNNLM.')
             sys.exit(1)
 
+        rnnlm_args = get_model_conf(args.word_rnnlm, args.rnnlm_conf)
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), 650))
+        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), rnnlm_args.unit))
         word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
         word_rnnlm.eval()
 
