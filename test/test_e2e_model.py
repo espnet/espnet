@@ -279,6 +279,8 @@ def test_torch_save_and_load():
     # initialize randomly
     for p in model.parameters():
         p.data.uniform_()
+    if not os.path.exists(".pytest_cache"):
+        os.makedirs(".pytest_cache")
     tmppath = ".pytest_cache/model.tmp"
     torch_save(tmppath, model)
     p_saved = [p.data.numpy() for p in model.parameters()]
