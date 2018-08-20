@@ -54,11 +54,9 @@ def make_mask(lengths, dim=None):
 
 
 class Reporter(chainer.Chain):
-    def report(self, l1_loss, mse_loss, bce_loss, loss):
-        chainer.reporter.report({'l1_loss': l1_loss}, self)
-        chainer.reporter.report({'mse_loss': mse_loss}, self)
-        chainer.reporter.report({'bce_loss': bce_loss}, self)
-        chainer.reporter.report({'loss': loss}, self)
+    def report(self, dicts):
+        for d in dicts:
+            chainer.reporter.report(d, self)
 
 
 class ZoneOutCell(torch.nn.Module):
@@ -156,7 +154,11 @@ class Tacotron2Loss(torch.nn.Module):
         # report loss values for logging
         logging.debug("loss = %.3e (bce: %.3e, l1: %.3e, mse: %.3e)" % (
             loss.item(), bce_loss.item(), l1_loss.item(), mse_loss.item()))
-        self.reporter.report(l1_loss.item(), mse_loss.item(), bce_loss.item(), loss.item())
+        self.reporter.report([
+            {'l1_loss': l1_loss.item()},
+            {'mse_loss': mse_loss.item()},
+            {'bce_loss': bce_loss.item()},
+            {'loss': loss.item()}])
 
         return loss
 
@@ -763,3 +765,192 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(self.postnet_layers):
                 xs = self.postnet[l](xs)
         return xs
+
+
+class ConversionLoss(torch.nn.Module):
+    """CONVERSION LOSS
+
+    :param torch.nn.Module model: CBHG module
+    :param bool use_masking: whether to mask padded part in loss calculation
+    """
+
+    def __init__(self, model, use_masking=True):
+        super(ConversionLoss, self).__init__()
+        self.model = model
+        self.use_masking = use_masking
+        self.reporter = Reporter()
+
+    def forward(self, xs, ilens, ys):
+        """CONVERSION LOSS FORWARD
+
+        :param torch.Tensor xs: batch of the sequence of inputs (B, Tmax, idim)
+        :param list ilens: batch of lenghts of each input (B)
+        :param torch.Tensor ys: batch of the sequence of outputs (B, Tmax, odim)
+        :return: loss value
+        :rtype: torch.Tensor
+        """
+        outs, _ = self.model(xs, ilens)
+        if self.use_masking:
+            mask = to_cuda(self, make_mask(ilens, ys.size(2)))
+            outs = outs.masked_select(mask)
+            ys = ys.masked_select(mask)
+        l1_loss = F.l1_loss(outs, ys)
+        mse_loss = F.mse_loss(outs, ys)
+        loss = l1_loss + mse_loss
+
+        # report and logging
+        logging.debug("loss = %.3e (l1: %.3e, mse: %.3e)" % (
+            loss.item(), l1_loss.item(), mse_loss.item()))
+        self.reporter.report([
+            {'l1_conversion_loss': l1_loss.item()},
+            {'mse_conversion_loss': mse_loss.item()},
+            {'conversion_loss': loss.item()}])
+
+        return loss
+
+
+class CBHG(torch.nn.Module):
+    """CBHG MODULE TO CONVERT LOG MEL-FBANK TO LINEAR SPECTROGRAM
+
+    :param int idim: dimension of the inputs
+    :param int odim: dimension of the outputs
+    :param int conv_bank_layers: the number of convolution bank layers
+    :param int conv_bank_chans: the number of channels in convolution bank
+    :param int conv_proj_filts: kernel size of convolutional projection layer
+    :param int conv_proj_chans: the number of channels in convolutional projection layer
+    :param int highway_layers: the number of highway network layers
+    :param int highway_units: the number of highway network units
+    :param int gru_units: the number of GRU units (for both directions)
+    """
+
+    def __init__(self,
+                 idim,
+                 odim,
+                 conv_bank_layers=8,
+                 conv_bank_chans=128,
+                 conv_proj_filts=3,
+                 conv_proj_chans=256,
+                 highway_layers=4,
+                 highway_units=128,
+                 gru_units=256):
+        super(CBHG, self).__init__()
+        self.idim = idim
+        self.odim = odim
+        self.conv_bank_layers = conv_bank_layers
+        self.conv_bank_chans = conv_bank_chans
+        self.conv_proj_filts = conv_proj_filts
+        self.conv_proj_chans = conv_proj_chans
+        self.highway_layers = highway_layers
+        self.highway_units = highway_units
+        self.gru_units = gru_units
+
+        # define 1d convolution bank
+        self.conv_bank = torch.nn.ModuleList()
+        for k in range(1, self.conv_bank_layers + 1):
+            if k % 2 != 0:
+                padding = (k - 1) // 2
+            else:
+                padding = ((k - 1) // 2, (k - 1) // 2 + 1)
+            self.conv_bank += [torch.nn.Sequential(
+                torch.nn.ConstantPad1d(padding, 0.0),
+                torch.nn.Conv1d(idim, self.conv_bank_chans, k, stride=1,
+                                padding=0, bias=True),
+                torch.nn.BatchNorm1d(self.conv_bank_chans),
+                torch.nn.ReLU())]
+
+        # define max pooling (need padding for one-side to keep same length)
+        self.max_pool = torch.nn.Sequential(
+            torch.nn.ConstantPad1d((0, 1), 0.0),
+            torch.nn.MaxPool1d(2, stride=1))
+
+        # define 1d convolution projection
+        self.projections = torch.nn.Sequential(
+            torch.nn.Conv1d(self.conv_bank_chans * self.conv_bank_layers, self.conv_proj_chans,
+                            self.conv_proj_filts, stride=1,
+                            padding=(self.conv_proj_filts - 1) // 2, bias=True),
+            torch.nn.BatchNorm1d(self.conv_proj_chans),
+            torch.nn.ReLU(),
+            torch.nn.Conv1d(self.conv_proj_chans, self.idim,
+                            self.conv_proj_filts, stride=1,
+                            padding=(self.conv_proj_filts - 1) // 2, bias=True),
+            torch.nn.BatchNorm1d(self.idim),
+        )
+
+        # define highway network
+        self.highways = torch.nn.ModuleList()
+        self.highways += [torch.nn.Linear(idim, self.highway_units)]
+        for _ in range(self.highway_layers):
+            self.highways += [HighwayNet(self.highway_units)]
+
+        # define bidirectional GRU
+        self.gru = torch.nn.GRU(self.highway_units, gru_units // 2, num_layers=1,
+                                batch_first=True, bidirectional=True)
+
+        # define final projection
+        self.output = torch.nn.Linear(gru_units, odim, bias=True)
+
+    def forward(self, xs, ilens):
+        """CBHG MODULE FORWARD
+
+        :param torch.Tensor xs: batch of the sequences of inputs (B, Tmax, idim)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :return: batch of sequences of padded outputs (B, Tmax, eunits)
+        :rtype: torch.Tensor
+        :return: batch of lenghts of each encoder states (B)
+        :rtype: list
+        """
+        xs = xs.transpose(1, 2)  # (B, idim, Tmax)
+        convs = []
+        for k in range(self.conv_bank_layers):
+            convs += [self.conv_bank[k](xs)]
+        convs = torch.cat(convs, dim=1)  # (B, #CH * #BANK, Tmax)
+        convs = self.max_pool(convs)
+        convs = self.projections(convs).transpose(1, 2)  # (B, Tmax, idim)
+        xs = xs.transpose(1, 2) + convs
+        # + 1 for dimension adjustment layer
+        for l in range(self.highway_layers + 1):
+            xs = self.highways[l](xs)
+        xs = pack_padded_sequence(xs, ilens, batch_first=True)
+        xs, _ = self.gru(xs)
+        xs, hlens = pad_packed_sequence(xs, batch_first=True)  # (B, Tmax, #GRU)
+        xs = self.output(xs)  # (B, Tmax, odim)
+
+        return xs, list(map(int, hlens))
+
+    def inference(self, x):
+        """CBHG MODULE INFERENCE
+
+        :param torch.Tensor x: input (T, idim)
+        :return: the sequence encoder states (T, odim)
+        :rtype: torch.Tensor
+        """
+        assert len(x.size()) == 2
+        xs = x.unsqueeze(0)
+        ilens = [x.size(0)]
+
+        return self.forward(xs, ilens)[0][0]
+
+
+class HighwayNet(torch.nn.Module):
+    """HIGHWAY NETWORK"""
+
+    def __init__(self, idim):
+        super(HighwayNet, self).__init__()
+        self.idim = idim
+        self.projection = torch.nn.Sequential(
+            torch.nn.Linear(idim, idim),
+            torch.nn.ReLU())
+        self.gate = torch.nn.Sequential(
+            torch.nn.Linear(idim, idim),
+            torch.nn.Sigmoid())
+
+    def forward(self, x):
+        """HIGHWAY NETWORK FORWARD
+
+        :param torch.Tensor xs: batch of inputs (B, *, idim)
+        :return: batch of outputs (B, *, idim)
+        :rtype: torch.Tensor
+        """
+        proj = self.projection(x)
+        gate = self.gate(x)
+        return proj * gate + x * (1.0 - gate)
