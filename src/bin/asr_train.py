@@ -68,10 +68,16 @@ def main():
     parser.add_argument('--subsample', default=1, type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
-    # loss
-    parser.add_argument('--ctc_type', default='warpctc', type=str,
-                        choices=['chainer', 'warpctc'],
-                        help='Type of CTC implementation to calculate loss.')
+    # ctc
+    parser.add_argument('--ctype', default='warpctc', type=str,
+                        choices=['warpctc', 'chainer'],
+                        help='Type of CTC architecture.')
+    parser.add_argument('--clayers', default=1, type=int,
+                        help='Number of CTC encoder layers')
+    parser.add_argument('--cunits', default=320, type=int,
+                        help='Number of CTC encoder hidden units')
+    parser.add_argument('--cprojs', default=320, type=int,
+                        help='Number of CTC encoder projection units')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',

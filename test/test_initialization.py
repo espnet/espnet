@@ -18,6 +18,7 @@ args = argparse.Namespace(
     etype="vggblstmp",
     eunits=320,
     eprojs=320,
+    ctype="warpctc",
     dlayers=2,
     dunits=300,
     atype="location",

@@ -208,7 +208,16 @@ class E2E(torch.nn.Module):
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                            self.subsample, args.dropout_rate)
         # ctc
-        self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+        if args.ctype == 'warpctc':
+            logging.info("Using warpctc CTC implementation")
+            if hasattr(args, 'clayers') is False:
+                self.ctc = CTC(odim, args.eprojs)
+            else:
+                self.ctc = CTC(odim, args.eprojs, args.clayers, args.cunits, args.cprojs, args.dropout_rate)
+        else:
+            logging.error(
+                "Error: need to specify an appropriate CTC archtecture")
+            sys.exit()
         # attention
         if args.atype == 'noatt':
             self.att = NoAtt()
@@ -356,11 +365,11 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
-        h, _ = self.enc(h.unsqueeze(0), ilen)
+        h, hlen = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(h).data[0]
+            lpz = self.ctc.log_softmax(h, hlen).data[0]
         else:
             lpz = None
 
@@ -466,12 +475,20 @@ def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
     return _ChainerLikeCTC.apply(acts, labels, act_lens, label_lens)
 
 
+# CTC with non-shared BLSTM layers
 class CTC(torch.nn.Module):
-    def __init__(self, odim, eprojs, dropout_rate):
+    def __init__(self, odim, eprojs, clayers=0, cunits=320, cprojs=320, dropout_rate=0.0):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
-        self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        self.clayers = clayers
+        if clayers > 0:
+            self.nblstm = torch.nn.LSTM(eprojs, cunits, clayers, batch_first=True,
+                                        dropout=dropout_rate, bidirectional=True)
+            self.l_last = torch.nn.Linear(cunits * 2, cprojs)
+            self.ctc_lo = torch.nn.Linear(cprojs, odim)
+        else:
+            self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.loss_fn = chainer_like_ctc_loss  # CTCLoss()
 
     def forward(self, hpad, ilens, ys):
@@ -482,9 +499,15 @@ class CTC(torch.nn.Module):
         :return:
         '''
         self.loss = None
-        ilens = Variable(torch.from_numpy(np.fromiter(ilens, dtype=np.int32)))
-        olens = Variable(torch.from_numpy(np.fromiter(
-            (x.size(0) for x in ys), dtype=np.int32)))
+
+        if self.clayers > 0:
+            hpack = pack_padded_sequence(hpad, ilens, batch_first=True)
+            hs, _ = self.nblstm(hpack)
+            # ys: utt list of frame x cdim x 2 (2: means bidirectional)
+            hpad2, ilens = pad_packed_sequence(hs, batch_first=True)
+            projected = torch.tanh(self.l_last(
+                hpad2.contiguous().view(-1, hpad2.size(2))))
+            hpad = projected.view(hpad2.size(0), hpad2.size(1), -1)
 
         # zero padding for hs
         y_hat = linear_tensor(
@@ -492,6 +515,10 @@ class CTC(torch.nn.Module):
 
         # zero padding for ys
         y_true = torch.cat(ys).cpu().int()  # batch x olen
+
+        ilens = Variable(torch.from_numpy(np.fromiter(ilens, dtype=np.int32)))
+        olens = Variable(torch.from_numpy(np.fromiter(
+            (x.size(0) for x in ys), dtype=np.int32)))
 
         # get length info
         logging.info(self.__class__.__name__ + ' input lengths:  ' + ''.join(str(ilens).split('\n')))
@@ -505,12 +532,22 @@ class CTC(torch.nn.Module):
 
         return self.loss
 
-    def log_softmax(self, hpad):
+    def log_softmax(self, hpad, ilens):
         '''log_softmax of frame activations
 
         :param hs:
         :return:
         '''
+
+        if self.clayers > 0:
+            hpack = pack_padded_sequence(hpad, ilens, batch_first=True)
+            hs, _ = self.nblstm(hpack)
+            # ys: utt list of frame x cdim x 2 (2: means bidirectional)
+            hpad2, ilens = pad_packed_sequence(hs, batch_first=True)
+            projected = torch.tanh(self.l_last(
+                hpad2.contiguous().view(-1, hpad2.size(2))))
+            hpad = projected.view(hpad2.size(0), hpad2.size(1), -1)
+
         return F.log_softmax(linear_tensor(self.ctc_lo, hpad), dim=2)
 
 

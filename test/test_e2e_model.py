@@ -19,6 +19,7 @@ def make_arg(**kwargs):
         etype="blstmp",
         eunits=100,
         eprojs=100,
+        ctype="warpctc",
         dlayers=1,
         dunits=300,
         atype="location",
