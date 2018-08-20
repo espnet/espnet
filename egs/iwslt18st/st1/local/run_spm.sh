@@ -120,10 +120,25 @@ if [ ${stage} -le 1 ]; then
             data/${x}_de exp/make_fbank/${x} ${fbankdir}
     done
 
-    # remove utt having more than 3000 frames
-    # remove utt having more than 400 characters
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set} data/${train_set}_trim
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev} data/${train_dev}_trim
+    for x in train dev2010; do
+        # remove utt having more than 3000 frames
+        # remove utt having more than 400 characters
+        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_de data/${x}_de_tmp
+        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_en data/${x}_en_tmp
+
+        # Match the number of utterances between EN and DE
+        # extract commocn lines
+        cut -f -1 -d " " < data/${x}_de_tmp/segments > data/${x}_de_tmp/reclist1
+        cut -f -1 -d " " < data/${x}_en_tmp/segments > data/${x}_de_tmp/reclist2
+        comm -12 data/${x}_de_tmp/reclist1 data/${x}_de_tmp/reclist2 > data/${x}_de_tmp/reclist
+
+        reduce_data_dir.sh data/${x}_de_tmp data/${x}_de_tmp/reclist data/${x}_de_trim
+        reduce_data_dir.sh data/${x}_en_tmp data/${x}_de_tmp/reclist data/${x}_en_trim
+        utils/fix_data_dir.sh data/${x}_de_trim
+        utils/fix_data_dir.sh data/${x}_en_trim
+        rm -rf data/${x}_de_tmp
+        rm -rf data/${x}_en_tmp
+    done
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}_trim/feats.scp data/${train_set}_trim/cmvn.ark

@@ -37,17 +37,16 @@ aconv_filts=100
 
 # hybrid CTC/attention
 mtlalpha=0.5
+# mtlalpha=1
 
 # minibatch related
-# batchsize=20
 batchsize=32
-# batchsize=32
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=10
 
 # rnnlm related
 lm_weight=0.3
@@ -59,6 +58,7 @@ maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+# recog_model=loss.best
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -68,9 +68,7 @@ datadir=/export/b08/inaguma/IWSLT.tst2018
 
 
 # bpemode (unigram or bpe)
-# nbpe=300
 nbpe=2000
-# nbpe=10000
 bpemode=unigram
 
 # exp tag
@@ -113,7 +111,7 @@ if [ ${stage} -le 0 ]; then
     fi
 
     for name in train_trim dev_trim dev test; do
-      utils/copy_data_dir.sh --utt-suffix -tedlium2 ../../tedlium/asr1/data/${name} data/${name}_tedlium2_en
+      utils/copy_data_dir.sh ../../tedlium/asr1/data/${name} data/${name}_tedlium2_en
 
       # normalize punctuation & tokenize
       cut -f -1 -d " " ../../tedlium/asr1/data/${name}/text > data/${name}_tedlium2_en/text_tmp1
