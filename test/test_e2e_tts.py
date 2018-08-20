@@ -9,6 +9,8 @@ import torch
 from argparse import Namespace
 
 from e2e_asr_th import pad_list
+from e2e_tts_th import CBHG
+from e2e_tts_th import ConversionLoss
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
 
@@ -163,3 +165,24 @@ def test_tacotron2_multi_gpu_trainable():
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+
+def test_cbhg_trainable_and_decodable():
+    bs = 2
+    maxin_len = 10
+    idim = 80
+    odim = 256
+    ilens = torch.LongTensor(np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist())
+    xs = pad_list([torch.from_numpy(np.random.randn(l, idim)).float() for l in ilens], 0.0)
+    ys = pad_list([torch.from_numpy(np.random.randn(l, odim)).float() for l in ilens], 0.0)
+
+    cbhg = CBHG(idim, odim)
+    model = ConversionLoss(cbhg)
+    optimizer = torch.optim.Adam(model.parameters())
+    loss = model(xs, ilens, ys)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    with torch.no_grad():
+        cbhg.inference(xs[0])
