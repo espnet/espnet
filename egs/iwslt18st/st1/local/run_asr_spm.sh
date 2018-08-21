@@ -127,8 +127,8 @@ if [ ${stage} -le 1 ]; then
 
         # Match the number of utterances between EN and DE
         # extract commocn lines
-        cut -f -1 -d " " < data/${x}_de_tmp/segments > data/${x}_de_tmp/reclist1
-        cut -f -1 -d " " < data/${x}_en_tmp/segments > data/${x}_de_tmp/reclist2
+        cut -f -1 -d " " data/${x}_de_tmp/segments > data/${x}_de_tmp/reclist1
+        cut -f -1 -d " " data/${x}_en_tmp/segments > data/${x}_de_tmp/reclist2
         comm -12 data/${x}_de_tmp/reclist1 data/${x}_de_tmp/reclist2 > data/${x}_de_tmp/reclist
 
         reduce_data_dir.sh data/${x}_de_tmp data/${x}_de_tmp/reclist data/${x}_de_trim

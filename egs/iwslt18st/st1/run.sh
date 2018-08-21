@@ -124,8 +124,8 @@ if [ ${stage} -le 1 ]; then
 
         # Match the number of utterances between EN and DE
         # extract commocn lines
-        cut -f -1 -d " " < data/${x}_de_tmp/segments > data/${x}_de_tmp/reclist1
-        cut -f -1 -d " " < data/${x}_en_tmp/segments > data/${x}_de_tmp/reclist2
+        cut -f -1 -d " " data/${x}_de_tmp/segments > data/${x}_de_tmp/reclist1
+        cut -f -1 -d " " data/${x}_en_tmp/segments > data/${x}_de_tmp/reclist2
         comm -12 data/${x}_de_tmp/reclist1 data/${x}_de_tmp/reclist2 > data/${x}_de_tmp/reclist
 
         reduce_data_dir.sh data/${x}_de_tmp data/${x}_de_tmp/reclist data/${x}_de_trim
@@ -170,9 +170,7 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
     # The same dictinary between EN and DE
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train_en/text > data/lang_1char/input.txt
-    cat data/train_de/text >> data/lang_1char/input.txt
-    text2token.py -s 1 -n 1 < data/lang_1char/input.txt | cut -f 2- -d " " | tr " " "\n" \
+    cat data/train_en/text data/train_de/text | text2token.py -s 1 -n 1 | cut -f 2- -d " " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
