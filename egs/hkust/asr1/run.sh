@@ -60,8 +60,8 @@ ctc_weight=0.6
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
-hkust1=/work3/share/database/HKUST/LDC2005S15
-hkust2=/work3/share/database/HKUST/LDC2005T32
+hkust1=/export/corpora/LDC/LDC2005S15/
+hkust2=/export/corpora/LDC/LDC2005T32/
 
 # exp tag
 tag="" # tag for managing experiments.
