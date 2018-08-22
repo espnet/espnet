@@ -263,7 +263,7 @@ def test_calculate_all_attentions(module, atype):
 
 @pytest.mark.parametrize(
     "module", [
-        ('e2e_asr_attctc_th'),
+        ('e2e_asr_attctc_th')
     ]
 )
 def test_sampling(module):
