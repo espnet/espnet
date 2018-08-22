@@ -32,8 +32,8 @@ MAX_DECODER_OUTPUT = 5
 
 def get_tids(output_type, data):
     """ Given some data from data.json, return a list of lists,
-    where each sub-list consists of tokenids corresponding to
-    some specified output type."""
+    one per utterance, where each sub-list consists of tokenids corresponding
+    to some specified output type."""
 
     tids = []
     for utter in data:
@@ -373,7 +373,7 @@ class E2E(torch.nn.Module):
         return loss_ctc, loss_att, loss_phn, acc
 
     def recognize_phn(self, x):
-        """ Performs 1-best CTC decoding for predicting phonemes."""
+        """ Performs greedy 1-best CTC decoding for predicting phonemes."""
 
         self.eval()
         x = x[::self.subsample[0], :]
@@ -395,7 +395,8 @@ class E2E(torch.nn.Module):
 
         return phn_hyp
 
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
+    def recognize(self, x, recog_args, char_list,
+                  rnnlm=None, restrict_chars=None):
         '''E2E beam search
 
         :param x:
@@ -420,6 +421,30 @@ class E2E(torch.nn.Module):
             lpz = self.ctc.log_softmax(h).data[0]
         else:
             lpz = None
+
+        # TODO Temporarily hardcode loading of Swahili dict.
+        with open("/export/b13/oadams/espnet/egs/jsalt18e2e/phoneme_objective/dicts/assamese_dict.txt") as f:
+            inv = set([line.split()[0] for line in f])
+        restrict_chars = True
+        if restrict_chars:
+            # Then mask the CTC probabilities for characters that are not in
+            # restrict_chars
+            logging.info("INV: {}".format(inv))
+            logging.info("char_list: {}".format(char_list[:60]))
+            chars_mask = [1 if char in inv else np.inf for char in char_list]
+            logging.info("chars_mask: {}".format(chars_mask[:60]))
+            chars_mask[0] = 1 #The CTC blank symbol should persist.
+            logging.info("chars_mask: {}".format(chars_mask[:60]))
+            logging.info("{} {}".format(len(char_list),h.shape))
+            logging.info("{}".format(lpz.shape))
+            #logging.info("lpz.device: {}".format(lpz.device))
+            chars_mask = torch.from_numpy(np.array(chars_mask, dtype=np.float32))
+            logging.info("sum chars mask: {}".format(sum(chars_mask)))
+            logging.info("lpz[0:10,0:10]: {}".format(lpz[0:10,0:10]))
+            lpz = lpz * chars_mask
+            logging.info("lpz_masked: {}".format(lpz))
+
+            #import sys; sys.exit()
 
         # 2. decoder
         # decode the first utterance
@@ -1993,6 +2018,7 @@ class Decoder(torch.nn.Module):
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1).data
+                #logging.info("local_att_scores.shape: {}".format(local_att_scores.shape))
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores

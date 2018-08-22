@@ -140,7 +140,6 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             optimizer.step()
         delete_feat(x)
 
-
 class DataParallel(torch.nn.DataParallel):
     def scatter(self, inputs, kwargs, device_ids, dim):
         r"""Scatter with support for kwargs dictionary"""

@@ -17,6 +17,7 @@ for lang in langs:
     invs[lang] = inv
 
 # Then gather the predictions from exp dir decodings
+#and determine the %age of characters that were in the original orthography
 for lang in langs:
     total = 0
     ooo = 0
@@ -30,4 +31,3 @@ for lang in langs:
                     ooo += 1
     print("OOO for {}: {}".format(lang, ooo/total))
 
-# Then determine the %age of characters that were in the original orthography
