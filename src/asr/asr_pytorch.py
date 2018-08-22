@@ -31,6 +31,10 @@ from asr_utils import load_labeldict
 from asr_utils import make_batchset
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
+from asr_utils import torch_load
+from asr_utils import torch_resume
+from asr_utils import torch_save
+from asr_utils import torch_snapshot
 from e2e_asr_th import E2E
 from e2e_asr_th import Loss
 from e2e_asr_th import pad_list
@@ -260,10 +264,10 @@ def train(args):
     # actual bathsize is included in a list
     train_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(train, converter.transform),
-        1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
+        batch_size=1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
     valid_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(valid, converter.transform),
-        1, n_processes=2, n_prefetch=8,
+        batch_size=1, n_processes=2, n_prefetch=8,
         repeat=False, shuffle=False, maxtasksperchild=20)
 
     # Set up a trainer
@@ -274,12 +278,8 @@ def train(args):
 
     # Resume from a snapshot
     if args.resume:
-        chainer.serializers.load_npz(args.resume, trainer)
-        if args.ngpu > 1:
-            model.module.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
-        else:
-            model.load_state_dict(torch.load(args.outdir + '/model.ep.%d' % trainer.updater.epoch))
-        model = trainer.updater.model
+        logging.info('resumed from %s' % args.resume)
+        torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
@@ -305,33 +305,16 @@ def train(args):
                                          'epoch', file_name='acc.png'))
 
     # Save best models
-    def torch_save(path, _):
-        if hasattr(model, "module"):
-            torch.save(model.module.state_dict(), path)
-        else:
-            torch.save(model.state_dict(), path)
-
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    # save snapshot to save the information of #interations or #epochs
-    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'),
-                   trigger=(1, 'epoch'))
-    # save model states
-    trainer.extend(extensions.snapshot_object(model, 'model.ep.{.updater.epoch}', savefun=torch_save),
-                   trigger=(1, 'epoch'))
-
     if mtl_mode is not 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
-    # epsilon decay in the optimizer
-    def torch_load(path, obj):
-        if hasattr(model, "module"):
-            model.module.load_state_dict(torch.load(path))
-        else:
-            model.load_state_dict(torch.load(path))
-        return obj
+    # save snapshot which contains model and optimizer states
+    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
+    # epsilon decay in the optimizer
     if args.opt == 'adadelta':
         if args.criterion == 'acc' and mtl_mode is not 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
@@ -379,31 +362,18 @@ def recog(args):
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
-    # specify model architecture
+    # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
-
-    def cpu_loader(storage, location):
-        return storage
-
-    def remove_dataparallel(state_dict):
-        from collections import OrderedDict
-        new_state_dict = OrderedDict()
-        for k, v in state_dict.items():
-            if k.startswith("module."):
-                k = k[7:]
-            new_state_dict[k] = v
-        return new_state_dict
-
-    model.load_state_dict(remove_dataparallel(torch.load(args.model, map_location=cpu_loader)))
+    torch_load(args.model, model)
 
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(len(train_args.char_list), rnnlm_args.unit))
-        rnnlm.load_state_dict(torch.load(args.rnnlm, map_location=cpu_loader))
+        torch_load(args.rnnlm, rnnlm)
         rnnlm.eval()
     else:
         rnnlm = None
@@ -417,7 +387,7 @@ def recog(args):
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(len(word_dict), rnnlm_args.unit))
-        word_rnnlm.load_state_dict(torch.load(args.word_rnnlm, map_location=cpu_loader))
+        torch_load(args.word_rnnlm, word_rnnlm)
         word_rnnlm.eval()
 
         if rnnlm is not None:
