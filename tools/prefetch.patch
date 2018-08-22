@@ -1,0 +1,67 @@
+--- venv/lib/python2.7/site-packages/chainer/iterators/multiprocess_iterator.py	2018-08-09 13:50:01.526473000 +0900
++++ multiprocess_iterator.py	2018-08-09 13:49:15.465092135 +0900
+@@ -48,7 +48,10 @@ class MultiprocessIterator(iterator.Iter
+         n_prefetch (int): Number of prefetch batches.
+         shared_mem (int): The size of using shared memory per data.
+             If ``None``, size is adjusted automatically.
+-
++        maxtasksperchild (int): Number of tasks a worker of prefetch process
++            can complete before it will exit and be replaced with a fresh
++            worker process, to enable unused resources to be freed. If
++            ``None``, worker processes will live as long as the pool.
+     """
+ 
+     _interruption_testing = False  # for testing
+@@ -57,7 +60,7 @@ class MultiprocessIterator(iterator.Iter
+     _thread = None
+ 
+     def __init__(self, dataset, batch_size, repeat=True, shuffle=True,
+-                 n_processes=None, n_prefetch=1, shared_mem=None):
++                 n_processes=None, n_prefetch=1, shared_mem=None, maxtasksperchild=None):
+         self.dataset = dataset
+         self.batch_size = batch_size
+         self.repeat = repeat
+@@ -66,6 +69,7 @@ class MultiprocessIterator(iterator.Iter
+         self.n_processes = n_processes or multiprocessing.cpu_count()
+         self.n_prefetch = max(n_prefetch, 1)
+         self.shared_mem = shared_mem
++        self._maxtasksperchild = maxtasksperchild
+ 
+         self._comm = _Communicator(self.n_prefetch)
+         self.reset()
+@@ -73,7 +77,7 @@ class MultiprocessIterator(iterator.Iter
+         self._prefetch_loop = _PrefetchLoop(
+             self.dataset, self.batch_size, self.repeat, self.shuffle,
+             self.n_processes, self.n_prefetch, self.shared_mem, self._comm,
+-            self._interruption_testing)
++            self._interruption_testing, self._maxtasksperchild)
+         # defer launching prefetch thread until creating the worker pool,
+         # not to leave a background thread in forked processes.
+         self._thread = None
+@@ -267,7 +271,7 @@ class _PrefetchLoop(object):
+ 
+     def __init__(self, dataset, batch_size, repeat, shuffle,
+                  n_processes, n_prefetch, mem_size, comm,
+-                 _interruption_testing):
++                 _interruption_testing, maxtasksperchild):
+         self.dataset = dataset
+         self.batch_size = batch_size
+         self.repeat = repeat
+@@ -278,6 +282,7 @@ class _PrefetchLoop(object):
+ 
+         self._allocate_shared_memory()
+         self._pool = None
++        self.maxtasksperchild = maxtasksperchild
+ 
+         # Use a distinct RandomState in the thread
+         # for deterministic random number generation.
+@@ -318,7 +323,8 @@ class _PrefetchLoop(object):
+         self._pool = multiprocessing.Pool(
+             processes=self.n_processes,
+             initializer=_fetch_setup,
+-            initargs=(self.dataset, self.mem_size, self.mem_bulk))
++            initargs=(self.dataset, self.mem_size, self.mem_bulk),
++            maxtasksperchild=self.maxtasksperchild)
+         if self._interruption_testing:
+             pids = self._pool.map(_report_pid, range(self.n_processes))
+             print(' '.join(map(str, pids)))

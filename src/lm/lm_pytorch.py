@@ -10,6 +10,7 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
+import json
 import logging
 import numpy as np
 import os
@@ -19,11 +20,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from chainer import reporter
-from torch.autograd import Variable
 
-from e2e_asr_attctc_th import th_accuracy
-from e2e_asr_attctc_th import to_cuda
-from e2e_asr_attctc_th import torch_is_old
+from e2e_asr_th import th_accuracy
+from e2e_asr_th import to_cuda
 from lm_utils import ParallelSequentialIterator
 
 
@@ -107,7 +106,7 @@ class ClassifierWithState(nn.Module):
             return self.predictor(state, x)
         else:
             state, z = self.predictor(state, x)
-            return state, F.log_softmax(z, dim=1).data
+            return state, F.log_softmax(z, dim=1)
 
 
 class RNNLM(nn.Module):
@@ -129,7 +128,7 @@ class RNNLM(nn.Module):
             param.data.uniform_(-0.1, 0.1)
 
     def zero_state(self, batchsize):
-        return Variable(torch.zeros(batchsize, self.n_units)).float()
+        return torch.zeros(batchsize, self.n_units).float()
 
     def forward(self, state, x):
         if state is None:
@@ -200,40 +199,37 @@ def train(args):
         gpu_id = 0
         model.cuda(gpu_id)
 
+    # Save model conf to json
+    model_conf = args.outdir + '/model.json'
+    with open(model_conf, 'wb') as f:
+        logging.info('writing a model config file to ' + model_conf)
+        f.write(json.dumps(vars(args), indent=4, sort_keys=True).encode('utf_8'))
+
     # Set up an optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
 
     def evaluate(model, iter, bproplen=100):
         # Evaluation routine to be used for validation and test.
-        # TODO(karita) use torch.no_grad here
-        if not torch_is_old:
-            torch.set_grad_enabled(False)
         model.predictor.eval()
         state = None
         sum_perp = 0
         data_count = 0
-        for batch in copy.copy(iter):
-            batch = np.array(batch)
-            if torch_is_old:
-                x = Variable(torch.from_numpy(batch[:, 0]).long(), volatile=True)
-                t = Variable(torch.from_numpy(batch[:, 1]).long(), volatile=True)
-            else:
+        with torch.no_grad():
+            for batch in copy.copy(iter):
+                batch = np.array(batch)
                 x = torch.from_numpy(batch[:, 0]).long()
                 t = torch.from_numpy(batch[:, 1]).long()
 
-            if args.ngpu > 0:
-                x = x.cuda(gpu_id)
-                t = t.cuda(gpu_id)
-            state, loss = model(state, x, t)
-            sum_perp += loss.data
-            if data_count % bproplen == 0:
-                # detach all states
-                for key in state.keys():
-                    state[key] = state[key].detach()
-            data_count += 1
-        # TODO(karita) use torch.no_grad here
-        if not torch_is_old:
-            torch.set_grad_enabled(True)
+                if args.ngpu > 0:
+                    x = x.cuda(gpu_id)
+                    t = t.cuda(gpu_id)
+                state, loss = model(state, x, t)
+                sum_perp += loss.item()
+                if data_count % bproplen == 0:
+                    # detach all states
+                    for key in state.keys():
+                        state[key] = state[key].detach()
+                data_count += 1
         model.predictor.train()
         return np.exp(float(sum_perp) / data_count)
 
@@ -254,8 +250,8 @@ def train(args):
             # self.converter does this job
             # (it is chainer.dataset.concat_examples by default)
             batch = np.array(batch)
-            x = Variable(torch.from_numpy(batch[:, 0]).long())
-            t = Variable(torch.from_numpy(batch[:, 1]).long())
+            x = torch.from_numpy(batch[:, 0]).long()
+            t = torch.from_numpy(batch[:, 1]).long()
             if args.ngpu > 0:
                 x = x.cuda(gpu_id)
                 t = t.cuda(gpu_id)
@@ -264,16 +260,13 @@ def train(args):
             loss += loss_batch
             count += 1
 
-        sum_perp += loss.data
+        sum_perp += loss.item()
         model.zero_grad()  # Clear the parameter gradients
         loss.backward()  # Backprop
         # detach all states
         for key in state.keys():
             state[key] = state[key].detach()
-        if torch_is_old:
-            nn.utils.clip_grad_norm(model.parameters(), args.gradclip)
-        else:
-            nn.utils.clip_grad_norm_(model.parameters(), args.gradclip)
+        nn.utils.clip_grad_norm_(model.parameters(), args.gradclip)
         optimizer.step()  # Update the parameters
 
         if iteration % 100 == 0:

@@ -29,8 +29,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.x+ (**mainly support PyTorch 0.4.x**)
-- Chainer 4.x+
+- PyTorch 0.4.1+
+- Chainer 4.3.1
 
 ## Installation
 ### Step 1) setting of  the environment
@@ -222,8 +222,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval1 | 8.5 | N/A  |
 | CSJ eval2 | 6.1 | N/A  |
 | CSJ eval3 | 6.8 | N/A  |
-| HKUST train_dev | 29.7 | N/A  |
-| HKUST dev       | 28.3 | N/A  |
+| HKUST train_dev | 28.8 | N/A  |
+| HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | 2.7 | 7.2 |
 | Librispeech test_clean | 2.6 | 7.1 |
 
