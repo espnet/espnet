@@ -197,7 +197,7 @@ if [ ${stage} -le 3 ]; then
     mkdir -p ${lmdatadir}
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train.txt
-        cut -f 2- -d" " data/${train_set}/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
+    cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
