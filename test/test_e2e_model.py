@@ -7,6 +7,7 @@ from __future__ import division
 
 import argparse
 import importlib
+import os
 
 import chainer
 import numpy as np
@@ -265,3 +266,44 @@ def test_calculate_all_attentions(module, atype):
     with chainer.no_backprop_mode():
         att_ws = model.calculate_all_attentions(*batch)
         print(att_ws.shape)
+
+
+def test_torch_save_and_load():
+    import e2e_asr_th as m
+
+    from asr_utils import torch_load
+    from asr_utils import torch_save
+
+    args = make_arg()
+    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    # initialize randomly
+    for p in model.parameters():
+        p.data.uniform_()
+    if not os.path.exists(".pytest_cache"):
+        os.makedirs(".pytest_cache")
+    tmppath = ".pytest_cache/model.tmp"
+    torch_save(tmppath, model)
+    p_saved = [p.data.numpy() for p in model.parameters()]
+    # set constant value
+    for p in model.parameters():
+        p.data.zero_()
+    torch_load(tmppath, model)
+    for p1, p2 in zip(p_saved, model.parameters()):
+        np.testing.assert_array_equal(p1, p2.data.numpy())
+    if os.path.exists(tmppath):
+        os.remove(tmppath)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
+def test_torch_multi_gpu_trainable():
+    import e2e_asr_th as m
+    ngpu = 2
+    device_ids = list(range(ngpu))
+    args = make_arg()
+    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    model = torch.nn.DataParallel(model, device_ids)
+    batch = prepare_inputs("pytorch")
+    batch = (x.cuda() for x in batch)
+    model.cuda()
+    attn_loss = 1. / ngpu * model(*batch)
+    attn_loss.backward(attn_loss.new_ones(ngpu))  # trainable
