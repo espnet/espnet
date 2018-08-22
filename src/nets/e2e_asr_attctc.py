@@ -9,6 +9,7 @@ import math
 import sys
 
 import numpy as np
+import random
 import six
 
 import chainer
@@ -158,7 +159,7 @@ class E2E(chainer.Chain):
             # decoder
             self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                                self.sos, self.eos, self.att, self.verbose, self.char_list,
-                               labeldist, args.lsm_weight)
+                               labeldist, args.lsm_weight, args.sampling_probability)
 
     # x[i]: ('utt_id', {'ilen':'xxx',...}})
     def __call__(self, data):
@@ -562,7 +563,7 @@ class NoAtt(chainer.Chain):
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0.):
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(odim, dunits)
@@ -583,6 +584,7 @@ class Decoder(chainer.Chain):
         self.labeldist = labeldist
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
+        self.sampling_probability = sampling_probability
 
     def __call__(self, hs, ys):
         '''Decoder forward
@@ -626,7 +628,18 @@ class Decoder(chainer.Chain):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
-            ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
+            if random.random() < self.sampling_probability:
+                logging.info(' scheduled sampling ')
+                if i == 0:
+                    # for initializing z_list[0]
+                    ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
+                    c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
+                z_out = self.output(z_list[0])
+                z_out = F.argmax(F.log_softmax(z_out), axis=1)
+                z_out = self.embed(z_out)
+                ey = F.hstack((z_out, att_c))  # utt x (zdim + hdim)
+            else:
+                ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
             c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
