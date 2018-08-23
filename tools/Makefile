@@ -2,7 +2,7 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc sentencepiece
+all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc sentencepiece moses
 
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
@@ -49,7 +49,12 @@ sentencepiece:
 	git clone https://github.com/google/sentencepiece.git
 	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 
+moses:
+	git clone https://github.com/moses-smt/mosesdecoder.git
+	cd mosesdecoder && make -f contrib/Makefiles/install-dependencies.gmake && ./compile.sh
+	ln -s mosesdecoder moses
+
 clean:
-	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece mosesdecoder
 	rm -f miniconda.sh
 	find . -iname "*.pyc" -delete
