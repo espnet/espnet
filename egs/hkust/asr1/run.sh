@@ -7,9 +7,9 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -21,16 +21,17 @@ do_delta=false
 
 # network archtecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
-elayers=8
-eunits=320
-eprojs=320
+etype=vggblstm     # encoder architecture type
+elayers=3
+eunits=1024
+eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
-dlayers=1
-dunits=300
+dlayers=2
+dunits=1024
 # attention related
 atype=location
+adim=1024
 aconv_chans=10
 aconv_filts=100
 
@@ -48,14 +49,14 @@ epochs=15
 
 # rnnlm related
 batchsize_lm=64
-lm_weight=0.2
+lm_weight=0.3
 
 # decoding parameter
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.3
+ctc_weight=0.6
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # data
@@ -248,6 +249,7 @@ if [ ${stage} -le 4 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
+        --adim ${adim} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
@@ -268,7 +270,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
