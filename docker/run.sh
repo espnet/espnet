@@ -3,9 +3,10 @@
 docker_gpu=0
 docker_egs=
 docker_folders=
-docker_cuda=9.0
+docker_cuda=
 docker_cudnn=7
 docker_user=0
+docker_env=
 
 while test $# -gt 0
 do
@@ -88,8 +89,8 @@ if ! [[ -n ${docker_image}  ]]; then
   else
     build_args="${build_args} --build-arg THIS_USER=root"
   fi
-  echo "Now running docker build ${build_args} -f docker/espnet.devel -t ${image_label} ."
-  (docker build ${build_args} -f docker/espnet.devel -t ${image_label} .) || exit 1
+  echo "Now running docker build ${build_args} -f docker/Dockerfile -t ${image_label} ."
+  (docker build ${build_args} -f docker/Dockerfile -t ${image_label} .) || exit 1
 fi
 
 vols="-v ${PWD}/egs:/espnet/egs -v ${PWD}/src:/espnet/src -v ${PWD}/test:/espnet/test"
@@ -115,13 +116,20 @@ cmd2="./run.sh $@"
 cmd3="chmod -R 777 /espnet/egs/${docker_egs}"
 
 cmd="${cmd1}; ${cmd2}; ${cmd3}"
+this_env=""
+if [ ! -z "${docker_env}" ]; then
+  this_env="-e ${docker_env}"
+fi
+
 if [ "${docker_gpu}" == "-1" ]; then
-  cmd="docker run -i --rm --name espnet_cpu ${vols} ${image_label} /bin/bash -c '${cmd}'"
+  cmd0="docker"
+  container_name="espnet_cpu"
 else
   # --rm erase the container when the training is finished.
-  container_gpu=${docker_gpu//,/_}
-  cmd="NV_GPU='${docker_gpu}' nvidia-docker run -i --rm --name espnet_gpu${container_gpu} ${vols} ${image_label} /bin/bash -c '${cmd}'"
+  container_name="espnet_gpu${docker_gpu//,/_}"
+  cmd0="NV_GPU='${docker_gpu}' nvidia-docker"
 fi
+cmd="${cmd0} run -i --rm ${this_env} --name ${container_name} ${vols} ${image_label} /bin/bash -c '${cmd}'"
 
 echo "Executing application in Docker"
 echo ${cmd}
