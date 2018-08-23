@@ -30,7 +30,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 dlayers=2
 dunits=1024
 # attention related
-atype=add
+atype=dot
 adim=1024
 aconv_chans=10
 aconv_filts=100
@@ -45,7 +45,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=30
+epochs=20
 
 # rnnlm related
 lm_weight=0.3
@@ -255,6 +255,7 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
+        --eps-decay 1 \
         --epochs ${epochs}
 fi
 

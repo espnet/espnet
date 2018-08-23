@@ -49,6 +49,7 @@ else
 fi
 
 echo "write a character-level BLEU result in ${dir}/result.txt"
+cat ${dir}/result.txt
 
 if ${word}; then
     if [ ! -z $bpe ]; then
@@ -68,5 +69,5 @@ if ${word}; then
     fi
 
     echo "write a word-level BLUE result in ${dir}/result.wrd.txt"
-
+    cat ${dir}/result.wrd.txt
 fi
