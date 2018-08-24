@@ -63,6 +63,7 @@ maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+lang_grapheme_constraint="" # The name of the language which grapheme set will serve as a constraint for character decoding
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -369,6 +370,15 @@ if [ ${stage} -le 4 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        # If lang_grpahame_constraint is specified, pull out the relevant
+        # grapheme dictionary from rtask name, where rtask is something like
+        # "et_babel_assamese"
+        lang_dict="false"
+        if [ ${lang_grapheme_constraint} ]; then
+            decode_dir=${decode_dir}_graphemeconstraint
+            rtask_lang=$(echo $rtask | cut -d "_" -f 3)
+            lang_dict=dicts/${rtask_lang}_dict.txt
+        fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -391,6 +401,7 @@ if [ ${stage} -le 4 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --phoneme-dict ${dict}.phn \
+            --lang-grapheme-constraint ${lang_dict} \
             &
         wait
 

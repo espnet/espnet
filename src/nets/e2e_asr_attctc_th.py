@@ -6,6 +6,7 @@
 
 from __future__ import division
 
+import codecs
 import logging
 import math
 import sys
@@ -396,7 +397,7 @@ class E2E(torch.nn.Module):
         return phn_hyp
 
     def recognize(self, x, recog_args, char_list,
-                  rnnlm=None, restrict_chars=None):
+                  rnnlm=None):
         '''E2E beam search
 
         :param x:
@@ -422,11 +423,10 @@ class E2E(torch.nn.Module):
         else:
             lpz = None
 
-        # TODO Temporarily hardcode loading of Swahili dict.
-        with open("/export/b13/oadams/espnet/egs/jsalt18e2e/phoneme_objective/dicts/assamese_dict.txt") as f:
-            inv = set([line.split()[0] for line in f])
-        restrict_chars = True
-        if restrict_chars:
+        if recog_args.lang_grapheme_constraint:
+            # TODO Temporarily hardcode loading of Swahili dict.
+            with codecs.open(recog_args.lang_grapheme_constraint, encoding="utf-8") as f:
+                inv = set([line.split()[0] for line in f])
             # Then mask the CTC probabilities for characters that are not in
             # restrict_chars
             logging.info("INV: {}".format(inv))

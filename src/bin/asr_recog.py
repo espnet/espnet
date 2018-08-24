@@ -68,9 +68,13 @@ def main():
                         help='Word list to read')
     parser.add_argument('--phoneme-dict', type=str, default=None,
                         help="Inventory of phonemes for phoneme decoding.")
+    parser.add_argument('--lang-grapheme-constraint', default=None,
+                        help="Restricted Inventory of graphemes for grapheme decoding.")
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
     args = parser.parse_args()
+    if args.lang_grapheme_constraint == "false": # I dislike this.
+        args.lang_grapheme_constraint = False
 
     # logging info
     if args.verbose == 1:
@@ -119,7 +123,6 @@ def main():
         recog(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")
-
 
 if __name__ == '__main__':
     main()
