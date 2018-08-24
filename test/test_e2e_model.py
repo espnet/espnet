@@ -206,6 +206,54 @@ def test_loss_and_ctc_grad(etype):
 
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
+def test_mtl_loss(etype):
+    pytest.importorskip('torch')
+    args = make_arg(etype=etype)
+    import logging
+    logging.basicConfig(
+        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    import e2e_asr as ch
+    import e2e_asr_th as th
+    ch_model = ch.E2E(40, 5, args)
+    th_model = th.E2E(40, 5, args)
+
+    const = 1e-4
+    init_torch_weight_const(th_model, const)
+    init_chainer_weight_const(ch_model, const)
+
+    ch_batch = prepare_inputs("chainer")
+    th_batch = prepare_inputs("pytorch")
+
+    ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+    th_ctc, th_att, th_acc = th_model(*th_batch)
+
+    # test masking
+    ch_ench = ch_model.att.pre_compute_enc_h.data
+    th_ench = th_model.att.pre_compute_enc_h.detach().numpy()
+    np.testing.assert_equal(ch_ench == 0.0, th_ench == 0.0)
+
+    # test loss with constant weights (1.0) and bias (0.0) except for foget-bias (1.0)
+    np.testing.assert_allclose(ch_ctc.data, th_ctc.detach().numpy())
+    np.testing.assert_allclose(ch_att.data, th_att.detach().numpy())
+
+    # test grads in mtl mode
+    ch_loss = ch_ctc * 0.5 + ch_att * 0.5
+    th_loss = th_ctc * 0.5 + th_att * 0.5
+    ch_model.cleargrads()
+    th_model.zero_grad()
+    ch_loss.backward()
+    th_loss.backward()
+    np.testing.assert_allclose(ch_model.ctc.ctc_lo.W.grad,
+                               th_model.ctc.ctc_lo.weight.grad.data.numpy(), 1e-7, 1e-8)
+    np.testing.assert_allclose(ch_model.ctc.ctc_lo.b.grad,
+                               th_model.ctc.ctc_lo.bias.grad.data.numpy(), 1e-5, 1e-6)
+    np.testing.assert_allclose(ch_model.dec.output.W.grad,
+                               th_model.dec.output.weight.grad.data.numpy(), 1e-7, 1e-8)
+    np.testing.assert_allclose(ch_model.dec.output.b.grad,
+                               th_model.dec.output.bias.grad.data.numpy(), 1e-5, 1e-6)
+
+
+@pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_zero_length_target(etype):
     pytest.importorskip('torch')
     args = make_arg(etype=etype)
