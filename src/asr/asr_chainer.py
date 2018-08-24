@@ -503,6 +503,7 @@ def recog(args):
                     out_dic[k] = js[name]['output'][0][k]
 
                 # add recognition results
+                out_dic['name'] = 'target%d' % n
                 out_dic['rec_text'] = rec_text
                 out_dic['rec_token'] = rec_token
                 out_dic['rec_tokenid'] = rec_tokenid
