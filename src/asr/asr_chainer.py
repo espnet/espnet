@@ -29,12 +29,12 @@ from chainer.training.updaters.multiprocess_parallel_updater import scatter_grad
 
 # espnet related
 from asr_utils import adadelta_eps_decay
+from asr_utils import add_results_to_json
 from asr_utils import CompareValueTrigger
 from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
-from asr_utils import parse_hypothesis
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr import E2E
@@ -473,44 +473,14 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
 
+    # decode each utterance
     new_json = {}
     with chainer.no_backprop_mode():
-        for name in js.keys():
-            # perform decoding and get n-best results
-            logging.info('decoding ' + name)
+        for idx, name in enumerate(js.keys(), 1):
+            logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
             nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-
-            # get ground-truth
-            text = js[name]['output'][0]['text']
-
-            # copy old json info
-            new_json[name] = dict()
-            new_json[name]['utt2spk'] = js[name]['utt2spk']
-            new_json[name]['output'] = []
-
-            for n, hyp in enumerate(nbest_hyps, 1):
-                # parse hypothesis
-                rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, train_args.char_list)
-
-                # show recognition results
-                logging.info("groundtruth [%s]: " + text, name)
-                logging.info("%d-best pred.[%s]: " + rec_text, n, name)
-
-                # copy ground-truth
-                out_dic = dict()
-                for k in js[name]['output'][0]:
-                    out_dic[k] = js[name]['output'][0][k]
-
-                # add recognition results
-                out_dic['name'] = 'target%d' % n
-                out_dic['rec_text'] = rec_text
-                out_dic['rec_token'] = rec_token
-                out_dic['rec_tokenid'] = rec_tokenid
-                out_dic['score'] = score
-
-                # add to list of N-best result dicts
-                new_json[name]['output'].append(out_dic)
+            new_json[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
