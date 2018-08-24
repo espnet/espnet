@@ -17,8 +17,6 @@ import numpy as np
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
-    parser.add_argument('--gpu', default=None, type=int, nargs='?',
-                        help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -31,10 +29,6 @@ def main():
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--recog-feat', type=str,
-                        help='Filename of recognition feature data (Kaldi scp)')
-    parser.add_argument('--recog-label', type=str,
-                        help='Filename of recognition label data (json)')
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')
     parser.add_argument('--result-label', type=str, required=True,
@@ -42,7 +36,7 @@ def main():
     # model (parameter) related
     parser.add_argument('--model', type=str, required=True,
                         help='Model file parameters to read')
-    parser.add_argument('--model-conf', type=str, required=True,
+    parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
@@ -62,6 +56,8 @@ def main():
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
+    parser.add_argument('--rnnlm-conf', type=str, default=None,
+                        help='RNNLM model config file to read')
     parser.add_argument('--word-rnnlm', type=str, default=None,
                         help='Word RNNLM model file to read')
     parser.add_argument('--word-dict', type=str, default=None,
@@ -81,14 +77,6 @@ def main():
         logging.basicConfig(
             level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
         logging.warning("Skip DEBUG/INFO messages")
-
-    # check gpu argument
-    if args.gpu is not None:
-        logging.warn("--gpu option will be deprecated, please use --ngpu option.")
-        if args.gpu == -1:
-            args.ngpu = 0
-        else:
-            args.ngpu = 1
 
     # check CUDA_VISIBLE_DEVICES
     if args.ngpu > 0:
