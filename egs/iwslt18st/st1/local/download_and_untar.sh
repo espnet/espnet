@@ -20,13 +20,19 @@ data=$1
 part=$2
 
 train_url=http://i13pc106.ira.uka.de/~mmueller/iwslt-corpus.zip
-dev2010_url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.dev2010.en-de.tgz
-tst2010_url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2010.en-de.tgz
-tst2013_url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2013.en-de.tgz
-tst2014_url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2014.en-de.tgz
-tst2015_url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2015.en-de.tgz
-tst2018_url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2018.en-de.tgz
-
+if [ $part = "dev2010" ];then
+    url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.dev2010.en-de.tgz
+elif [ $part = "tst2010" ];then
+    url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2010.en-de.tgz
+elif [ $part = "tst2013" ];then
+    url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2013.en-de.tgz
+elif [ $part = "tst2014" ];then
+    url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2014.en-de.tgz
+elif [ $part = "tst2015" ];then
+    url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2015.en-de.tgz
+elif [ $part = "tst2018" ];then
+    url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2018.en-de.tgz
+fi
 
 if [ ! -d "$data" ]; then
   echo "$0: no such directory $data"
@@ -123,6 +129,7 @@ else
     echo "$0: downloading data from $url.  This may take some time, please be patient."
 
     cd $data
+
     if ! wget --no-check-certificate -P $data $url; then
       echo "$0: error executing wget $url"
       exit 1;
