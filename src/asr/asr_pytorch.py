@@ -440,7 +440,7 @@ def recog(args):
                 out_dic['rec_tokenid'] = rec_tokenid
                 out_dic['score'] = score
 
-                # added to list
+                # add to list of N-best result dicts
                 new_json[name]['output'].append(out_dic)
 
     # TODO(watanabe) fix character coding problems when saving it
