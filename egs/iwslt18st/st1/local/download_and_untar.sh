@@ -130,7 +130,7 @@ else
 
     cd $data
 
-    if ! wget --no-check-certificate -P $data $url; then
+    if ! wget --no-check-certificate $url; then
       echo "$0: error executing wget $url"
       exit 1;
     fi
