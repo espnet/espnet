@@ -401,3 +401,26 @@ def torch_resume(snapshot_path, trainer):
 
     # delete opened snapshot
     del snapshot_dict
+
+
+# * ------------------ recognition related ------------------ *
+def parse_hypothesis(hyp, char_list):
+    """Function to parse hypothesis
+
+    :param list hyp: recognition hypothesis
+    :param list char_list: list of characters
+    :return: recognition text strinig
+    :return: recognition token strinig
+    :return: recognition tokenid string
+    """
+    # remove sos and get results
+    tokenid_as_list = list(map(int, hyp['yseq'][1:]))
+    token_as_list = [char_list[idx] for idx in tokenid_as_list]
+    score = float(hyp['score'])
+
+    # convert to string
+    tokenid = " ".join([str(idx) for idx in tokenid_as_list])
+    token = " ".join(token_as_list)
+    text = "".join(token_as_list).replace('<space>', ' ')
+
+    return text, token, tokenid, score

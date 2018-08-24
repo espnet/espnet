@@ -34,6 +34,7 @@ from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import load_labeldict
 from asr_utils import make_batchset
+from asr_utils import parse_hypothesis
 from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr import E2E
@@ -470,56 +471,45 @@ def recog(args):
 
     # read json data
     with open(args.recog_json, 'rb') as f:
-        recog_json = json.load(f)['utts']
+        js = json.load(f)['utts']
 
     new_json = {}
-    for name in recog_json.keys():
-        feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
-        logging.info('decoding ' + name)
-        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-        # get 1best and remove sos
-        y_hat = nbest_hyps[0]['yseq'][1:]
-        y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
+    with chainer.no_backprop_mode():
+        for name in js.keys():
+            # perform decoding and get n-best results
+            logging.info('decoding ' + name)
+            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
 
-        # print out decoding result
-        seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
-        seq_true = [train_args.char_list[int(idx)] for idx in y_true]
-        seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-        seq_true_text = "".join(seq_true).replace('<space>', ' ')
-        logging.info("groundtruth[%s]: " + seq_true_text, name)
-        logging.info("prediction [%s]: " + seq_hat_text, name)
+            # get ground-truth
+            text = js[name]['output'][0]['text']
 
-        # copy old json info
-        new_json[name] = dict()
-        new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
+            # copy old json info
+            new_json[name] = dict()
+            new_json[name]['utt2spk'] = js[name]['utt2spk']
+            new_json[name]['output'] = []
 
-        # add 1-best recognition results to json
-        logging.debug("dump token id")
-        out_dic = dict()
-        for _key in recog_json[name]['output'][0]:
-            out_dic[_key] = recog_json[name]['output'][0][_key]
+            for n, hyp in enumerate(nbest_hyps):
+                # parse hypothesis
+                rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, train_args.char_list)
 
-        # TODO(karita) make consistent to chainer as idx[0] not idx
-        out_dic['rec_tokenid'] = " ".join(
-            [str(idx[0]) for idx in y_hat])
-        logging.debug("dump token")
-        out_dic['rec_token'] = " ".join(seq_hat)
-        logging.debug("dump text")
-        out_dic['rec_text'] = seq_hat_text
+                # show recognition results
+                logging.info("gt    [%s]: " + text, name)
+                logging.info("%-best[%s]: " + rec_text, n, name)
 
-        new_json[name]['output'] = [out_dic]
-        # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
-        # add n-best recognition results with scores
-        if args.beam_size > 1 and len(nbest_hyps) > 1:
-            for i, hyp in enumerate(nbest_hyps):
-                y_hat = hyp['yseq'][1:]
-                seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
-                seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-                new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] \
-                    = " ".join([str(idx[0]) for idx in y_hat])
-                new_json[name]['rec_token' + '[' + '{:05d}'.format(i) + ']'] = " ".join(seq_hat)
-                new_json[name]['rec_text' + '[' + '{:05d}'.format(i) + ']'] = seq_hat_text
-                new_json[name]['score' + '[' + '{:05d}'.format(i) + ']'] = hyp['score']
+                # copy ground-truth
+                out_dic = dict()
+                for k in js[name]['output'][0]:
+                    out_dic[k] = js[name]['output'][0][k]
+
+                # add recognition results
+                out_dic['rec_text'] = rec_text
+                out_dic['rec_token'] = rec_token
+                out_dic['rec_tokenid'] = rec_tokenid
+                out_dic['score'] = score
+
+                # added to list
+                new_json[name]['output'].append(out_dic)
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
