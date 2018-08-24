@@ -5,9 +5,8 @@
 
 
 import argparse
-import importlib
-
 import chainer
+import importlib
 import numpy
 import pytest
 
@@ -29,6 +28,7 @@ def make_arg(**kwargs):
         mtlalpha=0.5,
         lsm_type="",
         lsm_weight=0.0,
+        sampling_probability=0.0,
         adim=320,
         dropout_rate=0.0,
         nbest=5,
@@ -259,3 +259,40 @@ def test_calculate_all_attentions(module, atype):
     with chainer.no_backprop_mode():
         att_ws = model.calculate_all_attentions(data)
         print(att_ws.shape)
+
+
+@pytest.mark.parametrize(
+    "module", [
+        ('e2e_asr_attctc_th'),
+    ]
+)
+def test_sampling(module):
+    if module[-3:] == "_th":
+        pytest.importorskip('torch')
+    m = importlib.import_module(module)
+    out_data = "1 2 3 4"
+    data = [("aaa", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32),
+                         output=[dict(tokenid=out_data)])),
+            ("bbb", dict(feat=numpy.random.randn(200, 40).astype(numpy.float32),
+                         output=[dict(tokenid=out_data)]))]
+
+    args = make_arg(sampling_probability=0.0, mtlalpha=0.0)
+    args_sampled = make_arg(sampling_probability=0.5, mtlalpha=0.0)
+    args_pred = make_arg(sampling_probability=1.0, mtlalpha=0.0)
+
+    # condition1: probability lies in the range
+    assert (0.0 <= args_sampled.sampling_probability <= 1.0)
+    # condition3: Decoded outputs varies with change in labels
+    model = m.E2E(40, 5, args)
+    model_sampled = m.E2E(40, 5, args_sampled)
+    model_pred = m.E2E(40, 5, args_pred)
+    _, att, acc = model(data)
+    _, att_sampled, acc_sampled = model_sampled(data)
+    _, att_pred, acc_pred = model_pred(data)
+
+    # most input cases shows acc_pred <= acc <= acc_sampled
+    print(acc)
+    print(acc_sampled)
+    print(acc_pred)
+    numpy.testing.assert_allclose(att.data[0],
+                                  att_sampled.data[0], 5.76, 1e-2)
