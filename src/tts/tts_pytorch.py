@@ -23,6 +23,10 @@ import kaldi_io_py
 from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
 from asr_utils import PlotAttentionReport
+from asr_utils import torch_load
+from asr_utils import torch_resume
+from asr_utils import torch_save
+from asr_utils import torch_snapshot
 from e2e_asr_th import pad_list
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
@@ -162,62 +166,63 @@ class CustomConverter(object):
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, batch_sort_key=None):
+    """Function to make batch set from json dictionary
+
+    :param dict data: dictionary loaded from data.json
+    :param int batch_size: batch size
+    :param int max_length_in: maximum length of input to decide adaptive batch size
+    :param int max_length_out: maximum length of output to decide adaptive batch size
+    :param int num_batches: # number of batches to use (for debug)
+    :param str batch_sort_key: None or 'input' or 'output'
+    :return: list of batches
+    """
     minibatch = []
     start = 0
+    # sort data with batch_sort_key
     if batch_sort_key is None:
         logging.info('use shuffled batch.')
-        shuffled_data = random.sample(data.items(), len(data.items()))
-        logging.info('# utts: ' + str(len(shuffled_data)))
-        while True:
-            end = min(len(shuffled_data), start + batch_size)
-            minibatch.append(shuffled_data[start:end])
-            if end == len(shuffled_data):
-                break
-            start = end
+        sorted_data = random.sample(data.items(), len(data.items()))
     elif batch_sort_key == 'input':
         logging.info('use batch sorted by input length and adaptive batch size.')
-        # sort it by output lengths (long to short)
+        # sort it by input lengths (long to short)
+        # NOTE: input and output are reversed due to the use of same json as asr
         sorted_data = sorted(data.items(), key=lambda data: int(
             data[1]['output'][0]['shape'][0]), reverse=True)
-        logging.info('# utts: ' + str(len(sorted_data)))
-        # change batchsize depending on the input and output length
-        while True:
-            # input and output are reversed due to the use of same json as asr
-            ilen = int(sorted_data[start][1]['output'][0]['shape'][0])
-            olen = int(sorted_data[start][1]['input'][0]['shape'][0])
-            factor = max(int(ilen / max_length_in), int(olen / max_length_out))
-            # if ilen = 1000 and max_length_in = 800
-            # then b = batchsize / 2
-            # and max(1, .) avoids batchsize = 0
-            b = max(1, int(batch_size / (1 + factor)))
-            end = min(len(sorted_data), start + b)
-            minibatch.append(sorted_data[start:end])
-            if end == len(sorted_data):
-                break
-            start = end
     elif batch_sort_key == 'output':
         logging.info('use batch sorted by output length and adaptive batch size.')
         # sort it by output lengths (long to short)
+        # NOTE: input and output are reversed due to the use of same json as asr
         sorted_data = sorted(data.items(), key=lambda data: int(
             data[1]['input'][0]['shape'][0]), reverse=True)
-        logging.info('# utts: ' + str(len(sorted_data)))
-        # change batchsize depending on the input and output length
+    else:
+        ValueError('batch_sort_key should be selected from None, input, and output.')
+
+    logging.info('# utts: ' + str(len(sorted_data)))
+
+    if batch_sort_key is None:
+        # use fixed size batch
         while True:
-            # input and output are reversed due to the use of same json as asr
-            ilen = int(sorted_data[start][1]['output'][0]['shape'][0])
-            olen = int(sorted_data[start][1]['input'][0]['shape'][0])
-            factor = max(int(ilen / max_length_in), int(olen / max_length_out))
-            # if ilen = 1000 and max_length_in = 800
-            # then b = batchsize / 2
-            # and max(1, .) avoids batchsize = 0
-            b = max(1, int(batch_size / (1 + factor)))
-            end = min(len(sorted_data), start + b)
+            end = min(len(sorted_data), start + batch_size)
             minibatch.append(sorted_data[start:end])
             if end == len(sorted_data):
                 break
             start = end
     else:
-        ValueError('batch_sort_key should be selected from None, input, and output.')
+        # use adaptive batch size
+        while True:
+            # NOTE: input and output are reversed due to the use of same json as asr
+            ilen = int(sorted_data[start][1]['output'][0]['shape'][0])
+            olen = int(sorted_data[start][1]['input'][0]['shape'][0])
+            factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+            # if ilen = 1000 and max_length_in = 800
+            # then b = batchsize / 2
+            # and max(1, .) avoids batchsize = 0
+            b = max(1, int(batch_size / (1 + factor)))
+            end = min(len(sorted_data), start + b)
+            minibatch.append(sorted_data[start:end])
+            if end == len(sorted_data):
+                break
+            start = end
 
     # for debugging
     if num_batches > 0:
@@ -225,20 +230,6 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     logging.info('# minibatches: ' + str(len(minibatch)))
 
     return minibatch
-
-
-def torch_save(path, model):
-    if hasattr(model, 'module'):
-        torch.save(model.module.state_dict(), path)
-    else:
-        torch.save(model.state_dict(), path)
-
-
-def torch_load(path, model):
-    if hasattr(model, 'module'):
-        model.module.load_state_dict(torch.load(path))
-    else:
-        model.load_state_dict(torch.load(path))
 
 
 def train(args):
@@ -330,10 +321,10 @@ def train(args):
     # actual bathsize is included in a list
     train_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(train_batchset, converter.transform),
-        1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
+        batch_size=1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
     valid_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(valid_batchset, converter.transform),
-        1, repeat=False, shuffle=False, n_processes=2, n_prefetch=8,
+        batch_size=1, repeat=False, shuffle=False, n_processes=2, n_prefetch=8,
         maxtasksperchild=20)
 
     # Set up a trainer
@@ -342,10 +333,8 @@ def train(args):
 
     # Resume from a snapshot
     if args.resume:
-        logging.info('restored from %s' % args.resume)
-        chainer.serializers.load_npz(args.resume, trainer)
-        torch_load(args.outdir + '/model.ep.%d' % trainer.updater.epoch, tacotron2)
-        model = trainer.updater.model
+        logging.info('resumed from %s' % args.resume)
+        torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
@@ -379,9 +368,8 @@ def train(args):
     trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
                                          'epoch', file_name='bce_loss.png'))
 
-    # Save model for each epoch
-    trainer.extend(extensions.snapshot_object(
-        tacotron2, 'model.ep.{.updater.epoch}', savefun=torch_save), trigger=(1, 'epoch'))
+    # Save snapshot for each epoch
+    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
     # Save best models
     trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
@@ -416,8 +404,7 @@ def decode(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    tacotron2.load_state_dict(
-        torch.load(args.model, map_location=lambda storage, loc: storage))
+    torch_load(args.model, tacotron2)
     tacotron2.eval()
 
     # set torch device

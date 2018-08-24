@@ -65,6 +65,21 @@ def make_inference_args(**kwargs):
     return defaults
 
 
+def prepare_inputs(bs, idim, odim, maxin_len, maxout_len):
+    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
+    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
+    ilens = torch.LongTensor(ilens)
+    olens = torch.LongTensor(olens)
+    xs = [np.random.randint(0, idim, l) for l in ilens]
+    ys = [np.random.randn(l, odim) for l in olens]
+    xs = pad_list([torch.from_numpy(x).long() for x in xs], 0)
+    ys = pad_list([torch.from_numpy(y).float() for y in ys], 0)
+    labels = ys.new_zeros(ys.size(0), ys.size(1))
+    for i, l in enumerate(olens):
+        labels[i, l - 1:] = 1
+    return xs, ilens, ys, labels, olens
+
+
 @pytest.mark.parametrize(
     "model_dict, loss_dict", [
         ({}, {}),
@@ -79,6 +94,7 @@ def make_inference_args(**kwargs):
         ({"use_concate": False}, {}),
         ({"dropout": 0.0}, {}),
         ({"zoneout": 0.0}, {}),
+        ({"spk_embed_dim": 128}, {}),
     ])
 def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     # setup batch
@@ -87,15 +103,8 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     maxout_len = 10
     idim = 5
     odim = 10
-    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
-    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
-    xs = [np.random.randint(0, idim, l) for l in ilens]
-    ys = [np.random.randn(l, odim) for l in olens]
-    xs = pad_list([torch.from_numpy(x).long() for x in xs], 0)
-    ys = pad_list([torch.from_numpy(y).float() for y in ys], 0)
-    labels = ys.new_zeros(ys.size(0), ys.size(1))
-    for i, l in enumerate(olens):
-        labels[i, l - 1:] = 1
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    xs, ilens, ys, labels, olens = batch
 
     # define model
     model_args = make_model_args(**model_dict)
@@ -105,67 +114,12 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     criterion = Tacotron2Loss(model, **loss_args)
     optimizer = torch.optim.Adam(model.parameters())
 
-    # trainable
-    after, before, logits = model(xs, ilens, ys)
-    loss = criterion(xs, ilens, ys, labels, olens)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    # decodable
-    model.eval()
-    with torch.no_grad():
-        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]], Namespace(**inference_args))
-        att_ws = model.calculate_all_attentions(xs, ilens, ys)
-    assert att_ws.shape[0] == bs
-    assert att_ws.shape[1] == max(olens)
-    assert att_ws.shape[2] == max(ilens)
-
-
-@pytest.mark.parametrize(
-    "model_dict, loss_dict", [
-        ({}, {}),
-        ({}, {"use_masking": False}),
-        ({}, {"bce_pos_weight": 10.0}),
-        ({"prenet_layers": 0}, {}),
-        ({"postnet_layers": 0}, {}),
-        ({"prenet_layers": 0, "postnet_layers": 0}, {}),
-        ({"output_activation": "relu"}, {}),
-        ({"cumulate_att_w": False}, {}),
-        ({"use_batch_norm": False}, {}),
-        ({"use_concate": False}, {}),
-        ({"dropout": 0.0}, {}),
-        ({"zoneout": 0.0}, {}),
-    ])
-def test_tacotron2_with_speaker_embedding_trainable_and_decodable(model_dict, loss_dict):
-    # setup batch
-    bs = 2
-    maxin_len = 10
-    maxout_len = 10
-    idim = 5
-    odim = 10
-    spk_embed_dim = 128
-    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
-    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
-    xs = [np.random.randint(0, idim, l) for l in ilens]
-    ys = [np.random.randn(l, odim) for l in olens]
-    xs = pad_list([torch.from_numpy(x).long() for x in xs], 0)
-    ys = pad_list([torch.from_numpy(y).float() for y in ys], 0)
-    spembs = torch.from_numpy(np.random.randn(bs, spk_embed_dim)).float()
-    labels = ys.new_zeros(ys.size(0), ys.size(1))
-    for i, l in enumerate(olens):
-        labels[i, l - 1:] = 1
-
-    # define model
-    model_args = make_model_args(spk_embed_dim=spk_embed_dim, **model_dict)
-    loss_args = make_loss_args(**loss_dict)
-    inference_args = make_inference_args()
-    model = Tacotron2(idim, odim, Namespace(**model_args))
-    criterion = Tacotron2Loss(model, **loss_args)
-    optimizer = torch.optim.Adam(model.parameters())
+    if model_args['spk_embed_dim'] is not None:
+        spembs = torch.from_numpy(np.random.randn(bs, model_args['spk_embed_dim'])).float()
+    else:
+        spembs = None
 
     # trainable
-    after, before, logits = model(xs, ilens, ys, spembs)
     loss = criterion(xs, ilens, ys, labels, olens, spembs)
     optimizer.zero_grad()
     loss.backward()
@@ -174,10 +128,38 @@ def test_tacotron2_with_speaker_embedding_trainable_and_decodable(model_dict, lo
     # decodable
     model.eval()
     with torch.no_grad():
-        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]],
-                                              Namespace(**inference_args),
-                                              spembs[0])
+        spemb = None if model_args['spk_embed_dim'] is None else spembs[0]
+        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]], Namespace(**inference_args), spemb)
         att_ws = model.calculate_all_attentions(xs, ilens, ys, spembs)
     assert att_ws.shape[0] == bs
     assert att_ws.shape[1] == max(olens)
     assert att_ws.shape[2] == max(ilens)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
+def test_tacotron2_multi_gpu_trainable():
+    ngpu = 2
+    device_ids = list(range(ngpu))
+    bs = 2
+    maxin_len = 10
+    maxout_len = 10
+    idim = 5
+    odim = 10
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    batch = (x.cuda() for x in batch)
+    xs, ilens, ys, labels, olens = batch
+
+    # define model
+    model_args = make_model_args()
+    loss_args = make_loss_args()
+    tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
+    tacotron2 = torch.nn.DataParallel(tacotron2, device_ids)
+    model = Tacotron2Loss(tacotron2, **loss_args)
+    optimizer = torch.optim.Adam(model.parameters())
+    model.cuda()
+
+    # trainable
+    loss = model(xs, ilens, ys, labels, olens)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
