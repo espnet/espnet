@@ -489,13 +489,13 @@ def recog(args):
             new_json[name]['utt2spk'] = js[name]['utt2spk']
             new_json[name]['output'] = []
 
-            for n, hyp in enumerate(nbest_hyps):
+            for n, hyp in enumerate(nbest_hyps, 1):
                 # parse hypothesis
                 rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, train_args.char_list)
 
                 # show recognition results
-                logging.info("gt    [%s]: " + text, name)
-                logging.info("%-best[%s]: " + rec_text, n, name)
+                logging.info("groundtruth [%s]: " + text, name)
+                logging.info("%d-best pred.[%s]: " + rec_text, n, name)
 
                 # copy ground-truth
                 out_dic = dict()
