@@ -444,12 +444,12 @@ def add_results_to_json(js, nbest_hyps, char_list):
         rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, char_list)
 
         # copy ground-truth
-        out_dic = dict()
-        for k in js['output'][0]:
-            out_dic[k] = js['output'][0][k]
+        out_dic = dict(js['output'][0].items())
+
+        # update name
+        out_dic['name'] += '[%d]' % n
 
         # add recognition results
-        out_dic['name'] = 'target%d' % n
         out_dic['rec_text'] = rec_text
         out_dic['rec_token'] = rec_token
         out_dic['rec_tokenid'] = rec_tokenid
