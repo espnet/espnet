@@ -29,6 +29,7 @@ from chainer.training.updaters.multiprocess_parallel_updater import scatter_grad
 
 # espnet related
 from asr_utils import adadelta_eps_decay
+from asr_utils import chainer_load
 from asr_utils import CompareValueTrigger
 from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
@@ -438,13 +439,13 @@ def recog(args):
     logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
-    chainer.serializers.load_npz(args.model, model)
+    chainer_load(args.model, model)
 
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(train_args.char_list), rnnlm_args.unit))
-        chainer.serializers.load_npz(args.rnnlm, rnnlm)
+        chainer_load(args.rnnlm, rnnlm)
     else:
         rnnlm = None
 
@@ -457,7 +458,7 @@ def recog(args):
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), rnnlm_args.unit))
-        chainer.serializers.load_npz(args.word_rnnlm, word_rnnlm)
+        chainer_load(args.word_rnnlm, word_rnnlm)
 
         if rnnlm is not None:
             rnnlm = lm_chainer.ClassifierWithState(
