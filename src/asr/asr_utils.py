@@ -401,3 +401,24 @@ def torch_resume(snapshot_path, trainer):
 
     # delete opened snapshot
     del snapshot_dict
+
+
+def make_averaged_model_from_snaphosts(path, snapshot_list):
+    """Fucntion to make averaged model from snapshots
+
+    :param str path: file path of model file to be saved
+    :param list snapshot_list: list of snapshot file paths to be averaged
+    """
+    # load base model
+    base_state_dict = torch.load(snapshot_list[0], map_location=lambda storage, loc: storage)['model']
+
+    # average model parameters over snapshots
+    for idx, snapshot in enumerate(snapshot_list[1:], 2):
+        state_dict = torch.load(snapshot, map_location=lambda storage, loc: storage)['model']
+        for key in base_state_dict.keys():
+            base_state_dict[key] += state_dict[key]
+    for key in base_state_dict.keys():
+        base_state_dict[key] /= float(idx)
+
+    # save averaged model parameters
+    torch.save(base_state_dict, path)
