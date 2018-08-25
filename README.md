@@ -33,7 +33,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Chainer 4.3.1
 
 ## Installation
-### Step 1) setting of  the environment
+### Step 1) setting of the environment
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
 ```
@@ -81,6 +81,14 @@ or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossar
 $ cd tools
 $ make -f conda.mk -j
 ```
+
+### Step 3) check installation
+You can check the install is successed via following commands
+```sh
+$ cd tools
+$ source venv/bin/activate && python check_install.py
+```
+If you have no warining, ready to run the recipe!
 
 ## Execution of example scripts
 Move to an example directory under the `egs` directory.
