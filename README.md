@@ -82,6 +82,14 @@ $ cd tools
 $ make -f conda.mk -j
 ```
 
+### Step 2-C) installation with specified python
+Install Kaldi, Python libraries and other required tools using specified python and virtualenv
+```sh
+$ cd tools
+$ make -j PYTHON=/path/to/python2.7
+```
+You can also specified `python3.6`, but we do not test it enough.
+
 ### Step 3) installation check
 You can check whether the install is succeeded via the following commands
 ```sh
