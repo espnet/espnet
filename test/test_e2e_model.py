@@ -51,7 +51,7 @@ def make_arg(**kwargs):
     return argparse.Namespace(**defaults)
 
 
-def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3]):
+def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
     np.random.seed(1)
     assert len(ilens) == len(olens)
     xs = [np.random.randn(ilen, 40).astype(np.float32) for ilen in ilens]
@@ -59,15 +59,24 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3]):
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
 
     if mode == "chainer":
-        xs = [chainer.Variable(x) for x in xs]
-        ys = [chainer.Variable(y) for y in ys]
-
+        if is_cuda:
+            xp = importlib.import_module('cupy')
+            xs = [chainer.Variable(xp.array(x)) for x in xs]
+            ys = [chainer.Variable(xp.array(y)) for y in ys]
+            ilens = xp.array(ilens)
+        else:
+            xs = [chainer.Variable(x) for x in xs]
+            ys = [chainer.Variable(y) for y in ys]
         return xs, ilens, ys
 
     elif mode == "pytorch":
         ilens = torch.from_numpy(ilens).long()
         xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
+        if is_cuda:
+            xs_pad = xs_pad.cuda()
+            ilens = ilens.cuda()
+            ys_pad = ys_pad.cuda()
 
         return xs_pad, ilens, ys_pad
     else:
@@ -316,6 +325,29 @@ def test_calculate_all_attentions(module, atype):
         print(att_ws.shape)
 
 
+def test_chainer_save_and_load():
+    import e2e_asr as m
+
+    args = make_arg()
+    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    # initialize randomly
+    for p in model.params():
+        p.data = np.random.randn(*p.data.shape)
+    if not os.path.exists(".pytest_cache"):
+        os.makedirs(".pytest_cache")
+    tmppath = ".pytest_cache/model.tmp"
+    chainer.serializers.save_npz(tmppath, model)
+    p_saved = [p.data for p in model.params()]
+    # set constant value
+    for p in model.params():
+        p.data = np.zeros_like(p.data)
+    chainer.serializers.load_npz(tmppath, model)
+    for p1, p2 in zip(p_saved, model.params()):
+        np.testing.assert_array_equal(p1, p2.data)
+    if os.path.exists(tmppath):
+        os.remove(tmppath)
+
+
 def test_torch_save_and_load():
     import e2e_asr_th as m
 
@@ -342,16 +374,38 @@ def test_torch_save_and_load():
         os.remove(tmppath)
 
 
+@pytest.mark.skipif(not chainer.cuda.available, reason="gpu required")
+def test_chainer_gpu_available():
+    import e2e_asr as m
+    args = make_arg()
+    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    xs, ilens, ys = prepare_inputs("chainer", is_cuda=True)
+    batch = (xs, ilens, ys)
+    model.to_gpu()
+    loss = model(*batch)
+    loss.backward()  # trainable
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
+def test_torch_gpu_available():
+    import e2e_asr_th as m
+    args = make_arg()
+    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    batch = prepare_inputs("pytorch", is_cuda=True)
+    model.cuda()
+    loss = model(*batch)
+    loss.backward()  # trainable
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
-def test_torch_multi_gpu_trainable():
+def test_torch_multi_gpu_available():
     import e2e_asr_th as m
     ngpu = 2
     device_ids = list(range(ngpu))
     args = make_arg()
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     model = torch.nn.DataParallel(model, device_ids)
-    batch = prepare_inputs("pytorch")
-    batch = (x.cuda() for x in batch)
+    batch = prepare_inputs("pytorch", is_cuda=True)
     model.cuda()
-    attn_loss = 1. / ngpu * model(*batch)
-    attn_loss.backward(attn_loss.new_ones(ngpu))  # trainable
+    loss = 1. / ngpu * model(*batch)
+    loss.backward(loss.new_ones(ngpu))  # trainable
