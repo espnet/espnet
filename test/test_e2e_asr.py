@@ -351,7 +351,7 @@ def test_torch_save_and_load():
         os.remove(tmppath)
 
 
-@pytest.mark.skipif(not chainer.cuda.available, reason="gpu required")
+@pytest.mark.skipif(not torch.cuda.is_available() and not chainer.cuda.available, reason="gpu required")
 @pytest.mark.parametrize("module", ["e2e_asr", "e2e_asr_th"])
 def test_gpu_trainable(module):
     m = importlib.import_module(module)
