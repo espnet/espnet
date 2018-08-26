@@ -8,6 +8,7 @@ from __future__ import division
 import argparse
 import importlib
 import os
+import tempfile
 
 import chainer
 import numpy as np
@@ -314,9 +315,7 @@ def test_chainer_save_and_load():
     # initialize randomly
     for p in model.params():
         p.data = np.random.randn(*p.data.shape)
-    if not os.path.exists(".pytest_cache"):
-        os.makedirs(".pytest_cache")
-    tmppath = ".pytest_cache/model.tmp"
+    tmppath = tempfile.mktemp()
     chainer.serializers.save_npz(tmppath, model)
     p_saved = [p.data for p in model.params()]
     # set constant value
@@ -339,7 +338,7 @@ def test_torch_save_and_load():
         p.data.uniform_()
     if not os.path.exists(".pytest_cache"):
         os.makedirs(".pytest_cache")
-    tmppath = ".pytest_cache/model.tmp"
+    tmppath = tempfile.mktemp()
     utils.torch_save(tmppath, model)
     p_saved = [p.data.numpy() for p in model.parameters()]
     # set constant value
