@@ -82,8 +82,8 @@ $ cd tools
 $ make -f conda.mk -j
 ```
 
-### Step 3) check installation
-You can check the install is successed via following commands
+### Step 3) installation check
+You can check whether the install is succeeded via the following commands
 ```sh
 $ cd tools
 $ source venv/bin/activate && python check_install.py
