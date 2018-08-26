@@ -2,7 +2,7 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv/bin/activate kaldi nkf kaldi-io-for-python venv/lib/python2.7/site-packages/torch warp-ctc chainer_ctc sentencepiece moses
+all: venv kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
 
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
@@ -20,9 +20,12 @@ endif
 
 # for some reason, including matplotlib in requirements.txt causes errors, and
 # matplotlib should be separately pip installed
-venv/bin/activate: requirements.txt
+venv: requirements.txt
 	test -d venv || virtualenv -p /usr/bin/python2.7 venv
-	. venv/bin/activate; pip install pip --upgrade; pip install -r requirements.txt; pip install matplotlib; patch venv/lib/python2.7/site-packages/chainer/iterators/multiprocess_iterator.py < prefetch.patch
+	. venv/bin/activate; pip install pip --upgrade
+	. venv/bin/activate; pip install -r requirements.txt
+	. venv/bin/activate; pip install matplotlib
+	. venv/bin/activate; patch venv/lib/python2.7/site-packages/chainer/iterators/multiprocess_iterator.py < prefetch.patch
 	touch venv/bin/activate
 
 nkf:
@@ -30,16 +33,13 @@ nkf:
 	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
-venv/lib/python2.7/site-packages/torch: venv/bin/activate
-	. venv/bin/activate; pip install pip --upgrade; pip install torch==0.4.1
-
-warp-ctc: venv/lib/python2.7/site-packages/torch
+warp-ctc: venv
 	git clone -b follows-upstream https://github.com/jnishi/warp-ctc.git
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
-chainer_ctc: venv/bin/activate
+chainer_ctc: venv
 	git clone https://github.com/jheymann85/chainer_ctc.git
 	. venv/bin/activate; pip install cython
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
