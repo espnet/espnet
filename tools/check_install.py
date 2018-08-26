@@ -8,7 +8,7 @@ import importlib
 import logging
 import sys
 
-# you should add the libraries which does not included in requirements.txt
+# you should add the libraries which are not included in requirements.txt
 MANUALLY_INSTALLED_LIBRARIES = [
     ('matplotlib', None),
     ('chainer_ctc', None),
@@ -73,7 +73,9 @@ logging.info("%d / %d libraries are correctly installed." % (
     sum(is_collect_installed_list), len(library_list)))
 
 # check cuda availableness
-if len(library_list) == sum(is_collect_installed_list):
+if len(library_list) != sum(is_collect_installed_list):
+    logging.info("please try to setup again and then re-run this script.")
+else:
     logging.info("cuda availableness check start.")
     import chainer
     import torch
