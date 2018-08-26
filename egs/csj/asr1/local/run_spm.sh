@@ -59,7 +59,7 @@ penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # data
 CSJDATATOP=/export/corpora5/CSJ/USB
@@ -168,7 +168,7 @@ if [ ${stage} -le 2 ]; then
     data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
          data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp  --bpecode ${bpemodel}.model \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json 
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp  --bpecode ${bpemodel}.model \
@@ -264,7 +264,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
 
         #### use CPU for decoding
         ngpu=0
@@ -277,7 +277,7 @@ if [ ${stage} -le 5 ]; then
             --verbose ${verbose} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
+            --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
