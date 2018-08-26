@@ -65,7 +65,7 @@ penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -113,12 +113,12 @@ if [ $stage -le 1 ]; then
   for x in ${train_set} ${train_dev} ${recog_set}; do
       steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
           data/${x} exp/make_fbank/${x} ${fbankdir}
-      ./utils/fix_data_dir.sh data/${x} 
+      ./utils/fix_data_dir.sh data/${x}
   done
 
   # compute global CMVN
   compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-  ./utils/fix_data_dir.sh data/${train_set} 
+  ./utils/fix_data_dir.sh data/${train_set}
 
   exp_name=`basename $PWD`
   # dump features for training
@@ -179,25 +179,25 @@ fi
 if $use_lm; then
   lm_train_set=data/local/train.txt
   lm_valid_set=data/local/dev.txt
- 
+
   # Make train and valid
   text2token.py --nchar 1 \
                 --space "<space>" \
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
                 <(cut -d' ' -f2- data/${train_set}/text | head -100) |\
-                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_train_set} 
+                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_train_set}
 
   text2token.py --nchar 1 \
                 --space "<space>" \
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
                 <(cut -d' ' -f2- data/${train_dev}/text | head -100) |\
-                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_valid_set} 
+                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_valid_set}
 
   if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
   fi
 
-  
+
   ${cuda_cmd} ${lmexpdir}/train.log \
           lm_train.py \
           --ngpu ${ngpu} \
@@ -264,7 +264,7 @@ fi
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32
-    
+
     extra_opts=""
     if $use_lm; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
@@ -276,7 +276,7 @@ if [ ${stage} -le 4 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -287,7 +287,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
+            --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --ctc-weight ${ctc_weight} \

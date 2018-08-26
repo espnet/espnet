@@ -65,7 +65,7 @@ penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # data
 wsj0=/export/corpora5/LDC/LDC93S6B
@@ -288,7 +288,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -299,7 +299,7 @@ if [ ${stage} -le 5 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
+            --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \

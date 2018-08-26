@@ -12,7 +12,8 @@ stage=-1
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 1, get more log)
+verbose=0    # verbose option (if set > 0, get more log)
+N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 # feature extraction related
@@ -203,6 +204,7 @@ if [ ${stage} -le 3 ];then
         tts_train.py \
            --backend ${backend} \
            --ngpu ${ngpu} \
+           --minibatches ${N} \
            --outdir ${expdir}/results \
            --verbose ${verbose} \
            --seed ${seed} \
