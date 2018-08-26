@@ -200,6 +200,8 @@ def train(args):
         gpu_id = 0
         chainer.cuda.get_device_from_id(gpu_id).use()
         model.to_gpu()
+    else:
+        gpu_id = -1
 
     # Save model conf to json
     model_conf = args.outdir + '/model.json'
