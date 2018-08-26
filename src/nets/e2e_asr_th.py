@@ -2060,6 +2060,7 @@ class BLSTM(torch.nn.Module):
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
+        self.nblstm.flatten_parameters()
         ys, _ = self.nblstm(xs_pack)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)

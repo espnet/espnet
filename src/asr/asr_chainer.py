@@ -307,7 +307,7 @@ def train(args):
         train_subsets = []
         for gid in six.moves.xrange(ngpu):
             # make subset
-            train_json_subset = {k: v for i, (k, v) in enumerate(train_json.viewitems())
+            train_json_subset = {k: v for i, (k, v) in enumerate(train_json.items())
                                  if i % ngpu == gid}
             # make minibatch list (variable length)
             train_subsets += [make_batchset(train_json_subset, args.batch_size,
