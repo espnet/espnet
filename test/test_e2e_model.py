@@ -21,7 +21,7 @@ def make_arg(**kwargs):
     defaults = dict(
         elayers=4,
         subsample="1_2_2_1_1",
-        etype="blstmp",
+        etype="vggblstm",
         eunits=100,
         eprojs=100,
         dlayers=1,
@@ -107,7 +107,6 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 def test_model_trainable_and_decodable(module, etype, atype):
     args = make_arg(etype=etype, atype=atype)
     if module[-3:] == "_th":
-        pytest.importorskip('torch')
         batch = prepare_inputs("pytorch")
     else:
         batch = prepare_inputs("chainer")
@@ -135,11 +134,7 @@ def init_chainer_weight_const(m, val):
 
 
 def test_chainer_ctc_type():
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr as ch
-
+    ch = importlib.import_module('e2e_asr')
     np.random.seed(0)
     batch = prepare_inputs("chainer")
 
@@ -162,13 +157,9 @@ def test_chainer_ctc_type():
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_loss_and_ctc_grad(etype):
-    pytest.importorskip('torch')
+    ch = importlib.import_module('e2e_asr')
+    th = importlib.import_module('e2e_asr_th')
     args = make_arg(etype=etype)
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr as ch
-    import e2e_asr_th as th
     ch_model = ch.E2E(40, 5, args)
     ch_model.cleargrads()
     th_model = th.E2E(40, 5, args)
@@ -216,13 +207,9 @@ def test_loss_and_ctc_grad(etype):
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_mtl_loss(etype):
-    pytest.importorskip('torch')
+    ch = importlib.import_module('e2e_asr')
+    th = importlib.import_module('e2e_asr_th')
     args = make_arg(etype=etype)
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr as ch
-    import e2e_asr_th as th
     ch_model = ch.E2E(40, 5, args)
     th_model = th.E2E(40, 5, args)
 
@@ -264,13 +251,9 @@ def test_mtl_loss(etype):
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_zero_length_target(etype):
-    pytest.importorskip('torch')
+    ch = importlib.import_module('e2e_asr')
+    th = importlib.import_module('e2e_asr_th')
     args = make_arg(etype=etype)
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr as ch
-    import e2e_asr_th as th
     ch_model = ch.E2E(40, 5, args)
     ch_model.cleargrads()
     th_model = th.E2E(40, 5, args)
@@ -312,13 +295,12 @@ def test_zero_length_target(etype):
     ]
 )
 def test_calculate_all_attentions(module, atype):
+    m = importlib.import_module(module)
     args = make_arg(atype=atype)
     if module[-3:] == "_th":
-        pytest.importorskip('torch')
         batch = prepare_inputs("pytorch")
     else:
         batch = prepare_inputs("chainer")
-    m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
     with chainer.no_backprop_mode():
         att_ws = model.calculate_all_attentions(*batch)
@@ -326,8 +308,7 @@ def test_calculate_all_attentions(module, atype):
 
 
 def test_chainer_save_and_load():
-    import e2e_asr as m
-
+    m = importlib.import_module('e2e_asr')
     args = make_arg()
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     # initialize randomly
@@ -349,11 +330,8 @@ def test_chainer_save_and_load():
 
 
 def test_torch_save_and_load():
-    import e2e_asr_th as m
-
-    from asr_utils import torch_load
-    from asr_utils import torch_save
-
+    m = importlib.import_module('e2e_asr_th')
+    utils = importlib.import_module('asr_utils')
     args = make_arg()
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     # initialize randomly
@@ -362,12 +340,12 @@ def test_torch_save_and_load():
     if not os.path.exists(".pytest_cache"):
         os.makedirs(".pytest_cache")
     tmppath = ".pytest_cache/model.tmp"
-    torch_save(tmppath, model)
+    utils.torch_save(tmppath, model)
     p_saved = [p.data.numpy() for p in model.parameters()]
     # set constant value
     for p in model.parameters():
         p.data.zero_()
-    torch_load(tmppath, model)
+    utils.torch_load(tmppath, model)
     for p1, p2 in zip(p_saved, model.parameters()):
         np.testing.assert_array_equal(p1, p2.data.numpy())
     if os.path.exists(tmppath):
@@ -375,31 +353,24 @@ def test_torch_save_and_load():
 
 
 @pytest.mark.skipif(not chainer.cuda.available, reason="gpu required")
-def test_chainer_gpu_available():
-    import e2e_asr as m
+@pytest.mark.parametrize("module", ["e2e_asr", "e2e_asr_th"])
+def test_gpu_trainable(module):
+    m = importlib.import_module(module)
     args = make_arg()
     model = m.Loss(m.E2E(40, 5, args), 0.5)
-    xs, ilens, ys = prepare_inputs("chainer", is_cuda=True)
-    batch = (xs, ilens, ys)
-    model.to_gpu()
-    loss = model(*batch)
-    loss.backward()  # trainable
-
-
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
-def test_torch_gpu_available():
-    import e2e_asr_th as m
-    args = make_arg()
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
-    batch = prepare_inputs("pytorch", is_cuda=True)
-    model.cuda()
+    if module[-3:] == "_th":
+        batch = prepare_inputs("pytorch", is_cuda=True)
+        model.cuda()
+    else:
+        batch = prepare_inputs("chainer", is_cuda=True)
+        model.to_gpu()
     loss = model(*batch)
     loss.backward()  # trainable
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
-def test_torch_multi_gpu_available():
-    import e2e_asr_th as m
+def test_torch_multi_gpu_trainable():
+    m = importlib.import_module('e2e_asr_th')
     ngpu = 2
     device_ids = list(range(ngpu))
     args = make_arg()
