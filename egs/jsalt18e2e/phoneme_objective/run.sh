@@ -72,6 +72,7 @@ tag="" # tag for managing experiments.
 # non-target languages: cantonese bengali pashto turkish vietnamese haitian tamil kurmanji tokpisin georgian
 train_set=tr_babel10
 train_dev=dt_babel10
+
 # non-target
 recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
  dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian\
@@ -156,12 +157,12 @@ if [ ${stage} -le 0 ]; then
 
     # Babel
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
-    langid=`echo $x | cut -f 1 -d"-"`
-    lang_code=`echo $x | cut -f 2 -d"-"`
-    if [ ! -d "$babeldir/asr1_${lang_code}/data" ]; then
-        echo "run $babeldir/asr1/local/run_all.sh first"
-        exit 1
-    fi
+        langid=`echo $x | cut -f 1 -d"-"`
+        lang_code=`echo $x | cut -f 2 -d"-"`
+        if [ ! -d "$babeldir/asr1_${lang_code}/data" ]; then
+            echo "run $babeldir/asr1/local/run_all.sh first"
+            exit 1
+        fi
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/train          data/tr_babel_${lang_code}
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/dev            data/dt_babel_${lang_code}
         utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/eval_${langid} data/et_babel_${lang_code}
