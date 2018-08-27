@@ -9,22 +9,18 @@ else
 	CONDA_URL = https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 endif
 
-.PHONY: all clean pytorch venv/lib/python2.7/site-packages/torch
+.PHONY: all clean
 
 miniconda.sh:
-	wget $(CONDA_URL) -O miniconda.sh
+	test -f miniconda.sh || wget $(CONDA_URL) -O miniconda.sh
 
-venv: miniconda.sh
-	bash miniconda.sh -b -p $(PWD)/$@
+conda: miniconda.sh
+	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
 	conda config --set always_yes yes --set changeps1 no
 	conda update conda
 	conda info -a
 
-venv/bin/activate: venv requirements.txt
-	. venv/bin/activate && conda install -y numpy matplotlib && pip install -r requirements.txt
-
-pytorch: venv/bin/activate
+virtualenv: conda requirements.txt
+	. venv/bin/activate && conda install -y numpy matplotlib
+	. venv/bin/activate && grep -v torch requirements.txt | pip install -r /dev/stdin
 	. venv/bin/activate && conda install pytorch -c pytorch
-
-venv/lib/python2.7/site-packages/torch: pytorch
-	echo "we pass this rule using pip because we use conda"
