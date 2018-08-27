@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstm     # encoder architecture type
 elayers=3
@@ -50,7 +50,7 @@ epochs=10
 # rnnlm related
 lm_weight=1.0
 use_wordlm=true
-vocabsize=20000
+vocabsize=65000
 
 # decoding parameter
 beam_size=30
@@ -63,6 +63,7 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 # data
 reverb=/export/corpora5/REVERB_2014/REVERB    # JHU setup
 wsjcam0=/export/corpora3/LDC/LDC95S24/wsjcam0 # JHU setup
+wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
 wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
 wavdir=${PWD}/wav # place to store WAV files
 
@@ -80,18 +81,22 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr_simu_8ch
+train_set=tr_simu_8ch_si284
 train_dev=dt_mult_1ch
 recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    wavdir=wav # set the directory of the multi-condition training WAV files to be generated
+    wavdir=$PWD/wav # set the directory of the multi-condition training WAV files to be generated
     echo "stage 0: Data preparation"
     local/generate_data.sh --wavdir ${wavdir} ${wsjcam0}
     local/prepare_simu_data.sh --wavdir ${wavdir} ${reverb} ${wsjcam0}
     local/prepare_real_data.sh ${reverb}
+
+    # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
+    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
+    local/wsj_format_data.sh
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -102,14 +107,16 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     fbankdir=fbank
-    tasks="${recog_set} ${train_set}"
+    tasks="${recog_set} tr_simu_8ch train_si284"
     for x in ${tasks}; do
         utils/copy_data_dir.sh data/${x} data-fbank/${x}
         steps/make_fbank_pitch.sh --nj 32 --cmd "${train_cmd}" --write_utt2num_frames true \
             data-fbank/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
-    echo "combine real and simulation data"
+    echo "combine reverb simulation and wsj clean training data"
+    utils/combine_data.sh data-fbank/${train_set} data-fbank/tr_simu_8ch data-fbank/train_si284
+    echo "combine real and simulation development data"
     utils/combine_data.sh data-fbank/${train_dev} data-fbank/dt_real_1ch data-fbank/dt_simu_1ch
 
     # compute global CMVN
@@ -186,26 +193,26 @@ if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     mkdir -p ${lmdatadir}
     if [ $use_wordlm = true ]; then
-	cat data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+	cat data-fbank/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
 							    > ${lmdatadir}/train_trans.txt
 	zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
 	    | perl -pe 's/\n/ <eos> /g' > ${lmdatadir}/train_others.txt
 	cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
-	cat data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+	cat data-fbank/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
 							    > ${lmdatadir}/valid.txt
 	text2vocabulary.py -s ${vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
-	text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+	text2token.py -s 1 -n 1 -l ${nlsyms} data-fbank/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
 											     > ${lmdatadir}/train_trans.txt
 	zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
 	    | text2token.py -n 1 | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' >> ${lmdatadir}/train_others.txt
 	cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
-	text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+	text2token.py -s 1 -n 1 -l ${nlsyms} data-fbank/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
 											     > ${lmdatadir}/valid.txt
     fi
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
-	echo "LM training does not support multi-gpu. signle gpu will be used."
+	echo "LM training does not support multi-gpu. single gpu will be used."
     fi
     ${cuda_cmd} ${lmexpdir}/train.log \
 		lm_train.py \
