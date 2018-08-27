@@ -1,4 +1,4 @@
-B*~
+*~
 *.pyc
 \#*\#
 .\#*
@@ -34,5 +34,7 @@ tools/nkf*
 tools/chainer_ctc*
 tools/warp-ctc*
 tools/sentencepiece/*
+tools/mosesdecoder/
+tools/moses
 
 .pytest_cache

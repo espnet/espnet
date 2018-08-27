@@ -8,6 +8,8 @@ import logging
 import math
 import sys
 
+from argparse import Namespace
+
 import numpy as np
 import random
 import six
@@ -22,6 +24,7 @@ from chainer import reporter
 from chainer_ctc.warpctc import ctc as warp_ctc
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
+from e2e_asr_common import get_vgg2l_odim
 from e2e_asr_common import label_smoothing_dist
 
 import deterministic_embed_id as DL
@@ -37,15 +40,7 @@ def _subsamplex(x, n):
     return x, ilens
 
 
-# get output dim for latter BLSTM
-def _get_vgg2l_odim(idim, in_channel=3, out_channel=128):
-    idim = idim / in_channel
-    idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
-    idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
-    idim = np.array(idim, dtype=np.int32)
-    return idim * out_channel  # numer of channels
-
-
+# TODO(kan-bayashi): no need to use linear tensor
 def linear_tensor(linear, x):
     '''Apply linear matrix operation only for the last dimension of a tensor
 
@@ -69,14 +64,14 @@ class Loss(chainer.Chain):
         with self.init_scope():
             self.predictor = predictor
 
-    def __call__(self, x):
+    def __call__(self, xs, ilens, ys):
         '''Loss forward
 
         :param x:
         :return:
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(x)
+        loss_ctc, loss_att, acc = self.predictor(xs, ilens, ys)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -161,35 +156,14 @@ class E2E(chainer.Chain):
                                self.sos, self.eos, self.att, self.verbose, self.char_list,
                                labeldist, args.lsm_weight, args.sampling_probability)
 
-    # x[i]: ('utt_id', {'ilen':'xxx',...}})
-    def __call__(self, data):
+    def __call__(self, xs, ilens, ys):
         '''E2E forward
 
         :param data:
         :return:
         '''
-        # utt list of frame x dim
-        xs = [i[1]['feat'] for i in data]
-        # remove 0-output-length utterances
-        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
-        filtered_index = list(filter(lambda i: len(tids[i]) > 0, range(len(xs))))
-        if len(filtered_index) != len(xs):
-            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-                len(xs), len(filtered_index)))
-        xs = [xs[i] for i in filtered_index]
-        # utt list of olen
-        ys = [self.xp.array(np.fromiter(map(int, tids[i]), dtype=np.int32))
-              for i in filtered_index]
-        ys = [chainer.Variable(y) for y in ys]
-
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = self.xp.array([xx.shape[0] for xx in xs], dtype=np.int32)
-        hs = [chainer.Variable(self.xp.array(xx, dtype=np.float32))
-              for xx in xs]
-
         # 1. encoder
-        hs, ilens = self.enc(hs, ilens)
+        hs, ilens = self.enc(xs, ilens)
 
         # 3. CTC loss
         if self.mtlalpha == 0:
@@ -236,34 +210,16 @@ class E2E(chainer.Chain):
 
             return y
 
-    def calculate_all_attentions(self, data):
+    def calculate_all_attentions(self, xs, ilens, ys):
         '''E2E attention calculation
 
-        :param list data: list of dicts of the input (B)
+        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
+        :param ndarray ilens: batch of lengths of input sequences (B)
+        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
         :return: attention weights (B, Lmax, Tmax)
         :rtype: float ndarray
         '''
-        # utt list of frame x dim
-        xs = [i[1]['feat'] for i in data]
-        # remove 0-output-length utterances
-        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
-        filtered_index = list(filter(lambda i: len(tids[i]) > 0, range(len(xs))))
-        if len(filtered_index) != len(xs):
-            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-                len(xs), len(filtered_index)))
-        xs = [xs[i] for i in filtered_index]
-        # utt list of olen
-        ys = [self.xp.array(np.fromiter(map(int, tids[i]), dtype=np.int32))
-              for i in filtered_index]
-        ys = [chainer.Variable(y) for y in ys]
-
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = self.xp.array([xx.shape[0] for xx in xs], dtype=np.int32)
-        hs = [chainer.Variable(self.xp.array(xx, dtype=np.float32))
-              for xx in xs]
-
-        hs, ilens = self.enc(hs, ilens)
+        hs, ilens = self.enc(xs, ilens)
         att_ws = self.dec.calculate_all_attentions(hs, ys)
 
         return att_ws
@@ -833,6 +789,15 @@ class Decoder(chainer.Chain):
 
         nbest_hyps = sorted(
             ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+
+        # check number of hypotheis
+        if len(nbest_hyps) == 0:
+            logging.warn('there is no N-best results, perform recognition again with smaller minlenratio.')
+            # should copy becasuse Namespace will be overwritten globally
+            recog_args = Namespace(**vars(recog_args))
+            recog_args.minlenratio = max(0.0, recog_args.minlenratio - 0.1)
+            return self.recognize_beam(h, lpz, recog_args, char_list, rnnlm)
+
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
@@ -915,12 +880,12 @@ class Encoder(chainer.Chain):
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
                 self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTMP(_get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
-                                   subsample, dropout)
+                self.enc2 = BLSTMP(get_vgg2l_odim(
+                    idim, in_channel=in_channel), elayers, eunits, eprojs, subsample, dropout)
                 logging.info('Use CNN-VGG + BLSTMP for encoder')
             elif etype == 'vggblstm':
                 self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTM(_get_vgg2l_odim(
+                self.enc2 = BLSTM(get_vgg2l_odim(
                     idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
                 logging.info('Use CNN-VGG + BLSTM for encoder')
             else:
@@ -1018,6 +983,8 @@ class BLSTM(chainer.Chain):
         :return:
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        # need to move ilens to cpu
+        ilens = cuda.to_cpu(ilens)
         hy, cy, ys = self.nblstm(None, None, xs)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
         xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
