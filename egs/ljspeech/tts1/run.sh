@@ -7,11 +7,13 @@
 . ./cmd.sh
 
 # genearl configuration
+backend=pytorch
 stage=-1
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 1, get more log)
+verbose=0    # verbose option (if set > 0, get more log)
+N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 # feature extraction related
@@ -159,7 +161,7 @@ fi
 
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_taco2_enc${embed_dim}
+    expdir=exp/${train_set}_${backend}_taco2_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
         expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
@@ -192,7 +194,7 @@ if [ -z ${tag} ];then
     fi
     expdir=${expdir}_sd${seed}
 else
-    expdir=exp/${train_set}_${tag}
+    expdir=exp/${train_set}_${backend}_${tag}
 fi
 if [ ${stage} -le 3 ];then
     echo "stage 3: Text-to-speech model training"
@@ -200,7 +202,9 @@ if [ ${stage} -le 3 ];then
     dt_json=${feat_dt_dir}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         tts_train.py \
+           --backend ${backend} \
            --ngpu ${ngpu} \
+           --minibatches ${N} \
            --outdir ${expdir}/results \
            --verbose ${verbose} \
            --seed ${seed} \
@@ -231,8 +235,8 @@ if [ ${stage} -le 3 ];then
            --bce_pos_weight ${bce_pos_weight} \
            --lr ${lr} \
            --eps ${eps} \
-           --dropout-rate ${dropout} \
-           --zoneout-rate ${zoneout} \
+           --dropout ${dropout} \
+           --zoneout ${zoneout} \
            --weight-decay ${weight_decay} \
            --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \
@@ -251,13 +255,12 @@ if [ ${stage} -le 4 ];then
         # decode in parallel
         ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
-                --backend pytorch \
+                --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
                 --out ${outdir}/${sets}/feats.JOB \
                 --json ${outdir}/${sets}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
-                --model-conf ${expdir}/results/model.conf \
                 --threshold ${threshold} \
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}

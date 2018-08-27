@@ -18,8 +18,6 @@ import numpy as np
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
-    parser.add_argument('--gpu', default=None, type=int, nargs='?',
-                        help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -42,17 +40,9 @@ def main():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     # task related
-    parser.add_argument('--train-feat', type=str, default=None,
-                        help='Filename of train feature data (Kaldi scp)')
-    parser.add_argument('--valid-feat', type=str, default=None,
-                        help='Filename of validation feature data (Kaldi scp)')
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
     parser.add_argument('--valid-json', type=str, default=None,
-                        help='Filename of validation label data (json)')
-    parser.add_argument('--train-label', type=str, default=None,
-                        help='Filename of train label data (json)')
-    parser.add_argument('--valid-label', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network archtecture
     # encoder
@@ -147,27 +137,6 @@ def main():
         logging.basicConfig(
             level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
         logging.warning('Skip DEBUG/INFO messages')
-
-    # check gpu argument
-    if args.gpu is not None:
-        logging.warn("--gpu option will be deprecated, please use --ngpu option.")
-        if args.gpu == -1:
-            args.ngpu = 0
-        else:
-            args.ngpu = 1
-
-    # TODO(nelson) remove in future
-    if (args.train_feat is not None) or \
-       (args.valid_feat is not None) or \
-       (args.train_label is not None) or \
-       (args.valid_label is not None):
-        logging.error(
-            "--train-feat, --valid-feat, --train-label, and valid-label"
-            "options are deprecated, please use --train-json and --valid-json options.")
-        logging.error(
-            "input file format (json) is modified, please redo"
-            "stage 1: Feature Generation")
-        sys.exit(1)
 
     # check CUDA_VISIBLE_DEVICES
     if args.ngpu > 0:
