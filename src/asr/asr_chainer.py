@@ -474,14 +474,14 @@ def recog(args):
         js = json.load(f)['utts']
 
     # decode each utterance
-    new_json = {}
+    new_js = {}
     with chainer.no_backprop_mode():
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
             nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-            new_json[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_json}, indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
