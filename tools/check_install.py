@@ -56,7 +56,7 @@ for idx, (name, version) in enumerate(library_list):
         importlib.import_module(name)
         logging.info("--> %s is installed." % name)
         is_collect_installed_list[idx] = True
-    except ModuleNotFoundError:
+    except ImportError:
         logging.warn("--> %s is not installed." % name)
         is_collect_installed_list[idx] = False
     if version is not None:
