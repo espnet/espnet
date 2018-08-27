@@ -37,7 +37,7 @@ nkf:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
 warp-ctc: virtualenv
-	git clone -b follows-upstream https://github.com/jnishi/warp-ctc.git
+	git clone https://github.com/jnishi/warp-ctc.git
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
