@@ -201,14 +201,14 @@ ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attent
 $ ./run.sh
 
 # CTC mode
-$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model loss.best
+$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
 
 # attention mode
 $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
 ```
 
 The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value 
-(i.e., `--recog_model loss.best`).
+(i.e., `--recog_model model.loss.best`).
 About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
 
 ## Results
@@ -219,9 +219,9 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | WSJ dev93 | 4.9 | 10.9 |
 | WSJ eval92| 3.1 |  7.1 |
-| CSJ eval1 | 8.5 | N/A  |
-| CSJ eval2 | 6.1 | N/A  |
-| CSJ eval3 | 6.8 | N/A  |
+| CSJ eval1 | 7.3 | N/A  |
+| CSJ eval2 | 5.3 | N/A  |
+| CSJ eval3 | 5.9 | N/A  |
 | HKUST train_dev | 28.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 5.0 |
