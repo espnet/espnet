@@ -779,7 +779,7 @@ class Decoder(chainer.Chain):
 
         # check number of hypotheis
         if len(nbest_hyps) == 0:
-            logging.warn('there is no N-best results, perform recognition with less small minlenratio.')
+            logging.warn('there is no N-best results, perform recognition again with smaller minlenratio.')
             # should copy becasuse Namespace will be overwritten globally
             recog_args = Namespace(**vars(recog_args))
             recog_args.minlenratio = max(0.0, recog_args.minlenratio - 0.1)
