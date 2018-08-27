@@ -8,6 +8,7 @@ from __future__ import division
 import argparse
 import importlib
 import os
+import tempfile
 
 import chainer
 import numpy as np
@@ -21,7 +22,7 @@ def make_arg(**kwargs):
     defaults = dict(
         elayers=4,
         subsample="1_2_2_1_1",
-        etype="blstmp",
+        etype="vggblstm",
         eunits=100,
         eprojs=100,
         dlayers=1,
@@ -51,7 +52,7 @@ def make_arg(**kwargs):
     return argparse.Namespace(**defaults)
 
 
-def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3]):
+def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
     np.random.seed(1)
     assert len(ilens) == len(olens)
     xs = [np.random.randn(ilen, 40).astype(np.float32) for ilen in ilens]
@@ -59,15 +60,24 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3]):
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
 
     if mode == "chainer":
-        xs = [chainer.Variable(x) for x in xs]
-        ys = [chainer.Variable(y) for y in ys]
-
+        if is_cuda:
+            xp = importlib.import_module('cupy')
+            xs = [chainer.Variable(xp.array(x)) for x in xs]
+            ys = [chainer.Variable(xp.array(y)) for y in ys]
+            ilens = xp.array(ilens)
+        else:
+            xs = [chainer.Variable(x) for x in xs]
+            ys = [chainer.Variable(y) for y in ys]
         return xs, ilens, ys
 
     elif mode == "pytorch":
         ilens = torch.from_numpy(ilens).long()
         xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
+        if is_cuda:
+            xs_pad = xs_pad.cuda()
+            ilens = ilens.cuda()
+            ys_pad = ys_pad.cuda()
 
         return xs_pad, ilens, ys_pad
     else:
@@ -98,7 +108,6 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3]):
 def test_model_trainable_and_decodable(module, etype, atype):
     args = make_arg(etype=etype, atype=atype)
     if module[-3:] == "_th":
-        pytest.importorskip('torch')
         batch = prepare_inputs("pytorch")
     else:
         batch = prepare_inputs("chainer")
@@ -126,11 +135,7 @@ def init_chainer_weight_const(m, val):
 
 
 def test_chainer_ctc_type():
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr as ch
-
+    ch = importlib.import_module('e2e_asr')
     np.random.seed(0)
     batch = prepare_inputs("chainer")
 
@@ -153,13 +158,9 @@ def test_chainer_ctc_type():
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_loss_and_ctc_grad(etype):
-    pytest.importorskip('torch')
+    ch = importlib.import_module('e2e_asr')
+    th = importlib.import_module('e2e_asr_th')
     args = make_arg(etype=etype)
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr as ch
-    import e2e_asr_th as th
     ch_model = ch.E2E(40, 5, args)
     ch_model.cleargrads()
     th_model = th.E2E(40, 5, args)
@@ -207,13 +208,9 @@ def test_loss_and_ctc_grad(etype):
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_mtl_loss(etype):
-    pytest.importorskip('torch')
+    ch = importlib.import_module('e2e_asr')
+    th = importlib.import_module('e2e_asr_th')
     args = make_arg(etype=etype)
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr as ch
-    import e2e_asr_th as th
     ch_model = ch.E2E(40, 5, args)
     th_model = th.E2E(40, 5, args)
 
@@ -255,13 +252,9 @@ def test_mtl_loss(etype):
 
 @pytest.mark.parametrize("etype", ["blstmp", "vggblstmp"])
 def test_zero_length_target(etype):
-    pytest.importorskip('torch')
+    ch = importlib.import_module('e2e_asr')
+    th = importlib.import_module('e2e_asr_th')
     args = make_arg(etype=etype)
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    import e2e_asr as ch
-    import e2e_asr_th as th
     ch_model = ch.E2E(40, 5, args)
     ch_model.cleargrads()
     th_model = th.E2E(40, 5, args)
@@ -303,25 +296,42 @@ def test_zero_length_target(etype):
     ]
 )
 def test_calculate_all_attentions(module, atype):
+    m = importlib.import_module(module)
     args = make_arg(atype=atype)
     if module[-3:] == "_th":
-        pytest.importorskip('torch')
         batch = prepare_inputs("pytorch")
     else:
         batch = prepare_inputs("chainer")
-    m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
     with chainer.no_backprop_mode():
         att_ws = model.calculate_all_attentions(*batch)
         print(att_ws.shape)
 
 
+def test_chainer_save_and_load():
+    m = importlib.import_module('e2e_asr')
+    utils = importlib.import_module('asr_utils')
+    args = make_arg()
+    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    # initialize randomly
+    for p in model.params():
+        p.data = np.random.randn(*p.data.shape)
+    tmppath = tempfile.mktemp()
+    chainer.serializers.save_npz(tmppath, model)
+    p_saved = [p.data for p in model.params()]
+    # set constant value
+    for p in model.params():
+        p.data = np.zeros_like(p.data)
+    utils.chainer_load(tmppath, model)
+    for p1, p2 in zip(p_saved, model.params()):
+        np.testing.assert_array_equal(p1, p2.data)
+    if os.path.exists(tmppath):
+        os.remove(tmppath)
+
+
 def test_torch_save_and_load():
-    import e2e_asr_th as m
-
-    from asr_utils import torch_load
-    from asr_utils import torch_save
-
+    m = importlib.import_module('e2e_asr_th')
+    utils = importlib.import_module('asr_utils')
     args = make_arg()
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     # initialize randomly
@@ -329,29 +339,44 @@ def test_torch_save_and_load():
         p.data.uniform_()
     if not os.path.exists(".pytest_cache"):
         os.makedirs(".pytest_cache")
-    tmppath = ".pytest_cache/model.tmp"
-    torch_save(tmppath, model)
+    tmppath = tempfile.mktemp()
+    utils.torch_save(tmppath, model)
     p_saved = [p.data.numpy() for p in model.parameters()]
     # set constant value
     for p in model.parameters():
         p.data.zero_()
-    torch_load(tmppath, model)
+    utils.torch_load(tmppath, model)
     for p1, p2 in zip(p_saved, model.parameters()):
         np.testing.assert_array_equal(p1, p2.data.numpy())
     if os.path.exists(tmppath):
         os.remove(tmppath)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available() and not chainer.cuda.available, reason="gpu required")
+@pytest.mark.parametrize("module", ["e2e_asr", "e2e_asr_th"])
+def test_gpu_trainable(module):
+    m = importlib.import_module(module)
+    args = make_arg()
+    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    if module[-3:] == "_th":
+        batch = prepare_inputs("pytorch", is_cuda=True)
+        model.cuda()
+    else:
+        batch = prepare_inputs("chainer", is_cuda=True)
+        model.to_gpu()
+    loss = model(*batch)
+    loss.backward()  # trainable
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
 def test_torch_multi_gpu_trainable():
-    import e2e_asr_th as m
+    m = importlib.import_module('e2e_asr_th')
     ngpu = 2
     device_ids = list(range(ngpu))
     args = make_arg()
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     model = torch.nn.DataParallel(model, device_ids)
-    batch = prepare_inputs("pytorch")
-    batch = (x.cuda() for x in batch)
+    batch = prepare_inputs("pytorch", is_cuda=True)
     model.cuda()
-    attn_loss = 1. / ngpu * model(*batch)
-    attn_loss.backward(attn_loss.new_ones(ngpu))  # trainable
+    loss = 1. / ngpu * model(*batch)
+    loss.backward(loss.new_ones(ngpu))  # trainable
