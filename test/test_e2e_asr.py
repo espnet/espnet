@@ -310,6 +310,7 @@ def test_calculate_all_attentions(module, atype):
 
 def test_chainer_save_and_load():
     m = importlib.import_module('e2e_asr')
+    utils = importlib.import_module('asr_utils')
     args = make_arg()
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     # initialize randomly
@@ -321,7 +322,7 @@ def test_chainer_save_and_load():
     # set constant value
     for p in model.params():
         p.data = np.zeros_like(p.data)
-    chainer.serializers.load_npz(tmppath, model)
+    utils.chainer_load(tmppath, model)
     for p1, p2 in zip(p_saved, model.params()):
         np.testing.assert_array_equal(p1, p2.data)
     if os.path.exists(tmppath):
