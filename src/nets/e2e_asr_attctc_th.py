@@ -1725,8 +1725,9 @@ class Decoder(torch.nn.Module):
             att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
             if random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
-                z_out = self.output(z_list[0])
-                z_out = torch.max(F.log_softmax(z_out, dim=1), dim=1)[1]
+                z_out = self.output(z_list[-1])
+                #z_out = torch.max(F.log_softmax(z_out, dim=1), dim=1)[1]
+                z_out = torch.max(z_out, dim=1)[1]
                 z_out = self.embed(z_out)
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
