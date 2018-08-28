@@ -103,7 +103,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ source venv/bin/activate && python check_install.py
 ```
-If you have no warining, ready to run the recipe!
+If you have no warning, ready to run the recipe!
 
 ## Execution of example scripts
 
@@ -256,6 +256,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Librispeech dev_clean  | N/A | 4.7 |
 | Librispeech test_clean | N/A | 4.7 |
 
+Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
+
 ## Chainer and Pytorch backends
 
 |           | Chainer | Pytorch |
@@ -266,7 +268,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | VGG-like encoder | supported | supported |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
-| TTS recipe suuport | no support | supported |
+| TTS recipe support | no support | supported |
 
 ## References (Please cite the following articles)
 
