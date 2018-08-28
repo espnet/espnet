@@ -10,7 +10,7 @@ decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 21.1 
 decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 7.7 (7.2 w/ 0.2, 7.2 w/ 0.3, 7.1 w/ 0.4)
 decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/result.wrd.txt:| 21.9 (20.5 w/ 0.2, 20.0 w/ 0.3, 19.7 w/ 0.4)
 
-# pytorch VGG-3BLSTM 1024 units, #BPE 2000 (motivated by RWTH setup, thanks to Rohit Prabhavalkar and Kazuki Irie)
+# pytorch VGG-3BLSTM 1024 units, #BPE 2000 (motivated by the RWTH setup, thanks to Albert Zeyer, Rohit Prabhavalkar, and Kazuki Irie for their comments)
 # train_960_vggblstm_e4_subsample1_2_2_1_1_unit1024_proj1024_d1_unit1024_location1024_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs32_mli800_mlo150_unigram2000
 # WER
 decode_dev_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3: 5.0
