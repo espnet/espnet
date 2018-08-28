@@ -5,7 +5,7 @@ KALDI =
 
 all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
 
-python_libs: virtualenv chainer_patch warp-ctc chainer_ctc
+all_python: virtualenv chainer_patch warp-ctc chainer_ctc
 
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
@@ -65,7 +65,7 @@ clean:
 	rm -f miniconda.sh
 	find . -iname "*.pyc" -delete
 
-clean_python_libs:
+clean_python:
 	rm -fr venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
 	find . -iname "*.pyc" -delete
