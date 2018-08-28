@@ -22,3 +22,8 @@ exp/train_nodup_sp_ch_vggblstmp_e8/decode_train_dev_beam20_eacc.best_p0.0_len0.0
 $ grep Avg exp/train_nodup_sp_ch_vggblstmp_e8/decode_*_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.2/result.txt
 exp/train_nodup_sp_ch_vggblstmp_e8/decode_dev_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.2/result.txt:| Sum/Avg                            | 5413     56154  | 74.4    20.7     4.9      2.7    28.3    72.4  |
 exp/train_nodup_sp_ch_vggblstmp_e8/decode_train_dev_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.2/result.txt:|  Sum/Avg                            |  3999     47130  |  73.1    20.7      6.2      2.8     29.7     76.9  |
+
+# use wide and shallow network
+$ rg -e Avg exp/train_nodup_sp_pytorch_vggblstm_e3_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_*0.6*0.3*/result.txt | sort | sed -E 's/ +/ /g'
+exp/train_nodup_sp_pytorch_vggblstm_e3_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_dev_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.6_rnnlm0.3/result.txt:| Sum/Avg | 5413 56154 | 75.3 20.5 4.3 2.7 27.4 72.2 |
+exp/train_nodup_sp_pytorch_vggblstm_e3_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs30_mli800_mlo150/decode_train_dev_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.6_rnnlm0.3/result.txt:| Sum/Avg | 3999 47130 | 74.2 20.7 5.0 3.0 28.8 76.8 |

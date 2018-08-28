@@ -10,6 +10,8 @@ import logging
 import math
 import sys
 
+from argparse import Namespace
+
 import chainer
 import numpy as np
 import six
@@ -1825,6 +1827,15 @@ class Decoder(torch.nn.Module):
 
         nbest_hyps = sorted(
             ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(ended_hyps), recog_args.nbest)]
+
+        # check number of hypotheis
+        if len(nbest_hyps) == 0:
+            logging.warn('there is no N-best results, perform recognition again with smaller minlenratio.')
+            # should copy becasuse Namespace will be overwritten globally
+            recog_args = Namespace(**vars(recog_args))
+            recog_args.minlenratio = max(0.0, recog_args.minlenratio - 0.1)
+            return self.recognize_beam(h, lpz, recog_args, char_list, rnnlm)
+
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
@@ -2060,6 +2071,7 @@ class BLSTM(torch.nn.Module):
         '''
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
+        self.nblstm.flatten_parameters()
         ys, _ = self.nblstm(xs_pack)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)

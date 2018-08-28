@@ -138,6 +138,32 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     assert att_ws.shape[2] == max(ilens)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
+def test_tacotron2_gpu_trainable():
+    bs = 2
+    maxin_len = 10
+    maxout_len = 10
+    idim = 5
+    odim = 10
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    batch = (x.cuda() for x in batch)
+    xs, ilens, ys, labels, olens = batch
+
+    # define model
+    model_args = make_model_args()
+    loss_args = make_loss_args()
+    tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
+    model = Tacotron2Loss(tacotron2, **loss_args)
+    optimizer = torch.optim.Adam(model.parameters())
+    model.cuda()
+
+    # trainable
+    loss = model(xs, ilens, ys, labels, olens)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
 def test_tacotron2_multi_gpu_trainable():
     ngpu = 2
