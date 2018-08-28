@@ -58,7 +58,7 @@ penalty=0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # data
 reverb=/export/corpora5/REVERB_2014/REVERB    # JHU setup
@@ -299,7 +299,7 @@ if [ ${stage} -le 5 ]; then
             --debugmode ${debugmode} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
+            --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
@@ -318,10 +318,8 @@ if [ ${stage} -le 5 ]; then
     decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
     if [ $use_wordlm = true ]; then
 	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}
-	recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best --word-dict ${lmdict}"
     else
 	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}
-	recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
     fi
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" ${dict} ${expdir}/decode_summary_${decode_part_dir}
     echo "Finished"

@@ -29,6 +29,8 @@ from chainer.training.updaters.multiprocess_parallel_updater import scatter_grad
 
 # espnet related
 from asr_utils import adadelta_eps_decay
+from asr_utils import add_results_to_json
+from asr_utils import chainer_load
 from asr_utils import CompareValueTrigger
 from asr_utils import get_model_conf
 from asr_utils import load_inputs_and_targets
@@ -307,7 +309,7 @@ def train(args):
         train_subsets = []
         for gid in six.moves.xrange(ngpu):
             # make subset
-            train_json_subset = {k: v for i, (k, v) in enumerate(train_json.viewitems())
+            train_json_subset = {k: v for i, (k, v) in enumerate(train_json.items())
                                  if i % ngpu == gid}
             # make minibatch list (variable length)
             train_subsets += [make_batchset(train_json_subset, args.batch_size,
@@ -438,13 +440,13 @@ def recog(args):
     logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
-    chainer.serializers.load_npz(args.model, model)
+    chainer_load(args.model, model)
 
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(train_args.char_list), rnnlm_args.unit))
-        chainer.serializers.load_npz(args.rnnlm, rnnlm)
+        chainer_load(args.rnnlm, rnnlm)
     else:
         rnnlm = None
 
@@ -457,7 +459,7 @@ def recog(args):
         word_dict = load_labeldict(args.word_dict)
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), rnnlm_args.unit))
-        chainer.serializers.load_npz(args.word_rnnlm, word_rnnlm)
+        chainer_load(args.word_rnnlm, word_rnnlm)
 
         if rnnlm is not None:
             rnnlm = lm_chainer.ClassifierWithState(
@@ -470,57 +472,17 @@ def recog(args):
 
     # read json data
     with open(args.recog_json, 'rb') as f:
-        recog_json = json.load(f)['utts']
+        js = json.load(f)['utts']
 
-    new_json = {}
-    for name in recog_json.keys():
-        feat = kaldi_io_py.read_mat(recog_json[name]['input'][0]['feat'])
-        logging.info('decoding ' + name)
-        nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-        # get 1best and remove sos
-        y_hat = nbest_hyps[0]['yseq'][1:]
-        y_true = map(int, recog_json[name]['output'][0]['tokenid'].split())
-
-        # print out decoding result
-        seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
-        seq_true = [train_args.char_list[int(idx)] for idx in y_true]
-        seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-        seq_true_text = "".join(seq_true).replace('<space>', ' ')
-        logging.info("groundtruth[%s]: " + seq_true_text, name)
-        logging.info("prediction [%s]: " + seq_hat_text, name)
-
-        # copy old json info
-        new_json[name] = dict()
-        new_json[name]['utt2spk'] = recog_json[name]['utt2spk']
-
-        # add 1-best recognition results to json
-        logging.debug("dump token id")
-        out_dic = dict()
-        for _key in recog_json[name]['output'][0]:
-            out_dic[_key] = recog_json[name]['output'][0][_key]
-
-        # TODO(karita) make consistent to chainer as idx[0] not idx
-        out_dic['rec_tokenid'] = " ".join(
-            [str(idx[0]) for idx in y_hat])
-        logging.debug("dump token")
-        out_dic['rec_token'] = " ".join(seq_hat)
-        logging.debug("dump text")
-        out_dic['rec_text'] = seq_hat_text
-
-        new_json[name]['output'] = [out_dic]
-        # TODO(nelson): Modify this part when saving more than 1 hyp is enabled
-        # add n-best recognition results with scores
-        if args.beam_size > 1 and len(nbest_hyps) > 1:
-            for i, hyp in enumerate(nbest_hyps):
-                y_hat = hyp['yseq'][1:]
-                seq_hat = [train_args.char_list[int(idx)] for idx in y_hat]
-                seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-                new_json[name]['rec_tokenid' + '[' + '{:05d}'.format(i) + ']'] \
-                    = " ".join([str(idx[0]) for idx in y_hat])
-                new_json[name]['rec_token' + '[' + '{:05d}'.format(i) + ']'] = " ".join(seq_hat)
-                new_json[name]['rec_text' + '[' + '{:05d}'.format(i) + ']'] = seq_hat_text
-                new_json[name]['score' + '[' + '{:05d}'.format(i) + ']'] = hyp['score']
+    # decode each utterance
+    new_js = {}
+    with chainer.no_backprop_mode():
+        for idx, name in enumerate(js.keys(), 1):
+            logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
+            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_json}, indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
