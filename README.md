@@ -23,6 +23,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Tacotron2 based end-to-end TTS (new!)
 
 ## Requirements
+
 - Python2.7+  
 - Cuda 8.0 or 9.1 (for the use of GPU)  
 - Cudnn 6+ (for the use of GPU)  
@@ -33,7 +34,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Chainer 4.3.1
 
 ## Installation
-### Step 1) setting of  the environment
+
+### Step 1) setting of the environment
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
 ```
@@ -59,6 +61,7 @@ export CUDA_PATH=$CUDAROOT
 ```
 
 ### Step 2-A) installation with compiled Kaldi
+
 Install Python libraries and other required tools using system python and virtualenv
 ```sh
 $ cd tools
@@ -71,6 +74,7 @@ $ make KALDI=/path/to/kaldi -f conda.mk
 ```
 
 ### Step 2-B) installation including Kaldi installation
+
 Install Kaldi, Python libraries and other required tools using system python and virtualenv
 ```sh
 $ cd tools
@@ -82,7 +86,35 @@ $ cd tools
 $ make -f conda.mk -j
 ```
 
+### Step 2-C) installation with specified python
+
+Install Kaldi, Python libraries and other required tools using specified python and virtualenv
+```sh
+$ cd tools
+$ make -j PYTHON=/path/to/python2.7
+```
+You can also specified `python3.6`, but some preprocessing functions require `python2.7`.  
+So we recommend to use `python2.7`.
+
+### Step 3) installation check
+
+You can check whether the install is succeeded via the following commands
+```sh
+$ cd tools
+$ source venv/bin/activate && python check_install.py
+```
+If you have no warining, ready to run the recipe!
+
+If there are some problems in python libraries, you can re-setup only python environment via following commands
+```sh
+$ cd tools
+$ make clean_python
+$ make all_python
+```
+And then check the install is succeeded again.
+
 ## Execution of example scripts
+
 Move to an example directory under the `egs` directory.
 We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
 The following directory is an example of performing ASR experiment with the CMU Census Database (AN4) recipe.
@@ -127,6 +159,7 @@ this epoch [#####.............................................] 10.84%
 ```
 
 ### Use of GPU
+
 If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
 ```sh
 # use single gpu
@@ -148,11 +181,13 @@ Note that if you want to use multi-gpu, the installation of [nccl](https://devel
 is required before setup.
 
 ### Error due to ACS (Multiple GPUs)
+
 When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
 Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
 To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
 
 ### Docker Container
+
 To work inside a docker container, execute `run.sh` located inside the docker directory.
 It will build a container and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
 ```sh
@@ -169,6 +204,7 @@ $ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5/asr1 --docker_folders /export/
 Note that all experimental files and results are created under the normal example directories (`egs/<example>/`).
 
 ### Setup in your cluster
+
 Change `cmd.sh` according to your cluster setup.
 If you run experiments with your local machine, please use default `cmd.sh`.
 For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
@@ -193,6 +229,7 @@ $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir instal
 ```
 
 ## CTC, attention, and hybrid CTC/attention
+
 ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
 
 ```sh
@@ -201,14 +238,14 @@ ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attent
 $ ./run.sh
 
 # CTC mode
-$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model loss.best
+$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
 
 # attention mode
 $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
 ```
 
 The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value 
-(i.e., `--recog_model loss.best`).
+(i.e., `--recog_model model.loss.best`).
 About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
 
 ## Results
@@ -219,13 +256,13 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | WSJ dev93 | 4.9 | 10.9 |
 | WSJ eval92| 3.1 |  7.1 |
-| CSJ eval1 | 8.5 | N/A  |
-| CSJ eval2 | 6.1 | N/A  |
-| CSJ eval3 | 6.8 | N/A  |
-| HKUST train_dev | 29.7 | N/A  |
-| HKUST dev       | 28.3 | N/A  |
-| Librispeech dev_clean  | 2.7 | 7.2 |
-| Librispeech test_clean | 2.6 | 7.1 |
+| CSJ eval1 | 7.3 | N/A  |
+| CSJ eval2 | 5.3 | N/A  |
+| CSJ eval3 | 5.9 | N/A  |
+| HKUST train_dev | 28.8 | N/A  |
+| HKUST dev       | 27.4 | N/A  |
+| Librispeech dev_clean  | N/A | 5.0 |
+| Librispeech test_clean | N/A | 5.0 |
 
 ## Chainer and Pytorch backends
 
@@ -240,6 +277,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | TTS recipe suuport | no support | supported |
 
 ## References (Please cite the following articles)
+
 [1] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
 
 [2] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
