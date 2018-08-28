@@ -105,6 +105,14 @@ $ source venv/bin/activate && python check_install.py
 ```
 If you have no warining, ready to run the recipe!
 
+If there are some problems in python libraries, you can re-setup only python environment via following commands
+```sh
+$ cd tools
+$ make clean_python
+$ make all_python
+```
+And then check the install is succeeded again.
+
 ## Execution of example scripts
 
 Move to an example directory under the `egs` directory.
