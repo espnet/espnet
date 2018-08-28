@@ -5,7 +5,7 @@ KALDI =
 
 all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
 
-python_libs: virtualenv chainer_patch warp-ctc chaienr_ctc
+python_libs: virtualenv chainer_patch warp-ctc chainer_ctc
 
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
