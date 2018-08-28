@@ -321,6 +321,8 @@ if [ ${stage} -le 5 ]; then
     else
 	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}
     fi
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" ${dict} ${expdir}/decode_summary_${decode_part_dir}
+    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
+			      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
+			      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
     echo "Finished"
 fi
