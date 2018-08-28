@@ -41,8 +41,8 @@ install:
     fi
   # install matplotlib
   - pip install matplotlib
-  # install warp-ctc
-  - git clone -b follows-upstream https://github.com/jnishi/warp-ctc.git
+  # install warp-ctc (use @jnishi patched version)
+  - git clone https://github.com/jnishi/warp-ctc.git
   - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
   - pip install cffi
   - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
