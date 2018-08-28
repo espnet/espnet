@@ -314,6 +314,15 @@ if [ ${stage} -le 5 ]; then
     ) &
     done
     wait
+    echo "Report the result"
+    decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+    if [ $use_wordlm = true ]; then
+	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}
+	recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best --word-dict ${lmdict}"
+    else
+	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}
+	recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+    fi
+    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" ${dict} ${expdir}/decode_summary_${decode_part_dir}
     echo "Finished"
 fi
-
