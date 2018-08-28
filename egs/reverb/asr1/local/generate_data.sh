@@ -68,6 +68,10 @@ echo "generated ${nwav} WAV files (it must be 7861)"
 [ "$nwav" -eq 7861 ] || echo "Warning: expected 7861 WAV files, got $nwav"
 
 # generalte training data
+if [ ! -x `which matlab` ]; then
+    echo "Could not find (or execute) the matlab program";
+    exit 1;
+fi
 reverb_tr_dir=${wavdir}/REVERB_WSJCAM0_tr
 cp local/Generate_mcTrainData_cut.m $dir/reverb_tools_for_Generate_mcTrainData/
 pushd $dir/reverb_tools_for_Generate_mcTrainData/
