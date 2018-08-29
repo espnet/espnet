@@ -65,7 +65,6 @@ chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
 wsjcam0=/export/corpora3/LDC/LDC95S24/wsjcam0 # JHU setup
 wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
 wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
-wavdir=${PWD}/wav # place to store WAV files
 
 # exp tag
 tag="" # tag for managing experiments.
