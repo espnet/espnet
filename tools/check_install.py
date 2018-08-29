@@ -12,7 +12,7 @@ import sys
 MANUALLY_INSTALLED_LIBRARIES = [
     ('matplotlib', None),
     ('chainer_ctc', None),
-    ('warpctc_pytorch', None)
+    ('warpctc_pytorch', "0.1.1")
 ]
 
 parser = argparse.ArgumentParser()
@@ -62,9 +62,14 @@ for idx, (name, version) in enumerate(library_list):
     if version is not None:
         try:
             lib = importlib.import_module(name)
-            assert lib.__version__ == version
-            logging.info("--> %s version is matched." % name)
-            is_collect_installed_list[idx] = True
+            if hasattr(lib, "__version__"):
+                assert lib.__version__ == version
+                logging.info("--> %s version is matched." % name)
+                is_collect_installed_list[idx] = True
+            else:
+                logging.info("--> there is no version information.")
+                logging.info("--> but version is specified. maybe better to reinstall.")
+                is_collect_installed_list[idx] = False
         except AssertionError:
             logging.warn("--> %s version is not matched. please install %s==%s." % (name, name, version))
             is_collect_installed_list[idx] = False
