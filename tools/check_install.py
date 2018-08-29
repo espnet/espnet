@@ -12,7 +12,7 @@ import sys
 MANUALLY_INSTALLED_LIBRARIES = [
     ('matplotlib', None),
     ('chainer_ctc', None),
-    ('warpctc_pytorch', None)
+    ('warpctc_pytorch', "0.1.1")
 ]
 
 parser = argparse.ArgumentParser()
@@ -50,31 +50,51 @@ library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 # chech library availableness
 logging.info("library availableness check start.")
 logging.info("# libraries to be checked = %d" % len(library_list))
-is_collect_installed_list = [None] * len(library_list)
+is_correct_installed_list = []
 for idx, (name, version) in enumerate(library_list):
     try:
         importlib.import_module(name)
         logging.info("--> %s is installed." % name)
-        is_collect_installed_list[idx] = True
+        is_correct_installed_list.append(True)
     except ImportError:
         logging.warn("--> %s is not installed." % name)
-        is_collect_installed_list[idx] = False
-    if version is not None:
-        try:
-            lib = importlib.import_module(name)
-            assert lib.__version__ == version
-            logging.info("--> %s version is matched." % name)
-            is_collect_installed_list[idx] = True
-        except AssertionError:
-            logging.warn("--> %s version is not matched. please install %s==%s." % (name, name, version))
-            is_collect_installed_list[idx] = False
+        is_correct_installed_list.append(False)
 logging.info("library availableness check done.")
 logging.info("%d / %d libraries are correctly installed." % (
-    sum(is_collect_installed_list), len(library_list)))
+    sum(is_correct_installed_list), len(library_list)))
+
+# check library version
+if len(library_list) != sum(is_correct_installed_list):
+    logging.info("please try to setup again and then re-run this script.")
+    sys.exit(1)
+else:
+    num_version_specified = sum([True if v is not None else False for n, v in library_list])
+    logging.info("library version check start.")
+    logging.info("# libraries to be checked = %d" % num_version_specified)
+    is_correct_version_list = []
+    for idx, (name, version) in enumerate(library_list):
+        if version is not None:
+            try:
+                lib = importlib.import_module(name)
+                if hasattr(lib, "__version__"):
+                    assert lib.__version__ == version
+                    logging.info("--> %s version is matched." % name)
+                    is_correct_version_list.append(True)
+                else:
+                    logging.info("--> %s has no version info, but version is specified." % name)
+                    logging.info("--> maybe it is better to reinstall the latest version.")
+                    is_correct_version_list.append(False)
+            except AssertionError:
+                logging.warn("--> %s version is not matched (%s==%s)." % (lib.__version__, version))
+                is_correct_version_list.append(False)
+    logging.info("library version check done.")
+    logging.info("%d / %d libraries are correct version." % (
+        sum(is_correct_version_list), num_version_specified))
 
 # check cuda availableness
-if len(library_list) != sum(is_collect_installed_list):
+if sum(is_correct_version_list) != num_version_specified:
     logging.info("please try to setup again and then re-run this script.")
+    sys.exit(1)
 else:
     logging.info("cuda availableness check start.")
     import chainer
