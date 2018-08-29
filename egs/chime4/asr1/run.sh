@@ -62,7 +62,6 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 
 # data
 chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
-wsjcam0=/export/corpora3/LDC/LDC95S24/wsjcam0 # JHU setup
 wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
 wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
 
@@ -80,7 +79,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr05_multi_noisy
+train_set=tr05_multi_noisy_si284 # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
 train_dev=dt05_multi_isolated_1ch_track
 recog_set="\
 dt05_real_isolated_1ch_track dt05_simu_isolated_1ch_track et05_real_isolated_1ch_track et05_simu_isolated_1ch_track \
@@ -135,7 +134,8 @@ if [ ${stage} -le 1 ]; then
     done
 
     echo "combine real and simulation data"
-    utils/combine_data.sh data-fbank/${train_set} data-fbank/tr05_simu_noisy data-fbank/tr05_real_noisy data-fbank/train_si284
+    utils/combine_data.sh data-fbank/tr05_multi_noisy data-fbank/tr05_simu_noisy data-fbank/tr05_real_noisy
+    utils/combine_data.sh data-fbank/tr05_multi_noisy_si284 data-fbank/tr05_multi_noisy data-fbank/train_si284
     utils/combine_data.sh data-fbank/${train_dev} data-fbank/dt05_simu_isolated_1ch_track data-fbank/dt05_real_isolated_1ch_track
 
     # compute global CMVN
