@@ -50,35 +50,46 @@ library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 # chech library availableness
 logging.info("library availableness check start.")
 logging.info("# libraries to be checked = %d" % len(library_list))
-is_collect_installed_list = [None] * len(library_list)
+is_collect_installed_list = []
 for idx, (name, version) in enumerate(library_list):
     try:
         importlib.import_module(name)
         logging.info("--> %s is installed." % name)
-        is_collect_installed_list[idx] = True
+        is_collect_installed_list.append(True)
     except ImportError:
         logging.warn("--> %s is not installed." % name)
-        is_collect_installed_list[idx] = False
+        is_collect_installed_list.append(False)
+logging.info("library availableness check done.")
+logging.info("%d / %d libraries are correctly installed." % (
+    sum(is_collect_installed_list), len(library_list)))
+
+# check library version
+num_version_specified = sum([True if v is not None else False for n, v in library_list])
+logging.info("library version check start.")
+logging.info("# libraries to be checked = %d" % num_version_specified)
+is_collect_version_list = []
+for idx, (name, version) in enumerate(library_list):
     if version is not None:
         try:
             lib = importlib.import_module(name)
             if hasattr(lib, "__version__"):
                 assert lib.__version__ == version
                 logging.info("--> %s version is matched." % name)
-                is_collect_installed_list[idx] = True
+                is_collect_version_list.append(True)
             else:
-                logging.info("--> there is no version information.")
-                logging.info("--> but version is specified. maybe better to reinstall.")
-                is_collect_installed_list[idx] = False
+                logging.info("--> %s has no version info, but version is specified." % name)
+                logging.info("--> maybe it is better to reinstall the latest version.")
+                is_collect_version_list.append(False)
         except AssertionError:
             logging.warn("--> %s version is not matched. please install %s==%s." % (name, name, version))
-            is_collect_installed_list[idx] = False
-logging.info("library availableness check done.")
-logging.info("%d / %d libraries are correctly installed." % (
-    sum(is_collect_installed_list), len(library_list)))
+            is_collect_version_list.append(False)
+logging.info("library version check done.")
+logging.info("%d / %d libraries are correct version." % (
+    sum(is_collect_version_list), num_version_specified))
 
 # check cuda availableness
-if len(library_list) != sum(is_collect_installed_list):
+if len(library_list) != sum(is_collect_installed_list) or \
+   sum(is_collect_version_list) != num_version_specified:
     logging.info("please try to setup again and then re-run this script.")
 else:
     logging.info("cuda availableness check start.")
