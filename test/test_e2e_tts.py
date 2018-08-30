@@ -161,18 +161,25 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
-def test_tacotron2_gpu_trainable():
+@pytest.mark.parametrize(
+    "model_dict", [
+        ({}),
+        ({"use_speaker_embedding": True, "spk_embed_dim": 128}),
+        ({"use_cbhg": True, "spc_dim": 128}),
+    ])
+def test_tacotron2_gpu_trainable(model_dict):
     bs = 2
     maxin_len = 10
     maxout_len = 10
     idim = 5
     odim = 10
-    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    model_args = make_model_args(**model_dict)
+    loss_args = make_loss_args()
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
+                           model_args['spk_embed_dim'], model_args['spc_dim'])
     batch = (x.cuda() if x is not None else None for x in batch)
 
     # define model
-    model_args = make_model_args()
-    loss_args = make_loss_args()
     tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
     model = Tacotron2Loss(tacotron2, **loss_args)
     optimizer = torch.optim.Adam(model.parameters())
@@ -186,20 +193,27 @@ def test_tacotron2_gpu_trainable():
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
-def test_tacotron2_multi_gpu_trainable():
+@pytest.mark.parametrize(
+    "model_dict", [
+        ({}),
+        ({"use_speaker_embedding": True, "spk_embed_dim": 128}),
+        ({"use_cbhg": True, "spc_dim": 128}),
+    ])
+def test_tacotron2_multi_gpu_trainable(model_dict):
     ngpu = 2
     device_ids = list(range(ngpu))
-    bs = 2
+    bs = 10
     maxin_len = 10
     maxout_len = 10
     idim = 5
     odim = 10
-    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    model_args = make_model_args(**model_dict)
+    loss_args = make_loss_args()
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
+                           model_args['spk_embed_dim'], model_args['spc_dim'])
     batch = (x.cuda() if x is not None else None for x in batch)
 
     # define model
-    model_args = make_model_args()
-    loss_args = make_loss_args()
     tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
     tacotron2 = torch.nn.DataParallel(tacotron2, device_ids)
     model = Tacotron2Loss(tacotron2, **loss_args)
