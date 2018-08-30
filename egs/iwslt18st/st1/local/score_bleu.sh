@@ -40,34 +40,35 @@ if [ ! -z ${filter} ]; then
     sed -i.bak3 -f ${filter} ${dir}/ref
 fi
 
+### character-level
+if [ -z $bpe ]; then
+  if ${lc}; then
+    # case-insensitive
+    multi-bleu.perl -lc ${dir}/ref < ${dir}/hyp > ${dir}/result.txt
+  else
+    # case-sensitive
+    multi-bleu.perl ${dir}/ref < ${dir}/hyp > ${dir}/result.txt
+  fi
+  echo "write a character-level BLEU result in ${dir}/result.txt"
+  cat ${dir}/result.txt
+fi
+
+### BPE-level
+if [ ! -z $bpe ]; then
+	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref | sed -e "s/▁/ /g" > ${dir}/ref.wrd
+	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp | sed -e "s/▁/ /g" > ${dir}/hyp.wrd
+else
+  sed -e "s/ //g" -e "s/<space>/ /g" ${dir}/ref > ${dir}/ref.wrd
+	sed -e "s/ //g" -e "s/<space>/ /g" ${dir}/hyp > ${dir}/hyp.wrd
+fi
+
 if ${lc}; then
   # case-insensitive
-  multi-bleu.perl -lc ${dir}/ref < ${dir}/hyp > ${dir}/result.txt
+  multi-bleu-detok.perl -lc ${dir}/ref.wrd < ${dir}/hyp.wrd >> ${dir}/result.wrd.txt
 else
   # case-sensitive
-  multi-bleu.perl ${dir}/ref < ${dir}/hyp > ${dir}/result.txt
+  multi-bleu-detok.perl ${dir}/ref.wrd < ${dir}/hyp.wrd > ${dir}/result.wrd.txt
 fi
 
-echo "write a character-level BLEU result in ${dir}/result.txt"
-cat ${dir}/result.txt
-
-if ${word}; then
-    if [ ! -z $bpe ]; then
-    	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref | sed -e "s/▁/ /g" > ${dir}/ref.wrd
-    	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp | sed -e "s/▁/ /g" > ${dir}/hyp.wrd
-    else
-      sed -e "s/ //g" -e "s/<space>/ /g" ${dir}/ref > ${dir}/ref.wrd
-    	sed -e "s/ //g" -e "s/<space>/ /g" ${dir}/hyp > ${dir}/hyp.wrd
-    fi
-
-    if ${lc}; then
-      # case-insensitive
-      multi-bleu.perl -lc ${dir}/ref.wrd < ${dir}/hyp.wrd >> ${dir}/result.wrd.txt
-    else
-      # case-sensitive
-      multi-bleu.perl ${dir}/ref.wrd < ${dir}/hyp.wrd > ${dir}/result.wrd.txt
-    fi
-
-    echo "write a word-level BLUE result in ${dir}/result.wrd.txt"
-    cat ${dir}/result.wrd.txt
-fi
+echo "write a word-level BLUE result in ${dir}/result.wrd.txt"
+cat ${dir}/result.wrd.txt

@@ -30,7 +30,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 dlayers=2
 dunits=1024
 # attention related
-atype=dot
+atype=add
 adim=1024
 aconv_chans=10
 aconv_filts=100
@@ -56,7 +56,7 @@ penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+recog_model=acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -286,13 +286,12 @@ if [ ${stage} -le 5 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
             --rnnlm ${lmexpdir}/rnnlm.model.best \
             --lm-weight ${lm_weight} \
             &
         wait
 
-        local/score_bleu.sh --word true ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
