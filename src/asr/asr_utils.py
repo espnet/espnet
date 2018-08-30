@@ -450,10 +450,15 @@ def add_results_to_json(js, nbest_hyps, char_list):
     new_js = dict()
     new_js['utt2spk'] = js['utt2spk']
     new_js['output'] = []
+    text = js['output'][0]['text']
 
     for n, hyp in enumerate(nbest_hyps, 1):
         # parse hypothesis
         rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, char_list)
+
+        # show result
+        logging.info('groundtruth: %s' % text)
+        logging.info('prediction : %s' % rec_text)
 
         # copy ground-truth
         out_dic = dict(js['output'][0].items())
