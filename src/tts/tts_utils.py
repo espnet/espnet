@@ -12,7 +12,7 @@ import kaldi_io_py
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, batch_sort_key=None):
+                  num_batches=0, batch_sort_key='shuffle'):
     """Function to make batch set from json dictionary
 
     :param dict data: dictionary loaded from data.json
@@ -20,13 +20,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
-    :param str batch_sort_key: None or 'input' or 'output'
+    :param str batch_sort_key: 'shuffle' or 'input' or 'output'
     :return: list of batches
     """
     minibatch = []
     start = 0
     # sort data with batch_sort_key
-    if batch_sort_key is None:
+    if batch_sort_key == 'shuffle':
         logging.info('use shuffled batch.')
         sorted_data = random.sample(data.items(), len(data.items()))
     elif batch_sort_key == 'input':
