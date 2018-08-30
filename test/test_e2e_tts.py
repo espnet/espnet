@@ -9,14 +9,13 @@ import torch
 from argparse import Namespace
 
 from e2e_asr_th import pad_list
-from e2e_tts_th import CBHG
-from e2e_tts_th import ConversionLoss
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
 
 
 def make_model_args(**kwargs):
     defaults = dict(
+        use_speaker_embedding=False,
         spk_embed_dim=None,
         embed_dim=512,
         elayers=1,
@@ -42,7 +41,16 @@ def make_model_args(**kwargs):
         zoneout=0.1,
         threshold=0.5,
         maxlenratio=5.0,
-        minlenratio=0.0
+        minlenratio=0.0,
+        use_cbhg=False,
+        spc_dim=None,
+        cbhg_conv_bank_layers=8,
+        cbhg_conv_bank_chans=128,
+        cbhg_conv_proj_filts=3,
+        cbhg_conv_proj_chans=256,
+        cbhg_highway_layers=4,
+        cbhg_highway_units=128,
+        cbhg_gru_units=256
     )
     defaults.update(kwargs)
     return defaults
@@ -67,7 +75,8 @@ def make_inference_args(**kwargs):
     return defaults
 
 
-def prepare_inputs(bs, idim, odim, maxin_len, maxout_len):
+def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
+                   spk_embed_dim=None, spc_dim=None):
     ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
     olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
     ilens = torch.LongTensor(ilens)
@@ -79,7 +88,17 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len):
     labels = ys.new_zeros(ys.size(0), ys.size(1))
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
-    return xs, ilens, ys, labels, olens
+    if spk_embed_dim is not None:
+        spembs = torch.from_numpy(np.random.randn(bs, spk_embed_dim)).float()
+    else:
+        spembs = None
+    if spc_dim is not None:
+        spcs = [np.random.randn(l, spc_dim) for l in olens]
+        spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0)
+    else:
+        spcs = None
+
+    return xs, ilens, ys, labels, olens, spembs, spcs
 
 
 @pytest.mark.parametrize(
@@ -96,33 +115,36 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len):
         ({"use_concate": False}, {}),
         ({"dropout": 0.0}, {}),
         ({"zoneout": 0.0}, {}),
-        ({"spk_embed_dim": 128}, {}),
+        ({"use_speaker_embedding": True}, {}),
+        ({"use_cbhg": True}, {}),
     ])
 def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
+    # make args
+    model_args = make_model_args(**model_dict)
+    loss_args = make_loss_args(**loss_dict)
+    inference_args = make_inference_args()
+
     # setup batch
     bs = 2
     maxin_len = 10
     maxout_len = 10
     idim = 5
     odim = 10
-    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
-    xs, ilens, ys, labels, olens = batch
+    if model_args['use_cbhg']:
+        model_args['spc_dim'] = 129
+    if model_args['use_speaker_embedding']:
+        model_args['spk_embed_dim'] = 128
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
+                           model_args['spk_embed_dim'], model_args['spc_dim'])
+    xs, ilens, ys, labels, olens, spembs, spcs = batch
 
     # define model
-    model_args = make_model_args(**model_dict)
-    loss_args = make_loss_args(**loss_dict)
-    inference_args = make_inference_args()
     model = Tacotron2(idim, odim, Namespace(**model_args))
     criterion = Tacotron2Loss(model, **loss_args)
     optimizer = torch.optim.Adam(model.parameters())
 
-    if model_args['spk_embed_dim'] is not None:
-        spembs = torch.from_numpy(np.random.randn(bs, model_args['spk_embed_dim'])).float()
-    else:
-        spembs = None
-
     # trainable
-    loss = criterion(xs, ilens, ys, labels, olens, spembs)
+    loss = criterion(xs, ilens, ys, labels, olens, spembs, spcs)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -131,7 +153,7 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     model.eval()
     with torch.no_grad():
         spemb = None if model_args['spk_embed_dim'] is None else spembs[0]
-        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]], Namespace(**inference_args), spemb)
+        model.inference(xs[0][:ilens[0]], Namespace(**inference_args), spemb)
         att_ws = model.calculate_all_attentions(xs, ilens, ys, spembs)
     assert att_ws.shape[0] == bs
     assert att_ws.shape[1] == max(olens)
@@ -146,8 +168,7 @@ def test_tacotron2_gpu_trainable():
     idim = 5
     odim = 10
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
-    batch = (x.cuda() for x in batch)
-    xs, ilens, ys, labels, olens = batch
+    batch = (x.cuda() if x is not None else None for x in batch)
 
     # define model
     model_args = make_model_args()
@@ -158,7 +179,7 @@ def test_tacotron2_gpu_trainable():
     model.cuda()
 
     # trainable
-    loss = model(xs, ilens, ys, labels, olens)
+    loss = model(*batch)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -174,8 +195,7 @@ def test_tacotron2_multi_gpu_trainable():
     idim = 5
     odim = 10
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
-    batch = (x.cuda() for x in batch)
-    xs, ilens, ys, labels, olens = batch
+    batch = (x.cuda() if x is not None else None for x in batch)
 
     # define model
     model_args = make_model_args()
@@ -187,28 +207,7 @@ def test_tacotron2_multi_gpu_trainable():
     model.cuda()
 
     # trainable
-    loss = model(xs, ilens, ys, labels, olens)
+    loss = model(*batch)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-
-
-def test_cbhg_trainable_and_decodable():
-    bs = 2
-    maxin_len = 10
-    idim = 80
-    odim = 256
-    ilens = torch.LongTensor(np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist())
-    xs = pad_list([torch.from_numpy(np.random.randn(l, idim)).float() for l in ilens], 0.0)
-    ys = pad_list([torch.from_numpy(np.random.randn(l, odim)).float() for l in ilens], 0.0)
-
-    cbhg = CBHG(idim, odim)
-    model = ConversionLoss(cbhg)
-    optimizer = torch.optim.Adam(model.parameters())
-    loss = model(xs, ilens, ys)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    with torch.no_grad():
-        cbhg.inference(xs[0])
