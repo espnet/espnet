@@ -374,7 +374,7 @@ class Tacotron2(torch.nn.Module):
 
         if self.use_cbhg:
             cbhg_outs = self.cbhg.inference(outs)
-            return cbhg_outs, outs, probs, att_ws
+            return cbhg_outs, probs, att_ws
         else:
             return outs, probs, att_ws
 
