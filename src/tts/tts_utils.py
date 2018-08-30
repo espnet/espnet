@@ -100,11 +100,13 @@ def load_inputs_and_targets(batch, use_speaker_embedding=False, use_second_targe
     ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
 
     # get index of non-zero length samples
-    nonzero_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
-    nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
-    if len(nonzero_sorted_idx) != len(xs):
+    nonzero_idx = list(filter(lambda i: len(xs[i]) > 0, range(len(xs))))
+    if len(nonzero_idx) != len(xs):
         logging.warning('Input sequences include empty tokenid (batch %d -> %d).' % (
-            len(xs), len(nonzero_sorted_idx)))
+            len(xs), len(nonzero_idx)))
+
+    # sort in input length
+    nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
 
     # remove zero-length samples
     xs = [np.fromiter(map(int, xs[i]), dtype=np.int64) for i in nonzero_sorted_idx]
