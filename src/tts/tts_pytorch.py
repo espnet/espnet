@@ -339,9 +339,6 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
-    # Take a snapshot for each specified epoch
-    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
-
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
