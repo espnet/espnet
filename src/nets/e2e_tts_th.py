@@ -5,7 +5,6 @@
 
 from __future__ import division
 
-import logging
 import six
 
 import chainer
@@ -104,34 +103,42 @@ class Tacotron2Loss(torch.nn.Module):
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
 
-    def __init__(self, model, use_masking=True, bce_pos_weight=20.0):
+    def __init__(self, model, use_masking=True, bce_pos_weight=1.0, use_cbhg=True):
         super(Tacotron2Loss, self).__init__()
         self.model = model
         self.use_masking = use_masking
         self.bce_pos_weight = bce_pos_weight
+        self.use_cbhg = model.use_cbhg
         self.reporter = Reporter()
 
-    def forward(self, xs, ilens, ys, labels, olens=None, spembs=None):
+    def forward(self, xs, ilens, ys, labels, olens=None, spembs=None, spcs=None):
         """TACOTRON2 LOSS FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim),
         :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
         :param list olens: batch of the lengths of each target (B)
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, spc_dim),
         :return: loss value
         :rtype: torch.Tensor
         """
-        after_outs, before_outs, logits = self.model(xs, ilens, ys, spembs)
-        if self.use_masking and olens is not None:
-            # weight positive samples
-            if self.bce_pos_weight != 1.0:
-                weights = ys.new(*labels.size()).fill_(1)
-                weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
-            else:
-                weights = None
-            # masking padded values
+        # calcuate outputs
+        if self.use_cbhg:
+            cbhg_outs, after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
+        else:
+            after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
+
+        # prepare weight of positive samples in cross entorpy
+        if self.bce_pos_weight != 1.0:
+            weights = ys.new(*labels.size()).fill_(1)
+            weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
+        else:
+            weights = None
+
+        # perform masking for padded values
+        if self.use_masking:
             mask = to_cuda(self, make_mask(olens, ys.size(2)))
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
@@ -139,26 +146,37 @@ class Tacotron2Loss(torch.nn.Module):
             labels = labels.masked_select(mask[:, :, 0])
             logits = logits.masked_select(mask[:, :, 0])
             weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
-            # calculate loss
-            l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
-            mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-            bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
-            loss = l1_loss + mse_loss + bce_loss
-        else:
-            # calculate loss
-            l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
-            mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-            bce_loss = F.binary_cross_entropy_with_logits(logits, labels)
-            loss = l1_loss + mse_loss + bce_loss
+            if self.use_cbhg:
+                spc_mask = to_cuda(self, make_mask(olens, spcs.size(2)))
+                spcs = spcs.masked_select(spc_mask)
+                cbhg_outs = cbhg_outs.masked_select(spc_mask)
 
-        # report loss values for logging
-        logging.debug("loss = %.3e (bce: %.3e, l1: %.3e, mse: %.3e)" % (
-            loss.item(), bce_loss.item(), l1_loss.item(), mse_loss.item()))
-        self.reporter.report([
-            {'l1_loss': l1_loss.item()},
-            {'mse_loss': mse_loss.item()},
-            {'bce_loss': bce_loss.item()},
-            {'loss': loss.item()}])
+        # calculate loss
+        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
+        mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
+        bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
+        if self.use_cbhg:
+            # calculate chbg loss and then itegrate them
+            cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs)
+            cbhg_mse_loss = F.mse_loss(cbhg_outs, spcs)
+            loss = l1_loss + mse_loss + bce_loss + cbhg_l1_loss + cbhg_mse_loss
+            # report loss values for logging
+            self.reporter.report([
+                {'l1_loss': l1_loss.item()},
+                {'mse_loss': mse_loss.item()},
+                {'bce_loss': bce_loss.item()},
+                {'cbhg_l1_loss': cbhg_l1_loss.item()},
+                {'cbhg_mse_loss': cbhg_mse_loss.item()},
+                {'loss': loss.item()}])
+        else:
+            # integrate loss
+            loss = l1_loss + mse_loss + bce_loss
+            # report loss values for logging
+            self.reporter.report([
+                {'l1_loss': l1_loss.item()},
+                {'mse_loss': mse_loss.item()},
+                {'bce_loss': bce_loss.item()},
+                {'loss': loss.item()}])
 
         return loss
 
@@ -192,6 +210,14 @@ class Tacotron2(torch.nn.Module):
         (bool) use_concate: whether to concatenate encoder embedding with decoder lstm outputs
         (float) dropout: dropout rate
         (float) zoneout: zoneout rate
+        (bool) use_cbhg: whether to use CBHG module
+        (int) cbhg_conv_bank_layers: the number of convoluional banks in CBHG
+        (int) cbhg_conv_bank_chans: the number of channels of convolutional bank in CBHG
+        (int) cbhg_proj_filts: the number of filter size of projection layeri in CBHG
+        (int) cbhg_proj_chans: the number of channels of projection layer in CBHG
+        (int) cbhg_highway_layers: the number of layers of highway network in CBHG
+        (int) cbhg_highway_units: the number of units of highway network in CBHG
+        (int) cbhg_gru_units: the number of units of GRU in CBHG
     """
 
     def __init__(self, idim, odim, args):
@@ -221,6 +247,17 @@ class Tacotron2(torch.nn.Module):
         self.use_concate = args.use_concate
         self.dropout = args.dropout
         self.zoneout = args.zoneout
+        self.use_cbhg = args.use_cbhg
+        if self.use_cbhg:
+            self.spc_dim = args.spc_dim
+            self.cbhg_conv_bank_layers = args.cbhg_conv_bank_layers
+            self.cbhg_conv_bank_chans = args.cbhg_conv_bank_chans
+            self.cbhg_conv_proj_filts = args.cbhg_conv_proj_filts
+            self.cbhg_conv_proj_chans = args.cbhg_conv_proj_chans
+            self.cbhg_highway_layers = args.cbhg_highway_layers
+            self.cbhg_highway_units = args.cbhg_highway_units
+            self.cbhg_gru_units = args.cbhg_gru_units
+
         # define activation function for the final output
         if args.output_activation is None:
             self.output_activation_fn = None
@@ -260,16 +297,27 @@ class Tacotron2(torch.nn.Module):
                            use_concate=self.use_concate,
                            dropout=self.dropout,
                            zoneout=self.zoneout)
+        if self.use_cbhg:
+            self.cbhg = CBHG(idim=self.odim,
+                             odim=self.spc_dim,
+                             conv_bank_layers=self.cbhg_conv_bank_layers,
+                             conv_bank_chans=self.cbhg_conv_bank_chans,
+                             conv_proj_filts=self.cbhg_conv_proj_filts,
+                             conv_proj_chans=self.cbhg_conv_proj_chans,
+                             highway_layers=self.cbhg_highway_layers,
+                             highway_units=self.cbhg_highway_units,
+                             gru_units=self.cbhg_gru_units)
+
         # initialize
         self.enc.apply(encoder_init)
         self.dec.apply(decoder_init)
 
-    def forward(self, xs, ilens, ys, spembs=None):
+    def forward(self, xs, ilens, ys, olens=None, spembs=None):
         """TACOTRON2 FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim),
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
         :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
@@ -290,7 +338,11 @@ class Tacotron2(torch.nn.Module):
             hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
 
-        return after_outs, before_outs, logits
+        if self.use_cbhg:
+            cbhg_outs, _ = self.cbhg(after_outs, olens)
+            return cbhg_outs, after_outs, before_outs, logits
+        else:
+            return after_outs, before_outs, logits
 
     def inference(self, x, inference_args, spemb=None):
         """GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
@@ -320,7 +372,11 @@ class Tacotron2(torch.nn.Module):
             h = torch.cat([h, spemb], dim=-1)
         outs, probs, att_ws = self.dec.inference(h, threshold, minlenratio, maxlenratio)
 
-        return outs, probs, att_ws
+        if self.use_cbhg:
+            cbhg_outs = self.cbhg.inference(outs)
+            return cbhg_outs, outs, probs, att_ws
+        else:
+            return outs, probs, att_ws
 
     def calculate_all_attentions(self, xs, ilens, ys, spembs=None):
         """TACOTRON2 FORWARD CALCULATION
@@ -765,48 +821,6 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(self.postnet_layers):
                 xs = self.postnet[l](xs)
         return xs
-
-
-class ConversionLoss(torch.nn.Module):
-    """CONVERSION LOSS
-
-    :param torch.nn.Module model: CBHG module
-    :param bool use_masking: whether to mask padded part in loss calculation
-    """
-
-    def __init__(self, model, use_masking=True):
-        super(ConversionLoss, self).__init__()
-        self.model = model
-        self.use_masking = use_masking
-        self.reporter = Reporter()
-
-    def forward(self, xs, ilens, ys):
-        """CONVERSION LOSS FORWARD
-
-        :param torch.Tensor xs: batch of the sequence of inputs (B, Tmax, idim)
-        :param list ilens: batch of lenghts of each input (B)
-        :param torch.Tensor ys: batch of the sequence of outputs (B, Tmax, odim)
-        :return: loss value
-        :rtype: torch.Tensor
-        """
-        outs, _ = self.model(xs, ilens)
-        if self.use_masking:
-            mask = to_cuda(self, make_mask(ilens, ys.size(2)))
-            outs = outs.masked_select(mask)
-            ys = ys.masked_select(mask)
-        l1_loss = F.l1_loss(outs, ys)
-        mse_loss = F.mse_loss(outs, ys)
-        loss = l1_loss + mse_loss
-
-        # report and logging
-        logging.debug("loss = %.3e (l1: %.3e, mse: %.3e)" % (
-            loss.item(), l1_loss.item(), mse_loss.item()))
-        self.reporter.report([
-            {'l1_conversion_loss': l1_loss.item()},
-            {'mse_conversion_loss': mse_loss.item()},
-            {'conversion_loss': loss.item()}])
-
-        return loss
 
 
 class CBHG(torch.nn.Module):
