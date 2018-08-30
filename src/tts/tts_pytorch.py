@@ -301,7 +301,7 @@ def train(args):
     plot_keys = ['main/loss', 'validation/main/loss',
                  'main/l1_loss', 'validation/main/l1_loss',
                  'main/mse_loss', 'validation/main/mse_loss',
-                 'main/bce_loss', 'validation/main/bce_loss'],
+                 'main/bce_loss', 'validation/main/bce_loss']
     trainer.extend(extensions.PlotReport(['main/l1_loss', 'validation/main/l1_loss'],
                                          'epoch', file_name='l1_loss.png'))
     trainer.extend(extensions.PlotReport(['main/mse_loss', 'validation/main/mse_loss'],
