@@ -103,12 +103,15 @@ class Tacotron2Loss(torch.nn.Module):
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
 
-    def __init__(self, model, use_masking=True, bce_pos_weight=1.0, use_cbhg=True):
+    def __init__(self, model, use_masking=True, bce_pos_weight=1.0):
         super(Tacotron2Loss, self).__init__()
         self.model = model
         self.use_masking = use_masking
         self.bce_pos_weight = bce_pos_weight
-        self.use_cbhg = model.use_cbhg
+        if hasattr(model, 'module'):
+            self.use_cbhg = model.module.use_cbhg
+        else:
+            self.use_cbhg = model.use_cbhg
         self.reporter = Reporter()
 
     def forward(self, xs, ilens, ys, labels, olens=None, spembs=None, spcs=None):
@@ -924,9 +927,21 @@ class CBHG(torch.nn.Module):
         # + 1 for dimension adjustment layer
         for l in range(self.highway_layers + 1):
             xs = self.highways[l](xs)
+
+        # sort by length
+        xs, ilens, sort_idx = self._sort_by_length(xs, ilens)
+
+        # total_length needs for DataParallel
+        # (see https://github.com/pytorch/pytorch/pull/6327)
+        total_length = xs.size(1)
         xs = pack_padded_sequence(xs, ilens, batch_first=True)
+        self.gru.flatten_parameters()
         xs, _ = self.gru(xs)
-        xs, hlens = pad_packed_sequence(xs, batch_first=True)  # (B, Tmax, #GRU)
+        xs, hlens = pad_packed_sequence(xs, batch_first=True, total_length=total_length)
+
+        # revert sorting by length
+        xs, ilens = self._revert_sort_by_length(xs, ilens, sort_idx)
+
         xs = self.output(xs)  # (B, Tmax, odim)
 
         return xs, list(map(int, hlens))
@@ -940,9 +955,17 @@ class CBHG(torch.nn.Module):
         """
         assert len(x.size()) == 2
         xs = x.unsqueeze(0)
-        ilens = [x.size(0)]
+        ilens = x.new_zeros(1, 1).fill_(x.size(0))
 
         return self.forward(xs, ilens)[0][0]
+
+    def _sort_by_length(self, xs, ilens):
+        sort_ilens, sort_idx = ilens.sort(0, descending=True)
+        return xs[sort_idx], ilens[sort_idx], sort_idx
+
+    def _revert_sort_by_length(self, xs, ilens, sort_idx):
+        _, revert_idx = sort_idx.sort(0)
+        return xs[revert_idx], ilens[revert_idx]
 
 
 class HighwayNet(torch.nn.Module):
