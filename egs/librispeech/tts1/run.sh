@@ -51,9 +51,9 @@ use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
 # minibatch related
 batchsize=64
-batch_sort_key="output" # empty or input or output (if empty, shuffled batch will be used)
-maxlen_in=150           # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
-maxlen_out=400          # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
+batch_sort_key=output # empty or input or output (if empty, shuffled batch will be used)
+maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
+maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
 # optimization related
 lr=1e-3
 eps=1e-6
@@ -238,7 +238,7 @@ if [ -z ${tag} ];then
         expdir=${expdir}_msk_pw${bce_pos_weight}
     fi
     expdir=${expdir}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
-    if [ ! -z ${batch_sort_key} ];then
+    if [ ! ${batch_sort_key} = "shuffle" ];then
         expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
     fi
     expdir=${expdir}_sd${seed}
