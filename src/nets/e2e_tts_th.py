@@ -484,8 +484,6 @@ class Encoder(torch.nn.Module):
         :return: batch of lenghts of each encoder states (B)
         :rtype: list
         """
-        if not isinstance(ilens, list):
-            ilens = list(map(int, ilens))
         xs = self.embed(xs).transpose(1, 2)
         for l in six.moves.range(self.econv_layers):
             if self.use_residual:
@@ -497,7 +495,7 @@ class Encoder(torch.nn.Module):
         xs, _ = self.blstm(xs)  # (B, Tmax, C)
         xs, hlens = pad_packed_sequence(xs, batch_first=True)
 
-        return xs, list(map(int, hlens))
+        return xs, hlens
 
     def inference(self, x):
         """CHARACTER ENCODER INFERENCE
@@ -655,6 +653,9 @@ class Decoder(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
+        # length list should be list of int
+        hlens = list(map(int, hlens))
+
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
@@ -780,6 +781,9 @@ class Decoder(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: numpy array
         """
+        # length list should be list of int
+        hlens = list(map(int, hlens))
+
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
@@ -937,14 +941,14 @@ class CBHG(torch.nn.Module):
         xs = pack_padded_sequence(xs, ilens, batch_first=True)
         self.gru.flatten_parameters()
         xs, _ = self.gru(xs)
-        xs, hlens = pad_packed_sequence(xs, batch_first=True, total_length=total_length)
+        xs, ilens = pad_packed_sequence(xs, batch_first=True, total_length=total_length)
 
         # revert sorting by length
         xs, ilens = self._revert_sort_by_length(xs, ilens, sort_idx)
 
         xs = self.output(xs)  # (B, Tmax, odim)
 
-        return xs, list(map(int, hlens))
+        return xs, ilens
 
     def inference(self, x):
         """CBHG MODULE INFERENCE
@@ -955,7 +959,7 @@ class CBHG(torch.nn.Module):
         """
         assert len(x.size()) == 2
         xs = x.unsqueeze(0)
-        ilens = x.new_zeros(1, 1).fill_(x.size(0))
+        ilens = x.new([x.size(0)]).long()
 
         return self.forward(xs, ilens)[0][0]
 
