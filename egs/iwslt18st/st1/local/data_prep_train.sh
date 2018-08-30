@@ -3,21 +3,20 @@
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-if [ "$#" -ne 2 ]; then
-  echo "Usage: $0 <src-dir> <part>"
-  echo "e.g.: $0 /export/corpora4/IWSLT/iwslt-corpus dev2010"
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 <src-dir>"
+  echo "e.g.: $0 /export/corpora4/IWSLT/iwslt-corpus"
   exit 1
 fi
 
-src=$1
-part=$2
-dst=data/local/$2
+src=$1/iwslt-corpus
+dst=data/local/train
 
 wav_dir=$src/wav
 trans_dir=$src/parallel
-yml=$trans_dir/$part.yaml
-en=$trans_dir/$part.en
-de=$trans_dir/$part.de
+yml=$trans_dir/train.yaml
+en=$trans_dir/train.en
+de=$trans_dir/train.de
 
 mkdir -p $dst || exit 1;
 
@@ -122,16 +121,16 @@ n_de=`cat $dst/text_de | wc -l`
 
 
 # Copy stuff intoc its final locations [this has been moved from the format_data script]
-mkdir -p data/${part}_en
+mkdir -p data/train_en
 for f in spk2utt utt2spk wav.scp segments; do
-  cp $dst/$f data/${part}_en/ || exit 1;
+  cp $dst/$f data/train_en/ || exit 1;
 done
-cp $dst/text_en data/${part}_en/text || exit 1;
+cp $dst/text_en data/train_en/text || exit 1;
 
-mkdir -p data/${part}_de
+mkdir -p data/train_de
 for f in spk2utt utt2spk wav.scp segments; do
-  cp $dst/$f data/${part}_de/ || exit 1;
+  cp $dst/$f data/train_de/ || exit 1;
 done
-cp $dst/text_de data/${part}_de/text || exit 1;
+cp $dst/text_de data/train_de/text || exit 1;
 
 echo "$0: successfully prepared data in $dst"
