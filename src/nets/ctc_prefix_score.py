@@ -44,20 +44,25 @@ class CTCPrefixScoreTH(object):
     simultaneously
     '''
 
-    def __init__(self, x, blank, eos, beam, hlens, use_cuda=False):
+    def __init__(self, x, blank, eos, beam, hlens, device_id):
         self.logzero = -10000000000.0
         self.blank = blank
         self.eos = eos
-        self.batch = x.size()[0]
-        self.input_length = x.size()[1]
-        self.odim = x.size()[2]
+        self.batch = x.size(0)
+        self.input_length = x.size(1)
+        self.odim = x.size(2)
         self.beam = beam
         self.n_bb = self.batch * beam
 
         self.hlens = hlens
 
         self.x = x
-        self.use_cuda = use_cuda
+        self.device_id = device_id
+
+    def to_cuda(x):
+        if device_id == -1:
+            return x
+        return x.cuda(device_id)
 
     def initial_state(self):
         '''Obtain an initial CTC state
@@ -68,31 +73,23 @@ class CTCPrefixScoreTH(object):
         self.x = self.x.repeat(1, self.beam, 1, 1)
         self.x = self.x.view(self.n_bb, self.input_length, self.odim)
         self.cs = torch.from_numpy(np.arange(self.odim, dtype=np.int32))
-        if self.use_cuda:
-            self.cs = self.cs.cuda()
+        self.cs = self.to_cuda(self.cs)
 
         # initial CTC state is made of a n_bb x frame x 2 tensor that corresponds to
         # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
         # superscripts n and b (non-blank and blank), respectively.
-
-        if torch_is_old:
-            r = torch.FloatTensor(self.n_bb, self.input_length, 2)
-            r[:, :, :] = self.logzero
-        else:
-            r = torch.full((self.n_bb, self.input_length, 2), self.logzero)
-        if self.use_cuda:
-            r = r.cuda()
+        r = torch.full((self.n_bb, self.input_length, 2), self.logzero)
+        r = self.to_cuda(r)
 
         r[:, 0, 1] = self.x[:, 0, self.blank]
         for i in six.moves.range(1, self.input_length):
             r[:, i, 1] = r[:, i - 1, 1] + self.x[:, i, self.blank]
 
+        self.hlens = [x - 1 for x in self.hlens]
+
         return r
 
-    def isnan(self, x):
-        return torch.sum(x != x)
-
-    def __call__(self, y, r_prev):
+    def __call__(self, y, r_prev, last=None):
         '''Compute CTC prefix scores for next labels
 
         :param y     : prefix label sequence
@@ -105,51 +102,34 @@ class CTCPrefixScoreTH(object):
 
         # new CTC states are prepared as a frame x (n or b) x n_labels tensor
         # that corresponds to r_t^n(h) and r_t^b(h).
-        if torch_is_old:
-            r = torch.FloatTensor(self.n_bb, self.input_length, 2, self.odim)
-            r[:, :, :, :] = self.logzero
-        else:
-            r = torch.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)
-        if self.use_cuda:
-            r = r.cuda()
-
+        r = torch.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)
+        r = self.to_cuda(r)
         if output_length == 0:
             r[:, 0, 0, :] = self.x[:, 0]
-            r[:, 0, 1, :] = self.logzero
-        else:
-            r[:, output_length - 1, :, :] = self.logzero
 
-        # prepare forward probabilities for the last label
         r_sum = logsumexp(r_prev, dim=2)
-        last = [yi[-1] for yi in y]
+        if last is None:
+            last = [yi[-1] for yi in y]
 
-        if torch_is_old:
-            log_phi = torch.FloatTensor(self.n_bb, self.input_length, self.odim)
-            log_phi[:, :, :] = self.logzero
-        else:
-            log_phi = torch.full((self.n_bb, self.input_length, self.odim), self.logzero)
-        if self.use_cuda:
-            log_phi = log_phi.cuda()
-
-        log_phi[:, :, :] = r_sum.unsqueeze(2).repeat(1, 1, self.odim)
-        for idx in six.moves.range(len(last)):
+        log_phi = r_sum.unsqueeze(2).repeat(1, 1, self.odim)
+        log_phi = self.to_cuda(log_phi)
+        for idx in six.moves.range(self.n_bb):
             log_phi[idx, :, last[idx]] = r_prev[idx, :, 1]
 
         # compute forward probabilities log(r_t^n(h)), log(r_t^b(h)),
         # and log prefix probabilites log(psi)
         start = max(output_length, 1)
         log_psi = r[:, start - 1, 0, :]
-
+        log_phi_x = torch.cat((log_phi[:, 0].unsqueeze(1), log_phi[:, :-1]), dim=1) + self.x
         for t in six.moves.range(start, self.input_length):
-            r[:, t, 0] = logsumexp(torch.stack([r[:, t - 1, 0], log_phi[:, t - 1]]),
-                                   dim=0) + self.x[:, t]
-            r[:, t, 1] = logsumexp(r[:, t - 1],
-                                   dim=1) + self.x[:, t, self.blank].contiguous().view(-1, 1).repeat(1, self.odim)
-            logsumexp(r[:, t - 1], dim=1)
-            log_psi = logsumexp(torch.stack([log_psi, log_phi[:, t - 1] + self.x[:, t]]), dim=0)
+            xt = self.x[:, t]
+            rp = r[:, t - 1]
+            r[:, t, 0] = logsumexp(torch.stack([rp[:, 0], log_phi[:, t - 1]]), dim=0) + xt
+            r[:, t, 1] = logsumexp(rp, dim=1) + xt[:, self.blank].view(-1, 1).repeat(1, self.odim)
+            log_psi = logsumexp(torch.stack([log_psi, log_phi_x[:, t]]), dim=0)
 
         for si in six.moves.range(self.n_bb):
-            log_psi[si, self.eos] = r_sum[si, self.hlens[si] - 1]
+            log_psi[si, self.eos] = r_sum[si, self.hlens[si]]
 
         return log_psi, r
 
