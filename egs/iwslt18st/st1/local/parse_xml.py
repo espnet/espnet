@@ -5,7 +5,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import logging
+import os
 import re
 from xml.etree.ElementTree import parse
 
@@ -21,13 +21,15 @@ def main():
     tree = parse(args.text)
     elem = tree.getroot()
 
+    set = os.path.basename(args.text).split('.')[2]
+    lang = os.path.basename(args.text).split('.')[-2]
     talk_id = None
 
     # Parse a XML file
     trans_dict_all = OrderedDict()
     for e in elem.getiterator():
         if e.tag == 'doc':
-            talk_id = e.get('docid')
+            talk_id = e.get('docid').replace(' ', '')
             trans_dict_all[talk_id] = OrderedDict()
         elif e.tag == 'seg':
             utt_id = int(e.get('id'))
@@ -48,7 +50,7 @@ def main():
 
     for talk_id, trans_dict in trans_dict_all.items():
         for utt_id, trans in trans_dict.items():
-            print("%s %03d %s" % (talk_id, utt_id, trans))
+            print("%s.%s.talkid%d_%04d %s" % (set, lang, int(talk_id), int(utt_id), trans))
 
 
 if __name__ == '__main__':
