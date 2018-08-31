@@ -73,7 +73,7 @@ def fill_padded_part(xs, ilens, fill_value):
     :param torch.Tensor xs: tensor (B, Tmax, ...)
     :param torch.Tensor ilens:  list of lengths (B)
     :param float fill_value:  value to fill padded part
-    :return: xs whose padded parts are fille with fill_value
+    :return: xs whose padded parts are filled by fill_value
     """
     assert xs.size(0) == len(ilens)
     new_xs = xs.new(*xs.size()).fill_(fill_value)
@@ -2026,7 +2026,7 @@ class Encoder(torch.nn.Module):
                 "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
 
-        # explicit fill padded part with 0.0
+        # perform explicit maksing for padded part
         xs_pad = fill_padded_part(xs_pad, ilens, 0.0)
 
         return xs_pad, ilens
