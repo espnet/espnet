@@ -51,21 +51,8 @@ if [ -f $data/$set/.complete ]; then
 fi
 
 if [ $set = train ]; then
-  # sizes of the archive files in bytes.
-  sizes="56896558179"
-
   if [ -f $data/$set/iwslt-corpus.zip ]; then
-    size=$(/bin/ls -l $data/$set/iwslt-corpus.zip | awk '{print $5}')
-    # size_ok=false
-    # for s in $sizes; do if [ $s == $size ]; then size_ok=true; fi; done
-    size_ok=true
-    if ! $size_ok; then
-      echo "$0: removing existing file $data/$set/iwslt-corpus.zip because its size in bytes $size"
-      echo "does not equal the size of one of the archives."
-      rm $data/$set/iwslt-corpus.zip
-    else
-      echo "$data/$set/iwslt-corpus.zip exists and appears to be complete."
-    fi
+    echo "$data/$set/iwslt-corpus.zip exists and appears to be complete."
   fi
 
   mkdir -p $data/$set
@@ -98,21 +85,8 @@ if [ $set = train ]; then
   fi
 
 else
-  # sizes of the archive files in bytes.
-  sizes="262144 524800 524288 524288 524288 1048576"
-
   if [ -f $data/$set/IWSLT-SLT.$set.en-de.tgz ]; then
-    size=$(/bin/ls -l $data/$set/IWSLT-SLT.$set.en-de.tgz | awk '{print $5}')
-    # size_ok=false
-    # for s in $sizes; do if [ $s == $size ]; then size_ok=true; fi; done
-    size_ok=true
-    if ! $size_ok; then
-      echo "$0: removing existing file $data/$set/IWSLT-SLT.$set.en-de.tgz because its size in bytes $size"
-      echo "does not equal the size of one of the archives."
-      rm $data/$set/IWSLT-SLT.$set.en-de.tgz
-    else
-      echo "$data/$set/IWSLT-SLT.$set.en-de.tgz exists and appears to be complete."
-    fi
+    echo "$data/$set/IWSLT-SLT.$set.en-de.tgz exists and appears to be complete."
   fi
 
   mkdir -p $data/$set
