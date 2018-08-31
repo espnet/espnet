@@ -66,6 +66,22 @@ def pad_list(xs, pad_value):
     return pad
 
 
+def fill_padded_part(xs, ilens, fill_value):
+    """Fucntion to fill padded part with selected value
+
+    :param torch.Tensor xs: tensor (B, Tmax, ...)
+    :param torch.Tensor ilens:  list of lengths (B)
+    :param float fill_value:  value to fill padded part
+    :return: xs whose padded parts are filled by fill_value
+    """
+    assert xs.size(0) == len(ilens)
+    new_xs = xs.new(*xs.size()).fill_(fill_value)
+    for idx, l in enumerate(ilens):
+        new_xs[idx, :l] = xs[idx, :l]
+
+    return new_xs
+
+
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
     """Function to calculate accuracy
 
@@ -1985,6 +2001,9 @@ class Encoder(torch.nn.Module):
             logging.error(
                 "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
+
+        # perform explicit maksing for padded part
+        xs_pad = fill_padded_part(xs_pad, ilens, 0.0)
 
         return xs_pad, ilens
 
