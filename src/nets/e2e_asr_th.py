@@ -29,7 +29,6 @@ from e2e_asr_common import get_vgg2l_odim
 from e2e_asr_common import label_smoothing_dist
 
 
-ATTENTION_FILL_VALUE = -1024.0
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -67,20 +66,20 @@ def pad_list(xs, pad_value):
     return pad
 
 
-def fill_padded_part(xs, ilens, fill_value):
-    """Fucntion to fill padded part with selected value
+def make_mask(lengths):
+    """Function to make tensor containing the index to be masked
 
-    :param torch.Tensor xs: tensor (B, Tmax, ...)
-    :param torch.Tensor ilens:  list of lengths (B)
-    :param float fill_value:  value to fill padded part
-    :return: xs whose padded parts are filled by fill_value
+    :param list lengths: list of lengths (B)
+    :return: tensor of the indices to be masked (B, Tmax, 1)
+    :rtype: torch.Tensor
     """
-    assert xs.size(0) == len(ilens)
-    new_xs = xs.new(*xs.size()).fill_(fill_value)
-    for idx, l in enumerate(ilens):
-        new_xs[idx, :l] = xs[idx, :l]
+    bs = int(len(lengths))
+    maxlen = int(max(lengths))
+    mask = torch.zeros((bs, maxlen)).byte()
+    for idx, length in enumerate(lengths):
+        mask[idx, length:] = 1
 
-    return new_xs
+    return mask.unsqueeze(-1)
 
 
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
@@ -515,12 +514,14 @@ class AttDot(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttDot forward
@@ -553,7 +554,9 @@ class AttDot(torch.nn.Module):
                       dim=2)  # utt x frame
 
         # NOTE consider zero padding when compute w.
-        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+        if self.mask is None:
+            self.mask = to_cuda(self, make_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -582,12 +585,16 @@ class AttAdd(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.att_energy_mask = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.att_energy_mask = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
@@ -624,7 +631,9 @@ class AttAdd(torch.nn.Module):
         e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         # NOTE consider zero padding when compute w.
-        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+        if self.mask is None:
+            self.mask = to_cuda(self, make_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -663,6 +672,7 @@ class AttLoc(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
         self.aconv_chans = aconv_chans
 
     def reset(self):
@@ -670,6 +680,7 @@ class AttLoc(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc forward
@@ -719,7 +730,9 @@ class AttLoc(torch.nn.Module):
         e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         # NOTE consider zero padding when compute w.
-        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+        if self.mask is None:
+            self.mask = to_cuda(self, make_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -753,12 +766,14 @@ class AttCov(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
         '''AttCov forward
@@ -806,7 +821,9 @@ class AttCov(torch.nn.Module):
         e = self.gvec(torch.tanh(cov_vec + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         # NOTE consider zero padding when compute w.
-        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+        if self.mask is None:
+            self.mask = to_cuda(self, make_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
         att_prev_list += [w]
 
@@ -849,12 +866,14 @@ class AttLoc2D(torch.nn.Module):
         self.pre_compute_enc_h = None
         self.aconv_chans = aconv_chans
         self.att_win = att_win
+        self.mask = None
 
     def reset(self):
         '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttLoc2D forward
@@ -905,7 +924,9 @@ class AttLoc2D(torch.nn.Module):
         e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         # NOTE consider zero padding when compute w.
-        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+        if self.mask is None:
+            self.mask = to_cuda(self, make_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -948,12 +969,14 @@ class AttLocRec(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_states, scaling=2.0):
         '''AttLocRec forward
@@ -1015,7 +1038,9 @@ class AttLocRec(torch.nn.Module):
         e = self.gvec(torch.tanh(att_h.unsqueeze(1) + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         # NOTE consider zero padding when compute w.
-        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+        if self.mask is None:
+            self.mask = to_cuda(self, make_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -1054,12 +1079,14 @@ class AttCovLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.aconv_chans = aconv_chans
+        self.mask = None
 
     def reset(self):
         '''reset states'''
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
         '''AttCovLoc forward
@@ -1112,7 +1139,9 @@ class AttCovLoc(torch.nn.Module):
         e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
         # NOTE consider zero padding when compute w.
-        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+        if self.mask is None:
+            self.mask = to_cuda(self, make_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
         att_prev_list += [w]
 
@@ -1157,6 +1186,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
@@ -1164,6 +1194,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadDot forward
@@ -1207,7 +1238,9 @@ class AttMultiHeadDot(torch.nn.Module):
                 batch, 1, self.att_dim_k), dim=2)  # utt x frame
 
             # NOTE consider zero padding when compute w.
-            e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+            if self.mask is None:
+                self.mask = to_cuda(self, make_mask(enc_hs_len))
+            e.masked_fill_(self.mask, -float('inf'))
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1258,6 +1291,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
@@ -1265,6 +1299,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadAdd forward
@@ -1308,7 +1343,9 @@ class AttMultiHeadAdd(torch.nn.Module):
                 self.pre_compute_k[h] + self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
 
             # NOTE consider zero padding when compute w.
-            e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+            if self.mask is None:
+                self.mask = to_cuda(self, make_mask(enc_hs_len))
+            e.masked_fill_(self.mask, -float('inf'))
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1366,6 +1403,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
@@ -1373,6 +1411,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
         '''AttMultiHeadLoc forward
@@ -1428,7 +1467,9 @@ class AttMultiHeadLoc(torch.nn.Module):
                     batch, 1, self.att_dim_k))).squeeze(2)
 
             # NOTE consider zero padding when compute w.
-            e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+            if self.mask is None:
+                self.mask = to_cuda(self, make_mask(enc_hs_len))
+            e.masked_fill_(self.mask, -float('inf'))
             w += [F.softmax(scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1490,6 +1531,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
@@ -1497,6 +1539,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_k = None
         self.pre_compute_v = None
+        self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
         '''AttMultiHeadMultiResLoc forward
@@ -1552,7 +1595,9 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
                     batch, 1, self.att_dim_k))).squeeze(2)
 
             # NOTE consider zero padding when compute w.
-            e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
+            if self.mask is None:
+                self.mask = to_cuda(self, make_mask(enc_hs_len))
+            e.masked_fill_(self.mask, -float('inf'))
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -2027,7 +2072,7 @@ class Encoder(torch.nn.Module):
             sys.exit()
 
         # perform explicit maksing for padded part
-        xs_pad = fill_padded_part(xs_pad, ilens, 0.0)
+        xs_pad.masked_fill_(to_cuda(self, make_mask(ilens)), 0.0)
 
         return xs_pad, ilens
 
