@@ -9,7 +9,7 @@ if [ "$#" -ne 1 ]; then
   exit 1
 fi
 
-src=$1/iwslt-corpus
+src=$1/train/iwslt-corpus
 dst=data/local/train
 
 wav_dir=$src/wav
@@ -18,7 +18,7 @@ yml=$trans_dir/train.yaml
 en=$trans_dir/train.en
 de=$trans_dir/train.de
 
-mkdir -p $dst || exit 1;
+mkdir -p $dst
 
 [ ! -d $wav_dir ] && echo "$0: no such directory $wav_dir" && exit 1;
 [ ! -d $trans_dir ] && echo "$0: no such directory $trans_dir" && exit 1;
@@ -57,7 +57,7 @@ awk '{
     startt=offset-extendt;
     endt=offset+duration+extendt;
     printf("ted_%04d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
-}' $dst/.yaml1 > $dst/.yaml2 || exit 1;
+}' $dst/.yaml1 > $dst/.yaml2
 cat $en > $dst/.en0
 cat $de > $dst/.de0
 # NOTE: Extend the lengths of short utterances (< 0.2s) rather than exclude them
@@ -75,8 +75,7 @@ n_de=`cat $dst/.de1 | wc -l`
 [ $n -ne $n_en ] && echo "Warning: expected $n data data files, found $n_en" && exit 1;
 [ $n -ne $n_de ] && echo "Warning: expected $n data data files, found $n_de" && exit 1;
 
-paste --delimiters " " $dst/.yaml2 $dst/.en1 | awk '{
-  print $0 }' | sort > $dst/text_en
+paste --delimiters " " $dst/.yaml2 $dst/.en1 | sort > $dst/text_en
 paste --delimiters " " $dst/.yaml2 $dst/.de1 | awk '{
   if (length($0) > 25) print $0 }' | sort > $dst/text_de
 # **NOTE: empty utterances are includes in original German transcripts
@@ -90,20 +89,20 @@ awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2]; startf=S[3]; endf=S[4];
     printf("%s %s %.2f %.2f\n", segment, spkid, startf/1000, endf/1000);
-}' < $dst/text_de | sort > $dst/segments || exit 1;
+}' < $dst/text_de | sort > $dst/segments
 
 awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2];
     printf("%s cat '$wav_dir'/%s_%d.wav |\n", spkid, S[1], S[2]);
-}' < $dst/text_de | uniq | sort > $dst/wav.scp || exit 1;
+}' < $dst/text_de | uniq | sort > $dst/wav.scp
 
 awk '{
     segment=$1; split(segment,S,"[_]");
     spkid=S[1] "_" S[2]; print $1 " " spkid
-}' $dst/segments | sort > $dst/utt2spk || exit 1;
+}' $dst/segments | sort > $dst/utt2spk
 
-sort $dst/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > $dst/spk2utt || exit 1;
+sort $dst/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > $dst/spk2utt
 
 
 # Match the number of utterances between EN and DE (reduce EN utterances)
@@ -121,16 +120,16 @@ n_de=`cat $dst/text_de | wc -l`
 
 
 # Copy stuff intoc its final locations [this has been moved from the format_data script]
-mkdir -p data/train_en
+mkdir -p data/train_org_en
 for f in spk2utt utt2spk wav.scp segments; do
-  cp $dst/$f data/train_en/ || exit 1;
+  cp $dst/$f data/train_org_en/
 done
-cp $dst/text_en data/train_en/text || exit 1;
+cp $dst/text_en data/train_org_en/text
 
-mkdir -p data/train_de
+mkdir -p data/train_org_de
 for f in spk2utt utt2spk wav.scp segments; do
-  cp $dst/$f data/train_de/ || exit 1;
+  cp $dst/$f data/train_org_de/
 done
-cp $dst/text_de data/train_de/text || exit 1;
+cp $dst/text_de data/train_org_de/text
 
 echo "$0: successfully prepared data in $dst"
