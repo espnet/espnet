@@ -31,9 +31,9 @@ def decoder_init(m):
 
 
 def make_inside_mask(lengths):
-    """Function to make tensor of non-padded indices
+    """Function to make tensor containing indices of non-padded part
 
-    e.g.: length = [5, 3, 2]
+    e.g.: lengths = [5, 3, 2]
           mask = [[1, 1, 1, 1 ,1],
                   [1, 1, 1, 0, 0],
                   [1, 1, 0, 0, 0]]

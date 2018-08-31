@@ -67,9 +67,9 @@ def pad_list(xs, pad_value):
 
 
 def make_outside_mask(lengths):
-    """Function to make tensor of indices to be masked
+    """Function to make tensor contraining indices of padded part
 
-    e.g.: length = [5, 3, 2]
+    e.g.: lengths = [5, 3, 2]
           mask = [[0, 0, 0, 0 ,0],
                   [0, 0, 0, 1, 1],
                   [0, 0, 1, 1, 1]]
