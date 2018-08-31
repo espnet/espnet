@@ -29,6 +29,7 @@ from e2e_asr_common import get_vgg2l_odim
 from e2e_asr_common import label_smoothing_dist
 
 
+ATTENTION_FILL_VALUE = -1024.0
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -64,6 +65,22 @@ def pad_list(xs, pad_value):
         pad[i, :xs[i].size(0)] = xs[i]
 
     return pad
+
+
+def fill_padded_part(xs, ilens, fill_value):
+    """Fucntion to fill padded part with selected value
+
+    :param torch.Tensor xs: tensor (B, Tmax, ...)
+    :param torch.Tensor ilens:  list of lengths (B)
+    :param float fill_value:  value to fill padded part
+    :return: xs whose padded parts are fille with fill_value
+    """
+    assert xs.size(0) == len(ilens)
+    new_xs = xs.new(*xs.size()).fill_(fill_value)
+    for idx, l in enumerate(ilens):
+        new_xs[idx, :l] = xs[idx, :l]
+
+    return new_xs
 
 
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
@@ -534,6 +551,9 @@ class AttDot(torch.nn.Module):
 
         e = torch.sum(self.pre_compute_enc_h * torch.tanh(self.mlp_dec(dec_z)).view(batch, 1, self.att_dim),
                       dim=2)  # utt x frame
+
+        # NOTE consider zero padding when compute w.
+        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -601,8 +621,10 @@ class AttAdd(torch.nn.Module):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # NOTE consider zero padding when compute w.
         e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        # NOTE consider zero padding when compute w.
+        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -694,8 +716,10 @@ class AttLoc(torch.nn.Module):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # NOTE consider zero padding when compute w.
         e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        # NOTE consider zero padding when compute w.
+        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -779,9 +803,10 @@ class AttCov(torch.nn.Module):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # NOTE consider zero padding when compute w.
         e = self.gvec(torch.tanh(cov_vec + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
+        # NOTE consider zero padding when compute w.
+        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
         w = F.softmax(scaling * e, dim=1)
         att_prev_list += [w]
 
@@ -877,9 +902,10 @@ class AttLoc2D(torch.nn.Module):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # NOTE consider zero padding when compute w.
         e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
+        # NOTE consider zero padding when compute w.
+        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -986,9 +1012,10 @@ class AttLocRec(torch.nn.Module):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # NOTE consider zero padding when compute w.
         e = self.gvec(torch.tanh(att_h.unsqueeze(1) + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
+        # NOTE consider zero padding when compute w.
+        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
         w = F.softmax(scaling * e, dim=1)
 
         # weighted sum over flames
@@ -1082,9 +1109,10 @@ class AttCovLoc(torch.nn.Module):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # NOTE consider zero padding when compute w.
         e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
 
+        # NOTE consider zero padding when compute w.
+        e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
         w = F.softmax(scaling * e, dim=1)
         att_prev_list += [w]
 
@@ -1177,6 +1205,9 @@ class AttMultiHeadDot(torch.nn.Module):
         for h in six.moves.range(self.aheads):
             e = torch.sum(self.pre_compute_k[h] * torch.tanh(self.mlp_q[h](dec_z)).view(
                 batch, 1, self.att_dim_k), dim=2)  # utt x frame
+
+            # NOTE consider zero padding when compute w.
+            e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1275,6 +1306,9 @@ class AttMultiHeadAdd(torch.nn.Module):
         for h in six.moves.range(self.aheads):
             e = self.gvec[h](torch.tanh(
                 self.pre_compute_k[h] + self.mlp_q[h](dec_z).view(batch, 1, self.att_dim_k))).squeeze(2)
+
+            # NOTE consider zero padding when compute w.
+            e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1392,6 +1426,9 @@ class AttMultiHeadLoc(torch.nn.Module):
             e = self.gvec[h](torch.tanh(
                 self.pre_compute_k[h] + att_conv + self.mlp_q[h](dec_z).view(
                     batch, 1, self.att_dim_k))).squeeze(2)
+
+            # NOTE consider zero padding when compute w.
+            e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
             w += [F.softmax(scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1513,6 +1550,9 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
             e = self.gvec[h](torch.tanh(
                 self.pre_compute_k[h] + att_conv + self.mlp_q[h](dec_z).view(
                     batch, 1, self.att_dim_k))).squeeze(2)
+
+            # NOTE consider zero padding when compute w.
+            e = fill_padded_part(e, enc_hs_len, ATTENTION_FILL_VALUE)
             w += [F.softmax(self.scaling * e, dim=1)]
 
             # weighted sum over flames
@@ -1985,6 +2025,9 @@ class Encoder(torch.nn.Module):
             logging.error(
                 "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
+
+        # explicit fill padded part with 0.0
+        xs_pad = fill_padded_part(xs_pad, ilens, 0.0)
 
         return xs_pad, ilens
 
