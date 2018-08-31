@@ -66,18 +66,23 @@ def pad_list(xs, pad_value):
     return pad
 
 
-def make_mask(lengths):
-    """Function to make tensor containing the index to be masked
+def make_outside_mask(lengths):
+    """Function to make tensor of indices to be masked
+
+    e.g.: length = [5, 3, 2]
+          mask = [[0, 0, 0, 0 ,0],
+                  [0, 0, 0, 1, 1],
+                  [0, 0, 1, 1, 1]]
 
     :param list lengths: list of lengths (B)
     :return: tensor of the indices to be masked (B, Tmax)
     :rtype: torch.Tensor
     """
-    bs = int(len(lengths))
+    batch = int(len(lengths))
     maxlen = int(max(lengths))
-    mask = torch.zeros((bs, maxlen)).byte()
-    for idx, length in enumerate(lengths):
-        mask[idx, length:] = 1
+    mask = torch.zeros(batch, maxlen).byte()
+    for i, l in enumerate(lengths):
+        mask[i, l:] = 1
 
     return mask
 
@@ -555,7 +560,7 @@ class AttDot(torch.nn.Module):
 
         # NOTE consider zero padding when compute w.
         if self.mask is None:
-            self.mask = to_cuda(self, make_mask(enc_hs_len))
+            self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
@@ -630,7 +635,7 @@ class AttAdd(torch.nn.Module):
 
         # NOTE consider zero padding when compute w.
         if self.mask is None:
-            self.mask = to_cuda(self, make_mask(enc_hs_len))
+            self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
@@ -729,7 +734,7 @@ class AttLoc(torch.nn.Module):
 
         # NOTE consider zero padding when compute w.
         if self.mask is None:
-            self.mask = to_cuda(self, make_mask(enc_hs_len))
+            self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
@@ -820,7 +825,7 @@ class AttCov(torch.nn.Module):
 
         # NOTE consider zero padding when compute w.
         if self.mask is None:
-            self.mask = to_cuda(self, make_mask(enc_hs_len))
+            self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
         att_prev_list += [w]
@@ -923,7 +928,7 @@ class AttLoc2D(torch.nn.Module):
 
         # NOTE consider zero padding when compute w.
         if self.mask is None:
-            self.mask = to_cuda(self, make_mask(enc_hs_len))
+            self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
@@ -1037,7 +1042,7 @@ class AttLocRec(torch.nn.Module):
 
         # NOTE consider zero padding when compute w.
         if self.mask is None:
-            self.mask = to_cuda(self, make_mask(enc_hs_len))
+            self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
@@ -1138,7 +1143,7 @@ class AttCovLoc(torch.nn.Module):
 
         # NOTE consider zero padding when compute w.
         if self.mask is None:
-            self.mask = to_cuda(self, make_mask(enc_hs_len))
+            self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
         e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
         att_prev_list += [w]
@@ -1237,7 +1242,7 @@ class AttMultiHeadDot(torch.nn.Module):
 
             # NOTE consider zero padding when compute w.
             if self.mask is None:
-                self.mask = to_cuda(self, make_mask(enc_hs_len))
+                self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
             e.masked_fill_(self.mask, -float('inf'))
             w += [F.softmax(self.scaling * e, dim=1)]
 
@@ -1342,7 +1347,7 @@ class AttMultiHeadAdd(torch.nn.Module):
 
             # NOTE consider zero padding when compute w.
             if self.mask is None:
-                self.mask = to_cuda(self, make_mask(enc_hs_len))
+                self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
             e.masked_fill_(self.mask, -float('inf'))
             w += [F.softmax(self.scaling * e, dim=1)]
 
@@ -1466,7 +1471,7 @@ class AttMultiHeadLoc(torch.nn.Module):
 
             # NOTE consider zero padding when compute w.
             if self.mask is None:
-                self.mask = to_cuda(self, make_mask(enc_hs_len))
+                self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
             e.masked_fill_(self.mask, -float('inf'))
             w += [F.softmax(scaling * e, dim=1)]
 
@@ -1594,7 +1599,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
             # NOTE consider zero padding when compute w.
             if self.mask is None:
-                self.mask = to_cuda(self, make_mask(enc_hs_len))
+                self.mask = to_cuda(self, make_outside_mask(enc_hs_len))
             e.masked_fill_(self.mask, -float('inf'))
             w += [F.softmax(self.scaling * e, dim=1)]
 
@@ -2070,7 +2075,7 @@ class Encoder(torch.nn.Module):
             sys.exit()
 
         # make mask to remove bias value in padded part
-        mask = to_cuda(self, make_mask(ilens).unsqueeze(-1))
+        mask = to_cuda(self, make_outside_mask(ilens).unsqueeze(-1))
 
         return xs_pad.masked_fill(mask, 0.0), ilens
 

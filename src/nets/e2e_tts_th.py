@@ -30,27 +30,25 @@ def decoder_init(m):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
 
 
-def make_mask(lengths, dim=None):
-    """FUNCTION TO MAKE BINARY MASK
+def make_inside_mask(lengths):
+    """Function to make tensor of non-padded indices
 
-    Args:
-        length (list): list of lengths
-        dim (int): # dimension
+    e.g.: length = [5, 3, 2]
+          mask = [[1, 1, 1, 1 ,1],
+                  [1, 1, 1, 0, 0],
+                  [1, 1, 0, 0, 0]]
 
-    Return:
-        (torch.ByteTensor) binary mask tensor (B, Lmax, dim)
+    :param list lengths: list of lengths (B)
+    :return: tensor of the indices to be masked (B, Tmax)
+    :rtype: torch.Tensor
     """
     batch = int(len(lengths))
     maxlen = int(max(lengths))
-    if dim is None:
-        mask = torch.zeros(batch, maxlen)
-    else:
-        dim = int(dim)
-        mask = torch.zeros(batch, maxlen, dim)
+    mask = torch.zeros(batch, maxlen).byte()
     for i, l in enumerate(lengths):
         mask[i, :l] = 1
 
-    return mask.byte()
+    return mask
 
 
 class Reporter(chainer.Chain):
@@ -134,7 +132,7 @@ class Tacotron2Loss(torch.nn.Module):
             else:
                 weights = None
             # masking padded values
-            mask = to_cuda(self, make_mask(olens, ys.size(2)))
+            mask = to_cuda(self, make_inside_mask(olens).unsqueeze(-1))
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
             before_outs = before_outs.masked_select(mask)
