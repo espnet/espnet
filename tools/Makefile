@@ -3,7 +3,7 @@ KALDI =
 
 .PHONY: all clean
 
-all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses lium_diarization
+all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses lium_diarization mwerSegmenter
 
 all_python: virtualenv chainer_patch warp-ctc chainer_ctc
 
@@ -60,6 +60,11 @@ moses:
 lium_diarization:
 	wget http://www-lium.univ-lemans.fr/diarization/lib/exe/fetch.php/lium_spkdiarization-8.4.1.jar.gz
 	gunzip lium_spkdiarization-8.4.1.jar.gz
+
+mwerSegmenter:
+	wget https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
+	tar zxvf mwerSegmenter.tar.gz
+	rm mwerSegmenter.tar.gz
 
 clean:
 	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece moses
