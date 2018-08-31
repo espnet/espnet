@@ -45,7 +45,6 @@ if [ ! `echo ${set} | grep ${set}`  ]; then
   exit 1
 fi
 
-ls
 if [ -f $data/$set/.complete ]; then
   echo "$0: data was already successfully extracted, nothing to do."
   exit 0;
