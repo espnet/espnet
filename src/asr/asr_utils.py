@@ -456,10 +456,16 @@ def add_results_to_json(js, nbest_hyps, char_list):
         rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, char_list)
 
         # copy ground-truth
-        out_dic = dict(js['output'][0].items())
+        if u'output' in js['output'][0].keys():
+            out_dic = dict(js['output'][0].items())
 
-        # update name
-        out_dic['name'] += '[%d]' % n
+            # update name
+            out_dic['name'] += '[%d]' % n
+        else:
+            out_dic = dict()
+
+            # update name
+            out_dic['name'] = '[%d]' % n
 
         # add recognition results
         out_dic['rec_text'] = rec_text
@@ -472,7 +478,8 @@ def add_results_to_json(js, nbest_hyps, char_list):
 
         # show 1-best result
         if n == 1:
-            logging.info('groundtruth: %s' % out_dic['text'])
+            if u'text' in out_dic.keys():
+                logging.info('groundtruth: %s' % out_dic['text'])
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js
