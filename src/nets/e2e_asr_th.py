@@ -70,7 +70,7 @@ def make_mask(lengths):
     """Function to make tensor containing the index to be masked
 
     :param list lengths: list of lengths (B)
-    :return: tensor of the indices to be masked (B, Tmax, 1)
+    :return: tensor of the indices to be masked (B, Tmax)
     :rtype: torch.Tensor
     """
     bs = int(len(lengths))
@@ -79,7 +79,7 @@ def make_mask(lengths):
     for idx, length in enumerate(lengths):
         mask[idx, length:] = 1
 
-    return mask.unsqueeze(-1)
+    return mask
 
 
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
@@ -2071,10 +2071,10 @@ class Encoder(torch.nn.Module):
                 "Error: need to specify an appropriate encoder archtecture")
             sys.exit()
 
-        # perform explicit maksing for padded part
-        xs_pad.masked_fill_(to_cuda(self, make_mask(ilens)), 0.0)
+        # make mask to remove bias value in padded part
+        mask = to_cuda(self, make_mask(ilens).unsqueeze(-1))
 
-        return xs_pad, ilens
+        return xs_pad.masked_fill(mask, 0.0), ilens
 
 
 class BLSTMP(torch.nn.Module):
