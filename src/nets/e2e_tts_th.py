@@ -42,9 +42,9 @@ def make_inside_mask(lengths):
     :return: tensor of the indices to be masked (B, Tmax)
     :rtype: torch.Tensor
     """
-    batch = int(len(lengths))
+    bs = int(len(lengths))
     maxlen = int(max(lengths))
-    mask = torch.zeros(batch, maxlen).byte()
+    mask = torch.zeros(bs, maxlen).byte()
     for i, l in enumerate(lengths):
         mask[i, :l] = 1
 
