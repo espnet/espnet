@@ -39,7 +39,7 @@ def make_non_pad_mask(lengths):
                   [1, 1, 0, 0, 0]]
 
     :param list lengths: list of lengths (B)
-    :return: tensor of the indices to be masked (B, Tmax)
+    :return: mask tensor containing indices of non-padded part (B, Tmax)
     :rtype: torch.Tensor
     """
     bs = int(len(lengths))

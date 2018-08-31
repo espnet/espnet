@@ -75,7 +75,7 @@ def make_pad_mask(lengths):
                   [0, 0, 1, 1, 1]]
 
     :param list lengths: list of lengths (B)
-    :return: tensor of the indices to be masked (B, Tmax)
+    :return: mask tensor contraining indices of padded part (B, Tmax)
     :rtype: torch.Tensor
     """
     bs = int(len(lengths))
