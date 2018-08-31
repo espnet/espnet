@@ -585,7 +585,6 @@ class AttAdd(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
-        self.att_energy_mask = None
         self.mask = None
 
     def reset(self):
@@ -593,7 +592,6 @@ class AttAdd(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
-        self.att_energy_mask = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
