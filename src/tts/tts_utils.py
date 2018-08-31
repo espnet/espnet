@@ -42,7 +42,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         sorted_data = sorted(data.items(), key=lambda data: int(
             data[1]['input'][0]['shape'][0]), reverse=True)
     else:
-        ValueError('batch_sort_key should be selected from None, input, and output.')
+        raise ValueError('batch_sort_key should be selected from None, input, and output.')
 
     logging.info('# utts: ' + str(len(sorted_data)))
 
