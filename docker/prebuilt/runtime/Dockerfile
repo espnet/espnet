@@ -80,12 +80,9 @@ RUN cd /kaldi/tools && \
     find /kaldi/src -name "*.o" -exec rm -f {} \; && \
     find /kaldi/src -name "*.o" -exec rm -f {} \; 
 
-RUN mkdir -p /espnet/tools 
-
-WORKDIR /espnet/tools
-
-RUN wget https://raw.githubusercontent.com/espnet/espnet/master/tools/Makefile && \
-    wget https://raw.githubusercontent.com/espnet/espnet/master/tools/requirements.txt && \
-    wget https://github.com/espnet/espnet/blob/master/tools/test_requirements.txt
+# Setup ESPnet
+RUN git clone https://github.com/espnet/espnet && \
+    cd espnet && \
+    rm -rf docker egs src test
 
 WORKDIR /
