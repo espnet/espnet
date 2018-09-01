@@ -63,9 +63,10 @@ zoneout=0.1
 epochs=200
 # decoding related
 model=model.loss.best
-threshold=0.7    # threshold to stop the generation
+threshold=0.5    # threshold to stop the generation
 maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
+griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # root directory of db
 db_root=downloads
@@ -286,6 +287,7 @@ if [ ${stage} -le 5 ];then
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
             --n_mels ${n_mels} \
+            --iters ${griffin_lim_iters} \
             ${outdir}_denorm/${sets} \
             ${outdir}_denorm/${sets}/log \
             ${outdir}_denorm/${sets}/wav
