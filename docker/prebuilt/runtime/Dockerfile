@@ -80,9 +80,4 @@ RUN cd /kaldi/tools && \
     find /kaldi/src -name "*.o" -exec rm -f {} \; && \
     find /kaldi/src -name "*.o" -exec rm -f {} \; 
 
-# Setup ESPnet
-RUN git clone https://github.com/espnet/espnet && \
-    cd espnet && \
-    rm -rf docker egs src test
-
 WORKDIR /

@@ -2,18 +2,21 @@ ARG FROM_TAG
 FROM espnet/espnet:${FROM_TAG}
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
-COPY requirements.txt /
-# Install espnet
 WORKDIR /
 
+# Download ESPnet
+RUN git clone https://github.com/espnet/espnet && \
+    cd espnet && \
+    rm -rf docker egs src test
+
+# Install espnet
+WORKDIR /espnet/tools
+
+# Delete cupy if cpu image
 RUN if [ -z "$( nvcc -V )" ];then \
-        rm /espnet/tools/requirements.txt && \
-        cp requirements.txt /espnet/tools; \
-    else \
-        rm requirements.txt; \
+        sed -i '/cupy*/d' requirements.txt; \
     fi 
 
-WORKDIR /espnet/tools
 RUN make KALDI=/kaldi all 
 
 WORKDIR /
