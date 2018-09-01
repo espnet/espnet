@@ -45,7 +45,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=20
+epochs=60
 
 # rnnlm related
 lm_weight=0.3
@@ -56,7 +56,7 @@ penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -79,7 +79,7 @@ set -u
 set -o pipefail
 
 train_set=train_de
-train_dev=dev2010_de
+train_dev=dev_de
 recog_set="dev2010_de tst2010_de tst2013_de tst2014_de tst2015_de"
 eval_set=tst2018_de
 
@@ -95,12 +95,11 @@ if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    for part in train dev2010 tst2010 tst2013 tst2014 tst2015; do
-        local/data_prep.sh ${datadir}/iwslt-corpus ${part}
-    done
+    local/data_prep_train.sh ${datadir}
 
-    # for IWSLT 2018 submission
-    local/data_prep_eval.sh ${datadir}/IWSLT.tst2018
+    for part in dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
+        local/data_prep_eval.sh ${datadir} ${part}
+    done
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -111,33 +110,40 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
+    for x in train_org dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x}_de exp/make_fbank/${x} ${fbankdir}
     done
 
-    for x in train dev2010; do
+    # make a dev set
+    for l in de en; do
+        utils/subset_data_dir.sh --first data/train_org_${l} 4000 data/dev_org_${l}
+        n=$[`cat data/train_org_${l}/segments | wc -l` - 4000]
+        utils/subset_data_dir.sh --last data/train_org_${l} ${n} data/train_nodev_${l}
+    done
+
+    for x in train_nodev dev_org; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_de data/${x}_de_tmp
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_en data/${x}_en_tmp
+        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_de data/${x}_de.tmp
+        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_en data/${x}_en.tmp
 
         # Match the number of utterances between EN and DE
         # extract commocn lines
-        cut -f -1 -d " " data/${x}_de_tmp/segments > data/${x}_de_tmp/reclist1
-        cut -f -1 -d " " data/${x}_en_tmp/segments > data/${x}_de_tmp/reclist2
-        comm -12 data/${x}_de_tmp/reclist1 data/${x}_de_tmp/reclist2 > data/${x}_de_tmp/reclist
+        cut -f -1 -d " " data/${x}_de.tmp/segments > data/${x}_de.tmp/reclist1
+        cut -f -1 -d " " data/${x}_en.tmp/segments > data/${x}_de.tmp/reclist2
+        comm -12 data/${x}_de.tmp/reclist1 data/${x}_de.tmp/reclist2 > data/${x}_de.tmp/reclist
 
-        reduce_data_dir.sh data/${x}_de_tmp data/${x}_de_tmp/reclist data/${x}_de_trim
-        reduce_data_dir.sh data/${x}_en_tmp data/${x}_de_tmp/reclist data/${x}_en_trim
-        utils/fix_data_dir.sh data/${x}_de_trim
-        utils/fix_data_dir.sh data/${x}_en_trim
-        rm -rf data/${x}_de_tmp
-        rm -rf data/${x}_en_tmp
+        new_data_dir=data/`echo ${x} | cut -f -1 -d "_"`
+        for l in de en; do
+          reduce_data_dir.sh data/${x}_${l}.tmp data/${x}_de.tmp/reclist ${new_data_dir}_${l}
+          utils/fix_data_dir.sh ${new_data_dir}_${l}
+        done
+        rm -rf data/${x}_*.tmp
     done
 
     # compute global CMVN
-    compute-cmvn-stats scp:data/${train_set}_trim/feats.scp data/${train_set}_trim/cmvn.ark
+    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
@@ -151,13 +157,13 @@ if [ ${stage} -le 1 ]; then
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
-        data/${train_set}_trim/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-        data/${train_dev}_trim/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/recog/${rtask} \
+            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
 fi
@@ -176,9 +182,9 @@ if [ ${stage} -le 2 ]; then
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
-        data/${train_set}_trim ${dict} > ${feat_tr_dir}/data.json
+        data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-        data/${train_dev}_trim ${dict} > ${feat_dt_dir}/data.json
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
@@ -193,9 +199,9 @@ if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_de
     mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
+    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 data/${train_dev}_trim/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
+    text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
@@ -281,7 +287,7 @@ if [ ${stage} -le 5 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  \
+            --model ${expdir}/results/model.${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
