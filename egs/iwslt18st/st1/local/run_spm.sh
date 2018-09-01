@@ -65,7 +65,7 @@ datadir=/export/b08/inaguma/IWSLT
 
 
 # bpemode (unigram or bpe)
-nbpe=2000
+nbpe=10000
 bpemode=unigram
 
 # exp tag
@@ -173,17 +173,24 @@ if [ ${stage} -le 1 ]; then
 fi
 
 dict=data/lang_spm1/train_${bpemode}${nbpe}_units.txt
+nlsyms=data/lang_spm1/non_lang_syms.txt
 bpemodel=data/lang_spm1/train_${bpemode}${nbpe}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_spm1/
-    # The same dictinary between EN and DE
+
+    echo "make a non-linguistic symbol list for all languages"
+    cut -f 2- -d " " data/train_en/text data/train_de/text | grep -o -P '&.*?;' | sort | uniq > ${nlsyms}
+    cat ${nlsyms}
+
+    # Share the same dictinary between EN and DE
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    offset=`cat ${dict} | wc -l`
     cut -f 2- -d " " data/train_en/text data/train_de/text > data/lang_spm1/input.txt
-    spm_train --input=data/lang_spm1/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_spm1/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+2}' >> ${dict}
+    spm_train --user_defined_symbols=`cat ${nlsyms} | tr "\n" ","` --input=data/lang_spm1/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_spm1/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
@@ -303,7 +310,7 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        local/score_bleu.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --nlsyms ${nlsyms} --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict}
 
     ) &
     done

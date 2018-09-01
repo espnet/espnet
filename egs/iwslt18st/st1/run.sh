@@ -169,25 +169,32 @@ if [ ${stage} -le 1 ]; then
 fi
 
 dict=data/lang_1char/train_units.txt
+nlsyms=data/lang_spm1/non_lang_syms.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
-    # The same dictinary between EN and DE
+
+    echo "make a non-linguistic symbol list for all languages"
+    cut -f 2- -d " " data/train_en/text data/train_de/text | grep -o -P '&.*?;' | sort | uniq > ${nlsyms}
+    cat ${nlsyms}
+
+    # Share the same dictinary between EN and DE
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train_en/text data/train_de/text | text2token.py -s 1 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+    cat data/train_en/text data/train_de/text | text2token.py -s 1 -n 1 --non-lang-syms ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
+
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
@@ -199,9 +206,9 @@ if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_de
     mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
+    text2token.py -s 1 -n 1 --non-lang-syms ${nlsyms} data/${train_set}/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
+    text2token.py -s 1 -n 1 --non-lang-syms ${nlsyms} data/${train_dev}/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
@@ -297,7 +304,7 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        local/score_bleu.sh ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --non-lang-syms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
