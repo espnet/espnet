@@ -26,6 +26,7 @@ from torch.nn.utils.rnn import pad_packed_sequence
 from ctc_prefix_score import CTCPrefixScore
 from e2e_asr_common import end_detect
 from e2e_asr_common import get_vgg2l_odim
+from e2e_asr_common import get_vgg3l_odim
 from e2e_asr_common import label_smoothing_dist
 
 
@@ -1956,6 +1957,17 @@ class Encoder(torch.nn.Module):
             self.enc2 = BLSTM(get_vgg2l_odim(idim, in_channel=in_channel),
                               elayers, eunits, eprojs, dropout)
             logging.info('Use CNN-VGG + BLSTM for encoder')
+        elif etype == 'vgg3blstmp':
+            self.enc1 = VGG3L(in_channel)
+            self.enc2 = BLSTMP(get_vgg3l_odim(idim, in_channel=in_channel),
+                               elayers, eunits, eprojs,
+                               subsample, dropout)
+            logging.info('Use CNN-VGG + BLSTMP for encoder')
+        elif etype == 'vgg3blstm':
+            self.enc1 = VGG3L(in_channel)
+            self.enc2 = BLSTM(get_vgg3l_odim(idim, in_channel=in_channel),
+                              elayers, eunits, eprojs, dropout)
+            logging.info('Use CNN-VGG + BLSTM for encoder')
         else:
             logging.error(
                 "Error: need to specify an appropriate encoder archtecture")
@@ -1979,6 +1991,12 @@ class Encoder(torch.nn.Module):
             xs_pad, ilens = self.enc1(xs_pad, ilens)
             xs_pad, ilens = self.enc2(xs_pad, ilens)
         elif self.etype == 'vggblstm':
+            xs_pad, ilens = self.enc1(xs_pad, ilens)
+            xs_pad, ilens = self.enc2(xs_pad, ilens)
+        elif self.etype == 'vgg3blstmp':
+            xs_pad, ilens = self.enc1(xs_pad, ilens)
+            xs_pad, ilens = self.enc2(xs_pad, ilens)
+        elif self.etype == 'vgg3blstm':
             xs_pad, ilens = self.enc1(xs_pad, ilens)
             xs_pad, ilens = self.enc2(xs_pad, ilens)
         else:
@@ -2123,6 +2141,72 @@ class VGG2L(torch.nn.Module):
         xs_pad = F.relu(self.conv2_1(xs_pad))
         xs_pad = F.relu(self.conv2_2(xs_pad))
         xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
+        ilens = np.array(
+            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
+        ilens = np.array(
+            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
+
+        # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
+        xs_pad = xs_pad.transpose(1, 2)
+        xs_pad = xs_pad.contiguous().view(
+            xs_pad.size(0), xs_pad.size(1), xs_pad.size(2) * xs_pad.size(3))
+        xs_pad = [xs_pad[i, :ilens[i]] for i in range(len(ilens))]
+        xs_pad = pad_list(xs_pad, 0.0)
+        return xs_pad, ilens
+
+
+class VGG3L(torch.nn.Module):
+    """VGG-like module
+
+    :param int in_channel: number of input channels
+    """
+
+    def __init__(self, in_channel=1):
+        super(VGG3L, self).__init__()
+        # CNN layer (VGG motivated)
+        self.conv1_1 = torch.nn.Conv2d(in_channel, 64, 3, stride=1, padding=1)
+        self.conv1_2 = torch.nn.Conv2d(64, 64, 3, stride=1, padding=1)
+        self.conv2_1 = torch.nn.Conv2d(64, 128, 3, stride=1, padding=1)
+        self.conv2_2 = torch.nn.Conv2d(128, 128, 3, stride=1, padding=1)
+        self.conv3_1 = torch.nn.Conv2d(128, 256, 3, stride=1, padding=1)
+        self.conv3_2 = torch.nn.Conv2d(256, 256, 3, stride=1, padding=1)
+        self.conv3_3 = torch.nn.Conv2d(256, 256, 3, stride=1, padding=1)
+
+        self.in_channel = in_channel
+
+    def forward(self, xs_pad, ilens):
+        '''VGG3L forward
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :return: batch of padded hidden state sequences (B, Tmax // 8, 256)
+        :rtype: torch.Tensor
+        '''
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+
+        # x: utt x frame x dim
+        # xs_pad = F.pad_sequence(xs_pad)
+
+        # x: utt x 1 (input channel num) x frame x dim
+        xs_pad = xs_pad.view(xs_pad.size(0), xs_pad.size(1), self.in_channel,
+                             xs_pad.size(2) // self.in_channel).transpose(1, 2)
+
+        # NOTE: max_pool1d ?
+        xs_pad = F.relu(self.conv1_1(xs_pad))
+        xs_pad = F.relu(self.conv1_2(xs_pad))
+        xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
+
+        xs_pad = F.relu(self.conv2_1(xs_pad))
+        xs_pad = F.relu(self.conv2_2(xs_pad))
+        xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
+
+        xs_pad = F.relu(self.conv3_1(xs_pad))
+        xs_pad = F.relu(self.conv3_2(xs_pad))
+        xs_pad = F.relu(self.conv3_3(xs_pad))
+        xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
+
+        ilens = np.array(
+            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
         ilens = np.array(
             np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
         ilens = np.array(
