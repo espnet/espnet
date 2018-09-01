@@ -62,10 +62,11 @@ $cmd JOB=1:$nj $logdir/griffin_lim_${name}.JOB.log \
         --fs $fs \
         --fmax $fmax \
         --fmin $fmin \
-        --n_mels $n_mels \
         --win_length $win_length \
         --n_fft $n_fft \
         --n_shift $n_shift \
+        --n_mels $n_mels \
+        --iters $iters \
         $logdir/feats.JOB.scp \
         $wavdir
 
