@@ -331,7 +331,7 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    train_cmd="${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -360,8 +360,13 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --phoneme_objective_weight ${phoneme_objective_weight} \
-        --phoneme_objective_layer ${phoneme_objective_layer}
+        --phoneme_objective_weight ${phoneme_objective_weight}"
+    if [[ ${phoneme_objective_layer} ]]; then
+        train_cmd="${train_cmd} --phoneme_objective_layer ${phoneme_objective_layer}"
+    fi
+    echo $train_cmd
+    #${train_command}
+    exit
 fi
 
 if [ ${stage} -le 4 ]; then

@@ -136,7 +136,6 @@ def main():
     parser.add_argument('--phoneme_objective_weight', default=0.0, type=float,
                         help='Train with an additional phoneme transcription objective if weight > 0')
     parser.add_argument('--phoneme_objective_layer', default=None,
-                        action="store_const", const=None,
                         help='The layer of the BLSTM encoder to connect to the phoneme objective')
     args = parser.parse_args()
     try:
