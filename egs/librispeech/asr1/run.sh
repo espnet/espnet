@@ -48,14 +48,14 @@ opt=adadelta
 epochs=10
 
 # rnnlm related
-lm_weight=0.3
+lm_weight=0.5
 
 # decoding parameter
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.3
+ctc_weight=0.5
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # Set this to somewhere where you want to put your data, or where
