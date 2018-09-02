@@ -80,21 +80,20 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
 
 
 def load_inputs_and_targets(batch, use_speaker_embedding=False, use_second_target=False):
-    """Function to load inputs and targets from list of dicts
+    """Load inputs and targets from list of dicts (json)
 
     :param list batch: list of dict which is subset of loaded data.json
     :param bool use_speaker_embedding: whether to load speaker embedding vector
     :param bool use_second_target: whether to load second target vector
-    :return: list of input token id sequences [(T_1), (T_2), ..., (T_B)]
+    :return: list of input token id sequences [(L_1), (L_2), ..., (L_B)]
     :rtype: list of int ndarray
     :return: list of target feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
     :rtype: list of float ndarray
-    :return: list of speaker embedding vectors (only if use_speaker_embedding = True)
+    :return: list of speaker embedding vectors
     :rtype: list of float adarray
-    :return: list of second target feature sequences [(T_1, V), (T_2, V), ..., (T_B, V)]
+    :return: list of second target feature sequences [(T_1, V), (T_2, V), ..., (T_B, V)],
     :rtype: list of float ndarray
     """
-
     # load acoustic features and target sequence of token ids
     xs = [b[1]['output'][0]['tokenid'].split() for b in batch]
     ys = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]

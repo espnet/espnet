@@ -64,10 +64,9 @@ def load_inputs_and_targets(batch):
     :param list batch: list of dict which is subset of loaded data.json
     :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
     :rtype: list of float ndarray
-    :return: list of target token id sequences [(T_1), (T_2), ..., (T_B)]
+    :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
     :rtype: list of int ndarray
     """
-
     # load acoustic features and target sequence of token ids
     xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
     ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
