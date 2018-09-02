@@ -161,7 +161,6 @@ class Loss(torch.nn.Module):
 
         return self.loss
 
-
 def pad_list(xs, pad_value=float("nan")):
     assert isinstance(xs[0], Variable)
     n_batch = len(xs)
@@ -349,6 +348,11 @@ class E2E(torch.nn.Module):
         # 1. encoder
         xpad = pad_list(hs)
         hpad, hlens = self.enc(xpad, ilens)
+
+        if self.mtlalpha == 0.1:
+            logging.info("hpad shape {}".format(hpad.shape))
+            logging.info("hlens {}".format(hlens))
+            sys.exit()
 
         # # 3. CTC loss
         if self.mtlalpha == 0:
