@@ -46,7 +46,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
 
     logging.info('# utts: ' + str(len(sorted_data)))
 
-    if batch_sort_key is None:
+    if batch_sort_key == 'shuffle':
         # use fixed size batch
         while True:
             end = min(len(sorted_data), start + batch_size)
