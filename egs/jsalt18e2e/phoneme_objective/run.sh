@@ -365,9 +365,10 @@ if [ ${stage} -le 3 ]; then
         train_cmd="${train_cmd} --phoneme_objective_layer ${phoneme_objective_layer}"
     fi
     echo $train_cmd
-    #${train_command}
-    exit
+    ${train_cmd}
 fi
+
+exit
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"

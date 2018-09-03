@@ -140,7 +140,7 @@ def main():
     args = parser.parse_args()
     try:
         args.phoneme_objective_layer = int(args.phoneme_objective_layer)
-    except ValueError:
+    except TypeError, ValueError:
         pass
 
 

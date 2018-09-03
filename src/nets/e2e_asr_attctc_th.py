@@ -183,6 +183,7 @@ def set_forget_bias_to_one(bias):
 class E2E(torch.nn.Module):
     def __init__(self, idim, odim, args, phoneme_odim=-1):
         super(E2E, self).__init__()
+        self.eprojs = args.eprojs
         self.etype = args.etype
         self.verbose = args.verbose
         self.char_list = args.char_list
@@ -214,7 +215,6 @@ class E2E(torch.nn.Module):
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
-        # label smoothing info
         if args.lsm_type:
             logging.info("Use label smoothing with " + args.lsm_type)
             labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
@@ -352,6 +352,16 @@ class E2E(torch.nn.Module):
         if self.mtlalpha == 0.1:
             logging.info("hpad shape {}".format(hpad.shape))
             logging.info("hlens {}".format(hlens))
+            mean = hpad.mean(dim=1)
+            linear = torch.nn.Linear(self.eprojs, 10)
+            linear.cuda()
+            logging.info("linear {}".format(linear))
+            logging.info("dir(linear) {}".format(dir(linear)))
+            log_softmax = torch.nn.LogSoftmax(dim=1)
+            log_softmax.cuda()
+            log_softmax_out = log_softmax(linear(mean))
+            logging.info("log_softmax {}".format(log_softmax_out))
+            logging.info("log_softmax shape {}".format(log_softmax_out.shape))
             sys.exit()
 
         # # 3. CTC loss
