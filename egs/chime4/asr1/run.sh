@@ -39,7 +39,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=32
+batchsize=25
 maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -55,8 +55,8 @@ vocabsize=65000
 # decoding parameter
 beam_size=20
 penalty=0
-maxlenratio=0.8
-minlenratio=0.3
+maxlenratio=0.0
+minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
@@ -144,12 +144,12 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{14,15,16}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{14,15,16}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
