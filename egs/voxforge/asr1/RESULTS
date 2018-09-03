@@ -27,9 +27,17 @@ write a CER (or TER) result in exp/tr_it_debug_alpha0.5/decode_et_it_beam20_eacc
 | Sum/Avg               | 1055    77966 | 89.7     5.5    4.8     2.3   12.6    98.4 |
 
 # Scheduled sampling experiments by enabling mtlalpha=0.0 and scheduled-sampling-ratio with 0.0 and 0.5
+# Number of decoder layers = 1
 exp/tr_it_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampratio0.0_bs30_mli800_mlo150_epochs30/decode_et_it_beam20_eacc.best_p0_len0.0-0.0_ctcw0.0/result.txt:
 |        SPKR                         |         # Snt                 # Wrd         |         Corr                   Sub                    Del                   Ins                    Err                 S.Err         |
 |        Sum/Avg                      |          895                  66163         |         29.4                  21.5                   49.2                   4.2                   74.8                 100.0         |
 exp/tr_it_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampratio0.5_bs30_mli800_mlo150_epochs30/decode_et_it_beam20_eacc.best_p0_len0.0-0.0_ctcw0.0/result.txt:
 |        SPKR                         |         # Snt                 # Wrd         |         Corr                   Sub                    Del                   Ins                    Err                 S.Err         |
 |        Sum/Avg                      |          895                  66163         |         88.0                   6.7                    5.3                   3.0                   15.0                  98.7         |
+# Number of decoder layers = 2
+exp/tr_it_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d2_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampratio0.0_bs30_mli800_mlo150_epochs30/decode_et_it_beam20_eacc.best_p0_len0.0-0.0_ctcw0.0/result.txt:
+|        SPKR                         |         # Snt                 # Wrd         |         Corr                   Sub                    Del                   Ins                    Err                 S.Err         |
+|        Sum/Avg                     |           895                  66163        |          30.7                   22.1                  47.2                   3.9                   73.2                 100.0         |
+exp/tr_it_vggblstmp_e4_subsample1_2_2_1_1_unit320_proj320_d2_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampratio0.5_bs30_mli800_mlo150_epochs30/decode_et_it_beam20_eacc.best_p0_len0.0-0.0_ctcw0.0/result.txt:
+|        SPKR                         |         # Snt                 # Wrd         |         Corr                   Sub                    Del                   Ins                    Err                 S.Err         |
+|        Sum/Avg                      |          895                  66163         |         36.4                   30.3                   33.4                  9.1                   72.8                 100.0         |
