@@ -19,18 +19,19 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
-elayers=6
-eunits=320
-eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+elayers=3
+eunits=1024
+eprojs=1024
+subsample=1_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
-dunits=300
+dunits=1024
 # attention related
 atype=location
+adim=1024
 aconv_chans=10
 aconv_filts=100
 
@@ -38,23 +39,31 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=30
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
+batchsize=25
+maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=10
+
+# rnnlm related
+lm_weight=1.0
+use_wordlm=true
+vocabsize=65000
 
 # decoding parameter
 beam_size=20
 penalty=0
-maxlenratio=0.8
-minlenratio=0.3
+maxlenratio=0.0
+minlenratio=0.0
+ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # data
 chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
+wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
+wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -70,7 +79,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr05_multi_noisy
+train_set=tr05_multi_noisy_si284 # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
 train_dev=dt05_multi_isolated_1ch_track
 recog_set="\
 dt05_real_isolated_1ch_track dt05_simu_isolated_1ch_track et05_real_isolated_1ch_track et05_simu_isolated_1ch_track \
@@ -102,6 +111,10 @@ if [ ${stage} -le 0 ]; then
     echo "test data for 6ch track"
     local/real_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
     local/simu_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
+
+    # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
+    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
+    local/wsj_format_data.sh
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -112,7 +125,7 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     fbankdir=fbank
-    tasks="tr05_real_noisy tr05_simu_noisy ${recog_set}"
+    tasks="tr05_real_noisy tr05_simu_noisy train_si284 ${recog_set}"
     for x in ${tasks}; do
         utils/copy_data_dir.sh data/${x} data-fbank/${x}
         utils/copy_data_dir.sh data/${x} data-stft/${x}
@@ -121,7 +134,8 @@ if [ ${stage} -le 1 ]; then
     done
 
     echo "combine real and simulation data"
-    utils/combine_data.sh data-fbank/${train_set} data-fbank/tr05_simu_noisy data-fbank/tr05_real_noisy
+    utils/combine_data.sh data-fbank/tr05_multi_noisy data-fbank/tr05_simu_noisy data-fbank/tr05_real_noisy
+    utils/combine_data.sh data-fbank/tr05_multi_noisy_si284 data-fbank/tr05_multi_noisy data-fbank/train_si284
     utils/combine_data.sh data-fbank/${train_dev} data-fbank/dt05_simu_isolated_1ch_track data-fbank/dt05_real_isolated_1ch_track
 
     # compute global CMVN
@@ -130,12 +144,12 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{14,15,16}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{14,15,16}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -180,8 +194,60 @@ if [ ${stage} -le 2 ]; then
     done
 fi
 
+# It takes a few days. If you just want to end-to-end ASR without LM,
+# you can skip this and remove --rnnlm option in the recognition (stage 5)
+if [ $use_wordlm = true ]; then
+    lmdatadir=data/local/wordlm_train
+    lm_batchsize=256
+    lmexpdir=exp/train_rnnlm_${backend}_word_2layer_bs${lm_batchsize}
+    lmdict=${lmexpdir}/wordlist_${vocabsize}.txt
+else
+    lmdatadir=data/local/lm_train
+    lm_batchsize=2048
+    lmexpdir=exp/train_rnnlm_${backend}_2layer_bs${lm_batchsize}
+    lmdict=$dict
+fi
+
+mkdir -p ${lmexpdir}
+if [ ${stage} -le 3 ]; then
+    echo "stage 3: LM Preparation"
+    mkdir -p ${lmdatadir}
+    if [ $use_wordlm = true ]; then
+	cat data-fbank/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+							    > ${lmdatadir}/train_trans.txt
+	zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
+	    | perl -pe 's/\n/ <eos> /g' > ${lmdatadir}/train_others.txt
+	cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
+	cat data-fbank/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+							    > ${lmdatadir}/valid.txt
+	text2vocabulary.py -s ${vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+    else
+	text2token.py -s 1 -n 1 -l ${nlsyms} data-fbank/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+											     > ${lmdatadir}/train_trans.txt
+	zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | grep -v "<" | tr [a-z] [A-Z] \
+	    | text2token.py -n 1 | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' >> ${lmdatadir}/train_others.txt
+	cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt | tr '\n' ' ' > ${lmdatadir}/train.txt
+	text2token.py -s 1 -n 1 -l ${nlsyms} data-fbank/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
+											     > ${lmdatadir}/valid.txt
+    fi
+    # use only 1 gpu
+    if [ ${ngpu} -gt 1 ]; then
+	echo "LM training does not support multi-gpu. single gpu will be used."
+    fi
+    ${cuda_cmd} ${lmexpdir}/train.log \
+		lm_train.py \
+		--ngpu ${ngpu} \
+		--backend ${backend} \
+		--verbose 1 \
+		--outdir ${lmexpdir} \
+		--train-label ${lmdatadir}/train.txt \
+		--valid-label ${lmdatadir}/valid.txt \
+		--batchsize ${lm_batchsize} \
+		--dict ${lmdict}
+fi
+
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -190,8 +256,8 @@ else
 fi
 mkdir -p ${expdir}
 
-if [ ${stage} -le 3 ]; then
-    echo "stage 3: Network Training"
+if [ ${stage} -le 4 ]; then
+    echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
@@ -213,6 +279,7 @@ if [ ${stage} -le 3 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
+        --adim ${adim} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
@@ -223,13 +290,20 @@ if [ ${stage} -le 3 ]; then
         --epochs ${epochs}
 fi
 
-if [ ${stage} -le 4 ]; then
-    echo "stage 4: Decoding"
+if [ ${stage} -le 5 ]; then
+    echo "stage 5: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        if [ $use_wordlm = true ]; then
+            decode_dir=${decode_dir}_wordrnnlm${lm_weight}
+            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best --word-dict ${lmdict}"
+        else
+            decode_dir=${decode_dir}_rnnlm${lm_weight}
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -243,7 +317,6 @@ if [ ${stage} -le 4 ]; then
             --ngpu ${ngpu} \
             --backend ${backend} \
             --debugmode ${debugmode} \
-            --verbose ${verbose} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
@@ -251,7 +324,9 @@ if [ ${stage} -le 4 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            &
+            --ctc-weight ${ctc_weight} \
+            --lm-weight ${lm_weight} \
+            $recog_opts &
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
