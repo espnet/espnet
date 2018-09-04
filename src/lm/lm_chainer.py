@@ -12,8 +12,11 @@ from __future__ import print_function
 import copy
 import json
 import logging
+import math
 import numpy as np
 import os
+import random
+import six
 
 import chainer
 from chainer.dataset import convert
@@ -22,20 +25,27 @@ import chainer.links as L
 from chainer import serializers
 
 # for classifier link
-from chainer.functions.evaluation import accuracy
 from chainer.functions.loss import softmax_cross_entropy
 from chainer import link
 from chainer import reporter
+from chainer import training
+from chainer.training import extensions
+from chainer.training import extension
 
-from lm_utils import ParallelSequentialIterator
+from lm_utils import ParallelSentenceIterator
+from lm_utils import MakeSymlinkToBestModel
+from lm_utils import read_tokens
+from lm_utils import count_tokens
+
+import deterministic_embed_id as DL
+
+REPORT_INTERVAL = 100
 
 
 class ClassifierWithState(link.Chain):
-    compute_accuracy = True
 
     def __init__(self, predictor,
                  lossfun=softmax_cross_entropy.softmax_cross_entropy,
-                 accfun=accuracy.accuracy,
                  label_key=-1):
         if not (isinstance(label_key, (int, str))):
             raise TypeError('label_key must be int or str, but is %s' %
@@ -43,10 +53,8 @@ class ClassifierWithState(link.Chain):
 
         super(ClassifierWithState, self).__init__()
         self.lossfun = lossfun
-        self.accfun = accfun
         self.y = None
         self.loss = None
-        self.accuracy = None
         self.label_key = label_key
 
         with self.init_scope():
@@ -54,8 +62,6 @@ class ClassifierWithState(link.Chain):
 
     def __call__(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.
-
-        It also computes accuracy and stores it to the attribute.
 
         Args:
             args (list of ~chainer.Variable): Input minibatch.
@@ -92,13 +98,8 @@ class ClassifierWithState(link.Chain):
 
         self.y = None
         self.loss = None
-        self.accuracy = None
         state, self.y = self.predictor(state, *args, **kwargs)
         self.loss = self.lossfun(self.y, t)
-        reporter.report({'loss': self.loss}, self)
-        if self.compute_accuracy:
-            self.accuracy = self.accfun(self.y, t)
-            reporter.report({'accuracy': self.accuracy}, self)
         return state, self.loss
 
     def predict(self, state, x):
@@ -115,30 +116,124 @@ class ClassifierWithState(link.Chain):
             state, z = self.predictor(state, x)
             return state, F.log_softmax(z).data
 
+    def final(self, state):
+        """Predict final log probabilities for given state using the predictor
+
+        Returns:
+            cupy/numpy array: log probability vector
+
+        """
+        if hasattr(self.predictor, 'final'):
+            return self.predictor.final(state)
+        else:
+            return 0.
+
 
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
 
-    def __init__(self, n_vocab, n_units):
+    def __init__(self, n_vocab, n_layers, n_units, n_projs):
         super(RNNLM, self).__init__()
         with self.init_scope():
-            self.embed = L.EmbedID(n_vocab, n_units)
-            self.l1 = L.StatelessLSTM(n_units, n_units)
-            self.l2 = L.StatelessLSTM(n_units, n_units)
+            self.embed = DL.EmbedID(n_vocab, n_projs)
+            self.l = chainer.ChainList()
+            self.l.append(L.StatelessLSTM(n_projs, n_units))
+            for n in six.moves.range(1, n_layers):
+                self.l.append(L.StatelessLSTM(n_units, n_units))
             self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
+        self.n_layers = n_layers
 
     def __call__(self, state, x):
         if state is None:
-            state = {'c1': None, 'h1': None, 'c2': None, 'h2': None}
-        h0 = self.embed(x)
-        c1, h1 = self.l1(state['c1'], state['h1'], F.dropout(h0))
-        c2, h2 = self.l2(state['c2'], state['h2'], F.dropout(h1))
-        y = self.lo(F.dropout(h2))
-        state = {'c1': c1, 'h1': h1, 'c2': c2, 'h2': h2}
+            state = {'c': [None] * self.n_layers, 'h': [None] * self.n_layers}
+        h = [None] * self.n_layers
+        c = [None] * self.n_layers
+        emb = self.embed(x)
+        c[0], h[0] = self.l[0](state['c'][0], state['h'][0], F.dropout(emb))
+        for n in six.moves.range(1, self.n_layers):
+            c[n], h[n] = self.l[n](state['c'][n], state['h'][n], F.dropout(h[n-1]))
+        y = self.lo(F.dropout(h[-1]))
+        state = {'c': c, 'h': h}
         return state, y
+
+
+class BPTTUpdater(training.updaters.StandardUpdater):
+
+    def __init__(self, train_iter, optimizer, device):
+        super(BPTTUpdater, self).__init__(
+            train_iter, optimizer, device=device)
+
+    # The core part of the update routine can be customized by overriding.
+    def update_core(self):
+        # When we pass one iterator and optimizer to StandardUpdater.__init__,
+        # they are automatically named 'main'.
+        train_iter = self.get_iterator('main')
+        optimizer = self.get_optimizer('main')
+        # Progress the dataset iterator for sentences at each iteration.
+        batch = train_iter.__next__()
+        x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
+        # Concatenate the token IDs to matrices and send them to the device
+        # self.converter does this job
+        # (it is chainer.dataset.concat_examples by default)
+        xp = chainer.backends.cuda.get_array_module(x)
+        loss = 0
+        count = 0
+        state = None
+        batch_size, sequence_length = x.shape
+        for i in six.moves.range(sequence_length):
+            # Compute the loss at this time step and accumulate it
+            state, loss_batch = optimizer.target(state, chainer.Variable(x[:, i]), 
+                                                 chainer.Variable(t[:, i]))
+            non_zeros = xp.count_nonzero(x[:, i])
+            loss += loss_batch * non_zeros
+            count += int(non_zeros)
+
+        reporter.report({'loss': float(loss.data)}, optimizer.target)
+        reporter.report({'count': count}, optimizer.target)
+        # update
+        loss /= batch_size  # normalized by batch size
+        optimizer.target.cleargrads()  # Clear the parameter gradients
+        loss.backward()  # Backprop
+        loss.unchain_backward()  # Truncate the graph
+        optimizer.update()  # Update the parameters
+
+
+class LMEvaluator(extensions.Evaluator):
+
+    def __init__(self, val_iter, eval_model, device):
+        super(LMEvaluator, self).__init__(
+            val_iter, eval_model, device=device)
+
+    def evaluate(self):
+        val_iter = self.get_iterator('main')
+        target = self.get_target('main')
+        loss = 0
+        count = 0
+        for batch in copy.copy(val_iter):
+            x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
+            xp = chainer.backends.cuda.get_array_module(x)
+            state = None
+            for i in six.moves.range(len(x[0])):
+                state, loss_batch = target(state, x[:, i], t[:, i])
+                non_zeros = xp.count_nonzero(x[:, i])
+                loss += loss_batch.data * non_zeros
+                count += int(non_zeros)
+        # report validation loss
+        observation = {}
+        with reporter.report_scope(observation):
+            reporter.report({'loss': float(loss/count)}, target)
+        return observation
+
+
+# Routine to rewrite the result dictionary of LogReport to add perplexity
+# values
+def compute_perplexity(result):
+    result['perplexity'] = np.exp(result['main/loss']/result['main/count'])
+    if 'validation/main/loss' in result:
+        result['val_perplexity'] = np.exp(result['validation/main/loss'])
 
 
 def train(args):
@@ -170,29 +265,36 @@ def train(args):
     if not chainer.cuda.cudnn_enabled:
         logging.warning('cudnn is not available')
 
-    with open(args.train_label, 'rb') as f:
-        train = np.array([args.char_list_dict[char]
-                          if char in args.char_list_dict else args.char_list_dict['<unk>']
-                          for char in f.readline().decode('utf-8').split()], dtype=np.int32)
-    with open(args.valid_label, 'rb') as f:
-        valid = np.array([args.char_list_dict[char]
-                          if char in args.char_list_dict else args.char_list_dict['<unk>']
-                          for char in f.readline().decode('utf-8').split()], dtype=np.int32)
+    # get special label ids
+    unk = args.char_list_dict['<unk>']
+    eos = args.char_list_dict['<eos>']
+
+    # read tokens as a sequence of sentences
+    train = read_tokens(args.train_label, args.char_list_dict)
+    val = read_tokens(args.valid_label, args.char_list_dict)
+    # count tokens
+    n_train_tokens, n_train_oovs = count_tokens(train, unk)
+    n_val_tokens, n_val_oovs = count_tokens(val, unk)
 
     logging.info('#vocab = ' + str(args.n_vocab))
-    logging.info('#words in the training data = ' + str(len(train)))
-    logging.info('#words in the validation data = ' + str(len(valid)))
-    logging.info('#iterations per epoch = ' + str(len(train) // (args.batchsize * args.bproplen)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#sentences in the training data = ' + str(len(train)))
+    logging.info('#tokens in the training data = ' + str(n_train_tokens))
+    logging.info('oov rate in the training data = %.2f %%' % (n_train_oovs/n_train_tokens*100))
+    logging.info('#sentences in the validation data = ' + str(len(val)))
+    logging.info('#tokens in the validation data = ' + str(n_val_tokens))
+    logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs/n_val_tokens*100))
 
     # Create the dataset iterators
-    train_iter = ParallelSequentialIterator(train, args.batchsize)
-    valid_iter = ParallelSequentialIterator(valid, args.batchsize, repeat=False)
+    train_iter = ParallelSentenceIterator(train, args.batchsize, 
+        max_length=args.maxlen, sos=eos, eos=eos)
+    val_iter = ParallelSentenceIterator(val, args.batchsize, 
+        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
 
+    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
+    logging.info('#total iterations = ' + str(args.epochs * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.unit)
+    rnn = RNNLM(args.n_vocab, args.layers, args.units, args.projs)
     model = ClassifierWithState(rnn)
-    model.compute_accuracy = False  # we only want the perplexity
     if args.ngpu > 1:
         logging.warn("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:
@@ -214,74 +316,38 @@ def train(args):
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
-    def evaluate(model, iter, bproplen=100):
-        # Evaluation routine to be used for validation and test.
-        model.predictor.train = False
-        evaluator = model.copy()  # to use different state
-        state = None
-        evaluator.predictor.train = False  # dropout does nothing
-        sum_perp = 0
-        data_count = 0
-        for batch in copy.copy(iter):
-            x, t = convert.concat_examples(batch, gpu_id)
-            state, loss = evaluator(state, x, t)
-            sum_perp += loss.data
-            if data_count % bproplen == 0:
-                loss.unchain_backward()  # Truncate the graph
-            data_count += 1
-        model.predictor.train = True
-        return np.exp(float(sum_perp) / data_count)
+    updater = BPTTUpdater(train_iter, optimizer, gpu_id)
+    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
+    trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
+    trainer.extend(extensions.LogReport(postprocess=compute_perplexity, 
+                                        trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.PrintReport(
+        ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
+    ), trigger=(REPORT_INTERVAL, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=10))
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'))
+    trainer.extend(extensions.snapshot_object(
+        model, 'rnnlm.model.{.updater.epoch}'))
+    # T.Hori: MinValueTrigger should be used, but it fails when resuming
+    trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
 
-    sum_perp = 0
-    count = 0
-    iteration = 0
-    epoch_now = 0
-    best_valid = 100000000
-    state = None
-    while train_iter.epoch < args.epoch:
-        loss = 0
-        iteration += 1
-        # Progress the dataset iterator for bprop_len words at each iteration.
-        for i in range(args.bproplen):
-            # Get the next batch (a list of tuples of two word IDs)
-            batch = train_iter.__next__()
-            # Concatenate the word IDs to matrices and send them to the device
-            # self.converter does this job
-            # (it is chainer.dataset.concat_examples by default)
-            x, t = convert.concat_examples(batch, gpu_id)
-            # Compute the loss at this time step and accumulate it
-            state, loss_batch = optimizer.target(state, chainer.Variable(x), chainer.Variable(t))
-            loss += loss_batch
-            count += 1
+    if args.resume:
+        chainer.serializers.load_npz(args.resume, trainer)
 
-        sum_perp += loss.data
-        optimizer.target.cleargrads()  # Clear the parameter gradients
-        loss.backward()  # Backprop
-        loss.unchain_backward()  # Truncate the graph
-        optimizer.update()  # Update the parameters
+    trainer.run()
 
-        if iteration % 100 == 0:
-            logging.info('iteration: ' + str(iteration))
-            logging.info('training perplexity: ' + str(np.exp(float(sum_perp) / count)))
-            sum_perp = 0
-            count = 0
-
-        if train_iter.epoch > epoch_now:
-            valid_perp = evaluate(model, valid_iter)
-            logging.info('epoch: ' + str(train_iter.epoch))
-            logging.info('validation perplexity: ' + str(valid_perp))
-
-            # Save the model and the optimizer
-            logging.info('save the model')
-            serializers.save_npz(args.outdir + '/rnnlm.model.' + str(epoch_now), model)
-            logging.info('save the optimizer')
-            serializers.save_npz(args.outdir + '/rnnlm.state.' + str(epoch_now), optimizer)
-
-            if valid_perp < best_valid:
-                dest = args.outdir + '/rnnlm.model.best'
-                if os.path.lexists(dest):
-                    os.remove(dest)
-                os.symlink('rnnlm.model.' + str(epoch_now), dest)
-                best_valid = valid_perp
-
-            epoch_now = train_iter.epoch
+    # compute perplexity for test set
+    if args.test_label:
+        logging.info('test the best model')
+        chainer.serializers.load_npz(args.outdir + '/rnnlm.model.best', model)
+        test = read_tokens(args.test_label, args.char_list_dict)
+        n_test_tokens, n_test_oovs = count_tokens(test, unk)
+        logging.info('#sentences in the test data = ' + str(len(test)))
+        logging.info('#tokens in the test data = ' + str(n_test_tokens))
+        logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs/n_test_tokens*100))
+        test_iter = ParallelSentenceIterator(test, args.batchsize, 
+            max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
+        evaluator = LMEvaluator(test_iter, model, device=gpu_id)
+        with chainer.using_config('train', False):
+            result = evaluator()
+        logging.info('test perplexity: ' + str(np.exp(float(result['main/loss']))))
