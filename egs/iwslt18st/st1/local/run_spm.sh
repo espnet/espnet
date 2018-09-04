@@ -35,9 +35,6 @@ adim=1024
 aconv_chans=10
 aconv_filts=100
 
-# hybrid CTC/attention
-mtlalpha=0
-
 # minibatch related
 batchsize=32
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
@@ -67,6 +64,7 @@ datadir=/export/b08/inaguma/IWSLT
 # bpemode (unigram or bpe)
 nbpe=10000
 bpemode=unigram
+
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -100,7 +98,6 @@ if [ ${stage} -le 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
     local/data_prep_train.sh ${datadir}
-
     for part in dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
         local/data_prep_eval.sh ${datadir} ${part}
     done
@@ -182,7 +179,7 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_spm1/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d " " data/train_en/text data/train_de/text | grep -o -P '&.*?;' | sort | uniq > ${nlsyms}
+    cut -f 2- -d " " data/train_en/text data/train_de/text | grep -o -P '&.*?;|@-@' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between EN and DE
@@ -234,7 +231,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -269,7 +266,7 @@ if [ ${stage} -le 4 ]; then
         --adim ${adim} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
+        --mtlalpha 0 \
         --batch-size ${batchsize} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
@@ -300,7 +297,7 @@ if [ ${stage} -le 5 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
+            --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
