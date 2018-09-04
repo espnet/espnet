@@ -456,7 +456,7 @@ def add_results_to_json(js, nbest_hyps, char_list):
         rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, char_list)
 
         # copy ground-truth
-        if u'output' in js['output'][0].keys():
+        if u'text' in js['output'][0].keys():
             out_dic = dict(js['output'][0].items())
 
             # update name
