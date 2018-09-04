@@ -33,5 +33,5 @@ Note that all experimental files and results are created under the normal exampl
 - [`cuda9.1-cudnn7` (*docker/prebuilt/gpu/9.1/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.1/cudnn7/Dockerfile)
 - [`cuda9.0-cudnn7` (*docker/prebuilt/gpu/9.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.0/cudnn7/Dockerfile)
 - [`cuda8.0-cudnn7`(*docker/prebuilt/gpu/8.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/8.0/cudnn7/Dockerfile)
-- [`cpu` (*docker/prebuilt/cpu/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/Dockerfile)
+- [`cpu` (*docker/prebuilt/devel/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/Dockerfile)
 - [`runtime` (*docker/prebuilt/runtime/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/runtime/Dockerfile)
