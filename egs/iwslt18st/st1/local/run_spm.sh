@@ -197,7 +197,7 @@ if [ ${stage} -le 2 ]; then
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --skip_text true --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
             data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
     done
 fi
