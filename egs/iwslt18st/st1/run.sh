@@ -52,7 +52,6 @@ beam_size=10
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # Set this to somewhere where you want to put your data, or where
@@ -156,7 +155,7 @@ if [ ${stage} -le 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
-    for rtask in ${recog_set}; do
+    for rtask in ${recog_set} ${eval_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
@@ -188,7 +187,7 @@ if [ ${stage} -le 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    for rtask in ${recog_set}; do
+    for rtask in ${recog_set} ${eval_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
@@ -272,9 +271,9 @@ if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
-    for rtask in ${recog_set}; do
+    for rtask in ${recog_set} ${eval_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_rnnlm${lm_weight}
         mkdir -p ${expdir}/${decode_dir}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
@@ -290,7 +289,7 @@ if [ ${stage} -le 5 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  \
+            --model ${expdir}/results/${recog_model} \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
@@ -300,7 +299,8 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        local/score_bleu.sh --non-lang-syms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        set=`echo ${rtask} | cut -f -1 -d "_"`
+        local/score_bleu.sh ${expdir}/${decode_dir} ${dict} ${datadir} ${set}
 
     ) &
     done
