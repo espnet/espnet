@@ -45,7 +45,6 @@ import lm_pytorch
 import matplotlib
 matplotlib.use('Agg')
 
-
 class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
     '''Custom evaluater for pytorch'''
 
@@ -187,6 +186,24 @@ def get_odim(output_name, valid_json):
     # Raise an exception because we couldn't find the odim
     raise NoOdimException("Couldn't determine output dimension (odim) for output named '{}'".format(output_name))
 
+def uttid2lang(uttid):
+    """ Returns the language given an utterance ID. Utterance IDs look
+    something like this: "105_94168_A_20120127_071423_043760-turkish". Given
+    this input, the output would be "turkish"
+    """
+    return uttid.split("-")[-1]
+
+def extract_langs(json):
+    """ Determines the number of output languages."""
+
+    # Create a list of languages observed by taking them from the utterance
+    # name.
+    utts = list(json.keys())
+    langs = set()
+    for utt in utts:
+        langs.add(uttid2lang(utt))
+    return langs
+
 def get_output(output_name, utterance_name, json):
     """ Returns the dictionary corresponding to a given output_name in some
     espnet utterance JSON. For example. Example output_names include "grapheme" and
@@ -223,9 +240,14 @@ def train(args):
     if not torch.cuda.is_available():
         logging.warning('cuda is not available')
 
-    # get input and output dimension info
+    # read json data
+    with open(args.train_json, 'rb') as f:
+        train_json = json.load(f)['utts']
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
+
+    langs = extract_langs(train_json)
+
     utts = list(valid_json.keys())
     # TODO(nelson) remove in future
     if 'input' not in valid_json[utts[0]]:
@@ -233,6 +255,8 @@ def train(args):
             "input file format (json) is modified, please redo"
             "stage 2: Dictionary and Json Data Preparation")
         sys.exit(1)
+
+    # get input and output dimension info
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
     grapheme_odim = get_odim("grapheme", valid_json)
     logging.info('#input dims : ' + str(idim))
@@ -260,7 +284,9 @@ def train(args):
         e2e = E2E(idim, grapheme_odim, args, phoneme_odim=phoneme_odim)
     else:
         e2e = E2E(idim, grapheme_odim, args)
-    model = Loss(e2e, args.mtlalpha, phoneme_objective_weight=args.phoneme_objective_weight)
+    model = Loss(e2e, args.mtlalpha, 
+                 phoneme_objective_weight=args.phoneme_objective_weight,
+                 langs=langs)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -301,12 +327,6 @@ def train(args):
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
-
-    # read json data
-    with open(args.train_json, 'rb') as f:
-        train_json = json.load(f)['utts']
-    with open(args.valid_json, 'rb') as f:
-        valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
