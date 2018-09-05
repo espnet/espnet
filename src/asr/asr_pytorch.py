@@ -33,6 +33,7 @@ from asr_utils import PlotAttentionReport
 from asr_utils import restore_snapshot
 from e2e_asr_attctc_th import E2E
 from e2e_asr_attctc_th import Loss
+from e2e_asr_attctc_th import uttid2lang
 
 # for kaldi io
 import kaldi_io_py
@@ -95,12 +96,13 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device):
+                 optimizer, converter, device, predict_lang=False):
         super(PytorchSeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, converter=converter, device=None)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
+        self.predict_lang = predict_lang
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -137,11 +139,19 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
-        delete_feat(x)
 
-        # Now compute the lang loss (this redoes the encoding, which may be
-        # slightly inefficient but should be fine for now).
-        lang_loss = self.model.forward_langid(x)
+        if self.predict_lang:
+            # Now compute the lang loss (this redoes the encoding, which may be
+            # slightly inefficient but should be fine for now).
+            optimizer.zero_grad()
+            lang_loss = self.model.forward_langid(x)
+            if self.num_gpu > 1:
+                lang_loss.backward(torch.ones(self.num_gpu))  # Backprop
+            else:
+                lang_loss.backward()  # Backprop
+            optimizer.step()
+
+        delete_feat(x)
 
 class DataParallel(torch.nn.DataParallel):
     def scatter(self, inputs, kwargs, device_ids, dim):
@@ -189,13 +199,6 @@ def get_odim(output_name, valid_json):
             return int(output['shape'][1])
     # Raise an exception because we couldn't find the odim
     raise NoOdimException("Couldn't determine output dimension (odim) for output named '{}'".format(output_name))
-
-def uttid2lang(uttid):
-    """ Returns the language given an utterance ID. Utterance IDs look
-    something like this: "105_94168_A_20120127_071423_043760-turkish". Given
-    this input, the output would be "turkish"
-    """
-    return uttid.split("-")[-1]
 
 def extract_langs(json):
     """ Determines the number of output languages."""

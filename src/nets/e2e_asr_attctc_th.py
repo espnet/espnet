@@ -31,6 +31,13 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
+def uttid2lang(uttid):
+    """ Returns the language given an utterance ID. Utterance IDs look
+    something like this: "105_94168_A_20120127_071423_043760-turkish". Given
+    this input, the output would be "turkish"
+    """
+    return uttid.split("-")[-1]
+
 def get_tids(output_type, data):
     """ Given some data from data.json, return a list of lists,
     one per utterance, where each sub-list consists of tokenids corresponding
@@ -123,24 +130,34 @@ class Loss(torch.nn.Module):
         self.predictor = predictor
         self.reporter = Reporter()
         self.langs = langs
+        self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
 
     def forward_langid(self, x):
 
-        hpad, hlens = self.predictor.encode(x)
-        logging.info("hpad shape {}".format(hpad.shape))
-        logging.info("hlens {}".format(hlens))
+        hpad, hlens, grapheme_ys, phoneme_ys = self.predictor.encode(x)
+        #logging.info("hpad shape {}".format(hpad.shape))
+        #logging.info("hlens {}".format(hlens))
         mean = hpad.mean(dim=1)
         linear = torch.nn.Linear(self.predictor.eprojs, 10)
         linear.cuda()
-        logging.info("linear {}".format(linear))
-        logging.info("dir(linear) {}".format(dir(linear)))
+        #logging.info("linear {}".format(linear))
+        #logging.info("dir(linear) {}".format(dir(linear)))
         log_softmax = torch.nn.LogSoftmax(dim=1)
         log_softmax.cuda()
         log_softmax_out = log_softmax(linear(mean))
         logging.info("log_softmax {}".format(log_softmax_out))
         logging.info("log_softmax shape {}".format(log_softmax_out.shape))
-        import traceback; traceback.format_exc()
-        sys.exit()
+
+        targets = torch.cuda.LongTensor([self.lang2id[uttid2lang(utt[0])] for utt in x])
+        targets.cuda()
+        targets = torch.autograd.Variable(targets)
+        targets.cuda()
+        logging.info("targets: {}".format(targets))
+        loss = torch.nn.NLLLoss()
+        loss.cuda()
+        loss_out = loss(log_softmax_out, targets)
+        logging.info("loss: {}".format(loss_out))
+        return loss_out
 
     def forward(self, x):
         '''Loss forward
@@ -335,8 +352,6 @@ class E2E(torch.nn.Module):
         """ Takes the JSON data (which is a batch) and then produces an encodedv version"""
 
         logging.info("data: {}".format(data))
-        logging.info("len(data): {}".format(len(data)))
-        logging.info("data[0][1]: {}".format(data[0][1]))
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances

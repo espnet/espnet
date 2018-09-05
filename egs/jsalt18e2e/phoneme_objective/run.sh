@@ -47,6 +47,8 @@ mtlalpha=0.0
 phoneme_objective_weight=0.5
 phoneme_objective_layer=""
 
+predict_lang=false
+
 # minibatch related
 batchsize=50
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
@@ -324,6 +326,9 @@ if [ -z ${tag} ]; then
     if [ ${phoneme_objective_layer} ]; then
         expdir=${expdir}_phonemelayer${phoneme_objective_layer}
     fi
+    if [[ ${predict_lang} = true ]]; then
+        expdir=${expdir}_predictlang
+    fi
 else
     expdir=exp/${train_set}_${tag}
 fi
@@ -364,11 +369,14 @@ if [ ${stage} -le 3 ]; then
     if [[ ${phoneme_objective_layer} ]]; then
         train_cmd="${train_cmd} --phoneme_objective_layer ${phoneme_objective_layer}"
     fi
-    echo $train_cmd
+    if [[ ${predict_lang} = true ]]; then
+        train_cmd="${train_cmd} --predict_lang"
+    fi
+    echo "train_cmd: $train_cmd"
+    echo "expdir: $expdir"
     ${train_cmd}
 fi
 
-exit
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"

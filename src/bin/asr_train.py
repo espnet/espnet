@@ -137,6 +137,8 @@ def main():
                         help='Train with an additional phoneme transcription objective if weight > 0')
     parser.add_argument('--phoneme_objective_layer', default=None,
                         help='The layer of the BLSTM encoder to connect to the phoneme objective')
+    parser.add_argument('--predict_lang', action="store_true",
+                        help='If flagged, the model predicts languages as well')
     args = parser.parse_args()
     try:
         args.phoneme_objective_layer = int(args.phoneme_objective_layer)
