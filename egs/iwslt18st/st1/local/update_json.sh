@@ -9,6 +9,7 @@ nlsyms=""
 oov="<unk>"
 bpecode=""
 verbose=0
+text=""
 
 . utils/parse_options.sh
 set -e
@@ -28,24 +29,28 @@ mkdir -p ${json_dir}/tmp
 tmpdir=${json_dir}/tmp
 rm -f ${tmpdir}/*.scp
 
+if [ -z ${text} ]; then
+  text=${data_dir}/text
+fi
+
 # output
 if [ ! -z ${bpecode} ]; then
-    paste -d " " <(awk '{print $1}' ${data_dir}/text) <(cut -f 2- -d" " ${data_dir}/text | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
+    paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
 elif [ ! -z ${nlsyms} ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${data_dir}/text > ${tmpdir}/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/token.scp
 else
-    text2token.py -s 1 -n 1 ${data_dir}/text > ${tmpdir}/token.scp
+    text2token.py -s 1 -n 1 ${text} > ${tmpdir}/token.scp
 fi
 cat ${tmpdir}/token.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid.scp
 cat ${tmpdir}/tokenid.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/olen.scp
 # +2 comes from CTC blank and EOS
 vocsize=`tail -n 1 ${dic} | awk '{print $2}'`
 odim=`echo "$vocsize + 2" | bc`
-awk -v odim=${odim} '{print $1 " " odim}' ${data_dir}/text > ${tmpdir}/odim.scp
+awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/odim.scp
 
 # convert to json
 rm -f ${tmpdir}/*.json
-for x in ${data_dir}/text ${data_dir}/utt2spk ${tmpdir}/*.scp; do
+for x in ${text} ${data_dir}/utt2spk ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
     cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done

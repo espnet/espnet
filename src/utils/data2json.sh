@@ -11,6 +11,7 @@ feat="" # feat.scp
 oov="<unk>"
 bpecode=""
 verbose=0
+text=
 
 . utils/parse_options.sh
 
@@ -23,6 +24,10 @@ dir=$1
 dic=$2
 tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
 rm -f ${tmpdir}/*.scp
+
+if [ -z ${text} ]; then
+  text=${dir}/text
+fi
 
 # input, which is not necessary for decoding mode, and make it as an option
 if [ ! -z ${feat} ]; then
@@ -38,13 +43,13 @@ if [ ! -z ${feat} ]; then
 fi
 
 # output
-if [ -f ${dir}/text ]; then
+if [ -f ${text} ]; then
   if [ ! -z ${bpecode} ]; then
-      paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
+      paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
   elif [ ! -z ${nlsyms} ]; then
-      text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/token.scp
+      text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/token.scp
   else
-      text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/token.scp
+      text2token.py -s 1 -n 1 ${text} > ${tmpdir}/token.scp
   fi
 
   cat ${tmpdir}/token.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid.scp
@@ -52,12 +57,12 @@ if [ -f ${dir}/text ]; then
   # +2 comes from CTC blank and EOS
   vocsize=`tail -n 1 ${dic} | awk '{print $2}'`
   odim=`echo "$vocsize + 2" | bc`
-  awk -v odim=${odim} '{print $1 " " odim}' ${dir}/text > ${tmpdir}/odim.scp
+  awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/odim.scp
 fi
 
 # others
 if [ ! -z ${lang} ]; then
-    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/lang.scp
+    awk -v lang=${lang} '{print $1 " " lang}' ${text} > ${tmpdir}/lang.scp
 fi
 # feats
 if [ ! -z ${feat} ]; then
@@ -65,8 +70,8 @@ if [ ! -z ${feat} ]; then
 fi
 
 rm -f ${tmpdir}/*.json
-if [ -f ${dir}/text ]; then
-  cat ${dir}/text | scp2json.py --key text > ${tmpdir}/text.json
+if [ -f ${text} ]; then
+  cat ${text} | scp2json.py --key text > ${tmpdir}/text.json
 fi
 for x in ${dir}/utt2spk ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
