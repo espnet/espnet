@@ -5,6 +5,8 @@ KALDI =
 
 all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
 
+all_python: virtualenv chainer_patch warp-ctc chainer_ctc
+
 kaldi-io-for-python:
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
 	cd ../src/utils; ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
@@ -37,7 +39,7 @@ nkf:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
 warp-ctc: virtualenv
-	git clone -b follows-upstream https://github.com/jnishi/warp-ctc.git
+	git clone https://github.com/jnishi/warp-ctc.git
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
@@ -53,12 +55,14 @@ sentencepiece:
 	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 
 moses:
-	git clone https://github.com/moses-smt/mosesdecoder.git
-	cd mosesdecoder && make -f contrib/Makefiles/install-dependencies.gmake
-	cd mosesdecoder && ./compile.sh
-	ln -s mosesdecoder moses
+	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
 clean:
-	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece mosesdecoder
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece moses
+	rm -f miniconda.sh
+	find . -iname "*.pyc" -delete
+
+clean_python:
+	rm -fr venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
 	find . -iname "*.pyc" -delete

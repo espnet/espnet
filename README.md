@@ -103,7 +103,15 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ source venv/bin/activate && python check_install.py
 ```
-If you have no warining, ready to run the recipe!
+If you have no warning, ready to run the recipe!
+
+If there are some problems in python libraries, you can re-setup only python environment via following commands
+```sh
+$ cd tools
+$ make clean_python
+$ make all_python
+```
+And then check the install is succeeded again.
 
 ## Execution of example scripts
 
@@ -180,20 +188,7 @@ To disable the PCI Express ACS follow instructions written [here](https://github
 
 ### Docker Container
 
-To work inside a docker container, execute `run.sh` located inside the docker directory.
-It will build a container and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
-```sh
-$ cd docker
-$ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpora4/CHiME4/CHiME3 --dlayers 1 --ngpu 1 
-```
-Optionally, you can set the CUDA and CUDNN version with the arguments `--docker_cuda` and `--docker_cudnn` respectively (default version set at CUDA=9.0 and CUDNN=7). The docker container can be built based on the CUDA and CUDNN version installed in your computer if you empty this arguments.
-The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
-Multiple GPUs should be specified with the following options:
-```sh
-$ cd docker
-$ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5/asr1 --docker_folders /export/corpora4/CHiME5 --ngpu 3
-```
-Note that all experimental files and results are created under the normal example directories (`egs/<example>/`).
+go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
 
 ### Setup in your cluster
 
@@ -253,8 +248,10 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval3 | 5.9 | N/A  |
 | HKUST train_dev | 28.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
-| Librispeech dev_clean  | N/A | 5.0 |
-| Librispeech test_clean | N/A | 5.0 |
+| Librispeech dev_clean  | N/A | 4.5 |
+| Librispeech test_clean | N/A | 4.6 |
+
+Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
 ## Chainer and Pytorch backends
 
@@ -266,7 +263,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | VGG-like encoder | supported | supported |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
-| TTS recipe suuport | no support | supported |
+| TTS recipe support | no support | supported |
 
 ## References (Please cite the following articles)
 

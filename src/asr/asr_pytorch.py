@@ -119,11 +119,12 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = 1. / self.ngpu * self.model(*x)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.ngpu > 1:
+            loss = 1. / self.ngpu * self.model(*x)
             loss.backward(loss.new_ones(self.ngpu))  # Backprop
         else:
+            loss = self.model(*x)
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
@@ -265,11 +266,10 @@ def train(args):
     # actual bathsize is included in a list
     train_iter = chainer.iterators.MultiprocessIterator(
         TransformDataset(train, converter.transform),
-        batch_size=1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
-    valid_iter = chainer.iterators.MultiprocessIterator(
+        batch_size=1, n_processes=1, n_prefetch=8, maxtasksperchild=20)
+    valid_iter = chainer.iterators.SerialIterator(
         TransformDataset(valid, converter.transform),
-        batch_size=1, n_processes=2, n_prefetch=8,
-        repeat=False, shuffle=False, maxtasksperchild=20)
+        batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
     updater = CustomUpdater(

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2018 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -21,11 +21,11 @@ do_delta=false
 
 # network architecture
 # encoder related
-etype=vggblstmp     # encoder architecture type
+etype=vggblstm     # encoder architecture type
 elayers=3
 eunits=1024
 eprojs=1024
-subsample=1_1_1 # skip every n frame from input to nth layers
+subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
 dunits=1024
@@ -39,7 +39,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=25
+batchsize=32
 maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -53,20 +53,19 @@ use_wordlm=true
 vocabsize=65000
 
 # decoding parameter
-beam_size=20
+beam_size=30
 penalty=0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
-# scheduled sampling option
-samp_prob=0.0
-
 # data
-chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
+reverb=/export/corpora5/REVERB_2014/REVERB    # JHU setup
+wsjcam0=/export/corpora3/LDC/LDC95S24/wsjcam0 # JHU setup
 wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
 wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
+wavdir=${PWD}/wav # place to store WAV files
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -82,38 +81,18 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr05_multi_noisy_si284 # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
-train_dev=dt05_multi_isolated_1ch_track
-recog_set="\
-dt05_real_isolated_1ch_track dt05_simu_isolated_1ch_track et05_real_isolated_1ch_track et05_simu_isolated_1ch_track \
-dt05_real_beamformit_2mics dt05_simu_beamformit_2mics et05_real_beamformit_2mics et05_simu_beamformit_2mics \
-dt05_real_beamformit_5mics dt05_simu_beamformit_5mics et05_real_beamformit_5mics et05_simu_beamformit_5mics \
-"
+train_set=tr_simu_8ch_si284
+train_dev=dt_mult_1ch
+recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
+    wavdir=$PWD/wav # set the directory of the multi-condition training WAV files to be generated
     echo "stage 0: Data preparation"
-    wsj0_data=${chime4_data}/data/WSJ0
-    local/clean_wsj0_data_prep.sh ${wsj0_data}
-    local/clean_chime4_format_data.sh
-    echo "beamforming for multichannel cases"
-    local/run_beamform_2ch_track.sh --cmd "${train_cmd}" --nj 20 \
-        ${chime4_data}/data/audio/16kHz/isolated_2ch_track enhan/beamformit_2mics
-    local/run_beamform_6ch_track.sh --cmd "${train_cmd}" --nj 20 \
-        ${chime4_data}/data/audio/16kHz/isolated_6ch_track enhan/beamformit_5mics
-    echo "prepartion for chime4 data"
-    local/real_noisy_chime4_data_prep.sh ${chime4_data}
-    local/simu_noisy_chime4_data_prep.sh ${chime4_data}
-    echo "test data for 1ch track"
-    local/real_enhan_chime4_data_prep.sh isolated_1ch_track ${chime4_data}/data/audio/16kHz/isolated_1ch_track
-    local/simu_enhan_chime4_data_prep.sh isolated_1ch_track ${chime4_data}/data/audio/16kHz/isolated_1ch_track
-    echo "test data for 2ch track"
-    local/real_enhan_chime4_data_prep.sh beamformit_2mics ${PWD}/enhan/beamformit_2mics
-    local/simu_enhan_chime4_data_prep.sh beamformit_2mics ${PWD}/enhan/beamformit_2mics
-    echo "test data for 6ch track"
-    local/real_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
-    local/simu_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
+    local/generate_data.sh --wavdir ${wavdir} ${wsjcam0}
+    local/prepare_simu_data.sh --wavdir ${wavdir} ${reverb} ${wsjcam0}
+    local/prepare_real_data.sh ${reverb}
 
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
@@ -128,18 +107,17 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     fbankdir=fbank
-    tasks="tr05_real_noisy tr05_simu_noisy train_si284 ${recog_set}"
+    tasks="${recog_set} tr_simu_8ch train_si284"
     for x in ${tasks}; do
         utils/copy_data_dir.sh data/${x} data-fbank/${x}
-        utils/copy_data_dir.sh data/${x} data-stft/${x}
-        steps/make_fbank_pitch.sh --nj 8 --cmd "${train_cmd}" --write_utt2num_frames true \
+        steps/make_fbank_pitch.sh --nj 32 --cmd "${train_cmd}" --write_utt2num_frames true \
             data-fbank/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
-    echo "combine real and simulation data"
-    utils/combine_data.sh data-fbank/tr05_multi_noisy data-fbank/tr05_simu_noisy data-fbank/tr05_real_noisy
-    utils/combine_data.sh data-fbank/tr05_multi_noisy_si284 data-fbank/tr05_multi_noisy data-fbank/train_si284
-    utils/combine_data.sh data-fbank/${train_dev} data-fbank/dt05_simu_isolated_1ch_track data-fbank/dt05_real_isolated_1ch_track
+    echo "combine reverb simulation and wsj clean training data"
+    utils/combine_data.sh data-fbank/${train_set} data-fbank/tr_simu_8ch data-fbank/train_si284
+    echo "combine real and simulation development data"
+    utils/combine_data.sh data-fbank/${train_dev} data-fbank/dt_real_1ch data-fbank/dt_simu_1ch
 
     # compute global CMVN
     compute-cmvn-stats scp:data-fbank/${train_set}/feats.scp data-fbank/${train_set}/cmvn.ark
@@ -147,12 +125,12 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/a{11,12,13,14}/${USER}/espnet-data/egs/reverb/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/a{11,12,13,14}/${USER}/espnet-data/egs/reverb/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -210,7 +188,6 @@ else
     lmexpdir=exp/train_rnnlm_${backend}_2layer_bs${lm_batchsize}
     lmdict=$dict
 fi
-
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
@@ -250,7 +227,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${sampprob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -288,7 +265,6 @@ if [ ${stage} -le 4 ]; then
         --mtlalpha ${mtlalpha} \
         --batch-size ${batchsize} \
         --maxlen-in ${maxlen_in} \
-        --sampling-probability ${samp_prob} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
         --epochs ${epochs}
@@ -302,12 +278,12 @@ if [ ${stage} -le 5 ]; then
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
         if [ $use_wordlm = true ]; then
-            decode_dir=${decode_dir}_wordrnnlm${lm_weight}
-            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best --word-dict ${lmdict}"
-        else
-            decode_dir=${decode_dir}_rnnlm${lm_weight}
-            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
-        fi
+	    decode_dir=${decode_dir}_wordrnnlm${lm_weight}
+	    recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best --word-dict ${lmdict}"
+	else
+	    decode_dir=${decode_dir}_rnnlm${lm_weight}
+	    recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+	fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -338,6 +314,15 @@ if [ ${stage} -le 5 ]; then
     ) &
     done
     wait
+    echo "Report the result"
+    decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+    if [ $use_wordlm = true ]; then
+	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}
+    else
+	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}
+    fi
+    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
+			      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
+			      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
     echo "Finished"
 fi
-
