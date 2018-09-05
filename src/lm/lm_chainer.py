@@ -27,6 +27,7 @@ from chainer.functions.loss import softmax_cross_entropy
 from chainer import link
 from chainer import reporter
 
+from lm_utils import get_line_id
 from lm_utils import ParallelSequentialIterator
 
 
@@ -170,14 +171,21 @@ def train(args):
     if not chainer.cuda.cudnn_enabled:
         logging.warning('cudnn is not available')
 
+    # read training data
+    train = []
     with open(args.train_label, 'rb') as f:
-        train = np.array([args.char_list_dict[char]
-                          if char in args.char_list_dict else args.char_list_dict['<unk>']
-                          for char in f.readline().decode('utf-8').split()], dtype=np.int32)
+        for line in f:
+            train.append(get_line_id(line, args))
+    # convert to one dimensional numpy array
+    train = np.concatenate(train).astype(np.int32)
+
+    # read validation data
+    valid = []
     with open(args.valid_label, 'rb') as f:
-        valid = np.array([args.char_list_dict[char]
-                          if char in args.char_list_dict else args.char_list_dict['<unk>']
-                          for char in f.readline().decode('utf-8').split()], dtype=np.int32)
+        for line in f:
+            valid.append(get_line_id(line, args))
+    # convert to one dimensional numpy array
+    valid = np.concatenate(valid).astype(np.int32)
 
     logging.info('#vocab = ' + str(args.n_vocab))
     logging.info('#words in the training data = ' + str(len(train)))

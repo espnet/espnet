@@ -12,6 +12,12 @@ from __future__ import print_function
 import chainer
 
 
+# read line and replace the OOV and linebreak
+def get_line_id(line, args, unk='<unk>', eos='<eos>'):
+    return [args.char_list_dict[char] if char in args.char_list_dict else args.char_list_dict[unk]
+            for char in line.decode('utf-8').replace('\n', ' ' + eos).split()]
+
+
 # Dataset iterator to create a batch of sequences at different positions.
 # This iterator returns a pair of current words and the next words. Each
 # example is a part of sequences starting from the different offsets
