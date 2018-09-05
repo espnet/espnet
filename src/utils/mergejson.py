@@ -68,8 +68,9 @@ if __name__ == '__main__':
             out_dic[unicode('token', 'utf-8')] = dic[unicode('token', 'utf-8')]
             out_dic[unicode('tokenid', 'utf-8')] = dic[unicode('tokenid', 'utf-8')]
 
-        new_dic[id] = {unicode('input', 'utf-8'): [in_dic], unicode('output', 'utf-8'): [out_dic],
-                       unicode('utt2spk', 'utf-8'): dic[unicode('utt2spk', 'utf-8')]}
+        new_dic[id] = {unicode('input', 'utf-8'): [in_dic], unicode('output', 'utf-8'): [out_dic], }
+        if dic.has_key(unicode('utt2spk', 'utf-8')):
+            new_dic[id][unicode('utt2spk', 'utf-8')] = dic[unicode('utt2spk', 'utf-8')]
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8')

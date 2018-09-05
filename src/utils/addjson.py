@@ -106,8 +106,9 @@ if __name__ == '__main__':
 
             output_list.append(out_add_dic)
             new_dic[id] = {'input': orgdic['input'],
-                           'output': output_list,
-                           'utt2spk': orgdic['utt2spk']}
+                           'output': output_list}
+            if 'utt2spk' in orgdic.keys():
+                new_dic[id]['utt2spk'] = orgdic['utt2spk']
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps(

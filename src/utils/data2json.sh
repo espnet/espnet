@@ -11,7 +11,8 @@ feat="" # feat.scp
 oov="<unk>"
 bpecode=""
 verbose=0
-text=
+text=""
+utt2spk=true
 
 . utils/parse_options.sh
 
@@ -73,7 +74,10 @@ rm -f ${tmpdir}/*.json
 if [ -f ${text} ]; then
   cat ${text} | scp2json.py --key text > ${tmpdir}/text.json
 fi
-for x in ${dir}/utt2spk ${tmpdir}/*.scp; do
+if $utt2spk; then
+  cat ${dir}/utt2spk | scp2json.py --key utt2spk > ${tmpdir}/utt2spk.json
+fi
+for x in ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
     cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done

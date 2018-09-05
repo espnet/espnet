@@ -50,9 +50,10 @@ awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/odim.scp
 
 # convert to json
 rm -f ${tmpdir}/*.json
-for x in ${text} ${data_dir}/utt2spk ${tmpdir}/*.scp; do
+cat ${text} | scp2json.py --key text | sed -e "s/.en.talkid/.de.talkid/g" > ${tmpdir}/text.json
+for x in ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
-    cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
+    cat ${x} | scp2json.py --key ${k} | sed -e "s/.en.talkid/.de.talkid/g" > ${tmpdir}/${k}.json
 done
 
 # add to json
