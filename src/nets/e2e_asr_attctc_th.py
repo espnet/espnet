@@ -112,7 +112,9 @@ class Reporter(chainer.Chain):
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    def __init__(self, predictor, mtlalpha, phoneme_objective_weight=None):
+    def __init__(self, predictor, mtlalpha,
+                 phoneme_objective_weight=None,
+                 langs=None):
         super(Loss, self).__init__()
         self.mtlalpha = mtlalpha
         self.phoneme_objective_weight = phoneme_objective_weight
@@ -120,6 +122,25 @@ class Loss(torch.nn.Module):
         self.accuracy = None
         self.predictor = predictor
         self.reporter = Reporter()
+        self.langs = langs
+
+    def forward_langid(self, x):
+
+        hpad, hlens = self.predictor.encode(x)
+        logging.info("hpad shape {}".format(hpad.shape))
+        logging.info("hlens {}".format(hlens))
+        mean = hpad.mean(dim=1)
+        linear = torch.nn.Linear(self.predictor.eprojs, 10)
+        linear.cuda()
+        logging.info("linear {}".format(linear))
+        logging.info("dir(linear) {}".format(dir(linear)))
+        log_softmax = torch.nn.LogSoftmax(dim=1)
+        log_softmax.cuda()
+        log_softmax_out = log_softmax(linear(mean))
+        logging.info("log_softmax {}".format(log_softmax_out))
+        logging.info("log_softmax shape {}".format(log_softmax_out.shape))
+        import traceback; traceback.format_exc()
+        sys.exit()
 
     def forward(self, x):
         '''Loss forward
@@ -306,14 +327,16 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    # x[i]: ('utt_id', {'ilen':'xxx',...}})
-    def forward(self, data):
-        '''E2E forward
+    #def prep_data(self, data):
+    #    """ Prepares the xs and ys to go into the encoder and forward
+    #    passes."""
 
-        :param data:
-        :return:
-        '''
+    def encode(self, data):
+        """ Takes the JSON data (which is a batch) and then produces an encodedv version"""
 
+        logging.info("data: {}".format(data))
+        logging.info("len(data): {}".format(len(data)))
+        logging.info("data[0][1]: {}".format(data[0][1]))
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances
@@ -349,20 +372,17 @@ class E2E(torch.nn.Module):
         xpad = pad_list(hs)
         hpad, hlens = self.enc(xpad, ilens)
 
-        if self.mtlalpha == 0.1:
-            logging.info("hpad shape {}".format(hpad.shape))
-            logging.info("hlens {}".format(hlens))
-            mean = hpad.mean(dim=1)
-            linear = torch.nn.Linear(self.eprojs, 10)
-            linear.cuda()
-            logging.info("linear {}".format(linear))
-            logging.info("dir(linear) {}".format(dir(linear)))
-            log_softmax = torch.nn.LogSoftmax(dim=1)
-            log_softmax.cuda()
-            log_softmax_out = log_softmax(linear(mean))
-            logging.info("log_softmax {}".format(log_softmax_out))
-            logging.info("log_softmax shape {}".format(log_softmax_out.shape))
-            sys.exit()
+        return hpad, hlens, grapheme_ys, phoneme_ys
+
+    # x[i]: ('utt_id', {'ilen':'xxx',...}})
+    def forward(self, data):
+        '''E2E forward
+
+        :param data:
+        :return:
+        '''
+
+        hpad, hlens, grapheme_ys, phoneme_ys = self.encode(data)
 
         # # 3. CTC loss
         if self.mtlalpha == 0:

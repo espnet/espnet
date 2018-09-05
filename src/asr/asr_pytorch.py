@@ -139,6 +139,10 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             optimizer.step()
         delete_feat(x)
 
+        # Now compute the lang loss (this redoes the encoding, which may be
+        # slightly inefficient but should be fine for now).
+        lang_loss = self.model.forward_langid(x)
+
 class DataParallel(torch.nn.DataParallel):
     def scatter(self, inputs, kwargs, device_ids, dim):
         r"""Scatter with support for kwargs dictionary"""
