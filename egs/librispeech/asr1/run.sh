@@ -22,12 +22,12 @@ do_delta=false
 # network archtecture
 # encoder related
 etype=vggblstm     # encoder architecture type
-elayers=4
+elayers=5
 eunits=1024
 eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
-dlayers=1
+dlayers=2
 dunits=1024
 # attention related
 atype=location
@@ -39,7 +39,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=32
+batchsize=24
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -48,14 +48,14 @@ opt=adadelta
 epochs=10
 
 # rnnlm related
-lm_weight=0.3
+lm_weight=0.5
 
 # decoding parameter
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.3
+ctc_weight=0.5
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # scheduled sampling option
@@ -70,7 +70,7 @@ datadir=/export/a15/vpanayotov/data
 data_url=www.openslr.org/resources/12
 
 # bpemode (unigram or bpe)
-nbpe=2000
+nbpe=5000
 bpemode=unigram
 
 # exp tag
