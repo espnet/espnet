@@ -30,11 +30,13 @@ def decoder_init(m):
 
 
 def make_pad_mask(lengths):
-    """Function to make mask tensor containing indices of padded part
+    """FUNCTION TO MAKE MASK TENSOR CONTAINING INDICES OF PADDED PART
+
     e.g.: lengths = [5, 3, 2]
           mask = [[0, 0, 0, 0 ,0],
                   [0, 0, 0, 1, 1],
                   [0, 0, 1, 1, 1]]
+
     :param list lengths: list of lengths (B)
     :return: mask tensor contraining indices of padded part (B, Tmax)
     :rtype: torch.Tensor
