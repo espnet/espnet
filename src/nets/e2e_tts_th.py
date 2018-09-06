@@ -119,11 +119,11 @@ class Tacotron2Loss(torch.nn.Module):
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim),
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
         :param list olens: batch of the lengths of each target (B)
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, spc_dim),
+        :param torch.Tensor spcs: batch of padded target features (B, Lmax, spc_dim)
         :return: loss value
         :rtype: torch.Tensor
         """
@@ -320,7 +320,7 @@ class Tacotron2(torch.nn.Module):
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim),
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
         :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
@@ -973,7 +973,10 @@ class CBHG(torch.nn.Module):
 
 
 class HighwayNet(torch.nn.Module):
-    """HIGHWAY NETWORK"""
+    """HIGHWAY NETWORK
+
+    :param int idim: dimension of the inputs
+    """
 
     def __init__(self, idim):
         super(HighwayNet, self).__init__()
