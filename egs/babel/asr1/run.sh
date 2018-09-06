@@ -9,8 +9,7 @@
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-gpu=            # will be deprecated, please use ngpu
-ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 seed=1
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -19,7 +18,7 @@ verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 
 # feature configuration
-do_delta=false # true when using CNN
+do_delta=false
 
 # network archtecture
 # encoder related
@@ -66,7 +65,7 @@ penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -75,17 +74,6 @@ langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 4
 recog="107 201 307 404"
 
 . utils/parse_options.sh || exit 1;
-
-# check gpu option usage
-if [ ! -z $gpu ]; then
-    echo "WARNING: --gpu option will be deprecated."
-    echo "WARNING: please use --ngpu option."
-    if [ $gpu -eq -1 ]; then
-        ngpu=0
-    else
-        ngpu=1
-    fi
-fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -98,7 +86,7 @@ train_set=train
 train_dev=dev
 
 # LM Directories
-lmexpdir=exp/train_rnnlm_2layer_bs2048
+lmexpdir=exp/train_rnnlm_${backend}_2layer_bs2048
 lm_train_set=data/local/train.txt
 lm_valid_set=data/local/dev.txt
 
@@ -123,13 +111,14 @@ if [ $stage -le 1 ]; then
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
   for x in ${train_set} ${train_dev} ${recog_set}; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 data/${x} exp/make_fbank/${x} ${fbankdir}
-      ./utils/fix_data_dir.sh data/${x} 
+      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+          data/${x} exp/make_fbank/${x} ${fbankdir}
+      ./utils/fix_data_dir.sh data/${x}
   done
 
   # compute global CMVN
   compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-  ./utils/fix_data_dir.sh data/${train_set} 
+  ./utils/fix_data_dir.sh data/${train_set}
 
   exp_name=`basename $PWD`
   # dump features for training
@@ -190,25 +179,25 @@ fi
 if $use_lm; then
   lm_train_set=data/local/train.txt
   lm_valid_set=data/local/dev.txt
- 
+
   # Make train and valid
   text2token.py --nchar 1 \
                 --space "<space>" \
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
                 <(cut -d' ' -f2- data/${train_set}/text | head -100) |\
-                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_train_set} 
+                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_train_set}
 
   text2token.py --nchar 1 \
                 --space "<space>" \
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
                 <(cut -d' ' -f2- data/${train_dev}/text | head -100) |\
-                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_valid_set} 
+                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_valid_set}
 
   if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
   fi
 
-  
+
   ${cuda_cmd} ${lmexpdir}/train.log \
           lm_train.py \
           --ngpu ${ngpu} \
@@ -222,12 +211,12 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
 else
-    expdir=exp/${train_set}_${tag}
+    expdir=exp/${train_set}_${backend}_${tag}
 fi
 mkdir -p ${expdir}
 
@@ -275,7 +264,7 @@ fi
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32
-    
+
     extra_opts=""
     if $use_lm; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
@@ -287,7 +276,7 @@ if [ ${stage} -le 4 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -298,8 +287,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
-            --model-conf ${expdir}/results/model.conf  \
+            --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --ctc-weight ${ctc_weight} \

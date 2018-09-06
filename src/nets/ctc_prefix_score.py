@@ -59,10 +59,10 @@ class CTCPrefixScoreTH(object):
         self.x = x
         self.device_id = device_id
 
-    def to_cuda(x):
-        if device_id == -1:
+    def to_cuda(self, x):
+        if self.device_id == -1:
             return x
-        return x.cuda(device_id)
+        return x.cuda(self.device_id)
 
     def initial_state(self):
         '''Obtain an initial CTC state

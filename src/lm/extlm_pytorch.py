@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torch.autograd import Variable
+from e2e_asr_th import to_cuda
 
 
 # TODO(Hori): currently it only works with character-word level LM.
@@ -53,8 +53,8 @@ class MultiLevelLM(nn.Module):
         self.subwordlm = subwordlm
         self.word_eos = word_dict['<eos>']
         self.word_unk = word_dict['<unk>']
-        self.var_word_eos = Variable(torch.LongTensor([self.word_eos]), volatile=True)
-        self.var_word_unk = Variable(torch.LongTensor([self.word_unk]), volatile=True)
+        self.var_word_eos = torch.LongTensor([self.word_eos])
+        self.var_word_unk = torch.LongTensor([self.word_unk])
         self.space = subword_dict['<space>']
         self.eos = subword_dict['<eos>']
         self.lexroot = make_lexical_tree(word_dict, subword_dict, self.word_unk)
@@ -67,10 +67,12 @@ class MultiLevelLM(nn.Module):
     def forward(self, state, x):
         # update state with input label x
         if state is None:  # make initial states and log-prob vectors
+            self.var_word_eos = to_cuda(self, self.var_word_eos)
+            self.var_word_unk = to_cuda(self, self.var_word_eos)
             wlm_state, z_wlm = self.wordlm(None, self.var_word_eos)
-            wlm_logprobs = F.log_softmax(z_wlm, dim=1).data
+            wlm_logprobs = F.log_softmax(z_wlm, dim=1)
             clm_state, z_clm = self.subwordlm(None, x)
-            log_y = F.log_softmax(z_clm, dim=1).data * self.subwordlm_weight
+            log_y = F.log_softmax(z_clm, dim=1) * self.subwordlm_weight
             new_node = self.lexroot
             clm_logprob = 0.
             xi = self.space
@@ -79,12 +81,12 @@ class MultiLevelLM(nn.Module):
             xi = int(x)
             if xi == self.space:  # inter-word transition
                 if node is not None and node[1] >= 0:  # check if the node is word end
-                    w = Variable(torch.LongTensor([node[1]]), volatile=True)
+                    w = to_cuda(self, torch.LongTensor([node[1]]))
                 else:  # this node is not a word end, which means <unk>
                     w = self.var_word_unk
                 # update wordlm state and log-prob vector
                 wlm_state, z_wlm = self.wordlm(wlm_state, w)
-                wlm_logprobs = F.log_softmax(z_wlm, dim=1).data
+                wlm_logprobs = F.log_softmax(z_wlm, dim=1)
                 new_node = self.lexroot  # move to the tree root
                 clm_logprob = 0.
             elif node is not None and xi in node[0]:  # intra-word transition
@@ -94,11 +96,11 @@ class MultiLevelLM(nn.Module):
                 new_node = None
                 clm_logprob += log_y[0, xi]
             else:  # if open_vocab flag is disabled, return 0 probabilities
-                log_y = torch.zeros(1, self.subword_dict_size) + self.logzero
+                log_y = to_cuda(self, torch.zeros(1, self.subword_dict_size)) + self.logzero
                 return (clm_state, wlm_state, None, log_y, 0.), log_y
 
             clm_state, z_clm = self.subwordlm(clm_state, x)
-            log_y = F.log_softmax(z_clm, dim=1).data * self.subwordlm_weight
+            log_y = F.log_softmax(z_clm, dim=1) * self.subwordlm_weight
 
         # apply word-level probabilies for <space> and <eos> labels
         if xi != self.space:
@@ -125,8 +127,8 @@ class LookAheadWordLM(nn.Module):
         self.wordlm = wordlm
         self.word_eos = word_dict['<eos>']
         self.word_unk = word_dict['<unk>']
-        self.var_word_eos = Variable(torch.LongTensor([self.word_eos]), volatile=True)
-        self.var_word_unk = Variable(torch.LongTensor([self.word_unk]), volatile=True)
+        self.var_word_eos = torch.LongTensor([self.word_eos])
+        self.var_word_unk = torch.LongTensor([self.word_unk])
         self.space = subword_dict['<space>']
         self.eos = subword_dict['<eos>']
         self.lexroot = make_lexical_tree(word_dict, subword_dict, self.word_unk)
@@ -138,8 +140,10 @@ class LookAheadWordLM(nn.Module):
     def forward(self, state, x):
         # update state with input label x
         if state is None:  # make initial states and cumlative probability vector
+            self.var_word_eos = to_cuda(self, self.var_word_eos)
+            self.var_word_unk = to_cuda(self, self.var_word_eos)
             wlm_state, z_wlm = self.wordlm(None, self.var_word_eos)
-            cumsum_probs = torch.cumsum(F.softmax(z_wlm, dim=1).data, dim=1)
+            cumsum_probs = torch.cumsum(F.softmax(z_wlm, dim=1), dim=1)
             new_node = self.lexroot
             xi = self.space
         else:
@@ -147,19 +151,19 @@ class LookAheadWordLM(nn.Module):
             xi = int(x)
             if xi == self.space:  # inter-word transition
                 if node is not None and node[1] >= 0:  # check if the node is word end
-                    w = Variable(torch.LongTensor([node[1]]), volatile=True)
+                    w = to_cuda(self, torch.LongTensor([node[1]]))
                 else:  # this node is not a word end, which means <unk>
                     w = self.var_word_unk
                 # update wordlm state and cumlative probability vector
                 wlm_state, z_wlm = self.wordlm(wlm_state, w)
-                cumsum_probs = torch.cumsum(F.softmax(z_wlm, dim=1).data, dim=1)
+                cumsum_probs = torch.cumsum(F.softmax(z_wlm, dim=1), dim=1)
                 new_node = self.lexroot  # move to the tree root
             elif node is not None and xi in node[0]:  # intra-word transition
                 new_node = node[0][xi]
             elif self.open_vocab:  # if no path in the tree, enter open-vocabulary mode
                 new_node = None
             else:  # if open_vocab flag is disabled, return 0 probabilities
-                log_y = torch.zeros(1, self.subword_dict_size) + self.logzero
+                log_y = to_cuda(self, torch.zeros(1, self.subword_dict_size)) + self.logzero
                 return (wlm_state, None, None), log_y
 
         if new_node is not None:
@@ -168,7 +172,7 @@ class LookAheadWordLM(nn.Module):
             sum_prob = (cumsum_probs[:, wids[1]] - cumsum_probs[:, wids[0]]) if wids is not None else 1.0
             # set <unk> probability as a default value
             unk_prob = cumsum_probs[:, self.word_unk] - cumsum_probs[:, self.word_unk - 1]
-            y = torch.zeros(1, self.subword_dict_size) + unk_prob * self.oov_penalty
+            y = to_cuda(self, torch.zeros(1, self.subword_dict_size)) + unk_prob * self.oov_penalty
             # compute transition probabilities to child nodes
             for cid, nd in succ.items():
                 y[:, cid] = (cumsum_probs[:, nd[2][1]] - cumsum_probs[:, nd[2][0]]) / sum_prob
@@ -180,7 +184,9 @@ class LookAheadWordLM(nn.Module):
             elif xi == self.space:
                 y[:, self.space] = self.zero
                 y[:, self.eos] = self.zero
-            return (wlm_state, cumsum_probs, new_node), torch.log(y)
+            log_y = torch.log(y)
+            log_y.masked_fill_(torch.isnan(log_y), self.logzero)
+            return (wlm_state, cumsum_probs, new_node), log_y
         else:  # if no path in the tree, transition probability is one
-            log_y = torch.zeros(1, self.subword_dict_size)
+            log_y = to_cuda(self, torch.zeros(1, self.subword_dict_size))
             return (wlm_state, cumsum_probs, new_node), log_y

@@ -9,8 +9,7 @@
 # general configuration
 backend=chainer
 stage=0        # start from 0 if you need to start from data preparation
-gpu=            # will be deprecated, please use ngpu
-ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -19,7 +18,7 @@ resume=        # Resume the training from snapshot
 seed=1
 
 # feature configuration
-do_delta=false # true when using CNN
+do_delta=false
 
 # network archtecture
 # encoder related
@@ -62,23 +61,12 @@ penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.1
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # exp tag
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-# check gpu option usage
-if [ ! -z $gpu ]; then
-    echo "WARNING: --gpu option will be deprecated."
-    echo "WARNING: please use --ngpu option."
-    if [ $gpu -eq -1 ]; then
-        ngpu=0
-    else
-        ngpu=1
-    fi
-fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -139,7 +127,8 @@ if [ ${stage} -le 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in ${train_set} ${train_dev} ${recog_set}; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 data/${x} exp/make_fbank/${x} ${fbankdir}
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
     # compute global CMVN
@@ -200,7 +189,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -208,7 +197,7 @@ if [ -z ${tag} ]; then
         expdir=${expdir}_delta
     fi
 else
-    expdir=exp/${train_set}_${tag}
+    expdir=exp/${train_set}_${backend}_${tag}
 fi
 mkdir -p ${expdir}
 
@@ -262,7 +251,7 @@ if [ ${stage} -le 4 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -273,8 +262,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
-            --model-conf ${expdir}/results/model.conf  \
+            --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --nbest ${nbest} \
             --penalty ${penalty} \

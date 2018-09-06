@@ -15,7 +15,7 @@ matrix:
           packages:
             - g++-7
       env:
-        - TH_VERSION="0.4.0"
+        - TH_VERSION="0.4.1"
         - CC="gcc-7"
         - CXX="g++-7"
     - os: linux
@@ -27,17 +27,9 @@ matrix:
           packages:
             - g++-7
       env:
-        - TH_VERSION="0.4.0"
+        - TH_VERSION="0.4.1"
         - CC="gcc-7"
         - CXX="g++-7"
-    - os: linux
-      python: "2.7"
-      env:
-        - TH_VERSION="0.3.1"
-    - os: linux
-      python: "3.6"
-      env:
-        - TH_VERSION="0.3.1"
 
 install:
   - pip install -U pip wheel
@@ -49,9 +41,9 @@ install:
     fi
   # install matplotlib
   - pip install matplotlib
-  # install warp-ctc
-  - git clone https://github.com/SeanNaren/warp-ctc.git 
-  - cd warp-ctc && git checkout 9e5b238f8d9337b0c39b3fd01bbaff98ba523aa5 && mkdir build && cd build && cmake .. && make -j4 && cd ..
+  # install warp-ctc (use @jnishi patched version)
+  - git clone https://github.com/jnishi/warp-ctc.git
+  - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
   - pip install cffi
   - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
   # install chainer

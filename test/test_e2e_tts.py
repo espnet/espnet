@@ -6,12 +6,11 @@ import numpy as np
 import pytest
 import torch
 
-from torch.autograd import Variable
+from argparse import Namespace
 
+from e2e_asr_th import pad_list
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
-from e2e_tts_th import torch_is_old
-from tts_pytorch import pad_ndarray_list
 
 
 def make_model_args(**kwargs):
@@ -30,7 +29,7 @@ def make_model_args(**kwargs):
         postnet_layers=5,
         postnet_filts=5,
         postnet_chans=512,
-        output_activation_fn=None,
+        output_activation=None,
         adim=512,
         aconv_chans=32,
         aconv_filts=15,
@@ -56,6 +55,31 @@ def make_loss_args(**kwargs):
     return defaults
 
 
+def make_inference_args(**kwargs):
+    defaults = dict(
+        threshold=0.5,
+        maxlenratio=5.0,
+        minlenratio=0.0
+    )
+    defaults.update(kwargs)
+    return defaults
+
+
+def prepare_inputs(bs, idim, odim, maxin_len, maxout_len):
+    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
+    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
+    ilens = torch.LongTensor(ilens)
+    olens = torch.LongTensor(olens)
+    xs = [np.random.randint(0, idim, l) for l in ilens]
+    ys = [np.random.randn(l, odim) for l in olens]
+    xs = pad_list([torch.from_numpy(x).long() for x in xs], 0)
+    ys = pad_list([torch.from_numpy(y).float() for y in ys], 0)
+    labels = ys.new_zeros(ys.size(0), ys.size(1))
+    for i, l in enumerate(olens):
+        labels[i, l - 1:] = 1
+    return xs, ilens, ys, labels, olens
+
+
 @pytest.mark.parametrize(
     "model_dict, loss_dict", [
         ({}, {}),
@@ -64,12 +88,13 @@ def make_loss_args(**kwargs):
         ({"prenet_layers": 0}, {}),
         ({"postnet_layers": 0}, {}),
         ({"prenet_layers": 0, "postnet_layers": 0}, {}),
-        ({"output_activation_fn": torch.nn.functional.tanh}, {}),
+        ({"output_activation": "relu"}, {}),
         ({"cumulate_att_w": False}, {}),
         ({"use_batch_norm": False}, {}),
         ({"use_concate": False}, {}),
         ({"dropout": 0.0}, {}),
         ({"zoneout": 0.0}, {}),
+        ({"spk_embed_dim": 128}, {}),
     ])
 def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     # setup batch
@@ -78,112 +103,89 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     maxout_len = 10
     idim = 5
     odim = 10
-    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
-    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
-    xs = pad_ndarray_list([np.random.randint(0, idim, l) for l in ilens], 0)
-    ys = pad_ndarray_list([np.random.randn(l, odim) for l in olens], 0)
-    xs = torch.from_numpy(xs).long()
-    ys = torch.from_numpy(ys).float()
-    # TODO(kan-bayashi): need to be modified in pytorch v4
-    labels = ys.new(ys.size(0), ys.size(1)).zero_()
-    for i, l in enumerate(olens):
-        labels[i, l - 1:] = 1
-    if torch_is_old:
-        xs = Variable(xs)
-        ys = Variable(ys)
-        labels = Variable(labels)
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    xs, ilens, ys, labels, olens = batch
 
     # define model
     model_args = make_model_args(**model_dict)
     loss_args = make_loss_args(**loss_dict)
-    model = Tacotron2(idim, odim, **model_args)
+    inference_args = make_inference_args()
+    model = Tacotron2(idim, odim, Namespace(**model_args))
     criterion = Tacotron2Loss(model, **loss_args)
     optimizer = torch.optim.Adam(model.parameters())
 
-    # trainable
-    after, before, logits = model(xs, ilens, ys)
-    loss = criterion(xs, ilens, ys, labels, olens)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    # decodable
-    if torch_is_old:
-        xs.volatile = True
-        ys.volatile = True
+    if model_args['spk_embed_dim'] is not None:
+        spembs = torch.from_numpy(np.random.randn(bs, model_args['spk_embed_dim'])).float()
     else:
-        torch.set_grad_enabled(False)
-    model.eval()
-    yhat, probs, att_ws = model.inference(xs[0][:ilens[0]])
-    att_ws = model.calculate_all_attentions(xs, ilens, ys)
-    assert att_ws.shape[0] == bs
-    assert att_ws.shape[1] == max(olens)
-    assert att_ws.shape[2] == max(ilens)
-
-
-@pytest.mark.parametrize(
-    "model_dict, loss_dict", [
-        ({}, {}),
-        ({}, {"use_masking": False}),
-        ({}, {"bce_pos_weight": 10.0}),
-        ({"prenet_layers": 0}, {}),
-        ({"postnet_layers": 0}, {}),
-        ({"prenet_layers": 0, "postnet_layers": 0}, {}),
-        ({"output_activation_fn": torch.nn.functional.tanh}, {}),
-        ({"cumulate_att_w": False}, {}),
-        ({"use_batch_norm": False}, {}),
-        ({"use_concate": False}, {}),
-        ({"dropout": 0.0}, {}),
-        ({"zoneout": 0.0}, {}),
-    ])
-def test_tacotron2_with_speaker_embedding_trainable_and_decodable(model_dict, loss_dict):
-    # setup batch
-    bs = 2
-    maxin_len = 10
-    maxout_len = 10
-    idim = 5
-    odim = 10
-    spk_embed_dim = 128
-    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
-    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
-    xs = pad_ndarray_list([np.random.randint(0, idim, l) for l in ilens], 0)
-    ys = pad_ndarray_list([np.random.randn(l, odim) for l in olens], 0)
-    xs = torch.from_numpy(xs).long()
-    ys = torch.from_numpy(ys).float()
-    spembs = torch.from_numpy(np.random.randn(bs, spk_embed_dim)).float()
-    # TODO(kan-bayashi): need to be modified in pytorch v4
-    labels = ys.new(ys.size(0), ys.size(1)).zero_()
-    for i, l in enumerate(olens):
-        labels[i, l - 1:] = 1
-    if torch_is_old:
-        xs = Variable(xs)
-        ys = Variable(ys)
-        spembs = Variable(spembs)
-        labels = Variable(labels)
-
-    # define model
-    model_args = make_model_args(spk_embed_dim=spk_embed_dim, **model_dict)
-    loss_args = make_loss_args(**loss_dict)
-    model = Tacotron2(idim, odim, **model_args)
-    criterion = Tacotron2Loss(model, **loss_args)
-    optimizer = torch.optim.Adam(model.parameters())
+        spembs = None
 
     # trainable
-    after, before, logits = model(xs, ilens, ys, spembs)
     loss = criterion(xs, ilens, ys, labels, olens, spembs)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
 
     # decodable
-    if torch_is_old:
-        xs.volatile = True
-        ys.volatile = True
-    else:
-        torch.set_grad_enabled(False)
     model.eval()
-    yhat, probs, att_ws = model.inference(xs[0][:ilens[0]], spembs[0])
-    att_ws = model.calculate_all_attentions(xs, ilens, ys, spembs)
+    with torch.no_grad():
+        spemb = None if model_args['spk_embed_dim'] is None else spembs[0]
+        yhat, probs, att_ws = model.inference(xs[0][:ilens[0]], Namespace(**inference_args), spemb)
+        att_ws = model.calculate_all_attentions(xs, ilens, ys, spembs)
     assert att_ws.shape[0] == bs
     assert att_ws.shape[1] == max(olens)
     assert att_ws.shape[2] == max(ilens)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
+def test_tacotron2_gpu_trainable():
+    bs = 2
+    maxin_len = 10
+    maxout_len = 10
+    idim = 5
+    odim = 10
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    batch = (x.cuda() for x in batch)
+    xs, ilens, ys, labels, olens = batch
+
+    # define model
+    model_args = make_model_args()
+    loss_args = make_loss_args()
+    tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
+    model = Tacotron2Loss(tacotron2, **loss_args)
+    optimizer = torch.optim.Adam(model.parameters())
+    model.cuda()
+
+    # trainable
+    loss = model(xs, ilens, ys, labels, olens)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
+def test_tacotron2_multi_gpu_trainable():
+    ngpu = 2
+    device_ids = list(range(ngpu))
+    bs = 2
+    maxin_len = 10
+    maxout_len = 10
+    idim = 5
+    odim = 10
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    batch = (x.cuda() for x in batch)
+    xs, ilens, ys, labels, olens = batch
+
+    # define model
+    model_args = make_model_args()
+    loss_args = make_loss_args()
+    tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
+    tacotron2 = torch.nn.DataParallel(tacotron2, device_ids)
+    model = Tacotron2Loss(tacotron2, **loss_args)
+    optimizer = torch.optim.Adam(model.parameters())
+    model.cuda()
+
+    # trainable
+    loss = model(xs, ilens, ys, labels, olens)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
