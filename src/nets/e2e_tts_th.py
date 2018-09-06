@@ -29,13 +29,13 @@ def decoder_init(m):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
 
 
-def make_pad_mask(lengths):
-    """FUNCTION TO MAKE MASK TENSOR CONTAINING INDICES OF PADDED PART
+def make_non_pad_mask(lengths):
+    """FUNCTION TO MAKE MASK TENSOR CONTAINING INDICES OF NON-PADDED PART
 
     e.g.: lengths = [5, 3, 2]
-          mask = [[0, 0, 0, 0 ,0],
-                  [0, 0, 0, 1, 1],
-                  [0, 0, 1, 1, 1]]
+          mask = [[1, 1, 1, 1 ,1],
+                  [1, 1, 1, 0, 0],
+                  [1, 1, 0, 0, 0]]
 
     :param list lengths: list of lengths (B)
     :return: mask tensor contraining indices of padded part (B, Tmax)
@@ -45,7 +45,7 @@ def make_pad_mask(lengths):
     maxlen = int(max(lengths))
     mask = torch.zeros(bs, maxlen).byte()
     for i, l in enumerate(lengths):
-        mask[i, l:] = 1
+        mask[i, :l] = 1
 
     return mask
 
@@ -140,7 +140,7 @@ class Tacotron2Loss(torch.nn.Module):
 
         # perform masking for padded values
         if self.use_masking:
-            mask = to_cuda(self, make_pad_mask(olens).unsqueeze(-1))
+            mask = to_cuda(self, make_non_pad_mask(olens).unsqueeze(-1))
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
             before_outs = before_outs.masked_select(mask)
