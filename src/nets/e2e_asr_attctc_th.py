@@ -116,6 +116,9 @@ class Reporter(chainer.Chain):
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
 
+    def report_lang(self, acc_lang, loss_lang):
+        reporter.report({'loss_lang': loss_lang}, self)
+        reporter.report({'acc_lang': acc_lang}, self)
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
@@ -131,6 +134,7 @@ class Loss(torch.nn.Module):
         self.reporter = Reporter()
         self.langs = langs
         self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
+        self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
 
     def forward_langid(self, x):
 
@@ -153,11 +157,23 @@ class Loss(torch.nn.Module):
         targets = torch.autograd.Variable(targets)
         targets.cuda()
         logging.info("targets: {}".format(targets))
+
+        # Accuracy the best guess across batch.
+        lang_1best_guess = log_softmax_out.topk(1)[1]
+        logging.info("lang1bestguess {}".format(lang_1best_guess))
+        logging.info("correct guess {}".format(lang_1best_guess[:,0] == targets))
+        logging.info("sum {}".format(sum(lang_1best_guess[:,0] == targets)))
+        acc_lang = float(sum(lang_1best_guess[:,0] == targets))/len(targets)
+        logging.info("lang prediction accuracy: {}".format(acc_lang))
+
         loss = torch.nn.NLLLoss()
         loss.cuda()
-        loss_out = loss(log_softmax_out, targets)
-        logging.info("loss: {}".format(loss_out))
-        return loss_out
+        loss_lang = loss(log_softmax_out, targets)
+        logging.info("langid loss: {}".format(loss_lang))
+
+        self.reporter.report_lang(acc_lang, loss_lang)
+
+        return loss_lang
 
     def forward(self, x):
         '''Loss forward
@@ -351,7 +367,7 @@ class E2E(torch.nn.Module):
     def encode(self, data):
         """ Takes the JSON data (which is a batch) and then produces an encodedv version"""
 
-        logging.info("data: {}".format(data))
+        #logging.info("data: {}".format(data))
         # utt list of frame x dim
         xs = [d[1]['feat'] for d in data]
         # remove 0-output-length utterances

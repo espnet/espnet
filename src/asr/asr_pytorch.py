@@ -91,7 +91,6 @@ class PytorchSeqEvaluaterKaldi(extensions.Evaluator):
 
         return summary.compute_mean()
 
-
 class PytorchSeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
@@ -140,7 +139,9 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
         else:
             optimizer.step()
 
+        logging.info("predict_lang: {}".format(self.predict_lang))
         if self.predict_lang:
+            logging.info("PREDICT LANG")
             # Now compute the lang loss (this redoes the encoding, which may be
             # slightly inefficient but should be fine for now).
             optimizer.zero_grad()
@@ -348,7 +349,9 @@ def train(args):
 
     # Set up a trainer
     updater = PytorchSeqUpdaterKaldi(
-        model, args.grad_clip, train_iter, optimizer, converter=converter_kaldi, device=gpu_id)
+        model, args.grad_clip, train_iter, optimizer,
+        converter=converter_kaldi, device=gpu_id,
+        predict_lang=args.predict_lang)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -383,6 +386,8 @@ def train(args):
                                          'epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
                                          'epoch', file_name='acc.png'))
+    trainer.extend(extensions.PlotReport(['main/acc_lang', 'validation/main/acc_lang'],
+                                         'epoch', file_name='acc_lang.png'))
 
     # Save best models
     def torch_save(path, _):
