@@ -29,27 +29,23 @@ def decoder_init(m):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
 
 
-def make_mask(lengths, dim=None):
-    """FUNCTION TO MAKE BINARY MASK
-
-    Args:
-        length (list): list of lengths
-        dim (int): # dimension
-
-    Return:
-        (torch.ByteTensor) binary mask tensor (B, Lmax, dim)
+def make_pad_mask(lengths):
+    """Function to make mask tensor containing indices of padded part
+    e.g.: lengths = [5, 3, 2]
+          mask = [[0, 0, 0, 0 ,0],
+                  [0, 0, 0, 1, 1],
+                  [0, 0, 1, 1, 1]]
+    :param list lengths: list of lengths (B)
+    :return: mask tensor contraining indices of padded part (B, Tmax)
+    :rtype: torch.Tensor
     """
-    batch = int(len(lengths))
+    bs = int(len(lengths))
     maxlen = int(max(lengths))
-    if dim is None:
-        mask = torch.zeros(batch, maxlen)
-    else:
-        dim = int(dim)
-        mask = torch.zeros(batch, maxlen, dim)
+    mask = torch.zeros(bs, maxlen).byte()
     for i, l in enumerate(lengths):
-        mask[i, :l] = 1
+        mask[i, l:] = 1
 
-    return mask.byte()
+    return mask
 
 
 class Reporter(chainer.Chain):
@@ -142,7 +138,7 @@ class Tacotron2Loss(torch.nn.Module):
 
         # perform masking for padded values
         if self.use_masking:
-            mask = to_cuda(self, make_mask(olens, ys.size(2)))
+            mask = to_cuda(self, make_pad_mask(olens).unsqueeze(-1))
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
             before_outs = before_outs.masked_select(mask)
@@ -150,9 +146,8 @@ class Tacotron2Loss(torch.nn.Module):
             logits = logits.masked_select(mask[:, :, 0])
             weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
             if self.use_cbhg:
-                spc_mask = to_cuda(self, make_mask(olens, spcs.size(2)))
-                spcs = spcs.masked_select(spc_mask)
-                cbhg_outs = cbhg_outs.masked_select(spc_mask)
+                spcs = spcs.masked_select(mask)
+                cbhg_outs = cbhg_outs.masked_select(mask)
 
         # calculate loss
         l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
