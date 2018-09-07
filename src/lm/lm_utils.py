@@ -11,8 +11,9 @@ from __future__ import print_function
 
 import chainer
 import logging
-import random
 import numpy as np
+import random
+import six
 import os
 
 from chainer.training import extension
