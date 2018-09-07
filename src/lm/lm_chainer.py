@@ -20,7 +20,6 @@ import chainer
 from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
-from chainer import serializers
 
 # for classifier link
 from chainer.functions.loss import softmax_cross_entropy
@@ -29,10 +28,10 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from lm_utils import ParallelSentenceIterator
 from lm_utils import MakeSymlinkToBestModel
-from lm_utils import read_tokens
+from lm_utils import ParallelSentenceIterator
 from lm_utils import count_tokens
+from lm_utils import read_tokens
 
 import deterministic_embed_id as DL
 

@@ -28,10 +28,11 @@ def transfer_lm(ch_rnnlm, th_rnnlm):
 
 def test_lm():
     n_vocab = 3
+    n_layers = 2
     n_units = 2
     batchsize = 5
-    rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_units))
-    rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_units))
+    rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_layers, n_units))
+    rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_layers, n_units))
     transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
     import numpy
     # TODO(karita) implement weight transfer
