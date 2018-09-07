@@ -26,9 +26,9 @@ from chainer import training
 from chainer.training import extensions
 
 from e2e_asr_th import to_cuda
+from lm_utils import count_tokens
 from lm_utils import MakeSymlinkToBestModel
 from lm_utils import ParallelSentenceIterator
-from lm_utils import count_tokens
 from lm_utils import read_tokens
 
 from asr_utils import torch_load

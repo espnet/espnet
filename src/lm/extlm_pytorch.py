@@ -119,7 +119,7 @@ class MultiLevelLM(nn.Module):
         else:  # this node is not a word end, which means <unk>
             w = self.var_word_unk
         wlm_state, z_wlm = self.wordlm(wlm_state, w)
-        return F.log_softmax(z_wlm, dim=1)[:, self.word_eos]
+        return float(F.log_softmax(z_wlm, dim=1)[:, self.word_eos])
 
 
 # Definition of a look-ahead word language model
@@ -199,4 +199,4 @@ class LookAheadWordLM(nn.Module):
         else:  # this node is not a word end, which means <unk>
             w = self.var_word_unk
         wlm_state, z_wlm = self.wordlm(wlm_state, w)
-        return F.log_softmax(z_wlm, dim=1)[:, self.word_eos]
+        return float(F.log_softmax(z_wlm, dim=1)[:, self.word_eos])
