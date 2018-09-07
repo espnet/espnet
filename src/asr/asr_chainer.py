@@ -11,7 +11,6 @@ import logging
 import math
 import os
 import six
-import sys
 
 # chainer related
 import chainer

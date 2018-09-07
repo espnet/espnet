@@ -13,7 +13,6 @@ import copy
 import json
 import logging
 import numpy as np
-import os
 import six
 
 import torch
@@ -26,14 +25,12 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from e2e_asr_th import th_accuracy
 from e2e_asr_th import to_cuda
-from lm_utils import ParallelSentenceIterator
 from lm_utils import MakeSymlinkToBestModel
-from lm_utils import read_tokens
+from lm_utils import ParallelSentenceIterator
 from lm_utils import count_tokens
+from lm_utils import read_tokens
 
-from asr_utils import restore_snapshot
 from asr_utils import torch_load
 from asr_utils import torch_resume
 from asr_utils import torch_save
@@ -144,7 +141,7 @@ class RNNLM(nn.Module):
         self.lstm = nn.ModuleList(
             [nn.LSTMCell(n_units, n_units) for _ in six.moves.range(n_layers)])
         self.dropout = nn.ModuleList(
-            [nn.Dropout() for _ in six.moves.range(n_layers+1)])
+            [nn.Dropout() for _ in six.moves.range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
@@ -167,7 +164,7 @@ class RNNLM(nn.Module):
         emb = self.embed(x)
         h[0], c[0] = self.lstm[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
         for n in six.moves.range(1, self.n_layers):
-            h[n], c[n] = self.lstm[n](self.dropout[n](h[n-1]), (state['h'][n], state['c'][n]))
+            h[n], c[n] = self.lstm[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
         y = self.lo(self.dropout[-1](h[-1]))
         state = {'c': c, 'h': h}
         return state, y
