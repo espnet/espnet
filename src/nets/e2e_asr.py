@@ -754,7 +754,7 @@ class Decoder(chainer.Chain):
                         hyp['score'] += (i + 1) * penalty
                         if rnnlm:  # Word LM needs to add final <eos> score
                             hyp['score'] += recog_args.lm_weight * rnnlm.final(
-                                                        hyp['rnnlm_prev'])
+                                hyp['rnnlm_prev'])
                         ended_hyps.append(hyp)
                 else:
                     remained_hyps.append(hyp)

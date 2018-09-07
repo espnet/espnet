@@ -10,8 +10,12 @@ from __future__ import division
 from __future__ import print_function
 
 import chainer
+import logging
 import random
 import numpy as np
+import os
+
+from chainer.training import extension
 
 
 # read tokens as a sequence of sentences
@@ -20,8 +24,8 @@ def read_tokens(filename, label_dict):
     data = []
     for ln in open(filename, 'rb').readlines():
         data.append(np.array([label_dict[label]
-                      if label in label_dict else label_dict['<unk>']
-                      for label in ln.decode('utf-8').split()], dtype=np.int32))
+                              if label in label_dict else label_dict['<unk>']
+                              for label in ln.decode('utf-8').split()], dtype=np.int32))
     return data
 
 
@@ -121,9 +125,9 @@ class ParallelSequentialIterator(chainer.dataset.Iterator):
 
 
 # Dataset iterator to create a batch of sentences.
-# This iterator returns a pair of sentences, where one token is shifted 
+# This iterator returns a pair of sentences, where one token is shifted
 # between the sentences like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
-# Sentence batches are made in order of longer sentences, and then 
+# Sentence batches are made in order of longer sentences, and then
 # randomly shuffled.
 class ParallelSentenceIterator(chainer.dataset.Iterator):
 
@@ -141,7 +145,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
         self.batch_indices = []
         # make mini-batches
         if batch_size > 1:
-            indices = sorted(range(len(dataset)), key=lambda i:-len(dataset[i]))
+            indices = sorted(range(len(dataset)), key=lambda i: -len(dataset[i]))
             bs = 0
             while bs < length:
                 be = min(bs + batch_size, length)
@@ -242,7 +246,7 @@ class MakeSymlinkToBestModel(extension.Extension):
                 if os.path.lexists(dest):
                     os.remove(dest)
                 os.symlink(src, dest)
-            logging.debug('best model: %d (%f)' % (self.best_model, self.min_loss))
+                logging.info('best model is ' + src)
 
     def serialize(self, serializer):
         if isinstance(serializer, chainer.serializer.Serializer):
