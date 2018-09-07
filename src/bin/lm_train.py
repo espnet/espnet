@@ -49,6 +49,9 @@ def main():
     parser.add_argument('--test-label', type=str,
                         help='Filename of test label data')
     # LSTMLM training configuration
+    parser.add_argument('--opt', default='sgd', type=str,
+                        choices=['sgd', 'adam'],
+                        help='Optimizer')
     parser.add_argument('--batchsize', '-b', type=int, default=300,
                         help='Number of examples in each mini-batch')
     parser.add_argument('--bproplen', '-l', type=int, default=35,
@@ -62,8 +65,6 @@ def main():
                         help='Number of hidden layers')
     parser.add_argument('--units', '-u', type=int, default=650,
                         help='Number of hidden units')
-    parser.add_argument('--projs', type=int, default=650,
-                        help='Number of projection units')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
     args = parser.parse_args()

@@ -444,20 +444,18 @@ def recog(args):
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(train_args.char_list), rnnlm_args.layers, rnnlm_args.units, rnnlm_args.projs))
+        rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
+            len(train_args.char_list), rnnlm_args.layers, rnnlm_args.units, rnnlm_args.projs))
         chainer_load(args.rnnlm, rnnlm)
     else:
         rnnlm = None
 
     if args.word_rnnlm:
-        if not args.word_dict:
-            logging.error('word dictionary file is not specified for the word RNNLM.')
-            sys.exit(1)
-
         rnnlm_args = get_model_conf(args.word_rnnlm, args.rnnlm_conf)
         word_dict = rnnlm_args.char_list_dict
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(len(word_dict), rnnlm_args.layers, rnnlm_args.units, rnnlm_args.projs))
+        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
+            len(word_dict), rnnlm_args.layers, rnnlm_args.units, rnnlm_args.projs))
         chainer_load(args.word_rnnlm, word_rnnlm)
 
         if rnnlm is not None:

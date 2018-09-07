@@ -12,10 +12,8 @@ from __future__ import print_function
 import copy
 import json
 import logging
-import math
 import numpy as np
 import os
-import random
 import six
 
 import chainer
@@ -30,7 +28,6 @@ from chainer import link
 from chainer import reporter
 from chainer import training
 from chainer.training import extensions
-from chainer.training import extension
 
 from lm_utils import ParallelSentenceIterator
 from lm_utils import MakeSymlinkToBestModel
@@ -132,14 +129,12 @@ class ClassifierWithState(link.Chain):
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
 
-    def __init__(self, n_vocab, n_layers, n_units, n_projs):
+    def __init__(self, n_vocab, n_layers, n_units):
         super(RNNLM, self).__init__()
         with self.init_scope():
-            self.embed = DL.EmbedID(n_vocab, n_projs)
-            self.l = chainer.ChainList()
-            self.l.append(L.StatelessLSTM(n_projs, n_units))
-            for n in six.moves.range(1, n_layers):
-                self.l.append(L.StatelessLSTM(n_units, n_units))
+            self.embed = DL.EmbedID(n_vocab, n_units)
+            self.lstm = chainer.ChainList(
+                *[L.StatelessLSTM(n_units, n_units) for _ in six.moves.range(n_layers)])
             self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
@@ -152,9 +147,9 @@ class RNNLM(chainer.Chain):
         h = [None] * self.n_layers
         c = [None] * self.n_layers
         emb = self.embed(x)
-        c[0], h[0] = self.l[0](state['c'][0], state['h'][0], F.dropout(emb))
+        c[0], h[0] = self.lstm[0](state['c'][0], state['h'][0], F.dropout(emb))
         for n in six.moves.range(1, self.n_layers):
-            c[n], h[n] = self.l[n](state['c'][n], state['h'][n], F.dropout(h[n-1]))
+            c[n], h[n] = self.lstm[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
         y = self.lo(F.dropout(h[-1]))
         state = {'c': c, 'h': h}
         return state, y
@@ -185,7 +180,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
         batch_size, sequence_length = x.shape
         for i in six.moves.range(sequence_length):
             # Compute the loss at this time step and accumulate it
-            state, loss_batch = optimizer.target(state, chainer.Variable(x[:, i]), 
+            state, loss_batch = optimizer.target(state, chainer.Variable(x[:, i]),
                                                  chainer.Variable(t[:, i]))
             non_zeros = xp.count_nonzero(x[:, i])
             loss += loss_batch * non_zeros
@@ -224,14 +219,14 @@ class LMEvaluator(extensions.Evaluator):
         # report validation loss
         observation = {}
         with reporter.report_scope(observation):
-            reporter.report({'loss': float(loss/count)}, target)
+            reporter.report({'loss': float(loss / count)}, target)
         return observation
 
 
 # Routine to rewrite the result dictionary of LogReport to add perplexity
 # values
 def compute_perplexity(result):
-    result['perplexity'] = np.exp(result['main/loss']/result['main/count'])
+    result['perplexity'] = np.exp(result['main/loss'] / result['main/count'])
     if 'validation/main/loss' in result:
         result['val_perplexity'] = np.exp(result['validation/main/loss'])
 
@@ -268,32 +263,29 @@ def train(args):
     # get special label ids
     unk = args.char_list_dict['<unk>']
     eos = args.char_list_dict['<eos>']
-
     # read tokens as a sequence of sentences
     train = read_tokens(args.train_label, args.char_list_dict)
     val = read_tokens(args.valid_label, args.char_list_dict)
     # count tokens
     n_train_tokens, n_train_oovs = count_tokens(train, unk)
     n_val_tokens, n_val_oovs = count_tokens(val, unk)
-
     logging.info('#vocab = ' + str(args.n_vocab))
     logging.info('#sentences in the training data = ' + str(len(train)))
     logging.info('#tokens in the training data = ' + str(n_train_tokens))
-    logging.info('oov rate in the training data = %.2f %%' % (n_train_oovs/n_train_tokens*100))
+    logging.info('oov rate in the training data = %.2f %%' % (n_train_oovs / n_train_tokens * 100))
     logging.info('#sentences in the validation data = ' + str(len(val)))
     logging.info('#tokens in the validation data = ' + str(n_val_tokens))
-    logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs/n_val_tokens*100))
+    logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs / n_val_tokens * 100))
 
     # Create the dataset iterators
-    train_iter = ParallelSentenceIterator(train, args.batchsize, 
-        max_length=args.maxlen, sos=eos, eos=eos)
-    val_iter = ParallelSentenceIterator(val, args.batchsize, 
-        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-
+    train_iter = ParallelSentenceIterator(train, args.batchsize,
+                                          max_length=args.maxlen, sos=eos, eos=eos)
+    val_iter = ParallelSentenceIterator(val, args.batchsize,
+                                        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epochs * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layers, args.units, args.projs)
+    rnn = RNNLM(args.n_vocab, args.layers, args.units)
     model = ClassifierWithState(rnn)
     if args.ngpu > 1:
         logging.warn("currently, multi-gpu is not supported. use single gpu.")
@@ -312,14 +304,18 @@ def train(args):
         f.write(json.dumps(vars(args), indent=4, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
-    optimizer = chainer.optimizers.SGD(lr=1.0)
+    if args.opt == 'sgd':
+        optimizer = chainer.optimizers.SGD(lr=1.0)
+    elif args.opt == 'adam':
+        optimizer = chainer.optimizers.Adam()
+
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
     updater = BPTTUpdater(train_iter, optimizer, gpu_id)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
-    trainer.extend(extensions.LogReport(postprocess=compute_perplexity, 
+    trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
                                         trigger=(REPORT_INTERVAL, 'iteration')))
     trainer.extend(extensions.PrintReport(
         ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
@@ -328,10 +324,11 @@ def train(args):
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'))
     trainer.extend(extensions.snapshot_object(
         model, 'rnnlm.model.{.updater.epoch}'))
-    # T.Hori: MinValueTrigger should be used, but it fails when resuming
+    # MEMO(Hori): wants to use MinValueTrigger, but it seems to fail in resuming
     trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
 
     if args.resume:
+        logging.info('resumed from %s' % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
 
     trainer.run()
@@ -344,9 +341,9 @@ def train(args):
         n_test_tokens, n_test_oovs = count_tokens(test, unk)
         logging.info('#sentences in the test data = ' + str(len(test)))
         logging.info('#tokens in the test data = ' + str(n_test_tokens))
-        logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs/n_test_tokens*100))
-        test_iter = ParallelSentenceIterator(test, args.batchsize, 
-            max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
+        logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs / n_test_tokens * 100))
+        test_iter = ParallelSentenceIterator(test, args.batchsize,
+                                             max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
         evaluator = LMEvaluator(test_iter, model, device=gpu_id)
         with chainer.using_config('train', False):
             result = evaluator()
