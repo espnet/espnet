@@ -136,44 +136,44 @@ class Loss(torch.nn.Module):
         self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
         self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
 
+        # Define components related to language prediction
+        self.lang_linear = torch.nn.Linear(self.predictor.eprojs, 10)
+        self.lang_linear.cuda()
+        self.log_softmax = torch.nn.LogSoftmax(dim=1)
+        self.log_softmax.cuda()
+        self.loss_lang = torch.nn.NLLLoss()
+        self.loss_lang.cuda()
+
     def forward_langid(self, x):
 
         hpad, hlens, grapheme_ys, phoneme_ys = self.predictor.encode(x)
-        #logging.info("hpad shape {}".format(hpad.shape))
-        #logging.info("hlens {}".format(hlens))
         mean = hpad.mean(dim=1)
-        linear = torch.nn.Linear(self.predictor.eprojs, 10)
-        linear.cuda()
-        #logging.info("linear {}".format(linear))
-        #logging.info("dir(linear) {}".format(dir(linear)))
-        log_softmax = torch.nn.LogSoftmax(dim=1)
-        log_softmax.cuda()
-        log_softmax_out = log_softmax(linear(mean))
+        log_softmax_out = self.log_softmax(self.lang_linear(mean))
         logging.info("log_softmax {}".format(log_softmax_out))
-        logging.info("log_softmax shape {}".format(log_softmax_out.shape))
 
         targets = torch.cuda.LongTensor([self.lang2id[uttid2lang(utt[0])] for utt in x])
         targets.cuda()
         targets = torch.autograd.Variable(targets)
         targets.cuda()
-        logging.info("targets: {}".format(targets))
+
+        logging.info("targets: {}".format([int(id_) for id_ in targets]))
 
         # Accuracy the best guess across batch.
         lang_1best_guess = log_softmax_out.topk(1)[1]
-        logging.info("lang1bestguess {}".format(lang_1best_guess))
-        logging.info("correct guess {}".format(lang_1best_guess[:,0] == targets))
-        logging.info("sum {}".format(sum(lang_1best_guess[:,0] == targets)))
         acc_lang = float(sum(lang_1best_guess[:,0] == targets))/len(targets)
         logging.info("lang prediction accuracy: {}".format(acc_lang))
 
-        loss = torch.nn.NLLLoss()
-        loss.cuda()
-        loss_lang = loss(log_softmax_out, targets)
-        logging.info("langid loss: {}".format(loss_lang))
+        targets_hr = [self.id2lang[int(id_)] for id_ in targets]
+        lang_guesses_hr = [self.id2lang[int(id_)] for id_ in lang_1best_guess]
+        logging.info("lang (hyp, ref)s: {}".format(
+                zip(lang_guesses_hr, targets_hr)))
 
-        self.reporter.report_lang(acc_lang, loss_lang)
+        self.loss_lang_out = self.loss_lang(log_softmax_out, targets)
+        logging.info("langid loss: {}".format(self.loss_lang_out))
 
-        return loss_lang
+        self.reporter.report_lang(acc_lang, self.loss_lang_out)
+
+        return self.loss_lang_out
 
     def forward(self, x):
         '''Loss forward

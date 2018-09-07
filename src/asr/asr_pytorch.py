@@ -325,6 +325,10 @@ def train(args):
     else:
         gpu_id = [-1]
 
+    #for parameter in model.parameters():
+    #    logging.info("Model parameter: {}".format(parameter))
+    logging.info("Model: {}".format(model))
+
     # Setup an optimizer
     if args.opt == 'adadelta':
         optimizer = torch.optim.Adadelta(
