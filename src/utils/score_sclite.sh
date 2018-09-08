@@ -11,6 +11,7 @@ bpe=""
 bpemodel=""
 remove_blank=true
 filter=""
+lc=false
 
 . utils/parse_options.sh
 
@@ -38,7 +39,13 @@ if [ ! -z ${filter} ]; then
     sed -i.bak3 -f ${filter} ${dir}/hyp.trn
     sed -i.bak3 -f ${filter} ${dir}/ref.trn
 fi
-    
+if ${lc}; then
+  awk '{ print tolower($0) }' < ${dir}/hyp.trn > ${dir}/hyp.trn.tmp
+  awk '{ print tolower($0) }' < ${dir}/ref.trn > ${dir}/ref.trn.tmp
+  mv ${dir}/hyp.trn.tmp ${dir}/hyp.trn; rm ${dir}/hyp.trn.tmp
+  mv ${dir}/ref.trn.tmp ${dir}/ref.trn; rm ${dir}/ref.trn.tmp
+fi
+
 sclite -r ${dir}/ref.trn trn -h ${dir}/hyp.trn trn -i rm -o all stdout > ${dir}/result.txt
 
 echo "write a CER (or TER) result in ${dir}/result.txt"
@@ -53,7 +60,7 @@ if ${wer}; then
 	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
     fi
     sclite -r ${dir}/ref.wrd.trn trn -h ${dir}/hyp.wrd.trn trn -i rm -o all stdout > ${dir}/result.wrd.txt
-	
+
     echo "write a WER result in ${dir}/result.wrd.txt"
     grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.txt
 fi
