@@ -74,10 +74,10 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_de
-train_dev=dev_de
-recog_set="dev2010_de tst2010_de tst2013_de tst2014_de tst2015_de"
-eval_set=tst2018_de
+train_set=train.de
+train_dev=dev.de
+recog_set="dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
+eval_set=tst2018.de
 
 
 if [ ${stage} -le -1 ]; then
@@ -107,34 +107,34 @@ if [ ${stage} -le 1 ]; then
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in train_org dev2010 tst2010 tst2013 tst2014 tst2015 tst2018; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/${x}_de exp/make_fbank/${x} ${fbankdir}
+            data/${x}.de exp/make_fbank/${x} ${fbankdir}
     done
 
     # make a dev set
-    for l in de en; do
-        utils/subset_data_dir.sh --first data/train_org_${l} 4000 data/dev_org_${l}
-        n=$[`cat data/train_org_${l}/segments | wc -l` - 4000]
-        utils/subset_data_dir.sh --last data/train_org_${l} ${n} data/train_nodev_${l}
+    for lang in de en; do
+        utils/subset_data_dir.sh --first data/train_org.${lang} 4000 data/dev_org.${lang}
+        n=$[`cat data/train_org.${lang}/segments | wc -l` - 4000]
+        utils/subset_data_dir.sh --last data/train_org.${lang} ${n} data/train_nodev.${lang}
     done
 
     for x in train_nodev dev_org; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_de data/${x}_de.tmp
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_en data/${x}_en.tmp
+        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.de data/${x}.de.tmp
+        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.en data/${x}.en.tmp
 
         # Match the number of utterances between EN and DE
         # extract commocn lines
-        cut -f -1 -d " " data/${x}_de.tmp/segments > data/${x}_de.tmp/reclist1
-        cut -f -1 -d " " data/${x}_en.tmp/segments > data/${x}_de.tmp/reclist2
-        comm -12 data/${x}_de.tmp/reclist1 data/${x}_de.tmp/reclist2 > data/${x}_de.tmp/reclist
+        cut -f -1 -d " " data/${x}.de.tmp/segments > data/${x}.de.tmp/reclist1
+        cut -f -1 -d " " data/${x}.en.tmp/segments > data/${x}.de.tmp/reclist2
+        comm -12 data/${x}.de.tmp/reclist1 data/${x}.de.tmp/reclist2 > data/${x}.de.tmp/reclist
 
-        new_data_dir=data/`echo ${x} | cut -f -1 -d "_"`
-        for l in de en; do
-          reduce_data_dir.sh data/${x}_${l}.tmp data/${x}_de.tmp/reclist ${new_data_dir}_${l}
-          utils/fix_data_dir.sh ${new_data_dir}_${l}
+        new_data_dir=data/`echo ${x} | cut -f -1 -d "."`
+        for lang in de en; do
+          reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.de.tmp/reclist ${new_data_dir}.${lang}
+          utils/fix_data_dir.sh ${new_data_dir}.${lang}
         done
-        rm -rf data/${x}_*.tmp
+        rm -rf data/${x}.*.tmp
     done
 
     # compute global CMVN
@@ -164,7 +164,7 @@ if [ ${stage} -le 1 ]; then
 fi
 
 dict=data/lang_1char/train_units.txt
-nlsyms=data/lang_spm1/non_lang_syms.txt
+nlsyms=data/lang_1char/non_lang_syms.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -172,12 +172,12 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d " " data/train_en/text data/train_de/text | grep -o -P '&.*?|@-@;' | sort | uniq > ${nlsyms}
+    cut -f 2- -d " " data/train.en/text data/train.de/text | grep -o -P '&.*?|@-@;' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between EN and DE
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train_en/text data/train_de/text | text2token.py -s 1 -n 1 --non-lang-syms ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
+    cat data/train.en/text data/train.de/text | text2token.py -s 1 -n 1 --non-lang-syms ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -195,11 +195,11 @@ if [ ${stage} -le 2 ]; then
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 3)
-lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_de
+lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256.de
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train_de
+    lmdatadir=data/local/lm_train.de
     mkdir -p ${lmdatadir}
     text2token.py -s 1 -n 1 --non-lang-syms ${nlsyms} data/${train_set}/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train.txt
@@ -299,7 +299,7 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        set=`echo ${rtask} | cut -f -1 -d "_"`
+        set=`echo ${rtask} | cut -f -1 -d "."`
         local/score_bleu.sh ${expdir}/${decode_dir} ${dict} ${datadir} ${set}
 
     ) &

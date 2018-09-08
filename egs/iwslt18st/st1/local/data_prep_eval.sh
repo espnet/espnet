@@ -65,29 +65,29 @@ if [ $set != tst2018 ]; then
   python local/parse_xml.py $xml_de | sort > $dst/.de0
 
   # normalize punctuation
-  paste -d " " <(awk '{print $1}' $dst/.en0) <(cut -f 2- -d " " $dst/.en0 | normalize-punctuation.perl -l en | tokenizer.perl -a -l en) > $dst/test_en
-  paste -d " " <(awk '{print $1}' $dst/.de0) <(cut -f 2- -d " " $dst/.de0 | normalize-punctuation.perl -l de | tokenizer.perl -a -l de) > $dst/test_de
+  paste -d " " <(awk '{print $1}' $dst/.en0) <(cut -f 2- -d " " $dst/.en0 | normalize-punctuation.perl -l en | tokenizer.perl -a -l en) > $dst/test.en
+  paste -d " " <(awk '{print $1}' $dst/.de0) <(cut -f 2- -d " " $dst/.de0 | normalize-punctuation.perl -l de | tokenizer.perl -a -l de) > $dst/test.de
   # NOTE: case-sensitive
 
   # error check
-  n_en=`cat $dst/test_en | wc -l`
-  n_de=`cat $dst/test_de | wc -l`
+  n_en=`cat $dst/test.en | wc -l`
+  n_de=`cat $dst/test.de | wc -l`
   [ $n_en -ne $n_de ] && echo "Warning: expected $n_en data data files, found $n_de" && exit 1;
 fi
 
 
 # (1b) Segmente audio file with LIUM diarization tool
-if [ $set != tst2018 ]; then
-  echo "" > $src/test-db.yaml
-  for f in `cat $src/FILE_ORDER`
-  do
-    java -jar ../../../tools/lium_spkdiarization-8.4.1.jar --fInputSpeechThr=0.0 --fInputMask=$wav_dir/$f.wav --sOutputMask=$wav_dir/$f.seg $f --saveAllStep
-    # using *.s.seg for now, we live with possibly bad segmentation instead of throwing away to much stuff
-    # also sort by start offset of utterance
-    cat $wav_dir/$f.s.seg | grep --invert-match ";;" | sort -n -k3 | awk '{print "- {\"wav\": \"PATH/wavs/" $1 ".wav\", \"offset\":" $3/100 ", \"duration\":" ($4)/100 "}"}' >> $src/test-db.yaml
-  done
-  sed -i 's\PATH\'$src'\g' $src/test-db.yaml
-fi
+# if [ $set != tst2018 ]; then
+#   echo "" > $src/test-db.yaml
+#   for f in `cat $src/FILE_ORDER`
+#   do
+#     java -jar ../../../tools/lium_spkdiarization-8.4.1.jar --fInputSpeechThr=0.0 --fInputMask=$wav_dir/$f.wav --sOutputMask=$wav_dir/$f.seg $f --saveAllStep
+#     # using *.s.seg for now, we live with possibly bad segmentation instead of throwing away to much stuff
+#     # also sort by start offset of utterance
+#     cat $wav_dir/$f.s.seg | grep --invert-match ";;" | sort -n -k3 | awk '{print "- {\"wav\": \"PATH/wavs/" $1 ".wav\", \"offset\":" $3/100 ", \"duration\":" ($4)/100 "}"}' >> $src/test-db.yaml
+#   done
+#   sed -i 's\PATH\'$src'\g' $src/test-db.yaml
+# fi
 # NOTE: audio segmentaion and golden transcripts don't match here
 # After finishing the training stage, hyp and ref are aligned by a RWTH tool
 
@@ -127,21 +127,21 @@ sort $dst/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > $dst/spk2utt
 
 
 # Copy stuff intoc its final locations [this has been moved from the format_data script]
-mkdir -p data/${set}_en
+mkdir -p data/${set}.en
 for f in spk2utt utt2spk wav.scp segments; do
-  cp $dst/$f data/${set}_en/
+  cp $dst/$f data/${set}.en/
 done
 if [ $set != tst2018 ]; then
-  cp $dst/test_en data/${set}_en/text_noseg
+  cp $dst/test.en data/${set}.en/text_noseg
   # NOTE: for passing utils/validate_data_dir.sh
 fi
 
-mkdir -p data/${set}_de
+mkdir -p data/${set}.de
 for f in spk2utt utt2spk wav.scp segments; do
-  cp $dst/$f data/${set}_de/
+  cp $dst/$f data/${set}.de/
 done
 if [ $set != tst2018 ]; then
-  cp $dst/test_de data/${set}_de/text_noseg
+  cp $dst/test.de data/${set}.de/text_noseg
   # NOTE: for passing utils/validate_data_dir.sh
 fi
 
