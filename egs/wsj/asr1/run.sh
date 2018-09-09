@@ -178,11 +178,11 @@ fi
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ $use_wordlm = true ]; then
     lmdatadir=data/local/wordlm_train
-    lmtag=word${lm_vocabsize}_layer${lm_layers}_unit${lm_units}
+    lmtag=${lm_layers}layer_unit${lm_units}_bs${lm_batchsize}_word${lm_vocabsize}
     lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
 else
     lmdatadir=data/local/lm_train
-    lmtag=1char_layer${lm_layers}_unit${lm_units}
+    lmtag=${lm_layers}layer_unit${lm_units}_bs${lm_batchsize}
     lmdict=$dict
 fi
 lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
@@ -225,10 +225,10 @@ if [ ${stage} -le 3 ]; then
         --valid-label ${lmdatadir}/valid.txt \
         --test-label ${lmdatadir}/test.txt \
         --resume ${lm_resume} \
-        --epochs ${lm_epochs} \
+        --epoch ${lm_epochs} \
         --batchsize ${lm_batchsize} \
-        --layers ${lm_layers} \
-        --units ${lm_units} \
+        --layer ${lm_layers} \
+        --unit ${lm_units} \
         --maxlen ${lm_maxlen} \
         --dict ${lmdict}
 fi

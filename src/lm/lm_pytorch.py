@@ -139,9 +139,9 @@ class RNNLM(nn.Module):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
         self.lstm = nn.ModuleList(
-            [nn.LSTMCell(n_units, n_units) for _ in six.moves.range(n_layers)])
+            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)])
         self.dropout = nn.ModuleList(
-            [nn.Dropout() for _ in six.moves.range(n_layers + 1)])
+            [nn.Dropout() for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
