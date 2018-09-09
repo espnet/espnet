@@ -371,7 +371,7 @@ def recog(args):
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(len(train_args.char_list), rnnlm_args.layers, rnnlm_args.units))
+            lm_pytorch.RNNLM(len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         torch_load(args.rnnlm, rnnlm)
         rnnlm.eval()
     else:
@@ -382,7 +382,7 @@ def recog(args):
         word_dict = rnnlm_args.char_list_dict
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
-            len(word_dict), rnnlm_args.layers, rnnlm_args.units))
+            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
         torch_load(args.word_rnnlm, word_rnnlm)
         word_rnnlm.eval()
 

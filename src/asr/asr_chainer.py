@@ -444,7 +444,7 @@ def recog(args):
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
-            len(train_args.char_list), rnnlm_args.layers, rnnlm_args.units))
+            len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         chainer_load(args.rnnlm, rnnlm)
     else:
         rnnlm = None
@@ -454,7 +454,7 @@ def recog(args):
         word_dict = rnnlm_args.char_list_dict
         char_dict = {x: i for i, x in enumerate(train_args.char_list)}
         word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
-            len(word_dict), rnnlm_args.layers, rnnlm_args.units))
+            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
         chainer_load(args.word_rnnlm, word_rnnlm)
 
         if rnnlm is not None:
