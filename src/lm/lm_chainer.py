@@ -282,9 +282,9 @@ def train(args):
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epochs * len(train_iter.batch_indices)))
+    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layers, args.units)
+    rnn = RNNLM(args.n_vocab, args.layer, args.unit)
     model = ClassifierWithState(rnn)
     if args.ngpu > 1:
         logging.warn("currently, multi-gpu is not supported. use single gpu.")
@@ -312,7 +312,7 @@ def train(args):
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
     updater = BPTTUpdater(train_iter, optimizer, gpu_id)
-    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
                                         trigger=(REPORT_INTERVAL, 'iteration')))
