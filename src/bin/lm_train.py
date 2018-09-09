@@ -57,13 +57,13 @@ def main():
     parser.add_argument('--bproplen', '-l', type=int, default=35,
                         help='Number of words in each mini-batch '
                              '(= length of truncated BPTT)')
-    parser.add_argument('--epochs', '-e', type=int, default=20,
+    parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
-    parser.add_argument('--layers', '-L', type=int, default=2,
+    parser.add_argument('--layer', '-L', type=int, default=2,
                         help='Number of hidden layers')
-    parser.add_argument('--units', '-u', type=int, default=650,
+    parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of hidden units')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')

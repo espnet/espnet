@@ -53,10 +53,11 @@ def test_lm():
         state_th, y_th = rnnlm_th.predictor(None, x.long())
         state_ch, y_ch = rnnlm_ch.predictor(None, x.data.numpy())
         for k in state_ch.keys():
-            print(k)
-            print(state_th[k].data.numpy())
-            print(state_ch[k].data)
-            numpy.testing.assert_allclose(state_th[k].data.numpy(), state_ch[k].data, 1e-5)
+            for n in range(len(state_th[k])):
+                print(k, n)
+                print(state_th[k][n].data.numpy())
+                print(state_ch[k][n].data)
+                numpy.testing.assert_allclose(state_th[k][n].data.numpy(), state_ch[k][n].data, 1e-5)
         print("y")
         print(y_th.data.numpy())
         print(y_ch.data)

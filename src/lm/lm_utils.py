@@ -12,9 +12,9 @@ from __future__ import print_function
 import chainer
 import logging
 import numpy as np
+import os
 import random
 import six
-import os
 
 from chainer.training import extension
 

@@ -133,7 +133,7 @@ class RNNLM(chainer.Chain):
         with self.init_scope():
             self.embed = DL.EmbedID(n_vocab, n_units)
             self.lstm = chainer.ChainList(
-                *[L.StatelessLSTM(n_units, n_units) for _ in six.moves.range(n_layers)])
+                *[L.StatelessLSTM(n_units, n_units) for _ in range(n_layers)])
             self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
