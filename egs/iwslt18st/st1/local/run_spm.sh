@@ -42,14 +42,14 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=60
+epochs=40
 
 # rnnlm related
 lm_weight=0.3
 
 # decoding parameter
-beam_size=10
-penalty=0.0
+beam_size=5
+penalty=0.2
 maxlenratio=0.0
 minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
@@ -202,7 +202,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 3)
-lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_${bpemode}${nbpe}.de
+lmexpdir=exp/${train_set}_rnnlm_${backend}_2layer_bs256_${bpemode}${nbpe}
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
@@ -306,8 +306,10 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        set=`echo ${rtask} | cut -f -1 -d "."`
-        local/score_bleu.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict} ${datadir} ${set}
+        if [ ${rtask} != tst2018 ]; then
+          set=`echo ${rtask} | cut -f -1 -d "."`
+          local/score_bleu.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict} ${datadir} ${set}
+        fi
 
     ) &
     done
