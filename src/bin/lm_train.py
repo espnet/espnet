@@ -37,8 +37,6 @@ def main():
                         help='Random seed')
     parser.add_argument('--resume', '-r', default='', nargs='?',
                         help='Resume the training from snapshot')
-    parser.add_argument('--minibatches', '-N', type=int, default='-1',
-                        help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     # task related
@@ -54,14 +52,11 @@ def main():
                         help='Optimizer')
     parser.add_argument('--batchsize', '-b', type=int, default=300,
                         help='Number of examples in each mini-batch')
-    parser.add_argument('--bproplen', '-l', type=int, default=35,
-                        help='Number of words in each mini-batch '
-                             '(= length of truncated BPTT)')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
-    parser.add_argument('--layer', '-L', type=int, default=2,
+    parser.add_argument('--layer', '-l', type=int, default=2,
                         help='Number of hidden layers')
     parser.add_argument('--unit', '-u', type=int, default=650,
                         help='Number of hidden units')

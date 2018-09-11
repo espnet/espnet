@@ -57,10 +57,11 @@ epochs=15
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
-lm_epochs=20        # number of epochs
-lm_batchsize=300    # 1024 for character LMs
 lm_layers=1         # 2 for character LMs
 lm_units=1000       # 650 for character LMs
+lm_opt=sgd          # adam for character LMs
+lm_batchsize=300    # 1024 for character LMs
+lm_epochs=20        # number of epochs
 lm_maxlen=40        # 150 for character LMs
 lm_resume=          # specify a snapshot file to resume LM training
 
@@ -177,13 +178,9 @@ fi
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ $use_wordlm = true ]; then
-    lmdatadir=data/local/wordlm_train
-    lmtag=${lm_layers}layer_unit${lm_units}_bs${lm_batchsize}_word${lm_vocabsize}
-    lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
+    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}_word${lm_vocabsize}
 else
-    lmdatadir=data/local/lm_train
-    lmtag=${lm_layers}layer_unit${lm_units}_bs${lm_batchsize}
-    lmdict=$dict
+    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
 fi
 lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
 mkdir -p ${lmexpdir}
@@ -192,6 +189,8 @@ if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     mkdir -p ${lmdatadir}
     if [ $use_wordlm = true ]; then
+        lmdatadir=data/local/wordlm_train
+        lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
                 | grep -v "<" | tr [a-z] [A-Z] > ${lmdatadir}/train_others.txt
@@ -200,6 +199,8 @@ if [ ${stage} -le 3 ]; then
         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
+        lmdatadir=data/local/lm_train
+        lmdict=$dict
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
             | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
@@ -225,10 +226,11 @@ if [ ${stage} -le 3 ]; then
         --valid-label ${lmdatadir}/valid.txt \
         --test-label ${lmdatadir}/test.txt \
         --resume ${lm_resume} \
-        --epoch ${lm_epochs} \
-        --batchsize ${lm_batchsize} \
         --layer ${lm_layers} \
         --unit ${lm_units} \
+        --opt ${lm_opt} \
+        --batchsize ${lm_batchsize} \
+        --epoch ${lm_epochs} \
         --maxlen ${lm_maxlen} \
         --dict ${lmdict}
 fi
