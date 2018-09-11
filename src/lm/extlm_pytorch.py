@@ -93,7 +93,7 @@ class MultiLevelLM(nn.Module):
                 clm_logprob += log_y[0, xi]
             else:  # if open_vocab flag is disabled, return 0 probabilities
                 log_y = torch.zeros(1, self.subword_dict_size) + self.logzero
-                return (clm_state, wlm_state, None, log_y, 0.), log_y
+                return (clm_state, wlm_state, wlm_logprobs, None, log_y, 0.), log_y
 
             clm_state, z_clm = self.subwordlm(clm_state, x)
             log_y = F.log_softmax(z_clm, dim=1) * self.subwordlm_weight
@@ -110,7 +110,7 @@ class MultiLevelLM(nn.Module):
             log_y[:, self.space] = self.logzero
             log_y[:, self.eos] = self.logzero
 
-        return (clm_state, wlm_state, wlm_logprobs, new_node, log_y, clm_logprob), log_y
+        return (clm_state, wlm_state, wlm_logprobs, new_node, log_y, float(clm_logprob)), log_y
 
     def final(self, state):
         clm_state, wlm_state, wlm_logprobs, node, log_y, clm_logprob = state
