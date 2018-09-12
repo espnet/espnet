@@ -21,6 +21,12 @@ $ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5/asr1 --docker_folders /export/
 ```
 Note that all experimental files and results are created under the normal example directories (`egs/<example>/`).
 
+Multiple folders and environment variables should be specified with commas and without spaces:
+```sh
+$ cd docker
+$ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpus/CHiME4,/export/corpus/LDC/LDC93S6B,/export/corpus/LDC/LDC94S13B --docker_env "CHIME4_CORPUS=/export/corpus/CHiME4/CHiME3,WSJ0_CORPUS=/export/corpus/LDC/LDC93S6B,WSJ1_CORPUS=/export/corpus/LDC/LDC94S13B" --ngpu 1
+```
+
 ## Tags
 
 - Runtime: Base image for ESPnet. It includes libraries and Kaldi installation.
@@ -33,5 +39,5 @@ Note that all experimental files and results are created under the normal exampl
 - [`cuda9.1-cudnn7` (*docker/prebuilt/gpu/9.1/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.1/cudnn7/Dockerfile)
 - [`cuda9.0-cudnn7` (*docker/prebuilt/gpu/9.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.0/cudnn7/Dockerfile)
 - [`cuda8.0-cudnn7`(*docker/prebuilt/gpu/8.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/8.0/cudnn7/Dockerfile)
-- [`cpu` (*docker/prebuilt/cpu/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/Dockerfile)
+- [`cpu` (*docker/prebuilt/devel/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/Dockerfile)
 - [`runtime` (*docker/prebuilt/runtime/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/runtime/Dockerfile)
