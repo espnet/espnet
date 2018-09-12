@@ -138,11 +138,8 @@ class Loss(torch.nn.Module):
 
         # Define components related to language prediction
         self.lang_linear = torch.nn.Linear(self.predictor.eprojs, 10)
-        self.lang_linear.cuda()
         self.log_softmax = torch.nn.LogSoftmax(dim=1)
-        self.log_softmax.cuda()
         self.loss_lang = torch.nn.NLLLoss()
-        self.loss_lang.cuda()
 
     def forward_langid(self, x):
 
@@ -151,10 +148,8 @@ class Loss(torch.nn.Module):
         log_softmax_out = self.log_softmax(self.lang_linear(mean))
         logging.info("log_softmax {}".format(log_softmax_out))
 
-        targets = torch.cuda.LongTensor([self.lang2id[uttid2lang(utt[0])] for utt in x])
-        targets.cuda()
+        targets = to_cuda(self, torch.LongTensor([self.lang2id[uttid2lang(utt[0])] for utt in x]))
         targets = torch.autograd.Variable(targets)
-        targets.cuda()
 
         logging.info("targets: {}".format([int(id_) for id_ in targets]))
 
