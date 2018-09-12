@@ -94,6 +94,10 @@ recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assa
 recog_set="dt_babel_cantonese et_babel_cantonese dt_babel_assamese et_babel_assamese dt_babel_bengali et_babel_bengali dt_babel_pashto et_babel_pashto dt_babel_turkish et_babel_turkish\
  dt_babel_vietnamese et_babel_vietnamese dt_babel_haitian et_babel_haitian dt_babel_swahili et_babel_swahili dt_babel_lao et_babel_lao dt_babel_tagalog et_babel_tagalog\
  dt_babel_tamil et_babel_tamil dt_babel_kurmanji et_babel_kurmanji dt_babel_zulu et_babel_zulu dt_babel_tokpisin et_babel_tokpisin dt_babel_georgian et_babel_georgian"
+# whole set but eval sets only
+recog_set="et_babel_cantonese et_babel_assamese et_babel_bengali et_babel_pashto et_babel_turkish\
+ et_babel_vietnamese et_babel_haitian et_babel_swahili et_babel_lao et_babel_tagalog\
+ et_babel_tamil et_babel_kurmanji et_babel_zulu et_babel_tokpisin et_babel_georgian"
 
 . utils/parse_options.sh || exit 1;
 
