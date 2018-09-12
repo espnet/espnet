@@ -130,9 +130,13 @@ fi
 cmd="${cmd1}; ${cmd2}"
 this_env=""
 if [ ! -z "${docker_env}" ]; then
-  this_env="-e ${docker_env}"
+  docker_env=$(echo ${docker_env} | tr "," "\n")
+  for i in ${docker_env[@]}
+  do
+    this_env="-e $i ${this_env}" 
+  done
 fi
-echo 'hola "HTTP_PROXY=${HTTP_PROXY}"'
+
 if [ ! -z "${HTTP_PROXY}" ]; then
   this_env="${this_env} -e 'HTTP_PROXY=${HTTP_PROXY}'"
 fi
@@ -143,8 +147,19 @@ fi
 
 cmd="${cmd0} run -i --rm ${this_env} --name ${container_name} ${vols} espnet/espnet:${container_tag} /bin/bash -c '${cmd}'"
 
+trap ctrl_c INT
+
+function ctrl_c() {
+        echo "** Kill docker container ${container_name}"
+        docker rm -f ${container_name}
+}
+
 echo "Executing application in Docker"
 echo ${cmd}
-eval ${cmd}
+eval ${cmd} &
+PROC_ID=$!
 
+while kill -0 "$PROC_ID" 2> /dev/null; do
+    sleep 1
+done
 echo "`basename $0` done."
