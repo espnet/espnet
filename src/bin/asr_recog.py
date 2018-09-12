@@ -70,6 +70,8 @@ def main():
                         help="Inventory of phonemes for phoneme decoding.")
     parser.add_argument('--lang-grapheme-constraint', default=None,
                         help="Restricted Inventory of graphemes for grapheme decoding.")
+    parser.add_argument('--train-json', type=str, default=None,
+                        help='Filename of train label data (json)')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
     args = parser.parse_args()

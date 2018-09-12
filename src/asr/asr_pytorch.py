@@ -95,13 +95,15 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, predict_lang=False):
+                 optimizer, converter, device,
+                 predict_lang=None, predict_lang_alpha=None):
         super(PytorchSeqUpdaterKaldi, self).__init__(
             train_iter, optimizer, converter=converter, device=None)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.num_gpu = len(device)
         self.predict_lang = predict_lang
+        self.predict_lang_alpha = predict_lang_alpha
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -140,8 +142,8 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
             optimizer.step()
 
         logging.info("predict_lang: {}".format(self.predict_lang))
-        if self.predict_lang:
-            logging.info("PREDICT LANG")
+        logging.info("predict_lang_alpha: {}".format(self.predict_lang_alpha))
+        if self.predict_lang: # Either normal prediction or adversarial
             # Now compute the lang loss (this redoes the encoding, which may be
             # slightly inefficient but should be fine for now).
             optimizer.zero_grad()
@@ -150,9 +152,31 @@ class PytorchSeqUpdaterKaldi(training.StandardUpdater):
                 lang_loss.backward(torch.ones(self.num_gpu))  # Backprop
             else:
                 lang_loss.backward()  # Backprop
+            logging.info("predict_lang: {}".format(self.predict_lang))
+
+            if self.predict_lang == "adv":
+                assert self.predict_lang_alpha
+                # Then it's adversarial and we should reverse gradients
+                for name, parameter in self.model.named_parameters():
+                #    logging.info("parameter {} grad: {}".format(
+                #            name, parameter.grad))
+                    parameter.grad *= -1 * self.predict_lang_alpha
+                #    logging.info("parameter {} -grad: {}".format(
+                #            name, parameter.grad))
+
+#               # But reverse the lang_linear gradients again so that they're
+                # not adversarial (we just want the encoder to hide the
+                # language information, but we still want to try our best to predict the
+                # language)
+                self.model.lang_linear.bias.grad *= (-1 / self.predict_lang_alpha)
+                self.model.lang_linear.weight.grad *= (-1 / self.predict_lang_alpha)
+                #logging.info("lang_linear {}".format((self.model.lang_linear.bias.grad,
+                #    self.model.lang_linear.weight.grad)))
+
             optimizer.step()
 
         delete_feat(x)
+
 
 class DataParallel(torch.nn.DataParallel):
     def scatter(self, inputs, kwargs, device_ids, dim):
@@ -355,7 +379,8 @@ def train(args):
     updater = PytorchSeqUpdaterKaldi(
         model, args.grad_clip, train_iter, optimizer,
         converter=converter_kaldi, device=gpu_id,
-        predict_lang=args.predict_lang)
+        predict_lang=args.predict_lang,
+        predict_lang_alpha=args.predict_lang_alpha)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -470,10 +495,16 @@ def recog(args):
     # Phoneme objective weight set to zero.
     #train_args.phoneme_objective_weight = 0.0
 
+    # read training json data just so we can extract the list of langs used in
+    # language ID prediction
+    with open(args.train_json, 'rb') as f:
+        train_json = json.load(f)['utts']
+    langs = extract_langs(train_json)
+
     # specify model architecture
     logging.info('reading model parameters from' + args.model)
     e2e = E2E(idim, grapheme_odim, train_args, phoneme_odim=phoneme_odim)
-    model = Loss(e2e, train_args.mtlalpha)
+    model = Loss(e2e, train_args.mtlalpha, langs=langs)
     # We're going to need to specify the phoneme objective weight, aren't we? or are we?
     #model = Loss(e2e, args.mtlalpha, phoneme_objective_weight=args.phoneme_objective_weight)
 

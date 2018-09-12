@@ -47,7 +47,8 @@ mtlalpha=0.0
 phoneme_objective_weight=0.5
 phoneme_objective_layer=""
 
-predict_lang=false
+predict_lang=""
+predict_lang_alpha=0.1
 
 # minibatch related
 batchsize=50
@@ -326,8 +327,11 @@ if [ -z ${tag} ]; then
     if [ ${phoneme_objective_layer} ]; then
         expdir=${expdir}_phonemelayer${phoneme_objective_layer}
     fi
-    if [[ ${predict_lang} = true ]]; then
-        expdir=${expdir}_predictlang
+    if [[ ${predict_lang} = normal ]]; then
+        expdir=${expdir}_predictlang-${predict_lang_alpha}
+    fi
+    if [[ ${predict_lang} = adv ]]; then
+        expdir=${expdir}_predictlang-adv-${predict_lang_alpha}
     fi
 else
     expdir=exp/${train_set}_${tag}
@@ -369,14 +373,14 @@ if [ ${stage} -le 3 ]; then
     if [[ ${phoneme_objective_layer} ]]; then
         train_cmd="${train_cmd} --phoneme_objective_layer ${phoneme_objective_layer}"
     fi
-    if [[ ${predict_lang} = true ]]; then
-        train_cmd="${train_cmd} --predict_lang"
+    if [[ ! -z ${predict_lang} ]]; then
+        train_cmd="${train_cmd} --predict_lang ${predict_lang}\
+                                --predict_lang_alpha ${predict_lang_alpha}"
     fi
     echo "train_cmd: $train_cmd"
     echo "expdir: $expdir"
     ${train_cmd}
 fi
-
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
@@ -417,6 +421,7 @@ if [ ${stage} -le 4 ]; then
             --ctc-weight ${ctc_weight} \
             --phoneme-dict ${dict}.phn \
             --lang-grapheme-constraint ${lang_dict} \
+            --train-json ${feat_tr_dir}/data.json \
             &
         wait
 

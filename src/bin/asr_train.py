@@ -137,8 +137,14 @@ def main():
                         help='Train with an additional phoneme transcription objective if weight > 0')
     parser.add_argument('--phoneme_objective_layer', default=None,
                         help='The layer of the BLSTM encoder to connect to the phoneme objective')
-    parser.add_argument('--predict_lang', action="store_true",
-                        help='If flagged, the model predicts languages as well')
+    parser.add_argument('--predict_lang', type=str, default=None,
+                        help="""If "normal", then the model predicts languages as
+                        well. If "adv", then the model predicts languages, but
+                        adversarially; trying to learn to create a hidden
+                        representation that makes it hard to predict the
+                        language from""")
+    parser.add_argument('--predict_lang_alpha', default=0.1, type=float,
+                        help='The amount to scale the adversarial gradient.')
     args = parser.parse_args()
     try:
         args.phoneme_objective_layer = int(args.phoneme_objective_layer)
