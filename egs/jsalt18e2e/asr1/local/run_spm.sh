@@ -215,24 +215,25 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_char/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- data/tr_*/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms}
+    cut -f 2- data/tr_*/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq | grep -v "<unk>" > ${nlsyms}
     cat ${nlsyms}
 
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
-    spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
+    offset=$(cat ${dict} | wc -l)
+    cut -f 2- -d" " data/tr_babel_*/text data/tr_csj_*/text data/tr_libri_*/text | sed -e  "s/<unk>/<UNK>/g" > data/lang_char/input.txt
+    spm_train --input=data/lang_char/input.txt --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | grep -v "<UNK>" | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} --bpecode ${bpemodel}.model \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
          data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} --bpecode ${bpemodel}.model \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model\
-            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+            data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
     done
 fi
 
