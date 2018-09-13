@@ -80,7 +80,7 @@ def make_pad_mask(lengths):
     """
     bs = int(len(lengths))
     maxlen = int(max(lengths))
-    mask = torch.zeros(bs, maxlen).byte()
+    mask = torch.zeros(bs, maxlen, dtype=torch.uint8)
     for i, l in enumerate(lengths):
         mask[i, l:] = 1
 
