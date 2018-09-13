@@ -188,20 +188,7 @@ To disable the PCI Express ACS follow instructions written [here](https://github
 
 ### Docker Container
 
-To work inside a docker container, execute `run.sh` located inside the docker directory.
-It will build a container and execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:
-```sh
-$ cd docker
-$ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpora4/CHiME4/CHiME3 --dlayers 1 --ngpu 1 
-```
-Optionally, you can set the CUDA and CUDNN version with the arguments `--docker_cuda` and `--docker_cudnn` respectively (default version set at CUDA=9.0 and CUDNN=7). The docker container can be built based on the CUDA and CUDNN version installed in your computer if you empty this arguments.
-The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
-Multiple GPUs should be specified with the following options:
-```sh
-$ cd docker
-$ ./run.sh --docker_gpu 0,1,2 --docker_egs chime5/asr1 --docker_folders /export/corpora4/CHiME5 --ngpu 3
-```
-Note that all experimental files and results are created under the normal example directories (`egs/<example>/`).
+go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
 
 ### Setup in your cluster
 
@@ -261,8 +248,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval3 | 5.9 | N/A  |
 | HKUST train_dev | 28.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
-| Librispeech dev_clean  | N/A | 4.7 |
-| Librispeech test_clean | N/A | 4.7 |
+| Librispeech dev_clean  | N/A | 4.5 |
+| Librispeech test_clean | N/A | 4.6 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
