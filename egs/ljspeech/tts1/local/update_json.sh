@@ -22,11 +22,14 @@ dir=$(dirname ${json})
 tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
 rm -f ${tmpdir}/*.scp
 
+# make utt2num_frames
+utils/data/get_utt2num_frames.sh "$(dirname $feat)"
+
 # feats scp
 cat ${feat} > ${tmpdir}/feat.scp
 
 # ilen & idim scp
-feat-to-len scp:${feat} ark,t:${tmpdir}/ilen.scp
+cat "$(dirname ${feat})/utt2num_frames" > ${tmpdir}/ilen.scp
 feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp
 
 # convert to json
