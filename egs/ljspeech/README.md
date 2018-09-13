@@ -12,7 +12,7 @@ Finally, phase components are recovered with Griffin-Lim.
 
 `tts2` recipe is based on Tacotron2's spectrogram prediction network [1] and Tacotron's CBHG module [2].
 Instead of using inverse mel-basis, CBHG module is used to convert log mel-filter bank to linear spectrogram.
-The recover of the phase components is the same as `tts1`.
+The recovery of the phase components is the same as `tts1`.
 
 ## Reference
 
