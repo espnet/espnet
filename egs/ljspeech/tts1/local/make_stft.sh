@@ -84,6 +84,7 @@ if $write_utt2num_frames; then
     for n in $(seq $nj); do
         cat $fbankdir/utt2num_frames.$n || exit 1;
     done > $data/utt2num_frames || exit 1
+    rm $fbankdir/utt2num_frames.* 2>/dev/null
 fi
 
 rm $logdir/wav.*.scp 2>/dev/null
