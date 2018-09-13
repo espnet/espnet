@@ -132,14 +132,16 @@ class Loss(torch.nn.Module):
         self.accuracy = None
         self.predictor = predictor
         self.reporter = Reporter()
-        self.langs = langs
-        self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
-        self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
 
-        # Define components related to language prediction
-        self.lang_linear = torch.nn.Linear(self.predictor.eprojs, 10)
-        self.log_softmax = torch.nn.LogSoftmax(dim=1)
-        self.loss_lang = torch.nn.NLLLoss()
+        if langs:
+            self.langs = langs
+            self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
+            self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
+
+            # Define components related to language prediction
+            self.lang_linear = torch.nn.Linear(self.predictor.eprojs, 10)
+            self.log_softmax = torch.nn.LogSoftmax(dim=1)
+            self.loss_lang = torch.nn.NLLLoss()
 
     def forward_langid(self, x):
 
@@ -446,7 +448,12 @@ class E2E(torch.nn.Module):
         h, _ = self.enc(h.unsqueeze(0), ilen)
 
         # 2. calculate log P(z_t|X) for CTC scores
-        phn_log_softmax = self.phn_ctc.log_softmax(h).data[0]
+        if self.phoneme_objective_layer:
+            # Then use the appropriate layer
+            phn_log_softmax = self.phn_ctc.log_softmax(self.enc.enc1.phoneme_layer_hpad).data[0]
+        else:
+            phn_log_softmax = self.phn_ctc.log_softmax(h).data[0]
+        logging.info("phn_log_softmax.shape {}".format(phn_log_softmax.shape))
 
         # 3. Calculate the one best hypothesis:
         one_best = torch.topk(phn_log_softmax,1)[1]

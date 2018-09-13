@@ -497,9 +497,12 @@ def recog(args):
 
     # read training json data just so we can extract the list of langs used in
     # language ID prediction
-    with open(args.train_json, 'rb') as f:
-        train_json = json.load(f)['utts']
-    langs = extract_langs(train_json)
+    if args.train_json:
+        with open(args.train_json, 'rb') as f:
+            train_json = json.load(f)['utts']
+        langs = extract_langs(train_json)
+    else:
+        langs = None
 
     # specify model architecture
     logging.info('reading model parameters from' + args.model)
