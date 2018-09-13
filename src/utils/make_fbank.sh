@@ -84,7 +84,13 @@ $cmd JOB=1:$nj $logdir/make_fbank_${name}.JOB.log \
 # concatenate the .scp files together.
 for n in $(seq $nj); do
     cat $fbankdir/raw_fbank_$name.$n.scp || exit 1;
-done > $data/feats.scp
+done > $data/feats.scp || exit 1
+
+if $write_utt2num_frames; then
+    for n in $(seq $nj); do
+        cat $fbankdir/utt2num_frames.$n || exit 1;
+    done > $data/utt2num_frames || exit 1
+fi
 
 rm $logdir/wav.*.scp 2>/dev/null
 
