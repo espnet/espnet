@@ -119,11 +119,12 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = 1. / self.ngpu * self.model(*x)
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.ngpu > 1:
+            loss = 1. / self.ngpu * self.model(*x)
             loss.backward(loss.new_ones(self.ngpu))  # Backprop
         else:
+            loss = self.model(*x)
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not

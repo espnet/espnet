@@ -18,10 +18,10 @@ decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3: 14.3
 decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3: 5.0
 decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3: 14.9
 
-# pytorch VGG-3BLSTM 1024 units, #BPE 5000 more layers
+# pytorch VGG-3BLSTM 1024 units, #BPE 5000 more layers with tuned decoding (ctc_weight=0.5, lm_weight=0.5)
 # train_960_vggblstm_e5_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_location1024_aconvc10_aconvf100_mtlalpha0.5_adadelta_bs24_mli800_mlo150_unigram5000
 # WER
-decode_dev_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3: 4.7
-decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3: 13.5
-decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3: 4.7
-decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm0.3: 14.2
+decode_dev_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.5: 4.5
+decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.5: 13.0
+decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.5: 4.6
+decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.5: 13.7
