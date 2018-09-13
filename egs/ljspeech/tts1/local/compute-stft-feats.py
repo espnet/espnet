@@ -7,6 +7,8 @@ import argparse
 import logging
 import os
 
+from distutils.util import strtobool
+
 import librosa
 import numpy as np
 import soundfile as sf
@@ -36,6 +38,8 @@ def main():
     parser.add_argument('--window', type=str, default='hann',
                         choices=['hann', 'hamming'],
                         help='Type of window')
+    parser.add_argument('--write_utt2num_frames', type=strtobool, default=True,
+                        help='Whether to write utt2num file')
     parser.add_argument('scp', type=str,
                         help='WAV scp files')
     parser.add_argument('out', type=str,
@@ -61,7 +65,13 @@ def main():
         os.makedirs(outdir)
 
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
-    arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
+    if args.write_utt2num_frames:
+        job_id = "." + args.out.split(".")[-1] if args.out.split(".")[-1].isdigit() else ""
+        arkscp = ('ark:| copy-feats --print-args=false --write-num-frames=ark,t=%s'
+                  '--ark:- ark,scp:%s.ark,%s.scp') % (
+                      args.out, args.out, os.path.dirname(args.out) + "/utt2num_frames" + job_id)
+    else:
+        arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
 
     # extract feature and then write as ark with scp format
     with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:

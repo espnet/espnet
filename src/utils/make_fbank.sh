@@ -3,7 +3,6 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# TODO accept --write_utt2num_frames option
 # Begin configuration section.
 nj=4
 fs=22050
@@ -13,6 +12,7 @@ n_mels=80
 n_fft=1024
 n_shift=512
 win_length=
+write_utt2num_frames=true
 cmd=run.pl
 # End configuration section.
 
@@ -77,6 +77,7 @@ $cmd JOB=1:$nj $logdir/make_fbank_${name}.JOB.log \
         --n_shift $n_shift \
         --win_length $win_length \
         --n_mels $n_mels \
+        --write_utt2num_frames ${write_utt2num_frames} \
         $logdir/wav.JOB.scp \
         $fbankdir/raw_fbank_$name.JOB
 
