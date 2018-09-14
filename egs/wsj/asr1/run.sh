@@ -209,7 +209,7 @@ if [ ${stage} -le 3 ]; then
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
     fi
-    ${cuda_cmd} ${lmexpdir}/train.log \
+    ${cuda_cmd} --gpu 1 ${lmexpdir}/train.log \
         lm_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -222,11 +222,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-<<<<<<< HEAD
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
-=======
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
->>>>>>> upstream/master
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -292,6 +288,9 @@ if [ ${stage} -le 5 ]; then
         else
             decode_dir=${decode_dir}_rnnlm${lm_weight}
             recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
+        if [ $lm_weight == 0 ]; then
+            recog_opts=""
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
