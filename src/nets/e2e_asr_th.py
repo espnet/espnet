@@ -1614,6 +1614,187 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         return c, w
 
 
+class AttForward(torch.nn.Module):
+    '''Forward attention
+
+    Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
+        (https://arxiv.org/pdf/1807.06736.pdf)
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttForward, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.mask = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=1.0):
+        '''AttForward forward
+
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: dummy (does not use)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: torch.Tensor
+        :return: previous attentioin weights (B x T_max)
+        :rtype: torch.Tensor
+        '''
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
+
+        if dec_z is None:
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        if att_prev is None:
+            # initial attention will be [1, 0, 0, ...]
+            att_prev = enc_hs_pad.new_zeros(*enc_hs_pad.size()[:2])
+            att_prev[:, 0] = 1.0
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).unsqueeze(1)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        # NOTE consider zero padding when compute w.
+        if self.mask is None:
+            self.mask = to_cuda(self, make_pad_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
+        w = F.softmax(scaling * e, dim=1)
+
+        # forward attention
+        att_prev_shift = F.pad(att_prev, (1, 0))[:, :-1]
+        w = (att_prev + att_prev_shift) * w
+        # NOTE: originally, p=1 nomalization is applied, but causes nan gradient
+        # TODO(kan-bayashi): fix nan gradient when use p=1
+        w = F.normalize(w, p=2, dim=1) ** 2
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.unsqueeze(-1), dim=1)
+
+        return c, w
+
+
+class AttForwardTA(torch.nn.Module):
+    '''Forward attention with transition agent
+
+    Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
+        (https://arxiv.org/pdf/1807.06736.pdf)
+
+    :param int eunits: # units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int odim: output dimension
+    '''
+
+    def __init__(self, eunits, dunits, att_dim, odim):
+        super(AttForwardTA, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eunits, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.mlp_ta = torch.nn.Linear(eunits + dunits + odim, 1)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+        self.dunits = dunits
+        self.eunits = eunits
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.trans_agent_prob = 0.5
+
+    def reset(self):
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.trans_agent_prob = 0.5
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev, scaling=1.0):
+        '''AttForwardTA forward
+
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, Tmax, eunits)
+        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param torch.Tensor dec_z: docoder hidden state (B, dunits)
+        :param torch.Tensor att_prev: attention weights of previous step
+        :param torch.Tensor prev_out: decoder outputs of previous step (B, odim)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, dunits)
+        :rtype: torch.Tensor
+        :return: previous attentioin weights (B, Tmax)
+        :rtype: torch.Tensor
+        '''
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
+
+        if dec_z is None:
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        if att_prev is None:
+            # initial attention will be [1, 0, 0, ...]
+            att_prev = enc_hs_pad.new_zeros(*enc_hs_pad.size()[:2])
+            att_prev[:, 0] = 1.0
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        # NOTE consider zero padding when compute w.
+        e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+        w = F.softmax(scaling * e, dim=1)
+
+        # forward attention
+        att_prev_shift = F.pad(att_prev, (1, 0))[:, :-1]
+        w = (self.trans_agent_prob * att_prev + (1 - self.trans_agent_prob) * att_prev_shift) * w
+        # NOTE: originally, p=1 nomalization is applied, but causes nan gradient
+        # TODO(kan-bayashi): fix nan gradient when use p=1
+        w = F.normalize(w, p=2, dim=1) ** 2
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        # update transition agent prob
+        self.trans_agent_prob = torch.sigmoid(
+            self.mlp_ta(torch.cat([c, out_prev, dec_z], dim=1)))
+
+        return c, w
+
+
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
     """Decoder module
