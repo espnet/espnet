@@ -5,6 +5,7 @@
 
 from __future__ import division
 
+import logging
 import six
 
 import chainer
@@ -15,6 +16,8 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
+from e2e_asr_th import AttForward
+from e2e_asr_th import AttForwardTA
 from e2e_asr_th import AttLoc
 from e2e_asr_th import to_cuda
 
@@ -247,6 +250,7 @@ class Tacotron2(torch.nn.Module):
         self.use_concate = args.use_concate
         self.dropout = args.dropout
         self.zoneout = args.zoneout
+        self.atype = args.atype
         self.use_cbhg = args.use_cbhg
         if self.use_cbhg:
             self.spc_dim = args.spc_dim
@@ -276,14 +280,32 @@ class Tacotron2(torch.nn.Module):
                            use_batch_norm=self.use_batch_norm,
                            dropout=self.dropout)
         dec_idim = self.eunits if self.spk_embed_dim is None else self.eunits + self.spk_embed_dim
-        self.dec = Decoder(idim=dec_idim,
-                           odim=self.odim,
-                           att=AttLoc(
-                               dec_idim,
+        if self.atype == "location":
+            att = AttLoc(dec_idim,
+                         self.dunits,
+                         self.adim,
+                         self.aconv_chans,
+                         self.aconv_filts)
+        elif self.atype == "forward":
+            att = AttForward(dec_idim,
+                             self.dunits,
+                             self.adim)
+            if self.cumulate_att_w:
+                logging.warn("cumulation of attention weights is disabled in forward attention.")
+                self.cumulate_att_w = False
+        elif self.atype == "forward_ta":
+            att = AttForwardTA(dec_idim,
                                self.dunits,
                                self.adim,
-                               self.aconv_chans,
-                               self.aconv_filts),
+                               self.odim)
+            if self.cumulate_att_w:
+                logging.warn("cumulation of attention weights is disabled in forward attention.")
+                self.cumulate_att_w = False
+        else:
+            raise NotImplementedError("Support only location or forward")
+        self.dec = Decoder(idim=dec_idim,
+                           odim=self.odim,
+                           att=att,
                            dlayers=self.dlayers,
                            dunits=self.dunits,
                            prenet_layers=self.prenet_layers,
@@ -574,6 +596,11 @@ class Decoder(torch.nn.Module):
         self.threshold = threshold
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
+        # check attention type
+        if isinstance(self.att, AttForwardTA):
+            self.use_att_extra_inputs = True
+        else:
+            self.use_att_extra_inputs = False
         # define lstm network
         self.lstm = torch.nn.ModuleList()
         for layer in six.moves.range(self.dlayers):
@@ -668,7 +695,10 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         outs, logits = [], []
         for y in ys.transpose(0, 1):
-            att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
+            if self.use_att_extra_inputs:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
+            else:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
             prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
@@ -738,7 +768,10 @@ class Decoder(torch.nn.Module):
             idx += 1
 
             # decoder calculation
-            att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w)
+            if self.use_att_extra_inputs:
+                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w, prev_out)
+            else:
+                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w)
             att_ws += [att_w]
             prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
@@ -796,7 +829,10 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         att_ws = []
         for y in ys.transpose(0, 1):
-            att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
+            if self.use_att_extra_inputs:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
+            else:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
             att_ws += [att_w]
             prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
