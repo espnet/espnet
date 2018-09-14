@@ -1636,6 +1636,7 @@ class AttForward(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
 
     def reset(self):
         '''reset states'''
@@ -1727,12 +1728,14 @@ class AttForwardTA(torch.nn.Module):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
         self.trans_agent_prob = 0.5
 
     def reset(self):
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
+        self.mask = None
         self.trans_agent_prob = 0.5
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev, scaling=1.0):
@@ -1772,8 +1775,12 @@ class AttForwardTA(torch.nn.Module):
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame
-        # NOTE consider zero padding when compute w.
         e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        # NOTE consider zero padding when compute w.
+        if self.mask is None:
+            self.mask = to_cuda(self, make_pad_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
         w = F.softmax(scaling * e, dim=1)
 
         # forward attention
