@@ -1649,9 +1649,9 @@ class AttForward(torch.nn.Module):
         '''AttForward forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
-        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param list enc_hs_len: padded encoder hidden state lenght (B)
         :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
-        :param torch.Tensor att_prev: dummy (does not use)
+        :param torch.Tensor att_prev: attention weights of previous step
         :param float scaling: scaling parameter before applying softmax
         :return: attentioin weighted encoder state (B, D_enc)
         :rtype: torch.Tensor
@@ -1692,9 +1692,8 @@ class AttForward(torch.nn.Module):
         # forward attention
         att_prev_shift = F.pad(att_prev, (1, 0))[:, :-1]
         w = (att_prev + att_prev_shift) * w
-        # NOTE: originally, p=1 nomalization is applied, but causes nan gradient
-        # TODO(kan-bayashi): fix nan gradient when use p=1
-        w = F.normalize(w, p=2, dim=1) ** 2
+        # NOTE: clamp is needed to avoid nan gradient
+        w = F.normalize(torch.clamp(w, 1e-6), p=1, dim=1)
 
         # weighted sum over flames
         # utt x hdim
@@ -1742,7 +1741,7 @@ class AttForwardTA(torch.nn.Module):
         '''AttForwardTA forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, Tmax, eunits)
-        :param list enc_h_len: padded encoder hidden state lenght (B)
+        :param list enc_hs_len: padded encoder hidden state lenght (B)
         :param torch.Tensor dec_z: docoder hidden state (B, dunits)
         :param torch.Tensor att_prev: attention weights of previous step
         :param torch.Tensor prev_out: decoder outputs of previous step (B, odim)
@@ -1786,9 +1785,8 @@ class AttForwardTA(torch.nn.Module):
         # forward attention
         att_prev_shift = F.pad(att_prev, (1, 0))[:, :-1]
         w = (self.trans_agent_prob * att_prev + (1 - self.trans_agent_prob) * att_prev_shift) * w
-        # NOTE: originally, p=1 nomalization is applied, but causes nan gradient
-        # TODO(kan-bayashi): fix nan gradient when use p=1
-        w = F.normalize(w, p=2, dim=1) ** 2
+        # NOTE: clamp is needed to avoid nan gradient
+        w = F.normalize(torch.clamp(w, 1e-6), p=1, dim=1)
 
         # weighted sum over flames
         # utt x hdim
