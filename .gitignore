@@ -32,5 +32,9 @@ tools/nkf*
 tools/chainer_ctc*
 tools/warp-ctc*
 tools/sentencepiece/*
+tools/subword-nmt
+
+src/nets/.nfs*
 
 .pytest_cache
+langname_phoneme_ali.txt

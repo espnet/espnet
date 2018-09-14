@@ -16,11 +16,9 @@ for lang in langs:
     inv = set([line.split()[0] for line in lines])
     invs[lang] = inv
 
-alpha = 0.5
-beta = 0.5
-ctc_weight = 1.0
-#phoneme_layer = "_phonemelayer2"
-phoneme_layer = ""
+alpha = 0.33
+beta = 0.33
+phoneme_layer = "_phonemelayer2"
 # Then gather the predictions from exp dir decodings
 #and determine the %age of characters that were in the original orthography
 def print_ooo_rate(alpha, beta, phoneme_layer=""):
@@ -30,7 +28,7 @@ def print_ooo_rate(alpha, beta, phoneme_layer=""):
         total = 0
         ooo = 0
         #hyp_path = """exp/tr_babel10_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.33_phonemeweight0.33_adadelta_bs50_mli800_mlo150_phonemelayer2/decode_et_babel_{}_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/hyp.grapheme.trn""".format(lang)
-        hyp_path = """exp/tr_babel10_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha{}_phonemeweight{}_adadelta_bs50_mli800_mlo150{}/decode_et_babel_{}_beam20_eacc.best_p0.0_len0.0-0.0_ctcw{}/hyp.grapheme.trn""".format(alpha, beta, phoneme_layer, lang, ctc_weight)
+        hyp_path = """exp/tr_babel10_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha{}_phonemeweight{}_adadelta_bs50_mli800_mlo150{}/decode_et_babel_{}_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.3/hyp.grapheme.trn""".format(alpha, beta, phoneme_layer, lang)
         with open(hyp_path) as f:
             for line in f:
                 toks = line.split()[:-1]
