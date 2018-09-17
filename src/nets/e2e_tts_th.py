@@ -289,7 +289,9 @@ class Tacotron2(torch.nn.Module):
         elif self.atype == "forward":
             att = AttForward(dec_idim,
                              self.dunits,
-                             self.adim)
+                             self.adim,
+                             self.aconv_chans,
+                             self.aconv_filts)
             if self.cumulate_att_w:
                 logging.warn("cumulation of attention weights is disabled in forward attention.")
                 self.cumulate_att_w = False
@@ -297,6 +299,8 @@ class Tacotron2(torch.nn.Module):
             att = AttForwardTA(dec_idim,
                                self.dunits,
                                self.adim,
+                               self.aconv_chans,
+                               self.aconv_filts,
                                self.odim)
             if self.cumulate_att_w:
                 logging.warn("cumulation of attention weights is disabled in forward attention.")
