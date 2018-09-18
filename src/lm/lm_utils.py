@@ -59,8 +59,7 @@ def count_tokens(data, unk_id=None):
 
 
 def compute_perplexity(result):
-    """Routine to rewrite the result dictionary of LogReport to add perplexity values
-    """
+    # Routine to rewrite the result dictionary of LogReport to add perplexity values
     result['perplexity'] = np.exp(result['main/loss'] / result['main/count'])
     if 'validation/main/loss' in result:
         result['val_perplexity'] = np.exp(result['validation/main/loss'])
@@ -74,6 +73,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
        Sentence batches are made in order of longer sentences, and then
        randomly shuffled.
     """
+
     def __init__(self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True):
         self.dataset = dataset
         self.batch_size = batch_size  # batch size
@@ -167,7 +167,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
 
 
 class MakeSymlinkToBestModel(extension.Extension):
-    """ Extension that makes a symbolic link to the best model
+    """Extension that makes a symbolic link to the best model
 
     Args:
         key (str): Key of value.
