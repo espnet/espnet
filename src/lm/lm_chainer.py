@@ -28,6 +28,7 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
+from lm_utils import compute_perplexity
 from lm_utils import count_tokens
 from lm_utils import MakeSymlinkToBestModel
 from lm_utils import ParallelSentenceIterator
@@ -222,14 +223,6 @@ class LMEvaluator(extensions.Evaluator):
         return observation
 
 
-# Routine to rewrite the result dictionary of LogReport to add perplexity
-# values
-def compute_perplexity(result):
-    result['perplexity'] = np.exp(result['main/loss'] / result['main/count'])
-    if 'validation/main/loss' in result:
-        result['val_perplexity'] = np.exp(result['validation/main/loss'])
-
-
 def train(args):
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
@@ -319,7 +312,7 @@ def train(args):
     trainer.extend(extensions.PrintReport(
         ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
     ), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=10))
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'))
     trainer.extend(extensions.snapshot_object(
         model, 'rnnlm.model.{.updater.epoch}'))

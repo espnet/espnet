@@ -20,7 +20,7 @@ seed=1
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
 elayers=6
@@ -64,6 +64,7 @@ lm_batchsize=300    # 1024 for character LMs
 lm_epochs=20        # number of epochs
 lm_maxlen=40        # 150 for character LMs
 lm_resume=          # specify a snapshot file to resume LM training
+lmtag=              # tag for managing LMs
 
 # decoding parameter
 lm_weight=1.0
@@ -177,9 +178,11 @@ fi
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
-lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
-if [ $use_wordlm = true ]; then
-    lmtag=${lmtag}_word${lm_vocabsize}
+if [ -z ${lmtag} ]; then
+    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+    if [ $use_wordlm = true ]; then
+        lmtag=${lmtag}_word${lm_vocabsize}
+    fi
 fi
 lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
 mkdir -p ${lmexpdir}

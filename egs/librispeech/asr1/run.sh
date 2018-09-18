@@ -50,11 +50,12 @@ epochs=10
 # rnnlm related
 lm_layers=2
 lm_units=650
-lm_opt=sgd  # or adam
-lm_batchsize=256
-lm_epochs=60  # if the data size is large, we can reduce this
-lm_maxlen=100  # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
-lm_resume=
+lm_opt=sgd        # or adam
+lm_batchsize=256  # batch size in LM training
+lm_epochs=60      # if the data size is large, we can reduce this
+lm_maxlen=100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
+lm_resume=        # specify a snapshot file to resume LM training
+lmtag=            # tag for managing LMs
 
 # decoding parameter
 lm_weight=0.5
@@ -186,8 +187,12 @@ if [ ${stage} -le 2 ]; then
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 5)
-lmexpdir=exp/train_rnnlm_${backend}_${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}_${bpemode}${nbpe}
+if [ -z ${lmtag} ]; then
+    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+fi
+lmexpdir=exp/train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
 mkdir -p ${lmexpdir}
+
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
@@ -268,7 +273,7 @@ if [ ${stage} -le 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
