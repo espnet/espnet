@@ -93,7 +93,7 @@ class MultiLevelLM(nn.Module):
                 clm_logprob += log_y[0, xi]
             else:  # if open_vocab flag is disabled, return 0 probabilities
                 log_y = torch.zeros(1, self.subword_dict_size) + self.logzero
-                return (clm_state, wlm_state, None, log_y, 0.), log_y
+                return (clm_state, wlm_state, wlm_logprobs, None, log_y, 0.), log_y
 
             clm_state, z_clm = self.subwordlm(clm_state, x)
             log_y = F.log_softmax(z_clm, dim=1) * self.subwordlm_weight
@@ -105,12 +105,21 @@ class MultiLevelLM(nn.Module):
             else:
                 wlm_logprob = wlm_logprobs[:, self.word_unk] + self.log_oov_penalty
             log_y[:, self.space] = wlm_logprob
-            log_y[:, self.eos] = wlm_logprob + wlm_logprobs[:, self.word_eos]
+            log_y[:, self.eos] = wlm_logprob
         else:
             log_y[:, self.space] = self.logzero
             log_y[:, self.eos] = self.logzero
 
-        return (clm_state, wlm_state, wlm_logprobs, new_node, log_y, clm_logprob), log_y
+        return (clm_state, wlm_state, wlm_logprobs, new_node, log_y, float(clm_logprob)), log_y
+
+    def final(self, state):
+        clm_state, wlm_state, wlm_logprobs, node, log_y, clm_logprob = state
+        if node is not None and node[1] >= 0:  # check if the node is word end
+            w = torch.LongTensor([node[1]])
+        else:  # this node is not a word end, which means <unk>
+            w = self.var_word_unk
+        wlm_state, z_wlm = self.wordlm(wlm_state, w)
+        return float(F.log_softmax(z_wlm, dim=1)[:, self.word_eos])
 
 
 # Definition of a look-ahead word language model
@@ -174,7 +183,7 @@ class LookAheadWordLM(nn.Module):
             if wid >= 0:
                 wlm_prob = (cumsum_probs[:, wid] - cumsum_probs[:, wid - 1]) / sum_prob
                 y[:, self.space] = wlm_prob
-                y[:, self.eos] = wlm_prob * (cumsum_probs[:, self.word_eos] - cumsum_probs[:, self.word_eos - 1])
+                y[:, self.eos] = wlm_prob
             elif xi == self.space:
                 y[:, self.space] = self.zero
                 y[:, self.eos] = self.zero
@@ -182,3 +191,12 @@ class LookAheadWordLM(nn.Module):
         else:  # if no path in the tree, transition probability is one
             log_y = torch.zeros(1, self.subword_dict_size)
             return (wlm_state, cumsum_probs, new_node), log_y
+
+    def final(self, state):
+        wlm_state, cumsum_probs, node = state
+        if node is not None and node[1] >= 0:  # check if the node is word end
+            w = torch.LongTensor([node[1]])
+        else:  # this node is not a word end, which means <unk>
+            w = self.var_word_unk
+        wlm_state, z_wlm = self.wordlm(wlm_state, w)
+        return float(F.log_softmax(z_wlm, dim=1)[:, self.word_eos])
