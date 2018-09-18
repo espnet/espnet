@@ -19,8 +19,16 @@ import six
 from chainer.training import extension
 
 
-# read tokens as a sequence of sentences
 def read_tokens(filename, label_dict):
+    """Read tokens as a sequence of sentences
+
+    Args:
+        filename (str): filename of input file
+        label_dict (dict): dictionary that maps token label string to its ID number
+
+    Return:
+        list of ID sequences
+    """
 
     data = []
     for ln in open(filename, 'rb').readlines():
@@ -30,108 +38,42 @@ def read_tokens(filename, label_dict):
     return data
 
 
-# count tokens and oovs
-def count_tokens(data, unk=None):
+def count_tokens(data, unk_id=None):
+    """Count tokens and oovs in token ID sequences
+
+    Args:
+        data (list of numpy.ndarray): list of token ID sequences
+        unk_id (int): ID number of unknown token '<unk>'
+
+    Return:
+        number of token occurrences, number of OOV tokens
+    """
 
     n_tokens = 0
     n_oovs = 0
     for sentence in data:
         n_tokens += len(sentence)
-        if unk is not None:
-            n_oovs += np.count_nonzero(sentence == unk)
+        if unk_id is not None:
+            n_oovs += np.count_nonzero(sentence == unk_id)
     return n_tokens, n_oovs
 
 
-# Dataset iterator to create a batch of sequences at different positions.
-# This iterator returns a pair of current words and the next words. Each
-# example is a part of sequences starting from the different offsets
-# equally spaced within the whole sequence.
-class ParallelSequentialIterator(chainer.dataset.Iterator):
-
-    def __init__(self, dataset, batch_size, repeat=True):
-        self.dataset = dataset
-        self.batch_size = batch_size  # batch size
-        # Number of completed sweeps over the dataset. In this case, it is
-        # incremented if every word is visited at least once after the last
-        # increment.
-        self.epoch = 0
-        # True if the epoch is incremented at the last iteration.
-        self.is_new_epoch = False
-        self.repeat = repeat
-        length = len(dataset)
-        # Offsets maintain the position of each sequence in the mini-batch.
-        self.offsets = [i * length // batch_size for i in range(batch_size)]
-        # NOTE: this is not a count of parameter updates. It is just a count of
-        # calls of ``__next__``.
-        self.iteration = 0
-        # use -1 instead of None internally
-        self._previous_epoch_detail = -1.
-
-    def __next__(self):
-        # This iterator returns a list representing a mini-batch. Each item
-        # indicates a different position in the original sequence. Each item is
-        # represented by a pair of two word IDs. The first word is at the
-        # "current" position, while the second word at the next position.
-        # At each iteration, the iteration count is incremented, which pushes
-        # forward the "current" position.
-        length = len(self.dataset)
-        if not self.repeat and self.iteration * self.batch_size >= length:
-            # If not self.repeat, this iterator stops at the end of the first
-            # epoch (i.e., when all words are visited once).
-            raise StopIteration
-        cur_words = self.get_words()
-        self._previous_epoch_detail = self.epoch_detail
-        self.iteration += 1
-        next_words = self.get_words()
-
-        epoch = self.iteration * self.batch_size // length
-        self.is_new_epoch = self.epoch < epoch
-        if self.is_new_epoch:
-            self.epoch = epoch
-
-        return list(zip(cur_words, next_words))
-
-    @property
-    def epoch_detail(self):
-        # Floating point version of epoch.
-        return self.iteration * self.batch_size / len(self.dataset)
-
-    @property
-    def previous_epoch_detail(self):
-        if self._previous_epoch_detail < 0:
-            return None
-        return self._previous_epoch_detail
-
-    def get_words(self):
-        # It returns a list of current words.
-        return [self.dataset[(offset + self.iteration) % len(self.dataset)]
-                for offset in self.offsets]
-
-    def serialize(self, serializer):
-        # It is important to serialize the state to be recovered on resume.
-        self.iteration = serializer('iteration', self.iteration)
-        self.epoch = serializer('epoch', self.epoch)
-        try:
-            self._previous_epoch_detail = serializer(
-                'previous_epoch_detail', self._previous_epoch_detail)
-        except KeyError:
-            # guess previous_epoch_detail for older version
-            self._previous_epoch_detail = self.epoch + \
-                (self.current_position - self.batch_size) / len(self.dataset)
-            if self.epoch_detail > 0:
-                self._previous_epoch_detail = max(
-                    self._previous_epoch_detail, 0.)
-            else:
-                self._previous_epoch_detail = -1.
+def compute_perplexity(result):
+    """Routine to rewrite the result dictionary of LogReport to add perplexity values
+    """
+    result['perplexity'] = np.exp(result['main/loss'] / result['main/count'])
+    if 'validation/main/loss' in result:
+        result['val_perplexity'] = np.exp(result['validation/main/loss'])
 
 
-# Dataset iterator to create a batch of sentences.
-# This iterator returns a pair of sentences, where one token is shifted
-# between the sentences like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
-# Sentence batches are made in order of longer sentences, and then
-# randomly shuffled.
 class ParallelSentenceIterator(chainer.dataset.Iterator):
+    """Dataset iterator to create a batch of sentences.
 
+       This iterator returns a pair of sentences, where one token is shifted
+       between the sentences like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
+       Sentence batches are made in order of longer sentences, and then
+       randomly shuffled.
+    """
     def __init__(self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True):
         self.dataset = dataset
         self.batch_size = batch_size  # batch size
@@ -224,8 +166,15 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
                 self._previous_epoch_detail = -1.
 
 
-# Extension that makes a symbolic link to the best model
 class MakeSymlinkToBestModel(extension.Extension):
+    """ Extension that makes a symbolic link to the best model
+
+    Args:
+        key (str): Key of value.
+        prefix (str): Prefix of model files and link target.
+        suffix (str): Suffix of link target.
+
+    """
 
     def __init__(self, key, prefix='model', suffix='best'):
         super(MakeSymlinkToBestModel, self).__init__()

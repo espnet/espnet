@@ -56,10 +56,18 @@ opt=adadelta
 epochs=15
 
 # rnnlm related
-lm_weight=1.0
 use_lm=false
+lm_layers=2
+lm_units=650
+lm_opt=sgd        # or adam
+lm_batchsize=256  # batch size in LM training
+lm_epochs=20      # if the data size is large, we can reduce this
+lm_maxlen=100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
+lm_resume=        # specify a snapshot file to resume LM training
+lmtag=            # tag for managing LMs
 
 # decoding parameter
+lm_weight=1.0
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
@@ -86,7 +94,10 @@ train_set=train
 train_dev=dev
 
 # LM Directories
-lmexpdir=exp/train_rnnlm_${backend}_2layer_bs2048
+if [ -z ${lmtag} ]; then
+    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+fi
+lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
 lm_train_set=data/local/train.txt
 lm_valid_set=data/local/dev.txt
 
@@ -184,21 +195,20 @@ if $use_lm; then
   text2token.py --nchar 1 \
                 --space "<space>" \
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
-                <(cut -d' ' -f2- data/${train_set}/text | head -100) |\
-                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_train_set}
+                <(cut -d' ' -f2- data/${train_set}/text | head -100) \
+                > ${lm_train_set}
 
   text2token.py --nchar 1 \
                 --space "<space>" \
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
-                <(cut -d' ' -f2- data/${train_dev}/text | head -100) |\
-                sed 's/^ //;s/$/ <eos>/' | paste -d' ' -s > ${lm_valid_set}
+                <(cut -d' ' -f2- data/${train_dev}/text | head -100) \
+                > ${lm_valid_set}
 
   if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
   fi
 
-
-  ${cuda_cmd} ${lmexpdir}/train.log \
+  ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
           lm_train.py \
           --ngpu ${ngpu} \
           --backend ${backend} \
@@ -206,6 +216,13 @@ if $use_lm; then
           --outdir ${lmexpdir} \
           --train-label ${lm_train_set} \
           --valid-label ${lm_valid_set} \
+          --resume ${lm_resume} \
+          --layer ${lm_layers} \
+          --unit ${lm_units} \
+          --opt ${lm_opt} \
+          --batchsize ${lm_batchsize} \
+          --epoch ${lm_epochs} \
+          --maxlen ${lm_maxlen} \
           --dict ${dict}
 fi
 
@@ -272,7 +289,10 @@ if [ ${stage} -le 4 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+        if $use_lm; then
+            decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
+        fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
