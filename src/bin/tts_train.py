@@ -57,7 +57,7 @@ def main():
     parser.add_argument('--econv_filts', default=5, type=int,
                         help='Filter size of encoder convolution')
     # attention
-    parser.add_argument('--atype', default="forward_ta", type=str,
+    parser.add_argument('--atype', default="location", type=str,
                         choices=["forward_ta", "forward", "location"],
                         help='Type of attention mechanism')
     parser.add_argument('--adim', default=512, type=int,
