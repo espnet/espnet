@@ -6,6 +6,7 @@
 
 from __future__ import division
 
+import codecs
 import logging
 import math
 import sys
@@ -33,6 +34,24 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
+def uttid2lang(uttid):
+    """ Returns the language given an utterance ID. Utterance IDs look
+    something like this: "105_94168_A_20120127_071423_043760-turkish". Given
+    this input, the output would be "turkish"
+    """
+    return uttid.split("-")[-1]
+
+def get_tids(output_type, data):
+    """ Given some data from data.json, return a list of lists,
+    one per utterance, where each sub-list consists of tokenids corresponding
+    to some specified output type."""
+
+    tids = []
+    for utter in data:
+        for output in utter[1]['output']:
+            if output[u'name'] == output_type:
+                tids.append(output['tokenid'].split())
+    return tids
 
 # ------------- Utility functions --------------------------------------------------------------------------------------
 def to_cuda(m, x):
@@ -107,13 +126,17 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
 
 
 class Reporter(chainer.Chain):
-    def report(self, loss_ctc, loss_att, acc, mtl_loss):
+    def report(self, loss_ctc, loss_att, loss_phn, acc, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
+        reporter.report({'loss_phn': loss_phn}, self)
         reporter.report({'acc': acc}, self)
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
 
+    def report_lang(self, acc_lang, loss_lang):
+        reporter.report({'loss_lang': loss_lang}, self)
+        reporter.report({'acc_lang': acc_lang}, self)
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
@@ -121,16 +144,59 @@ class Loss(torch.nn.Module):
 
     :param torch.nn.Module predictor: E2E model instance
     :param float mtlalpha: mtl coefficient value (0.0 ~ 1.0)
+
     """
 
-    def __init__(self, predictor, mtlalpha):
+    def __init__(self, predictor, mtlalpha,
+                 phoneme_objective_weight=None,
+                 langs=None):
         super(Loss, self).__init__()
         assert 0.0 <= mtlalpha <= 1.0, "mtlalpha shoule be [0.0, 1.0]"
         self.mtlalpha = mtlalpha
+        self.phoneme_objective_weight = phoneme_objective_weight
         self.loss = None
         self.accuracy = None
         self.predictor = predictor
         self.reporter = Reporter()
+
+        if langs:
+            self.langs = langs
+            self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
+            self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
+
+            # Define components related to language prediction
+            self.lang_linear = torch.nn.Linear(self.predictor.eprojs, 10)
+            self.log_softmax = torch.nn.LogSoftmax(dim=1)
+            self.loss_lang = torch.nn.NLLLoss()
+
+    def forward_langid(self, x):
+
+        hpad, hlens, grapheme_ys, phoneme_ys = self.predictor.encode(x)
+        mean = hpad.mean(dim=1)
+        log_softmax_out = self.log_softmax(self.lang_linear(mean))
+        logging.info("log_softmax {}".format(log_softmax_out))
+
+        targets = to_cuda(self, torch.LongTensor([self.lang2id[uttid2lang(utt[0])] for utt in x]))
+        targets = torch.autograd.Variable(targets)
+
+        logging.info("targets: {}".format([int(id_) for id_ in targets]))
+
+        # Accuracy the best guess across batch.
+        lang_1best_guess = log_softmax_out.topk(1)[1]
+        acc_lang = float(sum(lang_1best_guess[:,0] == targets))/len(targets)
+        logging.info("lang prediction accuracy: {}".format(acc_lang))
+
+        targets_hr = [self.id2lang[int(id_)] for id_ in targets]
+        lang_guesses_hr = [self.id2lang[int(id_)] for id_ in lang_1best_guess]
+        logging.info("lang (hyp, ref)s: {}".format(
+                zip(lang_guesses_hr, targets_hr)))
+
+        self.loss_lang_out = self.loss_lang(log_softmax_out, targets)
+        logging.info("langid loss: {}".format(self.loss_lang_out))
+
+        self.reporter.report_lang(acc_lang, self.loss_lang_out)
+
+        return self.loss_lang_out
 
     def forward(self, xs_pad, ilens, ys_pad):
         '''Multi-task learning loss forward
@@ -142,24 +208,34 @@ class Loss(torch.nn.Module):
         :rtype: torch.Tensor
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(xs_pad, ilens, ys_pad)
+        loss_ctc, loss_att, loss_phn, acc = self.predictor(xs_pad, ilens, ys_pad)
         alpha = self.mtlalpha
-        if alpha == 0:
-            self.loss = loss_att
+        beta = self.phoneme_objective_weight
+
+        loss_ctc_data = None
+        loss_att_data = None
+        loss_phn_data = None
+
+        # If any of these losses are None from self.predictor, then we are not using them and can zero them.
+        if loss_ctc is None:
+            loss_ctc = 0
+        if loss_phn is None:
+            loss_phn = 0
+        if loss_att is None:
+            loss_att = 0
+
+        self.loss = alpha * loss_ctc + beta * loss_phn + (1 - alpha - beta) * loss_att
+
+        if alpha > 0:
+            loss_ctc_data = float(loss_ctc.data)
+        if beta > 0:
+            loss_phn_data = float(loss_phn.data)
+        if alpha + beta < 1:
             loss_att_data = float(loss_att)
-            loss_ctc_data = None
-        elif alpha == 1:
-            self.loss = loss_ctc
-            loss_att_data = None
-            loss_ctc_data = float(loss_ctc)
-        else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = float(loss_att)
-            loss_ctc_data = float(loss_ctc)
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, loss_data)
+            self.reporter.report(loss_ctc_data, loss_att_data, loss_phn_data, acc, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
 
@@ -174,13 +250,21 @@ class E2E(torch.nn.Module):
     :param namespace args: argument namespace containing options
     """
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, phoneme_odim=-1):
         super(E2E, self).__init__()
+        self.eprojs = args.eprojs
         self.etype = args.etype
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
         self.mtlalpha = args.mtlalpha
+        self.phoneme_objective_weight = args.phoneme_objective_weight
+        try:
+            self.phoneme_objective_layer = args.phoneme_objective_layer
+        except AttributeError:
+            # Then the model may have been trained before
+            # phoneme_objective_layers were an option
+            self.phoneme_objective_layer = None
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -200,7 +284,6 @@ class E2E(torch.nn.Module):
         logging.info('subsample: ' + ' '.join([str(x) for x in subsample]))
         self.subsample = subsample
 
-        # label smoothing info
         if args.lsm_type:
             logging.info("Use label smoothing with " + args.lsm_type)
             labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
@@ -209,9 +292,16 @@ class E2E(torch.nn.Module):
 
         # encoder
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
-                           self.subsample, args.dropout_rate)
+                           self.subsample, args.dropout_rate,
+                           phoneme_objective_layer=self.phoneme_objective_layer)
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+        # Phoneme CTC objective
+        if self.phoneme_objective_weight > 0.0:
+            logging.info("phoneme_objective_weight={}".format(self.phoneme_objective_weight))
+            logging.info("phoneme_odim:{}".format(phoneme_odim))
+            logging.info("args.eprojs:{}".format(args.eprojs))
+            self.phn_ctc = CTC(phoneme_odim, args.eprojs, args.dropout_rate)
         # attention
         if args.atype == 'noatt':
             self.att = NoAtt()
@@ -319,8 +409,13 @@ class E2E(torch.nn.Module):
         '''
         # 1. encoder
         hs_pad, hlens = self.enc(xs_pad, ilens)
+        # TODO
+        #hpad, hlens, grapheme_ys, phoneme_ys = self.encode(data)
 
         # 2. CTC loss
+
+
+        # # 3. CTC loss
         if self.mtlalpha == 0:
             loss_ctc = None
         else:
@@ -332,10 +427,86 @@ class E2E(torch.nn.Module):
             acc = None
         else:
             loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
+            #loss_att, acc = self.dec(hpad, hlens, grapheme_ys)
 
-        return loss_ctc, loss_att, acc
+        # 5. Phoneme loss
+        # change to phoneme-ys_pad where appropriate
+        loss_phn = None
+        if self.phoneme_objective_weight > 0.0:
+            if self.phoneme_objective_layer:
+                loss_phn = self.phn_ctc(self.enc.enc1.phoneme_layer_hpad, hlens, phoneme_ys)
+            else:
+                loss_phn = self.phn_ctc(hpad, hlens, phoneme_ys)
 
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
+        return loss_ctc, loss_att, loss_phn, acc
+    # TOOD change this to fit with the new forward() approachkkkkkkkkk
+    def encode(self, data):
+        """ Takes the JSON data (which is a batch) and then produces an encodedv version"""
+
+        #logging.info("data: {}".format(data))
+        # utt list of frame x dim
+        xs = [d[1]['feat'] for d in data]
+        # remove 0-output-length utterances
+        grapheme_tids = get_tids('grapheme', data)
+        phoneme_tids = get_tids('phn', data)
+        filtered_index = filter(lambda i: len(grapheme_tids[i]) > 0 and len(phoneme_tids[i]) > 0, range(len(xs)))
+        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
+        if len(sorted_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(sorted_index)))
+        xs = [xs[i] for i in sorted_index]
+        # utt list of olen
+        grapheme_ys = [np.fromiter(map(int, grapheme_tids[i]), dtype=np.int64)
+                       for i in sorted_index]
+        phoneme_ys = [np.fromiter(map(int, phoneme_tids[i]), dtype=np.int64)
+                       for i in sorted_index]
+        if self.training:
+            grapheme_ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in grapheme_ys]
+            phoneme_ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in phoneme_ys]
+        else:
+            grapheme_ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in grapheme_ys]
+            phoneme_ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in phoneme_ys]
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+        if self.training:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
+        else:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+
+        return hpad, hlens, grapheme_ys, phoneme_ys
+
+    def recognize_phn(self, x):
+        """ Performs greedy 1-best CTC decoding for predicting phonemes."""
+
+        self.eval()
+        x = x[::self.subsample[0], :]
+        ilen = [x.shape[0]]
+        h = to_cuda(self, Variable(torch.from_numpy(
+            np.array(x, dtype=np.float32)), volatile=True))
+
+        # 1. encoder
+        h, _ = self.enc(h.unsqueeze(0), ilen)
+
+        # 2. calculate log P(z_t|X) for CTC scores
+        if self.phoneme_objective_layer:
+            # Then use the appropriate layer
+            phn_log_softmax = self.phn_ctc.log_softmax(self.enc.enc1.phoneme_layer_hpad).data[0]
+        else:
+            phn_log_softmax = self.phn_ctc.log_softmax(h).data[0]
+        logging.info("phn_log_softmax.shape {}".format(phn_log_softmax.shape))
+
+        # 3. Calculate the one best hypothesis:
+        one_best = torch.topk(phn_log_softmax,1)[1]
+
+        # 4. Collapse repeated phonemes and then remove blanks
+        phn_hyp = remove_blanks(collapse_adjacent(one_best))
+
+        return phn_hyp
+
+    def recognize(self, x, recog_args, char_list,
+                  rnnlm=None):
         '''E2E beam search
 
         :param ndarray x: input acouctic feature (T, D)
@@ -362,6 +533,29 @@ class E2E(torch.nn.Module):
             lpz = self.ctc.log_softmax(h)[0]
         else:
             lpz = None
+
+        if recog_args.lang_grapheme_constraint:
+            # TODO Temporarily hardcode loading of Swahili dict.
+            with codecs.open(recog_args.lang_grapheme_constraint, encoding="utf-8") as f:
+                inv = set([line.split()[0] for line in f])
+            # Then mask the CTC probabilities for characters that are not in
+            # restrict_chars
+            logging.info("INV: {}".format(inv))
+            logging.info("char_list: {}".format(char_list[:60]))
+            chars_mask = [1 if char in inv else np.inf for char in char_list]
+            logging.info("chars_mask: {}".format(chars_mask[:60]))
+            chars_mask[0] = 1 #The CTC blank symbol should persist.
+            logging.info("chars_mask: {}".format(chars_mask[:60]))
+            logging.info("{} {}".format(len(char_list),h.shape))
+            logging.info("{}".format(lpz.shape))
+            #logging.info("lpz.device: {}".format(lpz.device))
+            chars_mask = torch.from_numpy(np.array(chars_mask, dtype=np.float32))
+            logging.info("sum chars mask: {}".format(sum(chars_mask)))
+            logging.info("lpz[0:10,0:10]: {}".format(lpz[0:10,0:10]))
+            lpz = lpz * chars_mask
+            logging.info("lpz_masked: {}".format(lpz))
+
+            #import sys; sys.exit()
 
         # 2. decoder
         # decode the first utterance
@@ -391,6 +585,122 @@ class E2E(torch.nn.Module):
 
         return att_ws
 
+# ------------- CTC Network --------------------------------------------------------------------------------------------
+class _ChainerLikeCTC(warp_ctc._CTC):
+    @staticmethod
+    def forward(ctx, acts, labels, act_lens, label_lens):
+        is_cuda = True if acts.is_cuda else False
+        acts = acts.contiguous()
+        loss_func = warp_ctc.gpu_ctc if is_cuda else warp_ctc.cpu_ctc
+        grads = torch.zeros(acts.size()).type_as(acts)
+        minibatch_size = acts.size(1)
+        costs = torch.zeros(minibatch_size).cpu()
+        loss_func(acts,
+                  grads,
+                  labels,
+                  label_lens,
+                  act_lens,
+                  minibatch_size,
+                  costs)
+        # modified only here from original
+        costs = torch.FloatTensor([costs.sum()]) / acts.size(1)
+        ctx.grads = Variable(grads)
+        ctx.grads /= ctx.grads.size(1)
+
+        return costs
+
+
+def chainer_like_ctc_loss(acts, labels, act_lens, label_lens):
+    """Chainer like CTC Loss
+
+    acts: Tensor of (seqLength x batch x outputDim) containing output from network
+    labels: 1 dimensional Tensor containing all the targets of the batch in one sequence
+    act_lens: Tensor of size (batch) containing size of each output sequence from the network
+    act_lens: Tensor of (batch) containing label length of each example
+    """
+    assert len(labels.size()) == 1  # labels must be 1 dimensional
+    from torch.nn.modules.loss import _assert_no_grad
+    _assert_no_grad(labels)
+    _assert_no_grad(act_lens)
+    _assert_no_grad(label_lens)
+    return _ChainerLikeCTC.apply(acts, labels, act_lens, label_lens)
+
+class CTC(torch.nn.Module):
+    def __init__(self, odim, eprojs, dropout_rate):
+        super(CTC, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.loss = None
+        self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        self.loss_fn = chainer_like_ctc_loss  # CTCLoss()
+
+    def forward(self, hpad, ilens, ys):
+        '''CTC forward
+
+        :param hs:
+        :param ys:
+        :return:
+        '''
+        self.loss = None
+        ilens = Variable(torch.from_numpy(np.fromiter(ilens, dtype=np.int32)))
+        olens = Variable(torch.from_numpy(np.fromiter(
+            (x.size(0) for x in ys), dtype=np.int32)))
+
+        # zero padding for hs
+        y_hat = linear_tensor(
+            self.ctc_lo, F.dropout(hpad, p=self.dropout_rate))
+
+        # zero padding for ys
+        y_true = torch.cat(ys).cpu().int()  # batch x olen
+
+        # get length info
+
+        # 2. decoder
+        # decode the first utterance
+        y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+
+        if prev:
+            self.train()
+        return y
+
+    def calculate_all_attentions(self, data):
+        '''E2E attention calculation
+
+        :param list data: list of dicts of the input (B)
+        :return: attention weights with the following shape,
+            1) multi-head case => attention weights (B, H, Lmax, Tmax),
+            2) other case => attention weights (B, Lmax, Tmax).
+         :rtype: float ndarray
+        '''
+        # utt list of frame x dim
+        xs = [d[1]['feat'] for d in data]
+
+        # remove 0-output-length utterances
+        tids = get_tids("grapheme", data)
+        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
+        if len(sorted_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(sorted_index)))
+        xs = [xs[i] for i in sorted_index]
+
+        # utt list of olen
+        ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
+              for i in sorted_index]
+        ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in ys]
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+        hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
+
+        # encoder
+        xpad = pad_list(hs)
+        hpad, hlens = self.enc(xpad, ilens)
+
+        # decoder
+        att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys)
+
+        return att_ws
 
 # ------------- CTC Network --------------------------------------------------------------------------------------------
 class CTC(torch.nn.Module):
@@ -2026,7 +2336,9 @@ class Encoder(torch.nn.Module):
     :param int in_channel: number of input channels
     '''
 
-    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
+    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample,
+                 dropout, in_channel=1,
+                 phoneme_objective_layer=None):
         super(Encoder, self).__init__()
 
         if etype == 'blstm':
@@ -2034,7 +2346,8 @@ class Encoder(torch.nn.Module):
             logging.info('BLSTM without projection for encoder')
         elif etype == 'blstmp':
             self.enc1 = BLSTMP(idim, elayers, eunits,
-                               eprojs, subsample, dropout)
+                               eprojs, subsample, dropout,
+                               phoneme_objective_layer=phoneme_objective_layer)
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
             self.enc1 = VGG2L(in_channel)
@@ -2094,8 +2407,10 @@ class BLSTMP(torch.nn.Module):
     :param float dropout: dropout rate
     """
 
-    def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
+    def __init__(self, idim, elayers, cdim, hdim, subsample, dropout,
+                 phoneme_objective_layer=None):
         super(BLSTMP, self).__init__()
+        self.phoneme_objective_layer = phoneme_objective_layer
         for i in six.moves.range(elayers):
             if i == 0:
                 inputdim = idim
@@ -2121,6 +2436,7 @@ class BLSTMP(torch.nn.Module):
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         for layer in six.moves.range(self.elayers):
             xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
+            logging.info('layer ' + str(layer))
             bilstm = getattr(self, 'bilstm' + str(layer))
             bilstm.flatten_parameters()
             ys, _ = bilstm(xs_pack)
@@ -2134,9 +2450,15 @@ class BLSTMP(torch.nn.Module):
             projected = getattr(self, 'bt' + str(layer)
                                 )(ys_pad.contiguous().view(-1, ys_pad.size(2)))
             xs_pad = torch.tanh(projected.view(ys_pad.size(0), ys_pad.size(1), -1))
+            if layer == self.phoneme_objective_layer:
+                logging.info("layer " + str(layer) + " == " + str(self.phoneme_objective_layer) + ". Stashing hpad.")
+                # If we want the phoneme objective to be based on one of the
+                # earlier layers, then store this for later use.
+                self.phoneme_layer_hpad = xs_pad
+            else:
+                logging.info("layer " + str(layer) + " != " + str(self.phoneme_objective_layer) + ". Not stashing hpad.")
 
         return xs_pad, ilens  # x: utt list of frame x dim
-
 
 class BLSTM(torch.nn.Module):
     """Bidirectional LSTM module
@@ -2229,3 +2551,14 @@ class VGG2L(torch.nn.Module):
         xs_pad = [xs_pad[i, :ilens[i]] for i in range(len(ilens))]
         xs_pad = pad_list(xs_pad, 0.0)
         return xs_pad, ilens
+
+def collapse_adjacent(seq):
+    """ Removes duplicates for CTC decoding"""
+    collapsed = [seq[0][0]]
+    for val in seq[1:]:
+        if collapsed[-1] != val[0]:
+            collapsed.append(val[0]) 
+    return collapsed
+def remove_blanks(seq):
+    """Removes blanks for CTC decoding"""
+    return [x for x in seq if x != 0]

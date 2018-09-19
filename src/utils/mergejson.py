@@ -13,6 +13,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
+    parser.add_argument('--iname', help='Input feature name', 
+        type=str, default='input1', action='store')
+    parser.add_argument('--oname', help='Output feature name',
+        type=str, default='grapheme', action='store')
     parser.add_argument('--multi', '-m', type=int,
                         help='Test the json file for multiple input/output', default=0)
     parser.add_argument('--verbose', '-V', default=0, type=int,
@@ -56,11 +60,11 @@ if __name__ == '__main__':
         in_dic = {}
         if dic.has_key(unicode('idim', 'utf-8')):
             in_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('ilen', 'utf-8')]), int(dic[unicode('idim', 'utf-8')]))
-        in_dic[unicode('name', 'utf-8')] = unicode('input1', 'utf-8')
+        in_dic[unicode('name', 'utf-8')] = unicode(args.iname, 'utf-8')
         in_dic[unicode('feat', 'utf-8')] = dic[unicode('feat', 'utf-8')]
 
         out_dic = {}
-        out_dic[unicode('name', 'utf-8')] = unicode('target1', 'utf-8')
+        out_dic[unicode('name', 'utf-8')] = unicode(args.oname, 'utf-8')
         out_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('olen', 'utf-8')]), int(dic[unicode('odim', 'utf-8')]))
         out_dic[unicode('text', 'utf-8')] = dic[unicode('text', 'utf-8')]
         out_dic[unicode('token', 'utf-8')] = dic[unicode('token', 'utf-8')]

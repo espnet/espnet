@@ -40,6 +40,11 @@ def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
     else:
         return False
 
+def get_tokenids_from_utter(output_type, utter):
+    """ Returns the token IDs from a given output_type from an utterance."""
+    for output in utter['output']:
+        if output[u'name'] == output_type:
+            return np.array([int(n) for n in output["tokenid"].split()])
 
 # TODO(takaaki-hori): add different smoothing methods
 def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
@@ -59,7 +64,8 @@ def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
         assert transcript is not None, 'transcript is required for %s label smoothing' % lsm_type
         labelcount = np.zeros(odim)
         for k, v in trans_json.items():
-            ids = np.array([int(n) for n in v['output'][0]['tokenid'].split()])
+            #ids = np.array([int(n) for n in v['output'][0]['tokenid'].split()])
+            ids = get_tokenids_from_utter('grapheme', v)
             # to avoid an error when there is no text in an uttrance
             if len(ids) > 0:
                 labelcount[ids] += 1

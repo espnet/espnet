@@ -37,6 +37,7 @@ from asr_utils import torch_snapshot
 from e2e_asr_th import E2E
 from e2e_asr_th import Loss
 from e2e_asr_th import pad_list
+from e2e_asr_th import uttid2lang
 
 # for kaldi io
 import kaldi_io_py
@@ -97,13 +98,16 @@ class CustomUpdater(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu):
+                 optimizer, converter, device, ngpu,
+                 predict_lang=None, predict_lang_alpha=None):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.converter = converter
         self.device = device
         self.ngpu = ngpu
+        self.predict_lang = predict_lang
+        self.predict_lang_alpha = predict_lang_alpha
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -132,6 +136,40 @@ class CustomUpdater(training.StandardUpdater):
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
         else:
+            optimizer.step()
+
+        logging.info("predict_lang: {}".format(self.predict_lang))
+        logging.info("predict_lang_alpha: {}".format(self.predict_lang_alpha))
+        if self.predict_lang: # Either normal prediction or adversarial
+            # Now compute the lang loss (this redoes the encoding, which may be
+            # slightly inefficient but should be fine for now).
+            optimizer.zero_grad()
+            lang_loss = self.model.forward_langid(x)
+            if self.num_gpu > 1:
+                lang_loss.backward(torch.ones(self.num_gpu))  # Backprop
+            else:
+                lang_loss.backward()  # Backprop
+            logging.info("predict_lang: {}".format(self.predict_lang))
+
+            if self.predict_lang == "adv":
+                assert self.predict_lang_alpha
+                # Then it's adversarial and we should reverse gradients
+                for name, parameter in self.model.named_parameters():
+                #    logging.info("parameter {} grad: {}".format(
+                #            name, parameter.grad))
+                    parameter.grad *= -1 * self.predict_lang_alpha
+                #    logging.info("parameter {} -grad: {}".format(
+                #            name, parameter.grad))
+
+#               # But reverse the lang_linear gradients again so that they're
+                # not adversarial (we just want the encoder to hide the
+                # language information, but we still want to try our best to predict the
+                # language)
+                self.model.lang_linear.bias.grad *= (-1 / self.predict_lang_alpha)
+                self.model.lang_linear.weight.grad *= (-1 / self.predict_lang_alpha)
+                #logging.info("lang_linear {}".format((self.model.lang_linear.bias.grad,
+                #    self.model.lang_linear.weight.grad)))
+
             optimizer.step()
 
 
@@ -165,6 +203,50 @@ class CustomConverter(object):
         return xs_pad, ilens, ys_pad
 
 
+class EspnetException(Exception):
+    pass
+
+class NoOdimException(EspnetException):
+    pass
+
+def get_odim(output_name, valid_json):
+    """ Return the output dimension for a given output type.
+    For example, output type might be 'phn' (phonemes) or 'grapheme'.
+
+    Note this is based off the first utterance, so it's assumed the output
+    dimension doesn't change across utterances in the JSON."""
+
+    utts = list(valid_json.keys())
+    for output in valid_json[utts[0]]['output']:
+        if output['name'] == output_name:
+            return int(output['shape'][1])
+    # Raise an exception because we couldn't find the odim
+    raise NoOdimException("Couldn't determine output dimension (odim) for output named '{}'".format(output_name))
+
+def extract_langs(json):
+    """ Determines the number of output languages."""
+
+    # Create a list of languages observed by taking them from the utterance
+    # name.
+    utts = list(json.keys())
+    langs = set()
+    for utt in utts:
+        langs.add(uttid2lang(utt))
+    return langs
+
+def get_output(output_name, utterance_name, json):
+    """ Returns the dictionary corresponding to a given output_name in some
+    espnet utterance JSON. For example. Example output_names include "grapheme" and
+    "phn" (phoneme).
+
+    Better would be to have json[utter_name]["output"] be a dictionary, but this
+    function is to remove hardcoding of magic numbers like 0 for graphemes."""
+
+    utts = list(json.keys())
+    for output in json[utterance_name]["output"]:
+        if output["name"] == output_name:
+            return output
+
 def train(args):
     '''Run training'''
     # seed setting
@@ -188,14 +270,23 @@ def train(args):
     if not torch.cuda.is_available():
         logging.warning('cuda is not available')
 
-    # get input and output dimension info
+    # read json data
+    with open(args.train_json, 'rb') as f:
+        train_json = json.load(f)['utts']
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
+
+    langs = extract_langs(train_json)
+
     utts = list(valid_json.keys())
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    grapheme_odim = get_odim("grapheme", valid_json)
     logging.info('#input dims : ' + str(idim))
-    logging.info('#output dims: ' + str(odim))
+    logging.info('#grapheme output dims: ' + str(grapheme_odim))
+    phoneme_odim = -1
+    if args.phoneme_objective_weight > 0.0:
+        phoneme_odim = get_odim("phn", valid_json)
+        logging.info('#phoneme output dims: ' + str(phoneme_odim))
 
     # specify attention, CTC, hybrid mode
     if args.mtlalpha == 1.0:
@@ -207,10 +298,17 @@ def train(args):
     else:
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
+    if args.phoneme_objective_weight > 0.0:
+        logging.info('Training with an additional phoneme transcription objective.')
 
     # specify model architecture
-    e2e = E2E(idim, odim, args)
-    model = Loss(e2e, args.mtlalpha)
+    if args.phoneme_objective_weight > 0.0:
+        e2e = E2E(idim, grapheme_odim, args, phoneme_odim=phoneme_odim)
+    else:
+        e2e = E2E(idim, grapheme_odim, args)
+    model = Loss(e2e, args.mtlalpha, 
+                 phoneme_objective_weight=args.phoneme_objective_weight,
+                 langs=langs)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -234,6 +332,10 @@ def train(args):
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
     model = model.to(device)
+
+    #for parameter in model.parameters():
+    #    logging.info("Model parameter: {}".format(parameter))
+    logging.info("Model: {}".format(model))
 
     # Setup an optimizer
     if args.opt == 'adadelta':
@@ -271,7 +373,8 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu,
+        predict_lang=args.predict_lang, predict_lang_alpha=args.predict_lang_alpha)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -298,10 +401,13 @@ def train(args):
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
-                                          'main/loss_att', 'validation/main/loss_att'],
+                                          'main/loss_att', 'validation/main/loss_att',
+                                          'main/loss_phn', 'validation/main/loss_phn'],
                                          'epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
                                          'epoch', file_name='acc.png'))
+    trainer.extend(extensions.PlotReport(['main/acc_lang', 'validation/main/acc_lang'],
+                                         'epoch', file_name='acc_lang.png'))
 
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
@@ -359,13 +465,23 @@ def recog(args):
     torch.manual_seed(args.seed)
 
     # read training config
-    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
+    idim, grapheme_odim, phoneme_odim, train_args = get_model_conf(args.model, args.model_conf)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
     torch_load(args.model, model)
+
+    # read training json data just so we can extract the list of langs used in
+    # language ID prediction
+    if args.train_json:
+        with open(args.train_json, 'rb') as f:
+            train_json = json.load(f)['utts']
+        langs = extract_langs(train_json)
+    else:
+        langs = None
+
 
     # read rnnlm
     if args.rnnlm:
@@ -408,6 +524,36 @@ def recog(args):
             feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
             nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+
+    if train_args.phoneme_objective_weight > 0:
+        assert args.phoneme_dict
+        with open(args.phoneme_dict) as f:
+            # The zero is because of the CTC blank symbol and because the
+            # phoneme inventory list starts indexing from 1.
+            phn_inv_list = [0]+[line.split()[0] for line in f.readlines()]
+
+            phn_output = get_output("phn", name, js)
+            if phn_output:
+                phn_out_dict = copy.deepcopy(phn_output)
+                phn_true = phn_out_dict["token"]
+                logging.info("ground truth phns: {}".format(phn_true))
+            else:
+                # Then there was no ground truth phonemes, so we create a new
+                # output.
+                phn_out_dict = {}
+                phn_out_dict["name"] = "phn"
+
+            # Then do basic one-best CTC phoneme decoding
+            phn_hyps = e2e.recognize_phn(feat)
+            phn_hat = [phn_inv_list[idx] for idx in phn_hyps]
+            logging.info("predicted phns: {}".format(phn_hat))
+
+            # Add phoneme-related info to the output JSON
+            phn_out_dict['rec_tokenid'] = " ".join([str(idx) for idx in phn_hyps])
+            phn_out_dict['rec_token'] = " ".join(phn_hat)
+
+            new_js[name]['output'].append(phn_out_dict)
+
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:

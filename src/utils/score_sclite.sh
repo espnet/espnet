@@ -14,43 +14,53 @@ filter=""
 
 . utils/parse_options.sh
 
-if [ $# != 2 ]; then
-    echo "Usage: $0 <data-dir> <dict>";
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <data-dir> <dict> <output_type>";
     exit 1;
 fi
 
 dir=$1
 dic=$2
+output_type=$3
+
+reftrn=ref.${output_type}.trn
+hyptrn=hyp.${output_type}.trn
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn ${dir}/hyp.trn
+json2trn.py ${dir}/data.json ${dic} ${dir}/${reftrn} ${dir}/${hyptrn} ${output_type}
 
 if $remove_blank; then
-    sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp.trn
+    sed -i.bak2 -r 's/<blank> //g' ${dir}/${hyptrn}
 fi
 if [ ! -z ${nlsyms} ]; then
-    cp ${dir}/ref.trn ${dir}/ref.trn.org
-    cp ${dir}/hyp.trn ${dir}/hyp.trn.org
-    filt.py -v $nlsyms ${dir}/ref.trn.org > ${dir}/ref.trn
-    filt.py -v $nlsyms ${dir}/hyp.trn.org > ${dir}/hyp.trn
+    cp ${dir}/${reftrn} ${dir}/${reftrn}.org
+    cp ${dir}/${hyptrn} ${dir}/${hyptrn}.org
+    filt.py -v $nlsyms ${dir}/${reftrn}.org > ${dir}/${reftrn}
+    filt.py -v $nlsyms ${dir}/${hyptrn}.org > ${dir}/${hyptrn}
 fi
 if [ ! -z ${filter} ]; then
-    sed -i.bak3 -f ${filter} ${dir}/hyp.trn
-    sed -i.bak3 -f ${filter} ${dir}/ref.trn
+    sed -i.bak3 -f ${filter} ${dir}/${hyptrn}
+    sed -i.bak3 -f ${filter} ${dir}/${reftrn}
 fi
-    
-sclite -r ${dir}/ref.trn trn -h ${dir}/hyp.trn trn -i rm -o all stdout > ${dir}/result.txt
+
+sclite -r ${dir}/${reftrn} trn -h ${dir}/${hyptrn} trn -i rm -o all stdout > ${dir}/result.${output_type}.txt
 
 echo "write a CER (or TER) result in ${dir}/result.txt"
 grep -e Avg -e SPKR -m 2 ${dir}/result.txt
 
 if ${wer}; then
+    # If we're using phn output type and also requesting WER, throw an error.
+    if [ $output_type == "phn"]; then
+        echo "Can't do WER evaluation with the phoneme output type."
+        exit 1
+    fi
+
     if [ ! -z $bpe ]; then
-	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
-	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
+	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/${reftrn} | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
+	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/${hyptrn} | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     else
-	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
-	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/${reftrn} > ${dir}/ref.wrd.trn
+	sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/${hyptrn} > ${dir}/hyp.wrd.trn
     fi
     sclite -r ${dir}/ref.wrd.trn trn -h ${dir}/hyp.wrd.trn trn -i rm -o all stdout > ${dir}/result.wrd.txt
 	
