@@ -16,7 +16,6 @@
 # general configuration
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
-gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -25,7 +24,7 @@ verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 
 # feature configuration
-do_delta=false # true when using CNN
+do_delta=false
 
 # network archtecture
 # encoder related
@@ -43,8 +42,8 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.0
-phoneme_objective_weight=0.5
+mtlalpha=0.33
+phoneme_objective_weight=0.33
 phoneme_objective_layer=""
 
 predict_lang=""
@@ -65,7 +64,7 @@ penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
-recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 lang_grapheme_constraint="" # The name of the language which grapheme set will serve as a constraint for character decoding
 
 # exp tag
@@ -99,7 +98,14 @@ recog_set="et_babel_cantonese et_babel_assamese et_babel_bengali et_babel_pashto
  et_babel_vietnamese et_babel_haitian et_babel_swahili et_babel_lao et_babel_tagalog\
  et_babel_tamil et_babel_kurmanji et_babel_zulu et_babel_tokpisin et_babel_georgian"
 
+# subset options
+# select the number of speakers for subset training experiments. (e.g. 1000; select 1000 speakers). Default: select the whole train set.
+subset_num_spk=""
+
 . utils/parse_options.sh || exit 1;
+
+# data set
+train_set=tr_babel10${subset_num_spk:+_${subset_num_spk}spk}
 
 # data directories
 csjdir=../../csj
@@ -108,17 +114,6 @@ babeldir=../../babel
 
 . ./path.sh
 . ./cmd.sh
-
-# check gpu option usage
-if [ ! -z $gpu ]; then
-    echo "WARNING: --gpu option will be deprecated."
-    echo "WARNING: please use --ngpu option."
-    if [ $gpu -eq -1 ]; then
-        ngpu=0
-    else
-        ngpu=1
-    fi
-fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -177,16 +172,25 @@ if [ ${stage} -le 0 ]; then
 
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+feat_tr_dir=${dumpdir}/${train_set}_${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
+feat_dt_dir=${dumpdir}/${train_dev}_${train_set}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ]; then
 
-    utils/combine_data.sh data/${train_set}_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
-    utils/combine_data.sh data/${train_dev}_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
+    # TODO The language selection shouldn't be hardcoded here, but earlier on.
+    utils/combine_data.sh data/tr_babel10_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
+    utils/combine_data.sh data/dt_babel10_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
 
     # Append langnames for entries in phoneme_ali file. Eg convert 101_10160_A_20111017_201159_003840 to 101_10160_A_20111017_201159_003840-cantonese
     langname_phoneme_ali="langname_phoneme_ali.txt"
     python3 ./append_langname_to_id.py ${phoneme_ali} > ${langname_phoneme_ali}
+
+    if [ ! -z $subset_num_spk ]; then
+        # create a trainng subset with ${subset_num_spk} speakers (in total 7470)
+        head -n $subset_num_spk <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
+        utils/subset_data_dir.sh \
+        --spk-list data/tr_babel10_org/spk_list_${subset_num_spk}spk \
+        data/tr_babel10_org data/${train_set}_org
+    fi
 
     # Filter out utterances based on phoneme transcriptions and refine phoneme
     # transcriptions
@@ -221,14 +225,14 @@ if [ ${stage} -le 1 ]; then
         /export/b{13,14,15,16}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set}_${train_set} ${feat_tr_dir}
+    [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev}_${train_set} ${feat_dt_dir}
    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
+            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask}_${train_set} \
             ${feat_recog_dir}
     done
 fi
@@ -257,7 +261,7 @@ if [ ${stage} -le 2 ]; then
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
@@ -323,8 +327,10 @@ if [ ${stage} -le 2 ]; then
 
 fi
 
+exit
+
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_phonemeweight${phoneme_objective_weight}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -338,7 +344,7 @@ if [ -z ${tag} ]; then
         expdir=${expdir}_predictlang-adv-${predict_lang_alpha}
     fi
 else
-    expdir=exp/${train_set}_${tag}
+    expdir=exp/${train_set}_${backend}_${tag}
 fi
 mkdir -p ${expdir}
 
@@ -402,7 +408,7 @@ if [ ${stage} -le 4 ]; then
             rtask_lang=$(echo $rtask | cut -d "_" -f 3)
             lang_dict=dicts/${rtask_lang}_dict.txt
         fi
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
 
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
@@ -416,8 +422,7 @@ if [ ${stage} -le 4 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
-            --model-conf ${expdir}/results/model.conf  \
+            --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \

@@ -169,9 +169,9 @@ class Loss(torch.nn.Module):
             self.log_softmax = torch.nn.LogSoftmax(dim=1)
             self.loss_lang = torch.nn.NLLLoss()
 
-    def forward_langid(self, x):
+    def forward_langid(self, xs_pad, ilens, ys_pad):
 
-        hpad, hlens, grapheme_ys, phoneme_ys = self.predictor.encode(x)
+        hpad, hlens = self.predictor.encode(xs_pad, ilens)
         mean = hpad.mean(dim=1)
         log_softmax_out = self.log_softmax(self.lang_linear(mean))
         logging.info("log_softmax {}".format(log_softmax_out))
@@ -408,14 +408,9 @@ class E2E(torch.nn.Module):
         :rtype: float
         '''
         # 1. encoder
-        hs_pad, hlens = self.enc(xs_pad, ilens)
-        # TODO
-        #hpad, hlens, grapheme_ys, phoneme_ys = self.encode(data)
+        hs_pad, hlens = self.encode(xs_pad, ilens)
 
         # 2. CTC loss
-
-
-        # # 3. CTC loss
         if self.mtlalpha == 0:
             loss_ctc = None
         else:
@@ -439,43 +434,12 @@ class E2E(torch.nn.Module):
                 loss_phn = self.phn_ctc(hpad, hlens, phoneme_ys)
 
         return loss_ctc, loss_att, loss_phn, acc
-    # TOOD change this to fit with the new forward() approachkkkkkkkkk
-    def encode(self, data):
+
+    def encode(self, xs_pad, ilens):
         """ Takes the JSON data (which is a batch) and then produces an encodedv version"""
 
-        #logging.info("data: {}".format(data))
-        # utt list of frame x dim
-        xs = [d[1]['feat'] for d in data]
-        # remove 0-output-length utterances
-        grapheme_tids = get_tids('grapheme', data)
-        phoneme_tids = get_tids('phn', data)
-        filtered_index = filter(lambda i: len(grapheme_tids[i]) > 0 and len(phoneme_tids[i]) > 0, range(len(xs)))
-        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
-        if len(sorted_index) != len(xs):
-            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-                len(xs), len(sorted_index)))
-        xs = [xs[i] for i in sorted_index]
-        # utt list of olen
-        grapheme_ys = [np.fromiter(map(int, grapheme_tids[i]), dtype=np.int64)
-                       for i in sorted_index]
-        phoneme_ys = [np.fromiter(map(int, phoneme_tids[i]), dtype=np.int64)
-                       for i in sorted_index]
-        if self.training:
-            grapheme_ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in grapheme_ys]
-            phoneme_ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in phoneme_ys]
-        else:
-            grapheme_ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in grapheme_ys]
-            phoneme_ys = [to_cuda(self, Variable(torch.from_numpy(y), volatile=True)) for y in phoneme_ys]
-
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        if self.training:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
-        else:
-            hs = [to_cuda(self, Variable(torch.from_numpy(xx), volatile=True)) for xx in xs]
-
-        return hpad, hlens, grapheme_ys, phoneme_ys
+        hs_pad, hlens = self.enc(xs_pad, ilens)
+        return hpad, hlens
 
     def recognize_phn(self, x):
         """ Performs greedy 1-best CTC decoding for predicting phonemes."""
