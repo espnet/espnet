@@ -3,6 +3,7 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+
 from __future__ import division
 
 import logging
@@ -799,7 +800,7 @@ class Decoder(torch.nn.Module):
             if (int(probs[-1] >= threshold) and idx >= minlen) or idx == maxlen:
                 outs = torch.stack(outs, dim=2)  # (1, odim, L)
                 outs = outs + self._postnet_forward(outs)  # (1, odim, L)
-                outs = outs.transpose(2, 1).squeeze(0)  # (Lx, odim)
+                outs = outs.transpose(2, 1).squeeze(0)  # (L, odim)
                 probs = torch.cat(probs, dim=0)
                 att_ws = torch.cat(att_ws, dim=0)
                 break
