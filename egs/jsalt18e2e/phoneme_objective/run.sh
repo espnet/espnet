@@ -243,7 +243,7 @@ nlsyms=data/lang_1char/non_lang_syms.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
-   echo "stage 2: Dictionary and Json Data Preparation"
+    echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
@@ -277,7 +277,7 @@ if [ ${stage} -le 2 ]; then
     mv ${feat_tr_dir}/data.json ${feat_tr_dir}/data.gph.json
     mv ${feat_dt_dir}/data.json ${feat_dt_dir}/data.gph.json
     for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
         mv ${feat_recog_dir}/data.json ${feat_recog_dir}/data.gph.json
     done
 
@@ -310,7 +310,7 @@ if [ ${stage} -le 2 ]; then
                                ${feat_dt_dir}/data.{phn,gph}.json
 
     for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
         ./utils/filter_scp.pl data/${rtask}/text \
             data/${rtask}/text.phn > data/${rtask}/text.phn.filt
         mv data/${rtask}/text.phn.filt data/${rtask}/text.phn

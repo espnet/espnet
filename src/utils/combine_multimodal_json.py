@@ -37,11 +37,11 @@ def main():
                 # Merge inputs
                 for i in j['utts'][utt]['input']:
                     inputs[i['name']] = i
-            
+
                 # Merge outputs
                 for o in j['utts'][utt]['output']:
                     outputs[o['name']] = o
-            
+
                 # Merge the rest of the keys
                 for k in j['utts'][utt]:
                     if k not in ('input', 'output'): 
@@ -55,8 +55,8 @@ def main():
         utt_num += 1
 
     with codecs.open(args.out_json, 'w', encoding='utf-8') as f:
-        json.dump(new_json, f, indent=4, sort_keys=True)
-    
+        json.dump(new_json, f, indent=4, sort_keys=True, ensure_ascii=False, encoding="utf-8")
+
 if __name__ == main():
     main()
 
