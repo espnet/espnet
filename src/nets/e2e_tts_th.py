@@ -695,9 +695,9 @@ class Decoder(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
-        # thin out frames (B, Lmax, )
+        # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
         if self.reduction_factor > 1:
-            ys = self.thin_out_frames(ys)
+            ys = ys[:, self.reduction_factor - 1::self.reduction_factor]
 
         # length list should be list of int
         hlens = list(map(int, hlens))
@@ -894,9 +894,6 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(self.postnet_layers):
                 xs = self.postnet[l](xs)
         return xs
-
-    def thin_out_frames(self, xs):
-        return xs[:, self.reduction_factor - 1::self.reduction_factor]
 
 
 class CBHG(torch.nn.Module):
