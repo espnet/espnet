@@ -77,17 +77,17 @@ fi
 
 
 # (1b) Segmente audio file with LIUM diarization tool
-# if [ $set != tst2018 ]; then
-#   echo "" > $src/test-db.yaml
-#   for f in `cat $src/FILE_ORDER`
-#   do
-#     java -jar ../../../tools/lium_spkdiarization-8.4.1.jar --fInputSpeechThr=0.0 --fInputMask=$wav_dir/$f.wav --sOutputMask=$wav_dir/$f.seg $f --saveAllStep
-#     # using *.s.seg for now, we live with possibly bad segmentation instead of throwing away to much stuff
-#     # also sort by start offset of utterance
-#     cat $wav_dir/$f.s.seg | grep --invert-match ";;" | sort -n -k3 | awk '{print "- {\"wav\": \"PATH/wavs/" $1 ".wav\", \"offset\":" $3/100 ", \"duration\":" ($4)/100 "}"}' >> $src/test-db.yaml
-#   done
-#   sed -i 's\PATH\'$src'\g' $src/test-db.yaml
-# fi
+if [ $set != tst2018 ]; then
+  echo "" > $src/test-db.yaml
+  for f in `cat $src/FILE_ORDER`
+  do
+    java -jar ../../../tools/lium_spkdiarization-8.4.1.jar --fInputSpeechThr=0.0 --fInputMask=$wav_dir/$f.wav --sOutputMask=$wav_dir/$f.seg $f --saveAllStep
+    # using *.s.seg for now, we live with possibly bad segmentation instead of throwing away to much stuff
+    # also sort by start offset of utterance
+    cat $wav_dir/$f.s.seg | grep --invert-match ";;" | sort -n -k3 | awk '{print "- {\"wav\": \"PATH/wavs/" $1 ".wav\", \"offset\":" $3/100 ", \"duration\":" ($4)/100 "}"}' >> $src/test-db.yaml
+  done
+  sed -i 's\PATH\'$src'\g' $src/test-db.yaml
+fi
 # NOTE: audio segmentaion and golden transcripts don't match here
 # After finishing the training stage, hyp and ref are aligned by a RWTH tool
 
