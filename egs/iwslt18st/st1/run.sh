@@ -298,7 +298,7 @@ if [ ${stage} -le 5 ]; then
             &
         wait
 
-        if [ ${rtask} != tst2018 ]; then
+        if [ ${rtask} != ${eval_set} ]; then
           set=`echo ${rtask} | cut -f -1 -d "."`
           local/score_bleu.sh ${expdir}/${decode_dir} ${dict} ${datadir} ${set}
         fi
