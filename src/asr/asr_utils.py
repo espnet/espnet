@@ -36,7 +36,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
         data[1]['input'][0]['shape'][0]), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))
     # change batchsize depending on the input and output length
-    minibatch = []
+    minibatches = []
     start = 0
     while True:
         ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
@@ -47,32 +47,46 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
         # and max(1, .) avoids batchsize = 0
         b = max(1, int(batch_size / (1 + factor)))
         end = min(len(sorted_data), start + b)
-        minibatch.append(sorted_data[start:end])
+        minibatches.append(sorted_data[start:end])
         if end == len(sorted_data):
             break
         start = end
     if num_batches > 0:
-        minibatch = minibatch[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatch)))
+        minibatches = minibatches[:num_batches]
+    logging.info('# minibatches: ' + str(len(minibatches)))
 
-    return minibatch
+    return minibatches
 
+def get_output(output_name, utter):
+    """ Returns the output corresponding to a given output name, for when there
+    are multiple outputs. Example output_names include "grapheme" and
+    "phn" (phoneme).
 
-def load_inputs_and_targets(batch):
+    Better would be to have json[utter_name]["output"] be a dictionary, but for
+    now this function is to remove hardcoding of magic numbers like 0 for
+    graphemes."""
+
+    for output in utter["output"]:
+        if output["name"] == output_name:
+            return output["tokenid"].split()
+
+def load_inputs_and_targets(batch, phoneme_objective_weight):
     """Function to load inputs and targets from list of dicts
 
     :param list batch: list of dict which is subset of loaded data.json
     :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
     :rtype: list of float ndarray
-    :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
+    :return: list of target grapheme token id sequences [(L_1), (L_2), ..., (L_B)]
+    :rtype: list of int ndarray
+    :return: list of target phoneme token id sequences [(L_1), (L_2), ..., (L_B)]
     :rtype: list of int ndarray
     """
     # load acoustic features and target sequence of token ids
     xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-    ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
+    grapheme_ys = [get_output("grapheme", b[1]) for b in batch]
 
     # get index of non-zero length samples
-    nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
+    nonzero_idx = filter(lambda i: len(grapheme_ys[i]) > 0, range(len(xs)))
     # sort in input lengths
     nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
     if len(nonzero_sorted_idx) != len(xs):
@@ -81,10 +95,15 @@ def load_inputs_and_targets(batch):
 
     # remove zero-length samples
     xs = [xs[i] for i in nonzero_sorted_idx]
-    ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
+    grapheme_ys = [np.fromiter(map(int, grapheme_ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
 
-    return xs, ys
+    if phoneme_objective_weight > 0.0:
+        phoneme_ys = [get_output("phn", b[1]) for b in batch]
+        phoneme_ys = [np.fromiter(map(int, phoneme_ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
+    else:
+        phoneme_ys = None
 
+    return xs, grapheme_ys, phoneme_ys
 
 # * -------------------- chainer extension related -------------------- *
 class CompareValueTrigger(object):

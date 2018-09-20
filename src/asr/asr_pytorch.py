@@ -176,17 +176,18 @@ class CustomUpdater(training.StandardUpdater):
 class CustomConverter(object):
     """CUSTOM CONVERTER"""
 
-    def __init__(self, subsamping_factor=1):
-        self.subsamping_factor = subsamping_factor
+    def __init__(self, phoneme_objective_weight, subsamping_factor=1):
         self.ignore_id = -1
+        self.phoneme_objective_weight = phoneme_objective_weight
+        self.subsamping_factor = subsamping_factor
 
     def transform(self, item):
-        return load_inputs_and_targets(item)
+        return load_inputs_and_targets(item, self.phoneme_objective_weight)
 
     def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
-        xs, ys = batch[0]
+        xs, grapheme_ys, phoneme_ys = batch[0]
 
         # perform subsamping
         if self.subsamping_factor > 1:
@@ -198,10 +199,15 @@ class CustomConverter(object):
         # perform padding and convert to tensor
         xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
         ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
+        grapheme_ys_pad = pad_list([torch.from_numpy(y).long() for y in grapheme_ys], self.ignore_id).to(device)
 
-        return xs_pad, ilens, ys_pad
+        if self.phoneme_objective_weight > 0.0:
+            assert phoneme_ys
+            phoneme_ys_pad = pad_list([torch.from_numpy(y).long() for y in phoneme_ys], self.ignore_id).to(device)
+        else:
+            phoneme_ys_pad = None
 
+        return xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad
 
 class EspnetException(Exception):
     pass
@@ -316,7 +322,7 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim, grapheme_odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -349,7 +355,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(e2e.subsample[0])
+    converter = CustomConverter(e2e.subsample[0], args.phoneme_objective_weight)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -469,8 +475,9 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    e2e = E2E(idim, odim, train_args)
-    model = Loss(e2e, train_args.mtlalpha)
+    e2e = E2E(idim, grapheme_odim, train_args, phoneme_odim=phoneme_odim)
+    model = Loss(e2e, train_args.mtlalpha,
+                 phoneme_objective_weight=args.phoneme_objective_weight)
     torch_load(args.model, model)
 
     # read training json data just so we can extract the list of langs used in

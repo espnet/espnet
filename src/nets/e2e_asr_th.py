@@ -198,7 +198,7 @@ class Loss(torch.nn.Module):
 
         return self.loss_lang_out
 
-    def forward(self, xs_pad, ilens, ys_pad):
+    def forward(self, xs_pad, ilens, ys_pad, phoneme_ys_pad):
         '''Multi-task learning loss forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
@@ -207,8 +207,11 @@ class Loss(torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         '''
+        logging.info("Loss forward phoneme_ys_pad: {}".format(phoneme_ys_pad))
+
         self.loss = None
-        loss_ctc, loss_att, loss_phn, acc = self.predictor(xs_pad, ilens, ys_pad)
+        loss_ctc, loss_att, loss_phn, acc = self.predictor(
+                xs_pad, ilens, ys_pad, phoneme_ys_pad)
         alpha = self.mtlalpha
         beta = self.phoneme_objective_weight
 
@@ -394,7 +397,7 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def forward(self, xs_pad, ilens, ys_pad):
+    def forward(self, xs_pad, ilens, ys_pad, phoneme_ys_pad):
         '''E2E forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
@@ -407,6 +410,9 @@ class E2E(torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         '''
+
+        logging.info("E2E forward phoneme_ys_pad: {}".format(phoneme_ys_pad))
+
         # 1. encoder
         hs_pad, hlens = self.encode(xs_pad, ilens)
 
@@ -429,9 +435,9 @@ class E2E(torch.nn.Module):
         loss_phn = None
         if self.phoneme_objective_weight > 0.0:
             if self.phoneme_objective_layer:
-                loss_phn = self.phn_ctc(self.enc.enc1.phoneme_layer_hpad, hlens, phoneme_ys)
+                loss_phn = self.phn_ctc(self.enc.enc1.phoneme_layer_hpad, hlens, phoneme_ys_pad)
             else:
-                loss_phn = self.phn_ctc(hpad, hlens, phoneme_ys)
+                loss_phn = self.phn_ctc(hs_pad, hlens, phoneme_ys_pad)
 
         return loss_ctc, loss_att, loss_phn, acc
 
@@ -439,7 +445,7 @@ class E2E(torch.nn.Module):
         """ Takes the JSON data (which is a batch) and then produces an encodedv version"""
 
         hs_pad, hlens = self.enc(xs_pad, ilens)
-        return hpad, hlens
+        return hs_pad, hlens
 
     def recognize_phn(self, x):
         """ Performs greedy 1-best CTC decoding for predicting phonemes."""
