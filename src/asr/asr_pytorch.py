@@ -391,6 +391,7 @@ def recog(args):
             len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
         torch_load(args.word_rnnlm, word_rnnlm)
         word_rnnlm.eval()
+
         if rnnlm is not None:
             rnnlm = lm_pytorch.ClassifierWithState(
                 extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
@@ -422,59 +423,42 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
 
-    try:
-        from itertools import zip_longest as zip_longest
-    except:
-        from itertools import izip_longest as zip_longest
+    if args.batchsize is None:
+        with torch.no_grad():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
+                feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+                nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+    else:
+        try:
+            from itertools import zip_longest as zip_longest
+        except:
+            from itertools import izip_longest as zip_longest
 
-    def grouper(n, iterable, fillvalue=None):
-        kargs = [iter(iterable)] * n
-        return zip_longest(*kargs, fillvalue=fillvalue)
+        def grouper(n, iterable, fillvalue=None):
+            kargs = [iter(iterable)] * n
+            return zip_longest(*kargs, fillvalue=fillvalue)
 
-    if args.oracle_hyp:
-        import editdistance
+        # sort data
+        keys = js.keys()
+        feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+        keys = [keys[i] for i in sorted_index]
 
-    # sort data
-    keys = js.keys()
-    feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
-    sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
-    keys = [keys[i] for i in sorted_index]
+        new_js = {}
+        with torch.no_grad():
+            for names in grouper(args.batchsize, keys, None):
+                names = [name for name in names if name]
+                feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+                         for name in names]
+                y_true = [map(int, js[name]['output'][0]['tokenid'].split())
+                          for name in names]
+                nbest_hyps = e2e.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                for i, nbest_hyp in enumerate(nbest_hyps):
+                    name = names[i]
+                    new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
 
-    new_js = {}
-    with torch.no_grad():
-        for names in grouper(args.batchsize, keys, None):
-            names = [name for name in names if name]
-            feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-                     for name in names]
-            y_true = [map(int, js[name]['output'][0]['tokenid'].split())
-                      for name in names]
-            nbest_hyps = e2e.recognize(feats, args, train_args.char_list, rnnlm=rnnlm)
-            """
-            if not args.oracle_hyp:
-                y_hat = [nbest_hyp[0]['yseq'][1:] for nbest_hyp in nbest_hyps]
-            else:
-                y_hat = []
-                for i, y_hat_i in enumerate(nbest_hyps):  # per sample
-                    y_true_i = y_true[i]
-                    seq_true = [train_args.char_list[int(idx)] for idx in y_true_i]
-                    seq_true_text = "".join(seq_true).replace('<space>', ' ').split()
-                    best_idx = 0
-                    best_wer = 100.0
-
-                    for j, y_hat_ij in enumerate(y_hat_i):
-                        seq_hat_ij = [train_args.char_list[int(idx)] for idx in y_hat_ij['yseq'][1:-1]]
-                        seq_hat_text = "".join(seq_hat_ij).replace('<space>', ' ').split()
-                        wer = editdistance.eval(seq_hat_text, seq_true_text)
-                        if wer < best_wer:
-                            best_idx = j
-                            best_wer = wer
-                    y_hat.append(nbest_hyps[i][best_idx]['yseq'][1:])
-
-            """
-            for i, nbest_hyp in enumerate(nbest_hyps):
-                name = names[i]
-                new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
-            
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))

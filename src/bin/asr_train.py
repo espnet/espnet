@@ -95,7 +95,7 @@ def main():
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
-    # recognition related
+    # recognition options to compute CER/WER
     parser.add_argument('--report-cer', default=False, action='store_true',
                         help='Compute CER on development set')
     parser.add_argument('--report-wer', default=False, action='store_true',
@@ -114,6 +114,12 @@ def main():
                         help='Input length ratio to obtain min output length')
     parser.add_argument('--ctc-weight', default=0.3, type=float,
                         help='CTC weight in joint decoding')
+    parser.add_argument('--rnnlm', type=str, default=None,
+                        help='RNNLM model file to read')
+    parser.add_argument('--rnnlm-conf', type=str, default=None,
+                        help='RNNLM model config file to read')
+    parser.add_argument('--lm-weight', default=0.1, type=float,
+                        help='RNNLM weight.')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
