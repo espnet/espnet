@@ -13,37 +13,54 @@ import copy
 import json
 import logging
 import numpy as np
-import os
+import six
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from chainer import Chain
+from chainer.dataset import convert
 from chainer import reporter
+from chainer import training
+from chainer.training import extensions
 
-from e2e_asr_th import th_accuracy
 from e2e_asr_th import to_cuda
-from lm_utils import ParallelSequentialIterator
+from lm_utils import compute_perplexity
+from lm_utils import count_tokens
+from lm_utils import MakeSymlinkToBestModel
+from lm_utils import ParallelSentenceIterator
+from lm_utils import read_tokens
+
+from asr_utils import torch_load
+from asr_utils import torch_resume
+from asr_utils import torch_save
+from asr_utils import torch_snapshot
+
+REPORT_INTERVAL = 100
+
+
+# dummy module to use chainer's trainer
+class Reporter(Chain):
+    def report(self, loss):
+        pass
 
 
 class ClassifierWithState(nn.Module):
-    compute_accuracy = True
 
     def __init__(self, predictor,
                  lossfun=F.cross_entropy,
-                 accfun=th_accuracy,
                  label_key=-1):
         if not (isinstance(label_key, (int, str))):
             raise TypeError('label_key must be int or str, but is %s' %
                             type(label_key))
         super(ClassifierWithState, self).__init__()
         self.lossfun = lossfun
-        self.accfun = accfun
         self.y = None
         self.loss = None
-        self.accuracy = None
         self.label_key = label_key
         self.predictor = predictor
+        self.reporter = Reporter()
 
     def forward(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.az
@@ -85,13 +102,8 @@ class ClassifierWithState(nn.Module):
 
         self.y = None
         self.loss = None
-        self.accuracy = None
         state, self.y = self.predictor(state, *args, **kwargs)
         self.loss = self.lossfun(self.y, t)
-        reporter.report({'loss': self.loss}, self)
-        if self.compute_accuracy:
-            self.accuracy = self.accfun(self.y, t)
-            reporter.report({'accuracy': self.accuracy}, self)
         return state, self.loss
 
     def predict(self, state, x):
@@ -122,20 +134,32 @@ class ClassifierWithState(nn.Module):
 
         return new_state, torch.cat(new_log_y)
 
+    def final(self, state):
+        """Predict final log probabilities for given state using the predictor
 
+        Returns:
+            cupy/numpy array: log probability vector
+
+        """
+        if hasattr(self.predictor, 'final'):
+            return self.predictor.final(state)
+        else:
+            return 0.
+
+
+# Definition of a recurrent net for language modeling
 class RNNLM(nn.Module):
 
-    def __init__(self, n_vocab, n_units):
+    def __init__(self, n_vocab, n_layers, n_units):
         super(RNNLM, self).__init__()
-        self.n_vocab = n_vocab
+        self.embed = nn.Embedding(n_vocab, n_units)
+        self.lstm = nn.ModuleList(
+            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)])
+        self.dropout = nn.ModuleList(
+            [nn.Dropout() for _ in range(n_layers + 1)])
+        self.lo = nn.Linear(n_units, n_vocab)
+        self.n_layers = n_layers
         self.n_units = n_units
-        self.embed = torch.nn.Embedding(n_vocab, n_units)
-        self.d0 = torch.nn.Dropout()
-        self.l1 = torch.nn.LSTMCell(n_units, n_units)
-        self.d1 = torch.nn.Dropout()
-        self.l2 = torch.nn.LSTMCell(n_units, n_units)
-        self.d2 = torch.nn.Dropout()
-        self.lo = torch.nn.Linear(n_units, n_vocab)
 
         # initialize parameters from uniform distribution
         for param in self.parameters():
@@ -146,18 +170,100 @@ class RNNLM(nn.Module):
 
     def forward(self, state, x):
         if state is None:
-            state = {
-                'c1': to_cuda(self, self.zero_state(x.size(0))),
-                'h1': to_cuda(self, self.zero_state(x.size(0))),
-                'c2': to_cuda(self, self.zero_state(x.size(0))),
-                'h2': to_cuda(self, self.zero_state(x.size(0)))
-            }
-        h0 = self.embed(x)
-        h1, c1 = self.l1(self.d0(h0), (state['h1'], state['c1']))
-        h2, c2 = self.l2(self.d1(h1), (state['h2'], state['c2']))
-        y = self.lo(self.d2(h2))
-        state = {'c1': c1, 'h1': h1, 'c2': c2, 'h2': h2}
+            c = [to_cuda(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
+            h = [to_cuda(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
+            state = {'c': c, 'h': h}
+
+        h = [None] * self.n_layers
+        c = [None] * self.n_layers
+        emb = self.embed(x)
+        h[0], c[0] = self.lstm[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
+        for n in six.moves.range(1, self.n_layers):
+            h[n], c[n] = self.lstm[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
+        y = self.lo(self.dropout[-1](h[-1]))
+        state = {'c': c, 'h': h}
         return state, y
+
+
+def concat_examples(batch, device=None, padding=None):
+    x, t = convert.concat_examples(batch, padding=padding)
+    x = torch.from_numpy(x)
+    t = torch.from_numpy(t)
+    if device is not None and device >= 0:
+        x = x.cuda(device)
+        t = t.cuda(device)
+    return x, t
+
+
+class BPTTUpdater(training.StandardUpdater):
+
+    def __init__(self, train_iter, model, optimizer, device, gradclip=None):
+        super(BPTTUpdater, self).__init__(train_iter, optimizer)
+        self.model = model
+        self.device = device
+        self.gradclip = gradclip
+
+    # The core part of the update routine can be customized by overriding.
+    def update_core(self):
+        # When we pass one iterator and optimizer to StandardUpdater.__init__,
+        # they are automatically named 'main'.
+        train_iter = self.get_iterator('main')
+        optimizer = self.get_optimizer('main')
+        # Progress the dataset iterator for sentences at each iteration.
+        batch = train_iter.__next__()
+        x, t = concat_examples(batch, device=self.device, padding=(0, -100))
+        # Concatenate the token IDs to matrices and send them to the device
+        # self.converter does this job
+        # (it is chainer.dataset.concat_examples by default)
+        loss = 0
+        count = 0
+        state = None
+        batch_size, sequence_length = x.shape
+        for i in six.moves.range(sequence_length):
+            # Compute the loss at this time step and accumulate it
+            state, loss_batch = self.model(state, x[:, i], t[:, i])
+            non_zeros = torch.sum(x[:, i] != 0, dtype=torch.float)
+            loss += loss_batch * non_zeros
+            count += int(non_zeros)
+
+        reporter.report({'loss': float(loss.detach())}, optimizer.target)
+        reporter.report({'count': count}, optimizer.target)
+        # update
+        loss = loss / batch_size  # normalized by batch size
+        self.model.zero_grad()  # Clear the parameter gradients
+        loss.backward()  # Backprop
+        if self.gradclip is not None:
+            nn.utils.clip_grad_norm_(self.model.parameters(), self.gradclip)
+        optimizer.step()  # Update the parameters
+
+
+class LMEvaluator(extensions.Evaluator):
+
+    def __init__(self, val_iter, eval_model, reporter, device):
+        super(LMEvaluator, self).__init__(
+            val_iter, reporter, device=device)
+        self.model = eval_model
+
+    def evaluate(self):
+        val_iter = self.get_iterator('main')
+        loss = 0
+        count = 0
+        self.model.eval()
+        with torch.no_grad():
+            for batch in copy.copy(val_iter):
+                x, t = concat_examples(batch, device=self.device, padding=(0, -100))
+                state = None
+                for i in six.moves.range(len(x[0])):
+                    state, loss_batch = self.model(state, x[:, i], t[:, i])
+                    non_zeros = torch.sum(x[:, i] != 0, dtype=torch.float)
+                    loss += loss_batch * non_zeros
+                    count += int(non_zeros)
+        self.model.train()
+        # report validation loss
+        observation = {}
+        with reporter.report_scope(observation):
+            reporter.report({'loss': float(loss / count)}, self.model.reporter)
+        return observation
 
 
 def train(args):
@@ -183,29 +289,33 @@ def train(args):
     if not torch.cuda.is_available():
         logging.warning('cuda is not available')
 
-    with open(args.train_label, 'rb') as f:
-        train = np.array([args.char_list_dict[char]
-                          if char in args.char_list_dict else args.char_list_dict['<unk>']
-                          for char in f.readline().decode('utf-8').split()], dtype=np.int32)
-    with open(args.valid_label, 'rb') as f:
-        valid = np.array([args.char_list_dict[char]
-                          if char in args.char_list_dict else args.char_list_dict['<unk>']
-                          for char in f.readline().decode('utf-8').split()], dtype=np.int32)
-
+    # get special label ids
+    unk = args.char_list_dict['<unk>']
+    eos = args.char_list_dict['<eos>']
+    # read tokens as a sequence of sentences
+    train = read_tokens(args.train_label, args.char_list_dict)
+    val = read_tokens(args.valid_label, args.char_list_dict)
+    # count tokens
+    n_train_tokens, n_train_oovs = count_tokens(train, unk)
+    n_val_tokens, n_val_oovs = count_tokens(val, unk)
     logging.info('#vocab = ' + str(args.n_vocab))
-    logging.info('#words in the training data = ' + str(len(train)))
-    logging.info('#words in the validation data = ' + str(len(valid)))
-    logging.info('#iterations per epoch = ' + str(len(train) // (args.batchsize * args.bproplen)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train) // (args.batchsize * args.bproplen)))
+    logging.info('#sentences in the training data = ' + str(len(train)))
+    logging.info('#tokens in the training data = ' + str(n_train_tokens))
+    logging.info('oov rate in the training data = %.2f %%' % (n_train_oovs / n_train_tokens * 100))
+    logging.info('#sentences in the validation data = ' + str(len(val)))
+    logging.info('#tokens in the validation data = ' + str(n_val_tokens))
+    logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs / n_val_tokens * 100))
 
     # Create the dataset iterators
-    train_iter = ParallelSequentialIterator(train, args.batchsize)
-    valid_iter = ParallelSequentialIterator(valid, args.batchsize, repeat=False)
-
+    train_iter = ParallelSentenceIterator(train, args.batchsize,
+                                          max_length=args.maxlen, sos=eos, eos=eos)
+    val_iter = ParallelSentenceIterator(val, args.batchsize,
+                                        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
+    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
+    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.unit)
+    rnn = RNNLM(args.n_vocab, args.layer, args.unit)
     model = ClassifierWithState(rnn)
-    model.compute_accuracy = False  # we only want the perplexity
     if args.ngpu > 1:
         logging.warn("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:
@@ -220,91 +330,49 @@ def train(args):
         f.write(json.dumps(vars(args), indent=4, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
+    if args.opt == 'sgd':
+        optimizer = torch.optim.SGD(model.parameters(), lr=1.0)
+    elif args.opt == 'adam':
+        optimizer = torch.optim.Adam(model.parameters())
 
-    def evaluate(model, iter, bproplen=100):
-        # Evaluation routine to be used for validation and test.
-        model.predictor.eval()
-        state = None
-        sum_perp = 0
-        data_count = 0
-        with torch.no_grad():
-            for batch in copy.copy(iter):
-                batch = np.array(batch)
-                x = torch.from_numpy(batch[:, 0]).long()
-                t = torch.from_numpy(batch[:, 1]).long()
+    # FIXME: TOO DIRTY HACK
+    reporter = model.reporter
+    setattr(optimizer, "target", reporter)
+    setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
-                if args.ngpu > 0:
-                    x = x.cuda(gpu_id)
-                    t = t.cuda(gpu_id)
-                state, loss = model(state, x, t)
-                sum_perp += loss.item()
-                if data_count % bproplen == 0:
-                    # detach all states
-                    for key in state.keys():
-                        state[key] = state[key].detach()
-                data_count += 1
-        model.predictor.train()
-        return np.exp(float(sum_perp) / data_count)
+    updater = BPTTUpdater(train_iter, model, optimizer, gpu_id, gradclip=args.gradclip)
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
+    trainer.extend(LMEvaluator(val_iter, model, reporter, device=gpu_id))
+    trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
+                                        trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.PrintReport(
+        ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
+    ), trigger=(REPORT_INTERVAL, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    # Save best models
+    trainer.extend(torch_snapshot(filename='snapshot.ep.{.updater.epoch}'))
+    trainer.extend(extensions.snapshot_object(
+        model, 'rnnlm.model.{.updater.epoch}', savefun=torch_save))
+    # T.Hori: MinValueTrigger should be used, but it fails when resuming
+    trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
 
-    sum_perp = 0
-    count = 0
-    iteration = 0
-    epoch_now = 0
-    best_valid = 100000000
-    state = None
-    while train_iter.epoch < args.epoch:
-        loss = 0
-        iteration += 1
-        # Progress the dataset iterator for bprop_len words at each iteration.
-        for i in range(args.bproplen):
-            # Get the next batch (a list of tuples of two word IDs)
-            batch = train_iter.__next__()
-            # Concatenate the word IDs to matrices and send them to the device
-            # self.converter does this job
-            # (it is chainer.dataset.concat_examples by default)
-            batch = np.array(batch)
-            x = torch.from_numpy(batch[:, 0]).long()
-            t = torch.from_numpy(batch[:, 1]).long()
-            if args.ngpu > 0:
-                x = x.cuda(gpu_id)
-                t = t.cuda(gpu_id)
-            # Compute the loss at this time step and accumulate it
-            state, loss_batch = model(state, x, t)
-            loss += loss_batch
-            count += 1
+    if args.resume:
+        logging.info('resumed from %s' % args.resume)
+        torch_resume(args.resume, trainer)
 
-        sum_perp += loss.item()
-        model.zero_grad()  # Clear the parameter gradients
-        loss.backward()  # Backprop
-        # detach all states
-        for key in state.keys():
-            state[key] = state[key].detach()
-        nn.utils.clip_grad_norm_(model.parameters(), args.gradclip)
-        optimizer.step()  # Update the parameters
+    trainer.run()
 
-        if iteration % 100 == 0:
-            logging.info('iteration: ' + str(iteration))
-            logging.info('training perplexity: ' + str(np.exp(float(sum_perp) / count)))
-            sum_perp = 0
-            count = 0
-
-        if train_iter.epoch > epoch_now:
-            valid_perp = evaluate(model, valid_iter)
-            logging.info('epoch: ' + str(train_iter.epoch))
-            logging.info('validation perplexity: ' + str(valid_perp))
-
-            # Save the model and the optimizer
-            logging.info('save the model')
-            torch.save(model.state_dict(), args.outdir + '/rnnlm.model.' + str(epoch_now))
-            logging.info('save the optimizer')
-            torch.save(optimizer.state_dict(), args.outdir + '/rnnlm.state.' + str(epoch_now))
-
-            if valid_perp < best_valid:
-                dest = args.outdir + '/rnnlm.model.best'
-                if os.path.lexists(dest):
-                    os.remove(dest)
-                os.symlink('rnnlm.model.' + str(epoch_now), dest)
-                best_valid = valid_perp
-
-            epoch_now = train_iter.epoch
+    # compute perplexity for test set
+    if args.test_label:
+        logging.info('test the best model')
+        torch_load(args.outdir + '/rnnlm.model.best', model)
+        test = read_tokens(args.test_label, args.char_list_dict)
+        n_test_tokens, n_test_oovs = count_tokens(test, unk)
+        logging.info('#sentences in the test data = ' + str(len(test)))
+        logging.info('#tokens in the test data = ' + str(n_test_tokens))
+        logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs / n_test_tokens * 100))
+        test_iter = ParallelSentenceIterator(test, args.batchsize,
+                                             max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
+        evaluator = LMEvaluator(test_iter, model, reporter, device=gpu_id)
+        result = evaluator()
+        logging.info('test perplexity: ' + str(np.exp(float(result['main/loss']))))

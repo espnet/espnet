@@ -64,6 +64,8 @@ def main():
                         help='RNNLM model config file to read')
     parser.add_argument('--word-rnnlm', type=str, default=None,
                         help='Word RNNLM model file to read')
+    parser.add_argument('--word-rnnlm-conf', type=str, default=None,
+                        help='Word RNNLM model config file to read')
     parser.add_argument('--word-dict', type=str, default=None,
                         help='Word list to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,

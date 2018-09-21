@@ -51,9 +51,9 @@ use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
 # minibatch related
 batchsize=32
-batch_sort_key="" # empty or input or output (if empty, shuffled batch will be used)
-maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
-maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
+batch_sort_key=shuffle # shuffle or input or output
+maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
+maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
 # optimization related
 lr=1e-3
 eps=1e-6
@@ -63,9 +63,10 @@ zoneout=0.1
 epochs=200
 # decoding related
 model=model.loss.best
-threshold=0.7    # threshold to stop the generation
+threshold=0.5    # threshold to stop the generation
 maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
+griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # root directory of db
 db_root=downloads
@@ -189,7 +190,7 @@ if [ -z ${tag} ];then
         expdir=${expdir}_msk_pw${bce_pos_weight}
     fi
     expdir=${expdir}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
-    if [ ! -z ${batch_sort_key} ];then
+    if [ ! ${batch_sort_key} = "shuffle" ];then
         expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
     fi
     expdir=${expdir}_sd${seed}
@@ -286,6 +287,7 @@ if [ ${stage} -le 5 ];then
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
             --n_mels ${n_mels} \
+            --iters ${griffin_lim_iters} \
             ${outdir}_denorm/${sets} \
             ${outdir}_denorm/${sets}/log \
             ${outdir}_denorm/${sets}/wav
