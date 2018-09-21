@@ -193,7 +193,7 @@ class LookAheadWordLM(nn.Module):
             elif xi == self.space:
                 y[:, self.space] = self.zero
                 y[:, self.eos] = self.zero
-            return (wlm_state, cumsum_probs, new_node), torch.log(log_y)
+            return (wlm_state, cumsum_probs, new_node), torch.log(y)
         else:  # if no path in the tree, transition probability is one
             log_y = torch.zeros(1, self.subword_dict_size)
             return (wlm_state, cumsum_probs, new_node), log_y
