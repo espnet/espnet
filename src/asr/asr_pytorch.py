@@ -212,6 +212,14 @@ def train(args):
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
 
+    if args.rnnlm is not None:
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        rnnlm = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(
+                len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+        torch.load(args.rnnlm, rnnlm)
+        e2e.rnnlm = rnnlm
+
     # write model config
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)

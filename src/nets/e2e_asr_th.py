@@ -11,8 +11,8 @@ import logging
 import math
 import sys
 
-import editdistance
 from argparse import Namespace
+import editdistance
 
 import chainer
 import numpy as np
@@ -25,6 +25,7 @@ from chainer import reporter
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
+from ctc_prefix_score import CTCPrefixScore
 from ctc_prefix_score import CTCPrefixScoreTH
 from e2e_asr_common import end_detect
 from e2e_asr_common import get_vgg2l_odim
@@ -269,13 +270,6 @@ class E2E(torch.nn.Module):
                           'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
                           'rnnlm': args.rnnlm, 'nbest': args.nbest}
-            self.rnnlm = None
-            if self.rnnlm is not None:
-                rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-                self.rnnlm = lm_pytorch.ClassifierWithState(
-                    lm_pytorch.RNNLM(
-                        len(self.char_list), rnnlm_args.layer, rnnlm_args.unit))
-                torch.load(args.rnnlm, self.rnnlm)
             self.recog_args = argparse.Namespace(**recog_args)
             self.report_cer = args.report_cer
             self.report_wer = args.report_wer
@@ -435,7 +429,7 @@ class E2E(torch.nn.Module):
         if prev:
             self.train()
         return y
-    
+
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
         '''E2E beam search
 
@@ -2175,7 +2169,7 @@ class Decoder(torch.nn.Module):
             _best_score = local_best_scores.view(-1).cpu().numpy()
             local_scores[_best_odims] = _best_score
             local_scores = to_cuda(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
-            
+
             # (or indexing)
             # local_scores = to_cuda(self, torch.full((batch, beam, self.odim), self.logzero))
             # _best_odims = local_best_odims
