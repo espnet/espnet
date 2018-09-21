@@ -416,20 +416,11 @@ def recog(args):
         model.cuda()
         if rnnlm:
             rnnlm.cuda()
-    elif ngpu > 1:
-        gpu_id = range(args.ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        model = DataParallel(model, device_ids=gpu_id)
-        model.cuda()
-        logging.info('batch size is automatically increased (%d -> %d)' % (
-            args.batchsize, args.batchsize * args.ngpu))
-        args.batchsize *= args.ngpu
-        if rnnlm:
-            rnnlm.cuda()
 
     # read json data
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
+    new_js = {}
 
     if args.batchsize is None:
         with torch.no_grad():
@@ -441,7 +432,7 @@ def recog(args):
     else:
         try:
             from itertools import zip_longest as zip_longest
-        except:
+        except Exception:
             from itertools import izip_longest as zip_longest
 
         def grouper(n, iterable, fillvalue=None):
@@ -454,14 +445,11 @@ def recog(args):
         sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
         keys = [keys[i] for i in sorted_index]
 
-        new_js = {}
         with torch.no_grad():
             for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
                 feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
                          for name in names]
-                y_true = [map(int, js[name]['output'][0]['tokenid'].split())
-                          for name in names]
                 nbest_hyps = e2e.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
