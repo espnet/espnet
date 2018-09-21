@@ -104,12 +104,21 @@ class MultiLevelLM(chainer.Chain):
             else:
                 wlm_logprob = wlm_logprobs[:, self.word_unk] + self.log_oov_penalty
             log_y[:, self.space] = wlm_logprob
-            log_y[:, self.eos] = wlm_logprob + wlm_logprobs[:, self.word_eos]
+            log_y[:, self.eos] = wlm_logprob
         else:
             log_y[:, self.space] = self.logzero
             log_y[:, self.eos] = self.logzero
 
         return (clm_state, wlm_state, wlm_logprobs, new_node, log_y, clm_logprob), log_y
+
+    def final(self, state):
+        clm_state, wlm_state, wlm_logprobs, node, log_y, clm_logprob = state
+        if node is not None and node[1] >= 0:  # check if the node is word end
+            w = self.xp.full(1, node[1], 'i')
+        else:  # this node is not a word end, which means <unk>
+            w = self.xp_word_unk
+        wlm_state, z_wlm = self.wordlm(wlm_state, w)
+        return F.log_softmax(z_wlm).data[:, self.word_eos]
 
 
 # Definition of a look-ahead word language model
@@ -173,7 +182,7 @@ class LookAheadWordLM(chainer.Chain):
             if wid >= 0:
                 wlm_prob = (cumsum_probs[:, wid] - cumsum_probs[:, wid - 1]) / sum_prob
                 y[:, self.space] = wlm_prob
-                y[:, self.eos] = wlm_prob * (cumsum_probs[:, self.word_eos] - cumsum_probs[:, self.word_eos - 1])
+                y[:, self.eos] = wlm_prob
             elif xi == self.space:
                 y[:, self.space] = self.zero
                 y[:, self.eos] = self.zero
@@ -181,3 +190,12 @@ class LookAheadWordLM(chainer.Chain):
         else:  # if no path in the tree, transition probability is one
             log_y = self.xp.zeros((1, self.subword_dict_size), 'f')
             return (wlm_state, cumsum_probs, new_node), log_y
+
+    def final(self, state):
+        wlm_state, cumsum_probs, node = state
+        if node is not None and node[1] >= 0:  # check if the node is word end
+            w = self.xp.full(1, node[1], 'i')
+        else:  # this node is not a word end, which means <unk>
+            w = self.xp_word_unk
+        wlm_state, z_wlm = self.wordlm(wlm_state, w)
+        return F.log_softmax(z_wlm).data[:, self.word_eos]

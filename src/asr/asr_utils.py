@@ -58,32 +58,23 @@ def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0
     return minibatch
 
 
-def load_inputs_and_targets(batch, sort_in_outputs=False, use_speaker_embedding=False):
+def load_inputs_and_targets(batch):
     """Function to load inputs and targets from list of dicts
 
     :param list batch: list of dict which is subset of loaded data.json
-    :param bool sort_in_outputs: whether to sort in output lengths
-    :param bool use_speaker_embedding: whether to load speaker embedding vector
     :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
     :rtype: list of float ndarray
-    :return: list of target token id sequences [(T_1), (T_2), ..., (T_B)]
+    :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
     :rtype: list of int ndarray
-    :return: list of speaker embedding vectors (only if use_speaker_embedding = True)
-    :rtype: list of float adarray
     """
-
     # load acoustic features and target sequence of token ids
     xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
     ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
 
     # get index of non-zero length samples
     nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
-    if sort_in_outputs:
-        # sort in output lengths
-        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(ys[i]))
-    else:
-        # sort in input lengths
-        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+    # sort in input lengths
+    nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
     if len(nonzero_sorted_idx) != len(xs):
         logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
             len(xs), len(nonzero_sorted_idx)))
@@ -92,13 +83,7 @@ def load_inputs_and_targets(batch, sort_in_outputs=False, use_speaker_embedding=
     xs = [xs[i] for i in nonzero_sorted_idx]
     ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
 
-    # load speaker embedding
-    if use_speaker_embedding:
-        spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
-        spembs = [spembs[i] for i in nonzero_sorted_idx]
-        return xs, ys, spembs
-    else:
-        return xs, ys
+    return xs, ys
 
 
 # * -------------------- chainer extension related -------------------- *
@@ -285,17 +270,6 @@ def _torch_snapshot_object(trainer, target, filename, savefun):
         shutil.rmtree(tmpdir)
 
 
-# * -------------------- language model related -------------------- *
-def load_labeldict(dict_file):
-    labeldict = {'<blank>': 0}  # <blank>'s Id is 0
-    for ln in open(dict_file, 'r').readlines():
-        s, i = ln.split()
-        labeldict[s] = int(i)
-    if '<eos>' not in labeldict:
-        labeldict['<eos>'] = len(labeldict)
-    return labeldict
-
-
 # * -------------------- general -------------------- *
 class AttributeDict(object):
     def __init__(self, obj):
@@ -316,8 +290,17 @@ class AttributeDict(object):
         else:
             return None
 
+    def __getitem__(self, name):
+        return self.obj[name]
+
+    def __len__(self):
+        return len(self.obj)
+
     def fields(self):
         return self.obj
+
+    def items(self):
+        return self.obj.items()
 
     def keys(self):
         return self.obj.keys()
