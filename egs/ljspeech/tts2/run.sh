@@ -12,16 +12,17 @@ stage=-1
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 1, get more log)
+verbose=0    # verbose option (if set > 0, get more log)
+N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 # feature extraction related
-fs=16000      # sampling frequency
-fmax=""       # maximum frequency
-fmin=""       # minimum frequency
-n_mels=80     # number of mel basis
-n_fft=1024    # number of fft points
-n_shift=512   # number of shift points
+fs=22050    # sampling frequency
+fmax=""     # maximum frequency
+fmin=""     # minimum frequency
+n_mels=80   # number of mel basis
+n_fft=1024  # number of fft points
+n_shift=256 # number of shift points
 win_length="" # window length
 # encoder related
 embed_dim=512
@@ -38,7 +39,6 @@ prenet_units=256
 postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
-use_speaker_embedding=true
 # attention related
 adim=128
 aconv_chans=32
@@ -49,31 +49,35 @@ use_concate=true    # whether to concatenate encoder embedding with decoder lstm
 use_residual=false  # whether to use residual connection in encoder convolution
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
+# cbhg related
+cbhg_conv_bank_layers=8
+cbhg_conv_bank_chans=128
+cbhg_conv_proj_filts=3
+cbhg_conv_proj_chans=256
+cbhg_highway_layers=4
+cbhg_highway_units=128
+cbhg_gru_units=256
 # minibatch related
-batchsize=64
-batch_sort_key=output # empty or input or output (if empty, shuffled batch will be used)
-maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
-maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
+batchsize=32
+batch_sort_key=shuffle # shuffle or input or output
+maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
+maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
 # optimization related
 lr=1e-3
 eps=1e-6
 weight_decay=0.0
 dropout=0.5
 zoneout=0.1
-epochs=30
+epochs=200
 # decoding related
 model=model.loss.best
 threshold=0.5    # threshold to stop the generation
 maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
+griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
-# Set this to somewhere where you want to put your data, or where
-# someone else has already put it.  You'll want to change this
-# if you're not on the CLSP grid.
-datadir=/export/a15/vpanayotov/data
-
-# base url for downloads.
-data_url=www.openslr.org/resources/12
+# root directory of db
+db_root=downloads
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -86,25 +90,21 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_clean_460
-train_dev=dev
-eval_set=test_clean
+train_set=train_no_dev
+train_dev=train_dev
+eval_set=eval
 
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-        local/download_and_untar.sh ${datadir} ${data_url} ${part}
-    done
+    local/download.sh ${db_root}
 fi
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-        # use underscore-separated names in data directories.
-        local/data_prep.sh ${datadir}/LibriSpeech/${part} data/$(echo ${part} | sed s/-/_/g)
-    done
+    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
+    utils/validate_data_dir.sh --no-feats data/train
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -115,28 +115,26 @@ if [ ${stage} -le 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
+    # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    for x in dev_clean test_clean train_clean_100 train_clean_360; do
-        make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-            --fs ${fs} \
-            --fmax "${fmax}" \
-            --fmin "${fmin}" \
-            --n_fft ${n_fft} \
-            --n_shift ${n_shift} \
-            --win_length "${win_length}" \
-            --n_mels ${n_mels} \
-            data/${x} \
-            exp/make_fbank/${x} \
-            ${fbankdir}
-    done
+    make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+        --fs ${fs} \
+        --fmax "${fmax}" \
+        --fmin "${fmin}" \
+        --n_fft ${n_fft} \
+        --n_shift ${n_shift} \
+        --win_length "${win_length}" \
+        --n_mels ${n_mels} \
+        data/train \
+        exp/make_fbank/train \
+        ${fbankdir}
 
-    utils/combine_data.sh data/${train_set}_org data/train_clean_100 data/train_clean_360
-    utils/combine_data.sh data/${train_dev}_org data/dev_clean
-
-    # remove utt having more than 3000 frames
-    # remove utt having more than 400 characters
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
+    # make a dev set
+    utils/subset_data_dir.sh --last data/train 500 data/deveval
+    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
+    utils/subset_data_dir.sh --first data/deveval 250 data/${train_dev}
+    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -171,46 +169,39 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ ${stage} -le 3 ]; then
-    echo "stage 3: x-vector extraction"
-    # Make MFCCs and compute the energy-based VAD for each dataset
-    mfccdir=mfcc
-    vaddir=mfcc
+    echo "stage 3: Spectrogram extraction"
+    stftdir=stft
     for name in ${train_set} ${train_dev} ${eval_set}; do
-        utils/copy_data_dir.sh data/${name} data/${name}_mfcc
-        steps/make_mfcc.sh \
-            --write-utt2num-frames true \
-            --mfcc-config conf/mfcc.conf \
-            --nj ${nj} --cmd "$train_cmd" \
-            data/${name}_mfcc exp/make_mfcc $mfccdir
-        utils/fix_data_dir.sh data/${name}_mfcc
-        sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
-            data/${name}_mfcc exp/make_vad ${vaddir}
-        utils/fix_data_dir.sh data/${name}_mfcc
+        utils/copy_data_dir.sh data/${name} data/${name}_stft
+        make_stft.sh --nj ${nj} --cmd "$train_cmd" \
+            --fs ${fs} \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            data/${name}_stft \
+            exp/make_stft/${name} \
+            ${stftdir}
+        utils/fix_data_dir.sh data/${name}_stft
     done
-    # Check pretrained model existence
-    nnet_dir=exp/xvector_nnet_1a
-    if [ ! -e $nnet_dir ];then
-        echo "X-vector model does not exist. Download pre-trained model."
-        wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
-        tar xvf 0008_sitw_v2_1a.tar.gz
-        mv 0008_sitw_v2_1a/exp/xvector_nnet_1a exp
-        rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
-    fi
-    # Extract x-vector
+
+    # compute global CMVN
+    compute-cmvn-stats scp:data/${train_set}_stft/feats.scp data/${train_set}_stft/cmvn.ark
+
     for name in ${train_set} ${train_dev} ${eval_set}; do
-        sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
-            $nnet_dir data/${name}_mfcc \
-            $nnet_dir/xvectors_${name}
-    done
-    # Update json
-    for name in ${train_set} ${train_dev} ${eval_set}; do
-        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
+        # dump features for training
+        dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+            data/${name}_stft/feats.scp \
+            data/${train_set}_stft/cmvn.ark \
+            exp/dump_feats/${name}_stft \
+            ${dumpdir}/${name}_stft
+        # update json
+        local/update_json.sh ${dumpdir}/${name}/data.json \
+            ${dumpdir}/${name}_stft/feats.scp
     done
 fi
 
-
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_${backend}_taco2_enc${embed_dim}
+    expdir=exp/${train_set}_${backend}_taco2_cbhg_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
         expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
@@ -253,6 +244,7 @@ if [ ${stage} -le 4 ];then
         tts_train.py \
            --backend ${backend} \
            --ngpu ${ngpu} \
+           --minibatches ${N} \
            --outdir ${expdir}/results \
            --verbose ${verbose} \
            --seed ${seed} \
@@ -276,12 +268,19 @@ if [ ${stage} -le 4 ];then
            --aconv-chans ${aconv_chans} \
            --aconv-filts ${aconv_filts} \
            --cumulate_att_w ${cumulate_att_w} \
-           --use_speaker_embedding ${use_speaker_embedding} \
            --use_batch_norm ${use_batch_norm} \
            --use_concate ${use_concate} \
            --use_residual ${use_residual} \
            --use_masking ${use_masking} \
            --bce_pos_weight ${bce_pos_weight} \
+           --use_cbhg true \
+           --cbhg_conv_bank_layers ${cbhg_conv_bank_layers} \
+           --cbhg_conv_bank_chans ${cbhg_conv_bank_chans} \
+           --cbhg_conv_proj_filts ${cbhg_conv_proj_filts} \
+           --cbhg_conv_proj_chans ${cbhg_conv_proj_chans} \
+           --cbhg_highway_layers ${cbhg_highway_layers} \
+           --cbhg_highway_units ${cbhg_highway_units} \
+           --cbhg_gru_units ${cbhg_gru_units} \
            --lr ${lr} \
            --eps ${eps} \
            --dropout ${dropout} \
@@ -324,17 +323,15 @@ if [ ${stage} -le 6 ];then
     echo "stage 6: Synthesis"
     for sets in ${train_dev} ${eval_set};do
         [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
-        apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
+        apply-cmvn --norm-vars=true --reverse=true data/${train_set}_stft/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
             ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
         convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} \
-            --fmax "${fmax}" \
-            --fmin "${fmin}" \
             --n_fft ${n_fft} \
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
-            --n_mels ${n_mels} \
+            --iters ${griffin_lim_iters} \
             ${outdir}_denorm/${sets} \
             ${outdir}_denorm/${sets}/log \
             ${outdir}_denorm/${sets}/wav
