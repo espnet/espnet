@@ -389,7 +389,7 @@ class E2E(torch.nn.Module):
 
         return loss_ctc, loss_att, acc, cer, wer
 
-    def recognize(self, xs, recog_args, char_list, rnnlm=None):
+    def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
         '''E2E beam search
 
         :param ndarray x: input acouctic feature (T, D)
@@ -418,7 +418,7 @@ class E2E(torch.nn.Module):
             lpz = None
 
         # 2. decoder
-        y = self.dec.recognize_beam(hpad, hlens, lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam_batch(hpad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -1787,8 +1787,8 @@ class Decoder(torch.nn.Module):
 
         return self.loss, acc
 
-    def recognize_beam(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
-                       normalize_score=True):
+    def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
+                             normalize_score=True):
         '''beam search implementation
 
         :param torch.Tensor h: encoder hidden state (T, eprojs)
