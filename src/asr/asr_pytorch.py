@@ -34,10 +34,10 @@ from asr_utils import torch_load
 from asr_utils import torch_resume
 from asr_utils import torch_save
 from asr_utils import torch_snapshot
+from asr_utils import uttid2lang
 from e2e_asr_th import E2E
 from e2e_asr_th import Loss
 from e2e_asr_th import pad_list
-from e2e_asr_th import uttid2lang
 
 # for kaldi io
 import kaldi_io_py
@@ -118,7 +118,7 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
-        x = self.converter(batch, self.device)
+        xs_pad, ilens, grapheme_ys, phoneme_ys, lang_ys = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
@@ -144,10 +144,11 @@ class CustomUpdater(training.StandardUpdater):
             # Now compute the lang loss (this redoes the encoding, which may be
             # slightly inefficient but should be fine for now).
             optimizer.zero_grad()
-            lang_loss = self.model.forward_langid(x)
-            if self.num_gpu > 1:
-                lang_loss.backward(torch.ones(self.num_gpu))  # Backprop
+            if self.ngpu > 1:
+                lang_loss = 1. / self.ngpu * self.model.forward_langid(xs_pad, ilens, lang_ys)
+                lang_loss.backward(torch.ones(self.ngpu))  # Backprop
             else:
+                lang_loss = self.model.forward_langid(xs_pad, ilens, lang_ys)
                 lang_loss.backward()  # Backprop
             logging.info("predict_lang: {}".format(self.predict_lang))
 
@@ -176,18 +177,23 @@ class CustomUpdater(training.StandardUpdater):
 class CustomConverter(object):
     """CUSTOM CONVERTER"""
 
-    def __init__(self, phoneme_objective_weight, subsamping_factor=1):
+    def __init__(self, phoneme_objective_weight, langs, subsamping_factor=1):
         self.ignore_id = -1
         self.phoneme_objective_weight = phoneme_objective_weight
         self.subsamping_factor = subsamping_factor
+        self.langs = langs
+        self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
+        self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
 
     def transform(self, item):
-        return load_inputs_and_targets(item, self.phoneme_objective_weight)
+        return load_inputs_and_targets(
+                item, self.phoneme_objective_weight,
+                self.lang2id)
 
     def __call__(self, batch, device):
         # batch should be located in list
         assert len(batch) == 1
-        xs, grapheme_ys, phoneme_ys = batch[0]
+        xs, grapheme_ys, phoneme_ys, lang_ys = batch[0]
 
         # perform subsamping
         if self.subsamping_factor > 1:
@@ -207,7 +213,7 @@ class CustomConverter(object):
         else:
             phoneme_ys_pad = None
 
-        return xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad
+        return xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad, lang_ys
 
 class EspnetException(Exception):
     pass
@@ -355,7 +361,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(e2e.subsample[0], args.phoneme_objective_weight)
+    converter = CustomConverter(args.phoneme_objective_weight, langs, e2e.subsample[0])
 
     # read json data
     with open(args.train_json, 'rb') as f:

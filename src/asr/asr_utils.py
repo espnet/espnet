@@ -70,7 +70,14 @@ def get_output(output_name, utter):
         if output["name"] == output_name:
             return output["tokenid"].split()
 
-def load_inputs_and_targets(batch, phoneme_objective_weight):
+def uttid2lang(uttid):
+    """ Returns the language given an utterance ID. Utterance IDs look
+    something like this: "105_94168_A_20120127_071423_043760-turkish". Given
+    this input, the output would be "turkish"
+    """
+    return uttid.split("-")[-1]
+
+def load_inputs_and_targets(batch, phoneme_objective_weight, lang2id):
     """Function to load inputs and targets from list of dicts
 
     :param list batch: list of dict which is subset of loaded data.json
@@ -97,11 +104,19 @@ def load_inputs_and_targets(batch, phoneme_objective_weight):
     xs = [xs[i] for i in nonzero_sorted_idx]
     grapheme_ys = [np.fromiter(map(int, grapheme_ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
 
+    # Gather phoneme targets
     if phoneme_objective_weight > 0.0:
         phoneme_ys = [get_output("phn", b[1]) for b in batch]
         phoneme_ys = [np.fromiter(map(int, phoneme_ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
     else:
         phoneme_ys = None
+
+    # Gather language targets
+    uttids = [b[0] for b in batch]
+    logging.info("uttids: {}".format(uttids))
+    lang_ys = np.fromiter([lang2id[uttid2lang(uttid)] for uttid in uttids],
+                          dtype=np.int64)
+    logging.info("lang_ys: {}".format(lang_ys))
 
     return xs, grapheme_ys, phoneme_ys
 

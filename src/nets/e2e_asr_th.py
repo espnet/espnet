@@ -34,13 +34,6 @@ CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
-def uttid2lang(uttid):
-    """ Returns the language given an utterance ID. Utterance IDs look
-    something like this: "105_94168_A_20120127_071423_043760-turkish". Given
-    this input, the output would be "turkish"
-    """
-    return uttid.split("-")[-1]
-
 def get_tids(output_type, data):
     """ Given some data from data.json, return a list of lists,
     one per utterance, where each sub-list consists of tokenids corresponding
@@ -160,38 +153,34 @@ class Loss(torch.nn.Module):
         self.reporter = Reporter()
 
         if langs:
-            self.langs = langs
-            self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
-            self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
-
             # Define components related to language prediction
-            self.lang_linear = torch.nn.Linear(self.predictor.eprojs, 10)
+            self.lang_linear = torch.nn.Linear(self.predictor.eprojs, len(langs))
             self.log_softmax = torch.nn.LogSoftmax(dim=1)
             self.loss_lang = torch.nn.NLLLoss()
 
-    def forward_langid(self, xs_pad, ilens, ys_pad):
+    def forward_langid(self, xs_pad, ilens, lang_ys):
 
         hpad, hlens = self.predictor.encode(xs_pad, ilens)
         mean = hpad.mean(dim=1)
         log_softmax_out = self.log_softmax(self.lang_linear(mean))
         logging.info("log_softmax {}".format(log_softmax_out))
 
-        targets = to_cuda(self, torch.LongTensor([self.lang2id[uttid2lang(utt[0])] for utt in x]))
-        targets = torch.autograd.Variable(targets)
+        #targets = to_cuda(self, torch.LongTensor([self.lang2id[uttid2lang(utt[0])] for utt in x]))
+        #targets = torch.autograd.Variable(targets)
 
-        logging.info("targets: {}".format([int(id_) for id_ in targets]))
+        logging.info("lang_ys: {}".format([int(id_) for id_ in lang_ys]))
 
         # Accuracy the best guess across batch.
         lang_1best_guess = log_softmax_out.topk(1)[1]
-        acc_lang = float(sum(lang_1best_guess[:,0] == targets))/len(targets)
+        acc_lang = float(sum(lang_1best_guess[:,0] == lang_ys))/len(lang_ys)
         logging.info("lang prediction accuracy: {}".format(acc_lang))
 
-        targets_hr = [self.id2lang[int(id_)] for id_ in targets]
+        lang_ys_hr = [self.id2lang[int(id_)] for id_ in lang_ys]
         lang_guesses_hr = [self.id2lang[int(id_)] for id_ in lang_1best_guess]
         logging.info("lang (hyp, ref)s: {}".format(
-                zip(lang_guesses_hr, targets_hr)))
+                zip(lang_guesses_hr, lang_ys_hr)))
 
-        self.loss_lang_out = self.loss_lang(log_softmax_out, targets)
+        self.loss_lang_out = self.loss_lang(log_softmax_out, lang_ys)
         logging.info("langid loss: {}".format(self.loss_lang_out))
 
         self.reporter.report_lang(acc_lang, self.loss_lang_out)
@@ -535,7 +524,7 @@ class E2E(torch.nn.Module):
             self.train()
         return y
 
-    def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
+    def calculate_all_attentions(self, xs_pad, ilens, ys_pad, _phoneme_ys_pad):
         '''E2E attention calculation
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
