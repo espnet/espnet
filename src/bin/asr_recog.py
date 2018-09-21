@@ -93,6 +93,11 @@ def main():
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
 
+        # TODO(mn5k): support of multiple GPUs
+        if args.ngpu > 1:
+            logging.error("The program only supports ngpu=1.")
+            sys.exit(1)
+
     # display PYTHONPATH
     logging.info('python path = ' + os.environ['PYTHONPATH'])
 
