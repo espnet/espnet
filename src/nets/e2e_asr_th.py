@@ -263,19 +263,26 @@ class E2E(torch.nn.Module):
         # weight initialization
         self.init_like_chainer()
 
-        # options for beam search (trainig stage)
+        # options for beam search
         if 'beam_size' in vars(args):
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
                           'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
-                          'nbest': args.nbest}
+                          'rnnlm': args.rnnlm, 'nbest': args.nbest}
             self.rnnlm = None
+            if self.rnnlm is not None:
+                rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+                self.rnnlm = lm_pytorch.ClassifierWithState(
+                    lm_pytorch.RNNLM(
+                        len(self.char_list), rnnlm_args.layer, rnnlm_args.unit))
+                torch.load(args.rnnlm, self.rnnlm)
             self.recog_args = argparse.Namespace(**recog_args)
             self.report_cer = args.report_cer
             self.report_wer = args.report_wer
         else:
             self.report_cer = False
             self.report_wer = False
+            self.rnnlm = None
 
         self.logzero = -10000000000.0
 
@@ -359,18 +366,18 @@ class E2E(torch.nn.Module):
             # oracle_cer, oracle_wer = 0.0, 0.0
         else:
             if self.recog_args.ctc_weight > 0.0:
-                lpz = self.ctc.log_softmax(hpad).data
+                lpz = self.ctc.log_softmax(hs_pad).data
             else:
                 lpz = None
 
             wers, cers = [], []
-            nbest_hyps = self.dec.recognize_beam(hpad, hlens, lpz,
-                                                 self.recog_args, self.char_list,
-                                                 self.rnnlm)
+            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), lpz,
+                                                       self.recog_args, self.char_list,
+                                                       self.rnnlm)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
-                y_true = ys[i]
+                y_true = ys_pad[i]
 
                 seq_hat = [self.char_list[int(idx)] for idx in y_hat]
                 seq_true = [self.char_list[int(idx)] for idx in y_true]
@@ -378,7 +385,6 @@ class E2E(torch.nn.Module):
                 seq_hat_text = seq_hat_text.replace('<blank>', '').replace('<unk>', '')
                 seq_true_text = "".join(seq_true).replace('<space>', ' ')
 
-                # wer
                 hyp_words = seq_hat_text.split()
                 ref_words = seq_true_text.split()
                 wers.append(editdistance.eval(hyp_words, ref_words) / len(ref_words))
@@ -394,6 +400,42 @@ class E2E(torch.nn.Module):
 
         return loss_ctc, loss_att, acc, cer, wer
 
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
+        '''E2E beam search
+
+        :param ndarray x: input acouctic feature (T, D)
+        :param namespace recog_args: argment namespace contraining options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        '''
+        prev = self.training
+        self.eval()
+        # subsample frame
+        x = x[::self.subsample[0], :]
+        ilen = [x.shape[0]]
+        h = to_cuda(self, torch.from_numpy(
+            np.array(x, dtype=np.float32)))
+
+        # 1. encoder
+        # make a utt list (1) to use the same interface for encoder
+        h, _ = self.enc(h.unsqueeze(0), ilen)
+
+        # calculate log P(z_t|X) for CTC scores
+        if recog_args.ctc_weight > 0.0:
+            lpz = self.ctc.log_softmax(h)[0]
+        else:
+            lpz = None
+
+        # 2. decoder
+        # decode the first utterance
+        y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+
+        if prev:
+            self.train()
+        return y
+    
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
         '''E2E beam search
 
@@ -2041,18 +2083,7 @@ class Decoder(torch.nn.Module):
 
     def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
                              normalize_score=True):
-        '''beam search implementation
-
-        :param torch.Tensor h: encoder hidden state (T, eprojs)
-        :param torch.Tensor lpz: ctc log softmax output (T, odim)
-        :param Namespace recog_args: argument namespace contraining options
-        :param char_list: list of character strings
-        :param torch.nn.Module rnnlm: language module
-        :return: N-best decoding results
-        :rtype: list of dicts
-        '''
         logging.info('input lengths: ' + str(h.size(1)))
-        h = fill_padded_part(h, hlens, 0.0)
 
         # search params
         batch = len(hlens)
