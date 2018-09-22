@@ -50,6 +50,7 @@ use_concate=true    # whether to concatenate encoder embedding with decoder lstm
 use_residual=false  # whether to use residual connection in encoder convolution
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
+reduction_factor=1
 # cbhg related
 cbhg_conv_bank_layers=8
 cbhg_conv_bank_chans=128
@@ -202,7 +203,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_${backend}_taco2_cbhg_enc${embed_dim}
+    expdir=exp/${train_set}_${backend}_taco2_cbhg_r${reduction_factor}_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
         expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
@@ -287,6 +288,7 @@ if [ ${stage} -le 4 ];then
            --eps ${eps} \
            --dropout ${dropout} \
            --zoneout ${zoneout} \
+           --reduction_factor ${reduction_factor} \
            --weight-decay ${weight_decay} \
            --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \
