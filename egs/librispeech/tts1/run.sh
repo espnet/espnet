@@ -40,7 +40,7 @@ postnet_chans=512
 postnet_filts=5
 use_speaker_embedding=true
 # attention related
-atype=forward
+atype=forward_ta
 adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
