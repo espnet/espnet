@@ -584,13 +584,9 @@ class Decoder(chainer.Chain):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
-            if random.random() < self.sampling_probability:
+            if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
-                if i == 0:
-                    # for initializing z_list[0]
-                    ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
-                    c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
-                z_out = self.output(z_list[0])
+                z_out = self.output(z_all[-1])
                 z_out = F.argmax(F.log_softmax(z_out), axis=1)
                 z_out = self.embed(z_out)
                 ey = F.hstack((z_out, att_c))  # utt x (zdim + hdim)
