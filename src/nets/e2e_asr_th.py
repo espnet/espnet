@@ -1840,7 +1840,6 @@ class Decoder(torch.nn.Module):
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1)
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
-                    import ipdb; ipdb.set_trace()
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
                     local_scores = local_att_scores
