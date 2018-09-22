@@ -14,7 +14,7 @@ from argparse import Namespace
 
 import chainer
 import numpy as np
-import random
+import random; random.seed(4)
 import six
 import torch
 import torch.nn.functional as F
@@ -1641,9 +1641,9 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs_pad, hlens, z_list[0], att_w)
-            if random.random() < self.sampling_probability:
+            if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
-                z_out = self.output(z_list[-1])
+                z_out = self.output(z_all[-1])
                 z_out = np.argmax(z_out.detach(), axis=1)
                 z_out = self.embed(z_out.cuda())
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
@@ -1768,6 +1768,7 @@ class Decoder(torch.nn.Module):
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1)
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
+                    import ipdb; ipdb.set_trace()
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
                     local_scores = local_att_scores

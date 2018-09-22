@@ -75,36 +75,12 @@ def main():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-            elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]):
-                command = 'nvidia-smi --query-gpu=memory.free,memory.total \
-                    --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1 / $3 > 0.98) print NR-1}\''
-                try:
-                    cvd = str(subprocess.check_output(command, shell=True).rsplit('\n')[0:args.ngpu])
-                    cvd = cvd.replace("]", "")
-                    cvd = cvd.replace("[", "")
-                    cvd = cvd.replace("'", "")
-                    logging.warn(cvd)
-                    os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-                except subprocess.CalledProcessError:
-                    logging.info("No GPU seems to be available")
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-            elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]).decode():
-                command = 'nvidia-smi --query-gpu=memory.free,memory.total \
-                    --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1/$3 > 0.98) print NR-1}\''
-                try:
-                    cvd = str(subprocess.check_output(command, shell=True).decode().rsplit('\n')[0:args.ngpu])
-                    cvd = cvd.replace("]", "")
-                    cvd = cvd.replace("[", "")
-                    cvd = cvd.replace("'", "")
-                    logging.warn(cvd)
-                    os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-                except subprocess.CalledProcessError:
-                    logging.info("No GPU seems to be available")
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
             logging.warn("CUDA_VISIBLE_DEVICES is not set.")
