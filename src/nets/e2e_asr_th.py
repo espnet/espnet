@@ -14,7 +14,7 @@ from argparse import Namespace
 
 import chainer
 import numpy as np
-import random; random.seed(4)
+import random
 import six
 import torch
 import torch.nn.functional as F
