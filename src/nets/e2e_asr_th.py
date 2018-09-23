@@ -276,7 +276,7 @@ class E2E(torch.nn.Module):
         else:
             self.report_cer = False
             self.report_wer = False
-            self.rnnlm = None
+        self.rnnlm = None
 
         self.logzero = -10000000000.0
 
