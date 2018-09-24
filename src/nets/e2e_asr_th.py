@@ -265,7 +265,7 @@ class E2E(torch.nn.Module):
         self.init_like_chainer()
 
         # options for beam search
-        if 'beam_size' in vars(args):
+        if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
                           'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
