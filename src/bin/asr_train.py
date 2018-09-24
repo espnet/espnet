@@ -120,6 +120,10 @@ def main():
                         help='RNNLM model config file to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
+    parser.add_argument('--sym-space', default='<space>', type=str,
+                        help='Space symbol')
+    parser.add_argument('--sym-blank', default='<blank>', type=str,
+                        help='Blank symbol')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')

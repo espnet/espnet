@@ -269,7 +269,9 @@ class E2E(torch.nn.Module):
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
                           'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
-                          'rnnlm': args.rnnlm, 'nbest': args.nbest}
+                          'rnnlm': args.rnnlm, 'nbest': args.nbest,
+                          'space': args.sym_space, 'blank': args.sym_blank}
+
             self.recog_args = argparse.Namespace(**recog_args)
             self.report_cer = args.report_cer
             self.report_wer = args.report_wer
@@ -373,11 +375,11 @@ class E2E(torch.nn.Module):
             for i, y_hat in enumerate(y_hats):
                 y_true = ys_pad[i]
 
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat]
-                seq_true = [self.char_list[int(idx)] for idx in y_true]
-                seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
-                seq_hat_text = seq_hat_text.replace('<blank>', '').replace('<unk>', '')
-                seq_true_text = "".join(seq_true).replace('<space>', ' ')
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
+                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+                seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.recog_args.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.recog_args.space, ' ')
 
                 hyp_words = seq_hat_text.split()
                 ref_words = seq_true_text.split()
@@ -386,9 +388,6 @@ class E2E(torch.nn.Module):
                 ref_chars = seq_true_text.replace(' ', '')
                 cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
 
-                if False:
-                    logging.info("groundtruth: " + seq_true_text)
-                    logging.info("prediction : " + seq_hat_text)
             wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
             cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
 
@@ -1745,7 +1744,7 @@ def index_select_lm_state(rnnlm_state, dim, vidx):
     if isinstance(rnnlm_state, dict):
         new_state = {}
         for k, v in rnnlm_state.items():
-                new_state[k] = torch.index_select(v, dim, vidx)
+            new_state[k] = torch.index_select(v, dim, vidx)
     elif isinstance(rnnlm_state, list):
         new_state = []
         for i in vidx:
