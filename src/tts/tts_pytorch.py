@@ -8,7 +8,6 @@ import json
 import logging
 import math
 import os
-import random
 
 import chainer
 import numpy as np
@@ -21,7 +20,6 @@ from chainer.training import extensions
 import kaldi_io_py
 
 from asr_utils import get_model_conf
-from asr_utils import load_inputs_and_targets
 from asr_utils import PlotAttentionReport
 from asr_utils import torch_load
 from asr_utils import torch_resume
@@ -30,6 +28,8 @@ from asr_utils import torch_snapshot
 from e2e_asr_th import pad_list
 from e2e_tts_th import Tacotron2
 from e2e_tts_th import Tacotron2Loss
+from tts_utils import load_inputs_and_targets
+from tts_utils import make_batchset
 
 import matplotlib
 matplotlib.use('Agg')
@@ -114,20 +114,24 @@ class CustomUpdater(training.StandardUpdater):
 class CustomConverter(object):
     '''CUSTOM CONVERTER FOR TACOTRON2'''
 
-    def __init__(self, return_targets=True, use_speaker_embedding=False):
+    def __init__(self,
+                 return_targets=True,
+                 use_speaker_embedding=False,
+                 use_second_target=False):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
+        self.use_second_target = use_second_target
 
     def transform(self, item):
-        batch = load_inputs_and_targets(item, True, self.use_speaker_embedding)
+        # load batch
+        xs, ys, spembs, spcs = load_inputs_and_targets(
+            item, self.use_speaker_embedding, self.use_second_target)
 
         # added eos into input sequence
         eos = int(item[0][1]['output'][0]['shape'][1]) - 1
-        xs = [np.append(x, eos) for x in batch[1]]
-        if self.use_speaker_embedding:
-            return batch[0], xs, batch[2]
-        else:
-            return batch[0], xs
+        xs = [np.append(x, eos) for x in xs]
+
+        return xs, ys, spembs, spcs
 
     def __call__(self, batch, device):
         # batch should be located in list
@@ -135,11 +139,7 @@ class CustomConverter(object):
         inputs_and_targets = batch[0]
 
         # parse inputs and targets
-        if len(inputs_and_targets) == 2:
-            ys, xs = inputs_and_targets
-            spembs = None
-        else:
-            ys, xs, spembs = inputs_and_targets
+        xs, ys, spembs, spcs = inputs_and_targets
 
         # get list of lengths (must be tensor for DataParallel)
         ilens = torch.from_numpy(np.array([x.shape[0] for x in xs])).long().to(device)
@@ -154,82 +154,18 @@ class CustomConverter(object):
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1.0
 
+        # load second target
+        if spcs is not None:
+            spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
+
         # load speaker embedding
         if spembs is not None:
             spembs = torch.from_numpy(np.array(spembs)).float().to(device)
 
         if self.return_targets:
-            return xs, ilens, ys, labels, olens, spembs
+            return xs, ilens, ys, labels, olens, spembs, spcs
         else:
             return xs, ilens, ys, spembs
-
-
-def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, batch_sort_key=None):
-    """Function to make batch set from json dictionary
-
-    :param dict data: dictionary loaded from data.json
-    :param int batch_size: batch size
-    :param int max_length_in: maximum length of input to decide adaptive batch size
-    :param int max_length_out: maximum length of output to decide adaptive batch size
-    :param int num_batches: # number of batches to use (for debug)
-    :param str batch_sort_key: None or 'input' or 'output'
-    :return: list of batches
-    """
-    minibatch = []
-    start = 0
-    # sort data with batch_sort_key
-    if batch_sort_key is None:
-        logging.info('use shuffled batch.')
-        sorted_data = random.sample(data.items(), len(data.items()))
-    elif batch_sort_key == 'input':
-        logging.info('use batch sorted by input length and adaptive batch size.')
-        # sort it by input lengths (long to short)
-        # NOTE: input and output are reversed due to the use of same json as asr
-        sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['output'][0]['shape'][0]), reverse=True)
-    elif batch_sort_key == 'output':
-        logging.info('use batch sorted by output length and adaptive batch size.')
-        # sort it by output lengths (long to short)
-        # NOTE: input and output are reversed due to the use of same json as asr
-        sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['input'][0]['shape'][0]), reverse=True)
-    else:
-        ValueError('batch_sort_key should be selected from None, input, and output.')
-
-    logging.info('# utts: ' + str(len(sorted_data)))
-
-    if batch_sort_key is None:
-        # use fixed size batch
-        while True:
-            end = min(len(sorted_data), start + batch_size)
-            minibatch.append(sorted_data[start:end])
-            if end == len(sorted_data):
-                break
-            start = end
-    else:
-        # use adaptive batch size
-        while True:
-            # NOTE: input and output are reversed due to the use of same json as asr
-            ilen = int(sorted_data[start][1]['output'][0]['shape'][0])
-            olen = int(sorted_data[start][1]['input'][0]['shape'][0])
-            factor = max(int(ilen / max_length_in), int(olen / max_length_out))
-            # if ilen = 1000 and max_length_in = 800
-            # then b = batchsize / 2
-            # and max(1, .) avoids batchsize = 0
-            b = max(1, int(batch_size / (1 + factor)))
-            end = min(len(sorted_data), start + b)
-            minibatch.append(sorted_data[start:end])
-            if end == len(sorted_data):
-                break
-            start = end
-
-    # for debugging
-    if num_batches > 0:
-        minibatch = minibatch[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatch)))
-
-    return minibatch
 
 
 def train(args):
@@ -256,6 +192,8 @@ def train(args):
     # reverse input and output dimension
     idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
+    if args.use_cbhg:
+        args.spc_dim = int(valid_json[utts[0]]['input'][1]['shape'][1])
     if args.use_speaker_embedding:
         args.spk_embed_dim = int(valid_json[utts[0]]['input'][1]['shape'][0])
     else:
@@ -302,7 +240,7 @@ def train(args):
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(True, args.use_speaker_embedding)
+    converter = CustomConverter(True, args.use_speaker_embedding, args.use_cbhg)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -339,6 +277,13 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
+    # Save snapshot for each epoch
+    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+
+    # Save best models
+    trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
+                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
@@ -353,32 +298,29 @@ def train(args):
             device=device, reverse=True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
-    trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
-                                          'main/l1_loss', 'validation/main/l1_loss',
-                                          'main/mse_loss', 'validation/main/mse_loss',
-                                          'main/bce_loss', 'validation/main/bce_loss'],
-                                         'epoch', file_name='loss.png'))
+    plot_keys = ['main/loss', 'validation/main/loss',
+                 'main/l1_loss', 'validation/main/l1_loss',
+                 'main/mse_loss', 'validation/main/mse_loss',
+                 'main/bce_loss', 'validation/main/bce_loss']
     trainer.extend(extensions.PlotReport(['main/l1_loss', 'validation/main/l1_loss'],
                                          'epoch', file_name='l1_loss.png'))
     trainer.extend(extensions.PlotReport(['main/mse_loss', 'validation/main/mse_loss'],
                                          'epoch', file_name='mse_loss.png'))
     trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
                                          'epoch', file_name='bce_loss.png'))
-
-    # Save snapshot for each epoch
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
-
-    # Save best models
-    trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    if args.use_cbhg:
+        plot_keys += ['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss',
+                      'main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss']
+        trainer.extend(extensions.PlotReport(['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss'],
+                                             'epoch', file_name='cbhg_l1_loss.png'))
+        trainer.extend(extensions.PlotReport(['main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss'],
+                                             'epoch', file_name='cbhg_mse_loss.png'))
+    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='loss.png'))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
-    report_keys = ['epoch', 'iteration', 'elapsed_time',
-                   'main/loss', 'main/l1_loss',
-                   'main/mse_loss', 'main/bce_loss',
-                   'validation/main/loss', 'validation/main/l1_loss',
-                   'validation/main/mse_loss', 'validation/main/bce_loss']
+    report_keys = plot_keys[:]
+    report_keys[0:0] = ['epoch', 'iteration', 'elapsed_time']
     trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
