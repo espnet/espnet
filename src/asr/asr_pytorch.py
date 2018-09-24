@@ -118,15 +118,16 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
-        xs_pad, ilens, grapheme_ys, phoneme_ys, lang_ys = self.converter(batch, self.device)
+        xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad, lang_ys = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.ngpu > 1:
-            loss = 1. / self.ngpu * self.model(*x)
+            loss = 1. / self.ngpu * self.model(xs_pad, ilens, grapheme_ys_pad,
+                                               phoneme_ys_pad)
             loss.backward(loss.new_ones(self.ngpu))  # Backprop
         else:
-            loss = self.model(*x)
+            loss = self.model(xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad)
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
@@ -212,6 +213,9 @@ class CustomConverter(object):
             phoneme_ys_pad = pad_list([torch.from_numpy(y).long() for y in phoneme_ys], self.ignore_id).to(device)
         else:
             phoneme_ys_pad = None
+
+
+        lang_ys = torch.from_numpy(lang_ys).long().to(device)
 
         return xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad, lang_ys
 
