@@ -175,10 +175,10 @@ class Loss(torch.nn.Module):
         acc_lang = float(sum(lang_1best_guess[:,0] == lang_ys))/len(lang_ys)
         logging.info("lang prediction accuracy: {}".format(acc_lang))
 
-        lang_ys_hr = [self.id2lang[int(id_)] for id_ in lang_ys]
-        lang_guesses_hr = [self.id2lang[int(id_)] for id_ in lang_1best_guess]
-        logging.info("lang (hyp, ref)s: {}".format(
-                zip(lang_guesses_hr, lang_ys_hr)))
+        #lang_ys_hr = [self.id2lang[int(id_)] for id_ in lang_ys]
+        #lang_guesses_hr = [self.id2lang[int(id_)] for id_ in lang_1best_guess]
+        #logging.info("lang (hyp, ref)s: {}".format(
+        #        zip(lang_guesses_hr, lang_ys_hr)))
 
         self.loss_lang_out = self.loss_lang(log_softmax_out, lang_ys)
         logging.info("langid loss: {}".format(self.loss_lang_out))

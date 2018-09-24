@@ -28,7 +28,7 @@ do_delta=false
 
 # network archtecture
 # encoder related
-etype=blstmp     # encoder architecture type
+etype=vggblstmp     # encoder architecture type
 elayers=4
 eunits=320
 eprojs=320
