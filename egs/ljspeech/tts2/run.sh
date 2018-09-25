@@ -40,6 +40,7 @@ postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
 # attention related
+atype=location
 adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
@@ -212,7 +213,7 @@ if [ -z ${tag} ];then
     if [ ${postnet_layers} -gt 0 ];then
         expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
     fi
-    expdir=${expdir}_att${adim}-${aconv_filts}x${aconv_chans}
+    expdir=${expdir}_${atype}${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
         expdir=${expdir}_cm
     fi
@@ -264,6 +265,7 @@ if [ ${stage} -le 4 ];then
            --postnet_layers ${postnet_layers} \
            --postnet_chans ${postnet_chans} \
            --postnet_filts ${postnet_filts} \
+           --atype ${atype} \
            --adim ${adim} \
            --aconv-chans ${aconv_chans} \
            --aconv-filts ${aconv_filts} \
