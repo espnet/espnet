@@ -332,7 +332,7 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, grapheme_odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim, grapheme_odim, phoneme_odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -481,14 +481,16 @@ def recog(args):
     torch.manual_seed(args.seed)
 
     # read training config
-    idim, grapheme_odim, phoneme_odim, train_args = get_model_conf(args.model, args.model_conf)
-
-    # load trained model parameters
-    logging.info('reading model parameters from ' + args.model)
-    e2e = E2E(idim, grapheme_odim, train_args, phoneme_odim=phoneme_odim)
-    model = Loss(e2e, train_args.mtlalpha,
-                 phoneme_objective_weight=args.phoneme_objective_weight)
-    torch_load(args.model, model)
+    try:
+        idim, grapheme_odim, phoneme_odim, train_args = get_model_conf(args.model, args.model_conf)
+    except ValueError:
+        # Couldn't find phoneme_odim
+        idim, grapheme_odim, train_args = get_model_conf(args.model, args.model_conf)
+        logging.info("train_args.phoneme_objective_weight: {}".format(train_args.phoneme_objective_weight))
+        if train_args.phoneme_objective_weight > 0.0:
+            phoneme_odim = 118
+        else:
+            phoneme_odim = -1
 
     # read training json data just so we can extract the list of langs used in
     # language ID prediction
@@ -499,6 +501,13 @@ def recog(args):
     else:
         langs = None
 
+    # load trained model parameters
+    logging.info('reading model parameters from ' + args.model)
+    e2e = E2E(idim, grapheme_odim, train_args, phoneme_odim=phoneme_odim)
+    model = Loss(e2e, train_args.mtlalpha, langs=langs)
+    #model = Loss(e2e, train_args.mtlalpha,
+    #             phoneme_objective_weight=args.phoneme_objective_weight)
+    torch_load(args.model, model)
 
     # read rnnlm
     if args.rnnlm:
