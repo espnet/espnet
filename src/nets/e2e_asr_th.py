@@ -14,6 +14,7 @@ from argparse import Namespace
 
 import chainer
 import numpy as np
+import random
 import six
 import torch
 import torch.nn.functional as F
@@ -254,7 +255,7 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight)
+                           labeldist, args.lsm_weight, args.sampling_probability)
 
         # weight initialization
         self.init_like_chainer()
@@ -355,6 +356,7 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
+        h = h.contiguous()
         h, _ = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
@@ -1840,7 +1842,7 @@ class Decoder(torch.nn.Module):
     """
 
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0.):
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -1863,6 +1865,7 @@ class Decoder(torch.nn.Module):
         self.labeldist = labeldist
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
+        self.sampling_probability = sampling_probability
 
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
@@ -1918,7 +1921,14 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs_pad, hlens, z_list[0], att_w)
-            ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
+            if i > 0 and random.random() < self.sampling_probability:
+                logging.info(' scheduled sampling ')
+                z_out = self.output(z_all[-1])
+                z_out = np.argmax(z_out.detach(), axis=1)
+                z_out = self.embed(z_out.cuda())
+                ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
+            else:
+                ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](
