@@ -115,6 +115,8 @@ def main():
                         help='Dropout rate')
     parser.add_argument('--zoneout', default=0.1, type=float,
                         help='Zoneout rate')
+    parser.add_argument('--reduction_factor', default=1, type=int,
+                        help='Reduction factor')
     # loss related
     parser.add_argument('--use_masking', default=False, type=strtobool,
                         help='Whether to use masking in calculation of loss')

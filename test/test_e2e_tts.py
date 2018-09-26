@@ -40,6 +40,7 @@ def make_model_args(**kwargs):
         use_concate=True,
         dropout=0.5,
         zoneout=0.1,
+        reduction_factor=1,
         threshold=0.5,
         maxlenratio=5.0,
         minlenratio=0.0,
@@ -118,6 +119,7 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
         ({"use_concate": False}, {}),
         ({"dropout": 0.0}, {}),
         ({"zoneout": 0.0}, {}),
+        ({"reduction_factor": 3}, {}),
         ({"use_speaker_embedding": True}, {}),
         ({"use_cbhg": True}, {}),
     ])
@@ -169,6 +171,7 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
         ({}),
         ({"use_speaker_embedding": True, "spk_embed_dim": 128}),
         ({"use_cbhg": True, "spc_dim": 128}),
+        ({"reduction_factor": 3}),
     ])
 def test_tacotron2_gpu_trainable(model_dict):
     bs = 2
@@ -201,6 +204,7 @@ def test_tacotron2_gpu_trainable(model_dict):
         ({}),
         ({"use_speaker_embedding": True, "spk_embed_dim": 128}),
         ({"use_cbhg": True, "spc_dim": 128}),
+        ({"reduction_factor": 3}),
     ])
 def test_tacotron2_multi_gpu_trainable(model_dict):
     ngpu = 2
