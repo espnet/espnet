@@ -62,7 +62,7 @@ class CustomEvaluator(extensions.Evaluator):
         self.converter = converter
         self.device = device
 
-    # The core part of the update routine can be customized by overriding.
+    # The core part of the update routine can be customized by overriding
     def evaluate(self):
         iterator = self._iterators['main']
 
