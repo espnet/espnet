@@ -442,8 +442,8 @@ class E2E(torch.nn.Module):
         self.eval()
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
-        h = to_cuda(self, Variable(torch.from_numpy(
-            np.array(x, dtype=np.float32)), volatile=True))
+        h = to_cuda(self, torch.from_numpy(
+            np.array(x, dtype=np.float32)))
 
         # 1. encoder
         h, _ = self.enc(h.unsqueeze(0), ilen)

@@ -151,6 +151,7 @@ class CustomUpdater(training.StandardUpdater):
             else:
                 lang_loss = self.model.forward_langid(xs_pad, ilens, lang_ys)
                 lang_loss.backward()  # Backprop
+            lang_loss.detach()  # Truncate the graph
             logging.info("predict_lang: {}".format(self.predict_lang))
 
             if self.predict_lang == "adv":
@@ -380,9 +381,9 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.MultiprocessIterator(
+    train_iter = chainer.iterators.SerialIterator(
         TransformDataset(train, converter.transform),
-        batch_size=1, n_processes=1, n_prefetch=8, maxtasksperchild=20)
+        batch_size=1)
     valid_iter = chainer.iterators.SerialIterator(
         TransformDataset(valid, converter.transform),
         batch_size=1, repeat=False, shuffle=False)
