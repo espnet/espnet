@@ -132,6 +132,8 @@ def main():
                         help='Batch size is reduced if the input sequence length > ML')
     parser.add_argument('--maxlen-out', default=200, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
+    parser.add_argument('--n_iter_processes', default=0, type=int,
+                        help='Number of processes of iterator')
     # optimization related
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate for optimizer')
