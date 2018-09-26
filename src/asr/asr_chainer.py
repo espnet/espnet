@@ -295,9 +295,14 @@ def train(args):
                               args.maxlen_in, args.maxlen_out, args.minibatches)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(train, converter.transform), 1,
-            n_processes=1, n_prefetch=8, maxtasksperchild=20)
+        if args.n_iter_processes > 0:
+            train_iter = chainer.iterators.MultiprocessIterator(
+                TransformDataset(train, converter.transform),
+                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+        else:
+            train_iter = chainer.iterators.SerialIterator(
+                TransformDataset(train, converter.transform),
+                batch_size=1)
 
         # set up updater
         updater = CustomUpdater(
@@ -322,10 +327,16 @@ def train(args):
 
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iters = [chainer.iterators.MultiprocessIterator(
-            TransformDataset(train_subsets[gid], converter.transform),
-            1, n_processes=1, n_prefetch=8, maxtasksperchild=20)
-            for gid in six.moves.xrange(ngpu)]
+        if args.n_iter_processes > 0:
+            train_iters = [chainer.iterators.MultiprocessIterator(
+                TransformDataset(train_subsets[gid], converter.transform),
+                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+                for gid in six.moves.xrange(ngpu)]
+        else:
+            train_iters = [chainer.iterators.SerialIterator(
+                TransformDataset(train_subsets[gid], converter.transform),
+                batch_size=1)
+                for gid in six.moves.xrange(ngpu)]
 
         # set up updater
         updater = CustomParallelUpdater(
@@ -342,9 +353,16 @@ def train(args):
     # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid_iter = chainer.iterators.SerialIterator(
-        TransformDataset(valid, converter.transform),
-        1, repeat=False, shuffle=False)
+    if args.n_iter_processes > 0:
+        valid_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(valid, converter.transform),
+            batch_size=1, repeat=False, shuffle=False,
+            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+    else:
+        valid_iter = chainer.iterators.SerialIterator(
+            TransformDataset(valid, converter.transform),
+            batch_size=1, repeat=False, shuffle=False)
+
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(
         valid_iter, model, converter=converter, device=gpu_id))
