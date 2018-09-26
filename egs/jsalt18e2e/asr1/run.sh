@@ -209,6 +209,14 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
+    # capitalize text except but <unk>
+    for tdir in data/tr_* data/dt_* data/et_*; do
+	cut -f 2- -d" " ${tdir}/text | PERLIO=:utf8 perl -pe '$_=uc' | sed -e "s/<UNK>/<unk>/g" > ${tdir}/text_capital
+	cut -f 1 -d" " ${tdir}/text > ${tdir}/textids
+	paste -d " " ${tdir}/textids ${tdir}/text_capital > ${tdir}/text
+	rm ${tdir}/text_capital
+    done
+
     echo "make a non-linguistic symbol list for all languages"
     cut -f 2- data/tr_*/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms}
     cat ${nlsyms}

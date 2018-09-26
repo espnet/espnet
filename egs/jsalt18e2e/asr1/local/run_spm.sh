@@ -214,15 +214,23 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_char/
 
+    # capitalize text
+    for tdir in data/tr_* data/dt_* data/et_*; do
+	cut -f 2- -d" " ${tdir}/text | PERLIO=:utf8 perl -pe '$_=uc' > ${tdir}/text_capital
+	cut -f 1 -d" " ${tdir}/text > ${tdir}/textids
+	paste -d " " ${tdir}/textids ${tdir}/text_capital > ${tdir}/text
+	rm ${tdir}/text_capital
+    done
+
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- data/tr_*/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq | grep -v "<unk>" > ${nlsyms}
+    cut -f 2- -d" " data/tr_*/text |  grep -o -P '\[.*?\]|\<.*?\>'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    offset=$(cat ${dict} | wc -l)
-    cut -f 2- -d" " data/tr_babel_*/text data/tr_csj_*/text data/tr_libri_*/text | sed -e  "s/<unk>/<UNK>/g" > data/lang_char/input.txt
+    cut -f 2- -d" " data/tr_*/text > data/lang_char/input.txt
     spm_train --input=data/lang_char/input.txt --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | grep -v "<UNK>" | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr " " "\n" \
+    | sort | uniq | grep -v -e '^\s*$' | grep -v "<UNK>" | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels

@@ -39,7 +39,7 @@ fi
 
 # output
 if [ ! -z ${bpecode} ]; then
-    paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
+    paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text | spm_encode --model=${bpecode} --output_format=piece | sed -e 's/<UNK>/<unk>/g') > ${tmpdir}/token.scp
 elif [ ! -z ${nlsyms} ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/token.scp
 else
