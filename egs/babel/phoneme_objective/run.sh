@@ -10,7 +10,6 @@
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-gpu=            # will be deprecated, please use ngpu
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 seed=1
 debugmode=1
@@ -24,8 +23,8 @@ do_delta=false # true when using CNN
 
 # network archtecture
 # encoder related
-etype=blstmp # encoder architecture type
-elayers=6
+etype=vggblstmp # encoder architecture type
+elayers=4
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
@@ -52,13 +51,13 @@ lsm_type=unigram
 lsm_weight=0.05
 
 # minibatch related
-batchsize=10
+batchsize=25
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=20
 
 # rnnlm related
 lm_weight=1.0
@@ -69,33 +68,22 @@ beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.0
+ctc_weight=0.3
 recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.best'
 
 # exp tag
 tag="" # tag for managing experiments.
 
-#langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
-#recog="107 201 307 404"
+langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
+recog="107 201 307 404"
 
 # Babel langs used by Shinji
 # Seen in training: Cantonese-101, Bengali-103, Pashto-104, Turkish-105, Vietnamese-107, Georgian-404, Haitian-201, Tamil-204, Kurmanji-205, Tokpisin-207,
-langs="101 103 104 105 107 201 204 205 207 404"
+#langs="101 103 104 105 107 201 204 205 207 404"
 # Recog; have some seen in training and some not. Tokpisin and Georgian in training, Assamese and Swahili not (to be consistent with Martin's presentation)
-recog="207 404 102 202"
+#recog="207 404 102 202"
 
 . utils/parse_options.sh || exit 1;
-
-# check gpu option usage
-if [ ! -z $gpu ]; then
-    echo "WARNING: --gpu option will be deprecated."
-    echo "WARNING: please use --ngpu option."
-    if [ $gpu -eq -1 ]; then
-        ngpu=0
-    else
-        ngpu=1
-    fi
-fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -121,17 +109,19 @@ recog_set=${recog_set%% }
 if [ $stage -le 0 ]; then
   echo "stage 0: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --recog "${recog}" --FLP false
-  for x in ${train_set} ${train_dev} ${recog_set}; do
-	    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
-  done
-  
+  # Commented out and not upsampling because we're mostly using Babel data and this hurts
+  # performance.
+  #for x in ${train_set} ${train_dev} ${recog_set}; do
+  #  sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+  #done
+
   for x in ${train_set} ${train_dev}; do
       if [[ $phoneme_objective_weight > 0.0 ]]; then
           awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
-	  # Remove stress symbols
-	  sed -i -r 's/_["%]//g' data/${x}/text.phn
-	  ## Remove tonal markers
-	  sed -i -r 's/_T[A-Z]+//g' data/${x}/text.phn
+      # Remove stress symbols
+      sed -i -r 's/_["%]//g' data/${x}/text.phn
+      # Remove tonal markers
+      sed -i -r 's/_T[A-Z]+//g' data/${x}/text.phn
           ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
           mv data/${x}/text.tmp data/${x}/text 
           ./utils/fix_data_dir.sh data/${x}
@@ -144,15 +134,25 @@ feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ $stage -le 1 ]; then
   echo "stage 1: Feature extraction"
   fbankdir=fbank
+  mfccdir=mfcc
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
   for x in ${train_set} ${train_dev} ${recog_set}; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 data/${x} exp/make_fbank/${x} ${fbankdir}
-      ./utils/fix_data_dir.sh data/${x} 
+      steps/make_mfcc_pitch_online.sh --cmd "$train_cmd" --nj 20 --mfcc-config conf/mfcc_hires.conf data/${x} exp/make_mfcc_pitch/${x} ${mfccdir}
+      ./utils/fix_data_dir.sh data/${x}
+
+      utils/data/limit_feature_dim.sh 0:39 \
+        data/${x} data/${x}_nopitch
+      ./utils/fix_data_dir.sh data/${x}_nopitch
+
+      steps/online/nnet2/extract_ivectors_online.sh --cmd "$train_cmd" --nj 20 \
+        data/${x}_nopitch extractor/ data/${x}_ivectors
+
   done
 
+  # This is comented out because we're using iVectors instead.
   # compute global CMVN
-  compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-  ./utils/fix_data_dir.sh data/${train_set} 
+  #compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+  #./utils/fix_data_dir.sh data/${train_set} 
 
   exp_name=`basename $PWD`
   # dump features for training
@@ -166,18 +166,19 @@ if [ $stage -le 1 ]; then
       /export/b{10,11,12,13}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
       ${feat_dt_dir}/storage
   fi
-  dump.sh --cmd "$train_cmd" --nj 20 --do_delta $do_delta \
+  dump.sh --ivectors data/${train_set}_ivectors/ivector_online.scp --cmd "$train_cmd" --nj 20 --do_delta $do_delta \
       data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-  dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
-      data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+  dump.sh --ivectors data/${train_dev}_ivectors/ivector_online.scp --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+      data/${train_dev}/feats.scp data/${train_dev}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
   for rtask in ${recog_set}; do
       feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-      dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+      dump.sh --ivectors data/${rtask}_ivectors/ivector_online.scp --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+            data/${rtask}/feats.scp data/${rtask}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
   done
 fi
 
+exit
 
 dict=data/lang_1char/${train_set}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt

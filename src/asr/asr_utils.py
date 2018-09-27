@@ -456,7 +456,7 @@ def parse_hypothesis(hyp, char_list):
     return text, token, tokenid, score
 
 
-def add_results_to_json(js, nbest_hyps, char_list):
+def add_results_to_json(js, nbest_hyps, char_list, output_type):
     """Function to add N-best results to json
 
     :param dict js: groundtruth utterance dict
@@ -473,24 +473,26 @@ def add_results_to_json(js, nbest_hyps, char_list):
         # parse hypothesis
         rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, char_list)
 
-        # copy ground-truth
-        out_dic = dict(js['output'][0].items())
+        for output in js['output']:
+            if output['name'] == output_type:
+                # copy ground-truth
+                out_dic = dict(output.items())
 
-        # update name
-        out_dic['name'] += '[%d]' % n
+                # update name
+                out_dic['name'] += '[%d]' % n
 
-        # add recognition results
-        out_dic['rec_text'] = rec_text
-        out_dic['rec_token'] = rec_token
-        out_dic['rec_tokenid'] = rec_tokenid
-        out_dic['score'] = score
+                # add recognition results
+                out_dic['rec_text'] = rec_text
+                out_dic['rec_token'] = rec_token
+                out_dic['rec_tokenid'] = rec_tokenid
+                out_dic['score'] = score
 
-        # add to list of N-best result dicts
-        new_js['output'].append(out_dic)
+                # add to list of N-best result dicts
+                new_js['output'].append(out_dic)
 
-        # show 1-best result
-        if n == 1:
-            logging.info('groundtruth: %s' % out_dic['text'])
-            logging.info('prediction : %s' % out_dic['rec_text'])
+                # show 1-best result
+                if n == 1:
+                    logging.info('groundtruth: %s' % out_dic['text'])
+                    logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js

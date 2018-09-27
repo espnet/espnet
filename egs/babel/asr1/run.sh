@@ -22,8 +22,8 @@ do_delta=false
 
 # network archtecture
 # encoder related
-etype=blstmp # encoder architecture type
-elayers=6
+etype=vggblstmp # encoder architecture type
+elayers=4
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
@@ -53,7 +53,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=20
 
 # rnnlm related
 use_lm=false
@@ -111,7 +111,7 @@ if [ $stage -le 0 ]; then
   echo "stage 0: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --recog "${recog}"
   for x in ${train_set} ${train_dev} ${recog_set}; do
-	  sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
   done
 fi
 
@@ -155,6 +155,8 @@ if [ $stage -le 1 ]; then
   done
 fi
 
+exit
+
 dict=data/lang_1char/${train_set}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
@@ -185,7 +187,6 @@ if [ ${stage} -le 2 ]; then
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
-
 
 if $use_lm; then
   lm_train_set=data/local/train.txt

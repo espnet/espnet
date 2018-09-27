@@ -86,8 +86,8 @@ class CustomEvaluator(extensions.Evaluator):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    x = self.converter(batch, self.device)
-                    self.model(*x)
+                    xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad, lang_ys = self.converter(batch, self.device)
+                    self.model(xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad)
                 summary.add(observation)
         self.model.train()
 
@@ -550,7 +550,7 @@ def recog(args):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
             nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list, "grapheme")
 
     if train_args.phoneme_objective_weight > 0:
         assert args.phoneme_dict
@@ -584,4 +584,4 @@ def recog(args):
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True, ensure_ascii=False).encode('utf_8'))
