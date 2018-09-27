@@ -92,7 +92,7 @@ class MultiLevelLM(nn.Module):
                 new_node = None
                 clm_logprob += log_y[0, xi]
             else:  # if open_vocab flag is disabled, return 0 probabilities
-                log_y = torch.zeros(1, self.subword_dict_size) + self.logzero
+                log_y = torch.full((1, self.subword_dict_size), self.logzero)
                 return (clm_state, wlm_state, wlm_logprobs, None, log_y, 0.), log_y
 
             clm_state, z_clm = self.subwordlm(clm_state, x)
@@ -140,6 +140,7 @@ class LookAheadWordLM(nn.Module):
         self.oov_penalty = oov_penalty
         self.open_vocab = open_vocab
         self.subword_dict_size = len(subword_dict)
+        self.zero_tensor = torch.FloatTensor([self.zero])
         self.normalized = True
 
     def forward(self, state, x):
@@ -166,16 +167,19 @@ class LookAheadWordLM(nn.Module):
             elif self.open_vocab:  # if no path in the tree, enter open-vocabulary mode
                 new_node = None
             else:  # if open_vocab flag is disabled, return 0 probabilities
-                log_y = torch.zeros(1, self.subword_dict_size) + self.logzero
+                log_y = torch.full((1, self.subword_dict_size), self.logzero)
                 return (wlm_state, None, None), log_y
 
         if new_node is not None:
             succ, wid, wids = new_node
             # compute parent node probability
             sum_prob = (cumsum_probs[:, wids[1]] - cumsum_probs[:, wids[0]]) if wids is not None else 1.0
+            if sum_prob < self.zero:
+                log_y = torch.full((1, self.subword_dict_size), self.logzero)
+                return (wlm_state, cumsum_probs, new_node), log_y
             # set <unk> probability as a default value
             unk_prob = cumsum_probs[:, self.word_unk] - cumsum_probs[:, self.word_unk - 1]
-            y = torch.zeros(1, self.subword_dict_size) + unk_prob * self.oov_penalty
+            y = torch.full((1, self.subword_dict_size), float(unk_prob) * self.oov_penalty)
             # compute transition probabilities to child nodes
             for cid, nd in succ.items():
                 y[:, cid] = (cumsum_probs[:, nd[2][1]] - cumsum_probs[:, nd[2][0]]) / sum_prob
@@ -187,10 +191,10 @@ class LookAheadWordLM(nn.Module):
             elif xi == self.space:
                 y[:, self.space] = self.zero
                 y[:, self.eos] = self.zero
-            return (wlm_state, cumsum_probs, new_node), torch.log(y)
+            log_y = torch.log(torch.max(y, self.zero_tensor))  # clip to avoid log(0)
         else:  # if no path in the tree, transition probability is one
             log_y = torch.zeros(1, self.subword_dict_size)
-            return (wlm_state, cumsum_probs, new_node), log_y
+        return (wlm_state, cumsum_probs, new_node), log_y
 
     def final(self, state):
         wlm_state, cumsum_probs, node = state
