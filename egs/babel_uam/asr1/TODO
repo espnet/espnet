@@ -1,0 +1,2 @@
+# TODO: Fix annoying problem of free-gpu not being seen when preparing data on a* machines.
+# TODO: Support phonetic expansion of text via lexicon lookup or g2p.  
