@@ -172,6 +172,9 @@ class LookAheadWordLM(chainer.Chain):
             succ, wid, wids = new_node
             # compute parent node probability
             sum_prob = (cumsum_probs[:, wids[1]] - cumsum_probs[:, wids[0]]) if wids is not None else 1.0
+            if sum_prob < self.zero:
+                log_y = self.xp.full((1, self.subword_dict_size), self.logzero, 'f')
+                return (wlm_state, cumsum_probs, new_node), log_y
             # set <unk> probability as a default value
             unk_prob = cumsum_probs[:, self.word_unk] - cumsum_probs[:, self.word_unk - 1]
             y = self.xp.full((1, self.subword_dict_size), unk_prob * self.oov_penalty, 'f')
@@ -186,10 +189,10 @@ class LookAheadWordLM(chainer.Chain):
             elif xi == self.space:
                 y[:, self.space] = self.zero
                 y[:, self.eos] = self.zero
-            return (wlm_state, cumsum_probs, new_node), self.xp.log(y)
+            log_y = self.xp.log(self.xp.clip(y, self.zero, None))  # clip to avoid log(0)
         else:  # if no path in the tree, transition probability is one
             log_y = self.xp.zeros((1, self.subword_dict_size), 'f')
-            return (wlm_state, cumsum_probs, new_node), log_y
+        return (wlm_state, cumsum_probs, new_node), log_y
 
     def final(self, state):
         wlm_state, cumsum_probs, node = state
