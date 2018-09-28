@@ -27,7 +27,7 @@ cwd=$(utils/make_absolute.sh `pwd`)
 echo "Stage 0: Setup Language Specific Directories"
 
 echo " --------------------------------------------"
-echo "Languagues: ${all_langs}"
+echo "Languages: ${all_langs}"
 
 # Basic directory prep
 for l in ${all_langs}; do
@@ -66,14 +66,20 @@ for l in ${langs}; do
   train_dirs="data/${l}/data/train_${l} ${train_dirs}"
 done
 
-for l in ${recog}; do
+for l in ${langs}; do
   dev_dirs="data/${l}/data/dev_${l} ${dev_dirs}"
 done
 
 ./utils/combine_data.sh data/train ${train_dirs}
 ./utils/combine_data.sh data/dev ${dev_dirs}
 
-for l in ${recog}; do
+for l in ${recog} ${langs}; do
   ln -fs ${cwd}/data/${l}/data/eval_${l} ${cwd}/data/eval_${l}
 done
 
+# For ICASSP we want to train monolingual models on our eval languages as a
+# point of comparison
+for l in ${recog}; do
+  ln -fs ${cwd}/data/${l}/data/train_${l} ${cwd}/data/train_${l}
+  ln -fs ${cwd}/data/${l}/data/dev_${l} ${cwd}/data/dev_${l}
+done

@@ -38,3 +38,5 @@ tools/moses
 
 .pytest_cache
 langname_phoneme_ali.txt
+
+*.swp

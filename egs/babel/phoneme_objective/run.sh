@@ -81,12 +81,6 @@ tag="" # tag for managing experiments.
 langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
 recog="107 201 307 404"
 
-# Babel langs used by Shinji
-# Seen in training: Cantonese-101, Bengali-103, Pashto-104, Turkish-105, Vietnamese-107, Georgian-404, Haitian-201, Tamil-204, Kurmanji-205, Tokpisin-207,
-#langs="101 103 104 105 107 201 204 205 207 404"
-# Recog; have some seen in training and some not. Tokpisin and Georgian in training, Assamese and Swahili not (to be consistent with Martin's presentation)
-#recog="207 404 102 202"
-
 . utils/parse_options.sh || exit 1;
 
 # Set bash to 'debug' mode, it will exit on :
@@ -155,7 +149,7 @@ if [ $stage -le 1 ]; then
 
   done
 
-  # This is comented out because we're using iVectors instead.
+  # This is comented out because we're using iVectors instead:
   # compute global CMVN
   #compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
   #./utils/fix_data_dir.sh data/${train_set} 
