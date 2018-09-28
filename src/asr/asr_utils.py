@@ -75,7 +75,11 @@ def uttid2lang(uttid):
     something like this: "105_94168_A_20120127_071423_043760-turkish". Given
     this input, the output would be "turkish"
     """
-    return uttid.split("-")[-1]
+    #return uttid.split("-")[-1]
+
+    """ Changing this so we deal with lang-codes at the start of the uttid. In
+    the above example it would be 105."""
+    return uttid.split("_")[0]
 
 def load_inputs_and_targets(batch, phoneme_objective_weight, lang2id):
     """Function to load inputs and targets from list of dicts
@@ -189,8 +193,8 @@ class PlotAttentionReport(extension.Extension):
             os.makedirs(self.outdir)
 
     def __call__(self, trainer):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
-        att_ws = self.att_vis_fn(*batch)
+        xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad, lang_ys = self.converter([self.converter.transform(self.data)], self.device)
+        att_ws = self.att_vis_fn(xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad)
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])

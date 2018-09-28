@@ -45,6 +45,10 @@ mtlalpha=0.33
 
 # Phoneme Objective
 phoneme_objective_weight=0.33
+phoneme_objective_layer=""
+
+# Language prediction
+predict_lang=""
 
 # label smoothing
 lsm_type=unigram
@@ -109,24 +113,26 @@ recog_set=${recog_set%% }
 if [ $stage -le 0 ]; then
   echo "stage 0: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --recog "${recog}" --FLP false
+
   # Commented out and not upsampling because we're mostly using Babel data and this hurts
   # performance.
   #for x in ${train_set} ${train_dev} ${recog_set}; do
   #  sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
   #done
 
-  for x in ${train_set} ${train_dev}; do
-      if [[ $phoneme_objective_weight > 0.0 ]]; then
-          awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
+  if [[ $phoneme_objective_weight > 0.0 ]]; then
+    for x in ${train_set} ${train_dev} ${recog_set}; do
+      echo ${x}
+      awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
       # Remove stress symbols
       sed -i -r 's/_["%]//g' data/${x}/text.phn
       # Remove tonal markers
       sed -i -r 's/_T[A-Z]+//g' data/${x}/text.phn
-          ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
-          mv data/${x}/text.tmp data/${x}/text 
-          ./utils/fix_data_dir.sh data/${x}
-      fi
-  done
+      ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
+      mv data/${x}/text.tmp data/${x}/text 
+      ./utils/fix_data_dir.sh data/${x}
+    done
+  fi
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -178,8 +184,6 @@ if [ $stage -le 1 ]; then
   done
 fi
 
-exit
-
 dict=data/lang_1char/${train_set}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
@@ -199,7 +203,6 @@ if [ ${stage} -le 2 ]; then
     | sort | uniq | grep -v -e '^\s*$' | grep -v '<unk>' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
-    
     echo "make json files"
     data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
@@ -227,7 +230,7 @@ if [ ${stage} -le 2 ]; then
         ./utils/filter_scp.pl data/${train_set}/text \
             data/${train_set}/text.phn > data/${train_set}/text.phn.filt
         mv data/${train_set}/text.phn.filt data/${train_set}/text.phn
-           
+
         data2json.sh --feat ${feat_tr_dir}/feats.scp \
                      --nlsyms ${nlsyms} \
                      --phn-text data/${train_set}/text.phn \
@@ -246,17 +249,25 @@ if [ ${stage} -le 2 ]; then
                      --phn-text data/${train_dev}/text.phn \
                      data/${train_dev} ${dict}.phn \
                      > ${feat_dt_dir}/data.phn.json
-        
+
         combine_multimodal_json.py ${feat_dt_dir}/data.json \
                                    ${feat_dt_dir}/data.{phn,gph}.json
 
-	## TODO This should support creation of eval data.json files that include phonemes. 
-        #for rtask in ${recog_set}; do
-            #feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-	    #./utils/filter_scp.pl data/${rtask}/text \
-	    #	data/${rtask}/text.phn > data/${train_set}/text.phn.filt
-       	    #mv data/${train_set}/text.phn.filt data/${train_set}/text.phn
-        #done
+        for rtask in ${recog_set}; do
+            feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
+            ./utils/filter_scp.pl data/${rtask}/text \
+                data/${rtask}/text.phn > data/${rtask}/text.phn.filt
+            mv data/${rtask}/text.phn.filt data/${rtask}/text.phn
+
+            data2json.sh --feat ${feat_recog_dir}/feats.scp \
+                         --nlsyms ${nlsyms} \
+                         --phn-text data/${rtask}/text.phn \
+                         data/${rtask} ${dict}.phn \
+                         > ${feat_recog_dir}/data.phn.json
+
+            combine_multimodal_json.py ${feat_recog_dir}/data.json \
+                                       ${feat_recog_dir}/data.{phn,gph}.json
+        done
 
     fi
 fi
@@ -282,7 +293,7 @@ if $use_lm; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
   fi
 
-  
+
   ${cuda_cmd} ${lmexpdir}/train.log \
           lm_train.py \
           --ngpu ${ngpu} \
@@ -296,12 +307,21 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_phonemeweight${phoneme_objective_weight}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_phoneme-weight${phoneme_objective_weight}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
+    if [ ${phoneme_objective_layer} ]; then
+        expdir=${expdir}_phonemelayer${phoneme_objective_layer}
+    fi
+    if [[ ${predict_lang} = normal ]]; then
+        expdir=${expdir}_predictlang-${predict_lang_alpha}
+    fi
+    if [[ ${predict_lang} = adv ]]; then
+        expdir=${expdir}_predictlang-adv-${predict_lang_alpha}
+    fi
 else
-    expdir=exp/${train_set}_${tag}
+    expdir=exp/${train_set}_${backend}_${tag}
 fi
 mkdir -p ${expdir}
 cp ./run.sh ${expdir} # Copy this run script to the exp dir so we know exactly what was run
@@ -310,7 +330,7 @@ echo $@ > ${expdir}/runargs.txt # All the arguments that were supplied to the ru
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
 
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    train_cmd="${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -345,7 +365,18 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --phoneme_objective_weight ${phoneme_objective_weight}
+        --phoneme_objective_weight ${phoneme_objective_weight}"
+    if [[ ${phoneme_objective_layer} ]]; then
+        train_cmd="${train_cmd} --phoneme_objective_layer ${phoneme_objective_layer}"
+    fi
+    if [[ ! -z ${predict_lang} ]]; then
+        train_cmd="${train_cmd} --predict_lang ${predict_lang}\
+                                --predict_lang_alpha ${predict_lang_alpha}"
+    fi
+    echo "train_cmd: $train_cmd"
+    echo "expdir: $expdir"
+    ${train_cmd}
+    exit
 fi
 
 if [ ${stage} -le 4 ]; then
