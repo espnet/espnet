@@ -173,7 +173,7 @@ def test_loss_and_ctc_grad(etype):
     th_batch = prepare_inputs("pytorch")
 
     ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
-    th_ctc, th_att, th_acc = th_model(*th_batch)
+    th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
@@ -197,7 +197,7 @@ def test_loss_and_ctc_grad(etype):
     th_model.zero_grad()
 
     ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
-    th_ctc, th_att, th_acc = th_model(*th_batch)
+    th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
     ch_att.backward()
     th_att.backward()
     np.testing.assert_allclose(ch_model.dec.output.W.grad,
@@ -222,7 +222,7 @@ def test_mtl_loss(etype):
     th_batch = prepare_inputs("pytorch")
 
     ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
-    th_ctc, th_att, th_acc = th_model(*th_batch)
+    th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
@@ -263,7 +263,7 @@ def test_zero_length_target(etype):
     th_batch = prepare_inputs("pytorch", olens=[4, 0])
 
     ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
-    th_ctc, th_att, th_acc = th_model(*th_batch)
+    th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
 
     # NOTE: We ignore all zero length case because chainer also fails. Have a nice data-prep!
     # out_data = ""
