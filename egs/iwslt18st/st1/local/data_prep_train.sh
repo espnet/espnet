@@ -6,7 +6,7 @@
 if [ "$#" -ne 1 ]; then
   echo "Usage: $0 <src-dir>"
   echo "e.g.: $0 /export/corpora4/IWSLT/iwslt-corpus"
-  exit 1
+  exit 1;
 fi
 
 src=$1/train/iwslt-corpus
@@ -105,13 +105,13 @@ awk '{
 sort $dst/utt2spk | utils/utt2spk_to_spk2utt.pl | sort > $dst/spk2utt
 
 
-# Match the number of utterances between EN and DE (reduce EN utterances)
+# Match the number of utterances between En and De (reduce En utterances)
 oldnum=`wc -l $dst/text.en | awk '{print $1}'`
-utils/filter_scp.pl $dst/utt2spk < $dst/text.en > $dst/text_en_tmp
-newnum=`wc -l $dst/text_en_tmp | awk '{print $1}'`
+utils/filter_scp.pl $dst/utt2spk < $dst/text.en > $dst/text.en.tmp
+newnum=`wc -l $dst/text.en.tmp | awk '{print $1}'`
 echo "change from $oldnum to $newnum"
 rm $dst/text.en
-mv $dst/text_en_tmp $dst/text.en
+mv $dst/text.en.tmp $dst/text.en
 
 # error check
 n_en=`cat $dst/text.en | wc -l`

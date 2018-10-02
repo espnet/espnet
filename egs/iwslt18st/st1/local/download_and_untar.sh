@@ -42,7 +42,7 @@ fi
 sets="train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018"
 if [ ! `echo ${set} | grep ${set}`  ]; then
   echo "$0: no such set $set"
-  exit 1
+  exit 1;
 fi
 
 if [ -f $data/$set/.complete ]; then

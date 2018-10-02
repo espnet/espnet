@@ -6,7 +6,7 @@
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <src-dir> <set>"
   echo "e.g.: $0 /export/corpora4/IWSLT dev2010"
-  exit 1
+  exit 1;
 fi
 
 
