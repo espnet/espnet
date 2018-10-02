@@ -13,7 +13,6 @@ import sys
 
 import numpy as np
 
-
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
@@ -133,9 +132,21 @@ def main():
                         adversarially; trying to learn to create a hidden
                         representation that makes it hard to predict the
                         language from""")
-    parser.add_argument('--predict_lang_alpha', default=0.1, type=float,
+    parser.add_argument('--predict_lang_alpha', default=None, type=float,
                         help='The amount to scale the adversarial gradient.')
+    parser.add_argument('--predict_lang_alpha_scheduler', default="ganin",
+                        type=str, help="""The name of the language prediction
+                        learning rate scaling factor. Options include 'ganin'
+                        to use the logarithmic scaling of Ganin et al 2016""")
     args = parser.parse_args()
+
+    if args.predict_lang_alpha and args.predict_lang_alpha_scheduler:
+        # Then complain because only one of these should be set
+        raise ValueError("""predict_lang_alpha ({}) and
+            predict_lang_alpha_scheduler ({}) cannot both be set. Choose just
+            one.""".format(args.predict_lang_alpha,
+                           args.predict_lang_alpha_scheduler))
+
     try:
         args.phoneme_objective_layer = int(args.phoneme_objective_layer)
     except TypeError, ValueError:

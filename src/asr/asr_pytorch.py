@@ -93,13 +93,23 @@ class CustomEvaluator(extensions.Evaluator):
 
         return summary.compute_mean()
 
+def ganin_lambda(epoch, total_epochs):
+    """ Sets the domain adaptation scaling factor on the basis of Ganin et al.
+    2016. The learning rate progresses from 0 to 1 in a non-linear logarithmic
+    manner."""
+    progress = epoch / float(total_epochs)
+    logging.info("Progress as decimal: {}".format(progress))
+    lambda_ = 2/(1 + np.exp(-10*p)) - 1
+    logging.info("Ganin lambda: {}".format(lambda_))
+    return lambda_
 
 class CustomUpdater(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu,
-                 predict_lang=None, predict_lang_alpha=None):
+                 optimizer, converter, device, ngpu, num_epochs,
+                 predict_lang=None, predict_lang_alpha=None,
+                 predict_lang_alpha_scheduler=None):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
@@ -108,6 +118,8 @@ class CustomUpdater(training.StandardUpdater):
         self.ngpu = ngpu
         self.predict_lang = predict_lang
         self.predict_lang_alpha = predict_lang_alpha
+        self.predict_lang_alpha_scheduler = predict_lang_alpha_scheduler
+        self.num_epochs = num_epochs
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -141,6 +153,10 @@ class CustomUpdater(training.StandardUpdater):
 
         logging.info("predict_lang: {}".format(self.predict_lang))
         logging.info("predict_lang_alpha: {}".format(self.predict_lang_alpha))
+        logging.info("epoch: {}".format(self.epoch))
+        logging.info("epoch_detail: {}".format(self.epoch_detail))
+        logging.info("is_new_epoch: {}".format(self.is_new_epoch))
+        logging.info("previous_epoch_detail: {}".format(self.previous_epoch_detail))
         if self.predict_lang: # Either normal prediction or adversarial
             # Now compute the lang loss (this redoes the encoding, which may be
             # slightly inefficient but should be fine for now).
@@ -155,23 +171,26 @@ class CustomUpdater(training.StandardUpdater):
             logging.info("predict_lang: {}".format(self.predict_lang))
 
             if self.predict_lang == "adv":
-                assert self.predict_lang_alpha
+                if self.predict_lang_alpha_scheduler == "ganin":
+                    lambda_ = ganin_lambda(self.epoch, self.num_epochs)
+                elif self.predict_lang_alpha:
+                    lambda_ = self.predict_lang_alpha
+                    logging.info("Fixed lambda: {}".format(lambda_))
+                else:
+                    raise ValueError("""predict_lang_alpha_scheduler ({}) or
+                        predict_lang_alpha ({}) not set to a valid
+                        option.""".format(self.predict_lang_alpha_scheduler,
+                                          self.predict_lang_alpha))
                 # Then it's adversarial and we should reverse gradients
                 for name, parameter in self.model.named_parameters():
-                #    logging.info("parameter {} grad: {}".format(
-                #            name, parameter.grad))
-                    parameter.grad *= -1 * self.predict_lang_alpha
-                #    logging.info("parameter {} -grad: {}".format(
-                #            name, parameter.grad))
+                    parameter.grad *= -1 * lambda_
 
 #               # But reverse the lang_linear gradients again so that they're
                 # not adversarial (we just want the encoder to hide the
                 # language information, but we still want to try our best to predict the
                 # language)
-                self.model.lang_linear.bias.grad *= (-1 / self.predict_lang_alpha)
-                self.model.lang_linear.weight.grad *= (-1 / self.predict_lang_alpha)
-                #logging.info("lang_linear {}".format((self.model.lang_linear.bias.grad,
-                #    self.model.lang_linear.weight.grad)))
+                self.model.lang_linear.bias.grad *= (-1 / lambda_)
+                self.model.lang_linear.weight.grad *= (-1 / lambda_)
 
             optimizer.step()
 
@@ -390,8 +409,9 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu,
-        predict_lang=args.predict_lang, predict_lang_alpha=args.predict_lang_alpha)
+        model, args.grad_clip, train_iter, optimizer, converter, device,
+        args.ngpu, args.epochs, predict_lang=args.predict_lang,
+        predict_lang_alpha=args.predict_lang_alpha)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 

@@ -49,7 +49,8 @@ phoneme_objective_layer=""
 
 # Language prediction
 predict_lang=""
-predict_lang_alpha=0.1
+predict_lang_alpha= #If you want to specify a fixed learning rate scaling factor
+predict_lang_alpha_scheduler=ganin # To use a scheduler from a publication.
 
 # label smoothing
 lsm_type=unigram
@@ -310,10 +311,10 @@ if [ -z ${tag} ]; then
         expdir=${expdir}_phonemelayer${phoneme_objective_layer}
     fi
     if [[ ${predict_lang} = normal ]]; then
-        expdir=${expdir}_predictlang-${predict_lang_alpha}
+        expdir=${expdir}_predictlang-${predict_lang_alpha}${predict_lang_alpha_scheduler}
     fi
     if [[ ${predict_lang} = adv ]]; then
-        expdir=${expdir}_predictlang-adv-${predict_lang_alpha}
+        expdir=${expdir}_predictlang-adv-${predict_lang_alpha}${predict_lang_alpha_scheduler}
     fi
 else
     expdir=exp/${train_set}_${backend}_${tag}
@@ -365,8 +366,14 @@ if [ ${stage} -le 3 ]; then
         train_cmd="${train_cmd} --phoneme_objective_layer ${phoneme_objective_layer}"
     fi
     if [[ ! -z ${predict_lang} ]]; then
-        train_cmd="${train_cmd} --predict_lang ${predict_lang}\
-                                --predict_lang_alpha ${predict_lang_alpha}"
+        train_cmd="${train_cmd} --predict_lang ${predict_lang}"
+        if [[ ! -z ${predict_lang_alpha} ]]; then
+            train_cmd="${train_cmd} --predict_lang_alpha ${predict_lang_alpha}"
+        elif [[ ! -z ${predict_lang_alpha_scheduler} ]]; then
+            train_cmd="${train_cmd} --predict_lang_alpha_scheduler \
+                                    ${predict_lang_alpha_scheduler}"
+        fi
+
     fi
     echo "train_cmd: $train_cmd"
     echo "expdir: $expdir"
