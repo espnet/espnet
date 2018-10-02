@@ -49,6 +49,7 @@ phoneme_objective_layer=""
 
 # Language prediction
 predict_lang=""
+predict_lang_alpha=0.1
 
 # label smoothing
 lsm_type=unigram
