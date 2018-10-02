@@ -49,8 +49,8 @@ lm_weight=0.3
 
 # decoding parameter
 beam_size=5
-penalty=0.2
-maxlenratio=0.0
+penalty=1.0
+maxlenratio=1.0
 minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
@@ -61,7 +61,7 @@ datadir=/export/b08/inaguma/IWSLT
 
 
 # bpemode (unigram or bpe)
-nbpe=10000
+nbpe=5000
 bpemode=unigram
 
 
@@ -128,7 +128,7 @@ if [ ${stage} -le 1 ]; then
         remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.de data/${x}.de.tmp
         remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.en data/${x}.en.tmp
 
-        # Match the number of utterances between EN and DE
+        # Match the number of utterances between En and De
         # extract commocn lines
         cut -f -1 -d " " data/${x}.de.tmp/segments > data/${x}.de.tmp/reclist1
         cut -f -1 -d " " data/${x}.en.tmp/segments > data/${x}.de.tmp/reclist2
@@ -181,7 +181,7 @@ if [ ${stage} -le 2 ]; then
     cut -f 2- -d " " data/train.en/text data/train.de/text | grep -o -P '&.*?;|@-@' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    # Share the same dictinary between EN and DE
+    # Share the same dictinary between En and De
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=`cat ${dict} | wc -l`
     cut -f 2- -d " " data/train.en/text data/train.de/text > data/lang_1spm/input.txt
@@ -206,7 +206,7 @@ lmexpdir=exp/${train_set}_rnnlm_${backend}_2layer_bs256_${bpemode}${nbpe}
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train_${bpemode}${nbpe}.de
+    lmdatadir=data/local/lm_${train_set}_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
     cut -f 2- -d " " data/${train_set}/text | spm_encode --model=${bpemodel}.model --output_format=piece | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train.txt
@@ -270,7 +270,7 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --eps-decay 1 \
+        --eps-decay 0.1 \
         --epochs ${epochs}
 fi
 
@@ -308,7 +308,7 @@ if [ ${stage} -le 5 ]; then
 
         if [ ${rtask} != ${eval_set} ]; then
           set=`echo ${rtask} | cut -f -1 -d "."`
-          local/score_bleu.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict} ${datadir} ${set}
+          local/score_bleu_reseg.sh --nlsyms ${nlsyms} --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict} ${datadir} ${set}
         fi
 
     ) &
