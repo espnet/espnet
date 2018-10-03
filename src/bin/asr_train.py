@@ -55,6 +55,7 @@ def main():
                         help='Number of encoder hidden units')
     parser.add_argument('--eprojs', default=320, type=int,
                         help='Number of encoder projection units')
+    parser.add_argument('--vggsubsample', default=4, type=int, help='subsample factor in VGG')
     parser.add_argument('--subsample', default=1, type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')

@@ -130,7 +130,7 @@ class E2E(chainer.Chain):
         with self.init_scope():
             # encoder
             self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
-                               self.subsample, args.dropout_rate)
+                               self.subsample, args.dropout_rate, vggsubsample=args.vggsubsample)
             # ctc
             ctc_type = vars(args).get("ctc_type", "chainer")
             if ctc_type == 'chainer':
@@ -261,8 +261,15 @@ class CTC(chainer.Chain):
         logging.info(self.__class__.__name__ + ' output lengths: ' + str(label_length.data))
 
         # get ctc loss
-        self.loss = F.connectionist_temporal_classification(
-            y_hat, y_true, 0, input_length, label_length)
+        self.loss_nomean = F.connectionist_temporal_classification(
+            y_hat, y_true, 0, input_length, label_length, reduce='no')
+	mask = [ 0 if l > CTC_LOSS_THRESHOLD else 1 for l in self.loss_nomean.data ]
+	masked_loss = [a*b for a,b in zip(mask, self.loss_nomean)]
+	if sum(mask) == 0:
+	    self.loss = F.mean(self.loss_nomean)*0
+	else:
+	    self.loss = sum(masked_loss)/sum(mask)
+
         logging.info('ctc loss:' + str(self.loss.data))
 
         return self.loss
@@ -867,7 +874,7 @@ class Encoder(chainer.Chain):
 
     '''
 
-    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
+    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1, vggsubsample=4):
         super(Encoder, self).__init__()
         with self.init_scope():
             if etype == 'blstm':
@@ -878,14 +885,14 @@ class Encoder(chainer.Chain):
                                    eprojs, subsample, dropout)
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
-                self.enc1 = VGG2L(in_channel)
+                self.enc1 = VGG2L(in_channel=in_channel, factor=vggsubsample)
                 self.enc2 = BLSTMP(get_vgg2l_odim(
-                    idim, in_channel=in_channel), elayers, eunits, eprojs, subsample, dropout)
+                    idim, in_channel=in_channel, factor=vggsubsample), elayers, eunits, eprojs, subsample, dropout)
                 logging.info('Use CNN-VGG + BLSTMP for encoder')
             elif etype == 'vggblstm':
-                self.enc1 = VGG2L(in_channel)
+                self.enc1 = VGG2L(in_channel=in_channel, factor=vggsubsample)
                 self.enc2 = BLSTM(get_vgg2l_odim(
-                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
+                    idim, in_channel=in_channel, factor=vggsubsample), elayers, eunits, eprojs, dropout)
                 logging.info('Use CNN-VGG + BLSTM for encoder')
             else:
                 logging.error(
@@ -1001,7 +1008,7 @@ class BLSTM(chainer.Chain):
 
 # TODO(watanabe) explanation of VGG2L, VGG2B (Block) might be better
 class VGG2L(chainer.Chain):
-    def __init__(self, in_channel=1):
+    def __init__(self, in_channel=1, factor=4):
         super(VGG2L, self).__init__()
         with self.init_scope():
             # CNN layer (VGG motivated)
@@ -1011,6 +1018,8 @@ class VGG2L(chainer.Chain):
             self.conv2_2 = L.Convolution2D(128, 128, 3, stride=1, pad=1)
 
         self.in_channel = in_channel
+	self.factor = factor
+	logging.warn('# VGG  subsample '+str(self.factor))
 
     def __call__(self, xs, ilens):
         '''VGG2L forward
@@ -1028,19 +1037,33 @@ class VGG2L(chainer.Chain):
         xs = F.swapaxes(F.reshape(
             xs, (xs.shape[0], xs.shape[1], self.in_channel, xs.shape[2] // self.in_channel)), 1, 2)
 
-        xs = F.relu(self.conv1_1(xs))
-        xs = F.relu(self.conv1_2(xs))
-        xs = F.max_pooling_2d(xs, 2, stride=2)
+	if self.factor == 3:
+            xs = F.relu(self.conv1_1(xs))
+            xs = F.relu(self.conv1_2(xs))
+            xs = F.max_pooling_2d(xs, 3)
 
-        xs = F.relu(self.conv2_1(xs))
-        xs = F.relu(self.conv2_2(xs))
-        xs = F.max_pooling_2d(xs, 2, stride=2)
+            xs = F.relu(self.conv2_1(xs))
+            xs = F.relu(self.conv2_2(xs))
+            xs = F.max_pooling_2d(xs, 1)
 
-        # change ilens accordingly
-        ilens = self.xp.array(self.xp.ceil(self.xp.array(
-            ilens, dtype=np.float32) / 2), dtype=np.int32)
-        ilens = self.xp.array(self.xp.ceil(self.xp.array(
-            ilens, dtype=np.float32) / 2), dtype=np.int32)
+            # change ilens accordingly
+            ilens = self.xp.array(self.xp.ceil(self.xp.array(
+                ilens, dtype=np.float32) / 3), dtype=np.int32)
+
+	elif self.factor == 4:
+            xs = F.relu(self.conv1_1(xs))
+            xs = F.relu(self.conv1_2(xs))
+            xs = F.max_pooling_2d(xs, 2, stride=2)
+
+            xs = F.relu(self.conv2_1(xs))
+            xs = F.relu(self.conv2_2(xs))
+            xs = F.max_pooling_2d(xs, 2, stride=2)
+
+            # change ilens accordingly
+            ilens = self.xp.array(self.xp.ceil(self.xp.array(
+                ilens, dtype=np.float32) / 2), dtype=np.int32)
+            ilens = self.xp.array(self.xp.ceil(self.xp.array(
+                ilens, dtype=np.float32) / 2), dtype=np.int32)
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = F.swapaxes(xs, 1, 2)
