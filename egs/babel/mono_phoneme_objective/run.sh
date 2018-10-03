@@ -49,6 +49,8 @@ phoneme_objective_layer=""
 
 # Language prediction
 predict_lang=""
+predict_lang_alpha= #If you want to specify a fixed learning rate scaling factor
+predict_lang_alpha_scheduler=ganin # To use a scheduler from a publication.
 
 # label smoothing
 lsm_type=unigram
@@ -79,7 +81,7 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 tag="" # tag for managing experiments.
 
 langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
-recog="107 201 307 404"
+recog="107 201 404" #307
 train_lang="107"
 
 . utils/parse_options.sh || exit 1;
@@ -110,6 +112,12 @@ for l in ${recog}; do
 done
 train_sets=${train_sets%% }
 
+train_devs=""
+for l in ${recog}; do
+  train_devs="dev_${l} ${train_devs}"
+done
+train_devs=${train_devs%% }
+
 if [ $stage -le 0 ]; then
   echo "stage 0: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --recog "${recog}" --FLP false
@@ -121,7 +129,7 @@ if [ $stage -le 0 ]; then
   #done
 
   if [[ $phoneme_objective_weight > 0.0 ]]; then
-    for x in ${train_sets} ${train_dev} ${recog_set}; do
+    for x in ${train_sets} ${train_devs} ${recog_set}; do
       echo ${x}
       awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
       # Remove stress symbols
@@ -133,6 +141,7 @@ if [ $stage -le 0 ]; then
       ./utils/fix_data_dir.sh data/${x}
     done
   fi
+  exit
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -155,7 +164,7 @@ if [ $stage -le 1 ]; then
 
   done
 
-  # This is comented out because we're using iVectors instead.
+  # This is commented out because we're using iVectors instead:
   # compute global CMVN
   #compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
   #./utils/fix_data_dir.sh data/${train_set} 
@@ -254,7 +263,7 @@ if [ ${stage} -le 2 ]; then
                                    ${feat_dt_dir}/data.{phn,gph}.json
 
         for rtask in ${recog_set}; do
-            feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
+            feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
             ./utils/filter_scp.pl data/${rtask}/text \
                 data/${rtask}/text.phn > data/${rtask}/text.phn.filt
             mv data/${rtask}/text.phn.filt data/${rtask}/text.phn
@@ -270,6 +279,7 @@ if [ ${stage} -le 2 ]; then
         done
 
     fi
+    exit
 fi
 
 if $use_lm; then
@@ -315,10 +325,10 @@ if [ -z ${tag} ]; then
         expdir=${expdir}_phonemelayer${phoneme_objective_layer}
     fi
     if [[ ${predict_lang} = normal ]]; then
-        expdir=${expdir}_predictlang-${predict_lang_alpha}
+        expdir=${expdir}_predictlang-${predict_lang_alpha}${predict_lang_alpha_scheduler}
     fi
     if [[ ${predict_lang} = adv ]]; then
-        expdir=${expdir}_predictlang-adv-${predict_lang_alpha}
+        expdir=${expdir}_predictlang-adv-${predict_lang_alpha}${predict_lang_alpha_scheduler}
     fi
 else
     expdir=exp/${train_set}_${backend}_${tag}
@@ -370,8 +380,13 @@ if [ ${stage} -le 3 ]; then
         train_cmd="${train_cmd} --phoneme_objective_layer ${phoneme_objective_layer}"
     fi
     if [[ ! -z ${predict_lang} ]]; then
-        train_cmd="${train_cmd} --predict_lang ${predict_lang}\
-                                --predict_lang_alpha ${predict_lang_alpha}"
+        train_cmd="${train_cmd} --predict_lang ${predict_lang}"
+        if [[ ! -z ${predict_lang_alpha} ]]; then
+            train_cmd="${train_cmd} --predict_lang_alpha ${predict_lang_alpha}"
+        elif [[ ! -z ${predict_lang_alpha_scheduler} ]]; then
+            train_cmd="${train_cmd} --predict_lang_alpha_scheduler \
+                                    ${predict_lang_alpha_scheduler}"
+        fi
     fi
     echo "train_cmd: $train_cmd"
     echo "expdir: $expdir"
@@ -382,21 +397,19 @@ fi
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32
-    
+
     extra_opts=""
     if $use_lm; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
     fi
 
-    for rtask in ${recog_set}; do
+    for rtask in eval_${train_lang}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
-	# Since we currently don't have phoneme transcriptions for evaluation data, just use data.gph.json
-	cp ${feat_recog_dir}/data.gph.json ${feat_recog_dir}/data.json
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -408,16 +421,19 @@ if [ ${stage} -le 4 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
-            --model-conf ${expdir}/results/model.conf  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
-            --ctc-weight ${ctc_weight} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
+            --ctc-weight ${ctc_weight} \
+            --phoneme-dict ${dict}.phn \
+            --train-json ${feat_tr_dir}/data.json \
             ${extra_opts} &
+
         wait
 
-        score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict} grapheme[1]
+#        score_sclite.sh --nlsyms ${nlsyms} --wer false ${expdir}/${decode_dir} ${dict}.phn phn
 
     ) &
     done

@@ -81,7 +81,7 @@ recog_model=acc.best # set a model to be used for decoding: 'acc.best' or 'loss.
 tag="" # tag for managing experiments.
 
 langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
-recog="107 201 307 404"
+recog="107 201 404 307"
 
 . utils/parse_options.sh || exit 1;
 
@@ -129,6 +129,7 @@ if [ $stage -le 0 ]; then
       ./utils/fix_data_dir.sh data/${x}
     done
   fi
+  exit
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -151,7 +152,7 @@ if [ $stage -le 1 ]; then
 
   done
 
-  # This is comented out because we're using iVectors instead:
+  # This is commented out because we're using iVectors instead:
   # compute global CMVN
   #compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
   #./utils/fix_data_dir.sh data/${train_set} 
@@ -250,7 +251,7 @@ if [ ${stage} -le 2 ]; then
                                    ${feat_dt_dir}/data.{phn,gph}.json
 
         for rtask in ${recog_set}; do
-            feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
+            feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
             ./utils/filter_scp.pl data/${rtask}/text \
                 data/${rtask}/text.phn > data/${rtask}/text.phn.filt
             mv data/${rtask}/text.phn.filt data/${rtask}/text.phn
@@ -373,7 +374,6 @@ if [ ${stage} -le 3 ]; then
             train_cmd="${train_cmd} --predict_lang_alpha_scheduler \
                                     ${predict_lang_alpha_scheduler}"
         fi
-
     fi
     echo "train_cmd: $train_cmd"
     echo "expdir: $expdir"
@@ -384,7 +384,7 @@ fi
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32
-    
+
     extra_opts=""
     if $use_lm; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
@@ -395,8 +395,8 @@ if [ ${stage} -le 4 ]; then
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
-	# Since we currently don't have phoneme transcriptions for evaluation data, just use data.gph.json
-	cp ${feat_recog_dir}/data.gph.json ${feat_recog_dir}/data.json
+    # Since we currently don't have phoneme transcriptions for evaluation data, just use data.gph.json
+    cp ${feat_recog_dir}/data.gph.json ${feat_recog_dir}/data.json
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
 

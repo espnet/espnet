@@ -99,8 +99,17 @@ def ganin_lambda(epoch, total_epochs):
     manner."""
     progress = epoch / float(total_epochs)
     logging.info("Progress as decimal: {}".format(progress))
-    lambda_ = 2/(1 + np.exp(-10*p)) - 1
+    lambda_ = 2/(1 + np.exp(-10*progress)) - 1
     logging.info("Ganin lambda: {}".format(lambda_))
+    return lambda_
+
+def shinohara_lambda(epoch, lambda_max=0.1):
+    """ Sets the domain adaptation scaling factor on the basis of Shinohara
+    2016. The learning rate progresses from 0 to lambda_max in a linear
+    manner."""
+
+    lambda_ = min(epoch/float(10), 1)*lambda_max
+    logging.info("Shinohara lambda: {}".format(lambda_))
     return lambda_
 
 class CustomUpdater(training.StandardUpdater):
@@ -170,9 +179,12 @@ class CustomUpdater(training.StandardUpdater):
             lang_loss.detach()  # Truncate the graph
             logging.info("predict_lang: {}".format(self.predict_lang))
 
+
             if self.predict_lang == "adv":
                 if self.predict_lang_alpha_scheduler == "ganin":
                     lambda_ = ganin_lambda(self.epoch, self.num_epochs)
+                elif self.predict_lang_alpha_scheduler == "shinohara":
+                    lambda_ = shinohara_lambda(self.epoch)
                 elif self.predict_lang_alpha:
                     lambda_ = self.predict_lang_alpha
                     logging.info("Fixed lambda: {}".format(lambda_))
@@ -181,16 +193,17 @@ class CustomUpdater(training.StandardUpdater):
                         predict_lang_alpha ({}) not set to a valid
                         option.""".format(self.predict_lang_alpha_scheduler,
                                           self.predict_lang_alpha))
-                # Then it's adversarial and we should reverse gradients
-                for name, parameter in self.model.named_parameters():
-                    parameter.grad *= -1 * lambda_
+                if lambda_ != 0.0:
+                    # Then it's adversarial and we should reverse gradients
+                    for name, parameter in self.model.named_parameters():
+                        parameter.grad *= -1 * lambda_
 
-#               # But reverse the lang_linear gradients again so that they're
-                # not adversarial (we just want the encoder to hide the
-                # language information, but we still want to try our best to predict the
-                # language)
-                self.model.lang_linear.bias.grad *= (-1 / lambda_)
-                self.model.lang_linear.weight.grad *= (-1 / lambda_)
+                    # But reverse the lang_linear gradients again so that
+                    # they're not adversarial (we just want the encoder to hide
+                    # the language information, but we still want to try our
+                    # best to predict the language)
+                    self.model.lang_linear.bias.grad *= (-1 / lambda_)
+                    self.model.lang_linear.weight.grad *= (-1 / lambda_)
 
             optimizer.step()
 
@@ -411,7 +424,8 @@ def train(args):
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer, converter, device,
         args.ngpu, args.epochs, predict_lang=args.predict_lang,
-        predict_lang_alpha=args.predict_lang_alpha)
+        predict_lang_alpha=args.predict_lang_alpha,
+        predict_lang_alpha_scheduler=args.predict_lang_alpha_scheduler)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 

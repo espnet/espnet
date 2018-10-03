@@ -424,7 +424,12 @@ class E2E(torch.nn.Module):
         loss_phn = None
         if self.phoneme_objective_weight > 0.0:
             if self.phoneme_objective_layer:
-                loss_phn = self.phn_ctc(self.enc.enc1.phoneme_layer_hpad, hlens, phoneme_ys_pad)
+                if self.etype == "blstmp":
+                    loss_phn = self.phn_ctc(self.enc.enc1.phoneme_layer_hpad, hlens, phoneme_ys_pad)
+                elif self.etype == "vggblstmp":
+                    loss_phn = self.phn_ctc(self.enc.enc2.phoneme_layer_hpad, hlens, phoneme_ys_pad)
+                else:
+                    assert False
             else:
                 loss_phn = self.phn_ctc(hs_pad, hlens, phoneme_ys_pad)
 
@@ -2312,7 +2317,8 @@ class Encoder(torch.nn.Module):
             self.enc1 = VGG2L(in_channel)
             self.enc2 = BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel),
                                elayers, eunits, eprojs,
-                               subsample, dropout)
+                               subsample, dropout,
+                               phoneme_objective_layer=phoneme_objective_layer)
             logging.info('Use CNN-VGG + BLSTMP for encoder')
         elif etype == 'vggblstm':
             self.enc1 = VGG2L(in_channel)
