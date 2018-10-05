@@ -257,13 +257,21 @@ def train(args):
                                    args.minibatches, args.batch_sort_key)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(train_batchset, converter.transform),
-        batch_size=1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
-    valid_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(valid_batchset, converter.transform),
-        batch_size=1, repeat=False, shuffle=False, n_processes=2, n_prefetch=8,
-        maxtasksperchild=20)
+    if args.n_iter_processes > 0:
+        train_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(train_batchset, converter.transform),
+            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+        valid_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(valid_batchset, converter.transform),
+            batch_size=1, repeat=False, shuffle=False,
+            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+    else:
+        train_iter = chainer.iterators.SerialIterator(
+            TransformDataset(train_batchset, converter.transform),
+            batch_size=1)
+        valid_iter = chainer.iterators.SerialIterator(
+            TransformDataset(valid_batchset, converter.transform),
+            batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)

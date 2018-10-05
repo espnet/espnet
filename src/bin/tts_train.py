@@ -57,6 +57,9 @@ def main():
     parser.add_argument('--econv_filts', default=5, type=int,
                         help='Filter size of encoder convolution')
     # attention
+    parser.add_argument('--atype', default="location", type=str,
+                        choices=["forward_ta", "forward", "location"],
+                        help='Type of attention mechanism')
     parser.add_argument('--adim', default=512, type=int,
                         help='Number of attention transformation dimensions')
     parser.add_argument('--aconv-chans', default=32, type=int,
@@ -112,6 +115,8 @@ def main():
                         help='Dropout rate')
     parser.add_argument('--zoneout', default=0.1, type=float,
                         help='Zoneout rate')
+    parser.add_argument('--reduction_factor', default=1, type=int,
+                        help='Reduction factor')
     # loss related
     parser.add_argument('--use_masking', default=False, type=strtobool,
                         help='Whether to use masking in calculation of loss')
@@ -127,6 +132,8 @@ def main():
                         help='Batch size is reduced if the input sequence length > ML')
     parser.add_argument('--maxlen-out', default=200, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
+    parser.add_argument('--n_iter_processes', default=0, type=int,
+                        help='Number of processes of iterator')
     # optimization related
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate for optimizer')

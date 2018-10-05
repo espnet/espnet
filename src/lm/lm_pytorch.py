@@ -322,6 +322,8 @@ def train(args):
         # Make the specified GPU current
         gpu_id = 0
         model.cuda(gpu_id)
+    else:
+        gpu_id = -1
 
     # Save model conf to json
     model_conf = args.outdir + '/model.json'
