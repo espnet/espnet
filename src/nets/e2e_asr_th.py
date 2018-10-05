@@ -90,6 +90,14 @@ def make_pad_mask(lengths):
     return mask
 
 
+def mask_by_length(xs, length, fill=0):
+    assert xs.size(0) == len(length)
+    ret = xs.data.new(*xs.size()).fill_(fill)
+    for i, l in enumerate(length):
+        ret[i, :l] = xs[i, :l]
+    return ret
+
+
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
     """Function to calculate accuracy
 
@@ -1744,7 +1752,7 @@ def index_select_lm_state(rnnlm_state, dim, vidx):
     if isinstance(rnnlm_state, dict):
         new_state = {}
         for k, v in rnnlm_state.items():
-            new_state[k] = torch.index_select(v, dim, vidx)
+            new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
     elif isinstance(rnnlm_state, list):
         new_state = []
         for i in vidx:
@@ -2077,6 +2085,7 @@ class Decoder(torch.nn.Module):
     def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
                              normalize_score=True):
         logging.info('input lengths: ' + str(h.size(1)))
+        h = mask_by_length(h, hlens, 0.0)
 
         # search params
         batch = len(hlens)
