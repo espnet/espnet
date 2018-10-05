@@ -8,32 +8,6 @@ import torch
 import numpy as np
 import six
 
-torch_is_old = torch.__version__.startswith("0.3.")
-
-
-def logsumexp(inputs, dim=None, keepdim=False):
-    """Numerically stable logsumexp.
-
-    Args:
-    inputs: A Variable with any shape.
-    dim: An integer.
-    keepdim: A boolean.
-
-    Returns:
-    Equivalent of log(sum(exp(inputs), dim=dim, keepdim=keepdim)).
-    """
-    # For a 1-D array x (any array along a single dimension),
-    # log sum exp(x) = s + log sum exp(x - s)
-    # with s = max(x) being a common choice.
-    if dim is None:
-        inputs = inputs.view(-1)
-        dim = 0
-    s, _ = torch.max(inputs, dim=dim, keepdim=True)
-    outputs = s + (inputs - s).exp().sum(dim=dim, keepdim=True).log()
-    if not keepdim:
-        outputs = outputs.squeeze(dim)
-    return outputs
-
 
 class CTCPrefixScoreTH(object):
     '''Batch processing of CTCPrefixScore
@@ -107,7 +81,7 @@ class CTCPrefixScoreTH(object):
         if output_length == 0:
             r[:, 0, 0, :] = self.x[:, 0]
 
-        r_sum = logsumexp(r_prev, dim=2)
+        r_sum = torch.logsumexp(r_prev, dim=2)
         if last is None:
             last = [yi[-1] for yi in y]
 
@@ -124,9 +98,9 @@ class CTCPrefixScoreTH(object):
         for t in six.moves.range(start, self.input_length):
             xt = self.x[:, t]
             rp = r[:, t - 1]
-            r[:, t, 0] = logsumexp(torch.stack([rp[:, 0], log_phi[:, t - 1]]), dim=0) + xt
-            r[:, t, 1] = logsumexp(rp, dim=1) + xt[:, self.blank].view(-1, 1).repeat(1, self.odim)
-            log_psi = logsumexp(torch.stack([log_psi, log_phi_x[:, t]]), dim=0)
+            r[:, t, 0] = torch.logsumexp(torch.stack([rp[:, 0], log_phi[:, t - 1]]), dim=0) + xt
+            r[:, t, 1] = torch.logsumexp(rp, dim=1) + xt[:, self.blank].view(-1, 1).repeat(1, self.odim)
+            log_psi = torch.logsumexp(torch.stack([log_psi, log_phi_x[:, t]]), dim=0)
 
         for si in six.moves.range(self.n_bb):
             log_psi[si, self.eos] = r_sum[si, self.hlens[si]]
