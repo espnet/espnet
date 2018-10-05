@@ -3,8 +3,10 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+
 from __future__ import division
 
+import logging
 import six
 
 import chainer
@@ -15,6 +17,8 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
+from e2e_asr_th import AttForward
+from e2e_asr_th import AttForwardTA
 from e2e_asr_th import AttLoc
 from e2e_asr_th import to_cuda
 
@@ -108,11 +112,13 @@ class Tacotron2Loss(torch.nn.Module):
         self.bce_pos_weight = bce_pos_weight
         if hasattr(model, 'module'):
             self.use_cbhg = model.module.use_cbhg
+            self.reduction_factor = model.module.reduction_factor
         else:
             self.use_cbhg = model.use_cbhg
+            self.reduction_factor = model.reduction_factor
         self.reporter = Reporter()
 
-    def forward(self, xs, ilens, ys, labels, olens=None, spembs=None, spcs=None):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
         """TACOTRON2 LOSS FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -130,6 +136,12 @@ class Tacotron2Loss(torch.nn.Module):
             cbhg_outs, after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
         else:
             after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
+
+        # remove mod part
+        if self.reduction_factor > 1:
+            olens = [olen - olen % self.reduction_factor for olen in olens]
+            ys = ys[:, :max(olens)]
+            labels = labels[:, :max(olens)]
 
         # prepare weight of positive samples in cross entorpy
         if self.bce_pos_weight != 1.0:
@@ -210,6 +222,7 @@ class Tacotron2(torch.nn.Module):
         (bool) use_concate: whether to concatenate encoder embedding with decoder lstm outputs
         (float) dropout: dropout rate
         (float) zoneout: zoneout rate
+        (int) reduction_factor: reduction factor
         (bool) use_cbhg: whether to use CBHG module
         (int) cbhg_conv_bank_layers: the number of convoluional banks in CBHG
         (int) cbhg_conv_bank_chans: the number of channels of convolutional bank in CBHG
@@ -247,6 +260,8 @@ class Tacotron2(torch.nn.Module):
         self.use_concate = args.use_concate
         self.dropout = args.dropout
         self.zoneout = args.zoneout
+        self.reduction_factor = args.reduction_factor
+        self.atype = args.atype
         self.use_cbhg = args.use_cbhg
         if self.use_cbhg:
             self.spc_dim = args.spc_dim
@@ -276,14 +291,36 @@ class Tacotron2(torch.nn.Module):
                            use_batch_norm=self.use_batch_norm,
                            dropout=self.dropout)
         dec_idim = self.eunits if self.spk_embed_dim is None else self.eunits + self.spk_embed_dim
-        self.dec = Decoder(idim=dec_idim,
-                           odim=self.odim,
-                           att=AttLoc(
-                               dec_idim,
+        if self.atype == "location":
+            att = AttLoc(dec_idim,
+                         self.dunits,
+                         self.adim,
+                         self.aconv_chans,
+                         self.aconv_filts)
+        elif self.atype == "forward":
+            att = AttForward(dec_idim,
+                             self.dunits,
+                             self.adim,
+                             self.aconv_chans,
+                             self.aconv_filts)
+            if self.cumulate_att_w:
+                logging.warn("cumulation of attention weights is disabled in forward attention.")
+                self.cumulate_att_w = False
+        elif self.atype == "forward_ta":
+            att = AttForwardTA(dec_idim,
                                self.dunits,
                                self.adim,
                                self.aconv_chans,
-                               self.aconv_filts),
+                               self.aconv_filts,
+                               self.odim)
+            if self.cumulate_att_w:
+                logging.warn("cumulation of attention weights is disabled in forward attention.")
+                self.cumulate_att_w = False
+        else:
+            raise NotImplementedError("Support only location or forward")
+        self.dec = Decoder(idim=dec_idim,
+                           odim=self.odim,
+                           att=att,
                            dlayers=self.dlayers,
                            dunits=self.dunits,
                            prenet_layers=self.prenet_layers,
@@ -296,7 +333,8 @@ class Tacotron2(torch.nn.Module):
                            use_batch_norm=self.use_batch_norm,
                            use_concate=self.use_concate,
                            dropout=self.dropout,
-                           zoneout=self.zoneout)
+                           zoneout=self.zoneout,
+                           reduction_factor=self.reduction_factor)
         if self.use_cbhg:
             self.cbhg = CBHG(idim=self.odim,
                              odim=self.spc_dim,
@@ -531,6 +569,7 @@ class Decoder(torch.nn.Module):
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
     :param float dropout: dropout rate
     :param float zoneout: zoneout rate
+    :param int reduction_factor: reduction factor
     :param float threshold: threshold in inference
     :param float minlenratio: minimum length ratio in inference
     :param float maxlenratio: maximum length ratio in inference
@@ -551,6 +590,7 @@ class Decoder(torch.nn.Module):
                  dropout=0.5,
                  zoneout=0.1,
                  threshold=0.5,
+                 reduction_factor=1,
                  maxlenratio=5.0,
                  minlenratio=0.0):
         super(Decoder, self).__init__()
@@ -571,9 +611,15 @@ class Decoder(torch.nn.Module):
         self.use_concate = use_concate
         self.dropout = dropout
         self.zoneout = zoneout
+        self.reduction_factor = reduction_factor
         self.threshold = threshold
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
+        # check attention type
+        if isinstance(self.att, AttForwardTA):
+            self.use_att_extra_inputs = True
+        else:
+            self.use_att_extra_inputs = False
         # define lstm network
         self.lstm = torch.nn.ModuleList()
         for layer in six.moves.range(self.dlayers):
@@ -627,20 +673,19 @@ class Decoder(torch.nn.Module):
             self.postnet = None
         # define projection layers
         iunits = self.idim + self.dunits if self.use_concate else self.dunits
-        self.feat_out = torch.nn.Linear(iunits, self.odim, bias=False)
-        self.prob_out = torch.nn.Linear(iunits, 1)
+        self.feat_out = torch.nn.Linear(iunits, self.odim * self.reduction_factor, bias=False)
+        self.prob_out = torch.nn.Linear(iunits, self.reduction_factor)
 
     def zero_state(self, hs):
         init_hs = hs.new_zeros(hs.size(0), self.dunits)
         return init_hs
 
-    def forward(self, hs, hlens, ys, att_w_maxlen=None):
+    def forward(self, hs, hlens, ys):
         """DECODER FORWARD CALCULATION
 
         :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
         :param list hlens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
-        :param int att_w_maxlen: maximum length of att_w (only for dataparallel)
         :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
         :return: outputs without postnets (B, Lmax, odim)
@@ -650,6 +695,10 @@ class Decoder(torch.nn.Module):
         :return: attetion weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
+        # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
+        if self.reduction_factor > 1:
+            ys = ys[:, self.reduction_factor - 1::self.reduction_factor]
+
         # length list should be list of int
         hlens = list(map(int, hlens))
 
@@ -668,7 +717,10 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         outs, logits = [], []
         for y in ys.transpose(0, 1):
-            att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
+            if self.use_att_extra_inputs:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
+            else:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
             prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
@@ -676,7 +728,7 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
-            outs += [self.feat_out(zcs)]
+            outs += [self.feat_out(zcs).view(hs.size(0), self.odim, -1)]
             logits += [self.prob_out(zcs)]
             prev_out = y  # teacher forcing
             if self.cumulate_att_w and prev_att_w is not None:
@@ -685,10 +737,15 @@ class Decoder(torch.nn.Module):
                 prev_att_w = att_w
 
         logits = torch.cat(logits, dim=1)  # (B, Lmax)
-        before_outs = torch.stack(outs, dim=2)  # (B, odim, Lmax)
+        before_outs = torch.cat(outs, dim=2)  # (B, odim, Lmax)
+
+        if self.reduction_factor > 1:
+            before_outs = before_outs.view(before_outs.size(0), self.odim, -1)  # (B, odim, Lmax)
+
         after_outs = before_outs + self._postnet_forward(before_outs)  # (B, odim, Lmax)
         before_outs = before_outs.transpose(2, 1)  # (B, Lmax, odim)
         after_outs = after_outs.transpose(2, 1)  # (B, Lmax, odim)
+        logits = logits
 
         # apply activation function for scaling
         if self.output_activation_fn is not None:
@@ -735,10 +792,13 @@ class Decoder(torch.nn.Module):
         outs, att_ws, probs = [], [], []
         while True:
             # updated index
-            idx += 1
+            idx += self.reduction_factor
 
             # decoder calculation
-            att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w)
+            if self.use_att_extra_inputs:
+                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w, prev_out)
+            else:
+                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w)
             att_ws += [att_w]
             prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)
@@ -747,25 +807,31 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
+            outs += [self.feat_out(zcs).view(1, self.odim, -1)]  # [(1, odim, r), ...]
+            probs += [torch.sigmoid(self.prob_out(zcs))[0]]  # [(r), ...]
             if self.output_activation_fn is not None:
-                outs += [self.output_activation_fn(self.feat_out(zcs))]
+                prev_out = self.output_activation_fn(outs[-1][:, :, -1])  # (1, odim)
             else:
-                outs += [self.feat_out(zcs)]
-            probs += [torch.sigmoid(self.prob_out(zcs))[0]]
-            prev_out = outs[-1]
+                prev_out = outs[-1][:, :, -1]  # (1, odim)
             if self.cumulate_att_w and prev_att_w is not None:
                 prev_att_w = prev_att_w + att_w  # Note: error when use +=
             else:
                 prev_att_w = att_w
 
             # check whether to finish generation
-            if (int(probs[-1] >= threshold) and idx >= minlen) or idx == maxlen:
-                outs = torch.stack(outs, dim=2)  # (1, odim, L)
+            if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
+                # check mininum length
+                if idx < minlen:
+                    continue
+                outs = torch.cat(outs, dim=2)  # (1, odim, L)
                 outs = outs + self._postnet_forward(outs)  # (1, odim, L)
-                outs = outs.transpose(2, 1).squeeze(0)  # (Lx, odim)
+                outs = outs.transpose(2, 1).squeeze(0)  # (L, odim)
                 probs = torch.cat(probs, dim=0)
                 att_ws = torch.cat(att_ws, dim=0)
                 break
+
+        if self.output_activation_fn is not None:
+            outs = self.output_activation_fn(outs)
 
         return outs, probs, att_ws
 
@@ -796,7 +862,10 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         att_ws = []
         for y in ys.transpose(0, 1):
-            att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
+            if self.use_att_extra_inputs:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
+            else:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
             att_ws += [att_w]
             prenet_out = self._prenet_forward(prev_out)
             xs = torch.cat([att_c, prenet_out], dim=1)

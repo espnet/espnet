@@ -16,6 +16,7 @@ import editdistance
 
 import chainer
 import numpy as np
+import random
 import six
 import torch
 import torch.nn.functional as F
@@ -115,6 +116,51 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
     numerator = torch.sum(pad_pred.masked_select(mask) == pad_targets.masked_select(mask))
     denominator = torch.sum(mask)
     return float(numerator) / float(denominator)
+
+
+def get_last_yseq(exp_yseq):
+    last = []
+    for y_seq in exp_yseq:
+        last.append(y_seq[-1])
+    return last
+
+
+def append_ids(yseq, ids):
+    if isinstance(ids, list):
+        for i, j in enumerate(ids):
+            yseq[i].append(j)
+    else:
+        for i in range(len(yseq)):
+            yseq[i].append(ids)
+    return yseq
+
+
+def expand_yseq(yseqs, next_ids):
+    new_yseq = []
+    for yseq in yseqs:
+        for next_id in next_ids:
+            new_yseq.append(yseq[:])
+            new_yseq[-1].append(next_id)
+    return new_yseq
+
+
+def index_select_list(yseq, lst):
+    new_yseq = []
+    for l in lst:
+        new_yseq.append(yseq[l][:])
+    return new_yseq
+
+
+def index_select_lm_state(rnnlm_state, dim, vidx):
+    if isinstance(rnnlm_state, dict):
+        new_state = {}
+        for k, v in rnnlm_state.items():
+            new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
+    elif isinstance(rnnlm_state, list):
+        new_state = []
+        for i in vidx:
+            new_state.append(rnnlm_state[int(i)][:])
+    return new_state
 
 
 class Reporter(chainer.Chain):
@@ -267,7 +313,7 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight)
+                           labeldist, args.lsm_weight, args.sampling_probability)
 
         # weight initialization
         self.init_like_chainer()
@@ -421,6 +467,7 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
+        h = h.contiguous()
         h, _ = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
@@ -777,7 +824,6 @@ class AttLoc(torch.nn.Module):
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
-        self.aconv_chans = aconv_chans
 
     def reset(self):
         '''reset states'''
@@ -799,7 +845,6 @@ class AttLoc(torch.nn.Module):
         :return: previous attentioin weights (B x T_max)
         :rtype: torch.Tensor
         '''
-
         batch = len(enc_hs_pad)
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
@@ -1715,49 +1760,214 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         return c, w
 
 
-def get_last_yseq(exp_yseq):
-    last = []
-    for y_seq in exp_yseq:
-        last.append(y_seq[-1])
-    return last
+class AttForward(torch.nn.Module):
+    '''Forward attention
+
+    Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
+        (https://arxiv.org/pdf/1807.06736.pdf)
+
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    '''
+
+    def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
+        super(AttForward, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.mask = None
+
+    def reset(self):
+        '''reset states'''
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.mask = None
+
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=1.0):
+        '''AttForward forward
+
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_hs_len: padded encoder hidden state lenght (B)
+        :param torch.Tensor dec_z: docoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: attention weights of previous step
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, D_enc)
+        :rtype: torch.Tensor
+        :return: previous attentioin weights (B x T_max)
+        :rtype: torch.Tensor
+        '''
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
+
+        if dec_z is None:
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        if att_prev is None:
+            # initial attention will be [1, 0, 0, ...]
+            att_prev = enc_hs_pad.new_zeros(*enc_hs_pad.size()[:2])
+            att_prev[:, 0] = 1.0
+
+        # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
+        att_conv = self.loc_conv(att_prev.view(batch, 1, 1, self.h_length))
+        # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+        att_conv = att_conv.squeeze(2).transpose(1, 2)
+        # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+        att_conv = self.mlp_att(att_conv)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).unsqueeze(1)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        e = self.gvec(torch.tanh(self.pre_compute_enc_h + dec_z_tiled + att_conv)).squeeze(2)
+
+        # NOTE consider zero padding when compute w.
+        if self.mask is None:
+            self.mask = to_cuda(self, make_pad_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
+        w = F.softmax(scaling * e, dim=1)
+
+        # forward attention
+        att_prev_shift = F.pad(att_prev, (1, 0))[:, :-1]
+        w = (att_prev + att_prev_shift) * w
+        # NOTE: clamp is needed to avoid nan gradient
+        w = F.normalize(torch.clamp(w, 1e-6), p=1, dim=1)
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.unsqueeze(-1), dim=1)
+
+        return c, w
 
 
-def append_ids(yseq, ids):
-    if isinstance(ids, list):
-        for i, j in enumerate(ids):
-            yseq[i].append(j)
-    else:
-        for i in range(len(yseq)):
-            yseq[i].append(ids)
-    return yseq
+class AttForwardTA(torch.nn.Module):
+    '''Forward attention with transition agent
 
+    Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
+        (https://arxiv.org/pdf/1807.06736.pdf)
 
-def expand_yseq(yseqs, next_ids):
-    new_yseq = []
-    for yseq in yseqs:
-        for next_id in next_ids:
-            new_yseq.append(yseq[:])
-            new_yseq[-1].append(next_id)
-    return new_yseq
+    :param int eunits: # units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    :param int odim: output dimension
+    '''
 
+    def __init__(self, eunits, dunits, att_dim, aconv_chans, aconv_filts, odim):
+        super(AttForwardTA, self).__init__()
+        self.mlp_enc = torch.nn.Linear(eunits, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.mlp_ta = torch.nn.Linear(eunits + dunits + odim, 1)
+        self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1, aconv_chans, (1, 2 * aconv_filts + 1), padding=(0, aconv_filts), bias=False)
+        self.gvec = torch.nn.Linear(att_dim, 1)
+        self.dunits = dunits
+        self.eunits = eunits
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.mask = None
+        self.trans_agent_prob = 0.5
 
-def index_select_list(yseq, lst):
-    new_yseq = []
-    for l in lst:
-        new_yseq.append(yseq[l][:])
-    return new_yseq
+    def reset(self):
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.mask = None
+        self.trans_agent_prob = 0.5
 
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev, scaling=1.0):
+        '''AttForwardTA forward
 
-def index_select_lm_state(rnnlm_state, dim, vidx):
-    if isinstance(rnnlm_state, dict):
-        new_state = {}
-        for k, v in rnnlm_state.items():
-            new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
-    elif isinstance(rnnlm_state, list):
-        new_state = []
-        for i in vidx:
-            new_state.append(rnnlm_state[int(i)][:])
-    return new_state
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, Tmax, eunits)
+        :param list enc_hs_len: padded encoder hidden state lenght (B)
+        :param torch.Tensor dec_z: docoder hidden state (B, dunits)
+        :param torch.Tensor att_prev: attention weights of previous step
+        :param torch.Tensor prev_out: decoder outputs of previous step (B, odim)
+        :param float scaling: scaling parameter before applying softmax
+        :return: attentioin weighted encoder state (B, dunits)
+        :rtype: torch.Tensor
+        :return: previous attentioin weights (B, Tmax)
+        :rtype: torch.Tensor
+        '''
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
+
+        if dec_z is None:
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        if att_prev is None:
+            # initial attention will be [1, 0, 0, ...]
+            att_prev = enc_hs_pad.new_zeros(*enc_hs_pad.size()[:2])
+            att_prev[:, 0] = 1.0
+
+        # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
+        att_conv = self.loc_conv(att_prev.view(batch, 1, 1, self.h_length))
+        # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+        att_conv = att_conv.squeeze(2).transpose(1, 2)
+        # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+        att_conv = self.mlp_att(att_conv)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        e = self.gvec(torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)).squeeze(2)
+
+        # NOTE consider zero padding when compute w.
+        if self.mask is None:
+            self.mask = to_cuda(self, make_pad_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float('inf'))
+        w = F.softmax(scaling * e, dim=1)
+
+        # forward attention
+        att_prev_shift = F.pad(att_prev, (1, 0))[:, :-1]
+        w = (self.trans_agent_prob * att_prev + (1 - self.trans_agent_prob) * att_prev_shift) * w
+        # NOTE: clamp is needed to avoid nan gradient
+        w = F.normalize(torch.clamp(w, 1e-6), p=1, dim=1)
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        # update transition agent prob
+        self.trans_agent_prob = torch.sigmoid(
+            self.mlp_ta(torch.cat([c, out_prev, dec_z], dim=1)))
+
+        return c, w
 
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
@@ -1778,7 +1988,7 @@ class Decoder(torch.nn.Module):
     """
 
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0.):
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -1802,6 +2012,7 @@ class Decoder(torch.nn.Module):
         self.labeldist = labeldist
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
+        self.sampling_probability = sampling_probability
 
         self.logzero = -10000000000.0
 
@@ -1859,7 +2070,14 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs_pad, hlens, z_list[0], att_w)
-            ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
+            if i > 0 and random.random() < self.sampling_probability:
+                logging.info(' scheduled sampling ')
+                z_out = self.output(z_all[-1])
+                z_out = np.argmax(z_out.detach(), axis=1)
+                z_out = self.embed(z_out.cuda())
+                ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
+            else:
+                ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](

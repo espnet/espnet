@@ -21,7 +21,7 @@ fmax=""       # maximum frequency
 fmin=""       # minimum frequency
 n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
-n_shift=512   # number of shift points
+n_shift=256   # number of shift points
 win_length="" # window length
 # encoder related
 embed_dim=512
@@ -40,6 +40,7 @@ postnet_chans=512
 postnet_filts=5
 use_speaker_embedding=true
 # attention related
+atype=forward_ta
 adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
@@ -49,6 +50,7 @@ use_concate=true    # whether to concatenate encoder embedding with decoder lstm
 use_residual=false  # whether to use residual connection in encoder convolution
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
+reduction_factor=2
 # minibatch related
 batchsize=64
 batch_sort_key=output # empty or input or output (if empty, shuffled batch will be used)
@@ -210,7 +212,7 @@ fi
 
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_${backend}_taco2_enc${embed_dim}
+    expdir=exp/${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
         expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
@@ -221,7 +223,7 @@ if [ -z ${tag} ];then
     if [ ${postnet_layers} -gt 0 ];then
         expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
     fi
-    expdir=${expdir}_att${adim}-${aconv_filts}x${aconv_chans}
+    expdir=${expdir}_${atype}${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
         expdir=${expdir}_cm
     fi
@@ -272,6 +274,7 @@ if [ ${stage} -le 4 ];then
            --postnet_layers ${postnet_layers} \
            --postnet_chans ${postnet_chans} \
            --postnet_filts ${postnet_filts} \
+           --atype ${atype} \
            --adim ${adim} \
            --aconv-chans ${aconv_chans} \
            --aconv-filts ${aconv_filts} \
@@ -286,6 +289,7 @@ if [ ${stage} -le 4 ];then
            --eps ${eps} \
            --dropout ${dropout} \
            --zoneout ${zoneout} \
+           --reduction_factor ${reduction_factor} \
            --weight-decay ${weight_decay} \
            --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \
