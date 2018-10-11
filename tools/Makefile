@@ -3,7 +3,7 @@ KALDI =
 
 .PHONY: all clean
 
-all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
+all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses nara_wpe
 
 all_python: virtualenv chainer_patch warp-ctc chainer_ctc
 
@@ -49,6 +49,10 @@ chainer_ctc: virtualenv
 	. venv/bin/activate; pip install cython
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
 	. venv/bin/activate; cd chainer_ctc && pip install .
+
+nara_wpe: virtualenv
+	. venv/bin/activate; pip install nara_wpe
+	. venv/bin/activate; pip install soundfile
 
 sentencepiece:
 	git clone https://github.com/google/sentencepiece.git

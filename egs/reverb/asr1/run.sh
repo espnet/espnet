@@ -91,16 +91,20 @@ set -o pipefail
 
 train_set=tr_simu_8ch_si284
 train_dev=dt_mult_1ch
-recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch"
+recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch dt_real_2ch_beamformit dt_simu_2ch_beamformit et_real_2ch_beamformit et_simu_2ch_beamformit dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    wavdir=$PWD/wav # set the directory of the multi-condition training WAV files to be generated
+    wavdir=${PWD}/wav # set the directory of the multi-condition training WAV files to be generated
     echo "stage 0: Data preparation"
     local/generate_data.sh --wavdir ${wavdir} ${wsjcam0}
     local/prepare_simu_data.sh --wavdir ${wavdir} ${reverb} ${wsjcam0}
-    local/prepare_real_data.sh ${reverb}
+    local/prepare_real_data.sh --wavdir ${wavdir} ${reverb}
+    
+    # Run WPE and Beamformit
+    local/run_wpe.sh
+    local/run_beamform.sh ${wavdir}/WPE/
 
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
@@ -242,7 +246,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_ng${ngpu}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -334,8 +338,17 @@ if [ ${stage} -le 5 ]; then
     else
 	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}
     fi
+    echo "RESULTS - 1ch"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
 			      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
 			      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
+    echo "RESULTS - 2ch"
+    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
+			      "${expdir}/decode_*_2ch_beamformit_${decode_part_dir}/data.json" \
+			      ${dict} ${expdir}/decode_summary_2ch_beamformit_${decode_part_dir}
+    echo "RESULTS - 8ch"
+    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
+			      "${expdir}/decode_*_8ch_beamformit_${decode_part_dir}/data.json" \
+			      ${dict} ${expdir}/decode_summary_8ch_beamformit_${decode_part_dir}
     echo "Finished"
 fi
