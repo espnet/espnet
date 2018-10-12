@@ -363,8 +363,8 @@ if [ ${stage} -le 3 ]; then
     else
         feat_tr_dir=${dumpdir}/train_${adapt_lang}/delta${do_delta}
         feat_dt_dir=${dumpdir}/dev_${adapt_lang}/delta${do_delta}
-        resume=exp/${expdir}/results/snapshot.ep.${epochs}
-        expdir=${exp_dir}_adapt_${adapt_lang}
+        resume=${expdir}/results/snapshot.ep.${epochs}
+        expdir=${expdir}_adapt_${adapt_lang}
         mkdir -p ${expdir}
     fi
 
@@ -415,6 +415,9 @@ if [ ${stage} -le 3 ]; then
             train_cmd2="${train_cmd2} --predict_lang_alpha_scheduler \
                                     ${predict_lang_alpha_scheduler}"
         fi
+    fi
+    if [[ ! -z ${adapt_lang} ]]; then
+        train_cmd2="${train_cmd2} --no_restore_trainer"
     fi
     echo "train_cmd2: $train_cmd2"
     echo "expdir: $expdir"

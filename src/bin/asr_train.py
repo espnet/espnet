@@ -138,6 +138,9 @@ def main():
                         type=str, help="""The name of the language prediction
                         learning rate scaling factor. Options include 'ganin'
                         to use the logarithmic scaling of Ganin et al 2016""")
+    parser.add_argument('--no_restore_trainer',
+                        dest='restore_trainer', action='store_false',
+                        help='Restore the same training iterator used before')
     args = parser.parse_args()
 
     if args.predict_lang_alpha and args.predict_lang_alpha_scheduler:

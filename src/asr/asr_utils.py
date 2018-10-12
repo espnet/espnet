@@ -403,18 +403,23 @@ def torch_load(path, model):
     del model_state_dict
 
 
-def torch_resume(snapshot_path, trainer):
+def torch_resume(snapshot_path, trainer, restore_trainer):
     """Function to resume from snapshot for pytorch
 
     :param str snapshot_path: snapshot file path
     :param instance trainer: chainer trainer instance
+    :param bool restore_trainer: Resume training with the same chainer Trainer
+    that was used for initial model training. Set to false if adapting with a
+    different trainer.
     """
     # load snapshot
     snapshot_dict = torch.load(snapshot_path, map_location=lambda storage, loc: storage)
 
-    # restore trainer states
-    d = NpzDeserializer(snapshot_dict['trainer'])
-    d.load(trainer)
+    logging.info(restore_trainer)
+    if restore_trainer:
+        # restore trainer states
+        d = NpzDeserializer(snapshot_dict['trainer'])
+        d.load(trainer)
 
     # restore model states
     if hasattr(trainer.updater.model, "model"):
