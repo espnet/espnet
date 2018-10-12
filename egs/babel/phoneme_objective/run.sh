@@ -82,6 +82,7 @@ tag="" # tag for managing experiments.
 
 langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 401 402 403"
 recog="107 201 404 307"
+adapt_lang=""
 
 . utils/parse_options.sh || exit 1;
 
@@ -106,6 +107,12 @@ for l in ${recog}; do
 done
 recog_set=${recog_set%% }
 
+adapt_sets=""
+for l in ${recog}; do
+  adapt_sets="train_${l} dev_${l} ${adapt_sets}"
+done
+adapt_sets=${adapt_sets%% }
+
 if [ $stage -le 0 ]; then
   echo "stage 0: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --recog "${recog}" --FLP false
@@ -117,13 +124,15 @@ if [ $stage -le 0 ]; then
   #done
 
   if [[ $phoneme_objective_weight > 0.0 ]]; then
-    for x in ${train_set} ${train_dev} ${recog_set}; do
+    for x in ${train_set} ${train_dev} ${recog_set} ${adapt_sets}; do
       echo ${x}
       awk '(NR==FNR) {a[$1]=$0; next} ($1 in a){print $0}' data/${x}/text ${phoneme_ali} > data/${x}/text.phn
       # Remove stress symbols
       sed -i -r 's/_["%]//g' data/${x}/text.phn
       # Remove tonal markers
       sed -i -r 's/_T[A-Z]+//g' data/${x}/text.phn
+      # Remove Lithuanian rising and falling tones
+      sed -i -r 's/_[RF]//g' data/${x}/text.phn
       ./utils/filter_scp.pl data/${x}/text.phn data/${x}/text > data/${x}/text.tmp
       mv data/${x}/text.tmp data/${x}/text 
       ./utils/fix_data_dir.sh data/${x}
@@ -139,7 +148,7 @@ if [ $stage -le 1 ]; then
   fbankdir=fbank
   mfccdir=mfcc
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-  for x in ${train_set} ${train_dev} ${recog_set}; do
+  for x in ${train_set} ${train_dev} ${recog_set} ${adapt_sets}; do
       steps/make_mfcc_pitch_online.sh --cmd "$train_cmd" --nj 20 --mfcc-config conf/mfcc_hires.conf data/${x} exp/make_mfcc_pitch/${x} ${mfccdir}
       ./utils/fix_data_dir.sh data/${x}
 
@@ -173,12 +182,13 @@ if [ $stage -le 1 ]; then
       data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
   dump.sh --ivectors data/${train_dev}_ivectors/ivector_online.scp --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
       data/${train_dev}/feats.scp data/${train_dev}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-  for rtask in ${recog_set}; do
+  for rtask in ${recog_set} ${adapt_sets}; do
       feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
       dump.sh --ivectors data/${rtask}_ivectors/ivector_online.scp --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${rtask}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
   done
+  exit
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
@@ -190,13 +200,23 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
+    text_set=""
+    for l in ${adapt_sets}; do
+      text_set="data/${l}/text ${text_set}"
+    done
+    text_set=${text_set%% }
+    echo ${text_set}
+    # Make sure the adaptation / recog languages have their symbols included
+    mkdir -p data/${train_set}_adapt
+    cat data/${train_set}/text ${text_set} > data/${train_set}_adapt/text
+
     echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    cut -f 2- data/${train_set}_adapt/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}_adapt/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | grep -v '<unk>' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -205,7 +225,7 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    for rtask in ${recog_set}; do
+    for rtask in ${recog_set} ${adapt_sets}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
             --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
@@ -213,13 +233,20 @@ if [ ${stage} -le 2 ]; then
 
     # Phoneme Objective
     if [[ ${phoneme_objective_weight} > 0.0 ]]; then
+        text_set=""
+        for l in ${adapt_sets}; do
+          text_set="data/${l}/text.phn ${text_set}"
+        done
+        text_set=${text_set%% }
+        cat data/${train_set}/text.phn ${text_set} > data/${train_set}_adapt/text.phn
+        echo ${text_set}
         echo "<unk> 1" > ${dict}.phn
-        cut -d' ' -f2- data/${train_set}/text.phn | tr " " "\n" | sort -u |\
+        cut -d' ' -f2- data/${train_set}_adapt/text.phn | tr " " "\n" | sort -u |\
         grep -v '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}.phn
 
         mv ${feat_tr_dir}/data.json ${feat_tr_dir}/data.gph.json
         mv ${feat_dt_dir}/data.json ${feat_dt_dir}/data.gph.json
-        for rtask in ${recog_set}; do
+        for rtask in ${recog_set} ${adapt_sets}; do
             feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
             mv ${feat_recog_dir}/data.json ${feat_recog_dir}/data.gph.json
         done
@@ -250,7 +277,7 @@ if [ ${stage} -le 2 ]; then
         combine_multimodal_json.py ${feat_dt_dir}/data.json \
                                    ${feat_dt_dir}/data.{phn,gph}.json
 
-        for rtask in ${recog_set}; do
+        for rtask in ${recog_set} ${adapt_sets}; do
             feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
             ./utils/filter_scp.pl data/${rtask}/text \
                 data/${rtask}/text.phn > data/${rtask}/text.phn.filt
@@ -267,6 +294,7 @@ if [ ${stage} -le 2 ]; then
         done
 
     fi
+    exit
 fi
 
 if $use_lm; then
@@ -302,7 +330,6 @@ if $use_lm; then
           --dict ${dict}
 fi
 
-
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_phoneme-weight${phoneme_objective_weight}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
@@ -327,7 +354,21 @@ echo $@ > ${expdir}/runargs.txt # All the arguments that were supplied to the ru
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
 
-    train_cmd="${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    # If we're not adapting, then just train on the standard multilingual
+    # training set, otherwise train on the adaptation lang and resume from a
+    # multilingual model
+    if [[ -z ${adapt_lang} ]]; then
+        feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}
+        feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}
+    else
+        feat_tr_dir=${dumpdir}/train_${adapt_lang}/delta${do_delta}
+        feat_dt_dir=${dumpdir}/dev_${adapt_lang}/delta${do_delta}
+        resume=exp/${expdir}/results/snapshot.ep.${epochs}
+        expdir=${exp_dir}_adapt_${adapt_lang}
+        mkdir -p ${expdir}
+    fi
+
+    train_cmd2="${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -364,20 +405,20 @@ if [ ${stage} -le 3 ]; then
         --epochs ${epochs} \
         --phoneme_objective_weight ${phoneme_objective_weight}"
     if [[ ${phoneme_objective_layer} ]]; then
-        train_cmd="${train_cmd} --phoneme_objective_layer ${phoneme_objective_layer}"
+        train_cmd2="${train_cmd2} --phoneme_objective_layer ${phoneme_objective_layer}"
     fi
     if [[ ! -z ${predict_lang} ]]; then
-        train_cmd="${train_cmd} --predict_lang ${predict_lang}"
+        train_cmd2="${train_cmd2} --predict_lang ${predict_lang}"
         if [[ ! -z ${predict_lang_alpha} ]]; then
-            train_cmd="${train_cmd} --predict_lang_alpha ${predict_lang_alpha}"
+            train_cmd2="${train_cmd2} --predict_lang_alpha ${predict_lang_alpha}"
         elif [[ ! -z ${predict_lang_alpha_scheduler} ]]; then
-            train_cmd="${train_cmd} --predict_lang_alpha_scheduler \
+            train_cmd2="${train_cmd2} --predict_lang_alpha_scheduler \
                                     ${predict_lang_alpha_scheduler}"
         fi
     fi
-    echo "train_cmd: $train_cmd"
+    echo "train_cmd2: $train_cmd2"
     echo "expdir: $expdir"
-    ${train_cmd}
+    ${train_cmd2}
     exit
 fi
 
