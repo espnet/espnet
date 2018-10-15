@@ -146,6 +146,7 @@ def main():
     parser.add_argument('--adapt', dest='adapt', action='store_true',
                         help='Flag that language adaptation is occurring')
     args = parser.parse_args()
+    logging.info(args)
 
     if args.predict_lang_alpha and args.predict_lang_alpha_scheduler:
         # Then complain because only one of these should be set
@@ -164,6 +165,7 @@ def main():
     if args.verbose > 0:
         logging.basicConfig(
             level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        logging.getLogger().setLevel(logging.INFO)
     else:
         logging.basicConfig(
             level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
