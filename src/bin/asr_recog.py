@@ -72,6 +72,13 @@ def main():
                         help='Filename of train label data (json)')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
+    parser.add_argument("--encoder-states", action="store_true",
+                        help="Flag to request storing encoder states instead"
+                        " of full decoding")
+    parser.add_argument('--per-frame-ali', type=str, default=None,
+                        help="A file that aligns phonemes to frames")
+    parser.add_argument('--langs_file', type=str, default=None,
+                        help='Filename for the list of languages.')
     args = parser.parse_args()
     if args.lang_grapheme_constraint == "false": # I dislike this.
         args.lang_grapheme_constraint = False

@@ -469,6 +469,15 @@ class E2E(torch.nn.Module):
 
         return phn_hyp
 
+    def encode_from_feat(self, x):
+        """ Encodes given raw features. """
+        x = x[::self.subsample[0], :]
+        ilen = [x.shape[0]]
+        h = to_cuda(self, torch.from_numpy(
+            np.array(x, dtype=np.float32)))
+        h, _ = self.enc(h.unsqueeze(0), ilen)
+        return h, ilen
+
     def recognize(self, x, recog_args, char_list,
                   rnnlm=None):
         '''E2E beam search

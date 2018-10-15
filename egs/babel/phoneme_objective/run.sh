@@ -85,6 +85,8 @@ langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 4
 recog="107 201 404 307"
 adapt_lang=""
 
+per_frame_ali=/export/b14/mwiesner/JSALT/espnet/tools/kaldi_github/egs/babel/JSALT_ALI/106/data/train/text.perframe.ali.phn
+
 . utils/parse_options.sh || exit 1;
 
 # Set bash to 'debug' mode, it will exit on :
@@ -441,8 +443,6 @@ if [ ${stage} -le 4 ]; then
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
-    # Since we currently don't have phoneme transcriptions for evaluation data, just use data.gph.json
-    cp ${feat_recog_dir}/data.gph.json ${feat_recog_dir}/data.json
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
 
@@ -471,5 +471,40 @@ if [ ${stage} -le 4 ]; then
     done
     wait
     echo "Finished"
+    exit
 fi
 
+if [ ${stage} -le 5 ]; then
+    echo "stage 5: Extract encoder states for different phonemes"
+    nj=1
+
+    for rtask in ${recog_set}; do
+    (
+        decode_dir=encoder-states_${rtask}_e${recog_model}
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+
+        # split data
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+
+        #### use CPU for decoding
+        ngpu=0
+
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            asr_recog.py \
+            --ngpu ${ngpu} \
+            --backend ${backend} \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/model.${recog_model}  \
+            --model-conf ${expdir}/results/model.json  \
+            --langs_file ${langs_file} \
+            --encoder-states \
+            --per-frame-ali ${per_frame_ali} &
+        wait
+
+    ) &
+    done
+    wait
+    echo "Finished"
+    exit
+fi

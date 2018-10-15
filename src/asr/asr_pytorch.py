@@ -594,6 +594,18 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
 
+    if args.encoder_states:
+        logging.info("Storing encoder states.")
+        logging.info("per-frame-ali: {}".format(args.per_frame_ali))
+        for idx, name in enumerate(js.keys(), 1):
+            logging.info("name: {}".format(name))
+            logging.info("idx: {}".format(idx))
+            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            h, lens = e2e.encode_from_feat(feat)
+            logging.info("h.shape: {}".format(h.shape))
+            logging.info("lens: {}".format(lens))
+        return
+
     # decode each utterance
     new_js = {}
     with torch.no_grad():
