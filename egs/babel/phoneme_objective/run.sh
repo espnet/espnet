@@ -419,7 +419,7 @@ if [ ${stage} -le 3 ]; then
         fi
     fi
     if [[ ! -z ${adapt_lang} ]]; then
-        train_cmd2="${train_cmd2} --no_restore_trainer"
+        train_cmd2="${train_cmd2} --no_restore_trainer --adapt"
     fi
     echo "train_cmd2: $train_cmd2"
     echo "expdir: $expdir"

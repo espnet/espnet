@@ -118,7 +118,8 @@ class CustomUpdater(training.StandardUpdater):
     def __init__(self, model, grad_clip_threshold, train_iter,
                  optimizer, converter, device, ngpu, num_epochs,
                  predict_lang=None, predict_lang_alpha=None,
-                 predict_lang_alpha_scheduler=None):
+                 predict_lang_alpha_scheduler=None,
+                 adapt=None):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
@@ -128,6 +129,7 @@ class CustomUpdater(training.StandardUpdater):
         self.predict_lang = predict_lang
         self.predict_lang_alpha = predict_lang_alpha
         self.predict_lang_alpha_scheduler = predict_lang_alpha_scheduler
+        self.adapt = adapt
         self.num_epochs = num_epochs
 
     # The core part of the update routine can be customized by overriding.
@@ -165,6 +167,10 @@ class CustomUpdater(training.StandardUpdater):
         logging.info("epoch_detail: {}".format(self.epoch_detail))
         logging.info("is_new_epoch: {}".format(self.is_new_epoch))
         logging.info("previous_epoch_detail: {}".format(self.previous_epoch_detail))
+        if self.adapt:
+            # Then don't do language-based prediction and learning
+            logging.info("Don't do language-based prediction and learning.")
+            return
         if self.predict_lang: # Either normal prediction or adversarial
             # Now compute the lang loss (this redoes the encoding, which may be
             # slightly inefficient but should be fine for now).
@@ -434,7 +440,8 @@ def train(args):
         model, args.grad_clip, train_iter, optimizer, converter, device,
         args.ngpu, args.epochs, predict_lang=args.predict_lang,
         predict_lang_alpha=args.predict_lang_alpha,
-        predict_lang_alpha_scheduler=args.predict_lang_alpha_scheduler)
+        predict_lang_alpha_scheduler=args.predict_lang_alpha_scheduler,
+        adapt=args.adapt)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
