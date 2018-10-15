@@ -119,8 +119,13 @@ def load_inputs_and_targets(batch, phoneme_objective_weight, lang2id):
     # Gather language targets
     uttids = [b[0] for b in batch]
     uttids = [uttids[i] for i in nonzero_sorted_idx]
-    lang_ys = np.fromiter([lang2id[uttid2lang(uttid)] for uttid in uttids],
-                          dtype=np.int64)
+    try:
+        lang_ys = np.fromiter([lang2id[uttid2lang(uttid)] for uttid in uttids],
+                              dtype=np.int64)
+    except KeyError:
+        # Then the language of the utterance isn't in our list of languages. In
+        # which case language prediction shouldn't be part for training.
+        lang_ys = None
     logging.info("lang_ys: {}".format(lang_ys))
 
     return xs, grapheme_ys, phoneme_ys, lang_ys

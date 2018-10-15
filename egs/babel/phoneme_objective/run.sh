@@ -51,6 +51,7 @@ phoneme_objective_layer=""
 predict_lang=""
 predict_lang_alpha= #If you want to specify a fixed learning rate scaling factor
 predict_lang_alpha_scheduler=ganin # To use a scheduler from a publication.
+langs_file=langs_list.txt
 
 # label smoothing
 lsm_type=unigram
@@ -403,7 +404,8 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --phoneme_objective_weight ${phoneme_objective_weight}"
+        --phoneme_objective_weight ${phoneme_objective_weight} \
+        --langs_file ${langs_file}"
     if [[ ${phoneme_objective_layer} ]]; then
         train_cmd2="${train_cmd2} --phoneme_objective_layer ${phoneme_objective_layer}"
     fi

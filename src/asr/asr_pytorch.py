@@ -246,8 +246,9 @@ class CustomConverter(object):
         else:
             phoneme_ys_pad = None
 
-
-        lang_ys = torch.from_numpy(lang_ys).long().to(device)
+        # lang_ys may be None if we don't want to train language prediction.
+        if lang_ys:
+            lang_ys = torch.from_numpy(lang_ys).long().to(device)
 
         return xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad, lang_ys
 
@@ -324,7 +325,16 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
-    langs = extract_langs(train_json)
+    #langs = extract_langs(train_json)
+    #langs = langs.union(set(range(20)))
+    if args.langs_file:
+        langs = set()
+        with open(args.langs_file) as f:
+            for line in f:
+                langs.add(unicode(line.strip()))
+        logging.error(langs)
+    else:
+        langs = None
 
     utts = list(valid_json.keys())
     idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
@@ -528,10 +538,11 @@ def recog(args):
 
     # read training json data just so we can extract the list of langs used in
     # language ID prediction
-    if args.train_json:
-        with open(args.train_json, 'rb') as f:
-            train_json = json.load(f)['utts']
-        langs = extract_langs(train_json)
+    if args.langs_file:
+        langs = set()
+        with open(args.langs_file) as f:
+            for line in f:
+                langs.add(line.strip())
     else:
         langs = None
 

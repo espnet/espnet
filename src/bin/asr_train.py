@@ -141,6 +141,10 @@ def main():
     parser.add_argument('--no_restore_trainer',
                         dest='restore_trainer', action='store_false',
                         help='Restore the same training iterator used before')
+    parser.add_argument('--langs_file', type=str, default=None,
+                        help='Filename for the list of languages.')
+    parser.add_argument('--adapt', dest='adapt', action='store_true',
+                        help='Flag that language adaptation is occurring')
     args = parser.parse_args()
 
     if args.predict_lang_alpha and args.predict_lang_alpha_scheduler:
