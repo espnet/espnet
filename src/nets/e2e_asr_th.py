@@ -472,10 +472,16 @@ class E2E(torch.nn.Module):
     def encode_from_feat(self, x):
         """ Encodes given raw features. """
         x = x[::self.subsample[0], :]
+        logging.info("subsample x.shape: {}".format(x.shape))
         ilen = [x.shape[0]]
         h = to_cuda(self, torch.from_numpy(
             np.array(x, dtype=np.float32)))
         h, _ = self.enc(h.unsqueeze(0), ilen)
+        if self.phoneme_objective_layer:
+            if self.etype == "blstmp":
+                return self.enc.enc1.phoneme_layer_hpad, None
+            elif self.etype == "vggblstmp":
+                return self.enc.enc2.phoneme_layer_hpad, None
         return h, ilen
 
     def recognize(self, x, recog_args, char_list,

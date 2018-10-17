@@ -85,7 +85,7 @@ langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 4
 recog="107 201 404 307"
 adapt_lang=""
 
-per_frame_ali=/export/b14/mwiesner/JSALT/espnet/tools/kaldi_github/egs/babel/JSALT_ALI/106/data/train/text.perframe.ali.phn
+per_frame_ali=per-frame-ali/text.106.perframe.ali.phn.dont_worry_be_happy
 
 . utils/parse_options.sh || exit 1;
 
@@ -477,11 +477,12 @@ fi
 if [ ${stage} -le 5 ]; then
     echo "stage 5: Extract encoder states for different phonemes"
     nj=1
+    langs=train
 
-    for rtask in ${recog_set}; do
+    for rtask in ${langs}; do
     (
         decode_dir=encoder-states_${rtask}_e${recog_model}
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/train/delta${do_delta}
 
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 

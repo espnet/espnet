@@ -5,6 +5,7 @@
 
 
 import copy
+from collections import defaultdict
 import json
 import logging
 import math
@@ -597,13 +598,50 @@ def recog(args):
     if args.encoder_states:
         logging.info("Storing encoder states.")
         logging.info("per-frame-ali: {}".format(args.per_frame_ali))
+        per_frame_phns = dict()
+        with open(args.per_frame_ali) as f:
+            for line in f:
+                sp = line.split()
+                name = sp[0]
+                phns = sp[1:]
+                per_frame_phns[unicode(name)] = phns
+
+        NUM_ENCODER_STATES = 500
+        target_phns = ["a", "i", "o", "6",]# "u", "@", "E",]
+        target_langs = ["102", "103", "104", "204"]
+        encoder_states = defaultdict(list)
+        uttids = defaultdict(list)
         for idx, name in enumerate(js.keys(), 1):
-            logging.info("name: {}".format(name))
-            logging.info("idx: {}".format(idx))
-            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-            h, lens = e2e.encode_from_feat(feat)
-            logging.info("h.shape: {}".format(h.shape))
-            logging.info("lens: {}".format(lens))
+            lang = name.split("_")[0]
+            uttids[lang].append(name)
+        for lang in target_langs:
+            write_enc_states(lang, targett_phns,
+                             js, uttids, per_frame_phns,
+                             num_encoder_states=500)
+
+                """
+                for i, phn in enumerate(per_frame_phns[name]):
+                    h_i = int(i/len(per_frame_phns[name]))
+                    if phn == "a" and len(a_encoder_states) < NUM_ENCODER_STATES:
+                        logging.info("vec shape {}".format(h[0,h_i,:].shape))
+                        a_encoder_states.append(h[0,h_i,:].detach().numpy())
+                        print("len(a_encoder_states): {}".format(len(a_encoder_states)))
+                        #print("len(a_encoder_states[i]): {}".format(len(a_encoder_states[i])))
+                    elif phn == "i" and len(i_encoder_states) < NUM_ENCODER_STATES:
+                        i_encoder_states.append(h[0,h_i,:].detach().numpy())
+                        print("len(i_encoder_states): {}".format(len(i_encoder_states)))
+                        #print("len(i_encoder_states[i]): {}".format(len(i_encoder_states[i])))
+                    if (len(a_encoder_states) == NUM_ENCODER_STATES and
+                        len(i_encoder_states) == NUM_ENCODER_STATES):
+                        a_array = np.array(a_encoder_states).T
+                        print("a_array.shape: {}".format(a_array.shape))
+                        i_array = np.array(i_encoder_states).T
+                        print("i_array.shape: {}".format(i_array.shape))
+                        np.save("a_encoder_states", a_array)
+                        np.save("i_encoder_states", i_array)
+                        return
+                """
+
         return
 
     # decode each utterance
@@ -648,3 +686,56 @@ def recog(args):
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True, ensure_ascii=False).encode('utf_8'))
+
+
+def write_enc_states(lang, tgt_phns,
+                     js, uttids, per_frame_phns,
+                     num_encoder_states=500):
+    """ Writes the encoder states for a given language and phoneme. """
+
+    encoder_states = defaultdict(list)
+    for name in uttids[lang]:
+        if name in per_frame_phns:
+            logging.info("name: {}".format(name))
+            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            logging.info("feat.shape: {}".format(feat.shape))
+            logging.info("e2e.subsample: {}".format(e2e.subsample))
+            h, lens = e2e.encode_from_feat(feat)
+            logging.info("h.shape: {}".format(h.shape))
+            logging.info("lens: {}".format(lens))
+            logging.info("per_frame_phns: {}".format(
+                         per_frame_phns[name]))
+            logging.info("len(per_frame_phns): {}".format(
+                         len(per_frame_phns[name])))
+
+            i = 0
+            phns = per_frame_phns[name]
+            while i < len(phns):
+                if phns[i] in target_phns:
+                    tgt = phns[i]
+                    start = i
+                    while i < len(phns) and phns[i] == tgt:
+                        i += 1
+                    end = i - 1
+                    # Midpoint between when the phoneme starts and ends.
+                    mid = int((start + end)/2)
+                    # Turn that midpoint into an index in the encoder
+                    # states by scaling by the length of phonemes.
+                    h_i = int((mid/float(len(phns)))*h.shape[1])
+                    if len(encoder_states[tgt]) < num_encoder_states:
+                        encoder_states[tgt].append(h[0,h_i,:].detach().numpy())
+                i += 1
+
+            done = True
+            for tgt in encoder_states:
+                if len(encoder_states[tgt]) != num_encoder_states:
+                    logging.info("len(encoder_states[{}]): {}".format(tgt,
+                            len(encoder_states[tgt])))
+                    done = False
+            if done:
+                for tgt in encoder_states:
+                    #encoder_states[tgt] = np.array(encoder_states[tgt]).T
+                    logging.info("writing
+                    encoder_states/{}_alpha{}beta{}_{}_encoder_states.npy".format(lang, train_args.mtlalpha, train_args.phoneme_objective_weight, tgt))
+                    np.save("encoder_states/{}_alpha{}beta{}_{}_encoder_states".format(lang, train_args.mtlalpha, train_args.phoneme_objective_weight, tgt), np.array(encoder_states[tgt]))
+                return
