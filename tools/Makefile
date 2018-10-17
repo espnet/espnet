@@ -51,7 +51,7 @@ chainer_ctc: virtualenv
 	. venv/bin/activate; cd chainer_ctc && pip install .
 
 nara_wpe: virtualenv
-	. venv/bin/activate; pip install nara_wpe
+	. venv/bin/activate; pip install git+https://github.com/fgnt/nara_wpe.git
 	. venv/bin/activate; pip install soundfile
 
 sentencepiece:
