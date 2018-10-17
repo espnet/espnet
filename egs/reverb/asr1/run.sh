@@ -91,7 +91,7 @@ set -o pipefail
 
 train_set=tr_simu_8ch_si284
 train_dev=dt_mult_1ch
-recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch dt_real_2ch_beamformit dt_simu_2ch_beamformit et_real_2ch_beamformit et_simu_2ch_beamformit dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit"
+recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch dt_real_2ch_beamformit dt_simu_2ch_beamformit et_real_2ch_beamformit et_simu_2ch_beamformit dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe dt_real_2ch_wpe dt_simu_2ch_wpe et_real_2ch_wpe et_simu_2ch_wpe dt_real_8ch_wpe dt_simu_8ch_wpe et_real_8ch_wpe et_simu_8ch_wpe"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
@@ -295,7 +295,11 @@ if [ ${stage} -le 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        if [ $use_wordlm = true ]; then
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_wordrnnlm${lm_weight}_${lmtag}
+        else
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        fi
         if [ $use_wordlm = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
@@ -334,19 +338,31 @@ if [ ${stage} -le 5 ]; then
     echo "Report the result"
     decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
     if [ $use_wordlm = true ]; then
-	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}
+	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}_${lmtag}
     else
-	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}
+	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}_${lmtag}
     fi
-    echo "RESULTS - 1ch"
+    echo "RESULTS - 1ch - No Front End"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
 			      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
 			      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
-    echo "RESULTS - 2ch"
+    echo "RESULTS - 1ch - WPE"
+    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
+			      "${expdir}/decode_*_1ch_wpe_${decode_part_dir}/data.json" \
+			      ${dict} ${expdir}/decode_summary_1ch_wpe_${decode_part_dir}
+    echo "RESULTS - 2ch - WPE"
+    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
+			      "${expdir}/decode_*_2ch_wpe_${decode_part_dir}/data.json" \
+			      ${dict} ${expdir}/decode_summary_2ch_wpe_${decode_part_dir}
+    echo "RESULTS - 2ch - WPE+BeamformIt"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
 			      "${expdir}/decode_*_2ch_beamformit_${decode_part_dir}/data.json" \
 			      ${dict} ${expdir}/decode_summary_2ch_beamformit_${decode_part_dir}
-    echo "RESULTS - 8ch"
+    echo "RESULTS - 8ch - WPE"
+    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
+			      "${expdir}/decode_*_8ch_wpe_${decode_part_dir}/data.json" \
+			      ${dict} ${expdir}/decode_summary_8ch_wpe_${decode_part_dir}
+    echo "RESULTS - 8ch - WPE+BeamformIt"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
 			      "${expdir}/decode_*_8ch_beamformit_${decode_part_dir}/data.json" \
 			      ${dict} ${expdir}/decode_summary_8ch_beamformit_${decode_part_dir}
