@@ -631,7 +631,7 @@ def recog(args):
                              js, uttids, per_frame_phns, e2e, train_args,
                              num_encoder_states=NUM_ENCODER_STATES)
 
-    return
+        return
 
     # decode each utterance
     new_js = {}
