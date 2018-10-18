@@ -354,22 +354,22 @@ mkdir -p ${expdir}
 cp ./run.sh ${expdir} # Copy this run script to the exp dir so we know exactly what was run
 echo $@ > ${expdir}/runargs.txt # All the arguments that were supplied to the run script.
 
+# If we're not adapting, then just train on the standard multilingual
+# training set, otherwise train on the adaptation lang and resume from a
+# multilingual model
+if [[ -z ${adapt_lang} ]]; then
+    feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}
+    feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}
+else
+    feat_tr_dir=${dumpdir}/train_${adapt_lang}/delta${do_delta}
+    feat_dt_dir=${dumpdir}/dev_${adapt_lang}/delta${do_delta}
+    resume=${expdir}/results/snapshot.ep.${epochs}
+    expdir=${expdir}_adapt_${adapt_lang}
+    mkdir -p ${expdir}
+fi
+
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
-
-    # If we're not adapting, then just train on the standard multilingual
-    # training set, otherwise train on the adaptation lang and resume from a
-    # multilingual model
-    if [[ -z ${adapt_lang} ]]; then
-        feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}
-        feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}
-    else
-        feat_tr_dir=${dumpdir}/train_${adapt_lang}/delta${do_delta}
-        feat_dt_dir=${dumpdir}/dev_${adapt_lang}/delta${do_delta}
-        resume=${expdir}/results/snapshot.ep.${epochs}
-        expdir=${expdir}_adapt_${adapt_lang}
-        mkdir -p ${expdir}
-    fi
 
     train_cmd2="${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -438,7 +438,12 @@ if [ ${stage} -le 4 ]; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
     fi
 
-    for rtask in ${recog_set}; do
+    recog_tasks=${recog_set}
+    if [[ ${adapt_lang} ]]; then
+        recog_tasks="eval_${adapt_lang}"
+    fi
+
+    for rtask in ${recog_tasks}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
@@ -456,12 +461,13 @@ if [ ${stage} -le 4 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/model.${recog_model}  \
-            --model-conf ${expdir}/results/model.conf  \
+            --model-conf ${expdir}/results/model.json  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --ctc-weight ${ctc_weight} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
+            --langs_file ${langs_file} \
             ${extra_opts} &
         wait
 
