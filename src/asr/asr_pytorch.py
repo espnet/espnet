@@ -222,8 +222,12 @@ class CustomConverter(object):
         self.phoneme_objective_weight = phoneme_objective_weight
         self.subsamping_factor = subsamping_factor
         self.langs = langs
-        self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
-        self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
+        if self.langs:
+            self.lang2id = {lang: id_ for id_, lang in enumerate(self.langs)}
+            self.id2lang = {id_: lang for id_, lang in enumerate(self.langs)}
+        else:
+            self.lang2id = None
+            self.id2lang = None
 
     def transform(self, item):
         return load_inputs_and_targets(

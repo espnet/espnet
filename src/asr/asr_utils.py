@@ -122,9 +122,15 @@ def load_inputs_and_targets(batch, phoneme_objective_weight, lang2id):
     try:
         lang_ys = np.fromiter([lang2id[uttid2lang(uttid)] for uttid in uttids],
                               dtype=np.int64)
+    except TypeError:
+        # Then the language of the utterance isn't in our list of languages, or
+        # we don't even have a list of languages. In which case language
+        # prediction shouldn't be part for training.
+        lang_ys = None
     except KeyError:
-        # Then the language of the utterance isn't in our list of languages. In
-        # which case language prediction shouldn't be part for training.
+        # Then the language of the utterance isn't in our list of languages, or
+        # we don't even have a list of languages. In which case language
+        # prediction shouldn't be part for training.
         lang_ys = None
     logging.info("lang_ys: {}".format(lang_ys))
 
