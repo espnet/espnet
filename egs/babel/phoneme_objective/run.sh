@@ -85,7 +85,7 @@ langs="101 102 103 104 105 106 202 203 204 205 206 207 301 302 303 304 305 306 4
 recog="107 201 404 307"
 adapt_lang=""
 
-per_frame_ali=per-frame-ali/text.106.perframe.ali.phn.dont_worry_be_happy
+per_frame_ali=per-frame-ali/text.perframe.ali.phn
 
 . utils/parse_options.sh || exit 1;
 

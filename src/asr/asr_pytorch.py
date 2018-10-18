@@ -606,43 +606,28 @@ def recog(args):
                 phns = sp[1:]
                 per_frame_phns[unicode(name)] = phns
 
-        NUM_ENCODER_STATES = 500
-        target_phns = ["a", "i", "o", "6",]# "u", "@", "E",]
-        target_langs = ["102", "103", "104", "204"]
+        phn_units_path=("/export/b13/oadams/espnet-merge/egs/babel/"
+                       "phoneme_objective/data/lang_1char/train_units.txt.phn")
+        phn_units = []
+        with open(phn_units_path, "r") as f:
+            for line in f:
+                phn_units.append(line.split()[0])
+
+        NUM_ENCODER_STATES = None
+        #target_phns = ["a", "i", "o", "6",]# "u", "@", "E",]
+        target_phns = phn_units
+        target_langs = ["102", "103", "104", "105", "106", "204", "206", "207"]
         encoder_states = defaultdict(list)
         uttids = defaultdict(list)
         for idx, name in enumerate(js.keys(), 1):
             lang = name.split("_")[0]
             uttids[lang].append(name)
         for lang in target_langs:
-            write_enc_states(lang, targett_phns,
-                             js, uttids, per_frame_phns,
-                             num_encoder_states=500)
+            write_enc_states(lang, target_phns,
+                             js, uttids, per_frame_phns, e2e, train_args,
+                             num_encoder_states=NUM_ENCODER_STATES)
 
-                """
-                for i, phn in enumerate(per_frame_phns[name]):
-                    h_i = int(i/len(per_frame_phns[name]))
-                    if phn == "a" and len(a_encoder_states) < NUM_ENCODER_STATES:
-                        logging.info("vec shape {}".format(h[0,h_i,:].shape))
-                        a_encoder_states.append(h[0,h_i,:].detach().numpy())
-                        print("len(a_encoder_states): {}".format(len(a_encoder_states)))
-                        #print("len(a_encoder_states[i]): {}".format(len(a_encoder_states[i])))
-                    elif phn == "i" and len(i_encoder_states) < NUM_ENCODER_STATES:
-                        i_encoder_states.append(h[0,h_i,:].detach().numpy())
-                        print("len(i_encoder_states): {}".format(len(i_encoder_states)))
-                        #print("len(i_encoder_states[i]): {}".format(len(i_encoder_states[i])))
-                    if (len(a_encoder_states) == NUM_ENCODER_STATES and
-                        len(i_encoder_states) == NUM_ENCODER_STATES):
-                        a_array = np.array(a_encoder_states).T
-                        print("a_array.shape: {}".format(a_array.shape))
-                        i_array = np.array(i_encoder_states).T
-                        print("i_array.shape: {}".format(i_array.shape))
-                        np.save("a_encoder_states", a_array)
-                        np.save("i_encoder_states", i_array)
-                        return
-                """
-
-        return
+    return
 
     # decode each utterance
     new_js = {}
@@ -689,10 +674,11 @@ def recog(args):
 
 
 def write_enc_states(lang, tgt_phns,
-                     js, uttids, per_frame_phns,
+                     js, uttids, per_frame_phns, e2e, train_args,
                      num_encoder_states=500):
     """ Writes the encoder states for a given language and phoneme. """
 
+    logging.info("target_phns: {}".format(tgt_phns))
     encoder_states = defaultdict(list)
     for name in uttids[lang]:
         if name in per_frame_phns:
@@ -711,7 +697,7 @@ def write_enc_states(lang, tgt_phns,
             i = 0
             phns = per_frame_phns[name]
             while i < len(phns):
-                if phns[i] in target_phns:
+                if phns[i] in tgt_phns:
                     tgt = phns[i]
                     start = i
                     while i < len(phns) and phns[i] == tgt:
@@ -722,20 +708,32 @@ def write_enc_states(lang, tgt_phns,
                     # Turn that midpoint into an index in the encoder
                     # states by scaling by the length of phonemes.
                     h_i = int((mid/float(len(phns)))*h.shape[1])
-                    if len(encoder_states[tgt]) < num_encoder_states:
+                    if num_encoder_states:
+                        if len(encoder_states[tgt]) < num_encoder_states:
+                            encoder_states[tgt].append(h[0,h_i,:].detach().numpy())
+                    else:
                         encoder_states[tgt].append(h[0,h_i,:].detach().numpy())
                 i += 1
 
             done = True
             for tgt in encoder_states:
-                if len(encoder_states[tgt]) != num_encoder_states:
-                    logging.info("len(encoder_states[{}]): {}".format(tgt,
-                            len(encoder_states[tgt])))
-                    done = False
+                logging.info("len(encoder_states[{}]): {}".format(
+                             tgt, len(encoder_states[tgt])))
+                if num_encoder_states:
+                    if len(encoder_states[tgt]) != num_encoder_states:
+                        done = False
+                # If num_encoder_states is set to None, then done=True, then we just keep
+                # writing our matrix out for each utter.
             if done:
                 for tgt in encoder_states:
                     #encoder_states[tgt] = np.array(encoder_states[tgt]).T
-                    logging.info("writing
-                    encoder_states/{}_alpha{}beta{}_{}_encoder_states.npy".format(lang, train_args.mtlalpha, train_args.phoneme_objective_weight, tgt))
-                    np.save("encoder_states/{}_alpha{}beta{}_{}_encoder_states".format(lang, train_args.mtlalpha, train_args.phoneme_objective_weight, tgt), np.array(encoder_states[tgt]))
-                return
+                    logging.info("writing encoder_states/{}_alpha{}beta{}_predict-lang-{}_phn-{}_num{}_encoder_states.npy".format(lang,
+                    train_args.mtlalpha, train_args.phoneme_objective_weight,
+                    train_args.predict_lang,
+                    tgt, num_encoder_states))
+                    np.save("encoder_states/{}_alpha{}beta{}_predict-lang-{}_phn-{}_num{}_encoder_states".format(lang,
+                    train_args.mtlalpha, train_args.phoneme_objective_weight,
+                    train_args.predict_lang,
+                    tgt, num_encoder_states), np.array(encoder_states[tgt]))
+                if num_encoder_states:
+                    return
