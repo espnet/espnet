@@ -483,12 +483,12 @@ fi
 if [ ${stage} -le 5 ]; then
     echo "stage 5: Extract encoder states for different phonemes"
     nj=1
-    langs=train
+    langs=dev
 
     for rtask in ${langs}; do
     (
         decode_dir=encoder-states_${rtask}_e${recog_model}
-        feat_recog_dir=${dumpdir}/train/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 

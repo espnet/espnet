@@ -735,7 +735,7 @@ def write_enc_states(lang, tgt_phns,
                     train_args.mtlalpha, train_args.phoneme_objective_weight,
                     train_args.predict_lang,
                     tgt, num_encoder_states))
-                    np.save("encoder_states/{}_alpha{}beta{}_predict-lang-{}_phn-{}_num{}_encoder_states".format(lang,
+                    np.save("dev_encoder_states/{}_alpha{}beta{}_predict-lang-{}_phn-{}_num{}_encoder_states".format(lang,
                     train_args.mtlalpha, train_args.phoneme_objective_weight,
                     train_args.predict_lang,
                     tgt, num_encoder_states), np.array(encoder_states[tgt]))
