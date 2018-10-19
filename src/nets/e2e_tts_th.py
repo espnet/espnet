@@ -142,6 +142,7 @@ class Tacotron2Loss(torch.nn.Module):
             olens = [olen - olen % self.reduction_factor for olen in olens]
             ys = ys[:, :max(olens)]
             labels = labels[:, :max(olens)]
+            spcs = spcs[:, :max(olens)] if spcs is not None else None
 
         # prepare weight of positive samples in cross entorpy
         if self.bce_pos_weight != 1.0:
@@ -377,6 +378,8 @@ class Tacotron2(torch.nn.Module):
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
 
         if self.use_cbhg:
+            if self.reduction_factor > 1:
+                olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             cbhg_outs, _ = self.cbhg(after_outs, olens)
             return cbhg_outs, after_outs, before_outs, logits
         else:
