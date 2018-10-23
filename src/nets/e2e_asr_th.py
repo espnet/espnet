@@ -456,7 +456,12 @@ class E2E(torch.nn.Module):
         # 2. calculate log P(z_t|X) for CTC scores
         if self.phoneme_objective_layer:
             # Then use the appropriate layer
-            phn_log_softmax = self.phn_ctc.log_softmax(self.enc.enc1.phoneme_layer_hpad).data[0]
+            if self.etype == "blstmp":
+                phn_log_softmax = self.phn_ctc.log_softmax(self.enc.enc1.phoneme_layer_hpad).data[0]
+            elif self.etype == "vggblstmp":
+                phn_log_softmax = self.phn_ctc.log_softmax(self.enc.enc2.phoneme_layer_hpad).data[0]
+            else:
+                assert False
         else:
             phn_log_softmax = self.phn_ctc.log_softmax(h).data[0]
         logging.info("phn_log_softmax.shape {}".format(phn_log_softmax.shape))

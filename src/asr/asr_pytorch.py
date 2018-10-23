@@ -202,6 +202,9 @@ class CustomUpdater(training.StandardUpdater):
                 if lambda_ != 0.0:
                     # Then it's adversarial and we should reverse gradients
                     for name, parameter in self.model.named_parameters():
+                        logging.info("lambda_: {}".format(lambda_))
+                        logging.info("name, parameter: {}".format(name, parameter))
+                        logging.info("parameter.grad: {}".format(parameter.grad))
                         parameter.grad *= -1 * lambda_
 
                     # But reverse the lang_linear gradients again so that
@@ -258,7 +261,7 @@ class CustomConverter(object):
             phoneme_ys_pad = None
 
         # lang_ys may be None if we don't want to train language prediction.
-        if lang_ys:
+        if lang_ys is not None:
             lang_ys = torch.from_numpy(lang_ys).long().to(device)
 
         return xs_pad, ilens, grapheme_ys_pad, phoneme_ys_pad, lang_ys
@@ -731,13 +734,13 @@ def write_enc_states(lang, tgt_phns,
             if done:
                 for tgt in encoder_states:
                     #encoder_states[tgt] = np.array(encoder_states[tgt]).T
-                    logging.info("writing encoder_states/{}_alpha{}beta{}_predict-lang-{}_phn-{}_num{}_encoder_states.npy".format(lang,
+                    logging.info("writing encoder_states/{}_alpha{}beta{}_predict-lang-{}-{}_phn-{}_num{}_encoder_states.npy".format(lang,
                     train_args.mtlalpha, train_args.phoneme_objective_weight,
-                    train_args.predict_lang,
+                    train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
                     tgt, num_encoder_states))
-                    np.save("dev_encoder_states/{}_alpha{}beta{}_predict-lang-{}_phn-{}_num{}_encoder_states".format(lang,
+                    np.save("dev_encoder_states/{}_alpha{}beta{}_predict-lang-{}-{}_phn-{}_num{}_encoder_states".format(lang,
                     train_args.mtlalpha, train_args.phoneme_objective_weight,
-                    train_args.predict_lang,
+                    train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
                     tgt, num_encoder_states), np.array(encoder_states[tgt]))
                 if num_encoder_states:
                     return

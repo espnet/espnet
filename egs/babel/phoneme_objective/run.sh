@@ -445,7 +445,11 @@ if [ ${stage} -le 4 ]; then
 
     for rtask in ${recog_tasks}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        if $use_lm; then
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_lmexpdir-${lmexpdir}_lmweight-${lm_weight}
+        else
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -468,10 +472,12 @@ if [ ${stage} -le 4 ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --langs_file ${langs_file} \
+            --phoneme-dict data/lang_1char/train_units.txt.phn \
             ${extra_opts} &
         wait
 
-        score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} grapheme[1]
+        #score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}.phn phn
 
     ) &
     done
