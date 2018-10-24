@@ -8,9 +8,9 @@ import torch
 
 from argparse import Namespace
 
-from e2e_asr_th import pad_list
-from e2e_tts_th import Tacotron2
-from e2e_tts_th import Tacotron2Loss
+from espnet.nets.e2e_asr_th import pad_list
+from espnet.nets.e2e_tts_th import Tacotron2
+from espnet.nets.e2e_tts_th import Tacotron2Loss
 
 
 def make_model_args(**kwargs):
@@ -78,10 +78,9 @@ def make_inference_args(**kwargs):
 
 
 def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
-                   spk_embed_dim=None, spc_dim=None,
-                   minin_len=1, minout_len=3):
-    ilens = np.sort(np.random.randint(minin_len, maxin_len, bs))[::-1].tolist()
-    olens = np.sort(np.random.randint(minout_len, maxout_len, bs))[::-1].tolist()
+                   spk_embed_dim=None, spc_dim=None):
+    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
+    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
     ilens = torch.LongTensor(ilens)
     olens = torch.LongTensor(olens)
     xs = [np.random.randint(0, idim, l) for l in ilens]
@@ -123,7 +122,6 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
         ({"reduction_factor": 3}, {}),
         ({"use_speaker_embedding": True}, {}),
         ({"use_cbhg": True}, {}),
-        ({"use_cbhg": True, "reduction_factor": 3}, {}),
     ])
 def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     # make args

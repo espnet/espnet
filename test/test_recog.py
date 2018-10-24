@@ -3,9 +3,9 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import lm_pytorch
+import espnet.lm.lm_pytorch as lm_pytorch
 
-import lm_chainer
+import espnet.lm.lm_chainer as lm_chainer
 
 import argparse
 import importlib
@@ -58,10 +58,10 @@ def init_chainer_weight_const(m, val):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "e2e_asr", 0),
-    ("blstmp", "e2e_asr_th", 1),
-    ("vggblstmp", "e2e_asr", 2),
-    ("vggblstmp", "e2e_asr_th", 3),
+    ("blstmp", "espnet.nets.e2e_asr", 0),
+    ("blstmp", "espnet.nets.e2e_asr_th", 1),
+    ("vggblstmp", "espnet.nets.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.e2e_asr_th", 3),
 ])
 def test_recognition_results(etype, m_str, text_idx1):
     const = 1e-4
@@ -100,10 +100,10 @@ def test_recognition_results(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "e2e_asr", 0),
-    ("blstmp", "e2e_asr_th", 1),
-    ("vggblstmp", "e2e_asr", 2),
-    ("vggblstmp", "e2e_asr_th", 3),
+    ("blstmp", "espnet.nets.e2e_asr", 0),
+    ("blstmp", "espnet.nets.e2e_asr_th", 1),
+    ("vggblstmp", "espnet.nets.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.e2e_asr_th", 3),
 ])
 def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
