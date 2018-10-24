@@ -24,10 +24,10 @@ from chainer import reporter
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from ctc_prefix_score import CTCPrefixScore
-from e2e_asr_common import end_detect
-from e2e_asr_common import get_vgg2l_odim
-from e2e_asr_common import label_smoothing_dist
+from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet.nets.e2e_asr_common import end_detect
+from espnet.nets.e2e_asr_common import get_vgg2l_odim
+from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 
 CTC_LOSS_THRESHOLD = 10000
