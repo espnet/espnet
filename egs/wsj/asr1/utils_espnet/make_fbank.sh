@@ -69,7 +69,7 @@ done
 utils/split_scp.pl $scp $split_scps || exit 1;
 
 $cmd JOB=1:$nj $logdir/make_fbank_${name}.JOB.log \
-    compute-fbank-feats.py \
+    utils_espnet/compute-fbank-feats.py \
         --fs $fs \
         --fmax $fmax \
         --fmin $fmin \
