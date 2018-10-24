@@ -7,9 +7,9 @@ all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc
 
 all_python: virtualenv chainer_patch warp-ctc chainer_ctc
 
-kaldi-io-for-python:
+kaldi-io-for-python: virtualenv
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
-	cd ../src/utils; ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
+	cd kaldi-io-for-python; ln -s kaldi_io.py kaldi_io_py.py; cp ../setup_kaldi-io-for-python.py setup.py; pip install .
 
 ifneq ($(strip $(KALDI)),)
 kaldi:
