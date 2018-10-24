@@ -78,7 +78,7 @@ def main():
     if args.backend == "chainer":
         raise NotImplementedError
     elif args.backend == "pytorch":
-        from tts_pytorch import decode
+        from espnet.tts.tts_pytorch import decode
         decode(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")
