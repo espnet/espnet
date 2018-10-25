@@ -39,7 +39,7 @@ setup(name='espnet',
       setup_requires=['numpy', 'pytest-runner'],
       tests_require=[
         'pytest>=3.3.0',
-        'pytest-pythonpath>=0.7.1'
+        'pytest-pythonpath>=0.7.1',
         'hacking>=1.0.0',
         'mock>=2.0.0',
         'autopep8>=1.3.3'],
@@ -49,7 +49,7 @@ setup(name='espnet',
           'Programming Language :: Python :: 3',
           'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Science/Research',
-          'Operating System :: POSIX :: Linux'
+          'Operating System :: POSIX :: Linux',
           'License :: OSI Approved :: Apache Software License',
           'Topic :: Software Development :: Libraries :: Python Modules',
           ],
