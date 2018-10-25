@@ -71,7 +71,7 @@ def main():
             sys.exit(1)
 
     # display PYTHONPATH
-    logging.info('python path = ' + os.environ['PYTHONPATH'])
+    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
 
     # extract
     logging.info('backend = ' + args.backend)
