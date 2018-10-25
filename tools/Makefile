@@ -27,6 +27,7 @@ virtualenv: requirements.txt
 	test -d venv || virtualenv -p $(PYTHON) venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -r requirements.txt
+	. venv/bin/activate; pip install -e ..
 	. venv/bin/activate; pip install matplotlib
 
 chainer_patch: virtualenv
