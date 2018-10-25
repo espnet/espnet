@@ -32,8 +32,8 @@ fi
 if [ ! -z ${nlsyms} ]; then
     cp ${dir}/ref ${dir}/ref.org
     cp ${dir}/hyp ${dir}/hyp.org
-    filt.py -v $nlsyms ${dir}/ref.org > ${dir}/ref
-    filt.py -v $nlsyms ${dir}/hyp.org > ${dir}/hyp
+    utils_espnet/filt.py -v $nlsyms ${dir}/ref.org > ${dir}/ref
+    utils_espnet/filt.py -v $nlsyms ${dir}/hyp.org > ${dir}/hyp
 fi
 if [ ! -z ${filter} ]; then
     sed -i.bak3 -f ${filter} ${dir}/hyp

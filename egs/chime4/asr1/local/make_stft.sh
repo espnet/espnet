@@ -79,14 +79,14 @@ if [ -f ${data}/segments ]; then
   utils/split_scp.pl ${data}/segments ${split_segments} || exit 1;
   rm ${logdir}/.error 2>/dev/null
 
-  # compute-stft-feats.py does not support kaldi reader, and
+  # utils_espnet/compute-stft-feats.py does not support kaldi reader, and
   # we have to dump segment files
   ${cmd} JOB=1:${nj} ${logdir}/make_segment_${name}.JOB.log \
     extract-segments scp,p:${scp} ${logdir}/segments.JOB \
       ark,scp:${stftdir}/raw_segment_${name}.JOB.ark,${stftdir}/raw_segment_${name}.JOB.scp \
      || exit 1;
   ${cmd} JOB=1:${nj} ${logdir}/make_stft_${name}.JOB.log \
-    compute-stft-feats.py --config=${stft_config} ${stftdir}/raw_segment_${name}.JOB.scp ark:- \| \
+    utils_espnet/compute-stft-feats.py --config=${stft_config} ${stftdir}/raw_segment_${name}.JOB.scp ark:- \| \
     copy-feats --compress=${compress} ark:- \
       ark,scp:${stftdir}/raw_stft_${name}.JOB.ark,${stftdir}/raw_stft_${name}.JOB.scp \
      || exit 1;
@@ -105,7 +105,7 @@ else
   # utterances that have bad wave data.
 
   ${cmd} JOB=1:${nj} ${logdir}/make_stft_${name}.JOB.log \
-    compute-stft-feats.py --config=${stft_config} \
+    utils_espnet/compute-stft-feats.py --config=${stft_config} \
       ${logdir}/wav_${name}.JOB.scp ark:- \| \
       copy-feats --compress=${compress} ark:- \
       ark,scp:${stftdir}/raw_stft_${name}.JOB.ark,${stftdir}/raw_stft_${name}.JOB.scp \

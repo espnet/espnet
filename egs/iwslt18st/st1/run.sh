@@ -119,8 +119,8 @@ if [ ${stage} -le 1 ]; then
     for x in train dev2010; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_de data/${x}_de_tmp
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_en data/${x}_en_tmp
+        utils_espnet/remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_de data/${x}_de_tmp
+        utils_espnet/remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}_en data/${x}_en_tmp
 
         # Match the number of utterances between EN and DE
         # extract commocn lines
@@ -128,8 +128,8 @@ if [ ${stage} -le 1 ]; then
         cut -f -1 -d " " data/${x}_en_tmp/segments > data/${x}_de_tmp/reclist2
         comm -12 data/${x}_de_tmp/reclist1 data/${x}_de_tmp/reclist2 > data/${x}_de_tmp/reclist
 
-        reduce_data_dir.sh data/${x}_de_tmp data/${x}_de_tmp/reclist data/${x}_de_trim
-        reduce_data_dir.sh data/${x}_en_tmp data/${x}_de_tmp/reclist data/${x}_en_trim
+        utils_espnet/reduce_data_dir.sh data/${x}_de_tmp data/${x}_de_tmp/reclist data/${x}_de_trim
+        utils_espnet/reduce_data_dir.sh data/${x}_en_tmp data/${x}_de_tmp/reclist data/${x}_en_trim
         utils/fix_data_dir.sh data/${x}_de_trim
         utils/fix_data_dir.sh data/${x}_en_trim
         rm -rf data/${x}_de_tmp
@@ -150,13 +150,13 @@ if [ ${stage} -le 1 ]; then
           /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18st/asr1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
+    utils_espnet/dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}_trim/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    utils_espnet/dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}_trim/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        utils_espnet/dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
@@ -170,18 +170,18 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
     # The same dictinary between EN and DE
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train_en/text data/train_de/text | text2token.py -s 1 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+    cat data/train_en/text data/train_de/text | utils_espnet/text2token.py -s 1 -n 1 | cut -f 2- -d " " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    utils_espnet/data2json.sh --feat ${feat_tr_dir}/feats.scp \
         data/${train_set}_trim ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    utils_espnet/data2json.sh --feat ${feat_dt_dir}/feats.scp \
         data/${train_dev}_trim ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+        utils_espnet/data2json.sh --feat ${feat_recog_dir}/feats.scp \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
@@ -193,9 +193,9 @@ if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_de
     mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
+    utils_espnet/text2token.py -s 1 -n 1 data/${train_set}_trim/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 data/${train_dev}_trim/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
+    utils_espnet/text2token.py -s 1 -n 1 data/${train_dev}_trim/text | cut -f 2- -d " " | perl -pe 's/\n/ <eos> /g' \
         > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
@@ -270,7 +270,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
+        utils_espnet/splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
