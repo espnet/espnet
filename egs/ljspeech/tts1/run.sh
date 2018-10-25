@@ -111,7 +111,7 @@ if [ ${stage} -le 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+    utils_espnet/make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
         --fs ${fs} \
         --fmax "${fmax}" \
         --fmin "${fmin}" \
@@ -134,11 +134,11 @@ if [ ${stage} -le 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    utils_espnet/dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    utils_espnet/dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    utils_espnet/dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
@@ -149,16 +149,16 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    utils_espnet/text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    utils_espnet/data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    utils_espnet/data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    data2json.sh --feat ${feat_ev_dir}/feats.scp \
+    utils_espnet/data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
@@ -256,7 +256,7 @@ if [ ${stage} -le 4 ];then
     for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
-        splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
+        utils_espnet/splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
@@ -283,7 +283,7 @@ if [ ${stage} -le 5 ];then
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
             ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
-        convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
+        utils_espnet/convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} \
             --fmax "${fmax}" \
             --fmin "${fmin}" \

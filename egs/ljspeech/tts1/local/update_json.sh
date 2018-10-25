@@ -36,7 +36,7 @@ feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp
 rm -f ${tmpdir}/*.json
 for x in ${tmpdir}/feat.scp ${tmpdir}/idim.scp ${tmpdir}/ilen.scp; do
     k=`basename ${x} .scp`
-    cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
+    cat ${x} | utils_espnet/scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done
 
 # add to json
