@@ -4,31 +4,27 @@ cache:
   - pip
   - ccache
 
-os: linux
-      
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
     packages:
+      - cmake
+      - python-dev
+      - python3-dev
       - g++-7
 
-matrix:
-  include:
-    - env:
-        - USE_CONDA=false
-        - ESPNET_PYTHON_VERSION=2.7
-    - env:
-        - USE_CONDA=true
-        - ESPNET_PYTHON_VERSION=2.7
-    - env:
-        - USE_CONDA=true
-        - ESPNET_PYTHON_VERSION=3.7
+env:
+  global:
+    - CC=gcc-7
+    - CXX=g++-7
+    - TH_VERSION=0.4.1
+  matrix:
+    - USE_CONDA=false ESPNET_PYTHON_VERSION=2.7
+    - USE_CONDA=true ESPNET_PYTHON_VERSION=2.7
+    - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7
 
 install:
-  - export CC=gcc-7
-  - export CXX=g++-7
-  - export TH_VERSION=0.4.1
   - if [[ ${USE_CONDA} == false ]]; then
         pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
     else
@@ -74,9 +70,3 @@ sudo: false
 after_success:
     - travis-sphinx deploy
 
-addons:
-  apt:
-    packages:
-      - cmake
-      - python-dev
-      - python3-dev
