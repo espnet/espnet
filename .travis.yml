@@ -37,14 +37,18 @@ install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
         pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
     else
-        # see https://conda.io/docs/user-guide/tasks/use-conda-with-travis-ci.html
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-        bash miniconda.sh -b -p $HOME/miniconda;
-        export PATH="$HOME/miniconda/bin:$PATH";
-        hash -r;
-        conda config --set always_yes yes --set changeps1 no;
-        conda update -q conda;
+        cd tools;
+        make -f conda.mk PYTHON_VERSION=3 conda;
+        export PATH=`pwd`/venv/bin:$PATH;
         conda install pytorch-cpu=${TH_VERSION} -c pytorch;
+        cd -;
+        # see https://conda.io/docs/user-guide/tasks/use-conda-with-travis-ci.html
+#         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+#         bash miniconda.sh -b -p $HOME/miniconda;
+#         export PATH="$HOME/miniconda/bin:$PATH";
+#         hash -r;
+#         conda config --set always_yes yes --set changeps1 no;
+#         conda update -q conda;
     fi
   # install matplotlib
   - pip install matplotlib
