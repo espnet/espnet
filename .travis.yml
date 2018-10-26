@@ -4,39 +4,39 @@ cache:
   - pip
   - ccache
 
+os: linux
+      
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-7
+
+env:
+  - TH_VERSION="0.4.1"
+  - CC="gcc-7"
+  - CXX="g++-7"
+
+
 matrix:
   include:
-    - os: linux
-      python: "2.7"
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-7
-      env:
-        - TH_VERSION="0.4.1"
-        - CC="gcc-7"
-        - CXX="g++-7"
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-7
-      env:
-        - TRAVIS_PYTHON_VERSION=3.7
-        - TH_VERSION="0.4.1"
-        - CC="gcc-7"
-        - CXX="g++-7"
+    - env:
+        - USE_CONDA=false
+        - ESPNET_PYTHON_VERSION=2.7
+    - env:
+        - USE_CONDA=true
+        - ESPNET_PYTHON_VERSION=2.7
+    - env:
+        - USE_CONDA=true
+        - ESPNET_PYTHON_VERSION=3.7
 
 install:
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+  - if [[ ${USE_CONDA} == false ]]; then
         pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
     else
         cd tools;
-        make -f conda.mk PYTHON_VERSION=$TRAVIS_PYTHON_VERSION conda;
+        make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} conda;
         export PATH=`pwd`/venv/bin:$PATH;
         conda install pytorch-cpu=${TH_VERSION} -c pytorch;
         cd -;
