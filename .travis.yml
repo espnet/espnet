@@ -19,7 +19,6 @@ matrix:
         - CC="gcc-7"
         - CXX="g++-7"
     - os: linux
-      python: "3.7"
       addons:
         apt:
           sources:
@@ -35,9 +34,16 @@ install:
   - pip install -U pip wheel
   - pip install -r ./tools/test_requirements.txt
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-          pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
+        pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
     else
-          pip3 install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp36-cp36m-linux_x86_64.whl ;
+        # see https://conda.io/docs/user-guide/tasks/use-conda-with-travis-ci.html
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+        bash miniconda.sh -b -p $HOME/miniconda;
+        export PATH="$HOME/miniconda/bin:$PATH";
+        hash -r;
+        conda config --set always_yes yes --set changeps1 no;
+        conda update -q conda;
+        conda install pytorch-cpu=${TH_VERSION} -c pytorch;
     fi
   # install matplotlib
   - pip install matplotlib
