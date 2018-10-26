@@ -13,12 +13,6 @@ addons:
     packages:
       - g++-7
 
-env:
-  - TH_VERSION="0.4.1"
-  - CC="gcc-7"
-  - CXX="g++-7"
-
-
 matrix:
   include:
     - env:
@@ -32,6 +26,9 @@ matrix:
         - ESPNET_PYTHON_VERSION=3.7
 
 install:
+  - export CC=gcc-7
+  - export CXX=g++-7
+  - export TH_VERSION=0.4.1
   - if [[ ${USE_CONDA} == false ]]; then
         pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
     else
