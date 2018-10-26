@@ -19,7 +19,7 @@ matrix:
         - CC="gcc-7"
         - CXX="g++-7"
     - os: linux
-      python: "3.6"
+      python: "3.7"
       addons:
         apt:
           sources:
