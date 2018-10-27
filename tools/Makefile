@@ -27,7 +27,7 @@ virtualenv: requirements.txt
 	test -d venv || virtualenv -p $(PYTHON) venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy matplotlib
+	. venv/bin/activate; pip install cupy==4.3.0 matplotlib
 
 chainer_patch: virtualenv
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
