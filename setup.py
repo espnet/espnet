@@ -22,27 +22,27 @@ setup(name='espnet',
       packages=find_packages(include=['espnet*']),
       scripts=get_all_scripts('espnet/bin'),
       install_requires=[
-        # for some reason, including matplotlib in requirements.txt causes errors, and
-        # matplotlib should be separately pip installed
-        # 'matplotlib',
-        'scipy',
-        # Installation from anaconda is recommended for PyTorch
-        # 'torch==0.4.1',
-        'chainer==4.3.1',
-        'cupy==4.3.0',
-        'python_speech_features>=0.6',
-        'setuptools>=38.5.1',
-        'librosa>=0.6.2',
-        'soundfile>=0.10.2',
-        'inflect>=1.0.0',
-        'unidecode>=1.0.22'],
+          # for some reason, including matplotlib in requirements.txt causes errors, and
+          # matplotlib should be separately pip installed
+          # 'matplotlib',
+          'scipy',
+          # Installation from anaconda is recommended for PyTorch
+          # 'torch==0.4.1',
+          'chainer==4.3.1',
+          # 'cupy==4.3.0',
+          'python_speech_features>=0.6',
+          'setuptools>=38.5.1',
+          'librosa>=0.6.2',
+          'soundfile>=0.10.2',
+          'inflect>=1.0.0',
+          'unidecode>=1.0.22'],
       setup_requires=['numpy', 'pytest-runner'],
       tests_require=[
-        'pytest>=3.3.0',
-        'pytest-pythonpath>=0.7.1',
-        'hacking>=1.0.0',
-        'mock>=2.0.0',
-        'autopep8>=1.3.3'],
+          'No module named setuptoolspytest>=3.3.0',
+          'pytest-pythonpath>=0.7.1',
+          'hacking>=1.0.0',
+          'mock>=2.0.0',
+          'autopep8>=1.3.3'],
       classifiers=[
           'Programming Language :: Python',
           'Programming Language :: Python :: 2.7',
