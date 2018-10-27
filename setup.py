@@ -33,7 +33,7 @@ requirements = {
         'hacking>=1.0.0',
         'mock>=2.0.0',
         'autopep8>=1.3.3'],
-    'docs': [
+    'doc': [
         'Sphinx==1.7.4',
         'sphinx-rtd-tieme>=0.2.4',
         'commonmark==1.5.4',
@@ -59,7 +59,7 @@ setup(name='espnet',
       install_requires=install_requires,
       setup_requires=setup_requires,
       tests_require=tests_require,
-      extra_require=extras_require,
+      extras_require=extras_require,
       classifiers=[
           'Programming Language :: Python',
           'Programming Language :: Python :: 2.7',
