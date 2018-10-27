@@ -3,11 +3,11 @@ KALDI =
 
 .PHONY: all clean
 
-all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
+all: venv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
 
-all_python: virtualenv chainer_patch warp-ctc chainer_ctc
+all_python: venv chainer_patch warp-ctc chainer_ctc
 
-kaldi-io-for-python: virtualenv
+kaldi-io-for-python: venv
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
 	cd kaldi-io-for-python; ln -s kaldi_io.py kaldi_io_py.py; cp ../setup_kaldi-io-for-python.py setup.py; pip install .
 
@@ -23,13 +23,13 @@ endif
 
 # for some reason, including matplotlib in requirements.txt causes errors, and
 # matplotlib should be separately pip installed
-virtualenv:
-	test -d venv || virtualenv -p $(PYTHON) venv
+venv:
+	test -d venv || venv -p $(PYTHON) venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
 	. venv/bin/activate; pip install cupy==4.3.0 matplotlib
 
-chainer_patch: virtualenv
+chainer_patch: venv
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
 	. venv/bin/activate; patch $(FILENAME) < prefetch.patch
 
@@ -38,13 +38,13 @@ nkf:
 	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 
-warp-ctc: virtualenv
+warp-ctc: venv
 	git clone https://github.com/jnishi/warp-ctc.git
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 
-chainer_ctc: virtualenv
+chainer_ctc: venv
 	git clone https://github.com/jheymann85/chainer_ctc.git
 	. venv/bin/activate; pip install cython
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true

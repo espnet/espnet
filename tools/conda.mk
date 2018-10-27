@@ -21,7 +21,7 @@ conda: miniconda.sh
 	conda install python=$(PYTHON_VERSION)
 	conda info -a
 
-virtualenv: conda
+venv: conda
 	. venv/bin/activate && conda install -y numpy cupy==4.3.0 matplotlib
 	. venv/bin/activate && conda install pytorch -c pytorch
 	. venv/bin/activate && pip install -e ..
