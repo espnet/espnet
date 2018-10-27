@@ -29,9 +29,10 @@ install:
         pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
     else
         cd tools;
-        make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} conda;
+        make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv;
         export PATH=`pwd`/venv/bin:$PATH;
-        conda install pytorch-cpu=${TH_VERSION} -c pytorch;
+        conda update conda
+        conda install -y pytorch-cpu=${TH_VERSION} -c pytorch;
         cd -;
     fi
   - pip install -U pip wheel
