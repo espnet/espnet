@@ -23,7 +23,7 @@ endif
 
 # for some reason, including matplotlib in requirements.txt causes errors, and
 # matplotlib should be separately pip installed
-virtualenv: requirements.txt
+virtualenv:
 	test -d venv || virtualenv -p $(PYTHON) venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
