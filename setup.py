@@ -38,7 +38,7 @@ requirements = {
         'sphinx-rtd-theme>=0.2.4',
         'commonmark==0.5.4',
         'recommonmark>=0.4.0',
-        'travis-sphiny>=2.0.1']}
+        'travis-sphinx>=2.0.1']}
 install_requires = requirements['install']
 setup_requires = requirements['setup']
 tests_require = requirements['test']
