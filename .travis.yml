@@ -44,7 +44,7 @@ install:
   - pip install cffi
   - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
   # install espnet
-  - pin install -e .
+  - pip install -e .
   # install kaldi_io_py
   - cd tools
   - git clone https://github.com/vesis84/kaldi-io-for-python.git
