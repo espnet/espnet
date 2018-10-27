@@ -54,7 +54,7 @@ install:
   - pip install .
   - cd ../..
   # install doc deps
-  - pip install -e .[docs]
+  - pip install -e .[doc]
   # install chainer_ctc
   - pip install cython
   - git clone https://github.com/jheymann85/chainer_ctc.git
