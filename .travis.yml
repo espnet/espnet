@@ -35,7 +35,10 @@ install:
         cd -;
     fi
   - pip install -U pip wheel
+  # install espnet
+  - pip install -e .
   - pip install -e .[test]
+  - pip install -e .[doc]
   # install matplotlib
   - pip install matplotlib
   # install warp-ctc (use @jnishi patched version)
@@ -43,8 +46,6 @@ install:
   - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
   - pip install cffi
   - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
-  # install espnet
-  - pip install -e .
   # install kaldi_io_py
   - cd tools
   - git clone https://github.com/vesis84/kaldi-io-for-python.git
@@ -53,8 +54,6 @@ install:
   - cp ../setup_kaldi-io-for-python.py setup.py
   - pip install .
   - cd ../..
-  # install doc deps
-  - pip install -e .[doc]
   # install chainer_ctc
   - pip install cython
   - git clone https://github.com/jheymann85/chainer_ctc.git
