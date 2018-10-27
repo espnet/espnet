@@ -45,7 +45,14 @@ install:
   - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
   # install chainer
   - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
-  - cd tools && make kaldi-io-for-python && cd -
+  # install kaldi_io_py
+  - cd tools
+  - git clone https://github.com/vesis84/kaldi-io-for-python.git
+  - cd kaldi-io-for-python
+  - ln -s kaldi_io.py kaldi_io_py.py
+  - cp ../setup_kaldi-io-for-python.py setup.py
+  - pip install .
+  - cd ../..
   # install doc deps
   - pip install -r doc/requirements.txt
   # install chainer_ctc
