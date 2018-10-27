@@ -31,7 +31,7 @@ install:
         cd tools;
         make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv;
         export PATH=`pwd`/venv/bin:$PATH;
-        conda update conda
+        conda update -y conda;
         conda install -y pytorch-cpu=${TH_VERSION} -c pytorch;
         cd -;
     fi
