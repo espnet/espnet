@@ -25,12 +25,12 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from espnet.nets.e2e_asr_th import to_cuda
 from espnet.lm.lm_utils import compute_perplexity
 from espnet.lm.lm_utils import count_tokens
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
+from espnet.nets.e2e_asr_th import to_cuda
 
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
