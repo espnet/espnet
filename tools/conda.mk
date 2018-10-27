@@ -18,6 +18,7 @@ conda: miniconda.sh
 	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
 	conda config --set always_yes yes --set changeps1 no
 	conda update conda
+	conda install python=$(PYTHON_VERSION)
 	conda info -a
 
 virtualenv: conda requirements.txt
