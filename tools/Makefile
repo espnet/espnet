@@ -73,13 +73,13 @@ moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
 clean:
-	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece moses
+	rm -fr kaldi_github kaldi venv nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -fr venv warp-ctc chainer_ctc
+	rm -fr venv warp-ctc chainer_ctc kaldi-io-for-python
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
