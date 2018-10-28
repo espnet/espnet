@@ -19,7 +19,7 @@ kaldi:
 endif
 
 # for some reason, including matplotlib in requirements.txt causes errors, and
-# matplotlib should be separately pip done
+# matplotlib should be separately pip installed
 venv:
 	test -d venv || venv -p $(PYTHON) venv
 
