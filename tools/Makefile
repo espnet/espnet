@@ -81,5 +81,5 @@ clean:
 clean_python:
 	rm -fr venv warp-ctc chainer_ctc kaldi-io-for-python
 	rm -f miniconda.sh
-	rm -rf *.done
+	rm -rf chainer_patch.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done
 	find . -iname "*.pyc" -delete
