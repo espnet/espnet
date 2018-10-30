@@ -192,7 +192,6 @@ mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    mkdir -p ${lmdatadir}
     
     if [ $use_wordlm = true ]; then
         lmdatadir=data/local/wordlm_train
