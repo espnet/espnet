@@ -8,7 +8,7 @@
 
 # general configuration
 backend=chainer
-stage=0        # start from 0 if you need to start from data preparation
+stage=3        # start from 0 if you need to start from data preparation
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -79,8 +79,8 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 samp_prob=0.0
 
 # data
-wsj0=/export/corpora5/LDC/LDC93S6B
-wsj1=/export/corpora5/LDC/LDC94S13B
+wsj0=/home/CORPUS/LDC/LDC93S6B
+wsj1=/home/CORPUS/LDC/LDC94S13B
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -192,7 +192,6 @@ mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    mkdir -p ${lmdatadir}
     
     if [ $use_wordlm = true ]; then
         lmdatadir=data/local/wordlm_train
