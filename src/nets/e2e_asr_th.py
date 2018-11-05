@@ -2392,7 +2392,7 @@ class Decoder(torch.nn.Module):
             local_scores = np.full((n_bbo,), self.logzero)
             _best_odims = local_best_odims.view(n_bb, beam) + pad_o
             _best_odims = _best_odims.view(-1).cpu().numpy()
-            _best_score = local_best_scores.view(-1).cpu().numpy()
+            _best_score = local_best_scores.view(-1).cpu().detach().numpy()
             local_scores[_best_odims] = _best_score
             local_scores = to_cuda(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
 
