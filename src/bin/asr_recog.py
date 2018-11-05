@@ -28,7 +28,7 @@ def main():
                         help='Random seed')
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
-    parser.add_argument('--batchsize', default=None, type=int,
+    parser.add_argument('--batchsize', default=1, type=int,
                         help='Batch size for beam search')
     # task related
     parser.add_argument('--recog-json', type=str,
