@@ -79,8 +79,15 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 samp_prob=0.0
 
 # data
-wsj0=/export/corpora5/LDC/LDC93S6B
-wsj1=/export/corpora5/LDC/LDC94S13B
+sfisher_speech=/export/corpora/LDC/LDC2010S01
+sfisher_transcripts=/export/corpora/LDC/LDC2010T04
+spanish_lexicon=/export/corpora/LDC/LDC96L16
+split=local/splits/split_fisher
+
+callhome_speech=/export/corpora/LDC/LDC96S35
+callhome_transcripts=/export/corpora/LDC/LDC96T17
+split_callhome=local/splits/split_callhome
+
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -96,18 +103,26 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_si284
-train_dev=test_dev93
-train_test=test_eval92
-recog_set="test_dev93 test_eval92"
+# JJ: TODO: need to be fixed (maybe move this after "TODO: data partitions")
+#train_set=train_si284
+#train_dev=test_dev93
+#train_test=test_eval92
+#recog_set="test_dev93 test_eval92"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
-    local/wsj_format_data.sh
+    #local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
+    #local/wsj_format_data.sh
+    local/fsp_data_prep.sh $sfisher_speech $sfisher_transcripts
+    local/callhome_data_prep.sh $callhome_speech $callhome_transcripts
 fi
+
+utils/fix_data_dir.sh data/local/data/train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and test though the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
+utils/fix_data_dir.sh data/local/data/callhome_train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and testthough the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
+
+#JJ: TODO: data partitions
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
@@ -117,7 +132,7 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train_si284 test_dev93 test_eval92; do
+    for x in train_si284 test_dev93 test_eval92; do # JJ: TODO: Need to be fixed
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
@@ -128,14 +143,15 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/wsj/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/wsj/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
+
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
@@ -149,7 +165,7 @@ if [ ${stage} -le 1 ]; then
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
-nlsyms=data/lang_1char/non_lang_syms.txt
+#nlsyms=data/lang_1char/non_lang_syms.txt # JJ: Not sure if they have non-linguistic symbols in the text
 
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
@@ -157,27 +173,36 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
-    echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
-    cat ${nlsyms}
+    # JJ: Not sure
+    #echo "make a non-linguistic symbol list"
+    #cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+    #cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    #text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n"  # JJ: use this if there are nlsyms
+    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+    #data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \ # JJ: use this if there are nlsyms
+    data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
+    #data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \ # JJ: use this if there are nlsyms
+    data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            #--nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json # JJ: use this if there are nlsyms
     done
 fi
+
+
+### JJ: Start from this !!!
+
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
@@ -192,7 +217,7 @@ mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    
+
     if [ $use_wordlm = true ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
