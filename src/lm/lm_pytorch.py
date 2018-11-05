@@ -120,6 +120,20 @@ class ClassifierWithState(nn.Module):
             state, z = self.predictor(state, x)
             return state, F.log_softmax(z, dim=1)
 
+    def buff_predict(self, state, x, n):
+        if self.predictor.__class__.__name__ == 'RNNLM':
+            return self.predict(state, x)
+
+        new_state = []
+        new_log_y = []
+        for i in range(n):
+            state_i = None if state is None else state[i]
+            state_i, log_y = self.predict(state_i, x[i].unsqueeze(0))
+            new_state.append(state_i)
+            new_log_y.append(log_y)
+
+        return new_state, torch.cat(new_log_y)
+
     def final(self, state):
         """Predict final log probabilities for given state using the predictor
 

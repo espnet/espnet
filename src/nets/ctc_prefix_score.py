@@ -3,8 +3,109 @@
 # Copyright 2018 Mitsubishi Electric Research Labs (Takaaki Hori)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import torch
+
 import numpy as np
 import six
+
+
+class CTCPrefixScoreTH(object):
+    '''Batch processing of CTCPrefixScore
+
+    which is based on Algorithm 2 in WATANABE et al.
+    "HYBRID CTC/ATTENTION ARCHITECTURE FOR END-TO-END SPEECH RECOGNITION,"
+    but extended to efficiently compute the probablities of multiple labels
+    simultaneously
+    '''
+
+    def __init__(self, x, blank, eos, beam, hlens, device_id):
+        self.logzero = -10000000000.0
+        self.blank = blank
+        self.eos = eos
+        self.batch = x.size(0)
+        self.input_length = x.size(1)
+        self.odim = x.size(2)
+        self.beam = beam
+        self.n_bb = self.batch * beam
+
+        self.hlens = hlens
+
+        self.x = x
+        self.device_id = device_id
+
+    def to_cuda(self, x):
+        if self.device_id == -1:
+            return x
+        return x.cuda(self.device_id)
+
+    def initial_state(self):
+        '''Obtain an initial CTC state
+
+        :return: CTC state
+        '''
+        self.x = self.x.view(self.batch, 1, self.input_length, self.odim)
+        self.x = self.x.repeat(1, self.beam, 1, 1)
+        self.x = self.x.view(self.n_bb, self.input_length, self.odim)
+        self.cs = torch.from_numpy(np.arange(self.odim, dtype=np.int32))
+        self.cs = self.to_cuda(self.cs)
+
+        # initial CTC state is made of a n_bb x frame x 2 tensor that corresponds to
+        # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
+        # superscripts n and b (non-blank and blank), respectively.
+        r = torch.full((self.n_bb, self.input_length, 2), self.logzero)
+        r = self.to_cuda(r)
+
+        r[:, 0, 1] = self.x[:, 0, self.blank]
+        for i in six.moves.range(1, self.input_length):
+            r[:, i, 1] = r[:, i - 1, 1] + self.x[:, i, self.blank]
+
+        self.hlens = [x - 1 for x in self.hlens]
+
+        return r
+
+    def __call__(self, y, r_prev, last=None):
+        '''Compute CTC prefix scores for next labels
+
+        :param y     : prefix label sequence
+        :param cs    : array of next labels
+        :param r_prev: previous CTC state
+        :return ctc_scores, ctc_states
+        '''
+
+        output_length = len(y[0]) - 1  # ignore sos
+
+        # new CTC states are prepared as a frame x (n or b) x n_labels tensor
+        # that corresponds to r_t^n(h) and r_t^b(h).
+        r = torch.full((self.n_bb, self.input_length, 2, self.odim), self.logzero)
+        r = self.to_cuda(r)
+        if output_length == 0:
+            r[:, 0, 0, :] = self.x[:, 0]
+
+        r_sum = torch.logsumexp(r_prev, dim=2)
+        if last is None:
+            last = [yi[-1] for yi in y]
+
+        log_phi = r_sum.unsqueeze(2).repeat(1, 1, self.odim)
+        log_phi = self.to_cuda(log_phi)
+        for idx in six.moves.range(self.n_bb):
+            log_phi[idx, :, last[idx]] = r_prev[idx, :, 1]
+
+        # compute forward probabilities log(r_t^n(h)), log(r_t^b(h)),
+        # and log prefix probabilites log(psi)
+        start = max(output_length, 1)
+        log_psi = r[:, start - 1, 0, :]
+        log_phi_x = torch.cat((log_phi[:, 0].unsqueeze(1), log_phi[:, :-1]), dim=1) + self.x
+        for t in six.moves.range(start, self.input_length):
+            xt = self.x[:, t]
+            rp = r[:, t - 1]
+            r[:, t, 0] = torch.logsumexp(torch.stack([rp[:, 0], log_phi[:, t - 1]]), dim=0) + xt
+            r[:, t, 1] = torch.logsumexp(rp, dim=1) + xt[:, self.blank].view(-1, 1).repeat(1, self.odim)
+            log_psi = torch.logsumexp(torch.stack([log_psi, log_phi_x[:, t]]), dim=0)
+
+        for si in six.moves.range(self.n_bb):
+            log_psi[si, self.eos] = r_sum[si, self.hlens[si]]
+
+        return log_psi, r
 
 
 class CTCPrefixScore(object):

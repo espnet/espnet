@@ -12,6 +12,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from e2e_asr_th import to_cuda
+
 
 # TODO(Hori): currently it only works with character-word level LM.
 #             need to consider any types of subwords-to-word mapping.
@@ -65,6 +67,8 @@ class MultiLevelLM(nn.Module):
     def forward(self, state, x):
         # update state with input label x
         if state is None:  # make initial states and log-prob vectors
+            self.var_word_eos = to_cuda(self, self.var_word_eos)
+            self.var_word_unk = to_cuda(self, self.var_word_eos)
             wlm_state, z_wlm = self.wordlm(None, self.var_word_eos)
             wlm_logprobs = F.log_softmax(z_wlm, dim=1)
             clm_state, z_clm = self.subwordlm(None, x)
@@ -77,7 +81,7 @@ class MultiLevelLM(nn.Module):
             xi = int(x)
             if xi == self.space:  # inter-word transition
                 if node is not None and node[1] >= 0:  # check if the node is word end
-                    w = torch.LongTensor([node[1]])
+                    w = to_cuda(self, torch.LongTensor([node[1]]))
                 else:  # this node is not a word end, which means <unk>
                     w = self.var_word_unk
                 # update wordlm state and log-prob vector
@@ -146,6 +150,8 @@ class LookAheadWordLM(nn.Module):
     def forward(self, state, x):
         # update state with input label x
         if state is None:  # make initial states and cumlative probability vector
+            self.var_word_eos = to_cuda(self, self.var_word_eos)
+            self.var_word_unk = to_cuda(self, self.var_word_eos)
             wlm_state, z_wlm = self.wordlm(None, self.var_word_eos)
             cumsum_probs = torch.cumsum(F.softmax(z_wlm, dim=1), dim=1)
             new_node = self.lexroot
@@ -155,7 +161,7 @@ class LookAheadWordLM(nn.Module):
             xi = int(x)
             if xi == self.space:  # inter-word transition
                 if node is not None and node[1] >= 0:  # check if the node is word end
-                    w = torch.LongTensor([node[1]])
+                    w = to_cuda(self, torch.LongTensor([node[1]]))
                 else:  # this node is not a word end, which means <unk>
                     w = self.var_word_unk
                 # update wordlm state and cumlative probability vector
