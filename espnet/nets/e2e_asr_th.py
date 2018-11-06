@@ -6,11 +6,13 @@
 
 from __future__ import division
 
+import argparse
 import logging
 import math
 import sys
 
 from argparse import Namespace
+import editdistance
 
 import chainer
 import numpy as np
@@ -88,6 +90,14 @@ def make_pad_mask(lengths):
     return mask
 
 
+def mask_by_length(xs, length, fill=0):
+    assert xs.size(0) == len(length)
+    ret = xs.data.new(*xs.size()).fill_(fill)
+    for i, l in enumerate(length):
+        ret[i, :l] = xs[i, :l]
+    return ret
+
+
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
     """Function to calculate accuracy
 
@@ -107,11 +117,58 @@ def th_accuracy(pad_outputs, pad_targets, ignore_label):
     return float(numerator) / float(denominator)
 
 
+def get_last_yseq(exp_yseq):
+    last = []
+    for y_seq in exp_yseq:
+        last.append(y_seq[-1])
+    return last
+
+
+def append_ids(yseq, ids):
+    if isinstance(ids, list):
+        for i, j in enumerate(ids):
+            yseq[i].append(j)
+    else:
+        for i in range(len(yseq)):
+            yseq[i].append(ids)
+    return yseq
+
+
+def expand_yseq(yseqs, next_ids):
+    new_yseq = []
+    for yseq in yseqs:
+        for next_id in next_ids:
+            new_yseq.append(yseq[:])
+            new_yseq[-1].append(next_id)
+    return new_yseq
+
+
+def index_select_list(yseq, lst):
+    new_yseq = []
+    for l in lst:
+        new_yseq.append(yseq[l][:])
+    return new_yseq
+
+
+def index_select_lm_state(rnnlm_state, dim, vidx):
+    if isinstance(rnnlm_state, dict):
+        new_state = {}
+        for k, v in rnnlm_state.items():
+            new_state[k] = [torch.index_select(vi, dim, vidx) for vi in v]
+    elif isinstance(rnnlm_state, list):
+        new_state = []
+        for i in vidx:
+            new_state.append(rnnlm_state[int(i)][:])
+    return new_state
+
+
 class Reporter(chainer.Chain):
-    def report(self, loss_ctc, loss_att, acc, mtl_loss):
+    def report(self, loss_ctc, loss_att, acc, cer, wer, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
         reporter.report({'acc': acc}, self)
+        reporter.report({'cer': cer}, self)
+        reporter.report({'wer': wer}, self)
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
 
@@ -143,7 +200,7 @@ class Loss(torch.nn.Module):
         :rtype: torch.Tensor
         '''
         self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(xs_pad, ilens, ys_pad)
+        loss_ctc, loss_att, acc, cer, wer = self.predictor(xs_pad, ilens, ys_pad)
         alpha = self.mtlalpha
         if alpha == 0:
             self.loss = loss_att
@@ -160,7 +217,7 @@ class Loss(torch.nn.Module):
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, loss_data)
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
 
@@ -260,6 +317,24 @@ class E2E(torch.nn.Module):
         # weight initialization
         self.init_like_chainer()
 
+        # options for beam search
+        if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
+            recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
+                          'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
+                          'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
+                          'rnnlm': args.rnnlm, 'nbest': args.nbest,
+                          'space': args.sym_space, 'blank': args.sym_blank}
+
+            self.recog_args = argparse.Namespace(**recog_args)
+            self.report_cer = args.report_cer
+            self.report_wer = args.report_wer
+        else:
+            self.report_cer = False
+            self.report_wer = False
+        self.rnnlm = None
+
+        self.logzero = -10000000000.0
+
     def init_like_chainer(self):
         """Initialize weight like chainer
 
@@ -334,7 +409,42 @@ class E2E(torch.nn.Module):
         else:
             loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
 
-        return loss_ctc, loss_att, acc
+        # 5. compute cer/wer
+        if self.training or not (self.report_cer or self.report_wer):
+            cer, wer = 0.0, 0.0
+            # oracle_cer, oracle_wer = 0.0, 0.0
+        else:
+            if self.recog_args.ctc_weight > 0.0:
+                lpz = self.ctc.log_softmax(hs_pad).data
+            else:
+                lpz = None
+
+            wers, cers = [], []
+            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), lpz,
+                                                       self.recog_args, self.char_list,
+                                                       self.rnnlm)
+            # remove <sos> and <eos>
+            y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
+            for i, y_hat in enumerate(y_hats):
+                y_true = ys_pad[i]
+
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
+                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+                seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.recog_args.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.recog_args.space, ' ')
+
+                hyp_words = seq_hat_text.split()
+                ref_words = seq_true_text.split()
+                wers.append(editdistance.eval(hyp_words, ref_words) / len(ref_words))
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+
+            wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
+            cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
+
+        return loss_ctc, loss_att, acc, cer, wer
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         '''E2E beam search
@@ -368,6 +478,41 @@ class E2E(torch.nn.Module):
         # 2. decoder
         # decode the first utterance
         y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+
+        if prev:
+            self.train()
+        return y
+
+    def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
+        '''E2E beam search
+
+        :param ndarray x: input acouctic feature (T, D)
+        :param namespace recog_args: argment namespace contraining options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        '''
+        prev = self.training
+        self.eval()
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+        hs = [to_cuda(self, torch.from_numpy(np.array(xx, dtype=np.float32)))
+              for xx in xs]
+
+        # 1. encoder
+        xpad = pad_list(hs, 0.0)
+        hpad, hlens = self.enc(xpad, ilens)
+
+        # calculate log P(z_t|X) for CTC scores
+        if recog_args.ctc_weight > 0.0:
+            lpz = self.ctc.log_softmax(hpad)
+        else:
+            lpz = None
+
+        # 2. decoder
+        y = self.dec.recognize_beam_batch(hpad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -1859,6 +2004,7 @@ class Decoder(torch.nn.Module):
         self.dunits = dunits
         self.sos = sos
         self.eos = eos
+        self.odim = odim
         self.verbose = verbose
         self.char_list = char_list
         # for label smoothing
@@ -1866,6 +2012,8 @@ class Decoder(torch.nn.Module):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
         self.sampling_probability = sampling_probability
+
+        self.logzero = -10000000000.0
 
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
@@ -2149,6 +2297,183 @@ class Decoder(torch.nn.Module):
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
 
         # remove sos
+        return nbest_hyps
+
+    def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
+                             normalize_score=True):
+        logging.info('input lengths: ' + str(h.size(1)))
+        h = mask_by_length(h, hlens, 0.0)
+
+        # search params
+        batch = len(hlens)
+        beam = recog_args.beam_size
+        penalty = recog_args.penalty
+        ctc_weight = recog_args.ctc_weight
+        att_weight = 1.0 - ctc_weight
+
+        n_bb = batch * beam
+        n_bo = beam * self.odim
+        n_bbo = n_bb * self.odim
+        pad_b = to_cuda(self, torch.LongTensor([i * beam for i in six.moves.range(batch)]).view(-1, 1))
+        pad_bo = to_cuda(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
+        pad_o = to_cuda(self, torch.LongTensor([i * self.odim for i in six.moves.range(n_bb)]).view(-1, 1))
+
+        max_hlen = max(hlens)
+        if recog_args.maxlenratio == 0:
+            maxlen = max_hlen
+        else:
+            maxlen = max(1, int(recog_args.maxlenratio * max_hlen))
+        minlen = int(recog_args.minlenratio * max_hlen)
+        logging.info('max output length: ' + str(maxlen))
+        logging.info('min output length: ' + str(minlen))
+
+        # initialization
+        c_prev = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        z_prev = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        c_list = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        z_list = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        vscores = to_cuda(self, torch.zeros(batch, beam))
+
+        a_prev = None
+        rnnlm_prev = None
+
+        self.att.reset()  # reset pre-computation of h
+
+        yseq = [[self.sos] for _ in six.moves.range(n_bb)]
+        accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
+        stop_search = [False for _ in six.moves.range(batch)]
+        nbest_hyps = [[] for _ in six.moves.range(batch)]
+        ended_hyps = [[] for _ in range(batch)]
+
+        exp_hlens = hlens.repeat(beam).view(beam, batch).transpose(0, 1).contiguous()
+        exp_hlens = exp_hlens.view(-1).tolist()
+        exp_h = h.unsqueeze(1).repeat(1, beam, 1, 1).contiguous()
+        exp_h = exp_h.view(n_bb, h.size()[1], h.size()[2])
+
+        if lpz is not None:
+            device_id = torch.cuda.device_of(next(self.parameters()).data).idx
+            ctc_prefix_score = CTCPrefixScoreTH(lpz, 0, self.eos, beam, exp_hlens, device_id)
+            ctc_states_prev = ctc_prefix_score.initial_state()
+            ctc_scores_prev = to_cuda(self, torch.zeros(batch, n_bo))
+
+        for i in six.moves.range(maxlen):
+            logging.debug('position ' + str(i))
+
+            vy = to_cuda(self, torch.LongTensor(get_last_yseq(yseq)))
+            ey = self.embed(vy)
+            att_c, att_w = self.att(exp_h, exp_hlens, z_prev[0], a_prev)
+            ey = torch.cat((ey, att_c), dim=1)
+
+            # attention decoder
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](z_list[l - 1], (z_prev[l], c_prev[l]))
+            local_scores = att_weight * F.log_softmax(self.output(z_list[-1]), dim=1)
+
+            # rnnlm
+            if rnnlm:
+                rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_prev, vy, n_bb)
+                local_scores = local_scores + recog_args.lm_weight * local_lm_scores
+            local_scores = local_scores.view(batch, n_bo)
+
+            # ctc
+            if lpz is not None:
+                ctc_scores, ctc_states = ctc_prefix_score(yseq, ctc_states_prev, accum_odim_ids)
+                ctc_scores = ctc_scores.view(batch, n_bo)
+                local_scores = local_scores + ctc_weight * (ctc_scores - ctc_scores_prev)
+            local_scores = local_scores.view(batch, beam, self.odim)
+
+            if i == 0:
+                local_scores[:, 1:, :] = self.logzero
+            local_best_scores, local_best_odims = torch.topk(local_scores.view(batch, beam, self.odim),
+                                                             beam, 2)
+            # local pruning (via xp)
+            local_scores = np.full((n_bbo,), self.logzero)
+            _best_odims = local_best_odims.view(n_bb, beam) + pad_o
+            _best_odims = _best_odims.view(-1).cpu().numpy()
+            _best_score = local_best_scores.view(-1).cpu().detach().numpy()
+            local_scores[_best_odims] = _best_score
+            local_scores = to_cuda(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
+
+            # (or indexing)
+            # local_scores = to_cuda(self, torch.full((batch, beam, self.odim), self.logzero))
+            # _best_odims = local_best_odims
+            # _best_score = local_best_scores
+            # for si in six.moves.range(batch):
+            # for bj in six.moves.range(beam):
+            # for bk in six.moves.range(beam):
+            # local_scores[si, bj, _best_odims[si, bj, bk]] = _best_score[si, bj, bk]
+
+            eos_vscores = local_scores[:, :, self.eos] + vscores
+            vscores = vscores.view(batch, beam, 1).repeat(1, 1, self.odim)
+            vscores[:, :, self.eos] = self.logzero
+            vscores = (vscores + local_scores).view(batch, n_bo)
+
+            # global pruning
+            accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
+            accum_odim_ids = torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
+            accum_padded_odim_ids = (torch.fmod(accum_best_ids, n_bo) + pad_bo).view(-1).data.cpu().tolist()
+            accum_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
+
+            y_prev = yseq[:][:]
+            yseq = index_select_list(yseq, accum_padded_beam_ids)
+            yseq = append_ids(yseq, accum_odim_ids)
+            vscores = accum_best_scores
+            vidx = to_cuda(self, torch.LongTensor(accum_padded_beam_ids))
+
+            a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
+            z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
+            c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
+
+            if rnnlm:
+                rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
+            if lpz is not None:
+                ctc_vidx = to_cuda(self, torch.LongTensor(accum_padded_odim_ids))
+                ctc_scores_prev = torch.index_select(ctc_scores.view(-1), 0, ctc_vidx)
+                ctc_scores_prev = ctc_scores_prev.view(-1, 1).repeat(1, self.odim).view(batch, n_bo)
+
+                ctc_states = torch.transpose(ctc_states, 1, 3).contiguous()
+                ctc_states = ctc_states.view(n_bbo, 2, -1)
+                ctc_states_prev = torch.index_select(ctc_states, 0, ctc_vidx).view(n_bb, 2, -1)
+                ctc_states_prev = torch.transpose(ctc_states_prev, 1, 2)
+
+            # pick ended hyps
+            if i > minlen:
+                k = 0
+                penalty_i = (i + 1) * penalty
+                thr = accum_best_scores[:, -1]
+                for samp_i in six.moves.range(batch):
+                    if stop_search[samp_i]:
+                        k = k + beam
+                        continue
+                    for beam_j in six.moves.range(beam):
+                        if eos_vscores[samp_i, beam_j] > thr[samp_i]:
+                            yk = y_prev[k][:]
+                            yk.append(self.eos)
+                            if len(yk) < hlens[samp_i]:
+                                _vscore = eos_vscores[samp_i][beam_j] + penalty_i
+                                if normalize_score:
+                                    _vscore = _vscore / len(yk)
+                                _score = _vscore.data.cpu().numpy()
+                                ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
+                        k = k + 1
+
+            # end detection
+            stop_search = [stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
+                           for samp_i in six.moves.range(batch)]
+            stop_search_summary = list(set(stop_search))
+            if len(stop_search_summary) == 1 and stop_search_summary[0]:
+                break
+
+            torch.cuda.empty_cache()
+
+        dummy_hyps = [{'yseq': [self.sos, self.eos], 'score':np.array([-float('inf')])}]
+        ended_hyps = [ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
+                      for samp_i in six.moves.range(batch)]
+        nbest_hyps = [sorted(ended_hyps[samp_i], key=lambda x: x['score'],
+                             reverse=True)[:min(len(ended_hyps[samp_i]), recog_args.nbest)]
+                      for samp_i in six.moves.range(batch)]
+
         return nbest_hyps
 
     def calculate_all_attentions(self, hs_pad, hlen, ys_pad):

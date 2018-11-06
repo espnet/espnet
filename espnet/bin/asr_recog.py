@@ -28,6 +28,8 @@ def main():
                         help='Random seed')
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
+    parser.add_argument('--batchsize', default=1, type=int,
+                        help='Batch size for beam search')
     # task related
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')
@@ -87,6 +89,11 @@ def main():
             logging.warn("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
+            sys.exit(1)
+
+        # TODO(mn5k): support of multiple GPUs
+        if args.ngpu > 1:
+            logging.error("The program only supports ngpu=1.")
             sys.exit(1)
 
     # display PYTHONPATH
