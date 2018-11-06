@@ -107,7 +107,7 @@ if [ ${stage} -le 1 ]; then
 
     # remove utt having more than 2000 frames or less than 10 frames or
     # remove utt having more than 200 characters or no more than 0 characters
-    utils_espnet/remove_longshortdata.sh data/all_${lang} data/all_trim_${lang}
+    remove_longshortdata.sh data/all_${lang} data/all_trim_${lang}
 
     # following split consider prompt duplication (but does not consider speaker overlap instead)
     local/split_tr_dt_et.sh data/all_trim_${lang} data/tr_${lang} data/dt_${lang} data/et_${lang}
@@ -127,13 +127,13 @@ if [ ${stage} -le 1 ]; then
         /export/b{14,15,16,17}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    utils_espnet/dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
         data/tr_${lang}/feats.scp data/tr_${lang}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    utils_espnet/dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
         data/dt_${lang}/feats.scp data/tr_${lang}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        utils_espnet/dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
@@ -146,18 +146,18 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    utils_espnet/text2token.py -s 1 -n 1 data/tr_${lang}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 data/tr_${lang}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    utils_espnet/data2json.sh --lang ${lang} --feat ${feat_tr_dir}/feats.scp \
+    data2json.sh --lang ${lang} --feat ${feat_tr_dir}/feats.scp \
          data/tr_${lang} ${dict} > ${feat_tr_dir}/data.json
-    utils_espnet/data2json.sh --lang ${lang} --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --lang ${lang} --feat ${feat_dt_dir}/feats.scp \
          data/dt_${lang} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        utils_espnet/data2json.sh --feat ${feat_recog_dir}/feats.scp \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
@@ -216,7 +216,7 @@ if [ ${stage} -le 4 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        utils_espnet/splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
 
         #### use CPU for decoding
         ngpu=0
@@ -238,7 +238,7 @@ if [ ${stage} -le 4 ]; then
             &
         wait
 
-        utils_espnet/score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
