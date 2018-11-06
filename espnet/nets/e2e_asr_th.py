@@ -27,6 +27,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet.nets.ctc_prefix_score import CTCPrefixScoreTH
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
