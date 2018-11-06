@@ -66,7 +66,7 @@ done
 utils/split_scp.pl $scp $split_scps || exit 1;
 
 $cmd JOB=1:$nj $logdir/make_stft_${name}.JOB.log \
-    utils_espnet/compute-stft-feats.py \
+    compute-stft-feats.py \
         --fs $fs \
         --win_length $win_length \
         --n_fft $n_fft \

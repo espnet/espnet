@@ -58,7 +58,7 @@ done
 utils/split_scp.pl $scp $split_scps || exit 1;
 
 $cmd JOB=1:$nj $logdir/griffin_lim_${name}.JOB.log \
-    utils_espnet/convert_fbank_to_wav.py \
+    convert_fbank_to_wav.py \
         --fs $fs \
         --fmax $fmax \
         --fmin $fmin \
