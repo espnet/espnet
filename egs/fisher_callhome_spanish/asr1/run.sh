@@ -113,8 +113,6 @@ if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    #local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
-    #local/wsj_format_data.sh
     local/fsp_data_prep.sh $sfisher_speech $sfisher_transcripts
     local/callhome_data_prep.sh $callhome_speech $callhome_transcripts
 fi
@@ -173,30 +171,25 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
-    # JJ: Not sure
-    #echo "make a non-linguistic symbol list"
-    #cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
-    #cat ${nlsyms}
+    echo "make a non-linguistic symbol list"
+    cut -f 2- -d' ' data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+    cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    #text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n"  # JJ: use this if there are nlsyms
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     echo "make json files"
-    #data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \ # JJ: use this if there are nlsyms
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    #data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \ # JJ: use this if there are nlsyms
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
-            #--nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json # JJ: use this if there are nlsyms
     done
 fi
 
