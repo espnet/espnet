@@ -3,19 +3,20 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi nkf.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done sentencepiece.done moses
+all: venv chainer_patch.done kaldi.done nkf.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done sentencepiece.done moses
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
 ifneq ($(strip $(KALDI)),)
-kaldi:
+kaldi.done:
 	ln -s $(KALDI) kaldi
+	touch kaldi.done
 else
-kaldi:
-	test -d kaldi_github || git clone https://github.com/kaldi-asr/kaldi.git kaldi_github
-	cd kaldi_github/tools; $(MAKE) all
-	cd kaldi_github/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
-	ln -nfs kaldi_github kaldi
+kaldi.done:
+	test -d kaldi || git clone https://github.com/kaldi-asr/kaldi.git
+	cd kaldi/tools; $(MAKE) all
+	cd kaldi/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
+	touch kaldi.done
 endif
 
 # for some reason, including matplotlib in requirements.txt causes errors, and
@@ -73,7 +74,7 @@ moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
 clean:
-	rm -fr kaldi_github kaldi venv nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
+	rm -fr kaldi venv nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
