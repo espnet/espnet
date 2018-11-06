@@ -10,5 +10,6 @@ export LC_ALL=C
 export PATH=$MAIN_ROOT/tools/sentencepiece/build/src:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 source $MAIN_ROOT/tools/venv/bin/activate
+export PATH=$MAIN_ROOT/utils:$PATH
 
 export OMP_NUM_THREADS=1
