@@ -119,7 +119,7 @@ if [ ${stage} -le 1 ]; then
 
     fbankdir=fbank
     for x in dev_clean test_clean train_clean_100 train_clean_360; do
-        utils_espnet/make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+        make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
             --fs ${fs} \
             --fmax "${fmax}" \
             --fmin "${fmin}" \
@@ -137,18 +137,18 @@ if [ ${stage} -le 1 ]; then
 
     # remove utt having more than 3000 frames
     # remove utt having more than 400 characters
-    utils_espnet/remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
-    utils_espnet/remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    utils_espnet/dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    utils_espnet/dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    utils_espnet/dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
@@ -159,16 +159,16 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    utils_espnet/text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    utils_espnet/data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    utils_espnet/data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    utils_espnet/data2json.sh --feat ${feat_ev_dir}/feats.scp \
+    data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
@@ -304,7 +304,7 @@ if [ ${stage} -le 5 ];then
     for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
-        utils_espnet/splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
+        splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
@@ -331,7 +331,7 @@ if [ ${stage} -le 6 ];then
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
             ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
-        utils_espnet/convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
+        convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} \
             --fmax "${fmax}" \
             --fmin "${fmin}" \

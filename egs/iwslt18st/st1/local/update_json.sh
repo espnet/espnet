@@ -32,9 +32,9 @@ rm -f ${tmpdir}/*.scp
 if [ ! -z ${bpecode} ]; then
     paste -d " " <(awk '{print $1}' ${data_dir}/text) <(cut -f 2- -d" " ${data_dir}/text | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
 elif [ ! -z ${nlsyms} ]; then
-    utils_espnet/text2token.py -s 1 -n 1 -l ${nlsyms} ${data_dir}/text > ${tmpdir}/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${data_dir}/text > ${tmpdir}/token.scp
 else
-    utils_espnet/text2token.py -s 1 -n 1 ${data_dir}/text > ${tmpdir}/token.scp
+    text2token.py -s 1 -n 1 ${data_dir}/text > ${tmpdir}/token.scp
 fi
 cat ${tmpdir}/token.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid.scp
 cat ${tmpdir}/tokenid.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/olen.scp
@@ -47,7 +47,7 @@ awk -v odim=${odim} '{print $1 " " odim}' ${data_dir}/text > ${tmpdir}/odim.scp
 rm -f ${tmpdir}/*.json
 for x in ${data_dir}/text ${data_dir}/utt2spk ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
-    cat ${x} | utils_espnet/scp2json.py --key ${k} > ${tmpdir}/${k}.json
+    cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done
 
 # add to json
