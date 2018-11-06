@@ -25,7 +25,9 @@ requirements = {
         'librosa>=0.6.2',
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
-        'unidecode>=1.0.22'],
+        'unidecode>=1.0.22',
+        'editdistance==0.5.2',
+        ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
         'pytest>=3.3.0',
