@@ -149,10 +149,10 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str"), [
-    ("blstmp", "e2e_asr"),
-    ("blstmp", "e2e_asr_th"),
-    ("vggblstmp", "e2e_asr"),
-    ("vggblstmp", "e2e_asr_th"),
+    ("blstmp", "espnet.nets.e2e_asr"),
+    ("blstmp", "espnet.nets.e2e_asr_th"),
+    ("vggblstmp", "espnet.nets.e2e_asr"),
+    ("vggblstmp", "espnet.nets.e2e_asr_th"),
 ])
 def test_batch_beam_search(etype, m_str):
     const = 1e-4
