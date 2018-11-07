@@ -103,15 +103,10 @@ set -e
 set -u
 set -o pipefail
 
-# JJ: TODO: need to be fixed (maybe move this after "TODO: data partitions")
 train_set=train
 train_dev=dev
 train_test=test
-recog_set="dev test"
-#train_set=train_si284
-#train_dev=test_dev93
-#train_test=test_eval92
-#recog_set="test_dev93 test_eval92"
+recog_set="dev test callhome_dev callhome_test callhome_train"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -122,6 +117,7 @@ if [ ${stage} -le 0 ]; then
     utils/fix_data_dir.sh data/local/data/train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and test though the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
     utils/fix_data_dir.sh data/local/data/callhome_train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and testthough the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
     cp -r data/local/data/train_all data/train_all
+    cp -r data/local/data/callhome_train_all data/callhome_train_all
 fi
 
 
@@ -134,29 +130,21 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    #for x in train_si284 test_dev93 test_eval92; do # JJ: TODO: Need to be fixed
-    #    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
-    #        data/${x} exp/make_fbank/${x} ${fbankdir}
-    #done
-
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
         data/train_all exp/make_fbank/train_all ${fbankdir}
 
     utils/fix_data_dir.sh data/train_all
     utils/validate_data_dir.sh data/train_all
 
-    # JJ: In original recipe, callhome data seems to be not used
-    #steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
-    #    data/callhome_train_all exp/make_fbank/callhome_train_all ${fbankdir}
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+        data/callhome_train_all exp/make_fbank/callhome_train_all ${fbankdir}
 
-    #utils/fix_data_dir.sh data/callhome_train_all
-    #utils/validate_data_dir.sh data/callhome_train_all
+    utils/fix_data_dir.sh data/callhome_train_all
+    utils/validate_data_dir.sh data/callhome_train_all
 
 
     local/create_splits.sh $split
-
-    # JJ: In original recipe, callhome data seems to be not used
-    #local/callhome_create_splits.sh $split_callhome
+    local/callhome_create_splits.sh $split_callhome
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
