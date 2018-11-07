@@ -104,6 +104,10 @@ set -u
 set -o pipefail
 
 # JJ: TODO: need to be fixed (maybe move this after "TODO: data partitions")
+train_set=train
+train_dev=dev
+train_test=test
+recog_set="dev test"
 #train_set=train_si284
 #train_dev=test_dev93
 #train_test=test_eval92
@@ -115,12 +119,12 @@ if [ ${stage} -le 0 ]; then
     echo "stage 0: Data preparation"
     local/fsp_data_prep.sh $sfisher_speech $sfisher_transcripts
     local/callhome_data_prep.sh $callhome_speech $callhome_transcripts
+    utils/fix_data_dir.sh data/local/data/train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and test though the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
+    utils/fix_data_dir.sh data/local/data/callhome_train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and testthough the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
+    cp -r data/local/data/train_all data/train_all
 fi
 
-utils/fix_data_dir.sh data/local/data/train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and test though the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
-utils/fix_data_dir.sh data/local/data/callhome_train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and testthough the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
 
-#JJ: TODO: data partitions
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
@@ -130,10 +134,29 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train_si284 test_dev93 test_eval92; do # JJ: TODO: Need to be fixed
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
+    #for x in train_si284 test_dev93 test_eval92; do # JJ: TODO: Need to be fixed
+    #    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+    #        data/${x} exp/make_fbank/${x} ${fbankdir}
+    #done
+
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+        data/train_all exp/make_fbank/train_all ${fbankdir}
+
+    utils/fix_data_dir.sh data/train_all
+    utils/validate_data_dir.sh data/train_all
+
+    # JJ: In original recipe, callhome data seems to be not used
+    #steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+    #    data/callhome_train_all exp/make_fbank/callhome_train_all ${fbankdir}
+
+    #utils/fix_data_dir.sh data/callhome_train_all
+    #utils/validate_data_dir.sh data/callhome_train_all
+
+
+    local/create_splits.sh $split
+
+    # JJ: In original recipe, callhome data seems to be not used
+    #local/callhome_create_splits.sh $split_callhome
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -163,7 +186,7 @@ if [ ${stage} -le 1 ]; then
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
-#nlsyms=data/lang_1char/non_lang_syms.txt # JJ: Not sure if they have non-linguistic symbols in the text
+nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
@@ -194,8 +217,6 @@ if [ ${stage} -le 2 ]; then
 fi
 
 
-### JJ: Start from this !!!
-
 
 # It takes about one day. If you just want to do end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
@@ -215,27 +236,20 @@ if [ ${stage} -le 3 ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
-        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-                | grep -v "<" | tr [a-z] [A-Z] > ${lmdatadir}/train_others.txt
+        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train.txt
         cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
         cat data/${train_test}/text | cut -f 2- -d" " > ${lmdatadir}/test.txt
-        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
         lmdatadir=data/local/lm_train
         lmdict=$dict
         mkdir -p ${lmdatadir}
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
-            | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
-        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-            | grep -v "<" | tr [a-z] [A-Z] \
-            | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
+            | cut -f 2- -d" " > ${lmdatadir}/train.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
                 | cut -f 2- -d" " > ${lmdatadir}/test.txt
-        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
     fi
 
     # use only 1 gpu
@@ -263,7 +277,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
