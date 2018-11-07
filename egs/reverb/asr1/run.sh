@@ -68,6 +68,11 @@ minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
+# Dereverberation Measures
+# please make sure that you or your institution have the license to report PESQ before turning on the flag
+compute_se=false # flag for turing on computation of dereverberation measures
+nch_se=8
+
 # data
 reverb=/export/corpora5/REVERB_2014/REVERB    # JHU setup
 wsjcam0=/export/corpora3/LDC/LDC95S24/wsjcam0 # JHU setup
@@ -91,7 +96,7 @@ set -o pipefail
 
 train_set=tr_simu_8ch_si284
 train_dev=dt_mult_1ch
-recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch dt_real_2ch_beamformit dt_simu_2ch_beamformit et_real_2ch_beamformit et_simu_2ch_beamformit dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe dt_real_2ch_wpe dt_simu_2ch_wpe et_real_2ch_wpe et_simu_2ch_wpe dt_real_8ch_wpe dt_simu_8ch_wpe et_real_8ch_wpe et_simu_8ch_wpe"
+recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch dt_real_2ch_beamformit dt_simu_2ch_beamformit et_real_2ch_beamformit et_simu_2ch_beamformit dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe dt_real_2ch_wpe dt_simu_2ch_wpe et_real_2ch_wpe et_simu_2ch_wpe dt_real_8ch_wpe dt_simu_8ch_wpe et_real_8ch_wpe et_simu_8ch_wpe dt_cln et_cln"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
@@ -105,6 +110,16 @@ if [ ${stage} -le 0 ]; then
     # Run WPE and Beamformit
     local/run_wpe.sh
     local/run_beamform.sh ${wavdir}/WPE/
+    if $compute_se; then
+      if [ ! -d local/REVERB_scores_source ] || [ ! -d local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools/SRMRToolbox ] || [ ! -f local/PESQ ]; then
+        # download and install speech enhancement evaluation tools
+        local/download_se_eval_tool.sh
+      fi
+      pesqdir=${PWD}/local
+      local/compute_se_scores.sh --nch $nch_se $reverb $wavdir $pesqdir
+      cat exp/compute_se_${nch_se}ch/scores/score_SimData
+      cat exp/compute_se_${nch_se}ch/scores/score_RealData
+    fi
 
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
@@ -342,6 +357,10 @@ if [ ${stage} -le 5 ]; then
     else
 	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}_${lmtag}
     fi
+    echo "RESULTS - Cln"
+    local/score_for_reverb_cln.sh --wer true --nlsyms ${nlsyms} \
+			      "${expdir}/decode_*_cln_${decode_part_dir}/data.json" \
+			      ${dict} ${expdir}/decode_summary_cln_${decode_part_dir}
     echo "RESULTS - 1ch - No Front End"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
 			      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
