@@ -194,3 +194,17 @@ RealData_et_far_room1:
 |       SPKR    |       # Snt   # Wrd   |       Corr    Sub     Del     Ins     Err     S.Err   |
 |       Sum/Avg |       186     2962    |       81.5    16.2    2.3     3.1     21.6    78.0    |
 ########################################
+
+RESULTS - Cln 
+----------------------------
+
+SimData_et_cln_room1:
+|       SPKR    |       # Snt   # Wrd   |       Corr    Sub     Del     Ins     Err     S.Err   |   
+|       Sum/Avg |       363     5904    |       93.6    5.4     1.0     0.7     7.1     50.4    |   
+SimData_et_cln_room2:
+|       SPKR    |       # Snt   # Wrd   |       Corr    Sub     Del     Ins     Err     S.Err   |   
+|       Sum/Avg |       363     6223    |       93.0    5.7     1.2     0.6     7.6     52.6    |   
+SimData_et_cln_room3:
+|       SPKR    |       # Snt   # Wrd   |       Corr    Sub     Del     Ins     Err     S.Err   |   
+|       Sum/Avg |       362     5863    |       93.2    5.7     1.1     0.6     7.5     50.3    | 
+########################################
