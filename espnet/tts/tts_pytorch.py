@@ -19,17 +19,17 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
-from asr_utils import get_model_conf
-from asr_utils import PlotAttentionReport
-from asr_utils import torch_load
-from asr_utils import torch_resume
-from asr_utils import torch_save
-from asr_utils import torch_snapshot
-from e2e_asr_th import pad_list
-from e2e_tts_th import Tacotron2
-from e2e_tts_th import Tacotron2Loss
-from tts_utils import load_inputs_and_targets
-from tts_utils import make_batchset
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import torch_resume
+from espnet.asr.asr_utils import torch_save
+from espnet.asr.asr_utils import torch_snapshot
+from espnet.nets.e2e_asr_th import pad_list
+from espnet.nets.e2e_tts_th import Tacotron2
+from espnet.nets.e2e_tts_th import Tacotron2Loss
+from espnet.tts.tts_utils import load_inputs_and_targets
+from espnet.tts.tts_utils import make_batchset
 
 import matplotlib
 matplotlib.use('Agg')

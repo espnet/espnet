@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from e2e_asr_th import to_cuda
+from espnet.nets.e2e_asr_th import to_cuda
 
 
 # TODO(Hori): currently it only works with character-word level LM.
