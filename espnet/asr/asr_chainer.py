@@ -27,24 +27,24 @@ from chainer.training.updaters.multiprocess_parallel_updater import gather_param
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
 # espnet related
-from asr_utils import adadelta_eps_decay
-from asr_utils import add_results_to_json
-from asr_utils import chainer_load
-from asr_utils import CompareValueTrigger
-from asr_utils import get_model_conf
-from asr_utils import load_inputs_and_targets
-from asr_utils import make_batchset
-from asr_utils import PlotAttentionReport
-from asr_utils import restore_snapshot
-from e2e_asr import E2E
-from e2e_asr import Loss
+from espnet.asr.asr_utils import adadelta_eps_decay
+from espnet.asr.asr_utils import add_results_to_json
+from espnet.asr.asr_utils import chainer_load
+from espnet.asr.asr_utils import CompareValueTrigger
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import load_inputs_and_targets
+from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import restore_snapshot
+from espnet.nets.e2e_asr import E2E
+from espnet.nets.e2e_asr import Loss
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
-import extlm_chainer
-import lm_chainer
+import espnet.lm.extlm_chainer as extlm_chainer
+import espnet.lm.lm_chainer as lm_chainer
 
 # numpy related
 import matplotlib
