@@ -27,7 +27,7 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==4.3.0 matplotlib
+	. venv/bin/activate; pip install cupy==4.3.0 torch==0.4.1 matplotlib
 	touch espnet.done
 
 kaldi-io-for-python.done: venv
