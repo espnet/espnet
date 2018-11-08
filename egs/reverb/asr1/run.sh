@@ -96,7 +96,7 @@ set -o pipefail
 
 train_set=tr_simu_8ch_si284
 train_dev=dt_mult_1ch
-recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch dt_real_2ch_beamformit dt_simu_2ch_beamformit et_real_2ch_beamformit et_simu_2ch_beamformit dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe dt_cln et_cln"
+recog_set="dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
