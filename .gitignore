@@ -20,7 +20,6 @@ egs/*/*/enhan
 egs/*/*/wav*
 
 # tools related
-src/utils/kaldi_io_py.py
 tools/kaldi
 tools/kaldi-io-for-python/
 tools/kaldi_github/

@@ -190,7 +190,7 @@ def main():
             sys.exit(1)
 
     # display PYTHONPATH
-    logging.info('python path = ' + os.environ['PYTHONPATH'])
+    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
 
     # set random seed
     logging.info('random seed = %d' % args.seed)
@@ -212,10 +212,10 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from asr_chainer import train
+        from espnet.asr.asr_chainer import train
         train(args)
     elif args.backend == "pytorch":
-        from asr_pytorch import train
+        from espnet.asr.asr_pytorch import train
         train(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")
