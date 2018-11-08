@@ -96,7 +96,7 @@ set -o pipefail
 
 train_set=tr_simu_8ch_si284
 train_dev=dt_mult_1ch
-recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch dt_real_2ch_beamformit dt_simu_2ch_beamformit et_real_2ch_beamformit et_simu_2ch_beamformit dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe dt_real_2ch_wpe dt_simu_2ch_wpe et_real_2ch_wpe et_simu_2ch_wpe dt_real_8ch_wpe dt_simu_8ch_wpe et_real_8ch_wpe et_simu_8ch_wpe dt_cln et_cln"
+recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch dt_real_2ch_beamformit dt_simu_2ch_beamformit et_real_2ch_beamformit et_simu_2ch_beamformit dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe dt_cln et_cln"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
@@ -261,7 +261,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_ng${ngpu}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -357,33 +357,6 @@ if [ ${stage} -le 5 ]; then
     else
 	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}_${lmtag}
     fi
-    echo "RESULTS - Cln"
-    local/score_for_reverb_cln.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_cln_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_cln_${decode_part_dir}
-    echo "RESULTS - 1ch - No Front End"
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
-    echo "RESULTS - 1ch - WPE"
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_1ch_wpe_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_1ch_wpe_${decode_part_dir}
-    echo "RESULTS - 2ch - WPE"
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_2ch_wpe_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_2ch_wpe_${decode_part_dir}
-    echo "RESULTS - 2ch - WPE+BeamformIt"
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_2ch_beamformit_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_2ch_beamformit_${decode_part_dir}
-    echo "RESULTS - 8ch - WPE"
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_8ch_wpe_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_8ch_wpe_${decode_part_dir}
-    echo "RESULTS - 8ch - WPE+BeamformIt"
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_8ch_beamformit_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_8ch_beamformit_${decode_part_dir}
+    local/get_results.sh ${nlsyms} ${dict} ${expdir} ${decode_part_dir}
     echo "Finished"
 fi
