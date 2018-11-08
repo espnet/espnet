@@ -87,7 +87,7 @@ for task in dt et; do
 	for n in `seq $nj`; do
 	cat <<-EOF > $wdir/log/wpe.$n.sh
 	while read line; do
-	  local/run_wpe.py \
+	  python local/run_wpe.py \
 	    --file \$line
 	done < $output_wavfiles.$n
 	EOF
@@ -153,7 +153,7 @@ for task in dt et; do
 	for n in `seq $nj`; do
 	cat <<-EOF > $wdir/log/wpe.$n.sh
 	while read line; do
-	  local/run_wpe.py \
+	  python local/run_wpe.py \
 	    --file \$line
 	done < $output_wavfiles.$n
 	EOF
