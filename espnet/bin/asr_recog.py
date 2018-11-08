@@ -97,7 +97,7 @@ def main():
             sys.exit(1)
 
     # display PYTHONPATH
-    logging.info('python path = ' + os.environ['PYTHONPATH'])
+    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
 
     # seed setting
     random.seed(args.seed)
@@ -107,10 +107,10 @@ def main():
     # recog
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from asr_chainer import recog
+        from espnet.asr.asr_chainer import recog
         recog(args)
     elif args.backend == "pytorch":
-        from asr_pytorch import recog
+        from espnet.asr.asr_pytorch import recog
         recog(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")

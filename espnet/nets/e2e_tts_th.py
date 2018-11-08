@@ -17,10 +17,10 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from e2e_asr_th import AttForward
-from e2e_asr_th import AttForwardTA
-from e2e_asr_th import AttLoc
-from e2e_asr_th import to_cuda
+from espnet.nets.e2e_asr_th import AttForward
+from espnet.nets.e2e_asr_th import AttForwardTA
+from espnet.nets.e2e_asr_th import AttLoc
+from espnet.nets.e2e_asr_th import to_cuda
 
 
 def encoder_init(m):
