@@ -12,8 +12,7 @@ def get_all_scripts(dirname):
 
 requirements = {
     'install': [
-        # for some reason, including matplotlib in requirements.txt causes errors, and
-        # matplotlib should be separately pip installed
+        # for some reason, matplotlib should be separately installed
         # 'matplotlib',
         'scipy',
         # Installation from anaconda is recommended for PyTorch
@@ -26,13 +25,13 @@ requirements = {
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
-        'editdistance==0.5.2',
-        ],
+        'editdistance==0.5.2'],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
+        'flake8>=3.6.0',
+        'hacking>=1.1.0',
         'pytest>=3.3.0',
         'pytest-pythonpath>=0.7.1',
-        'hacking>=1.0.0',
         'mock>=2.0.0',
         'autopep8>=1.3.3'],
     'doc': [
