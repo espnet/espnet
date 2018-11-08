@@ -64,7 +64,7 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
 
-nara_wpe: virtualenv
+nara_wpe: venv
 	. venv/bin/activate; pip install git+https://github.com/fgnt/nara_wpe.git
 	. venv/bin/activate; pip install soundfile
 
