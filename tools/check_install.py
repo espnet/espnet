@@ -8,7 +8,7 @@ import importlib
 import logging
 import sys
 
-# you should add the libraries which are not included in requirements.txt
+# you should add the libraries which are not included in setup.py
 MANUALLY_INSTALLED_LIBRARIES = [
     ('espnet', None),
     ('matplotlib', None),
