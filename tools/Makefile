@@ -22,12 +22,12 @@ endif
 # for some reason, including matplotlib in requirements.txt causes errors, and
 # matplotlib should be separately pip installed
 venv:
-	test -d venv || venv -p $(PYTHON) venv
+	test -d venv || virtualenv -p $(PYTHON) venv
 
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==4.3.0 matplotlib
+	. venv/bin/activate; pip install cupy==4.3.0 torch==0.4.1 matplotlib
 	touch espnet.done
 
 kaldi-io-for-python.done: venv
@@ -64,10 +64,6 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
 
-nara_wpe: venv
-	. venv/bin/activate; pip install git+https://github.com/fgnt/nara_wpe.git
-	. venv/bin/activate; pip install soundfile
-
 sentencepiece.done:
 	rm -rf sentencepiece
 	git clone https://github.com/google/sentencepiece.git
@@ -76,6 +72,10 @@ sentencepiece.done:
 
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
+
+nara_wpe: venv
+	. venv/bin/activate; pip install git+https://github.com/fgnt/nara_wpe.git
+	. venv/bin/activate; pip install soundfile
 
 clean:
 	rm -fr kaldi venv nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
