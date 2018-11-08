@@ -25,17 +25,17 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from e2e_asr_th import to_cuda
-from lm_utils import compute_perplexity
-from lm_utils import count_tokens
-from lm_utils import MakeSymlinkToBestModel
-from lm_utils import ParallelSentenceIterator
-from lm_utils import read_tokens
+from espnet.lm.lm_utils import compute_perplexity
+from espnet.lm.lm_utils import count_tokens
+from espnet.lm.lm_utils import MakeSymlinkToBestModel
+from espnet.lm.lm_utils import ParallelSentenceIterator
+from espnet.lm.lm_utils import read_tokens
+from espnet.nets.e2e_asr_th import to_cuda
 
-from asr_utils import torch_load
-from asr_utils import torch_resume
-from asr_utils import torch_save
-from asr_utils import torch_snapshot
+from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import torch_resume
+from espnet.asr.asr_utils import torch_save
+from espnet.asr.asr_utils import torch_snapshot
 
 REPORT_INTERVAL = 100
 
@@ -119,6 +119,20 @@ class ClassifierWithState(nn.Module):
         else:
             state, z = self.predictor(state, x)
             return state, F.log_softmax(z, dim=1)
+
+    def buff_predict(self, state, x, n):
+        if self.predictor.__class__.__name__ == 'RNNLM':
+            return self.predict(state, x)
+
+        new_state = []
+        new_log_y = []
+        for i in range(n):
+            state_i = None if state is None else state[i]
+            state_i, log_y = self.predict(state_i, x[i].unsqueeze(0))
+            new_state.append(state_i)
+            new_log_y.append(log_y)
+
+        return new_state, torch.cat(new_log_y)
 
     def final(self, state):
         """Predict final log probabilities for given state using the predictor

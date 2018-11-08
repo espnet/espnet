@@ -17,10 +17,10 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from e2e_asr_th import AttForward
-from e2e_asr_th import AttForwardTA
-from e2e_asr_th import AttLoc
-from e2e_asr_th import to_cuda
+from espnet.nets.e2e_asr_th import AttForward
+from espnet.nets.e2e_asr_th import AttForwardTA
+from espnet.nets.e2e_asr_th import AttLoc
+from espnet.nets.e2e_asr_th import to_cuda
 
 
 def encoder_init(m):
@@ -142,6 +142,7 @@ class Tacotron2Loss(torch.nn.Module):
             olens = [olen - olen % self.reduction_factor for olen in olens]
             ys = ys[:, :max(olens)]
             labels = labels[:, :max(olens)]
+            spcs = spcs[:, :max(olens)] if spcs is not None else None
 
         # prepare weight of positive samples in cross entorpy
         if self.bce_pos_weight != 1.0:
@@ -377,6 +378,8 @@ class Tacotron2(torch.nn.Module):
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
 
         if self.use_cbhg:
+            if self.reduction_factor > 1:
+                olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             cbhg_outs, _ = self.cbhg(after_outs, olens)
             return cbhg_outs, after_outs, before_outs, logits
         else:

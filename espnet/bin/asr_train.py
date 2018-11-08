@@ -97,7 +97,35 @@ def main():
                         help='Label smoothing weight')
     parser.add_argument('--sampling-probability', default=0.0, type=float,
                         help='Ratio of predicted labels fed back to decoder')
-
+    # recognition options to compute CER/WER
+    parser.add_argument('--report-cer', default=False, action='store_true',
+                        help='Compute CER on development set')
+    parser.add_argument('--report-wer', default=False, action='store_true',
+                        help='Compute WER on development set')
+    parser.add_argument('--nbest', type=int, default=1,
+                        help='Output N-best hypotheses')
+    parser.add_argument('--beam-size', type=int, default=4,
+                        help='Beam size')
+    parser.add_argument('--penalty', default=0.0, type=float,
+                        help='Incertion penalty')
+    parser.add_argument('--maxlenratio', default=0.0, type=float,
+                        help="""Input length ratio to obtain max output length.
+                        If maxlenratio=0.0 (default), it uses a end-detect function
+                        to automatically find maximum hypothesis lengths""")
+    parser.add_argument('--minlenratio', default=0.0, type=float,
+                        help='Input length ratio to obtain min output length')
+    parser.add_argument('--ctc-weight', default=0.3, type=float,
+                        help='CTC weight in joint decoding')
+    parser.add_argument('--rnnlm', type=str, default=None,
+                        help='RNNLM model file to read')
+    parser.add_argument('--rnnlm-conf', type=str, default=None,
+                        help='RNNLM model config file to read')
+    parser.add_argument('--lm-weight', default=0.1, type=float,
+                        help='RNNLM weight.')
+    parser.add_argument('--sym-space', default='<space>', type=str,
+                        help='Space symbol')
+    parser.add_argument('--sym-blank', default='<blank>', type=str,
+                        help='Blank symbol')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
@@ -162,7 +190,7 @@ def main():
             sys.exit(1)
 
     # display PYTHONPATH
-    logging.info('python path = ' + os.environ['PYTHONPATH'])
+    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
 
     # set random seed
     logging.info('random seed = %d' % args.seed)
@@ -184,10 +212,10 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from asr_chainer import train
+        from espnet.asr.asr_chainer import train
         train(args)
     elif args.backend == "pytorch":
-        from asr_pytorch import train
+        from espnet.asr.asr_pytorch import train
         train(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")

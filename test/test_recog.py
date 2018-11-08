@@ -3,9 +3,9 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import lm_pytorch
+import espnet.lm.lm_pytorch as lm_pytorch
 
-import lm_chainer
+import espnet.lm.lm_chainer as lm_chainer
 
 import argparse
 import importlib
@@ -58,10 +58,10 @@ def init_chainer_weight_const(m, val):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "e2e_asr", 0),
-    ("blstmp", "e2e_asr_th", 1),
-    ("vggblstmp", "e2e_asr", 2),
-    ("vggblstmp", "e2e_asr_th", 3),
+    ("blstmp", "espnet.nets.e2e_asr", 0),
+    ("blstmp", "espnet.nets.e2e_asr_th", 1),
+    ("vggblstmp", "espnet.nets.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.e2e_asr_th", 3),
 ])
 def test_recognition_results(etype, m_str, text_idx1):
     const = 1e-4
@@ -100,10 +100,10 @@ def test_recognition_results(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "e2e_asr", 0),
-    ("blstmp", "e2e_asr_th", 1),
-    ("vggblstmp", "e2e_asr", 2),
-    ("vggblstmp", "e2e_asr_th", 3),
+    ("blstmp", "espnet.nets.e2e_asr", 0),
+    ("blstmp", "espnet.nets.e2e_asr_th", 1),
+    ("vggblstmp", "espnet.nets.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.e2e_asr_th", 3),
 ])
 def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
@@ -146,3 +146,43 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         seq_true_text = data[0][1]["token"]
 
         assert seq_hat_text == seq_true_text
+
+
+@pytest.mark.parametrize(("etype", "m_str"), [
+    ("blstmp", "espnet.nets.e2e_asr"),
+    ("blstmp", "espnet.nets.e2e_asr_th"),
+    ("vggblstmp", "espnet.nets.e2e_asr"),
+    ("vggblstmp", "espnet.nets.e2e_asr_th"),
+])
+def test_batch_beam_search(etype, m_str):
+    const = 1e-4
+    numpy.random.seed(1)
+
+    # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
+    for ctc_weight in [0.0]:
+        args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
+                        lm_weight=0.3)
+        m = importlib.import_module(m_str)
+        model = m.Loss(m.E2E(40, 5, args), 0.5)
+
+        if "_th" in m_str:
+            rnnlm = lm_pytorch.ClassifierWithState(
+                lm_pytorch.RNNLM(len(args.char_list), 2, 10))
+            init_torch_weight_const(model, const)
+            init_torch_weight_const(rnnlm, const)
+        else:
+            # chainer module
+            continue
+
+        data = [("aaa", dict(feat=numpy.random.randn(100, 40).astype(numpy.float32)))]
+        in_data = data[0][1]["feat"]
+
+        for lm_weight in [0.0, 0.3]:
+            if lm_weight == 0.0:
+                s_nbest_hyps = model.predictor.recognize(in_data, args, args.char_list)
+                b_nbest_hyps = model.predictor.recognize_batch([in_data], args, args.char_list)
+            else:
+                s_nbest_hyps = model.predictor.recognize(in_data, args, args.char_list, rnnlm)
+                b_nbest_hyps = model.predictor.recognize_batch([in_data], args, args.char_list, rnnlm)
+
+            assert s_nbest_hyps[0]['yseq'] == b_nbest_hyps[0][0]['yseq']

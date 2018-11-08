@@ -28,6 +28,8 @@ def main():
                         help='Random seed')
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
+    parser.add_argument('--batchsize', default=1, type=int,
+                        help='Batch size for beam search')
     # task related
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')
@@ -89,8 +91,13 @@ def main():
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
 
+        # TODO(mn5k): support of multiple GPUs
+        if args.ngpu > 1:
+            logging.error("The program only supports ngpu=1.")
+            sys.exit(1)
+
     # display PYTHONPATH
-    logging.info('python path = ' + os.environ['PYTHONPATH'])
+    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
 
     # seed setting
     random.seed(args.seed)
@@ -100,10 +107,10 @@ def main():
     # recog
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from asr_chainer import recog
+        from espnet.asr.asr_chainer import recog
         recog(args)
     elif args.backend == "pytorch":
-        from asr_pytorch import recog
+        from espnet.asr.asr_pytorch import recog
         recog(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")
