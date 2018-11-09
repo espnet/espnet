@@ -22,12 +22,12 @@ endif
 # for some reason, including matplotlib in requirements.txt causes errors, and
 # matplotlib should be separately pip installed
 venv:
-	test -d venv || venv -p $(PYTHON) venv
+	test -d venv || virtualenv -p $(PYTHON) venv
 
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==4.3.0 matplotlib
+	. venv/bin/activate; pip install cupy==4.3.0 torch==0.4.1 matplotlib
 	touch espnet.done
 
 kaldi-io-for-python.done: venv
