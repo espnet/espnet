@@ -28,12 +28,11 @@ requirements = {
         'editdistance==0.5.2'],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
-        'flake8>=3.6.0',
         'hacking>=1.1.0',
         'pytest>=3.3.0',
         'pytest-pythonpath>=0.7.1',
         'mock>=2.0.0',
-        'autopep8>=1.3.3'],
+        'autopep8==1.2'],
     'doc': [
         'Sphinx==1.7.4',
         'sphinx-rtd-theme>=0.2.4',
