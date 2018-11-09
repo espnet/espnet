@@ -11,6 +11,7 @@ import sys
 # you should add the libraries which are not included in setup.py
 MANUALLY_INSTALLED_LIBRARIES = [
     ('espnet', None),
+    ('kaldi_io_py', None),
     ('matplotlib', None),
     ('torch', "0.4.1"),
     ('chainer', "4.3.1"),
@@ -25,11 +26,10 @@ logging.basicConfig(
 
 logging.info("python version = " + sys.version)
 
-# parse requirements
 library_list = []
 library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 
-# chech library availableness
+# check library availableness
 logging.info("library availableness check start.")
 logging.info("# libraries to be checked = %d" % len(library_list))
 is_correct_installed_list = []
