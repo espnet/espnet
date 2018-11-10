@@ -84,11 +84,10 @@ def make_pad_mask(lengths):
     """
     bs = int(len(lengths))
     maxlen = int(max(lengths))
-    mask = torch.zeros(bs, maxlen, dtype=torch.uint8)
-    for i, l in enumerate(lengths):
-        mask[i, l:] = 1
-
-    return mask
+    seq_range = torch.arange(0, maxlen).long()
+    seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
+    seq_length_expand = torch.LongTensor(lengths).unsqueeze(-1)
+    return seq_range_expand >= seq_length_expand
 
 
 def mask_by_length(xs, length, fill=0):
@@ -640,9 +639,8 @@ class NoAtt(torch.nn.Module):
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
-            att_prev = pad_list(att_prev, 0)
+            att_prev = to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()) / torch.FloatTensor(enc_hs_len).unsqueeze(-1))
             self.c = torch.sum(self.enc_h * att_prev.view(batch, self.h_length, 1), dim=1)
 
         return self.c, att_prev
@@ -860,9 +858,8 @@ class AttLoc(torch.nn.Module):
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
-            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
-            att_prev = pad_list(att_prev, 0)
+            att_prev = to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()) / torch.FloatTensor(enc_hs_len).unsqueeze(-1))
 
         # att_prev: utt x frame -> utt x 1 x 1 x frame -> utt x att_conv_chans x 1 x frame
         att_conv = self.loc_conv(att_prev.view(batch, 1, 1, self.h_length))
@@ -953,9 +950,8 @@ class AttCov(torch.nn.Module):
 
         # initialize attention weight with uniform dist.
         if att_prev_list is None:
-            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
-            att_prev_list = [pad_list(att_prev, 0)]
+            att_prev = to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()) / torch.FloatTensor(enc_hs_len).unsqueeze(-1))
 
         # att_prev_list: L' * [B x T] => cov_vec B x T
         cov_vec = sum(att_prev_list)
@@ -1054,9 +1050,8 @@ class AttLoc2D(torch.nn.Module):
         # initialize attention weight with uniform dist.
         if att_prev is None:
             # B * [Li x att_win]
-            att_prev = [enc_hs_pad.new(l, self.att_win).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
-            att_prev = pad_list(att_prev, 0).transpose(1, 2)
+            att_prev = to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()) / torch.FloatTensor(enc_hs_len).unsqueeze(-1))
 
         # att_prev: B x att_win x Tmax -> B x 1 x att_win x Tmax -> B x C x 1 x Tmax
         att_conv = self.loc_conv(att_prev.unsqueeze(1))
@@ -1158,9 +1153,8 @@ class AttLocRec(torch.nn.Module):
 
         if att_prev_states is None:
             # initialize attention weight with uniform dist.
-            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
-            att_prev = pad_list(att_prev, 0)
+            att_prev = to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()) / torch.FloatTensor(enc_hs_len).unsqueeze(-1))
 
             # initialize lstm states
             att_h = enc_hs_pad.new_zeros(batch, self.att_dim)
@@ -1266,9 +1260,8 @@ class AttCovLoc(torch.nn.Module):
 
         # initialize attention weight with uniform dist.
         if att_prev_list is None:
-            att_prev = [enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]
             # if no bias, 0 0-pad goes 0
-            att_prev_list = [pad_list(att_prev, 0)]
+            att_prev = to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()) / torch.FloatTensor(enc_hs_len).unsqueeze(-1))
 
         # att_prev_list: L' * [B x T] => cov_vec B x T
         cov_vec = sum(att_prev_list)
@@ -1600,9 +1593,8 @@ class AttMultiHeadLoc(torch.nn.Module):
         if att_prev is None:
             att_prev = []
             for h in six.moves.range(self.aheads):
-                att_prev += [[enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]]
                 # if no bias, 0 0-pad goes 0
-                att_prev[h] = pad_list(att_prev[h], 0)
+                att_prev += [to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()) / torch.FloatTensor(enc_hs_len).unsqueeze(-1))]
 
         c = []
         w = []
@@ -1728,9 +1720,8 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         if att_prev is None:
             att_prev = []
             for h in six.moves.range(self.aheads):
-                att_prev += [[enc_hs_pad.new(l).fill_(1.0 / l) for l in enc_hs_len]]
                 # if no bias, 0 0-pad goes 0
-                att_prev[h] = pad_list(att_prev[h], 0)
+                att_prev += [to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()) / torch.FloatTensor(enc_hs_len).unsqueeze(-1))]
 
         c = []
         w = []
