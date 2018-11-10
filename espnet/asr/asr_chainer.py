@@ -36,7 +36,6 @@ from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
-from espnet.nets.e2e_asr import E2E
 from espnet.nets.e2e_asr import Loss
 
 # for kaldi io
@@ -240,7 +239,14 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    e2e = E2E(idim, odim, args)
+    if args.ntype == 'e2e':
+        from espnet.nets.e2e_asr import E2E
+        e2e = E2E(idim, odim, args)
+    elif args.ntype == 'transformer':
+        from espnet.nets.e2e_asr_transformer import E2E
+        e2e = E2E(idim, odim, args)
+    else:
+        raise ValueError('Incorrect type of architecture')
     model = Loss(e2e, args.mtlalpha)
 
     # write model config

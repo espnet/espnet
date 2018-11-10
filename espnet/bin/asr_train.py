@@ -45,6 +45,9 @@ def main():
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network archtecture
+    parser.add_argument('--ntype', type=str, default='e2e',
+                        choices=['e2e', 'transformer'],
+                        help='Type of network architecture')
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
