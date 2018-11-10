@@ -14,14 +14,16 @@ endif
 miniconda.sh:
 	test -f miniconda.sh || wget $(CONDA_URL) -O miniconda.sh
 
-conda: miniconda.sh
+venv: miniconda.sh
 	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
+
+espnet.done: venv
 	conda config --set always_yes yes --set changeps1 no
 	conda update conda
 	conda install python=$(PYTHON_VERSION)
 	conda info -a
-
-virtualenv: conda requirements.txt
-	. venv/bin/activate && conda install -y numpy matplotlib
-	. venv/bin/activate && grep -v torch requirements.txt | pip install -r /dev/stdin
-	. venv/bin/activate && conda install pytorch -c pytorch
+	. venv/bin/activate && conda install -y pytorch -c pytorch
+	. venv/bin/activate && pip install -e ..
+	. venv/bin/activate && pip install cupy==4.3.0
+	. venv/bin/activate && conda install -y matplotlib
+	touch espnet.done

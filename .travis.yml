@@ -29,13 +29,17 @@ install:
         pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
     else
         cd tools;
-        make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} conda;
+        make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv;
         export PATH=`pwd`/venv/bin:$PATH;
-        conda install pytorch-cpu=${TH_VERSION} -c pytorch;
+        conda update -y conda;
+        conda install -y pytorch-cpu=${TH_VERSION} -c pytorch;
         cd -;
     fi
   - pip install -U pip wheel
-  - pip install -r ./tools/test_requirements.txt
+  # install espnet
+  - pip install -e .
+  - pip install -e .[test]
+  - pip install -e .[doc]
   # install matplotlib
   - pip install matplotlib
   # install warp-ctc (use @jnishi patched version)
@@ -43,11 +47,14 @@ install:
   - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
   - pip install cffi
   - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
-  # install chainer
-  - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
-  - cd tools && make kaldi-io-for-python && cd -
-  # install doc deps
-  - pip install -r doc/requirements.txt
+  # install kaldi_io_py
+  - cd tools
+  - git clone https://github.com/vesis84/kaldi-io-for-python.git
+  - cd kaldi-io-for-python
+  - ln -s kaldi_io.py kaldi_io_py.py
+  - cp ../setup_kaldi-io-for-python.py setup.py
+  - pip install .
+  - cd ../..
   # install chainer_ctc
   - pip install cython
   - git clone https://github.com/jheymann85/chainer_ctc.git
@@ -58,8 +65,8 @@ install:
 
 script:
   # TODO test coding style?
-  - flake8 src test
-  - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
+  - flake8 espnet test
+  - autopep8 -r espnet test --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
   - pytest
   - travis-sphinx build --source=doc --nowarn

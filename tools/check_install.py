@@ -8,17 +8,17 @@ import importlib
 import logging
 import sys
 
-# you should add the libraries which are not included in requirements.txt
+# you should add the libraries which are not included in setup.py
 MANUALLY_INSTALLED_LIBRARIES = [
+    ('espnet', None),
+    ('kaldi_io_py', None),
     ('matplotlib', None),
+    ('torch', "0.4.1"),
+    ('chainer', "4.3.1"),
+    ('cupy', "4.3.0"),
     ('chainer_ctc', None),
     ('warpctc_pytorch', "0.1.1")
 ]
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--requirements', '-r', default='./requirements.txt', type=str,
-                    help='requirements.txt')
-args = parser.parse_args()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,28 +26,10 @@ logging.basicConfig(
 
 logging.info("python version = " + sys.version)
 
-# load requirements
-with open(args.requirements, 'r') as f:
-    lines = f.readlines()
-
-# parse requirements
 library_list = []
-for line in lines:
-    line = line.replace('\n', '')
-    if '==' in line:
-        name, version = line.split('==')
-    elif '>=' in line:
-        name, _ = line.split('>=')
-        version = None
-    else:
-        name = line
-        version = None
-    library_list.append((name, version))
-
-# add some library manually
 library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 
-# chech library availableness
+# check library availableness
 logging.info("library availableness check start.")
 logging.info("# libraries to be checked = %d" % len(library_list))
 is_correct_installed_list = []
@@ -85,7 +67,7 @@ else:
                     logging.info("--> maybe it is better to reinstall the latest version.")
                     is_correct_version_list.append(False)
             except AssertionError:
-                logging.warn("--> %s version is not matched (%s==%s)." % (lib.__version__, version))
+                logging.warn("--> %s version is not matched (%s==%s)." % (name, lib.__version__, version))
                 is_correct_version_list.append(False)
     logging.info("library version check done.")
     logging.info("%d / %d libraries are correct version." % (

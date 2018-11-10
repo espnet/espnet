@@ -22,12 +22,12 @@ import chainer.links as L
 from chainer import cuda
 from chainer import reporter
 from chainer_ctc.warpctc import ctc as warp_ctc
-from ctc_prefix_score import CTCPrefixScore
-from e2e_asr_common import end_detect
-from e2e_asr_common import get_vgg2l_odim
-from e2e_asr_common import label_smoothing_dist
+from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet.nets.e2e_asr_common import end_detect
+from espnet.nets.e2e_asr_common import get_vgg2l_odim
+from espnet.nets.e2e_asr_common import label_smoothing_dist
 
-import deterministic_embed_id as DL
+import espnet.nets.deterministic_embed_id as DL
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
