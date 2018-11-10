@@ -5,7 +5,7 @@ KALDI =
 
 all: venv chainer_patch.done kaldi.done nkf.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done sentencepiece.done moses
 
-all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done kaldi-io-for-python.done
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
