@@ -30,32 +30,55 @@ matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
-def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
+def make_batchset(data, batch_size, max_length_in, max_length_out,
+                  num_batches=0, min_batch_size=1):
+    """Make batch set from json dictionary
+
+    :param dict data: dictionary loaded from data.json
+    :param int batch_size: batch size
+    :param int max_length_in: maximum length of input to decide adaptive batch size
+    :param int max_length_out: maximum length of output to decide adaptive batch size
+    :param int num_batches: # number of batches to use (for debug)
+    :param int min_batch_size: mininum batch size (for multi-gpu)
+    :return: list of batches
+    """
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
         data[1]['input'][0]['shape'][0]), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))
-    # change batchsize depending on the input and output length
-    minibatch = []
+
+    # make list of minibatches
+    minibatches = []
     start = 0
     while True:
         ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
         olen = int(sorted_data[start][1]['output'][0]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+        # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
         # then b = batchsize / 2
-        # and max(1, .) avoids batchsize = 0
-        b = max(1, int(batch_size / (1 + factor)))
-        end = min(len(sorted_data), start + b)
-        minibatch.append(sorted_data[start:end])
+        # and max(min_batches, .) avoids batchsize = 0
+        bs = max(min_batch_size, int(batch_size / (1 + factor)))
+        end = min(len(sorted_data), start + bs)
+        minibatch = sorted_data[start:end]
+
+        # check each batch is more than minimum batchsize
+        if len(minibatch) < min_batch_size:
+            mod = min_batch_size - len(minibatch) % min_batch_size
+            additional_minibatch = [sorted_data[i] for i in np.random.randint(0, start, mod)]
+            minibatch.extend(additional_minibatch)
+        minibatches.append(minibatch)
+
         if end == len(sorted_data):
             break
         start = end
-    if num_batches > 0:
-        minibatch = minibatch[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatch)))
 
-    return minibatch
+    # for debugging
+    if num_batches > 0:
+        minibatches = minibatches[:num_batches]
+    logging.info('# minibatches: ' + str(len(minibatches)))
+
+    return minibatches
 
 
 def load_inputs_and_targets(batch):
