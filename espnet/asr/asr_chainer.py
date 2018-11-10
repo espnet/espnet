@@ -460,7 +460,14 @@ def recog(args):
 
     # specify model architecture
     logging.info('reading model parameters from ' + args.model)
-    e2e = E2E(idim, odim, train_args)
+    if train_args.ntype == 'e2e':
+        from espnet.nets.e2e_asr import E2E
+        e2e = E2E(idim, odim, train_args)
+    elif train_args.ntype == 'transformer':
+        from espnet.nets.e2e_asr_transformer import E2E
+        e2e = E2E(idim, odim, train_args)
+    else:
+        raise ValueError('Incorrect type of architecture')
     model = Loss(e2e, train_args.mtlalpha)
     chainer_load(args.model, model)
 

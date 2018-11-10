@@ -1,30 +1,25 @@
 # encoding: utf-8
 
-import json
-import os.path
-
-import numpy
-import six
-
 import chainer
 from chainer import cuda
 from chainer.dataset import convert
-from chainer import reporter
-from chainer import training
-from chainer.training import extensions
-import numpy as np
-
-import chainer
-from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
+from chainer import training
+from chainer.training import extensions
 
-from train import source_pad_concat_convert
+import espnet.nets.deterministic_embed_id as DL
 
-import net
+import json
 
-from subfuncs import VaswaniRule
+import numpy as np
+import os.path
+import six
+
+
+# linear_init = chainer.initializers.GlorotNormal()
+linear_init = chainer.initializers.LeCunUniform()
 
 
 def seq2seq_pad_concat_convert(xy_batch, device, eos_id=0, bos_id=2):
@@ -88,246 +83,6 @@ def source_pad_concat_convert(x_seqs, device, eos_id=0, bos_id=2):
     return x_block
 
 
-class CalculateBleu(chainer.training.Extension):
-
-    trigger = 1, 'epoch'
-    priority = chainer.training.PRIORITY_WRITER
-
-    def __init__(
-            self, model, test_data, key, batch=50, device=-1, max_length=50):
-        self.model = model
-        self.test_data = test_data
-        self.key = key
-        self.batch = batch
-        self.device = device
-        self.max_length = max_length
-
-    def __call__(self, trainer):
-        print('## Calculate BLEU')
-        with chainer.no_backprop_mode():
-            with chainer.using_config('train', False):
-                references = []
-                hypotheses = []
-                for i in range(0, len(self.test_data), self.batch):
-                    sources, targets = zip(*self.test_data[i:i + self.batch])
-                    references.extend([[t.tolist()] for t in targets])
-
-                    sources = [
-                        chainer.dataset.to_device(self.device, x) for x in sources]
-                    ys = [y.tolist()
-                          for y in self.model.translate(
-                        sources, self.max_length, beam=False)]
-                    # greedy generation for efficiency
-                    hypotheses.extend(ys)
-
-        bleu = bleu_score.corpus_bleu(
-            references, hypotheses,
-            smoothing_function=bleu_score.SmoothingFunction().method1) * 100
-        print('BLEU:', bleu)
-        reporter.report({self.key: bleu})
-
-
-def main():
-
-
-    # Check file
-    en_path = os.path.join(args.input, args.source)
-    source_vocab = ['<eos>', '<unk>', '<bos>'] + \
-        preprocess.count_words(en_path, args.source_vocab)
-    source_data = preprocess.make_dataset(en_path, source_vocab)
-    fr_path = os.path.join(args.input, args.target)
-    target_vocab = ['<eos>', '<unk>', '<bos>'] + \
-        preprocess.count_words(fr_path, args.target_vocab)
-    target_data = preprocess.make_dataset(fr_path, target_vocab)
-    assert len(source_data) == len(target_data)
-    print('Original training data size: %d' % len(source_data))
-    train_data = [(s, t)
-                  for s, t in six.moves.zip(source_data, target_data)
-                  if 0 < len(s) < 50 and 0 < len(t) < 50]
-    print('Filtered training data size: %d' % len(train_data))
-
-    en_path = os.path.join(args.input, args.source_valid)
-    source_data = preprocess.make_dataset(en_path, source_vocab)
-    fr_path = os.path.join(args.input, args.target_valid)
-    target_data = preprocess.make_dataset(fr_path, target_vocab)
-    assert len(source_data) == len(target_data)
-    test_data = [(s, t) for s, t in six.moves.zip(source_data, target_data)
-                 if 0 < len(s) and 0 < len(t)]
-
-    source_ids = {word: index for index, word in enumerate(source_vocab)}
-    target_ids = {word: index for index, word in enumerate(target_vocab)}
-
-    target_words = {i: w for w, i in target_ids.items()}
-    source_words = {i: w for w, i in source_ids.items()}
-
-    # Define Model
-    model = net.Transformer(
-        args.layer,
-        min(len(source_ids), len(source_words)),
-        min(len(target_ids), len(target_words)),
-        args.unit,
-        h=args.head,
-        dropout=args.dropout,
-        max_length=500,
-        use_label_smoothing=args.use_label_smoothing,
-        embed_position=args.embed_position)
-    if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
-        model.to_gpu(args.gpu)
-
-    # Setup Optimizer
-    optimizer = chainer.optimizers.Adam(
-        alpha=5e-5,
-        beta1=0.9,
-        beta2=0.98,
-        eps=1e-9
-    )
-    optimizer.setup(model)
-
-    # Setup Trainer
-    train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
-    test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
-                                                 repeat=False, shuffle=False)
-    iter_per_epoch = len(train_data) // args.batchsize
-    print('Number of iter/epoch =', iter_per_epoch)
-
-    updater = training.StandardUpdater(
-        train_iter, optimizer,
-        converter=seq2seq_pad_concat_convert, device=args.gpu)
-
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
-
-    # If you want to change a logging interval, change this number
-    log_trigger = (min(200, iter_per_epoch // 2), 'iteration')
-
-    def floor_step(trigger):
-        floored = trigger[0] - trigger[0] % log_trigger[0]
-        if floored <= 0:
-            floored = trigger[0]
-        return (floored, trigger[1])
-
-    # Validation every half epoch
-    eval_trigger = floor_step((iter_per_epoch // 2, 'iteration'))
-    record_trigger = training.triggers.MinValueTrigger(
-        'val/main/perp', eval_trigger)
-
-    evaluator = extensions.Evaluator(
-        test_iter, model,
-        converter=seq2seq_pad_concat_convert, device=args.gpu)
-    evaluator.default_name = 'val'
-    trainer.extend(evaluator, trigger=eval_trigger)
-
-    # Use Vaswan's magical rule of learning rate(Eq. 3 in the paper)
-    # But, the hyperparamter in the paper seems to work well
-    # only with a large batchsize.
-    # If you run on popular setup (e.g. size=48 on 1 GPU),
-    # you may have to change the hyperparamter.
-    # I scaled learning rate by 0.5 consistently.
-    # ("scale" is always multiplied to learning rate.)
-
-    # If you use a shallow layer network (<=2),
-    # you may not have to change it from the paper setting.
-    if not args.use_fixed_lr:
-        trainer.extend(
-            # VaswaniRule('alpha', d=args.unit, warmup_steps=4000, scale=1.),
-            # VaswaniRule('alpha', d=args.unit, warmup_steps=32000, scale=1.),
-            # VaswaniRule('alpha', d=args.unit, warmup_steps=4000, scale=0.5),
-            # VaswaniRule('alpha', d=args.unit, warmup_steps=16000, scale=1.),
-            VaswaniRule('alpha', d=args.unit, warmup_steps=64000, scale=1.),
-            trigger=(1, 'iteration'))
-    observe_alpha = extensions.observe_value(
-        'alpha',
-        lambda trainer: trainer.updater.get_optimizer('main').alpha)
-    trainer.extend(
-        observe_alpha,
-        trigger=(1, 'iteration'))
-
-    # Only if a model gets best validation score,
-    # save (overwrite) the model
-    trainer.extend(extensions.snapshot_object(
-        model, 'best_model.npz'),
-        trigger=record_trigger)
-
-    def translate_one(source, target):
-        words = preprocess.split_sentence(source)
-        print('# source : ' + ' '.join(words))
-        x = model.xp.array(
-            [source_ids.get(w, 1) for w in words], 'i')
-        ys = model.translate([x], beam=5)[0]
-        words = [target_words[y] for y in ys]
-        print('#  result : ' + ' '.join(words))
-        print('#  expect : ' + target)
-
-    @chainer.training.make_extension(trigger=(200, 'iteration'))
-    def translate(trainer):
-        translate_one(
-            'Who are we ?',
-            'Qui sommes-nous?')
-        translate_one(
-            'And it often costs over a hundred dollars ' +
-            'to obtain the required identity card .',
-            'Or, il en coûte souvent plus de cent dollars ' +
-            'pour obtenir la carte d\'identité requise.')
-
-        source, target = test_data[numpy.random.choice(len(test_data))]
-        source = ' '.join([source_words[i] for i in source])
-        target = ' '.join([target_words[i] for i in target])
-        translate_one(source, target)
-
-    # Gereneration Test
-    trainer.extend(
-        translate,
-        trigger=(min(200, iter_per_epoch), 'iteration'))
-
-    # Calculate BLEU every half epoch
-    if not args.no_bleu:
-        trainer.extend(
-            CalculateBleu(
-                model, test_data, 'val/main/bleu',
-                device=args.gpu, batch=args.batchsize // 4),
-            trigger=floor_step((iter_per_epoch // 2, 'iteration')))
-
-    # Log
-    trainer.extend(extensions.LogReport(trigger=log_trigger),
-                   trigger=log_trigger)
-    trainer.extend(extensions.PrintReport(
-        ['epoch', 'iteration',
-         'main/loss', 'val/main/loss',
-         'main/perp', 'val/main/perp',
-         'main/acc', 'val/main/acc',
-         'val/main/bleu',
-         'alpha',
-         'elapsed_time']),
-        trigger=log_trigger)
-
-    print('start training')
-    trainer.run()
-
-
-
-
-# linear_init = chainer.initializers.GlorotNormal()
-linear_init = chainer.initializers.LeCunUniform()
-
-
-def sentence_block_embed(embed, x):
-    """ Change implicitly embed_id function's target to ndim=2
-
-    Apply embed_id for array of ndim 2,
-    shape (batchsize, sentence_length),
-    instead for array of ndim 1.
-
-    """
-
-    batch, length = x.shape
-    _, units = embed.W.shape
-    e = embed(x.reshape((batch * length, )))
-    assert(e.shape == (batch * length, units))
-    e = F.transpose(F.stack(F.split_axis(e, batch, axis=0), axis=0), (0, 2, 1))
-    assert(e.shape == (batch, units, length))
-    return e
-
-
 def seq_func(func, x, reconstruct_shape=True):
     """ Change implicitly function's target to ndim=3
 
@@ -345,6 +100,24 @@ def seq_func(func, x, reconstruct_shape=True):
     out_units = e.shape[1]
     e = F.transpose(e.reshape((batch, length, out_units)), (0, 2, 1))
     assert(e.shape == (batch, out_units, length))
+    return e
+
+
+def sentence_block_embed(embed, x):
+    """ Change implicitly embed_id function's target to ndim=2
+
+    Apply embed_id for array of ndim 2,
+    shape (batchsize, sentence_length),
+    instead for array of ndim 1.
+
+    """
+
+    batch, length = x.shape
+    _, units = embed.W.shape
+    e = embed(x.reshape((batch * length, )))
+    assert(e.shape == (batch * length, units))
+    e = F.transpose(F.stack(F.split_axis(e, batch, axis=0), axis=0), (0, 2, 1))
+    assert(e.shape == (batch, units, length))
     return e
 
 
@@ -399,6 +172,228 @@ class ConvolutionSentence(L.Convolution2D):
         y = super(ConvolutionSentence, self).__call__(x)
         y = F.squeeze(y, axis=3)
         return y
+
+
+class E2E(chainer.Chain):
+    def __init__(self, idim, odim, args):
+    #def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units,
+    #             h=8, dropout=0.1, max_length=500,
+    #             use_label_smoothing=False,
+    #             embed_position=False):
+        super(Transformer, self).__init__()
+        with self.init_scope():
+            self.encoder = Encoder(args.elayers, args.eunits, args.aconv_chans, args.dropout_rate)
+            self.decoder = Decoder(args.elayers, args.eunits, args.aconv_chans, args.dropout_rate)
+            self.embed_pos = L.EmbedID(1500, args.dunits,
+                                       ignore_label=-1)
+        #self.n_layers = n_layers
+        #self.n_units = n_units
+        #self.n_target_vocab = n_target_vocab
+        #self.dropout = dropout
+        #self.use_label_smoothing = use_label_smoothing
+        self.use_label_smoothing = False
+        if args.lsm_type:
+            logging.info("Use label smoothing ")
+            self.use_label_smoothing = True
+            #labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
+        self.initialize_position_encoding(max_length, n_units)
+        self.scale_emb = args.eunits ** 0.5
+        self.sos = odim - 1
+        self.eos = odim - 1
+
+    def initialize_position_encoding(self, length, n_units):
+        xp = self.xp
+        """
+        # Implementation described in the paper
+        start = 1  # index starts from 1 or 0
+        posi_block = xp.arange(
+            start, length + start, dtype='f')[None, None, :]
+        unit_block = xp.arange(
+            start, n_units // 2 + start, dtype='f')[None, :, None]
+        rad_block = posi_block / 10000. ** (unit_block / (n_units // 2))
+        sin_block = xp.sin(rad_block)
+        cos_block = xp.cos(rad_block)
+        self.position_encoding_block = xp.empty((1, n_units, length), 'f')
+        self.position_encoding_block[:, ::2, :] = sin_block
+        self.position_encoding_block[:, 1::2, :] = cos_block
+        """
+
+        # Implementation in the Google tensor2tensor repo
+        channels = n_units
+        position = xp.arange(length, dtype='f')
+        num_timescales = channels // 2
+        log_timescale_increment = (
+            xp.log(10000. / 1.) /
+            (float(num_timescales) - 1))
+        inv_timescales = 1. * xp.exp(
+            xp.arange(num_timescales).astype('f') * -log_timescale_increment)
+        scaled_time = \
+            xp.expand_dims(position, 1) * \
+            xp.expand_dims(inv_timescales, 0)
+        signal = xp.concatenate(
+            [xp.sin(scaled_time), xp.cos(scaled_time)], axis=1)
+        signal = xp.reshape(signal, [1, length, channels])
+        self.position_encoding_block = xp.transpose(signal, (0, 2, 1))
+
+    def make_input_embedding(self, embed, block):
+        batch, length = block.shape
+        emb_block = sentence_block_embed(embed, block) * self.scale_emb
+        emb_block += self.xp.array(self.position_encoding_block[:, :, :length])
+        if hasattr(self, 'embed_pos'):
+            emb_block += sentence_block_embed(
+                self.embed_pos,
+                self.xp.broadcast_to(
+                    self.xp.arange(length).astype('i')[None, :], block.shape))
+        emb_block = F.dropout(emb_block, self.dropout)
+        return emb_block
+
+    def make_attention_mask(self, source_block, target_block):
+        mask = (target_block[:, None, :] >= 0) * \
+            (source_block[:, :, None] >= 0)
+        # (batch, source_length, target_length)
+        return mask
+
+    def make_history_mask(self, block):
+        batch, length = block.shape
+        arange = self.xp.arange(length)
+        history_mask = (arange[None, ] <= arange[:, None])[None, ]
+        history_mask = self.xp.broadcast_to(
+            history_mask, (batch, length, length))
+        return history_mask
+
+    def output(self, h):
+        return F.linear(h, self.embed_y.W)
+
+    def output_and_loss(self, h_block, t_block):
+        batch, units, length = h_block.shape
+
+        # Output (all together at once for efficiency)
+        concat_logit_block = seq_func(self.output, h_block,
+                                      reconstruct_shape=False)
+        rebatch, _ = concat_logit_block.shape
+        # Make target
+        concat_t_block = t_block.reshape((rebatch))
+        ignore_mask = (concat_t_block >= 0)
+        n_token = ignore_mask.sum()
+        normalizer = n_token  # n_token or batch or 1
+        # normalizer = 1
+
+        if not self.use_label_smoothing:
+            loss = F.softmax_cross_entropy(concat_logit_block, concat_t_block)
+            loss = loss * n_token / normalizer
+        else:
+            log_prob = F.log_softmax(concat_logit_block)
+            broad_ignore_mask = self.xp.broadcast_to(
+                ignore_mask[:, None],
+                concat_logit_block.shape)
+            pre_loss = ignore_mask * \
+                log_prob[self.xp.arange(rebatch), concat_t_block]
+            loss = - F.sum(pre_loss) / normalizer
+
+        accuracy = F.accuracy(
+            concat_logit_block, concat_t_block, ignore_label=-1)
+
+        if self.use_label_smoothing:
+            label_smoothing = broad_ignore_mask * \
+                - 1. / self.n_target_vocab * log_prob
+            label_smoothing = F.sum(label_smoothing) / normalizer
+            loss = 0.9 * loss + 0.1 * label_smoothing
+        return loss, accuracy
+
+    def __call__(self, x_block, y_in_block, y_out_block, get_prediction=False):
+        # From E2E:
+        # 1. encoder
+        #hs, ilens = self.enc(xs, ilens)
+
+        # 3. CTC loss
+        #if self.mtlalpha == 0:
+        #    loss_ctc = None
+        #else:
+        #    loss_ctc = self.ctc(hs, ys)
+
+        # 4. attention loss
+        #if self.mtlalpha == 1:
+        #    loss_att = None
+        #    acc = None
+        #else:
+        #    loss_att, acc = self.dec(hs, ys)
+
+        batch, x_length = x_block.shape
+        batch, y_length = y_in_block.shape
+
+        # Make Masks
+        xx_mask = self.make_attention_mask(x_block, x_block)
+        xy_mask = self.make_attention_mask(y_in_block, x_block)
+        yy_mask = self.make_attention_mask(y_in_block, y_in_block)
+        yy_mask *= self.make_history_mask(y_in_block)
+
+        # Encode Sources
+        z_blocks = self.encoder(ex_block, xx_mask)
+        # [(batch, n_units, x_length), ...]
+
+        # Encode Targets with Sources (Decode without Output)
+        h_block = self.dec(ey_block, z_blocks, xy_mask, yy_mask)
+        loss_att, acc = self.output_and_loss(h_block, y_out_block)
+        #return self.output_and_loss(h_block, y_out_block)
+        loss_ctc = None
+        return loss_ctc, loss_att, acc
+
+    def recognize(self, x, recog_args, char_list, rnnlm=None):
+        #def translate(self, x_block, max_length=50, beam=5):
+        #x = x[::self.subsample[0], :]
+        #ilen = self.xp.array(x.shape[0], dtype=np.int32)
+        #h = chainer.Variable(self.xp.array(x, dtype=np.float32))
+
+        #with chainer.no_backprop_mode(), chainer.using_config('train', False):
+        #    # 1. encoder
+        #    # make a utt list (1) to use the same interface for encoder
+        #    h, _ = self.enc([h], [ilen])
+
+        #    # calculate log P(z_t|X) for CTC scores
+        #    if recog_args.ctc_weight > 0.0:
+        #        lpz = self.ctc.log_softmax(h).data[0]
+        #    else:
+        #        lpz = None
+
+        #    # 2. decoder
+        #    # decode the first utterance
+        #    y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+
+        with chainer.no_backprop_mode():
+            with chainer.using_config('train', False):
+                x_block = source_pad_concat_convert(
+                    x_block, device=None)
+                batch, x_length = x_block.shape
+                # y_block = self.xp.zeros((batch, 1), dtype=x_block.dtype)
+                y_block = self.xp.full(
+                    (batch, 1), 2, dtype=x_block.dtype)  # bos
+                eos_flags = self.xp.zeros((batch, ), dtype=x_block.dtype)
+                result = []
+                for i in range(max_length):
+                    log_prob_tail = self(x_block, y_block, y_block,
+                                         get_prediction=True)
+                    ys = self.xp.argmax(log_prob_tail.data, axis=1).astype('i')
+                    result.append(ys)
+                    y_block = F.concat([y_block, ys[:, None]], axis=1).data
+                    eos_flags += (ys == 0)
+                    if self.xp.all(eos_flags):
+                        break
+
+                return y
+
+    def calculate_all_attentions(self, xs, ilens, ys):
+        '''E2E attention calculation
+
+        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
+        :param ndarray ilens: batch of lengths of input sequences (B)
+        :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
+        :return: attention weights (B, Lmax, Tmax)
+        :rtype: float ndarray
+        '''
+        hs, ilens = self.enc(xs, ilens)
+        att_ws = self.dec.calculate_all_attentions(hs, ys)
+
+        return att_ws
 
 
 class MultiHeadAttention(chainer.Chain):
@@ -574,205 +569,8 @@ class Decoder(chainer.Chain):
             e = getattr(self, name)(e, source, xy_mask, yy_mask)
         return e
 
-
-class Transformer(chainer.Chain):
-
-    def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units,
-                 h=8, dropout=0.1, max_length=500,
-                 use_label_smoothing=False,
-                 embed_position=False):
-        super(Transformer, self).__init__()
-        with self.init_scope():
-            self.embed_x = L.EmbedID(n_source_vocab, n_units, ignore_label=-1,
-                                     initialW=linear_init)
-            self.embed_y = L.EmbedID(n_target_vocab, n_units, ignore_label=-1,
-                                     initialW=linear_init)
-            self.encoder = Encoder(n_layers, n_units, h, dropout)
-            self.decoder = Decoder(n_layers, n_units, h, dropout)
-            if embed_position:
-                self.embed_pos = L.EmbedID(max_length, n_units,
-                                           ignore_label=-1)
-
-        self.n_layers = n_layers
-        self.n_units = n_units
-        self.n_target_vocab = n_target_vocab
-        self.dropout = dropout
-        self.use_label_smoothing = use_label_smoothing
-        self.initialize_position_encoding(max_length, n_units)
-        self.scale_emb = self.n_units ** 0.5
-
-    def initialize_position_encoding(self, length, n_units):
-        xp = self.xp
-        """
-        # Implementation described in the paper
-        start = 1  # index starts from 1 or 0
-        posi_block = xp.arange(
-            start, length + start, dtype='f')[None, None, :]
-        unit_block = xp.arange(
-            start, n_units // 2 + start, dtype='f')[None, :, None]
-        rad_block = posi_block / 10000. ** (unit_block / (n_units // 2))
-        sin_block = xp.sin(rad_block)
-        cos_block = xp.cos(rad_block)
-        self.position_encoding_block = xp.empty((1, n_units, length), 'f')
-        self.position_encoding_block[:, ::2, :] = sin_block
-        self.position_encoding_block[:, 1::2, :] = cos_block
-        """
-
-        # Implementation in the Google tensor2tensor repo
-        channels = n_units
-        position = xp.arange(length, dtype='f')
-        num_timescales = channels // 2
-        log_timescale_increment = (
-            xp.log(10000. / 1.) /
-            (float(num_timescales) - 1))
-        inv_timescales = 1. * xp.exp(
-            xp.arange(num_timescales).astype('f') * -log_timescale_increment)
-        scaled_time = \
-            xp.expand_dims(position, 1) * \
-            xp.expand_dims(inv_timescales, 0)
-        signal = xp.concatenate(
-            [xp.sin(scaled_time), xp.cos(scaled_time)], axis=1)
-        signal = xp.reshape(signal, [1, length, channels])
-        self.position_encoding_block = xp.transpose(signal, (0, 2, 1))
-
-    def make_input_embedding(self, embed, block):
-        batch, length = block.shape
-        emb_block = sentence_block_embed(embed, block) * self.scale_emb
-        emb_block += self.xp.array(self.position_encoding_block[:, :, :length])
-        if hasattr(self, 'embed_pos'):
-            emb_block += sentence_block_embed(
-                self.embed_pos,
-                self.xp.broadcast_to(
-                    self.xp.arange(length).astype('i')[None, :], block.shape))
-        emb_block = F.dropout(emb_block, self.dropout)
-        return emb_block
-
-    def make_attention_mask(self, source_block, target_block):
-        mask = (target_block[:, None, :] >= 0) * \
-            (source_block[:, :, None] >= 0)
-        # (batch, source_length, target_length)
-        return mask
-
-    def make_history_mask(self, block):
-        batch, length = block.shape
-        arange = self.xp.arange(length)
-        history_mask = (arange[None, ] <= arange[:, None])[None, ]
-        history_mask = self.xp.broadcast_to(
-            history_mask, (batch, length, length))
-        return history_mask
-
-    def output(self, h):
-        return F.linear(h, self.embed_y.W)
-
-    def output_and_loss(self, h_block, t_block):
-        batch, units, length = h_block.shape
-
-        # Output (all together at once for efficiency)
-        concat_logit_block = seq_func(self.output, h_block,
-                                      reconstruct_shape=False)
-        rebatch, _ = concat_logit_block.shape
-        # Make target
-        concat_t_block = t_block.reshape((rebatch))
-        ignore_mask = (concat_t_block >= 0)
-        n_token = ignore_mask.sum()
-        normalizer = n_token  # n_token or batch or 1
-        # normalizer = 1
-
-        if not self.use_label_smoothing:
-            loss = F.softmax_cross_entropy(concat_logit_block, concat_t_block)
-            loss = loss * n_token / normalizer
-        else:
-            log_prob = F.log_softmax(concat_logit_block)
-            broad_ignore_mask = self.xp.broadcast_to(
-                ignore_mask[:, None],
-                concat_logit_block.shape)
-            pre_loss = ignore_mask * \
-                log_prob[self.xp.arange(rebatch), concat_t_block]
-            loss = - F.sum(pre_loss) / normalizer
-
-        accuracy = F.accuracy(
-            concat_logit_block, concat_t_block, ignore_label=-1)
-        perp = self.xp.exp(loss.data * normalizer / n_token)
-
-        # Report the Values
-        reporter.report({'loss': loss.data * normalizer / n_token,
-                         'acc': accuracy.data,
-                         'perp': perp}, self)
-
-        if self.use_label_smoothing:
-            label_smoothing = broad_ignore_mask * \
-                - 1. / self.n_target_vocab * log_prob
-            label_smoothing = F.sum(label_smoothing) / normalizer
-            loss = 0.9 * loss + 0.1 * label_smoothing
-        return loss
-
-    def __call__(self, x_block, y_in_block, y_out_block, get_prediction=False):
-        batch, x_length = x_block.shape
-        batch, y_length = y_in_block.shape
-
-        # Make Embedding
-        ex_block = self.make_input_embedding(self.embed_x, x_block)
-        ey_block = self.make_input_embedding(self.embed_y, y_in_block)
-
-        # Make Masks
-        xx_mask = self.make_attention_mask(x_block, x_block)
-        xy_mask = self.make_attention_mask(y_in_block, x_block)
-        yy_mask = self.make_attention_mask(y_in_block, y_in_block)
-        yy_mask *= self.make_history_mask(y_in_block)
-
-        # Encode Sources
-        z_blocks = self.encoder(ex_block, xx_mask)
-        # [(batch, n_units, x_length), ...]
-
-        # Encode Targets with Sources (Decode without Output)
-        h_block = self.decoder(ey_block, z_blocks, xy_mask, yy_mask)
-        # (batch, n_units, y_length)
-
-        if get_prediction:
-            return self.output(h_block[:, :, -1])
-        else:
-            return self.output_and_loss(h_block, y_out_block)
-
-    def translate(self, x_block, max_length=50, beam=5):
-        if beam:
-            return self.translate_beam(x_block, max_length, beam)
-
-        # TODO: efficient inference by re-using result
-        with chainer.no_backprop_mode():
-            with chainer.using_config('train', False):
-                x_block = source_pad_concat_convert(
-                    x_block, device=None)
-                batch, x_length = x_block.shape
-                # y_block = self.xp.zeros((batch, 1), dtype=x_block.dtype)
-                y_block = self.xp.full(
-                    (batch, 1), 2, dtype=x_block.dtype)  # bos
-                eos_flags = self.xp.zeros((batch, ), dtype=x_block.dtype)
-                result = []
-                for i in range(max_length):
-                    log_prob_tail = self(x_block, y_block, y_block,
-                                         get_prediction=True)
-                    ys = self.xp.argmax(log_prob_tail.data, axis=1).astype('i')
-                    result.append(ys)
-                    y_block = F.concat([y_block, ys[:, None]], axis=1).data
-                    eos_flags += (ys == 0)
-                    if self.xp.all(eos_flags):
-                        break
-
-        result = cuda.to_cpu(self.xp.stack(result).T)
-
-        # Remove EOS taggs
-        outs = []
-        for y in result:
-            inds = np.argwhere(y == 0)
-            if len(inds) > 0:
-                y = y[:inds[0, 0]]
-            if len(y) == 0:
-                y = np.array([1], 'i')
-            outs.append(y)
-        return outs
-
-    def translate_beam(self, x_block, max_length=50, beam=5):
-        # TODO: efficient inference by re-using result
+    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
+                # TODO: efficient inference by re-using result
         # TODO: batch processing
         with chainer.no_backprop_mode():
             with chainer.using_config('train', False):
@@ -823,19 +621,49 @@ class Transformer(chainer.Chain):
         outs = [sent if sent else [0] for sent in outs]
         return outs
 
+    def calculate_all_attentions(self, hs, ys):
+        '''Calculate all of attentions
 
-def get_topk(x, k=5, axis=1):
-    ids_list = []
-    scores_list = []
-    xp = cuda.get_array_module(x)
-    for i in range(k):
-        ids = xp.argmax(x, axis=axis).astype('i')
-        if axis == 0:
-            scores = x[ids]
-            x[ids] = - float('inf')
-        else:
-            scores = x[xp.arange(ids.shape[0]), ids]
-            x[xp.arange(ids.shape[0]), ids] = - float('inf')
-        ids_list.append(ids)
-        scores_list.append(scores)
-    return ids_list, scores_list
+        :return: list of attentions
+        '''
+        # prepare input and output word sequences with sos/eos IDs
+        eos = self.xp.array([self.eos], 'i')
+        sos = self.xp.array([self.sos], 'i')
+        ys_in = [F.concat([sos, y], axis=0) for y in ys]
+        ys_out = [F.concat([y, eos], axis=0) for y in ys]
+
+        # padding for ys with -1
+        # pys: utt x olen
+        pad_ys_in = F.pad_sequence(ys_in, padding=self.eos)
+        pad_ys_out = F.pad_sequence(ys_out, padding=-1)
+
+        # get length info
+        olength = pad_ys_out.shape[1]
+
+        # initialization
+        c_list = [None]  # list of cell state of each layer
+        z_list = [None]  # list of hidden state of each layer
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(None)
+            z_list.append(None)
+        att_w = None
+        att_ws = []
+        self.att.reset()  # reset pre-computation of h
+
+        # pre-computation of embedding
+        eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        eys = F.separate(eys, axis=1)
+
+        # loop for an output sequence
+        for i in six.moves.range(olength):
+            att_c, att_w = self.att(hs, z_list[0], att_w)
+            ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
+            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
+            for l in six.moves.range(1, self.dlayers):
+                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            att_ws.append(att_w)  # for debugging
+
+        att_ws = F.stack(att_ws, axis=1)
+        att_ws.to_cpu()
+
+        return att_ws.data
