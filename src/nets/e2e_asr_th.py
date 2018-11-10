@@ -381,6 +381,9 @@ class E2E(torch.nn.Module):
         # https://discuss.pytorch.org/t/set-forget-gate-bias-of-lstm/1745
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
+        for n, p in self.named_parameters():
+            if 'enc' in n and 'lstm' in n and 'bias_ih' in n:
+                set_forget_bias_to_one(p)
 
     def forward(self, xs_pad, ilens, ys_pad):
         '''E2E forward
