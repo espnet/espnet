@@ -2761,6 +2761,6 @@ class VGG2L(torch.nn.Module):
         xs_pad = xs_pad.transpose(1, 2)
         xs_pad = xs_pad.contiguous().view(
             xs_pad.size(0), xs_pad.size(1), xs_pad.size(2) * xs_pad.size(3))
-        xs_pad = [xs_pad[i, :ilens[i]] for i in range(len(ilens))]
-        xs_pad = pad_list(xs_pad, 0.0)
+        mask = to_cuda(self, 1 - make_pad_mask(ilens)).to(xs_pad)
+        xs_pad = xs_pad * mask.unsqueeze(-1)
         return xs_pad, ilens
