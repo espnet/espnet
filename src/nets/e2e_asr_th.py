@@ -313,7 +313,8 @@ class E2E(torch.nn.Module):
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
-                           labeldist, args.lsm_weight, args.sampling_probability)
+                           labeldist, args.lsm_weight, args.sampling_probability,
+                           args.dropout_rate)
 
         # weight initialization
         self.init_like_chainer()
@@ -1988,7 +1989,7 @@ class Decoder(torch.nn.Module):
     """
 
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0, dropout=0.0):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -2013,6 +2014,7 @@ class Decoder(torch.nn.Module):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
         self.sampling_probability = sampling_probability
+        self.dropout = dropout
 
         self.logzero = -10000000000.0
 
@@ -2065,7 +2067,7 @@ class Decoder(torch.nn.Module):
         self.att.reset()  # reset pre-computation of h
 
         # pre-computation of embedding
-        eys = self.embed(ys_in_pad)  # utt x olen x zdim
+        eys = F.dropout(self.embed(ys_in_pad),p=self.dropout)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
@@ -2074,14 +2076,15 @@ class Decoder(torch.nn.Module):
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
                 z_out = np.argmax(z_out.detach(), axis=1)
-                z_out = self.embed(z_out.cuda())
+                z_out = F.dropout(self.embed(z_out.cuda()), p=self.dropout)
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
+                z_tmp, c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
+                z_list[l] = F.dropout(z_tmp, p=self.dropout)
             z_all.append(z_list[-1])
 
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
@@ -2319,7 +2322,7 @@ class Decoder(torch.nn.Module):
         pad_bo = to_cuda(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
         pad_o = to_cuda(self, torch.LongTensor([i * self.odim for i in six.moves.range(n_bb)]).view(-1, 1))
 
-        max_hlen = max(hlens)
+        max_hlen = max(hlens).item()
         if recog_args.maxlenratio == 0:
             maxlen = max_hlen
         else:
