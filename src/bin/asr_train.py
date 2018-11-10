@@ -146,6 +146,8 @@ def main():
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
                         help='Decaying ratio of epsilon')
+    parser.add_argument('--weight-decay', default=0.0, type=float,
+                        help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
                         choices=['loss', 'acc'],
                         help='Criterion to perform epsilon decay')
