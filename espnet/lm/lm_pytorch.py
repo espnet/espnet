@@ -25,17 +25,17 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from e2e_asr_th import to_cuda
-from lm_utils import compute_perplexity
-from lm_utils import count_tokens
-from lm_utils import MakeSymlinkToBestModel
-from lm_utils import ParallelSentenceIterator
-from lm_utils import read_tokens
+from espnet.lm.lm_utils import compute_perplexity
+from espnet.lm.lm_utils import count_tokens
+from espnet.lm.lm_utils import MakeSymlinkToBestModel
+from espnet.lm.lm_utils import ParallelSentenceIterator
+from espnet.lm.lm_utils import read_tokens
+from espnet.nets.e2e_asr_th import to_cuda
 
-from asr_utils import torch_load
-from asr_utils import torch_resume
-from asr_utils import torch_save
-from asr_utils import torch_snapshot
+from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import torch_resume
+from espnet.asr.asr_utils import torch_save
+from espnet.asr.asr_utils import torch_snapshot
 
 REPORT_INTERVAL = 100
 
