@@ -44,6 +44,10 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         raise ValueError('batch_sort_key should be selected from None, input, and output.')
     logging.info('# utts: ' + str(len(sorted_data)))
 
+    # check #utts is more than min_batch_size
+    if len(sorted_data) < min_batch_size:
+        raise ValueError("#utts is less than min_batch_size.")
+
     # make list of minibatches
     minibatches = []
     start = 0
