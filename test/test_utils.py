@@ -27,7 +27,7 @@ def make_dummy_json(n_utts=10, ilen_range=[100, 300], olen_range=[10, 300]):
 
 def test_make_batchset():
     dummy_json = make_dummy_json(128, [128, 512], [16, 128])
-    for module in ["espnet.asr.asr_utils", "espnet.asr.asr_utils"]:
+    for module in ["espnet.asr.asr_utils", "espnet.tts.tts_utils"]:
         utils = importlib.import_module(module)
 
         # check w/o adaptive batch size
