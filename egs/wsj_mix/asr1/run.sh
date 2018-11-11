@@ -276,7 +276,7 @@ if [ ${stage} -le 4 ]; then
     $spa && other_opts="--spa"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        local/src/bin/asr_train.py \
+        asr_mix_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -314,7 +314,6 @@ if [ ${stage} -le 4 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         $other_opts
-    exit 0;
 fi
 
 if [ ${stage} -le 5 ]; then
@@ -324,7 +323,6 @@ if [ ${stage} -le 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
-    false && {
         if [ $use_wordlm = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
@@ -356,8 +354,7 @@ if [ ${stage} -le 5 ]; then
             --lm-weight ${lm_weight} \
             $recog_opts &
         wait
-    }
-        local/src/utils/score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        local/score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
     done

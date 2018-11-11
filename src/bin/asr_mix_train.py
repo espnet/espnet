@@ -192,7 +192,7 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "pytorch":
-        from asr_pytorch import train
+        from asr_mix_pytorch import train
         train(args)
     else:
         raise ValueError("pytorch is only supported.")

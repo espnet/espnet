@@ -74,9 +74,44 @@ def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
 
     return labeldist
 
+# TODO(takaaki-hori): add different smoothing methods
+def mix_label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
+    '''Obtain label distribution for loss smoothing
+
+    :param odim:
+    :param lsm_type:
+    :param blank:
+    :param transcript:
+    :return:
+    '''
+    if transcript is not None:
+        with open(transcript, 'rb') as f:
+            trans_json = json.load(f)['utts']
+
+    if lsm_type == 'unigram':
+        assert transcript is not None, 'transcript is required for %s label smoothing' % lsm_type
+        labelcount = np.zeros(odim)
+        for k, v in trans_json.items():
+            for ns in range(len(v['output'])):
+                ids = np.array([int(n) for n in v['output'][ns]['tokenid'].split()])
+                # to avoid an error when there is no text in an uttrance
+                if len(ids) > 0:
+                    labelcount[ids] += 1
+        labelcount[odim - 1] = len(transcript)  # count <eos>
+        labelcount[labelcount == 0] = 1  # flooring
+        labelcount[blank] = 0  # remove counts for blank
+        labeldist = labelcount.astype(np.float32) / np.sum(labelcount)
+    else:
+        logging.error(
+            "Error: unexpected label smoothing type: %s" % lsm_type)
+        sys.exit()
+
+    return labeldist
+
 
 def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     idim = idim / in_channel
     idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
     idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
     return int(idim) * out_channel  # numer of channels
+
