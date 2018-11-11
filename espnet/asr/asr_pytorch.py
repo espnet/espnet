@@ -449,7 +449,7 @@ def recog(args):
             return zip_longest(*kargs, fillvalue=fillvalue)
 
         # sort data
-        keys = js.keys()
+        keys = list(js.keys())
         feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
         sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
         keys = [keys[i] for i in sorted_index]
