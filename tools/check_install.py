@@ -14,8 +14,8 @@ MANUALLY_INSTALLED_LIBRARIES = [
     ('kaldi_io_py', None),
     ('matplotlib', None),
     ('torch', "0.4.1"),
-    ('chainer', "4.3.1"),
-    ('cupy', "4.3.0"),
+    ('chainer', "5.0.0"),
+    ('cupy', "5.0.0"),
     ('chainer_ctc', None),
     ('warpctc_pytorch', "0.1.1")
 ]
