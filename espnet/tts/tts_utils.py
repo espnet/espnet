@@ -20,8 +20,8 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
-    :param int min_batch_size: mininum batch size (for multi-gpu)
     :param str batch_sort_key: 'shuffle' or 'input' or 'output'
+    :param int min_batch_size: mininum batch size (for multi-gpu)
     :return: list of batches
     """
     # sort data with batch_sort_key
