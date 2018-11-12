@@ -207,7 +207,6 @@ def main():
         char_list = [entry.decode('utf-8').split(' ')[0]
                      for entry in dictionary]
         char_list.insert(0, '<blank>')
-        char_list.append('<sos>')
         char_list.append('<eos>')
         args.char_list = char_list
     else:

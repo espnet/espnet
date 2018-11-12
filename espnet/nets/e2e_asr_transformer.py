@@ -199,7 +199,7 @@ class E2E(chainer.Chain):
             # labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         self.initialize_position_encoding(args.maxlen_in, args.eunits)
         self.scale_emb = args.eunits ** 0.5
-        self.sos = odim - 2
+        self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = [0]
         self.dropout = 0.0
