@@ -5,25 +5,25 @@ from chainer import cuda
 from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
-from chainer import reporter
-from chainer import training
-from chainer.training import extensions
 
 import espnet.nets.deterministic_embed_id as DL
 
-import json
+import logging
 
 import numpy as np
-import os.path
 import six
 
+CTC_LOSS_THRESHOLD = 10000
+CTC_SCORING_RATIO = 1.5
+MAX_DECODER_OUTPUT = 5
 
 # linear_init = chainer.initializers.GlorotNormal()
 linear_init = chainer.initializers.LeCunUniform()
 
 
 def seq2seq_pad_concat_convert(xy_batch, device, eos_id=0, bos_id=2):
-    """
+    """seq2seq_pad_concat_convert
+
     Args:
         xy_batch (list of tuple of two numpy.ndarray-s or cupy.ndarray-s):
             xy_batch[i][0] is an array
@@ -84,7 +84,7 @@ def source_pad_concat_convert(x_seqs, device, eos_id=0, bos_id=2):
 
 
 def seq_func(func, x, reconstruct_shape=True):
-    """ Change implicitly function's target to ndim=3
+    """Change implicitly function's target to ndim=3
 
     Apply a given function for array of ndim 3,
     shape (batchsize, dimension, sentence_length),
@@ -104,7 +104,7 @@ def seq_func(func, x, reconstruct_shape=True):
 
 
 def sentence_block_embed(embed, x):
-    """ Change implicitly embed_id function's target to ndim=2
+    """Change implicitly embed_id function's target to ndim=2
 
     Apply embed_id for array of ndim 2,
     shape (batchsize, sentence_length),
@@ -123,7 +123,7 @@ def sentence_block_embed(embed, x):
 
 class LayerNormalizationSentence(L.LayerNormalization):
 
-    """ Position-wise Linear Layer for Sentence Block
+    """Position-wise Linear Layer for Sentence Block
 
     Position-wise layer-normalization layer for array of shape
     (batchsize, dimension, sentence_length).
@@ -140,7 +140,7 @@ class LayerNormalizationSentence(L.LayerNormalization):
 
 class ConvolutionSentence(L.Convolution2D):
 
-    """ Position-wise Linear Layer for Sentence Block
+    """Position-wise Linear Layer for Sentence Block
 
     Position-wise linear layer for array of shape
     (batchsize, dimension, sentence_length)
@@ -168,7 +168,8 @@ class ConvolutionSentence(L.Convolution2D):
                 (batchsize, out_channels, sentence_length).
 
         """
-        x = F.expand_dims(x, axis=3)
+        if len(x.shape) < 4:
+            x = F.expand_dims(x, axis=3)
         y = super(ConvolutionSentence, self).__call__(x)
         y = F.squeeze(y, axis=3)
         return y
@@ -176,30 +177,33 @@ class ConvolutionSentence(L.Convolution2D):
 
 class E2E(chainer.Chain):
     def __init__(self, idim, odim, args):
-    #def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units,
-    #             h=8, dropout=0.1, max_length=500,
-    #             use_label_smoothing=False,
-    #             embed_position=False):
-        super(Transformer, self).__init__()
+        # def __init__(self, n_layers, n_source_vocab, n_target_vocab, n_units,
+        #             h=8, dropout=0.1, max_length=500,
+        #             use_label_smoothing=False,
+        #             embed_position=False):
+        super(E2E, self).__init__()
         with self.init_scope():
-            self.encoder = Encoder(args.elayers, args.eunits, args.aconv_chans, args.dropout_rate)
+            self.embed_y = DL.EmbedID(odim, args.eunits)
+            self.encoder = Encoder(idim, args.elayers, args.eunits, args.aconv_chans, args.dropout_rate)
             self.decoder = Decoder(args.elayers, args.eunits, args.aconv_chans, args.dropout_rate)
-            self.embed_pos = L.EmbedID(1500, args.dunits,
-                                       ignore_label=-1)
-        #self.n_layers = n_layers
-        #self.n_units = n_units
-        #self.n_target_vocab = n_target_vocab
-        #self.dropout = dropout
-        #self.use_label_smoothing = use_label_smoothing
+        # self.n_layers = n_layers
+        # self.n_units = n_units
+        # self.n_target_vocab = n_target_vocab
+        # self.dropout = dropout
+        # self.use_label_smoothing = use_label_smoothing
         self.use_label_smoothing = False
+        self.char_list = args.char_list
         if args.lsm_type:
             logging.info("Use label smoothing ")
             self.use_label_smoothing = True
-            #labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
-        self.initialize_position_encoding(max_length, n_units)
+            # labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
+        self.initialize_position_encoding(args.maxlen_in, args.eunits)
         self.scale_emb = args.eunits ** 0.5
-        self.sos = odim - 1
+        self.sos = odim - 2
         self.eos = odim - 1
+        self.subsample = [0]
+        self.dropout = 0.0
+        self.verbose = args.verbose
 
     def initialize_position_encoding(self, length, n_units):
         xp = self.xp
@@ -223,8 +227,7 @@ class E2E(chainer.Chain):
         position = xp.arange(length, dtype='f')
         num_timescales = channels // 2
         log_timescale_increment = (
-            xp.log(10000. / 1.) /
-            (float(num_timescales) - 1))
+            xp.log(10000. / 1.) / (float(num_timescales) - 1))
         inv_timescales = 1. * xp.exp(
             xp.arange(num_timescales).astype('f') * -log_timescale_increment)
         scaled_time = \
@@ -277,7 +280,6 @@ class E2E(chainer.Chain):
         n_token = ignore_mask.sum()
         normalizer = n_token  # n_token or batch or 1
         # normalizer = 1
-
         if not self.use_label_smoothing:
             loss = F.softmax_cross_entropy(concat_logit_block, concat_t_block)
             loss = loss * n_token / normalizer
@@ -293,6 +295,26 @@ class E2E(chainer.Chain):
         accuracy = F.accuracy(
             concat_logit_block, concat_t_block, ignore_label=-1)
 
+        if self.verbose > 0 and self.char_list is not None:
+            out_units = concat_logit_block.shape[1]
+            rc_block = F.transpose(concat_logit_block.reshape((batch, length, out_units)), (0, 2, 1))
+            assert(rc_block.shape == (batch, out_units, length))
+
+            for (i, y_hat_), y_true_ in zip(enumerate(rc_block.data), t_block):
+                if i == MAX_DECODER_OUTPUT:
+                    break
+                idx_hat = self.xp.argmax(y_hat_[:, y_true_ != -1], axis=0)
+                idx_true = y_true_[y_true_ != -1]
+                eos_hat = np.where(y_hat_ == self.eos)[0]
+                eos_hat = y_hat_.shape[0] if len(eos_hat) < 1 else eos_hat[0]
+                eos_true = np.where(y_true_ == self.eos)[0][0]
+                seq_hat = [self.char_list[int(idx)] for idx in idx_hat[: eos_hat]]
+                seq_true = [self.char_list[int(idx)] for idx in idx_true[: eos_true]]
+                seq_hat = "".join(seq_hat).replace('<space>', ' ')
+                seq_true = "".join(seq_true).replace('<space>', ' ')
+                logging.info("groundtruth[%d]: " % i + seq_true)
+                logging.info("prediction [%d]: " % i + seq_hat)
+
         if self.use_label_smoothing:
             label_smoothing = broad_ignore_mask * \
                 - 1. / self.n_target_vocab * log_prob
@@ -300,51 +322,66 @@ class E2E(chainer.Chain):
             loss = 0.9 * loss + 0.1 * label_smoothing
         return loss, accuracy
 
-    def __call__(self, x_block, y_in_block, y_out_block, get_prediction=False):
+    def __call__(self, xs, ilens, ys):
         # From E2E:
         # 1. encoder
-        #hs, ilens = self.enc(xs, ilens)
+        # hs, ilens = self.enc(xs, ilens)
 
         # 3. CTC loss
-        #if self.mtlalpha == 0:
+        # if self.mtlalpha == 0:
         #    loss_ctc = None
-        #else:
+        # else:
         #    loss_ctc = self.ctc(hs, ys)
 
         # 4. attention loss
-        #if self.mtlalpha == 1:
+        # if self.mtlalpha == 1:
         #    loss_att = None
         #    acc = None
-        #else:
+        # else:
         #    loss_att, acc = self.dec(hs, ys)
+        xp = self.xp
+        ilens = np.array([int(x) for x in ilens])
+        logging.info('ilens: ' + str(ilens))
 
-        batch, x_length = x_block.shape
-        batch, y_length = y_in_block.shape
+        eos = self.xp.array([self.eos], 'i')
+        sos = self.xp.array([self.sos], 'i')
+        ys_in = [F.concat([sos, y], axis=0) for y in ys]
+        ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
-        # Make Masks
-        xx_mask = self.make_attention_mask(x_block, x_block)
-        xy_mask = self.make_attention_mask(y_in_block, x_block)
-        yy_mask = self.make_attention_mask(y_in_block, y_in_block)
-        yy_mask *= self.make_history_mask(y_in_block)
+        xs = F.swapaxes(F.pad_sequence(xs), 1, 2).data
+        ys = F.pad_sequence(ys_in, padding=self.eos).data
+        ys_out = F.pad_sequence(ys_out, padding=-1).data
+        # x: utt x dim x frame
+
+        ey_block = self.make_input_embedding(self.embed_y, ys)
+
+        yy_mask = self.make_attention_mask(ys, ys)
+        yy_mask *= self.make_history_mask(ys)
 
         # Encode Sources
-        z_blocks = self.encoder(ex_block, xx_mask)
+        z_blocks, ilens = self.encoder(xs, ilens)
         # [(batch, n_units, x_length), ...]
+        batch, x_dim, x_length = z_blocks.shape
+
+        x_mask = np.zeros([batch, x_length])
+        for i in range(batch):
+            x_mask[i, :ilens[i]] = 1.
+        xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
 
         # Encode Targets with Sources (Decode without Output)
-        h_block = self.dec(ey_block, z_blocks, xy_mask, yy_mask)
-        loss_att, acc = self.output_and_loss(h_block, y_out_block)
-        #return self.output_and_loss(h_block, y_out_block)
+        h_block = self.decoder(ey_block, z_blocks, xy_mask, yy_mask)
+        loss_att, acc = self.output_and_loss(h_block, ys_out)
+        # return self.output_and_loss(h_block, y_out_block)
         loss_ctc = None
         return loss_ctc, loss_att, acc
 
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
-        #def translate(self, x_block, max_length=50, beam=5):
-        #x = x[::self.subsample[0], :]
-        #ilen = self.xp.array(x.shape[0], dtype=np.int32)
-        #h = chainer.Variable(self.xp.array(x, dtype=np.float32))
+    def recognize(self, x_block, recog_args, char_list, rnnlm=None):
+        # def translate(self, x_block, max_length=50, beam=5):
+        # x = x[::self.subsample[0], :]
+        # ilen = self.xp.array(x.shape[0], dtype=np.int32)
+        # h = chainer.Variable(self.xp.array(x, dtype=np.float32))
 
-        #with chainer.no_backprop_mode(), chainer.using_config('train', False):
+        # with chainer.no_backprop_mode(), chainer.using_config('train', False):
         #    # 1. encoder
         #    # make a utt list (1) to use the same interface for encoder
         #    h, _ = self.enc([h], [ilen])
@@ -369,7 +406,7 @@ class E2E(chainer.Chain):
                     (batch, 1), 2, dtype=x_block.dtype)  # bos
                 eos_flags = self.xp.zeros((batch, ), dtype=x_block.dtype)
                 result = []
-                for i in range(max_length):
+                for i in range(recog_args.max_length):
                     log_prob_tail = self(x_block, y_block, y_block,
                                          get_prediction=True)
                     ys = self.xp.argmax(log_prob_tail.data, axis=1).astype('i')
@@ -379,7 +416,7 @@ class E2E(chainer.Chain):
                     if self.xp.all(eos_flags):
                         break
 
-                return y
+                return ys
 
     def calculate_all_attentions(self, xs, ilens, ys):
         '''E2E attention calculation
@@ -398,26 +435,28 @@ class E2E(chainer.Chain):
 
 class MultiHeadAttention(chainer.Chain):
 
-    """ Multi Head Attention Layer for Sentence Blocks
+    """Multi Head Attention Layer for Sentence Blocks
 
     For batch computation efficiency, dot product to calculate query-key
     scores is performed all heads together.
 
     """
 
-    def __init__(self, n_units, h=8, dropout=0.1, self_attention=True):
+    def __init__(self, n_units, h=8, dropout=0.1, self_attention=True, idim=0):
         super(MultiHeadAttention, self).__init__()
+        idim = n_units if idim == 0 else idim
+
         with self.init_scope():
             if self_attention:
                 self.W_QKV = ConvolutionSentence(
-                    n_units, n_units * 3, nobias=True,
+                    idim, n_units * 3, nobias=True,
                     initialW=linear_init)
             else:
                 self.W_Q = ConvolutionSentence(
-                    n_units, n_units, nobias=True,
+                    idim, n_units, nobias=True,
                     initialW=linear_init)
                 self.W_KV = ConvolutionSentence(
-                    n_units, n_units * 2, nobias=True,
+                    idim, n_units * 2, nobias=True,
                     initialW=linear_init)
             self.finishing_linear_layer = ConvolutionSentence(
                 n_units, n_units, nobias=True,
@@ -426,6 +465,8 @@ class MultiHeadAttention(chainer.Chain):
         self.scale_score = 1. / (n_units // h) ** 0.5
         self.dropout = dropout
         self.is_self_attention = self_attention
+        self.n_units = n_units
+        self.idim = idim
 
     def __call__(self, x, z=None, mask=None):
         xp = self.xp
@@ -449,7 +490,6 @@ class MultiHeadAttention(chainer.Chain):
         assert(batch_Q.shape == (batch * h, n_units // h, n_querys))
         assert(batch_K.shape == (batch * h, n_units // h, n_keys))
         assert(batch_V.shape == (batch * h, n_units // h, n_keys))
-
         mask = xp.concatenate([mask] * h, axis=0)
         batch_A = F.batch_matmul(batch_Q, batch_K, transa=True) \
             * self.scale_score
@@ -490,9 +530,13 @@ class FeedForwardLayer(chainer.Chain):
 
 
 class EncoderLayer(chainer.Chain):
-    def __init__(self, n_units, h=8, dropout=0.1):
+    def __init__(self, idim, n_units, h=8, dropout=0.1):
         super(EncoderLayer, self).__init__()
         with self.init_scope():
+            self.no_input = True
+            if idim != n_units:
+                self.input = ConvolutionSentence(idim, n_units)  # Reshape the input to n_units
+                self.no_input = False
             self.self_attention = MultiHeadAttention(n_units, h)
             self.feed_forward = FeedForwardLayer(n_units)
             self.ln_1 = LayerNormalizationSentence(n_units, eps=1e-6)
@@ -500,6 +544,8 @@ class EncoderLayer(chainer.Chain):
         self.dropout = dropout
 
     def __call__(self, e, xx_mask):
+        if not self.no_input:
+            e = self.input(e)
         sub = self.self_attention(e, e, xx_mask)
         e = e + F.dropout(sub, self.dropout)
         e = self.ln_1(e)
@@ -539,19 +585,38 @@ class DecoderLayer(chainer.Chain):
 
 
 class Encoder(chainer.Chain):
-    def __init__(self, n_layers, n_units, h=8, dropout=0.1):
+    def __init__(self, idim, n_layers, n_units, h=8, dropout=0.1):
         super(Encoder, self).__init__()
         self.layer_names = []
         for i in range(1, n_layers + 1):
             name = 'l{}'.format(i)
-            layer = EncoderLayer(n_units, h, dropout)
+            layer = EncoderLayer(idim, n_units, h, dropout)
             self.add_link(name, layer)
             self.layer_names.append(name)
+            idim = n_units
 
-    def __call__(self, e, xx_mask):
-        for name in self.layer_names:
-            e = getattr(self, name)(e, xx_mask)
-        return e
+    def __call__(self, e, ilens):
+        xp = self.xp
+        for i in range(len(self.layer_names)):
+            name = self.layer_names[i]
+            logging.info('Input size encoder {}: '.format(name) + str(e.shape))
+            batch, _, x_length = e.shape
+
+            x_mask = np.zeros([batch, x_length])
+            for j in range(batch):
+                x_mask[j, :ilens[j]] = 1.
+
+            mask = (x_mask[:, None, :] >= 0) * (x_mask[:, :, None] >= 0)
+
+            e = getattr(self, name)(e, xp.array(mask))
+
+            # sub sampling /2
+            if i < 2:
+                e = F.max_pooling_2d(F.expand_dims(e, axis=3), (2, 1), stride=2)
+                e = F.squeeze(e, axis=3)
+                # change ilens accordingly
+                ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
+        return e, ilens
 
 
 class Decoder(chainer.Chain):
@@ -566,60 +631,12 @@ class Decoder(chainer.Chain):
 
     def __call__(self, e, source, xy_mask, yy_mask):
         for name in self.layer_names:
+            logging.info('Input size decoder {}: '.format(name) + str(e.shape))
             e = getattr(self, name)(e, source, xy_mask, yy_mask)
         return e
 
-    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
-                # TODO: efficient inference by re-using result
-        # TODO: batch processing
-        with chainer.no_backprop_mode():
-            with chainer.using_config('train', False):
-                x_block = source_pad_concat_convert(
-                    x_block, device=None)
-                batch, x_length = x_block.shape
-                assert batch == 1, 'Batch processing is not supported now.'
-                y_block = self.xp.full(
-                    (batch, 1), 2, dtype=x_block.dtype)  # bos
-                eos_flags = self.xp.zeros(
-                    (batch * beam, ), dtype=x_block.dtype)
-                sum_scores = self.xp.zeros(1, 'f')
-                result = [[2]] * batch * beam
-                for i in range(max_length):
-                    log_prob_tail = self(x_block, y_block, y_block,
-                                         get_prediction=True)
-
-                    ys_list, ws_list = get_topk(
-                        log_prob_tail.data, beam, axis=1)
-                    ys_concat = self.xp.concatenate(ys_list, axis=0)
-                    sum_ws_list = [ws + sum_scores for ws in ws_list]
-                    sum_ws_concat = self.xp.concatenate(sum_ws_list, axis=0)
-
-                    # Get top-k from total candidates
-                    idx_list, sum_w_list = get_topk(
-                        sum_ws_concat, beam, axis=0)
-                    idx_concat = self.xp.stack(idx_list, axis=0)
-                    ys = ys_concat[idx_concat]
-                    sum_scores = self.xp.stack(sum_w_list, axis=0)
-
-                    if i != 0:
-                        old_idx_list = (idx_concat % beam).tolist()
-                    else:
-                        old_idx_list = [0] * beam
-
-                    result = [result[idx] + [y]
-                              for idx, y in zip(old_idx_list, ys.tolist())]
-
-                    y_block = self.xp.array(result).astype('i')
-                    if x_block.shape[0] != y_block.shape[0]:
-                        x_block = self.xp.broadcast_to(
-                            x_block, (y_block.shape[0], x_block.shape[1]))
-                    eos_flags += (ys == 0)
-                    if self.xp.all(eos_flags):
-                        break
-
-        outs = [[wi for wi in sent if wi not in [2, 0]] for sent in result]
-        outs = [sent if sent else [0] for sent in outs]
-        return outs
+    def recognize_beam(self, hs, ys):
+        pass
 
     def calculate_all_attentions(self, hs, ys):
         '''Calculate all of attentions

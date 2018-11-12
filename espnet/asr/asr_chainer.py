@@ -156,7 +156,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 class CustomConverter(object):
     """CUSTOM CONVERTER"""
 
-    def __init__(self, device, subsamping_factor=1):
+    def __init__(self, device, subsamping_factor=0):
         self.subsamping_factor = subsamping_factor
 
     def transform(self, item):
@@ -370,8 +370,12 @@ def train(args):
             batch_size=1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
+    if args.ntype == 'transformer':
+        trigger = (200, 'iteration')
+    else:
+        trigger = (1, 'epoch')
     trainer.extend(extensions.Evaluator(
-        valid_iter, model, converter=converter, device=gpu_id))
+        valid_iter, model, converter=converter, device=gpu_id), trigger=trigger)
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
@@ -392,9 +396,9 @@ def train(args):
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
                                           'main/loss_att', 'validation/main/loss_att'],
-                                         'epoch', file_name='loss.png'))
+                                         'epoch', file_name='loss.png'), trigger=trigger)
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
-                                         'epoch', file_name='acc.png'))
+                                         'epoch', file_name='acc.png'), trigger=trigger)
 
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
