@@ -371,11 +371,16 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     if args.ntype == 'transformer':
-        trigger = (200, 'iteration')
-    else:
-        trigger = (1, 'epoch')
+        from espnet.nets.e2e_asr_transformer import VaswaniRule
+        trainer.extend(
+            # VaswaniRule('alpha', d=args.unit, warmup_steps=4000, scale=1.),
+            # VaswaniRule('alpha', d=args.unit, warmup_steps=32000, scale=1.),
+            # VaswaniRule('alpha', d=args.unit, warmup_steps=4000, scale=0.5),
+            # VaswaniRule('alpha', d=args.unit, warmup_steps=16000, scale=1.),
+            VaswaniRule('alpha', d=args.eunits, warmup_steps=64000, scale=1.),
+            trigger=(1, 'iteration'))
     trainer.extend(extensions.Evaluator(
-        valid_iter, model, converter=converter, device=gpu_id), trigger=trigger)
+        valid_iter, model, converter=converter, device=gpu_id), trigger=(1, 'epoch'))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
@@ -396,9 +401,9 @@ def train(args):
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
                                           'main/loss_att', 'validation/main/loss_att'],
-                                         'epoch', file_name='loss.png'), trigger=trigger)
+                                         'epoch', file_name='loss.png'), trigger=(1, 'epoch'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
-                                         'epoch', file_name='acc.png'), trigger=trigger)
+                                         'epoch', file_name='acc.png'), trigger=(1, 'epoch'))
 
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),

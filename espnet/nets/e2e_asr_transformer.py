@@ -5,6 +5,7 @@ from chainer import cuda
 from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
+from chainer.training import extension
 
 import espnet.nets.deterministic_embed_id as DL
 
@@ -202,7 +203,7 @@ class E2E(chainer.Chain):
         self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = [0]
-        self.dropout = 0.0
+        self.dropout = 0.1
         self.verbose = args.verbose
 
     def initialize_position_encoding(self, length, n_units):
@@ -275,7 +276,7 @@ class E2E(chainer.Chain):
                                       reconstruct_shape=False)
         rebatch, _ = concat_logit_block.shape
         # Make target
-        concat_t_block = t_block.reshape((rebatch))
+        concat_t_block = t_block.reshape((rebatch)).data
         ignore_mask = (concat_t_block >= 0)
         n_token = ignore_mask.sum()
         normalizer = n_token  # n_token or batch or 1
@@ -299,16 +300,17 @@ class E2E(chainer.Chain):
             out_units = concat_logit_block.shape[1]
             rc_block = F.transpose(concat_logit_block.reshape((batch, length, out_units)), (0, 2, 1))
             assert(rc_block.shape == (batch, out_units, length))
-
-            for (i, y_hat_), y_true_ in zip(enumerate(rc_block.data), t_block):
+            rc_block.to_cpu()
+            t_block.to_cpu()
+            for (i, y_hat_), y_true_ in zip(enumerate(rc_block.data), t_block.data):
                 if i == MAX_DECODER_OUTPUT:
                     break
-                idx_hat = self.xp.argmax(y_hat_[:, y_true_ != -1], axis=0)
+                idx_hat = np.argmax(y_hat_[:, y_true_ != -1], axis=0)
                 idx_true = y_true_[y_true_ != -1]
-                eos_hat = np.where(y_hat_ == self.eos)[0]
-                eos_hat = y_hat_.shape[0] if len(eos_hat) < 1 else eos_hat[0]
+                #eos_hat = np.where(y_hat_ == self.eos)[0]
+                #eos_hat = y_hat_.shape[0] if len(eos_hat) < 1 else eos_hat[0]
                 eos_true = np.where(y_true_ == self.eos)[0][0]
-                seq_hat = [self.char_list[int(idx)] for idx in idx_hat[: eos_hat]]
+                seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true[: eos_true]]
                 seq_hat = "".join(seq_hat).replace('<space>', ' ')
                 seq_true = "".join(seq_true).replace('<space>', ' ')
@@ -322,7 +324,7 @@ class E2E(chainer.Chain):
             loss = 0.9 * loss + 0.1 * label_smoothing
         return loss, accuracy
 
-    def __call__(self, xs, ilens, ys):
+    def __call__(self, xs, ilens, ys, predict=False, calculate_attentions=False):
         # From E2E:
         # 1. encoder
         # hs, ilens = self.enc(xs, ilens)
@@ -350,7 +352,7 @@ class E2E(chainer.Chain):
 
         xs = F.swapaxes(F.pad_sequence(xs), 1, 2).data
         ys = F.pad_sequence(ys_in, padding=self.eos).data
-        ys_out = F.pad_sequence(ys_out, padding=-1).data
+        ys_out = F.pad_sequence(ys_out, padding=-1)
         # x: utt x dim x frame
 
         ey_block = self.make_input_embedding(self.embed_y, ys)
@@ -368,12 +370,18 @@ class E2E(chainer.Chain):
             x_mask[i, :ilens[i]] = 1.
         xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
 
-        # Encode Targets with Sources (Decode without Output)
+        if calculate_attentions:
+            return self.decoder.calculate_all_attentions(ey_block, z_blocks, xy_mask, yy_mask)
+
         h_block = self.decoder(ey_block, z_blocks, xy_mask, yy_mask)
-        loss_att, acc = self.output_and_loss(h_block, ys_out)
-        # return self.output_and_loss(h_block, y_out_block)
-        loss_ctc = None
-        return loss_ctc, loss_att, acc
+        if not predict:
+            loss_att, acc = self.output_and_loss(h_block, ys_out)
+            # return self.output_and_loss(h_block, y_out_block)
+            loss_ctc = None
+            return loss_ctc, loss_att, acc
+        else:
+            # Encode Targets with Sources (Decode without Output)
+            return self.output(h_block, ys_out)
 
     def recognize(self, x_block, recog_args, char_list, rnnlm=None):
         # def translate(self, x_block, max_length=50, beam=5):
@@ -427,8 +435,8 @@ class E2E(chainer.Chain):
         :return: attention weights (B, Lmax, Tmax)
         :rtype: float ndarray
         '''
-        hs, ilens = self.enc(xs, ilens)
-        att_ws = self.dec.calculate_all_attentions(hs, ys)
+
+        att_ws = self(xs, ilens, ys, calculate_attentions=True)
 
         return att_ws
 
@@ -583,6 +591,18 @@ class DecoderLayer(chainer.Chain):
         e = self.ln_3(e)
         return e
 
+    def calculate_attentions(self, e, s, xy_mask, yy_mask):
+        sub = self.self_attention(e, e, yy_mask)
+        e = e + F.sub
+        e_self = self.ln_1(e)
+
+        sub = self.source_attention(e_self, s, xy_mask)
+        e = e_self + sub
+        e_source = self.ln_2(e)
+        e = F.stack([e_self, e_source], axis=1)
+        e.to_cpu()
+        return e
+
 
 class Encoder(chainer.Chain):
     def __init__(self, idim, n_layers, n_units, h=8, dropout=0.1):
@@ -638,49 +658,73 @@ class Decoder(chainer.Chain):
     def recognize_beam(self, hs, ys):
         pass
 
-    def calculate_all_attentions(self, hs, ys):
+    def calculate_all_attentions(self, e, source, xy_mask, yy_mask):
         '''Calculate all of attentions
 
         :return: list of attentions
         '''
-        # prepare input and output word sequences with sos/eos IDs
-        eos = self.xp.array([self.eos], 'i')
-        sos = self.xp.array([self.sos], 'i')
-        ys_in = [F.concat([sos, y], axis=0) for y in ys]
-        ys_out = [F.concat([y, eos], axis=0) for y in ys]
+        e = self.l1.calculate_attentions(e, source, xy_mask, yy_mask)
+        return e
 
-        # padding for ys with -1
-        # pys: utt x olen
-        pad_ys_in = F.pad_sequence(ys_in, padding=self.eos)
-        pad_ys_out = F.pad_sequence(ys_out, padding=-1)
 
-        # get length info
-        olength = pad_ys_out.shape[1]
+class VaswaniRule(extension.Extension):
 
-        # initialization
-        c_list = [None]  # list of cell state of each layer
-        z_list = [None]  # list of hidden state of each layer
-        for l in six.moves.range(1, self.dlayers):
-            c_list.append(None)
-            z_list.append(None)
-        att_w = None
-        att_ws = []
-        self.att.reset()  # reset pre-computation of h
+    """Trainer extension to shift an optimizer attribute magically by Vaswani.
 
-        # pre-computation of embedding
-        eys = self.embed(pad_ys_in)  # utt x olen x zdim
-        eys = F.separate(eys, axis=1)
+    Args:
+        attr (str): Name of the attribute to shift.
+        rate (float): Rate of the exponential shift. This value is multiplied
+            to the attribute at each call.
+        init (float): Initial value of the attribute. If it is ``None``, the
+            extension extracts the attribute at the first call and uses it as
+            the initial value.
+        target (float): Target value of the attribute. If the attribute reaches
+            this value, the shift stops.
+        optimizer (~chainer.Optimizer): Target optimizer to adjust the
+            attribute. If it is ``None``, the main optimizer of the updater is
+            used.
 
-        # loop for an output sequence
-        for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs, z_list[0], att_w)
-            ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
-            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
-            for l in six.moves.range(1, self.dlayers):
-                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
-            att_ws.append(att_w)  # for debugging
+    """
 
-        att_ws = F.stack(att_ws, axis=1)
-        att_ws.to_cpu()
+    def __init__(self, attr, d, warmup_steps=4000,
+                 init=None, target=None, optimizer=None,
+                 scale=1.):
+        self._attr = attr
+        self._d_inv05 = d ** (-0.5) * scale
+        self._warmup_steps_inv15 = warmup_steps ** (-1.5)
+        self._init = init
+        self._target = target
+        self._optimizer = optimizer
+        self._t = 0
+        self._last_value = None
 
-        return att_ws.data
+    def initialize(self, trainer):
+        optimizer = self._get_optimizer(trainer)
+        # ensure that _init is set
+        if self._init is None:
+            # self._init = getattr(optimizer, self._attr)
+            self._init = self._d_inv05 * (1. * self._warmup_steps_inv15)
+
+        if self._last_value is not None:  # resuming from a snapshot
+            self._update_value(optimizer, self._last_value)
+        else:
+            self._update_value(optimizer, self._init)
+
+    def __call__(self, trainer):
+        self._t += 1
+
+        optimizer = self._get_optimizer(trainer)
+        value = self._d_inv05 * \
+            min(self._t ** (-0.5), self._t * self._warmup_steps_inv15)
+        self._update_value(optimizer, value)
+
+    def serialize(self, serializer):
+        self._t = serializer('_t', self._t)
+        self._last_value = serializer('_last_value', self._last_value)
+
+    def _get_optimizer(self, trainer):
+        return self._optimizer or trainer.updater.get_optimizer('main')
+
+    def _update_value(self, optimizer, value):
+        setattr(optimizer, self._attr, value)
+        self._last_value = value
