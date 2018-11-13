@@ -12,7 +12,6 @@ import espnet.nets.deterministic_embed_id as DL
 import logging
 
 import numpy as np
-import six
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -307,8 +306,8 @@ class E2E(chainer.Chain):
                     break
                 idx_hat = np.argmax(y_hat_[:, y_true_ != -1], axis=0)
                 idx_true = y_true_[y_true_ != -1]
-                #eos_hat = np.where(y_hat_ == self.eos)[0]
-                #eos_hat = y_hat_.shape[0] if len(eos_hat) < 1 else eos_hat[0]
+                # eos_hat = np.where(y_hat_ == self.eos)[0]
+                # eos_hat = y_hat_.shape[0] if len(eos_hat) < 1 else eos_hat[0]
                 eos_true = np.where(y_true_ == self.eos)[0][0]
                 seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
                 seq_true = [self.char_list[int(idx)] for idx in idx_true[: eos_true]]
