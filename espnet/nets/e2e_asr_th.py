@@ -258,8 +258,6 @@ class Loss(torch.nn.Module):
         logging.info("Loss forward phoneme_ys_pad: {}".format(phoneme_ys_pad))
 
         self.loss = None
-        loss_ctc, loss_att, loss_phn, acc = self.predictor(
-                xs_pad, ilens, ys_pad, phoneme_ys_pad)
         loss_ctc, loss_att, loss_phn, acc, cer, wer = self.predictor(
                 xs_pad, ilens, ys_pad, phoneme_ys_pad)
         alpha = self.mtlalpha
