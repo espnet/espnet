@@ -14,7 +14,7 @@ WORKDIR /espnet/tools
 
 # Delete cupy if cpu image
 RUN if [ -z "$( nvcc -V )" ];then \
-        sed -i 's| cupy==4.3.0||' Makefile; \
+        sed -i 's| cupy==5.0.0||' Makefile; \
     fi 
 
 RUN make KALDI=/kaldi all && \
