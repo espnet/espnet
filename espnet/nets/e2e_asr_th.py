@@ -1268,8 +1268,8 @@ class AttCovLoc(torch.nn.Module):
         # initialize attention weight with uniform dist.
         if att_prev_list is None:
             # if no bias, 0 0-pad goes 0
-            att_prev_list = to_cuda(self, (1. - make_pad_mask(enc_hs_len).float()))
-            att_prev_list = [att_prev_list / att_prev_list.new(enc_hs_len).unsqueeze(-1)]
+            mask = 1. - make_pad_mask(enc_hs_len).float()
+            att_prev_list = [to_cuda(self, mask / mask.new(enc_hs_len).unsqueeze(-1))]
 
         # att_prev_list: L' * [B x T] => cov_vec B x T
         cov_vec = sum(att_prev_list)
