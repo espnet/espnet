@@ -19,8 +19,20 @@ if [ ${stage} -le 0 ]; then
     done
 fi
 
+tags="runtime
+    cuda8.0-cudnn7
+    cuda9.0-cudnn7
+    cuda9.1-cudnn7
+    cuda9.2-cudnn7
+    cuda9.2-cudnn7
+    cpu
+    gpu-cuda8.0-cudnn7
+    gpu-cuda9.0-cudnn7
+    gpu-cuda9.1-cudnn7
+    gpu-cuda9.2-cudnn7"
+
 if [ ${stage} -le 1 ]; then
-    for tag in runtime cuda8.0-cudnn7 cuda9.0-cudnn7 cuda9.1-cudnn7 cuda9.2-cudnn7 cpu gpu-cuda8.0-cudnn7 gpu-cuda9.0-cudnn7 gpu-cuda9.1-cudnn7 gpu-cuda9.2-cudnn7;do
+    for tag in ${tags};do
         echo "docker push espnet/espnet:${tag}"
         ( docker push espnet/espnet:${tag} )|| exit 1
     done
