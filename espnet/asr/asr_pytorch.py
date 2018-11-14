@@ -23,29 +23,29 @@ from chainer.training import extensions
 import torch
 
 # espnet related
-from asr_utils import adadelta_eps_decay
-from asr_utils import add_results_to_json
-from asr_utils import CompareValueTrigger
-from asr_utils import get_model_conf
-from asr_utils import load_inputs_and_targets
-from asr_utils import make_batchset
-from asr_utils import PlotAttentionReport
-from asr_utils import restore_snapshot
-from asr_utils import torch_load
-from asr_utils import torch_resume
-from asr_utils import torch_save
-from asr_utils import torch_snapshot
-from asr_utils import uttid2lang
-from e2e_asr_th import E2E
-from e2e_asr_th import Loss
-from e2e_asr_th import pad_list
+from espnet.asr.asr_utils import adadelta_eps_decay
+from espnet.asr.asr_utils import add_results_to_json
+from espnet.asr.asr_utils import CompareValueTrigger
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import load_inputs_and_targets
+from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import torch_resume
+from espnet.asr.asr_utils import torch_save
+from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.asr_utils import uttid2lang
+from espnet.nets.e2e_asr_th import E2E
+from espnet.nets.e2e_asr_th import Loss
+from espnet.nets.e2e_asr_th import pad_list
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
-import extlm_pytorch
-import lm_pytorch
+import espnet.lm.extlm_pytorch as extlm_pytorch
+import espnet.lm.lm_pytorch as lm_pytorch
 
 # matplotlib related
 import matplotlib
@@ -64,7 +64,7 @@ class CustomEvaluator(extensions.Evaluator):
         self.converter = converter
         self.device = device
 
-    # The core part of the update routine can be customized by overriding.
+    # The core part of the update routine can be customized by overriding
     def evaluate(self):
         iterator = self._iterators['main']
 
@@ -382,6 +382,14 @@ def train(args):
                  phoneme_objective_weight=args.phoneme_objective_weight,
                  langs=langs)
 
+    if args.rnnlm is not None:
+        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+        rnnlm = lm_pytorch.ClassifierWithState(
+            lm_pytorch.RNNLM(
+                len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+        torch.load(args.rnnlm, rnnlm)
+        e2e.rnnlm = rnnlm
+
     # write model config
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
@@ -431,17 +439,28 @@ def train(args):
 
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.SerialIterator(
-        TransformDataset(train, converter.transform),
-        batch_size=1)
-    valid_iter = chainer.iterators.SerialIterator(
-        TransformDataset(valid, converter.transform),
-        batch_size=1, repeat=False, shuffle=False)
+    if args.n_iter_processes > 0:
+        train_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(train, converter.transform),
+            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+        valid_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(valid, converter.transform),
+            batch_size=1, repeat=False, shuffle=False,
+            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+    else:
+        train_iter = chainer.iterators.SerialIterator(
+            TransformDataset(train, converter.transform),
+            batch_size=1)
+        valid_iter = chainer.iterators.SerialIterator(
+            TransformDataset(valid, converter.transform),
+            batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
     updater = CustomUpdater(
@@ -525,6 +544,10 @@ def train(args):
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
             trigger=(REPORT_INTERVAL, 'iteration'))
         report_keys.append('eps')
+    if args.report_cer:
+        report_keys.append('validation/main/cer')
+    if args.report_wer:
+        report_keys.append('validation/main/wer')
     trainer.extend(extensions.PrintReport(
         report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
@@ -568,6 +591,7 @@ def recog(args):
     #model = Loss(e2e, train_args.mtlalpha,
     #             phoneme_objective_weight=args.phoneme_objective_weight)
     torch_load(args.model, model)
+    e2e.recog_args = args
 
     # read rnnlm
     if args.rnnlm:
@@ -597,6 +621,14 @@ def recog(args):
             rnnlm = lm_pytorch.ClassifierWithState(
                 extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
                                               word_dict, char_dict))
+
+    # gpu
+    if args.ngpu == 1:
+        gpu_id = range(args.ngpu)
+        logging.info('gpu id: ' + str(gpu_id))
+        model.cuda()
+        if rnnlm:
+            rnnlm.cuda()
 
     # read json data
     with open(args.recog_json, 'rb') as f:
@@ -638,12 +670,39 @@ def recog(args):
 
     # decode each utterance
     new_js = {}
-    with torch.no_grad():
-        for idx, name in enumerate(js.keys(), 1):
-            logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list, "grapheme")
+
+    if args.batchsize is None:
+        with torch.no_grad():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
+                feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+                nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+    else:
+        try:
+            from itertools import zip_longest as zip_longest
+        except Exception:
+            from itertools import izip_longest as zip_longest
+
+        def grouper(n, iterable, fillvalue=None):
+            kargs = [iter(iterable)] * n
+            return zip_longest(*kargs, fillvalue=fillvalue)
+
+        # sort data
+        keys = list(js.keys())
+        feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+        keys = [keys[i] for i in sorted_index]
+
+        with torch.no_grad():
+            for names in grouper(args.batchsize, keys, None):
+                names = [name for name in names if name]
+                feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+                         for name in names]
+                nbest_hyps = e2e.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                for i, nbest_hyp in enumerate(nbest_hyps):
+                    name = names[i]
+                    new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
 
     if train_args.phoneme_objective_weight > 0:
         assert args.phoneme_dict
@@ -673,7 +732,6 @@ def recog(args):
             phn_out_dict['rec_token'] = " ".join(phn_hat)
 
             new_js[name]['output'].append(phn_out_dict)
-
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:

@@ -1,3 +1,5 @@
+<div align="left"><img src="doc/image/espnet_logo1.png" width="550"/></div>
+
 # ESPnet: end-to-end speech processing toolkit
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
@@ -31,7 +33,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.1+
-- Chainer 4.3.1
+- Chainer 5.0.0
 
 ## Installation
 
@@ -241,8 +243,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 | 4.9 | 10.9 |
-| WSJ eval92| 3.1 |  7.1 |
+| WSJ dev93 | 3.2 | 7.0 |
+| WSJ eval92| 2.1 | 4.7 |
 | CSJ eval1 | 7.3 | N/A  |
 | CSJ eval2 | 5.3 | N/A  |
 | CSJ eval3 | 5.9 | N/A  |

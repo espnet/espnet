@@ -67,14 +67,24 @@ if ! [[ -n ${docker_image}  ]]; then
   docker pull espnet/espnet:${from_tag}
 fi
 
-if [ ${docker_user} ]; then
+if [ ${docker_user} = true ]; then
+  # Build a container with the user account
   container_tag="${from_tag}-user-${HOME##*/}"
+  docker_image=$( docker images -q espnet/espnet:${container_tag} ) 
+  if ! [[ -n ${docker_image}  ]]; then
+    echo "Building docker image..."
+    build_args="--build-arg FROM_TAG=${from_tag}"
+    build_args="${build_args} --build-arg THIS_USER=${HOME##*/}"
+    build_args="${build_args} --build-arg THIS_UID=${UID}"
+
+    echo "Now running docker build ${build_args} -f prebuilt/Dockerfile -t espnet/espnet:${container_tag} ."
+    (docker build ${build_args} -f prebuilt/Dockerfile -t  espnet/espnet:${container_tag} .) || exit 1
+  fi
 else
   container_tag=${from_tag}
 fi
 
 echo "Using image espnet/espnet:${container_tag}."
-docker_image=$( docker images -q espnet/espnet:${container_tag} ) 
 
 this_time="$(date '+%Y%m%dT%H%M')"
 if [ "${docker_gpu}" == "-1" ]; then
@@ -84,20 +94,6 @@ else
   # --rm erase the container when the training is finished.
   cmd0="NV_GPU='${docker_gpu}' nvidia-docker"
   container_name="espnet_gpu${docker_gpu//,/_}_${this_time}"
-fi
-
-if ! [[ -n ${docker_image}  ]]; then
-  echo "Building docker image..."
-  build_args="--build-arg FROM_TAG=${from_tag}"
-
-  if [ ${docker_user} ]; then
-    build_args="${build_args} --build-arg THIS_USER=${HOME##*/}"
-    build_args="${build_args} --build-arg THIS_UID=${UID}"
-  else
-    build_args="${build_args} --build-arg THIS_USER=root"
-  fi
-  echo "Now running docker build ${build_args} -f prebuilt/Dockerfile -t espnet/espnet:${container_tag} ."
-  (docker build ${build_args} -f prebuilt/Dockerfile -t  espnet/espnet:${container_tag} .) || exit 1
 fi
 
 cd ..
@@ -120,10 +116,9 @@ if ! [[ -L ./src/utils/kaldi_io_py.py ]]; then
 fi
 
 cmd1="cd /espnet/egs/${docker_egs}"
-if [ ${docker_user} ]; then
-  cmd2="./run.sh $@"
-else
-  # Required to access to the folder once the training if finished
+cmd2="./run.sh $@"
+if [ ${docker_user} = false ]; then
+  # Required to access to the folder once the training if finished in root access
   cmd2="${cmd2}; chmod -R 777 /espnet/egs/${docker_egs}"
 fi
 

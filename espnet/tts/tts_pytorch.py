@@ -19,17 +19,17 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
-from asr_utils import get_model_conf
-from asr_utils import PlotAttentionReport
-from asr_utils import torch_load
-from asr_utils import torch_resume
-from asr_utils import torch_save
-from asr_utils import torch_snapshot
-from e2e_asr_th import pad_list
-from e2e_tts_th import Tacotron2
-from e2e_tts_th import Tacotron2Loss
-from tts_utils import load_inputs_and_targets
-from tts_utils import make_batchset
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import torch_resume
+from espnet.asr.asr_utils import torch_save
+from espnet.asr.asr_utils import torch_snapshot
+from espnet.nets.e2e_asr_th import pad_list
+from espnet.nets.e2e_tts_th import Tacotron2
+from espnet.nets.e2e_tts_th import Tacotron2Loss
+from espnet.tts.tts_utils import load_inputs_and_targets
+from espnet.tts.tts_utils import make_batchset
 
 import matplotlib
 matplotlib.use('Agg')
@@ -251,19 +251,29 @@ def train(args):
     # make minibatch list (variable length)
     train_batchset = make_batchset(train_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key)
+                                   args.minibatches, args.batch_sort_key,
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     valid_batchset = make_batchset(valid_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key)
+                                   args.minibatches, args.batch_sort_key,
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
-    train_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(train_batchset, converter.transform),
-        batch_size=1, n_processes=2, n_prefetch=8, maxtasksperchild=20)
-    valid_iter = chainer.iterators.MultiprocessIterator(
-        TransformDataset(valid_batchset, converter.transform),
-        batch_size=1, repeat=False, shuffle=False, n_processes=2, n_prefetch=8,
-        maxtasksperchild=20)
+    if args.n_iter_processes > 0:
+        train_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(train_batchset, converter.transform),
+            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+        valid_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(valid_batchset, converter.transform),
+            batch_size=1, repeat=False, shuffle=False,
+            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+    else:
+        train_iter = chainer.iterators.SerialIterator(
+            TransformDataset(train_batchset, converter.transform),
+            batch_size=1)
+        valid_iter = chainer.iterators.SerialIterator(
+            TransformDataset(valid_batchset, converter.transform),
+            batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)

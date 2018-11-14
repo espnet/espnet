@@ -4,6 +4,9 @@
 .\#*
 *DS_Store
 slurm-*.out
+.eggs/
+.pytest_cache/
+espnet.egg-info/
 
 doc/_build
 
@@ -20,7 +23,6 @@ egs/*/*/enhan
 egs/*/*/wav*
 
 # tools related
-src/utils/kaldi_io_py.py
 tools/kaldi
 tools/kaldi-io-for-python/
 tools/kaldi_github/
@@ -38,5 +40,5 @@ tools/moses
 
 .pytest_cache
 langname_phoneme_ali.txt
-
 *.swp
+tools/*.done

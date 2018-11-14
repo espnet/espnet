@@ -81,12 +81,12 @@ def main():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+        # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
             logging.warn("CUDA_VISIBLE_DEVICES is not set.")
@@ -95,7 +95,7 @@ def main():
             sys.exit(1)
 
     # display PYTHONPATH
-    logging.info('python path = ' + os.environ['PYTHONPATH'])
+    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
 
     # seed setting
     nseed = args.seed
@@ -114,10 +114,10 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from lm_chainer import train
+        from espnet.lm.lm_chainer import train
         train(args)
     elif args.backend == "pytorch":
-        from lm_pytorch import train
+        from espnet.lm.lm_pytorch import train
         train(args)
     else:
         raise ValueError("chainer and pytorch are only supported.")

@@ -27,24 +27,24 @@ from chainer.training.updaters.multiprocess_parallel_updater import gather_param
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
 # espnet related
-from asr_utils import adadelta_eps_decay
-from asr_utils import add_results_to_json
-from asr_utils import chainer_load
-from asr_utils import CompareValueTrigger
-from asr_utils import get_model_conf
-from asr_utils import load_inputs_and_targets
-from asr_utils import make_batchset
-from asr_utils import PlotAttentionReport
-from asr_utils import restore_snapshot
-from e2e_asr import E2E
-from e2e_asr import Loss
+from espnet.asr.asr_utils import adadelta_eps_decay
+from espnet.asr.asr_utils import add_results_to_json
+from espnet.asr.asr_utils import chainer_load
+from espnet.asr.asr_utils import CompareValueTrigger
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import load_inputs_and_targets
+from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import restore_snapshot
+from espnet.nets.e2e_asr import E2E
+from espnet.nets.e2e_asr import Loss
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
-import extlm_chainer
-import lm_chainer
+import espnet.lm.extlm_chainer as extlm_chainer
+import espnet.lm.lm_chainer as lm_chainer
 
 # numpy related
 import matplotlib
@@ -295,9 +295,14 @@ def train(args):
                               args.maxlen_in, args.maxlen_out, args.minibatches)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(train, converter.transform), 1,
-            n_processes=1, n_prefetch=8, maxtasksperchild=20)
+        if args.n_iter_processes > 0:
+            train_iter = chainer.iterators.MultiprocessIterator(
+                TransformDataset(train, converter.transform),
+                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+        else:
+            train_iter = chainer.iterators.SerialIterator(
+                TransformDataset(train, converter.transform),
+                batch_size=1)
 
         # set up updater
         updater = CustomUpdater(
@@ -322,10 +327,16 @@ def train(args):
 
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
-        train_iters = [chainer.iterators.MultiprocessIterator(
-            TransformDataset(train_subsets[gid], converter.transform),
-            1, n_processes=1, n_prefetch=8, maxtasksperchild=20)
-            for gid in six.moves.xrange(ngpu)]
+        if args.n_iter_processes > 0:
+            train_iters = [chainer.iterators.MultiprocessIterator(
+                TransformDataset(train_subsets[gid], converter.transform),
+                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+                for gid in six.moves.xrange(ngpu)]
+        else:
+            train_iters = [chainer.iterators.SerialIterator(
+                TransformDataset(train_subsets[gid], converter.transform),
+                batch_size=1)
+                for gid in six.moves.xrange(ngpu)]
 
         # set up updater
         updater = CustomParallelUpdater(
@@ -342,9 +353,16 @@ def train(args):
     # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
-    valid_iter = chainer.iterators.SerialIterator(
-        TransformDataset(valid, converter.transform),
-        1, repeat=False, shuffle=False)
+    if args.n_iter_processes > 0:
+        valid_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(valid, converter.transform),
+            batch_size=1, repeat=False, shuffle=False,
+            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+    else:
+        valid_iter = chainer.iterators.SerialIterator(
+            TransformDataset(valid, converter.transform),
+            batch_size=1, repeat=False, shuffle=False)
+
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(
         valid_iter, model, converter=converter, device=gpu_id))
