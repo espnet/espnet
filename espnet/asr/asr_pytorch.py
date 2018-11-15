@@ -429,13 +429,8 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(args.phoneme_objective_weight, langs, e2e.subsample[0])
-
-    # read json data
-    with open(args.train_json, 'rb') as f:
-        train_json = json.load(f)['utts']
-    with open(args.valid_json, 'rb') as f:
-        valid_json = json.load(f)['utts']
+    converter = CustomConverter(args.phoneme_objective_weight, langs,
+                                e2e.subsample[0])
 
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
