@@ -69,8 +69,8 @@ ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # Dereverberation Measures
-# please make sure that you or your institution have the license to report PESQ before turning on the flag
-compute_se=false # flag for turing on computation of dereverberation measures
+compute_se=true # flag for turing on computation of dereverberation measures
+enable_pesq=false # please make sure that you or your institution have the license to report PESQ before turning on this flag
 nch_se=8
 
 # data
@@ -116,7 +116,7 @@ if [ ${stage} -le 0 ]; then
         local/download_se_eval_tool.sh
       fi
       pesqdir=${PWD}/local
-      local/compute_se_scores.sh --nch $nch_se $reverb $wavdir $pesqdir
+      local/compute_se_scores.sh --nch $nch_se --enable_pesq $enable_pesq $reverb $wavdir $pesqdir
       cat exp/compute_se_${nch_se}ch/scores/score_SimData
       cat exp/compute_se_${nch_se}ch/scores/score_RealData
     fi
