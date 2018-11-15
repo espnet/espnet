@@ -265,9 +265,11 @@ def train(args):
 
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
@@ -449,7 +451,7 @@ def recog(args):
             return zip_longest(*kargs, fillvalue=fillvalue)
 
         # sort data
-        keys = js.keys()
+        keys = list(js.keys())
         feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
         sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
         keys = [keys[i] for i in sorted_index]
