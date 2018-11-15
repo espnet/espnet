@@ -4,6 +4,9 @@
 .\#*
 *DS_Store
 slurm-*.out
+.eggs/
+.pytest_cache/
+espnet.egg-info/
 
 doc/_build
 
@@ -34,5 +37,4 @@ tools/chainer_ctc*
 tools/warp-ctc*
 tools/sentencepiece/*
 tools/moses
-
-.pytest_cache
+tools/*.done
