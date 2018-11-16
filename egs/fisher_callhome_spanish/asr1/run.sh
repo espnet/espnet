@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -23,13 +23,13 @@ do_delta=false
 # network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
-elayers=6
-eunits=320
-eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+elayers=3
+eunits=1024
+eprojs=1024
+subsample=1_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
-dunits=300
+dunits=1024
 # attention related
 atype=location
 adim=320
@@ -39,14 +39,14 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.2
+mtlalpha=0.5
 
 # label smoothing
-lsm_type=unigram
+lsm_type=
 lsm_weight=0.05
 
 # minibatch related
-batchsize=30
+batchsize=24
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -68,7 +68,7 @@ lmtag=              # tag for managing LMs
 
 # decoding parameter
 lm_weight=1.0
-beam_size=30
+beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
