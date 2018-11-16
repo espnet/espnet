@@ -592,7 +592,7 @@ class DecoderLayer(chainer.Chain):
 
     def calculate_attentions(self, e, s, xy_mask, yy_mask):
         sub = self.self_attention(e, e, yy_mask)
-        e = e + F.sub
+        e = e + sub
         e_self = self.ln_1(e)
 
         sub = self.source_attention(e_self, s, xy_mask)
@@ -600,12 +600,19 @@ class DecoderLayer(chainer.Chain):
         e_source = self.ln_2(e)
         e = F.stack([e_self, e_source], axis=1)
         e.to_cpu()
-        return e
+        return e.data
 
 
 class Encoder(chainer.Chain):
     def __init__(self, idim, n_layers, n_units, h=8, dropout=0.1):
         super(Encoder, self).__init__()
+        with self.init_scope():
+            self.conv1_1 = L.Convolution2D(1, 32, 3, stride=1, pad=1)
+            self.conv1_2 = L.Convolution2D(32, 32, 3, stride=1, pad=1)
+            self.conv2_1 = L.Convolution2D(32, 64, 3, stride=1, pad=1)
+            self.conv2_2 = L.Convolution2D(64, 64, 3, stride=1, pad=1)
+        idim = int(np.ceil(np.ceil(idim / 2) / 2)) * 64
+        # self.idim = idim
         self.layer_names = []
         for i in range(1, n_layers + 1):
             name = 'l{}'.format(i)
@@ -616,6 +623,21 @@ class Encoder(chainer.Chain):
 
     def __call__(self, e, ilens):
         xp = self.xp
+        logging.info('Input size convnet: ' + str(e.shape))
+        e = F.swapaxes(F.expand_dims(e, axis=3), 1, 3)
+        e = F.relu(self.conv1_1(e))
+        e = F.relu(self.conv1_2(e))
+        e = F.max_pooling_2d(e, 2, stride=2)
+
+        e = F.relu(self.conv2_1(e))
+        e = F.relu(self.conv2_2(e))
+        e = F.max_pooling_2d(e, 2, stride=2)
+        bs, ch, ln, dim = e.shape
+        e = F.reshape(F.swapaxes(e, 2, 3), [bs, ch * dim, ln])# F.squeeze(, axis=3)
+        # change ilens accordingly
+        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
+        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
+
         for i in range(len(self.layer_names)):
             name = self.layer_names[i]
             logging.info('Input size encoder {}: '.format(name) + str(e.shape))
@@ -630,11 +652,11 @@ class Encoder(chainer.Chain):
             e = getattr(self, name)(e, xp.array(mask))
 
             # sub sampling /2
-            if i < 2:
-                e = F.max_pooling_2d(F.expand_dims(e, axis=3), (2, 1), stride=2)
-                e = F.squeeze(e, axis=3)
-                # change ilens accordingly
-                ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
+            # if i < 2:
+            #    e = F.max_pooling_2d(F.expand_dims(e, axis=3), (2, 1), stride=2)
+            #    e = F.squeeze(e, axis=3)
+            #    # change ilens accordingly
+            #    ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
         return e, ilens
 
 

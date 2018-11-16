@@ -377,7 +377,7 @@ def train(args):
             # VaswaniRule('alpha', d=args.unit, warmup_steps=32000, scale=1.),
             # VaswaniRule('alpha', d=args.unit, warmup_steps=4000, scale=0.5),
             # VaswaniRule('alpha', d=args.unit, warmup_steps=16000, scale=1.),
-            VaswaniRule('alpha', d=args.eunits, warmup_steps=64000, scale=1.),
+            VaswaniRule('alpha', d=args.eunits, warmup_steps=128000, scale=1.),
             trigger=(1, 'iteration'))
     trainer.extend(extensions.Evaluator(
         valid_iter, model, converter=converter, device=gpu_id), trigger=(1, 'epoch'))
