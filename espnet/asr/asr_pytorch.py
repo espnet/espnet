@@ -672,7 +672,7 @@ def recog(args):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
                 nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
-                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list, "grapheme")
     else:
         try:
             from itertools import zip_longest as zip_longest
@@ -697,7 +697,7 @@ def recog(args):
                 nbest_hyps = e2e.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
-                    new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
+                    new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list, "grapheme")
 
     if train_args.phoneme_objective_weight > 0:
         assert args.phoneme_dict
