@@ -47,7 +47,7 @@ def make_non_pad_mask(lengths):
     """
     bs = int(len(lengths))
     maxlen = int(max(lengths))
-    seq_range = torch.arange(0, maxlen).long()
+    seq_range = torch.arange(0, maxlen, dtype=torch.int64)
     seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
     seq_length_expand = seq_range_expand.new(lengths).unsqueeze(-1)
     return seq_range_expand < seq_length_expand
