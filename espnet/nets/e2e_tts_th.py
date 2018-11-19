@@ -47,11 +47,10 @@ def make_non_pad_mask(lengths):
     """
     bs = int(len(lengths))
     maxlen = int(max(lengths))
-    mask = torch.zeros(bs, maxlen, dtype=torch.uint8)
-    for i, l in enumerate(lengths):
-        mask[i, :l] = 1
-
-    return mask
+    seq_range = torch.arange(0, maxlen, dtype=torch.int64)
+    seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
+    seq_length_expand = seq_range_expand.new(lengths).unsqueeze(-1)
+    return seq_range_expand < seq_length_expand
 
 
 class Reporter(chainer.Chain):
