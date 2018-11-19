@@ -2,6 +2,7 @@
 
 # Copyright 2018 Johns Hopkins University (Author: Aswin Shanmugam Subramanian)
 # Apache 2.0
+# Works with both python2 and python3
 
 import numpy as np
 import soundfile as sf
