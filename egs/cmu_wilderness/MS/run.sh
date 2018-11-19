@@ -21,9 +21,10 @@ batchsize=20
 maxlen_in=800
 maxlen_out=150
 epochs=15
-tag="" 
+tag=""
+adapt_langs_fn=""
 
-train_langs_fn=conf/langs/aymara
+train_langs_fn=conf/langs/aymara-notgt
 dev_langs_fn=conf/langs/AYMSBU
 eval_langs_fn=conf/langs/AYMSBU
 all_eval_langs_fn=conf/langs/eval_langs
@@ -85,14 +86,23 @@ recog_set="${eval_langs}_eval"
 all_eval_langs_train="${all_eval_langs}_train"
 
 if [ $stage -le 0 ]; then
-  ./local/prepare_audio_data.sh --langs ${train_langs_fn} ${datasets}
-  # Prepare data for all possible eval langs, so that we can have a
-  # dictionary that covers all the languages' graphemes.
-  ./local/prepare_audio_data.sh --langs ${all_eval_langs_fn} ${datasets}
-  ./local/create_splits.sh data/local ${train_langs_fn} ${dev_langs_fn} ${eval_langs_fn} 
-  # Prepare data for all possible eval langs, so that we can have a
-  # dictionary that covers all the languages' graphemes.
-  ./local/create_splits.sh data/local ${all_eval_langs_fn} ${all_eval_langs_fn} ${all_eval_langs_fn}
+  if [[ $adapt_langs_fn ]]; then
+    # Assumes the seed model traning data prep and eval language dev/eval set
+    # has already been done and that only adaptation language data is needed
+    echo "Adapting `basename ${train_langs_fn}` model to `basename ${adapt_langs_fn}`"
+    ./local/create_splits.sh data/local ${adapt_langs_fn} ${adap_langs_fn} ${adapt_langs_fn} 
+    exit
+  else
+    exit
+    ./local/prepare_audio_data.sh --langs ${train_langs_fn} ${datasets}
+    # Prepare data for all possible eval langs, so that we can have a
+    # dictionary that covers all the languages' graphemes.
+    ./local/prepare_audio_data.sh --langs ${all_eval_langs_fn} ${datasets}
+    ./local/create_splits.sh data/local ${train_langs_fn} ${dev_langs_fn} ${eval_langs_fn} 
+    # Prepare data for all possible eval langs, so that we can have a
+    # dictionary that covers all the languages' graphemes.
+    ./local/create_splits.sh data/local ${all_eval_langs_fn} ${all_eval_langs_fn} ${all_eval_langs_fn}
+  fi
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -156,7 +166,6 @@ if [ ${stage} -le 2 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
-    exit
 fi
 
 if [ -z ${tag} ]; then
@@ -171,6 +180,15 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
+
+    if [[ ${adapt_langs_fn} ]]; then
+        resume_expdir=$expdir
+        expdir="${expdir}_adapt-`basename ${adapt_langs_fn}`"
+        resume="${resume_expdir}/results/model.acc.best"
+        echo "Resuming model from ${resume}"
+    fi
+    exit
+
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
@@ -182,6 +200,7 @@ if [ ${stage} -le 3 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
+        --no-restore-trainer \
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
@@ -247,5 +266,3 @@ if [ ${stage} -le 4 ]; then
     wait
     echo "Finished"
 fi
-
-
