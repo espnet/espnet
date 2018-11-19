@@ -6,7 +6,7 @@ We use [travis-sphinx](https://github.com/Syntaf/travis-sphinx) to generate & de
 
 ```sh
 $ cd <espnet_root>
-$ pip install -r doc/requirements.txt
+$ pip install -e ".[doc]"
 ```
 
 ## Generate HTML

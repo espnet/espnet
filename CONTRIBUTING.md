@@ -27,7 +27,8 @@ TBD
 
 ESPnet's testing is located under `test/`.  You can install additional packages for testing as follows:
 ``` console
-$ pip install -r tools/test_requirements.txt
+$ cd <espnet_root>
+$ pip install -e ".[test]"
 ```
 
 Then you can run the entire test suite with

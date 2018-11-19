@@ -5,7 +5,7 @@ KALDI =
 
 all: venv chainer_patch.done kaldi.done nkf.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done sentencepiece.done moses nara_wpe
 
-all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done kaldi-io-for-python.done
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -19,21 +19,20 @@ kaldi.done:
 	touch kaldi.done
 endif
 
-# for some reason, including matplotlib in requirements.txt causes errors, and
-# matplotlib should be separately pip installed
 venv:
 	test -d venv || virtualenv -p $(PYTHON) venv
 
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==4.3.0 torch==0.4.1 matplotlib
+	. venv/bin/activate; pip install cupy==5.0.0 torch==0.4.1 matplotlib
 	touch espnet.done
 
 kaldi-io-for-python.done: venv
 	rm -rf kaldi-io-for-python
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
-	cd kaldi-io-for-python; ln -s kaldi_io.py kaldi_io_py.py; cp ../setup_kaldi-io-for-python.py setup.py; pip install .
+	cd kaldi-io-for-python; ln -s kaldi_io.py kaldi_io_py.py; cp ../setup_kaldi-io-for-python.py setup.py
+	. venv/bin/activate; cd kaldi-io-for-python; pip install .
 	touch kaldi-io-for-python.done
 
 chainer_patch.done: espnet.done

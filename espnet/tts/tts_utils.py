@@ -12,8 +12,8 @@ import kaldi_io_py
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, batch_sort_key='shuffle'):
-    """Function to make batch set from json dictionary
+                  num_batches=0, batch_sort_key='shuffle', min_batch_size=1):
+    """Make batch set from json dictionary
 
     :param dict data: dictionary loaded from data.json
     :param int batch_size: batch size
@@ -21,10 +21,9 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param str batch_sort_key: 'shuffle' or 'input' or 'output'
+    :param int min_batch_size: mininum batch size (for multi-gpu)
     :return: list of batches
     """
-    minibatch = []
-    start = 0
     # sort data with batch_sort_key
     if batch_sort_key == 'shuffle':
         logging.info('use shuffled batch.')
@@ -43,40 +42,48 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
             data[1]['input'][0]['shape'][0]), reverse=True)
     else:
         raise ValueError('batch_sort_key should be selected from None, input, and output.')
-
     logging.info('# utts: ' + str(len(sorted_data)))
 
-    if batch_sort_key == 'shuffle':
-        # use fixed size batch
-        while True:
+    # check #utts is more than min_batch_size
+    if len(sorted_data) < min_batch_size:
+        raise ValueError("#utts is less than min_batch_size.")
+
+    # make list of minibatches
+    minibatches = []
+    start = 0
+    while True:
+        if batch_sort_key == 'shuffle':
             end = min(len(sorted_data), start + batch_size)
-            minibatch.append(sorted_data[start:end])
-            if end == len(sorted_data):
-                break
-            start = end
-    else:
-        # use adaptive batch size
-        while True:
+        else:
             # NOTE: input and output are reversed due to the use of same json as asr
             ilen = int(sorted_data[start][1]['output'][0]['shape'][0])
             olen = int(sorted_data[start][1]['input'][0]['shape'][0])
             factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+            # change batchsize depending on the input and output length
             # if ilen = 1000 and max_length_in = 800
             # then b = batchsize / 2
             # and max(1, .) avoids batchsize = 0
-            b = max(1, int(batch_size / (1 + factor)))
-            end = min(len(sorted_data), start + b)
-            minibatch.append(sorted_data[start:end])
-            if end == len(sorted_data):
-                break
-            start = end
+            bs = max(1, int(batch_size / (1 + factor)))
+            end = min(len(sorted_data), start + bs)
+
+        # check each batch is more than minimum batchsize
+        minibatch = sorted_data[start:end]
+        if len(minibatch) < min_batch_size:
+            mod = min_batch_size - len(minibatch) % min_batch_size
+            additional_minibatch = [sorted_data[i] for i in np.random.randint(0, start, mod)]
+            minibatch.extend(additional_minibatch)
+        minibatches.append(minibatch)
+
+        if end == len(sorted_data):
+            break
+        start = end
 
     # for debugging
     if num_batches > 0:
-        minibatch = minibatch[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatch)))
+        minibatches = minibatches[:num_batches]
+    logging.info('# minibatches: ' + str(len(minibatches)))
 
-    return minibatch
+    return minibatches
 
 
 def load_inputs_and_targets(batch, use_speaker_embedding=False, use_second_target=False):
