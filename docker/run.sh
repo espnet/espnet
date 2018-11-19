@@ -98,21 +98,13 @@ fi
 
 cd ..
 
-vols="-v ${PWD}/egs:/espnet/egs -v ${PWD}/src:/espnet/src -v ${PWD}/test:/espnet/test"
+vols="-v ${PWD}/egs:/espnet/egs -v ${PWD}/espnet:/espnet/espnet -v ${PWD}/test:/espnet/test -v ${PWD}/utils:/espnet/utils"
 if [ ! -z "${docker_folders}" ]; then
   docker_folders=$(echo ${docker_folders} | tr "," "\n")
   for i in ${docker_folders[@]}
   do
     vols=${vols}" -v $i:$i";
   done
-fi
-
-# Test if link to kaldi_io.py has been created
-if ! [[ -L ./src/utils/kaldi_io_py.py ]]; then
-  my_dir=${PWD}
-  cd ./src/utils
-  ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
-  cd ${my_dir}
 fi
 
 cmd1="cd /espnet/egs/${docker_egs}"

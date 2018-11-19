@@ -35,6 +35,7 @@ $ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corp
 
 # Ubuntu 16.04 
 
+- [`cuda10.0-cudnn7` (*docker/prebuilt/gpu/10.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/10.0/cudnn7/Dockerfile)
 - [`cuda9.2-cudnn7` (*docker/prebuilt/gpu/9.2/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.2/cudnn7/Dockerfile)
 - [`cuda9.1-cudnn7` (*docker/prebuilt/gpu/9.1/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.1/cudnn7/Dockerfile)
 - [`cuda9.0-cudnn7` (*docker/prebuilt/gpu/9.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.0/cudnn7/Dockerfile)
