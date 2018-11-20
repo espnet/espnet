@@ -112,42 +112,36 @@ if [ $stage -le 0 ]; then
     ./local/create_splits.sh data/local ${eval_readings_fn} ${eval_readings_fn} ${eval_readings_fn}
 fi
 
-if [[ ${adapt_langs_fn} ]]; then
-    feat_tr_dir=${dumpdir}/${adapt_langs_train}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-    feat_dt_dir=${dumpdir}/${adapt_langs_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-else
-    feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-    feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-fi
-
 if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    if [[ ${adapt_langs_fn} ]]; then
-        for x in ${adapt_langs_train} ${adapt_langs_dev} ${adapt_langs_eval}; do
-            steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
-                data/${x} exp/make_fbank/${x} ${fbankdir}
-        done
 
+    # Prepare training data; includes CMVN stats.
+    for train_set_path in data/*_train; do
+        train_set=`basename ${train_set_path}`
+        echo $train_set
+        feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
+            train/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+        # compute global CMVN
+        compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+        exp_name=`basename $PWD`
+        # dump features for training
         if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
         utils/create_split_dir.pl \
-            /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_train}/delta${do_delta}/storage \
+            /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_set}/delta${do_delta}/storage \
             ${feat_tr_dir}/storage
         fi
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_dev}/delta${do_delta}/storage \
-            ${feat_dt_dir}/storage
-        fi
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${adapt_langs_train}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-            data/${adapt_langs_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-        feat_recog_dir=${dumpdir}/${adapt_langs_eval}/delta${do_delta}; mkdir -p ${feat_recog_dir} 
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \ data/${adapt_langs_eval}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+            data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+    done
 
-    else
+    # Prepare dev data;
+    exit
+    feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
+    feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
+
         for x in ${train_set} ${train_dev} ${recog_set}; do
             steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
                 data/${x} exp/make_fbank/${x} ${fbankdir}
@@ -210,6 +204,7 @@ if [ ${stage} -le 2 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
+    exit
 fi
 
 if [ -z ${tag} ]; then
