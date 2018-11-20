@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=-1       # start from -1 if you need to start from data download
+stage=0        # start from 0 if you need to start from data preparation
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -20,16 +20,16 @@ seed=1
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
-etype=blstmp     # encoder architecture type
-elayers=8
-eunits=320
-eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+etype=vggblstmp     # encoder architecture type
+elayers=3
+eunits=1024
+eprojs=1024
+subsample=1_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
-dunits=300
+dunits=1024
 # attention related
 atype=location
 adim=320
@@ -42,11 +42,11 @@ aconv_filts=100
 mtlalpha=0.5
 
 # label smoothing
-lsm_type=unigram
+lsm_type=
 lsm_weight=0.05
 
 # minibatch related
-batchsize=30
+batchsize=24
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -60,17 +60,16 @@ lm_vocabsize=65000  # effective only for word LMs
 lm_layers=1         # 2 for character LMs
 lm_units=1000       # 650 for character LMs
 lm_opt=sgd          # adam for character LMs
-lm_batchsize=64    # 1024 for character LMs
+lm_batchsize=300    # 1024 for character LMs
 lm_epochs=20        # number of epochs
 lm_maxlen=40        # 150 for character LMs
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
-use_lm=true
 
 # decoding parameter
-lm_weight=0.5
+lm_weight=1.0
 beam_size=20
-penalty=0.2
+penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
@@ -79,16 +78,16 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # scheduled sampling option
 samp_prob=0.0
 
-# You may set 'mic' to:
-#  ihm [individual headset mic- the default which gives best results]
-#  sdm1 [single distant microphone- the current script allows you only to select
-#        the 1st of 8 microphones]
-#  mdm8 [multiple distant microphones-- currently we only support averaging over
-#       the 8 source microphones].
-# ... by calling this script as, for example,
-# ./run.sh --mic sdm1
-# ./run.sh --mic mdm8
-mic=ihm
+# data
+sfisher_speech=/export/corpora/LDC/LDC2010S01
+sfisher_transcripts=/export/corpora/LDC/LDC2010T04
+spanish_lexicon=/export/corpora/LDC/LDC96L16
+split=local/splits/split_fisher
+
+callhome_speech=/export/corpora/LDC/LDC96S35
+callhome_transcripts=/export/corpora/LDC/LDC96T17
+split_callhome=local/splits/split_callhome
+
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -104,64 +103,24 @@ set -e
 set -u
 set -o pipefail
 
-base_mic=$(echo $mic | sed 's/[0-9]//g') # sdm, ihm or mdm
-nmics=$(echo $mic | sed 's/[a-z]//g') # e.g. 8 for mdm8.
-
-# Path where AMI gets downloaded (or where locally available):
-AMI_DIR=$PWD/wav_db # Default,
-case $(hostname -d) in
-    clsp.jhu.edu) AMI_DIR=/export/corpora4/ami/amicorpus ;; # JHU,
-esac
-
-train_set=${mic}_train
-train_dev=${mic}_dev
-train_test=${mic}_eval
-recog_set="${mic}_dev ${mic}_eval"
-
-if [ ${stage} -le -1 ]; then
-    echo "stage -1: Data Download"
-    if [ -d $AMI_DIR ] && ! touch $AMI_DIR/.foo 2>/dev/null; then
-	echo "$0: directory $AMI_DIR seems to exist and not be owned by you."
-	echo " ... Assuming the data does not need to be downloaded.  Please use --stage 0 or more."
-	exit 1
-    fi
-    if [ -e data/local/downloads/wget_$mic.sh ]; then
-	echo "data/local/downloads/wget_$mic.sh already exists, better quit than re-download... (use --stage N)"
-	exit 1
-    fi
-    local/ami_download.sh $mic $AMI_DIR
-fi
+train_set=train
+train_dev=dev
+train_test=test
+recog_set="dev test callhome_dev callhome_test callhome_train"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-
-    # common data prep
-    if [ ! -d data/local/downloads ]; then
-	local/ami_text_prep.sh data/local/downloads
-    fi
-
-    # beamforming
-    if [ "$base_mic" == "mdm" ]; then
-	PROCESSED_AMI_DIR=${PWD}/beamformed
-	if [ -z $BEAMFORMIT ] ; then
-	    export BEAMFORMIT=$KALDI_ROOT/tools/BeamformIt
-	fi
-	export PATH=${PATH}:$BEAMFORMIT
-	! hash BeamformIt && echo "Missing BeamformIt, run 'cd ../../../tools/kaldi/tools; extras/install_beamformit.sh; cd -;'" && exit 1
-	local/ami_beamform.sh --cmd "$train_cmd" --nj 20 $nmics $AMI_DIR $PROCESSED_AMI_DIR
-    else
-	PROCESSED_AMI_DIR=$AMI_DIR
-    fi
-    local/ami_${base_mic}_data_prep.sh $PROCESSED_AMI_DIR $mic
-    local/ami_${base_mic}_scoring_data_prep.sh $PROCESSED_AMI_DIR $mic dev
-    local/ami_${base_mic}_scoring_data_prep.sh $PROCESSED_AMI_DIR $mic eval
-    for dset in train dev eval; do
-	# changed the original AMI data structure in the Kaldi recipe to the following
-	utils/data/modify_speaker_info.sh --seconds-per-spk-max 30 data/${mic}/${dset}_orig data/${mic}_${dset}
-    done
+    local/fsp_data_prep.sh $sfisher_speech $sfisher_transcripts
+    local/callhome_data_prep.sh $callhome_speech $callhome_transcripts
+    utils/fix_data_dir.sh data/local/data/train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and test though the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
+    utils/fix_data_dir.sh data/local/data/callhome_train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and testthough the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
+    cp -r data/local/data/train_all data/train_all
+    cp -r data/local/data/callhome_train_all data/callhome_train_all
 fi
+
+
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
@@ -171,10 +130,21 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in ${mic}_train ${mic}_dev ${mic}_eval; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+        data/train_all exp/make_fbank/train_all ${fbankdir}
+
+    utils/fix_data_dir.sh data/train_all
+    utils/validate_data_dir.sh data/train_all
+
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+        data/callhome_train_all exp/make_fbank/callhome_train_all ${fbankdir}
+
+    utils/fix_data_dir.sh data/callhome_train_all
+    utils/validate_data_dir.sh data/callhome_train_all
+
+
+    local/create_splits.sh $split
+    local/callhome_create_splits.sh $split_callhome
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -182,52 +152,61 @@ if [ ${stage} -le 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/ami/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/ami/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
+
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
+nlsyms=data/lang_1char/non_lang_syms.txt
+
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
+    echo "make a non-linguistic symbol list"
+    cut -f 2- -d' ' data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+    cat ${nlsyms}
+
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
-    # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
+    echo "make json files"
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
 
-# It takes a few days. If you just want to end-to-end ASR without LM,
+
+
+# It takes about one day. If you just want to do end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
@@ -238,27 +217,29 @@ fi
 lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
 mkdir -p ${lmexpdir}
 
-if [[ ${stage} -le 3 && $use_lm == true ]]; then
+if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
+
     if [ $use_wordlm = true ]; then
-	lmdatadir=data/local/wordlm_train
-	lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
-	mkdir -p ${lmdatadir}
+        lmdatadir=data/local/wordlm_train
+        lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
+        mkdir -p ${lmdatadir}
         cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train.txt
         cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
         cat data/${train_test}/text | cut -f 2- -d" " > ${lmdatadir}/test.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
-	lmdatadir=data/local/lm_train
-	lmdict=$dict
-	mkdir -p ${lmdatadir}
-        text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " \
-            > ${lmdatadir}/train.txt
-        text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d" " \
-            > ${lmdatadir}/valid.txt
-        text2token.py -s 1 -n 1 data/${train_test}/text | cut -f 2- -d" " \
-            > ${lmdatadir}/test.txt
+        lmdatadir=data/local/lm_train
+        lmdict=$dict
+        mkdir -p ${lmdatadir}
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/train.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
+                | cut -f 2- -d" " > ${lmdatadir}/test.txt
     fi
+
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -282,8 +263,9 @@ if [[ ${stage} -le 3 && $use_lm == true ]]; then
         --dict ${lmdict}
 fi
 
+
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -295,7 +277,7 @@ else
 fi
 mkdir -p ${expdir}
 
-if [ ${stage} -le -4 ]; then
+if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
@@ -342,20 +324,15 @@ if [ ${stage} -le 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-
-        if [ $use_lm = true ]; then
-            decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
-            if [ $use_wordlm = true ]; then
-                recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
-            else
-                recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
-            fi
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        if [ $use_wordlm = true ]; then
+            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
-            echo "No language model is involved."
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
+        if [ $lm_weight == 0 ]; then
             recog_opts=""
         fi
-
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -380,7 +357,7 @@ if [ ${stage} -le 5 ]; then
             $recog_opts &
         wait
 
-        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
     done

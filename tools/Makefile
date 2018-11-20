@@ -3,7 +3,7 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done nkf.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done sentencepiece.done moses
+all: venv chainer_patch.done kaldi.done nkf.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done sentencepiece.done moses nara_wpe
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done kaldi-io-for-python.done
 
@@ -71,6 +71,10 @@ sentencepiece.done:
 
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
+
+nara_wpe: venv
+	. venv/bin/activate; pip install git+https://github.com/fgnt/nara_wpe.git
+	. venv/bin/activate; pip install soundfile
 
 clean:
 	rm -fr kaldi venv nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses

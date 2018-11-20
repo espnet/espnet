@@ -68,6 +68,11 @@ minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
+# Dereverberation Measures
+compute_se=true # flag for turing on computation of dereverberation measures
+enable_pesq=false # please make sure that you or your institution have the license to report PESQ before turning on this flag
+nch_se=8
+
 # data
 reverb=/export/corpora5/REVERB_2014/REVERB    # JHU setup
 wsjcam0=/export/corpora3/LDC/LDC95S24/wsjcam0 # JHU setup
@@ -91,16 +96,30 @@ set -o pipefail
 
 train_set=tr_simu_8ch_si284
 train_dev=dt_mult_1ch
-recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch"
+recog_set="dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    wavdir=$PWD/wav # set the directory of the multi-condition training WAV files to be generated
+    wavdir=${PWD}/wav # set the directory of the multi-condition training WAV files to be generated
     echo "stage 0: Data preparation"
     local/generate_data.sh --wavdir ${wavdir} ${wsjcam0}
     local/prepare_simu_data.sh --wavdir ${wavdir} ${reverb} ${wsjcam0}
-    local/prepare_real_data.sh ${reverb}
+    local/prepare_real_data.sh --wavdir ${wavdir} ${reverb}
+    
+    # Run WPE and Beamformit
+    local/run_wpe.sh
+    local/run_beamform.sh ${wavdir}/WPE/
+    if $compute_se; then
+      if [ ! -d local/REVERB_scores_source ] || [ ! -d local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools/SRMRToolbox ] || [ ! -f local/PESQ ]; then
+        # download and install speech enhancement evaluation tools
+        local/download_se_eval_tool.sh
+      fi
+      pesqdir=${PWD}/local
+      local/compute_se_scores.sh --nch $nch_se --enable_pesq $enable_pesq $reverb $wavdir $pesqdir
+      cat exp/compute_se_${nch_se}ch/scores/score_SimData
+      cat exp/compute_se_${nch_se}ch/scores/score_RealData
+    fi
 
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
@@ -291,7 +310,11 @@ if [ ${stage} -le 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        if [ $use_wordlm = true ]; then
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_wordrnnlm${lm_weight}_${lmtag}
+        else
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        fi
         if [ $use_wordlm = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
@@ -330,12 +353,10 @@ if [ ${stage} -le 5 ]; then
     echo "Report the result"
     decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
     if [ $use_wordlm = true ]; then
-	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}
+	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}_${lmtag}
     else
-	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}
+	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}_${lmtag}
     fi
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
+    local/get_results.sh ${nlsyms} ${dict} ${expdir} ${decode_part_dir}
     echo "Finished"
 fi
