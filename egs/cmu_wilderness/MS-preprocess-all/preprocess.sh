@@ -24,11 +24,6 @@ epochs=15
 tag=""
 adapt_langs_fn=""
 
-train_langs_fn=conf/langs/aymara-notgt
-dev_langs_fn=conf/langs/AYMSBU
-eval_langs_fn=conf/langs/AYMSBU
-all_eval_langs_fn=conf/langs/eval_langs
-
 # Feature options
 do_delta=false
 
@@ -75,11 +70,14 @@ decode_nj=32
 
 datasets=/export/b15/oadams/datasets-CMU_Wilderness
 
-train_langs=`basename ${train_langs_fn}`
-dev_langs=`basename ${dev_langs_fn}`
-eval_langs=`basename ${eval_langs_fn}`
-all_eval_langs=`basename ${all_eval_langs_fn}`
-adapt_langs=`basename ${adapt_langs_fn}`
+all_eval_langs_fn=conf/langs/eval_langs
+eval_readings_fn=conf/langs/eval_readings
+
+train_langs="aymara-notgt aymara indonesian-notgt indonesian"
+train_langs_fns=""
+for l in ${train_langs}; do
+    train_langs_fns="conf/langs/${l} ${train_langs_fns}"
+done
 
 train_set="${train_langs}_train"
 train_dev="${dev_langs}_dev"
@@ -90,23 +88,28 @@ adapt_langs_dev="${adapt_langs}_train"
 adapt_langs_eval="${adapt_langs}_train"
 
 if [ $stage -le 0 ]; then
-  if [[ $adapt_langs_fn ]]; then
-    # Assumes the seed model traning data prep and eval language dev/eval set
-    # has already been done and that only adaptation language data is needed
-    echo "Adapting `basename ${train_langs_fn}` model to `basename ${adapt_langs_fn}`"
-    ./local/create_splits.sh data/local ${adapt_langs_fn} ${adapt_langs_fn} ${adapt_langs_fn} 
-    exit
-  else
-    exit
-    ./local/prepare_audio_data.sh --langs ${train_langs_fn} ${datasets}
-    # Prepare data for all possible eval langs, so that we can have a
-    # dictionary that covers all the languages' graphemes.
-    ./local/prepare_audio_data.sh --langs ${all_eval_langs_fn} ${datasets}
-    ./local/create_splits.sh data/local ${train_langs_fn} ${dev_langs_fn} ${eval_langs_fn} 
-    # Prepare data for all possible eval langs, so that we can have a
-    # dictionary that covers all the languages' graphemes.
-    ./local/create_splits.sh data/local ${all_eval_langs_fn} ${all_eval_langs_fn} ${all_eval_langs_fn}
-  fi
+
+    # Preparing audio data for each evaluation language and train/dev/test
+    # splits for monolingual training
+    for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
+        echo $reading
+        reading_fn="conf/langs/${reading}"
+        ./local/prepare_audio_data.sh --langs ${reading_fn} ${datasets}
+        ./local/create_splits.sh data/local ${reading_fn} ${reading_fn} ${reading_fn} 
+    done
+
+    # Preparing data for each language (a group of readings).
+    for train_lang_fn in ${train_langs_fns}; do
+        echo $train_lang_fn
+        ./local/prepare_audio_data.sh --langs ${train_lang_fn} ${datasets}
+        ./local/create_splits.sh data/local ${train_lang_fn} ${train_lang_fn} ${train_lang_fn} 
+    done
+
+    # Prepare data for all possible evaluation readings that a seed model might
+    # get adapted to, so that we can have in advance a dictionary that covers
+    # all the languages' graphemes.
+    ./local/prepare_audio_data.sh --langs ${eval_readings_fn} ${datasets}
+    ./local/create_splits.sh data/local ${eval_readings_fn} ${eval_readings_fn} ${eval_readings_fn}
 fi
 
 if [[ ${adapt_langs_fn} ]]; then
