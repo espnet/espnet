@@ -1990,6 +1990,8 @@ class Decoder(torch.nn.Module):
     :param list char_list: list of character strings
     :param ndarray labeldist: distribution of label smoothing
     :param float lsm_weight: label smoothing weight
+    :param float sampling_probability: scheduled sampling probability
+    :param float dropout: dropout rate
     """
 
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
