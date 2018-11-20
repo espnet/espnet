@@ -1,0 +1,19 @@
+pNorm-Ensemble DNN (best reported in standard Kaldi recipe in Kaldi github as of 20181116) - Fisher dev
+%WER 35.13 [ 14113 / 40170, 2680 ins, 3405 del, 8028 sub ] exp/tri6a_dnn/decode_dev/wer_11_0.0
+
+
+Kaldi tri-tdnn-opGRU (Nagendra) - Fisher test
+%WER 25.67 [ 10225 / 39831, 2068 ins, 2913 del, 5244 sub ] exp/chain/tdnn_opgru_1a_sp/decode_test_fsh_sw1_tg/wer_9_0.0
+
+
+E2E - Fisher dev/test
+# model config
+exp/train_pytorch_vggblstmp_e3_subsample1_1_1_unit1024_proj1024_d1_unit1024_location320_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs24_mli800_mlo150
+# decoding config and result
+decode_dev_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/result{.txt,.wrd.txt}
+%CER 21.0
+%WER 34.15 [ 13719 / 40170, 2493 ins, 4192 del, 7034 sub ]
+decode_test_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/result{.txt,.wrd.txt}
+%CER 17.7
+%WER 30.02 [ 11958 / 39831, 2052 ins, 3449 del, 6457 sub ]
+
