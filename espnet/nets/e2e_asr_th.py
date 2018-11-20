@@ -2000,10 +2000,14 @@ class Decoder(torch.nn.Module):
         self.dunits = dunits
         self.dlayers = dlayers
         self.embed = torch.nn.Embedding(odim, dunits)
+        self.dropout_emb = torch.nn.Dropout(p=dropout)
         self.decoder = torch.nn.ModuleList()
+        self.dropout_dec = torch.nn.ModuleList()
         self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
         for l in six.moves.range(1, self.dlayers):
+            self.dropout_dec += [torch.nn.Dropout(p=dropout)]
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
+            # NOTE: dropout is applied only for the vertical connections
         self.ignore_id = -1
         self.output = torch.nn.Linear(dunits, odim)
 
@@ -2073,7 +2077,7 @@ class Decoder(torch.nn.Module):
         self.att.reset()  # reset pre-computation of h
 
         # pre-computation of embedding
-        eys = F.dropout(self.embed(ys_in_pad),p=self.dropout)  # utt x olen x zdim
+        eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
@@ -2082,15 +2086,14 @@ class Decoder(torch.nn.Module):
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
                 z_out = np.argmax(z_out.detach(), axis=1)
-                z_out = F.dropout(self.embed(z_out.cuda()), p=self.dropout)
+                z_out = self.dropout_emb(self.embed(z_out.cuda()))
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
-                z_tmp, c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-                z_list[l] = F.dropout(z_tmp, p=self.dropout)
+                z_list[l], c_list[l] = self.decoder[l](
+                    self.dropout_dec[l - 1](z_list[l - 1]), (z_list[l], c_list[l]))
             z_all.append(z_list[-1])
 
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
@@ -2193,14 +2196,14 @@ class Decoder(torch.nn.Module):
             for hyp in hyps:
                 vy.unsqueeze(1)
                 vy[0] = hyp['yseq'][i]
-                ey = self.embed(vy)           # utt list (1) x zdim
+                ey = self.dropout_emb(self.embed(vy))           # utt list (1) x zdim
                 ey.unsqueeze(0)
                 att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
                 z_list[0], c_list[0] = self.decoder[0](ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
                 for l in six.moves.range(1, self.dlayers):
                     z_list[l], c_list[l] = self.decoder[l](
-                        z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
+                        self.dropout_dec[l - 1](z_list[l - 1]), (hyp['z_prev'][l], hyp['c_prev'][l]))
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1)
@@ -2370,14 +2373,15 @@ class Decoder(torch.nn.Module):
             logging.debug('position ' + str(i))
 
             vy = to_cuda(self, torch.LongTensor(get_last_yseq(yseq)))
-            ey = self.embed(vy)
+            ey = self.dropout_emb(self.embed(vy))
             att_c, att_w = self.att(exp_h, exp_hlens, z_prev[0], a_prev)
             ey = torch.cat((ey, att_c), dim=1)
 
             # attention decoder
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
             for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](z_list[l - 1], (z_prev[l], c_prev[l]))
+                z_list[l], c_list[l] = self.decoder[l](
+                    self.dropout_dec[l - 1](z_list[l - 1]), (z_prev[l], c_prev[l]))
             local_scores = att_weight * F.log_softmax(self.output(z_list[-1]), dim=1)
 
             # rnnlm
@@ -2529,7 +2533,7 @@ class Decoder(torch.nn.Module):
         self.att.reset()  # reset pre-computation of h
 
         # pre-computation of embedding
-        eys = self.embed(ys_in_pad)  # utt x olen x zdim
+        eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
@@ -2538,7 +2542,7 @@ class Decoder(torch.nn.Module):
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
+                    self.dropout_dec[l - 1](z_list[l - 1]), (z_list[l], c_list[l]))
             att_ws.append(att_w)
 
         # convert to numpy array with the shape (B, Lmax, Tmax)
