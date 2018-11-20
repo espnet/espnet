@@ -80,13 +80,13 @@ train_langs="aymara-notgt aymara indonesian-notgt indonesian"
 if [ $stage -le 0 ]; then
 
     # Preparing audio data for each evaluation language and train/dev/test
-#    # splits for monolingual training
-#    for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
-#        echo $reading
-#        reading_fn="conf/langs/${reading}"
-#        ./local/prepare_audio_data.sh --langs ${reading_fn} ${datasets}
-#        ./local/create_splits.sh data/local ${reading_fn} ${reading_fn} ${reading_fn} 
-#    done
+    # splits for monolingual training
+    for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
+        echo $reading
+        reading_fn="conf/langs/${reading}"
+        ./local/prepare_audio_data.sh --langs ${reading_fn} ${datasets}
+        ./local/create_splits.sh data/local ${reading_fn} ${reading_fn} ${reading_fn} 
+    done
 
     # Preparing data for each language (a group of readings).
     for train_lang in ${train_langs}; do
