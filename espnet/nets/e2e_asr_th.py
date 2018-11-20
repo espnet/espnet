@@ -2008,6 +2008,7 @@ class Decoder(torch.nn.Module):
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
             # NOTE: dropout is applied only for the vertical connections
+            # see https://arxiv.org/pdf/1409.2329.pdf
         self.ignore_id = -1
         self.output = torch.nn.Linear(dunits, odim)
 
