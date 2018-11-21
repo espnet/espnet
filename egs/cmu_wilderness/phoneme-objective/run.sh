@@ -179,17 +179,30 @@ if [ ${stage} -le 2 ]; then
         for rtask in ${adapt_langs_train} ${adapt_langs_dev} ${adapt_langs_eval}; do
             echo $rtask
             feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-            mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            if [[ ${phoneme_objective_weight} > 0.0 ]]; then
+                mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                    data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
+            else
+                mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                    data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            fi
         done
     else
         for rtask in ${train_set} ${train_dev} ${recog_set}; do
             echo $rtask
             feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-            mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            if [[ ${phoneme_objective_weight} > 0.0 ]]; then
+                mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                    data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
+            else
+                mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                    data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            fi
         done
     fi
 fi
 
+exit
 
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
