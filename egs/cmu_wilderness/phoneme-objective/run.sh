@@ -202,12 +202,13 @@ if [ ${stage} -le 2 ]; then
     fi
 fi
 
-exit
-
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_phoneme-weight${phoneme_objective_weight}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
+    fi
+    if [ ${phoneme_objective_layer} ]; then
+        expdir="${expdir}_phonemelayer${phoneme_objective_layer}"
     fi
 else
     expdir=exp/${train_set}_${backend}_${tag}
@@ -225,7 +226,7 @@ mkdir -p ${expdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
 
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    train_cmd_str="${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -257,7 +258,15 @@ if [ ${stage} -le 3 ]; then
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --pretrained-model ${pretrained_model}
+        --pretrained-model ${pretrained_model} \
+        --phoneme_objective_weight ${phoneme_objective_weight}"
+    if [[ ${phoneme_objective_layer} ]]; then
+        train_cmd_str="${train_cmd_str} --phoneme_objective_layer ${phoneme_objective_layer}"
+    fi
+    echo "expdir: ${expdir}"
+    echo "train_cmd_str: ${train_cmd_str}"
+    ${train_cmd_str}
+
 fi
 
 # If you specify a recog_set, then this will run.

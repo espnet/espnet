@@ -98,6 +98,10 @@ def get_output(output_name, utter):
         if output["name"] == output_name:
             return output["tokenid"].split()
 
+    # If we're here, something has likely gone wrong
+    logging.warn("output_name ({}) not found for utter ({})".format(
+            output_name, utter))
+
 def uttid2lang(uttid):
     """ Returns the language given an utterance ID. Utterance IDs look
     something like this: "105_94168_A_20120127_071423_043760-turkish". Given
