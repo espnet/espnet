@@ -452,7 +452,9 @@ def torch_resume(snapshot_path, trainer, restore_trainer):
     different trainer.
     """
     # load snapshot
+    logging.info("snapshot_path: {}".format(snapshot_path))
     snapshot_dict = torch.load(snapshot_path, map_location=lambda storage, loc: storage)
+    logging.info("snapshot_dict: {}".format(snapshot_dict))
 
     logging.info(restore_trainer)
     if restore_trainer:
@@ -473,6 +475,7 @@ def torch_resume(snapshot_path, trainer, restore_trainer):
             trainer.updater.model.module.load_state_dict(snapshot_dict['model'])
         else:
             trainer.updater.model.load_state_dict(snapshot_dict['model'])
+            #trainer.updater.model.load_state_dict(snapshot_dict)
 
     # retore optimizer states
     trainer.updater.get_optimizer('main').load_state_dict(snapshot_dict['optimizer'])

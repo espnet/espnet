@@ -373,14 +373,27 @@ def train(args):
     if args.phoneme_objective_weight > 0.0:
         logging.info('Training with an additional phoneme transcription objective.')
 
-    # specify model architecture
-    if args.phoneme_objective_weight > 0.0:
-        e2e = E2E(idim, grapheme_odim, args, phoneme_odim=phoneme_odim)
+    if args.pretrained_model:
+        # TODO pretrained model code needs to handle the phoneme objective
+        logging.info("Reading a pretrained model from " + args.pretrained_model)
+        train_idim, train_odim, _phoneme_odim, train_args = get_model_conf(args.pretrained_model)
+
+        e2e = E2E(train_idim, train_odim, train_args)
+        model = Loss(e2e, train_args.mtlalpha,
+                phoneme_objective_weight=train_args.phoneme_objective_weight)
+
+        model.load_state_dict(torch.load(args.pretrained_model,
+                map_location=lambda storage, loc: storage))
+
     else:
-        e2e = E2E(idim, grapheme_odim, args)
-    model = Loss(e2e, args.mtlalpha, 
-                 phoneme_objective_weight=args.phoneme_objective_weight,
-                 langs=langs)
+        # specify model architecture
+        if args.phoneme_objective_weight > 0.0:
+            e2e = E2E(idim, grapheme_odim, args, phoneme_odim=phoneme_odim)
+        else:
+            e2e = E2E(idim, grapheme_odim, args)
+        model = Loss(e2e, args.mtlalpha, 
+                     phoneme_objective_weight=args.phoneme_objective_weight,
+                     langs=langs)
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)

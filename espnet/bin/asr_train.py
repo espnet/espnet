@@ -178,6 +178,8 @@ def main():
                         help='Filename for the list of languages.')
     parser.add_argument('--adapt', dest='adapt', action='store_true',
                         help='Flag that language adaptation is occurring')
+    parser.add_argument('--pretrained-model', default=False, nargs='?',
+                        help='Pre-trained ASR model')
     args = parser.parse_args()
     logging.info(args)
 

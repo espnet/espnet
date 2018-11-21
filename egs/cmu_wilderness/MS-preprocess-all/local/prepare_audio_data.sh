@@ -68,7 +68,7 @@ for l in `cat ${langs} | tr "\n" " "`; do
   # Make Train 
   cp -r ${langdata} ${langdata}_train
   ./utils/filter_scp.pl --exclude -f 1 ${langdata}_ho/text ${langdata}/text > ${langdata}_train/text
- 
+
   # Remove corresponding extra utterances in each directory
   for dset in train dev eval; do
     ./utils/fix_data_dir.sh ${langdata}_${dset}

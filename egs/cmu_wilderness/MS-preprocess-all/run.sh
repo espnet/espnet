@@ -104,6 +104,9 @@ if [ ${stage} -le 1 ] && [ ! -e ${feat_dt_dir} ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     if [[ ${adapt_langs} ]]; then
+        echo ${feat_tr_dir}
+        echo ${feat_dev_dir}
+
         for x in ${adapt_langs_train} ${adapt_langs_dev} ${adapt_langs_eval}; do
             steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
                 data/${x} exp/make_fbank/${x} ${fbankdir}
@@ -199,14 +202,14 @@ if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
 
     if [[ ${adapt_langs} ]]; then
-        resume_expdir=$expdir
+        #resume_expdir=$expdir
+        #resume="${resume_expdir}/results/snapshot.ep.15"
+        pretrained_model="${expdir}/results/model.acc.best"
         expdir="${expdir}_adapt-${adapt_langs}"
-        resume="${resume_expdir}/results/snapshot.ep.5"
-        echo "Resuming model from ${resume}"
+        echo "Adapting model from ${pretrained_model}"
     fi
 
     echo "expdir: $expdir"
-    exit
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -239,7 +242,8 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --pretrained-model ${pretrained_model}
     exit
 fi
 
