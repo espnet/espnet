@@ -32,14 +32,13 @@ dunits=1024
 # attention related
 atype=add
 adim=1024
-aconv_chans=10
-aconv_filts=100
 
 # regualrization option
 samp_prob=0
 lsm_type=unigram
 lsm_weight=0
 dropout=0
+weight_decay=0
 
 # minibatch related
 batchsize=15
@@ -268,7 +267,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${dropout}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${dropout}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -301,8 +300,6 @@ if [ ${stage} -le 4 ]; then
         --dunits ${dunits} \
         --atype ${atype} \
         --adim ${adim} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
         --mtlalpha 0 \
         --batch-size ${batchsize} \
         --maxlen-in ${maxlen_in} \
@@ -313,7 +310,8 @@ if [ ${stage} -le 4 ]; then
         --dropout-rate ${dropout} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --eps-decay ${eps_decay}
+        --eps-decay ${eps_decay} \
+        --weight-decay ${weight_decay}
 fi
 
 if [ ${stage} -le 5 ]; then
@@ -349,7 +347,7 @@ if [ ${stage} -le 5 ]; then
         wait
 
         # Fisher has 4 references per utterance
-        if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en"]; then
+        if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
             for no in 1 2 3; do
               cp ${feat_recog_dir}/data_${no}.json ${expdir}/${decode_dir}/data_ref${no}.json
             done
