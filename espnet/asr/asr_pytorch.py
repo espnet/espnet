@@ -374,11 +374,13 @@ def train(args):
         logging.info('Training with an additional phoneme transcription objective.')
 
     if args.pretrained_model:
-        # TODO pretrained model code needs to handle the phoneme objective
         logging.info("Reading a pretrained model from " + args.pretrained_model)
-        train_idim, train_odim, _phoneme_odim, train_args = get_model_conf(args.pretrained_model)
+        train_idim, train_odim, phoneme_odim, train_args = get_model_conf(args.pretrained_model)
 
-        e2e = E2E(train_idim, train_odim, train_args)
+        if train_args.phoneme_objective_weight > 0.0:
+            e2e = E2E(train_idim, train_odim, train_args, phoneme_odim=phoneme_odim)
+        else:
+            e2e = E2E(train_idim, train_odim, train_args)
         model = Loss(e2e, train_args.mtlalpha,
                 phoneme_objective_weight=train_args.phoneme_objective_weight)
 
