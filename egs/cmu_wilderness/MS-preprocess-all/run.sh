@@ -243,10 +243,10 @@ if [ ${stage} -le 3 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --pretrained-model ${pretrained_model}
-    exit
 fi
 
-if [ ${stage} -le 4 ]; then
+# If you specify a recog_set, then this will run.
+if [ ${stage} -le 4 ] && [ ! -z ${recog_set} ]; then
 
     echo "stage 4: Decoding"
 
