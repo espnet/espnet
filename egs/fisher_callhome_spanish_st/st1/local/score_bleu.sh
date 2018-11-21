@@ -24,7 +24,7 @@ dir=$1
 dic=$2
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-local/json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn.org ${dir}/hyp.trn.org ${dir}/src.trn.org
+local/json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn.org --hyp ${dir}/hyp.trn.org --src ${dir}/src.trn.org
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
   local/json2trn.py ${dir}/data_ref1.json ${dic} ${dir}/ref1.trn.org
   local/json2trn.py ${dir}/data_ref2.json ${dic} ${dir}/ref2.trn.org
@@ -102,6 +102,7 @@ detokenizer.perl -l en < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 ### case-insensitive
 multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.wrd.txt
 echo "write a case-insensitive word-level BLUE result in ${dir}/result.wrd.txt"
+echo ${dir}
 cat ${dir}/result.wrd.txt
 
 
