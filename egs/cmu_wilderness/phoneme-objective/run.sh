@@ -47,6 +47,8 @@ dunits=768
 
 # Objective
 mtlalpha=0.5
+phoneme_objective_weight=0.33
+phoneme_objective_layer=2 # or 1?
 lsm_type=unigram
 lsm_weight=0.05
 samp_prob=0.0

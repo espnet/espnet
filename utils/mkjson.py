@@ -42,6 +42,9 @@ def parse_input():
         default='<unk>',
         action='store',
         type=str)
+    parser.add_argument('--phonemes',
+        help='Flag to request phoneme transcription in json.',
+        action='store_true')
 
     return parser.parse_args()
 
@@ -77,7 +80,23 @@ def main():
     symbols = defaultdict(lambda: dictionary['<unk>'], dictionary.items())
     
     num_output_units = len(symbols) + 2 # One for blank, one for <eos>
-    
+
+    if args.phonemes:
+        # Read in phoneme dictionary
+        phn_dict_fn = "{}.phn".format(args.dict)
+        phn_dictionary = {}
+        with codecs.open(phn_dict_fn, 'r', encoding='utf-8') as f:
+            for l in f:
+                symbol, val = l.strip().split(None, 1)
+                phn_dictionary[symbol] = int(val)
+
+        # Dealing with <unk> symbols
+        phn_symbols = defaultdict(lambda: phn_dictionary['<unk>'],
+                                  phn_dictionary.items())
+
+        num_phn_output_units = len(phn_symbols) + 2 # One for blank, one for <eos>
+
+
     # Read in non-lang-symbols
     non_lang_symbols = set()
     with codecs.open(args.non_lang_syms, 'r', encoding='utf-8') as f: 
@@ -127,6 +146,7 @@ def main():
     with codecs.open(text_file, 'r', encoding='utf-8') as f:
         for l in f:
             uttname, text = l.strip().split(None, 1)
+
             words = text.split()
             token = ""
             tokenid = []
@@ -174,12 +194,45 @@ def main():
                     'tokenid': ' '.join(tokenid)
                 }
             ]
-            
+
             dataset[uttname] = {
                 'input': inputs,
-                'output': output,
+                'output': output
                 'utt2spk': utt2spk[uttname]
             } 
+
+    if args.phonemes:
+        phn_text_file = "{}.phn".format(text_file)
+        with codecs.open(phn_text_file, 'r', encoding='utf-8') as phn_f):
+            for phn_l in phn_f:
+                phn_uttname, phn_text = phn_l.strip().split(None, 1)
+
+                phns = phn_text.split()
+                phn_token = ""
+                phn_tokenid = []
+                for phn in phns:
+                    if phn in non_lang_symbols:
+                        phn_token += phn
+                        phn_tokenid.append(str(phn_symbols[phn]))
+                    else:
+                        phn_token += " ".join(phn)
+                        phn_tokenid.append(str(phn_symbols[phn]))
+
+                if phn_token.endswith(space_str):
+                    phn_token = phn_token[:-len(space_str)]
+                    phn_tokenid.pop()
+
+                # output info
+                phn_output = {
+                        'name': 'phn',
+                        'shape': [len(phn_tokenid), num_phn_output_units],
+                        'text': phn_text,
+                        'token': phn_token,
+                        'tokenid': ' '.join(phn_tokenid)
+                    }
+
+                dataset[uttname]['output'].append(phn_output)
+            
 
     # Format output string
     jsonstring = json.dumps({'utts': dataset}, indent=4,
