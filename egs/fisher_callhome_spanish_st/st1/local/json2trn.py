@@ -13,8 +13,8 @@ if __name__ == '__main__':
     parser.add_argument('json', type=str, help='json files')
     parser.add_argument('dict', type=str, help='dict')
     parser.add_argument('ref', type=str, help='ref')
-    parser.add_argument('--hyp', type=str, help='hyp', default=False)
-    parser.add_argument('--src', type=str, help='src', default=False)
+    parser.add_argument('--hyp', type=str, help='hyp', default=False, nargs='?')
+    parser.add_argument('--src', type=str, help='src', default=False, nargs='?')
     args = parser.parse_args()
 
     # logging info
