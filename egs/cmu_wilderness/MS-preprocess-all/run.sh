@@ -87,6 +87,7 @@ if [[ ${adapt_langs} ]]; then
     feat_tr_dir=${dumpdir}/${adapt_langs_train}_${train_set}/delta${do_delta}
     feat_dt_dir=${dumpdir}/${adapt_langs_dev}_${train_set}/delta${do_delta}
     feat_eval_dir=${dumpdir}/${adapt_langs_eval}_${train_set}/delta${do_delta}
+    recog_set=${adapt_langs_eval}
 else
     feat_tr_dir=${dumpdir}/${train_set}_${train_set}/delta${do_delta}
     feat_dt_dir=${dumpdir}/${train_dev}_${train_set}/delta${do_delta}
@@ -196,20 +197,18 @@ if [ -z ${tag} ]; then
 else
     expdir=exp/${train_set}_${backend}_${tag}
 fi
+
+if [[ ${adapt_langs} ]]; then
+    pretrained_model="${expdir}/results/model.acc.best"
+    expdir="${expdir}_adapt-${adapt_langs}"
+    echo "Adapting model from ${pretrained_model}"
+    echo "expdir: $expdir"
+fi
+
 mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
-
-    if [[ ${adapt_langs} ]]; then
-        #resume_expdir=$expdir
-        #resume="${resume_expdir}/results/snapshot.ep.15"
-        pretrained_model="${expdir}/results/model.acc.best"
-        expdir="${expdir}_adapt-${adapt_langs}"
-        echo "Adapting model from ${pretrained_model}"
-    fi
-
-    echo "expdir: $expdir"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -259,7 +258,7 @@ if [ ${stage} -le 4 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
 
         # split data
         splitjson.py --parts ${decode_nj} ${feat_recog_dir}/data.json 

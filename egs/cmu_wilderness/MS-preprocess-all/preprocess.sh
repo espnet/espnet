@@ -77,6 +77,7 @@ all_eval_langs_train="`basename ${all_eval_langs_fn}`_train"
 
 train_langs="aymara-notgt aymara indonesian-notgt indonesian"
 train_langs="south_american_verygood"
+train_langs="quechua-varieties-notgt"
 
 if [ $stage -le 0 ]; then
 
