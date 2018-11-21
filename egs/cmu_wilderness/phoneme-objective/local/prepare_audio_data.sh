@@ -45,7 +45,8 @@ for l in `cat ${langs} | tr "\n" " "`; do
 
   # This Perl command replaces unicode whitespace with normal spaces so the
   # Kaldi validate_text.pl script doesn't complain.
-  perl -CSDA -plE 's/[^\S\t]/ /g' ${datasets}/${l}/asr_files/transcription_nopunc.txt > ${langdata}/text
+  #perl -CSDA -plE 's/[^\S\t]/ /g' ${datasets}/${l}/asr_files/transcription_nopunc.txt > ${langdata}/text
+  cat ${datasets}/${l}/asr_files/transcription_nopunc.txt > ${langdata}/text
   
   #./utils/fix_data_dir.sh ${langdata} 
   
@@ -77,7 +78,11 @@ for l in `cat ${langs} | tr "\n" " "`; do
     ./utils/fix_data_dir.sh ${langdata}_${dset}
     cat ${langdata}_${dset}/text |\
       ./utils/apply_map.pl -f 2- ${dict_l}/lexicon.txt > ${langdata}_${dset}/text.phn
+
+    # Replace non-unicode whitespaces
+    perl -CSDA -plE 's/[^\S\t]/ /g' ${langdata}_${dset}/text > ${langdata}_${dset}/text.tmp
+    mv ${langdata}_${dset}/text.tmp ${langdata}_${dset}/text
+    perl -CSDA -plE 's/[^\S\t]/ /g' ${langdata}_${dset}/text.phn > ${langdata}_${dset}/text.phn.tmp
+    mv ${langdata}_${dset}/text.phn.tmp ${langdata}_${dset}/text.phn
   done
 done
-
-
