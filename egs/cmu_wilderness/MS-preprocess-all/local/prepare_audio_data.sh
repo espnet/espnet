@@ -42,7 +42,10 @@ for l in `cat ${langs} | tr "\n" " "`; do
   # Get text and lexicon.
   # We absolutely have to clean these up. The more I look at these the more I
   # I cringe at how awful they are. For now though I am using them as they are.
-  cp ${datasets}/${l}/asr_files/transcription_nopunc.txt ${langdata}/text
+
+  # This Perl command replaces unicode whitespace with normal spaces so the
+  # Kaldi validate_text.pl script doesn't complain.
+  perl -CSDA -plE 's/[^\S\t]/ /g' ${datasets}/${l}/asr_files/transcription_nopunc.txt > ${langdata}/text
   
   #./utils/fix_data_dir.sh ${langdata} 
   

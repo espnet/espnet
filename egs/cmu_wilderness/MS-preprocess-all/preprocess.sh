@@ -75,9 +75,10 @@ eval_readings_fn=conf/langs/eval_readings
 
 all_eval_langs_train="`basename ${all_eval_langs_fn}`_train"
 
-train_langs="aymara-notgt aymara indonesian-notgt indonesian"
-train_langs="south_american_verygood"
-train_langs="quechua-varieties-notgt"
+train_groups="aymara-notgt aymara indonesian-notgt indonesian"
+train_groups="south_american_verygood"
+train_groups="quechua-varieties-notgt"
+train_groups="quechua-varieties-notgtlang"
 
 if [ $stage -le 0 ]; then
 
@@ -91,11 +92,11 @@ if [ $stage -le 0 ]; then
 #    done
 
     # Preparing data for each language (a group of readings).
-    for train_lang in ${train_langs}; do
-        echo $train_lang_fn
-        train_lang_fn="conf/langs/${train_lang}"
-        ./local/prepare_audio_data.sh --langs ${train_lang_fn} ${datasets}
-        ./local/create_splits.sh data/local ${train_lang_fn} ${train_lang_fn} ${train_lang_fn} 
+    for train_group in ${train_groups}; do
+        echo $train_group_fn
+        train_group_fn="conf/langs/${train_group}"
+        ./local/prepare_audio_data.sh --langs ${train_group_fn} ${datasets}
+        ./local/create_splits.sh data/local ${train_group_fn} ${train_group_fn} ${train_group_fn} 
     done
 
     # Prepare data for all possible evaluation readings that a seed model might
@@ -135,10 +136,10 @@ function prepare_dict {
 #    prepare_dict ${reading}_train
 #done
 
-for train_lang in ${train_langs}; do
-    echo $train_lang_fn
-    train_lang_fn="conf/langs/${train_lang}"
-    prepare_dict ${train_lang}_train
+for train_group in ${train_groups}; do
+    echo $train_group_fn
+    train_group_fn="conf/langs/${train_group}"
+    prepare_dict ${train_group}_train
 done
 
 #prepare_dict ${all_eval_langs_train}
