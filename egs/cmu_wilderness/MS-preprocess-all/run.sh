@@ -209,8 +209,6 @@ mkdir -p ${expdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
 
-    exit
-
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
