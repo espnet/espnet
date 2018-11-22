@@ -87,7 +87,6 @@ if [[ ${adapt_langs} ]]; then
     feat_tr_dir=${dumpdir}/${adapt_langs_train}_${train_set}/delta${do_delta}
     feat_dt_dir=${dumpdir}/${adapt_langs_dev}_${train_set}/delta${do_delta}
     feat_eval_dir=${dumpdir}/${adapt_langs_eval}_${train_set}/delta${do_delta}
-    recog_set=${adapt_langs_eval}
 else
     feat_tr_dir=${dumpdir}/${train_set}_${train_set}/delta${do_delta}
     feat_dt_dir=${dumpdir}/${train_dev}_${train_set}/delta${do_delta}
@@ -209,6 +208,8 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
+
+    exit
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \

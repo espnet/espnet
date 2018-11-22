@@ -79,6 +79,7 @@ train_groups="aymara-notgt aymara indonesian-notgt indonesian"
 train_groups="south_american_verygood"
 train_groups="quechua-varieties-notgt"
 train_groups="quechua-varieties-notgtlang"
+train_groups="quechua-notgt"
 
 if [ $stage -le 0 ]; then
 
