@@ -79,16 +79,25 @@ train_set=""
 train_dev=""
 recog_set=""
 
+train_langs=""
 adapt_langs=""
 
 . ./utils/parse_options.sh || exit 1;
 
 datasets=/export/b15/oadams/datasets-CMU_Wilderness
 
-adapt_langs_train="${adapt_langs}_train"
-adapt_langs_dev="${adapt_langs}_dev"
+if [[ ${adapt_langs} ]]; then
+    adapt_langs_train="${adapt_langs}_train"
+    adapt_langs_dev="${adapt_langs}_dev"
+fi
+
+if [[ ${train_langs} ]]; then
+    train_set="${train_langs}_train"
+    train_dev="${train_langs}_dev"
+fi
 
 echo "train_set: ${train_set}"
+echo "train_dev: ${train_dev}"
 echo "ngpu: ${ngpu}"
 
 if [[ -z $train_set ]]; then
@@ -97,6 +106,8 @@ if [[ -z $train_set ]]; then
 fi
 
 if [[ ${adapt_langs} ]]; then
+    echo "Adapting to train set: ${adapt_langs_train}"
+    echo "Adapting with dev set: ${adapt_langs_dev}"
     feat_tr_dir=${dumpdir}/${adapt_langs_train}_${train_set}/delta${do_delta}
     feat_dt_dir=${dumpdir}/${adapt_langs_dev}_${train_set}/delta${do_delta}
 else
@@ -107,23 +118,20 @@ fi
 if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
 
-    echo ${feat_tr_dir}
-    echo ${feat_dev_dir}
-
     mkdir -p ${feat_tr_dir}
     mkdir -p ${feat_dt_dir}
 
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     if [[ ${adapt_langs} ]]; then
-        echo ${feat_tr_dir}
-        echo ${feat_dev_dir}
 
         if [[ ! -e data/${train_set}/cmvn.ark ]]; then
             echo "Couldn't find train set CMVN feats at data/${train_set}/cmvn.ark."
-            echo "Train a seed model first."
-            echo "Exiting."
-            exit
+            echo "This might be a sign that a seed model wasn't trained.  Beware."
+            echo "Preparing CMVN feats from train data"
+
+            # compute global CMVN
+            compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
         fi
 
         for x in ${adapt_langs_train} ${adapt_langs_dev}; do
@@ -215,7 +223,7 @@ if [ ${stage} -le 2 ]; then
     if [[ ${adapt_langs} ]]; then
         rtasks="${adapt_langs_train} ${adapt_langs_dev}"
     else
-        rtasks="${train_set} ${train_dev} ${recog_set}"
+        rtasks="${train_set} ${train_dev}"
     fi
     for rtask in ${rtasks} ${recog_set}; do
         echo $rtask
@@ -251,10 +259,16 @@ if [[ ${adapt_langs} ]]; then
     echo "expdir: $expdir"
 fi
 
+if [[ -d ${expdir} ]]; then
+    timestamp=$(date +%Y-%m-%d_%H-%M-%S)
+    echo "Warning: expdir ${expdir} already exists. Moving it to ${expdir}.bk-${timestamp}"
+    mv "${expdir}" "${expdir}.bk-${timestamp}"
+fi
 mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
+
 
     train_cmd_str="${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
