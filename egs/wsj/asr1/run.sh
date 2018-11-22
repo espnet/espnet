@@ -22,11 +22,12 @@ do_delta=false
 
 # network architecture
 # encoder related
+ntype=transformer
 etype=vggblstmp     # encoder architecture type
 elayers=6
 eunits=320
 eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+subsample=0 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
 dunits=300
@@ -67,7 +68,7 @@ lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
 
 # decoding parameter
-lm_weight=1.0
+lm_weight=0 #1.0
 beam_size=30
 penalty=0.0
 maxlenratio=0.0
@@ -79,8 +80,8 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 samp_prob=0.0
 
 # data
-wsj0=/export/corpora5/LDC/LDC93S6B
-wsj1=/export/corpora5/LDC/LDC94S13B
+wsj0=/export/corpus/LDC/LDC93S6B
+wsj1=/export/corpus/LDC/LDC94S13B
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -219,7 +220,7 @@ if [ ${stage} -le 3 ]; then
                 | cut -f 2- -d" " > ${lmdatadir}/test.txt
         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
     fi
-
+    exit 0
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -245,7 +246,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${ntype}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -263,6 +264,7 @@ if [ ${stage} -le 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
+        --ntype ${ntype} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \

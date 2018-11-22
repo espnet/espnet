@@ -205,7 +205,8 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
         --sampling-probability ${samp_prob} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --n_iter_processes 1
 fi
 
 if [ ${stage} -le 4 ]; then

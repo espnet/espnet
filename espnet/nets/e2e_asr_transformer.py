@@ -182,27 +182,37 @@ class E2E(chainer.Chain):
         #             use_label_smoothing=False,
         #             embed_position=False):
         super(E2E, self).__init__()
+        self.dropout = 0.1
+        self.max_length = 700  # max input frames after subsampling
         with self.init_scope():
-            self.embed_y = DL.EmbedID(odim, args.eunits)
-            self.encoder = Encoder(idim, args.elayers, args.eunits, args.aconv_chans, args.dropout_rate)
-            self.decoder = Decoder(args.elayers, args.eunits, args.aconv_chans, args.dropout_rate)
+            # Reduction Feats
+            self.conv1 = L.Convolution2D(1, 64, 3, stride=2, pad=1)
+            self.conv2 = L.Convolution2D(64, 64, 3, stride=2, pad=1)
+            self.linear_transform = L.Linear(args.eunits)
+
+            self.embed_y = DL.EmbedID(odim, args.eunits, ignore_label=-1,
+                                      initialW=linear_init)
+            self.encoder = Encoder(args.elayers, args.eunits, args.aconv_chans, self.dropout)
+            self.decoder = Decoder(args.dlayers, args.dunits, args.aconv_chans, self.dropout)
+            self.embed_pos = DL.EmbedID(self.max_length, args.eunits, ignore_label=-1,
+                                        initialW=linear_init)
         # self.n_layers = n_layers
         # self.n_units = n_units
-        # self.n_target_vocab = n_target_vocab
+        self.n_target_vocab = len(args.char_list)
         # self.dropout = dropout
         # self.use_label_smoothing = use_label_smoothing
         self.use_label_smoothing = False
         self.char_list = args.char_list
+        self.unk = args.char_list.index('<unk>')
         if args.lsm_type:
             logging.info("Use label smoothing ")
             self.use_label_smoothing = True
             # labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
-        self.initialize_position_encoding(args.maxlen_in, args.eunits)
+        self.initialize_position_encoding(self.max_length, args.eunits)
         self.scale_emb = args.eunits ** 0.5
         self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = [0]
-        self.dropout = 0.1
         self.verbose = args.verbose
 
     def initialize_position_encoding(self, length, n_units):
@@ -349,30 +359,32 @@ class E2E(chainer.Chain):
         ys_in = [F.concat([sos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
-        xs = F.swapaxes(F.pad_sequence(xs), 1, 2).data
+        xs = F.swapaxes(F.pad_sequence(xs, padding=-1), 1, 2).data
         ys = F.pad_sequence(ys_in, padding=self.eos).data
         ys_out = F.pad_sequence(ys_out, padding=-1)
-        # x: utt x dim x frame
-
-        ey_block = self.make_input_embedding(self.embed_y, ys)
 
         yy_mask = self.make_attention_mask(ys, ys)
         yy_mask *= self.make_history_mask(ys)
 
         # Encode Sources
-        z_blocks, ilens = self.encoder(xs, ilens)
+        # xs: utt x dim x frame
+        xs, ilens = self.reduce_feats(xs, ilens)
+
+        batch, _, x_length = xs.shape
+        x_mask = [xp.ones([i]) for i in ilens]
+        x_mask = F.pad_sequence(x_mask, padding=-1).data
+
         # [(batch, n_units, x_length), ...]
-        batch, x_dim, x_length = z_blocks.shape
+        xx_mask = self.make_attention_mask(x_mask, x_mask)
 
-        x_mask = np.zeros([batch, x_length])
-        for i in range(batch):
-            x_mask[i, :ilens[i]] = 1.
-        xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
-
+        z_blocks = self.encoder(xs, xx_mask)
+        xy_mask = self.make_attention_mask(ys, x_mask)
+        ey_block = self.make_input_embedding(self.embed_y, ys)
         if calculate_attentions:
             return self.decoder.calculate_all_attentions(ey_block, z_blocks, xy_mask, yy_mask)
 
         h_block = self.decoder(ey_block, z_blocks, xy_mask, yy_mask)
+
         if not predict:
             loss_att, acc = self.output_and_loss(h_block, ys_out)
             # return self.output_and_loss(h_block, y_out_block)
@@ -438,6 +450,33 @@ class E2E(chainer.Chain):
         att_ws = self(xs, ilens, ys, calculate_attentions=True)
 
         return att_ws
+
+    def reduce_feats(self, e, ilens):
+        logging.info('Input size convnet: ' + str(e.shape))
+        # if len(e.shape) < 4:  # Multichannel
+        e = F.swapaxes(F.expand_dims(e, axis=3), 1, 3)
+        # input shape Batchsize x 1 channels x length x dims (83 MFCC + ...)
+        e = F.relu(self.conv1(e))
+        e = F.relu(self.conv2(e))
+
+        bs, ch, ln, dim = e.shape
+        e = F.vstack(F.split_axis(e, ln, axis=2))  # F.reshape(, [bs, ch * dim, ln])# F.squeeze(, axis=3)
+        e = F.split_axis(self.linear_transform(e), ln, axis=0)
+        e = F.stack(e, axis=2)
+        logging.info('Input size convnet: ' + str(e.shape))
+
+        # change ilens accordingly
+        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
+        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
+
+        # embed position
+        e += self.xp.array(self.position_encoding_block[:, :, :ln])
+        if hasattr(self, 'embed_pos'):
+            e += sentence_block_embed(
+                self.embed_pos,
+                self.xp.broadcast_to(
+                    self.xp.arange(ln).astype('i')[None, :], [bs, ln]))
+        return e, ilens
 
 
 class MultiHeadAttention(chainer.Chain):
@@ -526,8 +565,8 @@ class FeedForwardLayer(chainer.Chain):
                                            initialW=linear_init)
             self.W_2 = ConvolutionSentence(n_inner_units, n_units,
                                            initialW=linear_init)
-            # self.act = F.relu
-            self.act = F.leaky_relu
+            self.act = F.relu
+            # self.act = F.leaky_relu
 
     def __call__(self, e):
         e = self.W_1(e)
@@ -537,13 +576,9 @@ class FeedForwardLayer(chainer.Chain):
 
 
 class EncoderLayer(chainer.Chain):
-    def __init__(self, idim, n_units, h=8, dropout=0.1):
+    def __init__(self, n_units, h=8, dropout=0.1):
         super(EncoderLayer, self).__init__()
         with self.init_scope():
-            self.no_input = True
-            if idim != n_units:
-                self.input = ConvolutionSentence(idim, n_units)  # Reshape the input to n_units
-                self.no_input = False
             self.self_attention = MultiHeadAttention(n_units, h)
             self.feed_forward = FeedForwardLayer(n_units)
             self.ln_1 = LayerNormalizationSentence(n_units, eps=1e-6)
@@ -551,8 +586,6 @@ class EncoderLayer(chainer.Chain):
         self.dropout = dropout
 
     def __call__(self, e, xx_mask):
-        if not self.no_input:
-            e = self.input(e)
         sub = self.self_attention(e, e, xx_mask)
         e = e + F.dropout(sub, self.dropout)
         e = self.ln_1(e)
@@ -604,60 +637,21 @@ class DecoderLayer(chainer.Chain):
 
 
 class Encoder(chainer.Chain):
-    def __init__(self, idim, n_layers, n_units, h=8, dropout=0.1):
+    def __init__(self, n_layers, n_units, h=8, dropout=0.1):
         super(Encoder, self).__init__()
-        with self.init_scope():
-            self.conv1_1 = L.Convolution2D(1, 32, 3, stride=1, pad=1)
-            self.conv1_2 = L.Convolution2D(32, 32, 3, stride=1, pad=1)
-            self.conv2_1 = L.Convolution2D(32, 64, 3, stride=1, pad=1)
-            self.conv2_2 = L.Convolution2D(64, 64, 3, stride=1, pad=1)
-        idim = int(np.ceil(np.ceil(idim / 2) / 2)) * 64
-        # self.idim = idim
         self.layer_names = []
         for i in range(1, n_layers + 1):
             name = 'l{}'.format(i)
-            layer = EncoderLayer(idim, n_units, h, dropout)
+            layer = EncoderLayer(n_units, h, dropout)
             self.add_link(name, layer)
             self.layer_names.append(name)
-            idim = n_units
 
-    def __call__(self, e, ilens):
-        xp = self.xp
-        logging.info('Input size convnet: ' + str(e.shape))
-        e = F.swapaxes(F.expand_dims(e, axis=3), 1, 3)
-        e = F.relu(self.conv1_1(e))
-        e = F.relu(self.conv1_2(e))
-        e = F.max_pooling_2d(e, 2, stride=2)
-
-        e = F.relu(self.conv2_1(e))
-        e = F.relu(self.conv2_2(e))
-        e = F.max_pooling_2d(e, 2, stride=2)
-        bs, ch, ln, dim = e.shape
-        e = F.reshape(F.swapaxes(e, 2, 3), [bs, ch * dim, ln])# F.squeeze(, axis=3)
-        # change ilens accordingly
-        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
-        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
-
+    def __call__(self, e, xx_mask):
         for i in range(len(self.layer_names)):
             name = self.layer_names[i]
             logging.info('Input size encoder {}: '.format(name) + str(e.shape))
-            batch, _, x_length = e.shape
-
-            x_mask = np.zeros([batch, x_length])
-            for j in range(batch):
-                x_mask[j, :ilens[j]] = 1.
-
-            mask = (x_mask[:, None, :] >= 0) * (x_mask[:, :, None] >= 0)
-
-            e = getattr(self, name)(e, xp.array(mask))
-
-            # sub sampling /2
-            # if i < 2:
-            #    e = F.max_pooling_2d(F.expand_dims(e, axis=3), (2, 1), stride=2)
-            #    e = F.squeeze(e, axis=3)
-            #    # change ilens accordingly
-            #    ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
-        return e, ilens
+            e = getattr(self, name)(e, xx_mask)
+        return e
 
 
 class Decoder(chainer.Chain):
