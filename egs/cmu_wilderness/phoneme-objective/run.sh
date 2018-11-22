@@ -46,9 +46,11 @@ dlayers=1
 dunits=768
 
 # Objective
-mtlalpha=0.33
-phoneme_objective_weight=0.33
-phoneme_objective_layer=2 # or 1?
+mtlalpha=0.5
+phoneme_objective_weight=0.0
+# 2 or 1? This variable also affects the layer the adversarial objective plugs
+# into
+phoneme_objective_layer="" 
 lsm_type=unigram
 lsm_weight=0.05
 samp_prob=0.0
@@ -286,7 +288,6 @@ if [ ${stage} -le 3 ]; then
     echo "expdir: ${expdir}"
     echo "train_cmd_str: ${train_cmd_str}"
     ${train_cmd_str}
-    exit
 
 fi
 
@@ -299,6 +300,9 @@ if [ ${stage} -le 4 ] && [ ! -z ${recog_set} ]; then
     if $use_lm; then
       extra_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
     fi
+
+    echo "Recognizing these sets: ${recog_set}"
+    echo "Using model in ${expdir}"
 
     for rtask in ${recog_set}; do
     (

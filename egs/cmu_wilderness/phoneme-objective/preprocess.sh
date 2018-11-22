@@ -81,17 +81,19 @@ train_groups="aymara-notgt aymara indonesian-notgt indonesian"
 train_groups="south_american_verygood"
 train_groups="quechua-varieties-notgt"
 train_groups="quechua-varieties-notgtlang"
+train_groups="quechua"
+train_groups="quechua-notgt"
 
 if [ $stage -le 0 ]; then
 
     # Preparing audio data for each evaluation language and train/dev/test
     # splits for monolingual training
-    for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
-        echo $reading
-        reading_fn="conf/langs/${reading}"
-        ./local/prepare_audio_data.sh --langs ${reading_fn} ${datasets}
-        ./local/create_splits.sh data/local ${reading_fn} ${reading_fn} ${reading_fn} 
-    done
+#    for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
+#        echo $reading
+#        reading_fn="conf/langs/${reading}"
+#        ./local/prepare_audio_data.sh --langs ${reading_fn} ${datasets}
+#        ./local/create_splits.sh data/local ${reading_fn} ${reading_fn} ${reading_fn} 
+#    done
 
     # Preparing data for each language (a group of readings).
     for train_group in ${train_groups}; do
@@ -104,8 +106,8 @@ if [ $stage -le 0 ]; then
     # Prepare data for all possible evaluation readings that a seed model might
     # get adapted to, so that we can have in advance a dictionary that covers
     # all the languages' graphemes.
-    ./local/prepare_audio_data.sh --langs ${all_eval_langs_fn} ${datasets}
-    ./local/create_splits.sh data/local ${all_eval_langs_fn} ${all_eval_langs_fn} ${all_eval_langs_fn}
+#    ./local/prepare_audio_data.sh --langs ${all_eval_langs_fn} ${datasets}
+#    ./local/create_splits.sh data/local ${all_eval_langs_fn} ${all_eval_langs_fn} ${all_eval_langs_fn}
 fi
 
 function prepare_dict {
@@ -151,12 +153,12 @@ function prepare_phn_dict {
 
 }
 
-for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
-    echo $reading
-    reading_fn="conf/langs/${reading}"
-    prepare_dict ${reading}_train
-    prepare_phn_dict ${reading}_train
-done
+#for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
+#    echo $reading
+#    reading_fn="conf/langs/${reading}"
+#    prepare_dict ${reading}_train
+#    prepare_phn_dict ${reading}_train
+#done
 
 for train_group in ${train_groups}; do
     echo $train_group_fn
@@ -165,5 +167,5 @@ for train_group in ${train_groups}; do
     prepare_phn_dict ${train_group}_train
 done
 
-prepare_dict ${all_eval_langs_train}
-prepare_phn_dict ${all_eval_langs_train}
+#prepare_dict ${all_eval_langs_train}
+#prepare_phn_dict ${all_eval_langs_train}
