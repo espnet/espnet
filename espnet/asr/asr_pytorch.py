@@ -433,7 +433,7 @@ def recog(args):
         js = json.load(f)['utts']
     new_js = {}
 
-    if args.batchsize is None:
+    if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
