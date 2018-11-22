@@ -46,7 +46,7 @@ dlayers=1
 dunits=768
 
 # Objective
-mtlalpha=0.5
+mtlalpha=0.33
 phoneme_objective_weight=0.33
 phoneme_objective_layer=2 # or 1?
 lsm_type=unigram
@@ -269,13 +269,13 @@ if [ ${stage} -le 3 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --pretrained-model ${pretrained_model} \
-        --phoneme_objective_weight ${phoneme_objective_weight} \
-        --langs_file ${langs_file}"
+        --phoneme_objective_weight ${phoneme_objective_weight}"
     if [[ ${phoneme_objective_layer} ]]; then
         train_cmd_str="${train_cmd_str} --phoneme_objective_layer ${phoneme_objective_layer}"
     fi
     if [[ ! -z ${predict_lang} ]]; then
-        train_cmd_str="${train_cmd_str} --predict_lang ${predict_lang}"
+        train_cmd_str="${train_cmd_str} --predict_lang ${predict_lang} \
+                                        --langs_file ${langs_file}"
         if [[ ! -z ${predict_lang_alpha} ]]; then
             train_cmd_str="${train_cmd_str} --predict_lang_alpha ${predict_lang_alpha}"
         elif [[ ! -z ${predict_lang_alpha_scheduler} ]]; then
