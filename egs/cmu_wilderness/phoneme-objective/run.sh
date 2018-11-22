@@ -208,34 +208,18 @@ if [ ${stage} -le 2 ]; then
     echo "Stage 2: make json labels"
     # make json labels
     if [[ ${adapt_langs} ]]; then
-        for rtask in ${adapt_langs_train} ${adapt_langs_dev} ${adapt_langs_eval}; do
-            echo $rtask
-            feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-            if [[ ! -e ${feat_recog_dir}/data.json ]]; then
-                if [[ ${phoneme_objective_weight} > 0.0 ]]; then
-                    mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                        data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
-                else
-                    mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                        data/${rtask} ${dict} > ${feat_recog_dir}/data.json
-                fi
-            fi
-        done
+        rtasks="${adapt_langs_train} ${adapt_langs_dev}"
     else
-        for rtask in ${train_set} ${train_dev} ${recog_set}; do
-            echo $rtask
-            feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-            if [[ ! -e ${feat_recog_dir}/data.json ]]; then
-                if [[ ${phoneme_objective_weight} > 0.0 ]]; then
-                    mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                        data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
-                else
-                    mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                        data/${rtask} ${dict} > ${feat_recog_dir}/data.json
-                fi
-            fi
-        done
+        rtasks="${train_set} ${train_dev} ${recog_set}"
     fi
+    for rtask in ${rtasks} ${recog_set}; do
+        echo $rtask
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
+        if [[ ! -e ${feat_recog_dir}/data.json ]]; then
+            mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
+        fi
+    done
 fi
 
 if [ -z ${tag} ]; then
