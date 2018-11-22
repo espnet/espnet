@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstm     # encoder architecture type
 elayers=5
@@ -39,7 +39,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=24
+batchsize=20
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -48,17 +48,17 @@ opt=adadelta
 epochs=10
 
 # rnnlm related
-lm_layers=2
-lm_units=650
+lm_layers=1
+lm_units=1024
 lm_opt=sgd        # or adam
-lm_batchsize=256  # batch size in LM training
-lm_epochs=60      # if the data size is large, we can reduce this
-lm_maxlen=100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
+lm_batchsize=1024 # batch size in LM training
+lm_epochs=20      # if the data size is large, we can reduce this
+lm_maxlen=40      # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
-lm_weight=0.5
+lm_weight=0.7
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
@@ -200,10 +200,16 @@ if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt \
-        > ${lmdatadir}/train.txt
-        cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/valid.txt
+    # use external data
+    if [ ! -e data/local/lm_train/librispeech-lm-norm.txt.gz ]; then
+        wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/lm_train/
+    fi
+    cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
+    # combine external text and transcriptions and shuffle them with seed 777
+    zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
+	spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
+    cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
+							> ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -286,11 +292,13 @@ if [ ${stage} -le 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
+	# set batchsize 0 to disable batch decoding
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+	    --batchsize 0 \
+	    --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
