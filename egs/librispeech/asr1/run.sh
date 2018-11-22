@@ -204,14 +204,12 @@ if [ ${stage} -le 3 ]; then
     if [ ! -e data/local/lm_train/librispeech-lm-norm.txt.gz ]; then
         wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/lm_train/
     fi
-    if false; then
     cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
     # combine external text and transcriptions and shuffle them with seed 777
     zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
 	spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
     cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
 							> ${lmdatadir}/valid.txt
-    fi
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
