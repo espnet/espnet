@@ -53,6 +53,11 @@ lsm_type=unigram
 lsm_weight=0.05
 samp_prob=0.0
 
+# Language prediction
+predict_lang=""
+predict_lang_alpha_scheduler="ganin"
+langs_file=""
+
 # Optimizer
 opt=adadelta
 
@@ -210,6 +215,11 @@ if [ -z ${tag} ]; then
     if [ ${phoneme_objective_layer} ]; then
         expdir="${expdir}_phonemelayer${phoneme_objective_layer}"
     fi
+    if [[ ${predict_lang} = normal ]]; then
+        expdir=${expdir}_predictlang-${predict_lang_alpha}${predict_lang_alpha_scheduler}
+    elif [[ ${predict_lang} = adv ]]; then
+        expdir=${expdir}_predictlang-adv-${predict_lang_alpha}${predict_lang_alpha_scheduler}
+    fi
 else
     expdir=exp/${train_set}_${backend}_${tag}
 fi
@@ -259,13 +269,24 @@ if [ ${stage} -le 3 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --pretrained-model ${pretrained_model} \
-        --phoneme_objective_weight ${phoneme_objective_weight}"
+        --phoneme_objective_weight ${phoneme_objective_weight} \
+        --langs_file ${langs_file}"
     if [[ ${phoneme_objective_layer} ]]; then
         train_cmd_str="${train_cmd_str} --phoneme_objective_layer ${phoneme_objective_layer}"
+    fi
+    if [[ ! -z ${predict_lang} ]]; then
+        train_cmd_str="${train_cmd_str} --predict_lang ${predict_lang}"
+        if [[ ! -z ${predict_lang_alpha} ]]; then
+            train_cmd_str="${train_cmd_str} --predict_lang_alpha ${predict_lang_alpha}"
+        elif [[ ! -z ${predict_lang_alpha_scheduler} ]]; then
+            train_cmd_str="${train_cmd_str} --predict_lang_alpha_scheduler \
+                                            ${predict_lang_alpha_scheduler}"
+        fi
     fi
     echo "expdir: ${expdir}"
     echo "train_cmd_str: ${train_cmd_str}"
     ${train_cmd_str}
+    exit
 
 fi
 

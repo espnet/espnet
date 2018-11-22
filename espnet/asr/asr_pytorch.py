@@ -381,8 +381,19 @@ def train(args):
             e2e = E2E(train_idim, train_odim, train_args, phoneme_odim=phoneme_odim)
         else:
             e2e = E2E(train_idim, train_odim, train_args)
+
+        if train_args.langs_file:
+            langs = set()
+            with open(args.langs_file) as f:
+                for line in f:
+                    langs.add(unicode(line.strip()))
+            logging.error(langs)
+        else:
+            langs = None
+
         model = Loss(e2e, train_args.mtlalpha,
-                phoneme_objective_weight=train_args.phoneme_objective_weight)
+                phoneme_objective_weight=train_args.phoneme_objective_weight,
+                langs=langs)
 
         model.load_state_dict(torch.load(args.pretrained_model,
                 map_location=lambda storage, loc: storage))

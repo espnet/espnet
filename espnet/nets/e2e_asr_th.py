@@ -218,8 +218,20 @@ class Loss(torch.nn.Module):
             self.loss_lang = torch.nn.NLLLoss()
 
     def forward_langid(self, xs_pad, ilens, lang_ys):
-
         hpad, hlens = self.predictor.encode(xs_pad, ilens)
+
+        # self.predictor.encode() will call its encoder, which will then stash
+        # phoneme_layer_hpads if phoneme_objective_layer is set
+        if self.predictor.phoneme_objective_layer:
+            if self.predictor.etype == "blstmp":
+                hpad = self.predictor.enc.enc1.phoneme_layer_hpad
+            elif self.predictor.etype == "vggblstmp":
+                hpad = self.predictor.enc.enc2.phoneme_layer_hpad
+            else:
+                assert False
+        else:
+            hpad, hlens = self.predictor.encode(xs_pad, ilens)
+
         mean = hpad.mean(dim=1)
         log_softmax_out = self.log_softmax(self.lang_linear(mean))
         logging.info("log_softmax {}".format(log_softmax_out))

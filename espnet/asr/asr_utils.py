@@ -102,6 +102,8 @@ def get_output(output_name, utter):
     logging.warn("output_name ({}) not found for utter ({})".format(
             output_name, utter))
 
+# TODO This is very corpus-specific. Really this sort of think should go in the
+# mkjson.py recipe so that the language is a field in data.json.
 def uttid2lang(uttid):
     """ Returns the language given an utterance ID. Utterance IDs look
     something like this: "105_94168_A_20120127_071423_043760-turkish". Given
@@ -111,7 +113,12 @@ def uttid2lang(uttid):
 
     """ Changing this so we deal with lang-codes at the start of the uttid. In
     the above example it would be 105."""
-    return uttid.split("_")[0]
+    #return uttid.split("_")[0]
+
+    """ For the CMU Wilderness dataset, its more like
+        B27___22_Revelation__SWESFVN2DA_00028 """
+
+    return uttid.split("_")[-2][:6]
 
 def load_inputs_and_targets(batch, phoneme_objective_weight, lang2id):
     """Function to load inputs and targets from list of dicts
