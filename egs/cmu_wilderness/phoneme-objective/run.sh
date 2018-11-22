@@ -50,7 +50,7 @@ mtlalpha=0.5
 phoneme_objective_weight=0.0
 # 2 or 1? This variable also affects the layer the adversarial objective plugs
 # into
-phoneme_objective_layer="" 
+phoneme_objective_layer=""
 lsm_type=unigram
 lsm_weight=0.05
 samp_prob=0.0
@@ -87,7 +87,6 @@ datasets=/export/b15/oadams/datasets-CMU_Wilderness
 
 adapt_langs_train="${adapt_langs}_train"
 adapt_langs_dev="${adapt_langs}_dev"
-adapt_langs_eval="${adapt_langs}_eval"
 
 echo "train_set: ${train_set}"
 echo "ngpu: ${ngpu}"
@@ -95,14 +94,12 @@ echo "ngpu: ${ngpu}"
 if [[ ${adapt_langs} ]]; then
     feat_tr_dir=${dumpdir}/${adapt_langs_train}_${train_set}/delta${do_delta}
     feat_dt_dir=${dumpdir}/${adapt_langs_dev}_${train_set}/delta${do_delta}
-    feat_eval_dir=${dumpdir}/${adapt_langs_eval}_${train_set}/delta${do_delta}
-    recog_set=${adapt_langs_eval}
 else
     feat_tr_dir=${dumpdir}/${train_set}_${train_set}/delta${do_delta}
     feat_dt_dir=${dumpdir}/${train_dev}_${train_set}/delta${do_delta}
 fi
 
-if [ ${stage} -le 1 ] && [ ! -e ${feat_dt_dir} ]; then
+if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
 
     echo ${feat_tr_dir}
@@ -117,63 +114,91 @@ if [ ${stage} -le 1 ] && [ ! -e ${feat_dt_dir} ]; then
         echo ${feat_tr_dir}
         echo ${feat_dev_dir}
 
-        for x in ${adapt_langs_train} ${adapt_langs_dev} ${adapt_langs_eval}; do
-            steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
-                data/${x} exp/make_fbank/${x} ${fbankdir}
+        if [[ ! -e data/${train_set}/cmvn.ark ]]; then
+            echo "Couldn't find train set CMVN feats at data/${train_set}/cmvn.ark."
+            echo "Train a seed model first."
+            echo "Exiting."
+            exit
+        fi
+
+        for x in ${adapt_langs_train} ${adapt_langs_dev}; do
+            if [[ ! -e ${dumpdir}/${x}_${train_set}/delta${do_delta}/feats.scp ]]; then
+                steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
+                    data/${x} exp/make_fbank/${x} ${fbankdir}
+            fi
         done
 
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_train}/delta${do_delta}/storage \
-            ${feat_tr_dir}/storage
+        if [[ ! -e ${feat_tr_dir}/feats.scp ]]; then
+            if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+            utils/create_split_dir.pl \
+                /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_train}/delta${do_delta}/storage \
+                ${feat_tr_dir}/storage
+            fi
+            dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+                data/${adapt_langs_train}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
         fi
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_dev}/delta${do_delta}/storage \
-            ${feat_dt_dir}/storage
-        fi
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${adapt_langs_train}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-            data/${adapt_langs_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 
-        mkdir -p ${feat_eval_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-            data/${adapt_langs_eval}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_eval_dir}
+        if [[ ! -e ${feat_dt_dir}/feats.scp ]]; then
+            if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+            utils/create_split_dir.pl \
+                /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_dev}/delta${do_delta}/storage \
+                ${feat_dt_dir}/storage
+            fi
+            dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+                data/${adapt_langs_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        fi
 
     else
-        for x in ${train_set} ${train_dev} ${recog_set}; do
-            steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
-                data/${x} exp/make_fbank/${x} ${fbankdir}
+        for x in ${train_set} ${train_dev}; do
+            if [[ ! -e ${dumpdir}/${x}_${train_set}/delta${do_delta}/feats.scp ]]; then
+                steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
+                    data/${x} exp/make_fbank/${x} ${fbankdir}
+            fi
         done
 
-        # compute global CMVN
-        compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+        if [[ ! -e ${feat_tr_dir}/feats.scp ]]; then
+            # compute global CMVN
+            compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
-        exp_name=`basename $PWD`
-        # dump features for training
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_set}/delta${do_delta}/storage \
-            ${feat_tr_dir}/storage
+            exp_name=`basename $PWD`
+            # dump features for training
+            if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+            utils/create_split_dir.pl \
+                /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_set}/delta${do_delta}/storage \
+                ${feat_tr_dir}/storage
+            fi
+            dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+                data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
         fi
-        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-        utils/create_split_dir.pl \
-            /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
-            ${feat_dt_dir}/storage
-        fi
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-            data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 
-        for rtask in ${recog_set}; do
-            feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        if [[ ! -e ${feat_dt_dir}/feats.scp ]]; then
+            if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+            utils/create_split_dir.pl \
+                /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
+                ${feat_dt_dir}/storage
+            fi
+            dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+                data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        fi
+
+    fi
+
+    for rtask in ${recog_set}; do
+        if [[ ! -e data/${train_set}/cmvn.ark ]]; then
+            echo "Couldn't find train set CMVN feats at data/${train_set}/cmvn.ark."
+            echo "Train a seed model first."
+            echo "Exiting."
+            exit
+        fi
+
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
+        if [[ ! -e ${feat_recog_dir}/feats.scp ]]; then
+            mkdir -p ${feat_recog_dir}
             dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
                 data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
                 ${feat_recog_dir}
-        done
-    fi
+        fi
+    done
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
@@ -186,24 +211,28 @@ if [ ${stage} -le 2 ]; then
         for rtask in ${adapt_langs_train} ${adapt_langs_dev} ${adapt_langs_eval}; do
             echo $rtask
             feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-            if [[ ${phoneme_objective_weight} > 0.0 ]]; then
-                mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                    data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
-            else
-                mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                    data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            if [[ ! -e ${feat_recog_dir}/data.json ]]; then
+                if [[ ${phoneme_objective_weight} > 0.0 ]]; then
+                    mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                        data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
+                else
+                    mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                        data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+                fi
             fi
         done
     else
         for rtask in ${train_set} ${train_dev} ${recog_set}; do
             echo $rtask
             feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-            if [[ ${phoneme_objective_weight} > 0.0 ]]; then
-                mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                    data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
-            else
-                mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                    data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            if [[ ! -e ${feat_recog_dir}/data.json ]]; then
+                if [[ ${phoneme_objective_weight} > 0.0 ]]; then
+                    mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                        data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
+                else
+                    mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+                        data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+                fi
             fi
         done
     fi
