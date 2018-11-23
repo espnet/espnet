@@ -68,14 +68,10 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 use_lm=false
 decode_nj=32
 
-. ./utils/parse_options.sh || exit 1;
-
 datasets=/export/b15/oadams/datasets-CMU_Wilderness
 
 all_eval_langs_fn=conf/langs/eval_langs
 eval_readings_fn=conf/langs/eval_readings
-
-all_eval_langs_train="`basename ${all_eval_langs_fn}`_train"
 
 train_groups="aymara-notgt aymara indonesian-notgt indonesian"
 #train_groups="south_american_verygood"
@@ -83,6 +79,10 @@ train_groups="aymara-notgt aymara indonesian-notgt indonesian"
 #train_groups="quechua-varieties-notgtlang"
 #train_groups="quechua"
 #train_groups="quechua-notgt"
+
+. ./utils/parse_options.sh || exit 1;
+
+all_eval_langs_train="`basename ${all_eval_langs_fn}`_train"
 
 if [ $stage -le 0 ]; then
 
