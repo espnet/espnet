@@ -50,7 +50,7 @@ grep -e Avg -e SPKR -m 2 ${dir}/result.txt
 
 if ${wer}; then
     # If we're using phn output type and also requesting WER, throw an error.
-    if [ $output_type == "phn"]; then
+    if [ $output_type == "phn" ]; then
         echo "Can't do WER evaluation with the phoneme output type."
         exit 1
     fi
