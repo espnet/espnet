@@ -725,7 +725,7 @@ def recog(args):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list, "grapheme")
 
-    if train_args.phoneme_objective_weight > 0:
+    if args.recog_phonemes:
         assert args.phoneme_dict
         with open(args.phoneme_dict) as f:
             # The zero is because of the CTC blank symbol and because the

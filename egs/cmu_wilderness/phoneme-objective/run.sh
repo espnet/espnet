@@ -349,6 +349,7 @@ if [ ${stage} -le 4 ] && [ ! -z ${recog_set} ]; then
         decode_cmd_str="${decode_cmd} JOB=1:${decode_nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
+            --verbose ${verbose} \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${decode_nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
@@ -360,12 +361,12 @@ if [ ${stage} -le 4 ] && [ ! -z ${recog_set} ]; then
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
             --phoneme-dict data/lang_1char/${train_set}_train_units.txt.phn \
-            ${extra_opts} &"
+            ${extra_opts}"
         if [[ ${langs_file} ]]; then
             decode_cmd_str="${decode_cmd_str} --langs_file ${langs_file}"
         fi
         echo "decode_cmd_str: ${decode_cmd_str}"
-        $decode_cmd_str
+        $decode_cmd_str &
         wait
 
         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict} grapheme[1]

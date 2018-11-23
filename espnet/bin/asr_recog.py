@@ -13,7 +13,6 @@ import sys
 
 import numpy as np
 
-
 def main():
     parser = argparse.ArgumentParser()
     # general configuration
@@ -81,6 +80,7 @@ def main():
                         help="A file that aligns phonemes to frames")
     parser.add_argument('--langs_file', type=str, default=None,
                         help='Filename for the list of languages.')
+    parser.add_argument("--recog_phonemes", action="store_true")
     args = parser.parse_args()
     if args.lang_grapheme_constraint == "false": # I dislike this.
         args.lang_grapheme_constraint = False
@@ -89,13 +89,16 @@ def main():
     if args.verbose == 1:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        logging.getLogger().setLevel(logging.INFO)
     elif args.verbose == 2:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        logging.getLogger().setLevel(logging.DEBUG)
     else:
         logging.basicConfig(
             level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
         logging.warning("Skip DEBUG/INFO messages")
+        logging.getLogger().setLevel(logging.WARN)
 
     # check CUDA_VISIBLE_DEVICES
     if args.ngpu > 0:
