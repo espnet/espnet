@@ -258,17 +258,16 @@ if [[ ${adapt_langs} ]]; then
     echo "Adapting model from ${pretrained_model}"
     echo "expdir: $expdir"
 fi
-
-if [[ -d ${expdir} ]]; then
-    timestamp=$(date +%Y-%m-%d_%H-%M-%S)
-    echo "Warning: expdir ${expdir} already exists. Moving it to ${expdir}.bk-${timestamp}"
-    mv "${expdir}" "${expdir}.bk-${timestamp}"
-fi
 mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
 
+    if [[ -d ${expdir} ]]; then
+        timestamp=$(date +%Y-%m-%d_%H-%M-%S)
+        echo "Warning: expdir ${expdir} already exists. Moving it to ${expdir}.bk-${timestamp}"
+        mv "${expdir}" "${expdir}.bk-${timestamp}"
+    fi
 
     train_cmd_str="${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -347,7 +346,7 @@ if [ ${stage} -le 4 ] && [ ! -z ${recog_set} ]; then
         #### use CPU for decoding
         ngpu=0
 
-        ${decode_cmd} JOB=1:${decode_nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+        decode_cmd_str="${decode_cmd} JOB=1:${decode_nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
@@ -360,7 +359,13 @@ if [ ${stage} -le 4 ] && [ ! -z ${recog_set} ]; then
             --ctc-weight ${ctc_weight} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            ${extra_opts} &
+            --phoneme-dict data/lang_1char/${train_set}_train_units.txt.phn \
+            ${extra_opts} &"
+        if [[ ${langs_file} ]]; then
+            decode_cmd_str="${decode_cmd_str} --langs_file ${langs_file}"
+        fi
+        echo "decode_cmd_str: ${decode_cmd_str}"
+        $decode_cmd_str
         wait
 
         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict} grapheme[1]
