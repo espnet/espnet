@@ -44,22 +44,20 @@ if [ ! -z ${feat} ]; then
 fi
 
 # output
-if [ -f ${text} ]; then
-  if [ ! -z ${bpecode} ]; then
-      paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
-  elif [ ! -z ${nlsyms} ]; then
-      text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/token.scp
-  else
-      text2token.py -s 1 -n 1 ${text} > ${tmpdir}/token.scp
-  fi
-
-  cat ${tmpdir}/token.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid.scp
-  cat ${tmpdir}/tokenid.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/olen.scp
-  # +2 comes from CTC blank and EOS
-  vocsize=`tail -n 1 ${dic} | awk '{print $2}'`
-  odim=`echo "$vocsize + 2" | bc`
-  awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/odim.scp
+if [ ! -z ${bpecode} ]; then
+    paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
+elif [ ! -z ${nlsyms} ]; then
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/token.scp
+else
+    text2token.py -s 1 -n 1 ${text} > ${tmpdir}/token.scp
 fi
+
+cat ${tmpdir}/token.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid.scp
+cat ${tmpdir}/tokenid.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/olen.scp
+# +2 comes from CTC blank and EOS
+vocsize=`tail -n 1 ${dic} | awk '{print $2}'`
+odim=`echo "$vocsize + 2" | bc`
+awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/odim.scp
 
 # others
 if [ ! -z ${lang} ]; then
