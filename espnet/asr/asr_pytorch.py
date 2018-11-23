@@ -175,6 +175,8 @@ class CustomUpdater(training.StandardUpdater):
         if self.predict_lang: # Either normal prediction or adversarial
             # Now compute the lang loss (this redoes the encoding, which may be
             # slightly inefficient but should be fine for now).
+            # (If performing adaptation, then we don't do adversarial language
+            # prediction)
             optimizer.zero_grad()
             if self.ngpu > 1:
                 lang_loss = 1. / self.ngpu * self.model.forward_langid(xs_pad, ilens, lang_ys)

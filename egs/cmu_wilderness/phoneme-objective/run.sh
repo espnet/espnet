@@ -22,6 +22,7 @@ maxlen_in=800
 maxlen_out=150
 epochs=15
 tag=""
+adapt_tag=""
 
 # Feature options
 do_delta=false
@@ -228,10 +229,8 @@ if [ ${stage} -le 2 ]; then
     for rtask in ${rtasks} ${recog_set}; do
         echo $rtask
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-        if [[ ! -e ${feat_recog_dir}/data.json ]]; then
-            mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-                data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
-        fi
+        mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+            data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
     done
 fi
 
@@ -254,7 +253,11 @@ fi
 
 if [[ ${adapt_langs} ]]; then
     pretrained_model="${expdir}/results/model.acc.best"
-    expdir="${expdir}_adapt-${adapt_langs}"
+    if [[ ${adapt_tag} ]]; then
+        expdir=exp/${train_set}-adapt-${adapt_langs}_${adapt_tag}
+    else
+        expdir="${expdir}_adapt-${adapt_langs}"
+    fi
     echo "Adapting model from ${pretrained_model}"
     echo "expdir: $expdir"
 fi
@@ -316,9 +319,13 @@ if [ ${stage} -le 3 ]; then
                                             ${predict_lang_alpha_scheduler}"
         fi
     fi
+    if [[ ${adapt_langs} ]]; then
+        train_cmd_str="${train_cmd_str} --adapt"
+    fi
     echo "expdir: ${expdir}"
     echo "train_cmd_str: ${train_cmd_str}"
     ${train_cmd_str}
+    exit
 
 fi
 
