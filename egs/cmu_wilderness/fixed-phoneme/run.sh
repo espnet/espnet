@@ -14,6 +14,7 @@ backend=pytorch
 stage=0
 ngpu=1
 debugmode=1
+fbankdir=fbank
 dumpdir=dump
 N=0
 verbose=0
@@ -125,7 +126,6 @@ if [ ${stage} -le 1 ]; then
     mkdir -p ${feat_tr_dir}
     mkdir -p ${feat_dt_dir}
 
-    fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     if [[ ${adapt_langs} ]]; then
 
@@ -140,8 +140,8 @@ if [ ${stage} -le 1 ]; then
 
         for x in ${adapt_langs_train} ${adapt_langs_dev}; do
             if [[ ! -e data/${x}/feats.scp ]]; then
-                steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
-                    data/${x} exp/make_fbank/${x} ${fbankdir}
+                echo "Couldn't find preprocessed data/${x}/feats.scp. Run preprocess.sh"
+                echo "Exiting."
             fi
         done
 
@@ -168,8 +168,8 @@ if [ ${stage} -le 1 ]; then
     else
         for x in ${train_set} ${train_dev}; do
             if [[ ! -e data/${x}/feats.scp ]]; then
-                steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
-                    data/${x} exp/make_fbank/${x} ${fbankdir}
+                echo "Couldn't find preprocessed data/${x}/feats.scp. Run preprocess.sh"
+                echo "Exiting."
             fi
         done
 
@@ -209,8 +209,8 @@ if [ ${stage} -le 1 ]; then
         fi
 
         if [[ ! -e data/${rtask}/feats.scp ]]; then
-            steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
-                data/${rtask} exp/make_fbank/${rtask} ${fbankdir}
+            echo "Couldn't find preprocessed data/${x}/feats.scp. Run preprocess.sh"
+            echo "Exiting."
         fi
 
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}

@@ -12,6 +12,7 @@ backend=pytorch
 stage=0
 ngpu=0
 debugmode=1
+fbankdir=dump
 dumpdir=dump
 N=0
 verbose=0
@@ -183,3 +184,15 @@ if [[ ! -e data/lang_1char/${all_eval_langs_train}_units.txt ]]; then
     prepare_dict ${all_eval_langs_train}
     prepare_phn_dict ${all_eval_langs_train}
 fi
+
+# Now preparing fbank feats
+
+for dir in data/*_train data/*_dev data/*_eval; do
+    split="${dir#"data/"}"
+    if [[ ! -e data/${split}/feats.scp ]]; then
+        echo "$split"
+        steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 50 \
+            --write_utt2num_frames true data/${split} exp/make_fbank/${split} \
+            ${fbankdir}
+    fi
+done
