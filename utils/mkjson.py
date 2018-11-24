@@ -4,7 +4,6 @@
 # Copyright 2018 Johns Hopkins University (Matthew Wiesner)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
 from __future__ import print_function
 import sys
 import argparse
@@ -13,7 +12,6 @@ import os
 import subprocess
 import json
 from collections import defaultdict
-
 
 def parse_input():
     parser = argparse.ArgumentParser()
@@ -51,11 +49,11 @@ def parse_input():
 
 def main():
     args = parse_input()
-    
+
     text_file = os.path.join(args.data, 'text')
     utt2spk_file = os.path.join(args.data, 'utt2spk')
     utt2num_frames_file = os.path.join(os.path.dirname(os.path.abspath(args.feat_scp)), "utt2num_frames")
-    
+
     # Assumes args.feat_scp/../utt2num_frames exists (created by dump.sh)  
     if not os.path.exists(utt2num_frames_file):
         # Create utt2num_frames_file
@@ -78,7 +76,7 @@ def main():
 
     # Dealing with <unk> symbols
     symbols = defaultdict(lambda: dictionary['<unk>'], dictionary.items())
-    
+
     num_output_units = len(symbols) + 2 # One for blank, one for <eos>
 
     if args.phonemes:
@@ -119,14 +117,14 @@ def main():
     # Get feature dim
     feat_dim = int(subprocess.Popen(['feat-to-dim', 'scp:' + args.feat_scp, '-'],
                                 stdout=subprocess.PIPE).communicate()[0])
-  
+
     # Read in utterance lengths
     utt2num_frames = {}
     with open(utt2num_frames_file) as f:
         for l in f:
             utt, num_frames = l.strip().split(None, 1)
             utt2num_frames[utt] = int(num_frames)
-    
+
     # Read in (optional) ivectors
     if args.ivectors:
         ivector_scp = {}
@@ -139,12 +137,16 @@ def main():
         ivector_dim = int(subprocess.Popen(['feat-to-dim', 'scp:' + args.ivectors, '-'],
                                     stdout=subprocess.PIPE).communicate()[0])
 
-    
+
     # Read in targets
     dataset = {}
     with codecs.open(text_file, 'r', encoding='utf-8') as f:
-        for l in f:
-            uttname, text = l.strip().split(None, 1)
+        for i, l in enumerate(f):
+            try:
+                uttname, text = l.strip().split(None, 1)
+            except ValueError:
+                # Probably an empty line
+                raise Exception("Line {}, {}".format(i, l.strip()))
 
             words = text.split()
             token = ""
@@ -165,15 +167,18 @@ def main():
                 token = token[:-len(space_str)]
                 tokenid.pop()
 
-            # input info
-            inputs = [
-                {
-                    'feat': feats_scp[uttname],
-                    'name': 'input1',
-                    'shape': [utt2num_frames[uttname], feat_dim]
-                }
-            ]
-            
+            try:
+                # input info
+                inputs = [
+                    {
+                        'feat': feats_scp[uttname],
+                        'name': 'input1',
+                        'shape': [utt2num_frames[uttname], feat_dim]
+                    }
+                ]
+            except KeyError:
+                continue
+
             if args.ivectors:
                 inputs.append(
                     {
@@ -182,7 +187,7 @@ def main():
                         'shape': [utt2num_frames[uttname], ivector_dim]
                     }
                 )
-             
+
             # output info
             output = [
                 {
@@ -225,7 +230,14 @@ def main():
                     }
 
                 dataset[phn_uttname]['output'].append(phn_output)
-            
+
+
+    # Remove all utterances that don't have phoneme output
+    for uttname in dataset:
+        if len(dataset[uttname]['output']) < 2:
+            # Then there can't be both phonemes and graphemes for the
+            # utterance. Remove it.
+            del(dataset[uttname])
 
     # Format output string
     jsonstring = json.dumps({'utts': dataset}, indent=4,
@@ -235,4 +247,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

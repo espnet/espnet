@@ -3,6 +3,8 @@
 # Copyright 2018 Johns Hopkins University (Matthew Wiesner)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+set -e
+set -o pipefail
 
 . ./path.sh
 . ./cmd.sh
@@ -10,7 +12,7 @@
 # Training options
 backend=pytorch
 stage=0
-ngpu=0
+ngpu=1
 debugmode=1
 dumpdir=dump
 N=0
@@ -51,7 +53,7 @@ mtlalpha=0.5
 phoneme_objective_weight=0.0
 # 2 or 1? This variable also affects the layer the adversarial objective plugs
 # into
-phoneme_objective_layer=""
+phoneme_objective_layer=2
 lsm_type=unigram
 lsm_weight=0.05
 samp_prob=0.0
@@ -206,6 +208,11 @@ if [ ${stage} -le 1 ]; then
             exit
         fi
 
+        if [[ ! -e data/${rtask}/feats.scp ]]; then
+            steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 50 --write_utt2num_frames true \
+                data/${rtask} exp/make_fbank/${rtask} ${fbankdir}
+        fi
+
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
         if [[ ! -e ${feat_recog_dir}/feats.scp ]]; then
             mkdir -p ${feat_recog_dir}
@@ -326,7 +333,6 @@ if [ ${stage} -le 3 ]; then
     echo "expdir: ${expdir}"
     echo "train_cmd_str: ${train_cmd_str}"
     ${train_cmd_str}
-    exit
 
 fi
 

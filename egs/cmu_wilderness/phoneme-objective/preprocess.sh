@@ -79,6 +79,7 @@ train_groups="aymara-notgt aymara indonesian-notgt indonesian"
 #train_groups="quechua-varieties-notgtlang"
 #train_groups="quechua"
 #train_groups="quechua-notgt"
+train_groups="almost_all_verygood"
 
 . ./utils/parse_options.sh || exit 1;
 
@@ -153,7 +154,8 @@ function prepare_phn_dict {
     mkdir -p data/lang_1char/
 
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/${train_set}/text.phn data/${all_eval_langs_train}/text.phn | text2token.py -s 1 -n 1 | cut -f 2- -d" " | tr " " "\n" \
+#    cat data/${train_set}/text.phn data/${all_eval_langs_train}/text.phn | text2token.py -s 1 -n 1 | cut -f 2- -d" " | tr " " "\n" \
+    cat data/${train_set}/text.phn data/${all_eval_langs_train}/text.phn | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 

@@ -99,6 +99,7 @@ fi
 
 echo "train_set: ${train_set}"
 echo "train_dev: ${train_dev}"
+echo "recog_set: ${recog_set}"
 echo "ngpu: ${ngpu}"
 
 if [[ -z $train_set ]]; then
@@ -234,6 +235,8 @@ if [ ${stage} -le 2 ]; then
     done
 fi
 
+exit
+
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_phoneme-weight${phoneme_objective_weight}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
@@ -325,7 +328,6 @@ if [ ${stage} -le 3 ]; then
     echo "expdir: ${expdir}"
     echo "train_cmd_str: ${train_cmd_str}"
     ${train_cmd_str}
-    exit
 
 fi
 
