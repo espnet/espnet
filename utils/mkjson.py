@@ -12,6 +12,7 @@ import os
 import subprocess
 import json
 from collections import defaultdict
+import logging
 
 def parse_input():
     parser = argparse.ArgumentParser()
@@ -146,7 +147,8 @@ def main():
                 uttname, text = l.strip().split(None, 1)
             except ValueError:
                 # Probably an empty line
-                raise Exception("Line {}, {}".format(i, l.strip()))
+                # raise Exception("Line {}, {}".format(i, l.strip()))
+                continue
 
             words = text.split()
             token = ""
@@ -177,6 +179,7 @@ def main():
                     }
                 ]
             except KeyError:
+                logging.warn("uttname {} not found in feats_scp or utt2num_frames".format(uttname))
                 continue
 
             if args.ivectors:
@@ -209,7 +212,12 @@ def main():
         phn_text_file = "{}.phn".format(text_file)
         with codecs.open(phn_text_file, 'r', encoding='utf-8') as phn_f:
             for phn_l in phn_f:
-                phn_uttname, phn_text = phn_l.strip().split(None, 1)
+                try:
+                    phn_uttname, phn_text = phn_l.strip().split(None, 1)
+                except ValueError:
+                    # Probably an empty line
+                    #raise Exception("Line {}, {}".format(i, l.strip()))
+                    continue
 
                 phns = phn_text.split()
                 phn_token = []
@@ -220,16 +228,20 @@ def main():
 
                 phn_token = " ".join(phn_token)
 
-                # output info
-                phn_output = {
-                        'name': 'phn',
-                        'shape': [len(phn_tokenid), num_phn_output_units],
-                        'text': dataset[phn_uttname]['output'][0]['text'],
-                        'token': phn_token,
-                        'tokenid': ' '.join(phn_tokenid)
-                    }
+                try:
+                    # output info
+                    phn_output = {
+                            'name': 'phn',
+                            'shape': [len(phn_tokenid), num_phn_output_units],
+                            'text': dataset[phn_uttname]['output'][0]['text'],
+                            'token': phn_token,
+                            'tokenid': ' '.join(phn_tokenid)
+                        }
 
-                dataset[phn_uttname]['output'].append(phn_output)
+                    dataset[phn_uttname]['output'].append(phn_output)
+
+                except KeyError:
+                    logging.warn("phn_uttname {} not found in datasets dict. It either wasn't in the grapheme text file, or wasn't in feats_scp.".format(phn_uttname))
 
 
     # Remove all utterances that don't have phoneme output
@@ -238,6 +250,7 @@ def main():
             # Then there can't be both phonemes and graphemes for the
             # utterance. Remove it.
             del(dataset[uttname])
+            logging.warn("Removing uttname {} from dataset, since there are less than two outputs (ie. phoneme outputs are missing.".format(uttname))
 
     # Format output string
     jsonstring = json.dumps({'utts': dataset}, indent=4,

@@ -3,7 +3,6 @@
 # Copyright 2018 Johns Hopkins University (Matthew Wiesner)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
 . ./path.sh
 . ./cmd.sh
 
@@ -12,7 +11,7 @@ backend=pytorch
 stage=0
 ngpu=0
 debugmode=1
-fbankdir=dump
+fbankdir=fbank
 dumpdir=dump
 N=0
 verbose=0
@@ -74,14 +73,7 @@ datasets=/export/b15/oadams/datasets-CMU_Wilderness
 all_eval_langs_fn=conf/langs/eval_langs
 eval_readings_fn=conf/langs/eval_readings
 
-#train_groups="aymara-notgt aymara indonesian-notgt indonesian"
-#train_groups="south_american_verygood"
-#train_groups="quechua-varieties-notgt"
-#train_groups="quechua-varieties-notgtlang"
-#train_groups="quechua"
-#train_groups="quechua-notgt"
-#train_groups="almost_all_verygood"
-train_groups=""
+train_groups="aymara-notgt aymara indonesian-notgt indonesian quechua-notgt quechua quechua-varieties-notgtlang ninetynine"
 
 . ./utils/parse_options.sh || exit 1;
 
@@ -173,7 +165,7 @@ done
 
 for train_group in ${train_groups}; do
     if [[ ! -e data/lang_1char/${train_group}_train_units.txt ]]; then
-        echo $train_group_fn
+        echo ${train_group}
         train_group_fn="conf/langs/${train_group}"
         prepare_dict ${train_group}_train
         prepare_phn_dict ${train_group}_train

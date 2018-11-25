@@ -3,9 +3,6 @@
 # Copyright 2018 Johns Hopkins University (Matthew Wiesner)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-set -e
-set -o pipefail
-
 . ./path.sh
 . ./cmd.sh
 
@@ -152,7 +149,7 @@ if [ ${stage} -le 1 ]; then
                 ${feat_tr_dir}/storage
             fi
             dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-                data/${adapt_langs_train}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+                data/${adapt_langs_train}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${adapt_langs_train}_${train_set} ${feat_tr_dir}
         fi
 
         if [[ ! -e ${feat_dt_dir}/feats.scp ]]; then
@@ -162,7 +159,7 @@ if [ ${stage} -le 1 ]; then
                 ${feat_dt_dir}/storage
             fi
             dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-                data/${adapt_langs_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+                data/${adapt_langs_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${adapt_langs_dev}_${train_set} ${feat_dt_dir}
         fi
 
     else
@@ -185,7 +182,7 @@ if [ ${stage} -le 1 ]; then
                 ${feat_tr_dir}/storage
             fi
             dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-                data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+                data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
         fi
 
         if [[ ! -e ${feat_dt_dir}/feats.scp ]]; then
@@ -195,7 +192,7 @@ if [ ${stage} -le 1 ]; then
                 ${feat_dt_dir}/storage
             fi
             dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-                data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+                data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
         fi
 
     fi
@@ -217,7 +214,7 @@ if [ ${stage} -le 1 ]; then
         if [[ ! -e ${feat_recog_dir}/feats.scp ]]; then
             mkdir -p ${feat_recog_dir}
             dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
-                data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
+                data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask}_${train_set} \
                 ${feat_recog_dir}
         fi
     done
