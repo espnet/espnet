@@ -38,6 +38,8 @@ from asr_utils import torch_snapshot
 from e2e_asr_mix_th import E2E
 from e2e_asr_mix_th import Loss
 from e2e_asr_mix_th import pad_list
+from asr_pytorch import CustomEvaluator
+from asr_pytorch import CustomUpdater
 
 # for kaldi io
 import kaldi_io_py
@@ -52,88 +54,6 @@ import numpy as np
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
-
-
-class CustomEvaluator(extensions.Evaluator):
-    '''Custom evaluater for pytorch'''
-
-    def __init__(self, model, iterator, target, converter, device):
-        super(CustomEvaluator, self).__init__(iterator, target)
-        self.model = model
-        self.converter = converter
-        self.device = device
-
-    # The core part of the update routine can be customized by overriding
-    def evaluate(self):
-        iterator = self._iterators['main']
-
-        if self.eval_hook:
-            self.eval_hook(self)
-
-        if hasattr(iterator, 'reset'):
-            iterator.reset()
-            it = iterator
-        else:
-            it = copy.copy(iterator)
-
-        summary = reporter_module.DictSummary()
-
-        self.model.eval()
-        with torch.no_grad():
-            for batch in it:
-                observation = {}
-                with reporter_module.report_scope(observation):
-                    # read scp files
-                    # x: original json with loaded features
-                    #    will be converted to chainer variable later
-                    x = self.converter(batch, self.device)
-                    self.model(*x)
-                summary.add(observation)
-        self.model.train()
-
-        return summary.compute_mean()
-
-
-class CustomUpdater(training.StandardUpdater):
-    '''Custom updater for pytorch'''
-
-    def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu):
-        super(CustomUpdater, self).__init__(train_iter, optimizer)
-        self.model = model
-        self.grad_clip_threshold = grad_clip_threshold
-        self.converter = converter
-        self.device = device
-        self.ngpu = ngpu
-
-    # The core part of the update routine can be customized by overriding.
-    def update_core(self):
-        # When we pass one iterator and optimizer to StandardUpdater.__init__,
-        # they are automatically named 'main'.
-        train_iter = self.get_iterator('main')
-        optimizer = self.get_optimizer('main')
-
-        # Get the next batch ( a list of json files)
-        batch = train_iter.next()
-        x = self.converter(batch, self.device)
-
-        # Compute the loss at this time step and accumulate it
-        optimizer.zero_grad()  # Clear the parameter gradients
-        if self.ngpu > 1:
-            loss = 1. / self.ngpu * self.model(*x)
-            loss.backward(loss.new_ones(self.ngpu))  # Backprop
-        else:
-            loss = self.model(*x)
-            loss.backward()  # Backprop
-        loss.detach()  # Truncate the graph
-        # compute the gradient norm to check if it is normal or not
-        grad_norm = torch.nn.utils.clip_grad_norm_(
-            self.model.parameters(), self.grad_clip_threshold)
-        logging.info('grad norm={}'.format(grad_norm))
-        if math.isnan(grad_norm):
-            logging.warning('grad norm is nan. Do not update model.')
-        else:
-            optimizer.step()
 
 
 class CustomConverter(object):

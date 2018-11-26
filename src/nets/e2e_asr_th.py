@@ -214,44 +214,47 @@ class E2E(torch.nn.Module):
         # ctc
         self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
         # attention
+        self.att = torch.nn.ModuleList()
         if args.atype == 'noatt':
-            self.att = NoAtt()
+            att = NoAtt()
         elif args.atype == 'dot':
-            self.att = AttDot(args.eprojs, args.dunits, args.adim)
+            att = AttDot(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'add':
-            self.att = AttAdd(args.eprojs, args.dunits, args.adim)
+            att = AttAdd(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'location':
-            self.att = AttLoc(args.eprojs, args.dunits,
+            att = AttLoc(args.eprojs, args.dunits,
                               args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'location2d':
-            self.att = AttLoc2D(args.eprojs, args.dunits,
+            att = AttLoc2D(args.eprojs, args.dunits,
                                 args.adim, args.awin, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'location_recurrent':
-            self.att = AttLocRec(args.eprojs, args.dunits,
+            att = AttLocRec(args.eprojs, args.dunits,
                                  args.adim, args.aconv_chans, args.aconv_filts)
         elif args.atype == 'coverage':
-            self.att = AttCov(args.eprojs, args.dunits, args.adim)
+            att = AttCov(args.eprojs, args.dunits, args.adim)
         elif args.atype == 'coverage_location':
-            self.att = AttCovLoc(args.eprojs, args.dunits, args.adim,
+            att = AttCovLoc(args.eprojs, args.dunits, args.adim,
                                  args.aconv_chans, args.aconv_filts)
         elif args.atype == 'multi_head_dot':
-            self.att = AttMultiHeadDot(args.eprojs, args.dunits,
+            att = AttMultiHeadDot(args.eprojs, args.dunits,
                                        args.aheads, args.adim, args.adim)
         elif args.atype == 'multi_head_add':
-            self.att = AttMultiHeadAdd(args.eprojs, args.dunits,
+            att = AttMultiHeadAdd(args.eprojs, args.dunits,
                                        args.aheads, args.adim, args.adim)
         elif args.atype == 'multi_head_loc':
-            self.att = AttMultiHeadLoc(args.eprojs, args.dunits,
+            att = AttMultiHeadLoc(args.eprojs, args.dunits,
                                        args.aheads, args.adim, args.adim,
                                        args.aconv_chans, args.aconv_filts)
         elif args.atype == 'multi_head_multi_res_loc':
-            self.att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
+            att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
                                                args.aheads, args.adim, args.adim,
                                                args.aconv_chans, args.aconv_filts)
         else:
             logging.error(
                 "Error: need to specify an appropriate attention archtecture")
             sys.exit()
+        self.att.append(att)
+
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
@@ -326,6 +329,7 @@ class E2E(torch.nn.Module):
             loss_ctc = None
         else:
             loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
+            logging.info('ctc loss:' + str(float(loss_ctc)))
 
         # 3. attention loss
         if self.mtlalpha == 1:
@@ -403,12 +407,12 @@ class CTC(torch.nn.Module):
     :param float dropout_rate: dropout rate (0.0 ~ 1.0)
     """
 
-    def __init__(self, odim, eprojs, dropout_rate):
+    def __init__(self, odim, eprojs, dropout_rate, reduce=True):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.loss_fn = warp_ctc.CTCLoss(size_average=True)
+        self.loss_fn = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
         self.ignore_id = -1
 
     def forward(self, hs_pad, hlens, ys_pad):
@@ -442,7 +446,7 @@ class CTC(torch.nn.Module):
         # expected shape of seqLength x batchSize x alphabet_size
         ys_hat = ys_hat.transpose(0, 1)
         self.loss = to_cuda(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
-        logging.info('ctc loss:' + str(float(self.loss)))
+        #logging.info('ctc loss:' + str(float(self.loss)))
 
         return self.loss
 
@@ -1870,12 +1874,13 @@ class Decoder(torch.nn.Module):
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
 
-    def forward(self, hs_pad, hlens, ys_pad):
+    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0):
         '''Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param int strm_idx: stream index for attention ModuleList when args.spa (speaker parallel attention) is True
         :return: attention loss value
         :rtype: torch.Tensor
         :return: accuracy
@@ -1883,6 +1888,7 @@ class Decoder(torch.nn.Module):
         '''
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+        att_idx = min(strm_idx, len(self.att)-1)
 
         # hlen should be list of integer
         hlens = list(map(int, hlens))
@@ -1913,14 +1919,14 @@ class Decoder(torch.nn.Module):
             z_list.append(self.zero_state(hs_pad))
         att_w = None
         z_all = []
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # pre-computation of embedding
         eys = self.embed(ys_in_pad)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs_pad, hlens, z_list[0], att_w)
+            att_c, att_w = self.att[att_idx](hs_pad, hlens, z_list[0], att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
@@ -1971,18 +1977,20 @@ class Decoder(torch.nn.Module):
 
         return self.loss, acc
 
-    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
+    def recognize_beam(self, h, lpz, recog_args, char_list, strm_idx=0, rnnlm=None):
         '''beam search implementation
 
         :param torch.Tensor h: encoder hidden state (T, eprojs)
         :param torch.Tensor lpz: ctc log softmax output (T, odim)
         :param Namespace recog_args: argument namespace contraining options
         :param char_list: list of character strings
+        :param int strm_idx: stream index for speaker parallel attention in multi-speaker case
         :param torch.nn.Module rnnlm: language module
         :return: N-best decoding results
         :rtype: list of dicts
         '''
         logging.info('input lengths: ' + str(h.size(0)))
+        att_idx = min(strm_idx, len(self.att)-1)
         # initialization
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
@@ -1990,7 +1998,7 @@ class Decoder(torch.nn.Module):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
         a = None
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # search parms
         beam = recog_args.beam_size
@@ -2037,7 +2045,7 @@ class Decoder(torch.nn.Module):
                 vy[0] = hyp['yseq'][i]
                 ey = self.embed(vy)           # utt list (1) x zdim
                 ey.unsqueeze(0)
-                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
+                att_c, att_w = self.att[att_idx](h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)   # utt(1) x (zdim + hdim)
                 z_list[0], c_list[0] = self.decoder[0](ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
                 for l in six.moves.range(1, self.dlayers):
@@ -2151,12 +2159,13 @@ class Decoder(torch.nn.Module):
         # remove sos
         return nbest_hyps
 
-    def calculate_all_attentions(self, hs_pad, hlen, ys_pad):
+    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0):
         '''Calculate all of attentions
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param int strm_idx: stream index for parallel speaker attention in multi-speaker case
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
@@ -2164,6 +2173,7 @@ class Decoder(torch.nn.Module):
         '''
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+        att_idx = min(strm_idx, len(self.att)-1)
 
         # hlen should be list of integer
         hlen = list(map(int, hlen))
@@ -2191,14 +2201,14 @@ class Decoder(torch.nn.Module):
             z_list.append(self.zero_state(hs_pad))
         att_w = None
         att_ws = []
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # pre-computation of embedding
         eys = self.embed(ys_in_pad)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs_pad, hlen, z_list[0], att_w)
+            att_c, att_w = self.att[att_idx](hs_pad, hlen, z_list[0], att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
@@ -2207,16 +2217,16 @@ class Decoder(torch.nn.Module):
             att_ws.append(att_w)
 
         # convert to numpy array with the shape (B, Lmax, Tmax)
-        if isinstance(self.att, AttLoc2D):
+        if isinstance(self.att[att_idx], AttLoc2D):
             # att_ws => list of previous concate attentions
             att_ws = torch.stack([aw[:, -1] for aw in att_ws], dim=1).cpu().numpy()
-        elif isinstance(self.att, (AttCov, AttCovLoc)):
+        elif isinstance(self.att[att_idx], (AttCov, AttCovLoc)):
             # att_ws => list of list of previous attentions
             att_ws = torch.stack([aw[-1] for aw in att_ws], dim=1).cpu().numpy()
-        elif isinstance(self.att, AttLocRec):
+        elif isinstance(self.att[att_idx], AttLocRec):
             # att_ws => list of tuple of attention and hidden states
             att_ws = torch.stack([aw[0] for aw in att_ws], dim=1).cpu().numpy()
-        elif isinstance(self.att, (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
+        elif isinstance(self.att[att_idx], (AttMultiHeadDot, AttMultiHeadAdd, AttMultiHeadLoc, AttMultiHeadMultiResLoc)):
             # att_ws => list of list of each head attetion
             n_heads = len(att_ws[0])
             att_ws_sorted_by_head = []
@@ -2226,7 +2236,7 @@ class Decoder(torch.nn.Module):
             att_ws = torch.stack(att_ws_sorted_by_head, dim=1).cpu().numpy()
         else:
             # att_ws => list of attetions
-            att_ws = torch.stack(att_ws, dim=1).cpu().numpy()
+            att_ws = torch.stack(att_ws[att_idx], dim=1).cpu().numpy()
         return att_ws
 
 
