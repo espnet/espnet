@@ -101,7 +101,7 @@ detokenizer.perl -l en < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 
 ### case-insensitive
 multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.wrd.txt
-echo "write a case-insensitive word-level BLUE result in ${dir}/result.wrd.txt"
+echo "write a case-insensitive word-level BLEU result in ${dir}/result.wrd.txt"
 echo ${dir}
 cat ${dir}/result.wrd.txt
 
