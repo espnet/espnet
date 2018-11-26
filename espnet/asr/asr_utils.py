@@ -118,7 +118,12 @@ def uttid2lang(uttid):
     """ For the CMU Wilderness dataset, its more like
         B27___22_Revelation__SWESFVN2DA_00028 """
 
-    return uttid.split("_")[-2][:6]
+    #lang = uttid.split("_")[-2][:6]
+    lang = uttid[-16:-10]
+
+    logging.info("Extracting langcode from uttid: {} -> {}".format(uttid, lang))
+
+    return lang
 
 def load_inputs_and_targets(batch, phoneme_objective_weight, lang2id):
     """Function to load inputs and targets from list of dicts
@@ -158,6 +163,7 @@ def load_inputs_and_targets(batch, phoneme_objective_weight, lang2id):
     # Gather language targets
     uttids = [b[0] for b in batch]
     uttids = [uttids[i] for i in nonzero_sorted_idx]
+    logging.info("uttids: {}".format(uttids))
     try:
         lang_ys = np.fromiter([lang2id[uttid2lang(uttid)] for uttid in uttids],
                               dtype=np.int64)

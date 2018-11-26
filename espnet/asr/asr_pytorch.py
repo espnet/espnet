@@ -393,9 +393,16 @@ def train(args):
         else:
             langs = None
 
-        model = Loss(e2e, train_args.mtlalpha,
-                phoneme_objective_weight=train_args.phoneme_objective_weight,
-                langs=langs)
+        if args.adapt_no_phoneme:
+            # Use the grapheme objective only for adaptation
+            logging.info("Adapting without phoneme objective.")
+            model = Loss(e2e, 0.5,
+                    phoneme_objective_weight=0.0,
+                    langs=langs)
+        else:
+            model = Loss(e2e, train_args.mtlalpha,
+                    phoneme_objective_weight=train_args.phoneme_objective_weight,
+                    langs=langs)
 
         model.load_state_dict(torch.load(args.pretrained_model,
                 map_location=lambda storage, loc: storage))

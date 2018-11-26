@@ -82,6 +82,7 @@ recog_set=""
 
 train_langs=""
 adapt_langs=""
+adapt_no_phoneme=""
 
 . ./utils/parse_options.sh || exit 1;
 
@@ -261,7 +262,11 @@ if [[ ${adapt_langs} ]]; then
     if [[ ${adapt_tag} ]]; then
         expdir=exp/${train_set}-adapt-${adapt_langs}_${adapt_tag}
     else
-        expdir="${expdir}_adapt-${adapt_langs}"
+        if [[ ${adapt_no_phoneme} ]]; then
+            expdir="${expdir}_adapt-${adapt_langs}-no-phoneme"
+        else
+            expdir="${expdir}_adapt-${adapt_langs}"
+        fi
     fi
     echo "Adapting model from ${pretrained_model}"
     echo "expdir: $expdir"
@@ -326,6 +331,9 @@ if [ ${stage} -le 3 ]; then
     fi
     if [[ ${adapt_langs} ]]; then
         train_cmd_str="${train_cmd_str} --adapt"
+        if [[ ${adapt_no_phoneme} ]]; then
+            train_cmd_str="${train_cmd_str} --adapt_no_phoneme"
+        fi
     fi
     echo "expdir: ${expdir}"
     echo "train_cmd_str: ${train_cmd_str}"

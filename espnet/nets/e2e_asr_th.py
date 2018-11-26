@@ -212,10 +212,13 @@ class Loss(torch.nn.Module):
         self.reporter = Reporter()
 
         if langs:
+            logging.info("Loss initialized with langs = {}".format(langs))
             # Define components related to language prediction
             self.lang_linear = torch.nn.Linear(self.predictor.eprojs, len(langs))
             self.log_softmax = torch.nn.LogSoftmax(dim=1)
             self.loss_lang = torch.nn.NLLLoss()
+        else:
+            logging.info("Loss initialized with langs = None")
 
     def forward_langid(self, xs_pad, ilens, lang_ys):
         hpad, hlens = self.predictor.encode(xs_pad, ilens)
