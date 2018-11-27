@@ -302,7 +302,7 @@ fi
 
 if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=1
 
     for rtask in ${recog_set}; do
     (
@@ -321,7 +321,7 @@ if [ ${stage} -le 5 ]; then
         splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
-        ngpu=0
+        ngpu=1
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \

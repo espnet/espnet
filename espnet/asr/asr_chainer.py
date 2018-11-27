@@ -480,6 +480,18 @@ def recog(args):
     model = Loss(e2e, train_args.mtlalpha)
     chainer_load(args.model, model)
 
+    # Set gpu
+    ngpu = args.ngpu
+    if ngpu > 0:
+        gpu_id = 0
+        # Make a specified GPU current
+        chainer.cuda.get_device_from_id(gpu_id).use()
+        model.to_gpu()  # Copy the model to the GPU
+        logging.info('single gpu calculation.')
+    else:
+        gpu_id = -1
+        logging.info('cpu calculation')
+
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)

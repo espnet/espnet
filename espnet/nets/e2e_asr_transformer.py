@@ -352,17 +352,21 @@ class E2E(chainer.Chain):
         #    loss_att, acc = self.dec(hs, ys)
         xp = self.xp
         ilens = np.array([int(x) for x in ilens])
-        logging.info('ilens: ' + str(ilens))
+        
+        if not predict:
+            eos = self.xp.array([self.eos], 'i')
+            sos = self.xp.array([self.sos], 'i')
+            
+            xs = F.pad_sequence(xs, padding=-1)
+            logging.info('ilens: ' + str(ilens))
 
-        eos = self.xp.array([self.eos], 'i')
-        sos = self.xp.array([self.sos], 'i')
-        ys_in = [F.concat([sos, y], axis=0) for y in ys]
-        ys_out = [F.concat([y, eos], axis=0) for y in ys]
+            ys_in = [F.concat([sos, y], axis=0) for y in ys]
+            ys_out = [F.concat([y, eos], axis=0) for y in ys]
+            ys = F.pad_sequence(ys_in, padding=self.eos).data
+            ys_out = F.pad_sequence(ys_out, padding=-1)
 
-        xs = F.swapaxes(F.pad_sequence(xs, padding=-1), 1, 2).data
-        ys = F.pad_sequence(ys_in, padding=self.eos).data
-        ys_out = F.pad_sequence(ys_out, padding=-1)
-
+        xs = F.swapaxes(xs, 1, 2).data
+        
         yy_mask = self.make_attention_mask(ys, ys)
         yy_mask *= self.make_history_mask(ys)
 
@@ -392,7 +396,7 @@ class E2E(chainer.Chain):
             return loss_ctc, loss_att, acc
         else:
             # Encode Targets with Sources (Decode without Output)
-            return self.output(h_block, ys_out)
+            return self.output(h_block[:, :, -1])
 
     def recognize(self, x_block, recog_args, char_list, rnnlm=None):
         # def translate(self, x_block, max_length=50, beam=5):
@@ -414,28 +418,31 @@ class E2E(chainer.Chain):
         #    # 2. decoder
         #    # decode the first utterance
         #    y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+        beam = recog_args.beam_size
 
-        with chainer.no_backprop_mode():
-            with chainer.using_config('train', False):
-                x_block = source_pad_concat_convert(
-                    x_block, device=None)
-                batch, x_length = x_block.shape
-                # y_block = self.xp.zeros((batch, 1), dtype=x_block.dtype)
-                y_block = self.xp.full(
-                    (batch, 1), 2, dtype=x_block.dtype)  # bos
-                eos_flags = self.xp.zeros((batch, ), dtype=x_block.dtype)
-                result = []
-                for i in range(recog_args.max_length):
-                    log_prob_tail = self(x_block, y_block, y_block,
-                                         get_prediction=True)
-                    ys = self.xp.argmax(log_prob_tail.data, axis=1).astype('i')
-                    result.append(ys)
-                    y_block = F.concat([y_block, ys[:, None]], axis=1).data
-                    eos_flags += (ys == 0)
-                    if self.xp.all(eos_flags):
-                        break
+        logging.info('input lengths: ' + str(x_block.shape[0]))
 
-                return ys
+        if recog_args.maxlenratio == 0:
+            maxlen = x_block.shape[0]
+        else:
+            # maxlen >= 1
+            maxlen = max(1, int(recog_args.maxlenratio * x_block.shape[0]))
+        x_block = self.xp.array(x_block, dtype=self.xp.float32)
+        minlen = int(recog_args.minlenratio * x_block.shape[0])
+        logging.info('max output length: ' + str(maxlen))
+        logging.info('min output length: ' + str(minlen))
+        ilens = [x_block.shape[0]]
+
+        x_block = F.expand_dims(x_block, axis=0)
+
+        if beam:
+            return self.recognize_beam(x_block, ilens, recog_args, maxlen, beam)
+
+        # Greedy search
+        ys = None
+        raise ValueError('Greedy Search is not implemented yet')
+
+        return ys
 
     def calculate_all_attentions(self, xs, ilens, ys):
         '''E2E attention calculation
@@ -452,10 +459,11 @@ class E2E(chainer.Chain):
         return att_ws
 
     def reduce_feats(self, e, ilens):
-        logging.info('Input size convnet: ' + str(e.shape))
+        
         # if len(e.shape) < 4:  # Multichannel
         e = F.swapaxes(F.expand_dims(e, axis=3), 1, 3)
         # input shape Batchsize x 1 channels x length x dims (83 MFCC + ...)
+        # logging.info('Input size convnet: ' + str(e.shape))
         e = F.relu(self.conv1(e))
         e = F.relu(self.conv2(e))
 
@@ -463,7 +471,7 @@ class E2E(chainer.Chain):
         e = F.vstack(F.split_axis(e, ln, axis=2))  # F.reshape(, [bs, ch * dim, ln])# F.squeeze(, axis=3)
         e = F.split_axis(self.linear_transform(e), ln, axis=0)
         e = F.stack(e, axis=2)
-        logging.info('Input size convnet: ' + str(e.shape))
+        # logging.info('Input size convnet: ' + str(e.shape))
 
         # change ilens accordingly
         ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
@@ -477,6 +485,63 @@ class E2E(chainer.Chain):
                 self.xp.broadcast_to(
                     self.xp.arange(ln).astype('i')[None, :], [bs, ln]))
         return e, ilens
+
+    def recognize_beam(self, x_block, ilens, recog_args, maxlen, beam):
+        # TODO (nelson): Efficient inference by re-using result
+        # TODO (nelson): batch processing
+        xp = self.xp
+        with chainer.no_backprop_mode():
+            with chainer.using_config('train', False):
+                batch, x_length, _ = x_block.shape
+                assert batch == 1, 'Batch processing is not supported now.'
+                y_block = xp.full(
+                    (batch, 1), self.sos, dtype=xp.int32)
+                eos_flags = xp.zeros(
+                    (batch * beam, ), dtype=x_block.dtype)
+                sum_scores = xp.zeros(1, 'f')
+                result = [[self.sos]] * batch * beam
+                for i in range(maxlen):
+                    log_prob_tail = self(x_block, ilens, y_block,
+                                         predict=True)
+
+                    ys_list, ws_list = get_topk(xp,
+                        log_prob_tail.data, beam, axis=1)
+
+                    ys_concat = xp.concatenate(ys_list, axis=0)
+                    sum_ws_list = [ws + sum_scores for ws in ws_list]
+                    sum_ws_concat = xp.concatenate(sum_ws_list, axis=0)
+
+                    # Get top-k from total candidates
+                    idx_list, sum_w_list = get_topk(xp,
+                        sum_ws_concat, beam, axis=0)
+                    idx_concat = xp.stack(idx_list, axis=0)
+                    ys = ys_concat[idx_concat]
+                    sum_scores = xp.stack(sum_w_list, axis=0)
+
+                    if i != 0:
+                        old_idx_list = (idx_concat % beam).tolist()
+                    else:
+                        old_idx_list = [0] * beam
+
+                    result = [result[idx] + [y]
+                              for idx, y in zip(old_idx_list, ys.tolist())]
+
+                    y_block = xp.array(result).astype('i')
+                    if x_block.shape[0] != y_block.shape[0]:
+                        x_block = xp.broadcast_to(
+                            x_block.data, (y_block.shape[0], x_block.shape[1], x_block.shape[2]))
+                        ilens = [x_block.shape[1] for j in range(y_block.shape[0])]
+                    eos_flags += (ys == 0)
+                    if xp.all(eos_flags):
+                        break
+                    
+        outs = [[wi for wi in sent if wi not in [2, 0]] for sent in result]
+        out = [sent if sent else [0] for sent in outs][0]
+
+        hyp = {'score' : 0.0,
+            'yseq' : out}
+        outs = [hyp]
+        return outs
 
 
 class MultiHeadAttention(chainer.Chain):
@@ -649,7 +714,7 @@ class Encoder(chainer.Chain):
     def __call__(self, e, xx_mask):
         for i in range(len(self.layer_names)):
             name = self.layer_names[i]
-            logging.info('Input size encoder {}: '.format(name) + str(e.shape))
+            # logging.info('Input size encoder {}: '.format(name) + str(e.shape))
             e = getattr(self, name)(e, xx_mask)
         return e
 
@@ -666,7 +731,7 @@ class Decoder(chainer.Chain):
 
     def __call__(self, e, source, xy_mask, yy_mask):
         for name in self.layer_names:
-            logging.info('Input size decoder {}: '.format(name) + str(e.shape))
+            # logging.info('Input size decoder {}: '.format(name) + str(e.shape))
             e = getattr(self, name)(e, source, xy_mask, yy_mask)
         return e
 
@@ -743,3 +808,20 @@ class VaswaniRule(extension.Extension):
     def _update_value(self, optimizer, value):
         setattr(optimizer, self._attr, value)
         self._last_value = value
+
+
+def get_topk(xp, x, k=5, axis=1):
+    ids_list = []
+    scores_list = []
+    # xp = cuda.get_array_module(x)
+    for i in range(k):
+        ids = xp.argmax(x, axis=axis).astype('i')
+        if axis == 0:
+            scores = x[ids]
+            x[ids] = - float('inf')
+        else:
+            scores = x[xp.arange(ids.shape[0]), ids]
+            x[xp.arange(ids.shape[0]), ids] = - float('inf')
+        ids_list.append(ids)
+        scores_list.append(scores)
+    return ids_list, scores_list
