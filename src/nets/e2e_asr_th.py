@@ -2236,7 +2236,7 @@ class Decoder(torch.nn.Module):
             att_ws = torch.stack(att_ws_sorted_by_head, dim=1).cpu().numpy()
         else:
             # att_ws => list of attetions
-            att_ws = torch.stack(att_ws[att_idx], dim=1).cpu().numpy()
+            att_ws = torch.stack(att_ws, dim=1).cpu().numpy()
         return att_ws
 
 
