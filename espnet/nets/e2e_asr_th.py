@@ -2423,7 +2423,11 @@ class Decoder(torch.nn.Module):
             vscores = accum_best_scores
             vidx = to_cuda(self, torch.LongTensor(accum_padded_beam_ids))
 
-            a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
+            if not isinstance(a_prev, list):
+                a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
+            else:
+                # adapt for multi-head attention
+                a_prev = [torch.index_select(att_w_one.view(n_bb, -1), 0, vidx) for att_w_one in att_w]
             z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
