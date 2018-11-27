@@ -16,6 +16,8 @@ import sys
 import numpy as np
 
 
+is_python2 = sys.version_info[0] == 2
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('json', type=str,
@@ -52,8 +54,12 @@ if __name__ == '__main__':
         jsonstring = json.dumps({'utts': new_dic},
                                 indent=4,
                                 ensure_ascii=False,
-                                sort_keys=True).encode('utf_8')
+                                sort_keys=True)
         fl = '{}/{}.{}.json'.format(dirname, filename, i + 1)
-        sys.stdout = open(fl, "wb+")
-        print(jsonstring)
+        if is_python2:
+            sys.stdout = open(fl, "wb+")
+            print(jsonstring.encode('utf_8'))
+        else:
+            sys.stdout = open(fl, "w+")
+            print(jsonstring)
         sys.stdout.close()
