@@ -4,7 +4,7 @@ import logging
 import warpctc_pytorch as warp_ctc
 import numpy as np
 
-from nets.pytorch.nets_utils import to_cuda
+from nets.pytorch.nets_utils_th import to_cuda
 
 
 class CTC(torch.nn.Module):

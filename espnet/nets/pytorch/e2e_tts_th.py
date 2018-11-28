@@ -18,7 +18,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from nets.pytorch.attentions_th import AttLoc, AttForward, AttForwardTA
-from nets.pytorch.nets_utils import to_cuda
+from nets.pytorch.nets_utils_th import to_cuda
 
 
 def encoder_init(m):
