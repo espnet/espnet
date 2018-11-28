@@ -75,13 +75,11 @@ def main():
 
     # extract
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        raise NotImplementedError
-    elif args.backend == "pytorch":
-        from espnet.tts.tts_pytorch import decode
+    if args.backend == "pytorch":
+        from tts.pytorch.tts_pytorch import decode
         decode(args)
     else:
-        raise ValueError("Only chainer and pytorch are supported.")
+        raise NotImplementedError("Only pytorch is supported.")
 
 
 if __name__ == '__main__':

@@ -186,10 +186,10 @@ def main():
     np.random.seed(args.seed)
 
     if args.backend == "pytorch":
-        from espnet.tts.tts_pytorch import train
+        from tts.pytorch.tts_pytorch import train
         train(args)
     else:
-        raise ValueError("Only pytorch is supported.")
+        raise NotImplementedError("Only pytorch is supported.")
 
 
 if __name__ == "__main__":
