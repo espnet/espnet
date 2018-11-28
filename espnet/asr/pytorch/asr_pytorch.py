@@ -42,8 +42,8 @@ from espnet.nets.pytorch.e2e_asr_th import pad_list
 import kaldi_io_py
 
 # rnnlm
-import espnet.lm.extlm_pytorch as extlm_pytorch
-import espnet.lm.lm_pytorch as lm_pytorch
+import lm.pytorch.extlm_pytorch as extlm_pytorch
+import lm.pytorch.lm_pytorch as lm_pytorch
 
 # matplotlib related
 import matplotlib

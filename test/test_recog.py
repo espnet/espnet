@@ -3,9 +3,9 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import espnet.lm.lm_pytorch as lm_pytorch
+import lm.pytorch.lm_pytorch as lm_pytorch
 
-import espnet.lm.lm_chainer as lm_chainer
+import lm.chainer.lm_chainer as lm_chainer
 
 import argparse
 import importlib
