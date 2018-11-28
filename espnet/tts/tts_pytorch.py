@@ -200,7 +200,7 @@ def train(args):
     # seed setting
     torch.manual_seed(args.seed)
 
-    # use determinisitic computation or not
+    # use deterministic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
         logging.info('torch cudnn deterministic is disabled')
@@ -284,7 +284,7 @@ def train(args):
                                    args.maxlen_in, args.maxlen_out,
                                    args.minibatches, args.batch_sort_key,
                                    min_batch_size=args.ngpu if args.ngpu > 1 else 1)
-    # hack to make batchsze argument as 1
+    # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
         train_iter = chainer.iterators.MultiprocessIterator(

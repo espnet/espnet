@@ -209,11 +209,11 @@ def train(args):
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
     # by considering reproducability
-    # revmoe type check
+    # remove type check
     if args.debugmode < 2:
         chainer.config.type_check = False
         logging.info('chainer type check is disabled')
-    # use determinisitic computation or not
+    # use deterministic computation or not
     if args.debugmode < 1:
         chainer.config.cudnn_deterministic = False
         logging.info('chainer cudnn deterministic is disabled')

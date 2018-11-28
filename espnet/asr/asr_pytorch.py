@@ -107,7 +107,7 @@ class CustomUpdater(training.StandardUpdater):
     :param torch.nn.Module model : The model to update
     :param int grad_clip_threshold : The gradient clipping value to use
     :param chainer.dataset.Iterator train_iter : The training iterator
-    :param optimizer:
+    :param torch.optim.optimizer optimizer: The training optimizer
     :param CustomConverter converter: The batch converter
     :param torch.device device : The device to use
     :param int ngpu : The number of gpus to use
@@ -171,6 +171,7 @@ class CustomConverter(object):
         :param list batch: The batch to transform
         :param torch.device device: The device to send to
         :return: a tuple xs_pad, ilens, ys_pad
+        :rtype (torch.Tensor, torch.Tensor, torch.Tensor)
         """
         # batch should be located in list
         assert len(batch) == 1
@@ -202,11 +203,11 @@ def train(args):
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
     # by considering reproducability
-    # revmoe type check
+    # remove type check
     if args.debugmode < 2:
         chainer.config.type_check = False
         logging.info('torch type check is disabled')
-    # use determinisitic computation or not
+    # use deterministic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
         logging.info('torch cudnn deterministic is disabled')
@@ -299,7 +300,7 @@ def train(args):
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1)
-    # hack to make batchsze argument as 1
+    # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
         train_iter = chainer.iterators.MultiprocessIterator(

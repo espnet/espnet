@@ -319,7 +319,7 @@ def train(args):
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
     # by considering reproducability
-    # use determinisitic computation or not
+    # use deterministic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
         logging.info('torch cudnn deterministic is disabled')
