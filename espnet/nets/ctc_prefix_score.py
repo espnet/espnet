@@ -10,13 +10,13 @@ import six
 
 
 class CTCPrefixScoreTH(object):
-    '''Batch processing of CTCPrefixScore
+    """Batch processing of CTCPrefixScore
 
     which is based on Algorithm 2 in WATANABE et al.
     "HYBRID CTC/ATTENTION ARCHITECTURE FOR END-TO-END SPEECH RECOGNITION,"
     but extended to efficiently compute the probablities of multiple labels
     simultaneously
-    '''
+    """
 
     def __init__(self, x, blank, eos, beam, hlens, device_id):
         self.logzero = -10000000000.0
@@ -39,10 +39,10 @@ class CTCPrefixScoreTH(object):
         return x.cuda(self.device_id)
 
     def initial_state(self):
-        '''Obtain an initial CTC state
+        """Obtain an initial CTC state
 
         :return: CTC state
-        '''
+        """
         self.x = self.x.view(self.batch, 1, self.input_length, self.odim)
         self.x = self.x.repeat(1, self.beam, 1, 1)
         self.x = self.x.view(self.n_bb, self.input_length, self.odim)
@@ -64,13 +64,13 @@ class CTCPrefixScoreTH(object):
         return r
 
     def __call__(self, y, r_prev, last=None):
-        '''Compute CTC prefix scores for next labels
+        """Compute CTC prefix scores for next labels
 
         :param y     : prefix label sequence
         :param cs    : array of next labels
         :param r_prev: previous CTC state
         :return ctc_scores, ctc_states
-        '''
+        """
 
         output_length = len(y[0]) - 1  # ignore sos
 
@@ -109,13 +109,13 @@ class CTCPrefixScoreTH(object):
 
 
 class CTCPrefixScore(object):
-    '''Compute CTC label sequence scores
+    """Compute CTC label sequence scores
 
     which is based on Algorithm 2 in WATANABE et al.
     "HYBRID CTC/ATTENTION ARCHITECTURE FOR END-TO-END SPEECH RECOGNITION,"
     but extended to efficiently compute the probablities of multiple labels
     simultaneously
-    '''
+    """
 
     def __init__(self, x, blank, eos, xp):
         self.xp = xp
@@ -126,10 +126,10 @@ class CTCPrefixScore(object):
         self.x = x
 
     def initial_state(self):
-        '''Obtain an initial CTC state
+        """Obtain an initial CTC state
 
         :return: CTC state
-        '''
+        """
         # initial CTC state is made of a frame x 2 tensor that corresponds to
         # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
         # superscripts n and b (non-blank and blank), respectively.
@@ -140,13 +140,13 @@ class CTCPrefixScore(object):
         return r
 
     def __call__(self, y, cs, r_prev):
-        '''Compute CTC prefix scores for next labels
+        """Compute CTC prefix scores for next labels
 
         :param y     : prefix label sequence
         :param cs    : array of next labels
         :param r_prev: previous CTC state
         :return ctc_scores, ctc_states
-        '''
+        """
         # initialize CTC states
         output_length = len(y) - 1  # ignore sos
         # new CTC states are prepared as a frame x (n or b) x n_labels tensor

@@ -36,8 +36,8 @@ from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
-from espnet.nets.e2e_asr import E2E
-from espnet.nets.e2e_asr import Loss
+from espnet.nets.chainer.e2e_asr import E2E
+from espnet.nets.chainer.e2e_asr import Loss
 
 # for kaldi io
 import kaldi_io_py
@@ -49,6 +49,7 @@ import espnet.lm.lm_chainer as lm_chainer
 # numpy related
 import matplotlib
 import numpy as np
+
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
@@ -67,7 +68,7 @@ def sum_sqnorm(arr):
 
 
 class CustomUpdater(training.StandardUpdater):
-    '''Custom updater for chainer'''
+    """Custom updater for chainer"""
 
     def __init__(self, train_iter, optimizer, converter, device):
         super(CustomUpdater, self).__init__(
@@ -100,7 +101,7 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
-    '''Custom parallel updater for chainer'''
+    """Custom parallel updater for chainer"""
 
     def __init__(self, train_iters, optimizer, converter, devices):
         super(CustomParallelUpdater, self).__init__(
@@ -155,10 +156,14 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
 
 class CustomConverter(object):
-    """CUSTOM CONVERTER"""
+    """
+    Custom Converter
+    :param int device: The device number
+    :param int subsampling_factor : The subsampling factor
+    """
 
-    def __init__(self, device, subsamping_factor=1):
-        self.subsamping_factor = subsamping_factor
+    def __init__(self, device, subsampling_factor=1):
+        self.subsampling_factor = subsampling_factor
 
     def transform(self, item):
         return load_inputs_and_targets(item)
@@ -171,8 +176,8 @@ class CustomConverter(object):
         assert len(batch) == 1
         xs, ys = batch[0]
 
-        # perform subsamping
-        if self.subsamping_factor > 1:
+        # perform subsampling
+        if self.subsampling_factor > 1:
             xs = [x[::self.subsampling_factor, :] for x in xs]
 
         # get batch of lengths of input sequences
@@ -187,7 +192,10 @@ class CustomConverter(object):
 
 
 def train(args):
-    '''Run training'''
+    """
+    Train with the given args
+    :param namespace args: The program arguments
+    """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
@@ -438,7 +446,10 @@ def train(args):
 
 
 def recog(args):
-    '''Run recognition'''
+    """
+    Decode with the given args
+    :param namespace args: The program arguments
+    """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 

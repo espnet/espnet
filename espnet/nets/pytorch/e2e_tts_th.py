@@ -17,10 +17,8 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from espnet.nets.e2e_asr_th import AttForward
-from espnet.nets.e2e_asr_th import AttForwardTA
-from espnet.nets.e2e_asr_th import AttLoc
-from espnet.nets.e2e_asr_th import to_cuda
+from nets.pytorch.attentions_th import AttLoc, AttForward, AttForwardTA
+from nets.pytorch.nets_utils import to_cuda
 
 
 def encoder_init(m):
@@ -304,7 +302,7 @@ class Tacotron2(torch.nn.Module):
                              self.aconv_chans,
                              self.aconv_filts)
             if self.cumulate_att_w:
-                logging.warn("cumulation of attention weights is disabled in forward attention.")
+                logging.warning("cumulation of attention weights is disabled in forward attention.")
                 self.cumulate_att_w = False
         elif self.atype == "forward_ta":
             att = AttForwardTA(dec_idim,
@@ -314,7 +312,7 @@ class Tacotron2(torch.nn.Module):
                                self.aconv_filts,
                                self.odim)
             if self.cumulate_att_w:
-                logging.warn("cumulation of attention weights is disabled in forward attention.")
+                logging.warning("cumulation of attention weights is disabled in forward attention.")
                 self.cumulate_att_w = False
         else:
             raise NotImplementedError("Support only location or forward")

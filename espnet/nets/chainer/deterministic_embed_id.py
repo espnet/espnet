@@ -193,7 +193,6 @@ def embed_id(x, W, ignore_label=None):
 
 
 class EmbedID(link.Link):
-
     """Efficient linear layer for one-hot input.
 
     This is a link that wraps the :func:`~chainer.functions.embed_id` function.
@@ -248,11 +247,8 @@ class EmbedID(link.Link):
     def __call__(self, x):
         """Extracts the word embedding of given IDs.
 
-        Args:
-            x (~chainer.Variable): Batch vectors of IDs.
-
-        Returns:
-            ~chainer.Variable: Batch of corresponding embeddings.
-
+        :param chainer.Variable x : Batch vectors of IDs
+        :return Batch of corresponding embeddings
+        :rtype chainer.Variable
         """
         return embed_id(x, self.W, ignore_label=self.ignore_label)

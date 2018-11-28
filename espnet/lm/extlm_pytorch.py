@@ -12,33 +12,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from espnet.nets.e2e_asr_th import to_cuda
-
-
-# TODO(Hori): currently it only works with character-word level LM.
-#             need to consider any types of subwords-to-word mapping.
-def make_lexical_tree(word_dict, subword_dict, word_unk):
-    '''make a lexical tree to compute word-level probabilities
-
-    '''
-    # node [dict(subword_id -> node), word_id, word_set[start-1, end]]
-    root = [{}, -1, None]
-    for w, wid in word_dict.items():
-        if wid > 0 and wid != word_unk:  # skip <blank> and <unk>
-            if True in [c not in subword_dict for c in w]:  # skip unknown subword
-                continue
-            succ = root[0]  # get successors from root node
-            for i, c in enumerate(w):
-                cid = subword_dict[c]
-                if cid not in succ:  # if next node does not exist, make a new node
-                    succ[cid] = [{}, -1, (wid - 1, wid)]
-                else:
-                    prev = succ[cid][2]
-                    succ[cid][2] = (min(prev[0], wid - 1), max(prev[1], wid))
-                if i == len(w) - 1:  # if word end, set word id
-                    succ[cid][1] = wid
-                succ = succ[cid][0]  # move to the child successors
-    return root
+from espnet.nets.pytorch.nets_utils_th import to_cuda
+from espnet.lm.lm_utils import make_lexical_tree
 
 
 # Definition of a multi-level (subword/word) language model

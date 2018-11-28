@@ -20,7 +20,7 @@ seed=1          # seed to generate random number
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstm # encoder architecture type
 elayers=4

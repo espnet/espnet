@@ -59,7 +59,7 @@ def main():
         paths = [scp_[-2] for scp_ in scp]
         scp = [[utt_id, path] for utt_id, path in zip(utt_ids, paths)]
 
-    # chech direcitory
+    # check directory
     outdir = os.path.dirname(args.out)
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
