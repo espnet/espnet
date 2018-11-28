@@ -43,7 +43,8 @@ def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
 
 # TODO(takaaki-hori): add different smoothing methods
 def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
-    """Obtain label distribution for loss smoothing
+    """
+    Obtain label distribution for loss smoothing
 
     :param odim:
     :param lsm_type:

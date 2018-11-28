@@ -3,7 +3,8 @@ import torch
 
 # ------------- Utility functions --------------------------------------------------------------------------------------
 def to_cuda(m, x):
-    """Function to send tensor into corresponding device
+    """
+    Function to send tensor into corresponding device
 
     :param torch.nn.Module m: torch module
     :param torch.Tensor x: torch tensor
@@ -16,7 +17,8 @@ def to_cuda(m, x):
 
 
 def pad_list(xs, pad_value):
-    """Function to pad values
+    """
+    Function to pad values
 
     :param list xs: list of torch.Tensor [(L_1, D), (L_2, D), ..., (L_B, D)]
     :param float pad_value: value for padding
@@ -34,7 +36,8 @@ def pad_list(xs, pad_value):
 
 
 def make_pad_mask(lengths):
-    """Function to make mask tensor containing indices of padded part
+    """
+    Function to make mask tensor containing indices of padded part
 
     e.g.: lengths = [5, 3, 2]
           mask = [[0, 0, 0, 0 ,0],
@@ -62,7 +65,8 @@ def mask_by_length(xs, length, fill=0):
 
 
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
-    """Function to calculate accuracy
+    """
+    Function to calculate accuracy
 
     :param torch.Tensor pad_outputs: prediction tensors (B*Lmax, D)
     :param torch.Tensor pad_targets: target tensors (B, Lmax, D)

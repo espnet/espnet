@@ -28,7 +28,8 @@ class BLSTMP(chainer.Chain):
         self.subsample = subsample
 
     def __call__(self, xs, ilens):
-        """BLSTMP forward
+        """
+        BLSTMP forward
 
         :param xs:
         :param ilens:
@@ -64,7 +65,8 @@ class BLSTM(chainer.Chain):
             self.l_last = L.Linear(cdim * 2, hdim)
 
     def __call__(self, xs, ilens):
-        """BLSTM forward
+        """
+        BLSTM forward
 
         :param xs:
         :param ilens:
@@ -102,7 +104,8 @@ class VGG2L(chainer.Chain):
         self.in_channel = in_channel
 
     def __call__(self, xs, ilens):
-        """VGG2L forward
+        """
+        VGG2L forward
 
         :param xs:
         :param ilens:
