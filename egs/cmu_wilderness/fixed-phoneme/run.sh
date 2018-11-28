@@ -96,11 +96,16 @@ fi
 if [[ ${train_langs} ]]; then
     train_set="${train_langs}_train"
     train_dev="${train_langs}_dev"
+    if [[ ${predict_lang} ]]; then
+        langs_file="conf/langs/${train_langs}"
+    fi
 fi
+
 
 echo "train_set: ${train_set}"
 echo "train_dev: ${train_dev}"
 echo "recog_set: ${recog_set}"
+echo "langs_file: ${langs_file}"
 echo "ngpu: ${ngpu}"
 
 if [[ -z $train_set ]]; then
@@ -293,7 +298,6 @@ if [ ${stage} -le 3 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --no_restore_trainer \
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
