@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     # make union set for utterance keys
     new_dic = dict()
-    for x in args.jsons:  #
+    for x in args.jsons:
         with open(x, 'r') as f:
             j = json.load(f)
         ks = j['utts'].keys()
