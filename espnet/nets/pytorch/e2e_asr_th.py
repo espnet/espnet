@@ -32,8 +32,8 @@ from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch.attentions_th import att_for_args, att_to_numpy
 from espnet.nets.pytorch.rnn_th import BLSTMP, BLSTM, VGG2L
 from espnet.nets.pytorch.ctc_th import CTC
-from nets.pytorch.nets_utils_th import to_cuda, pad_list, th_accuracy, mask_by_length, get_last_yseq, index_select_list, \
-    append_ids, index_select_lm_state, make_pad_mask
+from nets.pytorch.nets_utils_th import to_cuda, pad_list, th_accuracy, mask_by_length, get_last_yseq, \
+    index_select_list, append_ids, index_select_lm_state, make_pad_mask
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
