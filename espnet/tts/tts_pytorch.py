@@ -25,20 +25,29 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.e2e_asr_th import pad_list
-from espnet.nets.e2e_tts_th import Tacotron2
-from espnet.nets.e2e_tts_th import Tacotron2Loss
+from espnet.nets.pytorch.e2e_asr_th import pad_list
+from espnet.nets.pytorch.e2e_tts_th import Tacotron2
+from espnet.nets.pytorch.e2e_tts_th import Tacotron2Loss
 from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 
 import matplotlib
+
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
-    '''CUSTOM EVALUATER FOR TACOTRON2 TRAINING'''
+    """
+    Custom Evaluator for Tacotron2 training
+
+    :param torch.nn.Model model : The model to evaluate
+    :param chainer.dataset.Iterator iterator : The validation iterator
+    :param target :
+    :param CustomConverter converter : The batch converter
+    :param torch.device device : The device to use
+    """
 
     def __init__(self, model, iterator, target, converter, device):
         super(CustomEvaluator, self).__init__(iterator, target)
@@ -76,7 +85,16 @@ class CustomEvaluator(extensions.Evaluator):
 
 
 class CustomUpdater(training.StandardUpdater):
-    '''CUSTOM UPDATER FOR TACOTRON2 TRAINING'''
+    """
+    Custom updater for Tacotron2 training
+
+    :param torch.nn.Module model: The model to update
+    :param float grad_clip : The gradient clipping value to use
+    :param chainer.dataset.Iterator train_iter : The training iterator
+    :param optimizer :
+    :param CustomConverter converter : The batch converter
+    :param torch.device device : The device to use
+    """
 
     def __init__(self, model, grad_clip, train_iter, optimizer, converter, device):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
@@ -112,7 +130,13 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
-    '''CUSTOM CONVERTER FOR TACOTRON2'''
+    """
+    Custom converter for Tacotron2 training
+
+    :param bool return_targets:
+    :param bool use_speaker_embedding:
+    :param bool use_second_target:
+    """
 
     def __init__(self,
                  return_targets=True,
@@ -169,7 +193,10 @@ class CustomConverter(object):
 
 
 def train(args):
-    '''RUN TRAINING'''
+    """
+    Train with the given args
+    :param namespace args: The program arguments
+    """
     # seed setting
     torch.manual_seed(args.seed)
 
@@ -339,13 +366,16 @@ def train(args):
 
 
 def decode(args):
-    '''RUN DECODING'''
+    """
+    Decode with the given args
+    :param namespace args: The program arguments
+    """
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
-    # show argments
+    # show arguments
     for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+        logging.info('args: ' + key + ': ' + str(vars(args)[key]))
 
     # define model
     tacotron2 = Tacotron2(idim, odim, train_args)
@@ -364,7 +394,7 @@ def decode(args):
     with open(args.json, 'rb') as f:
         js = json.load(f)['utts']
 
-    # chech direcitory
+    # check directory
     outdir = os.path.dirname(args.out)
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -387,7 +417,7 @@ def decode(args):
             # decode and write
             outs, _, _ = tacotron2.inference(x, args, spemb)
             if outs.size(0) == x.size(0) * args.maxlenratio:
-                logging.warn("output length reaches maximum length (%s)." % utt_id)
+                logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
             kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)

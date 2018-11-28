@@ -34,9 +34,9 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.e2e_asr_th import E2E
-from espnet.nets.e2e_asr_th import Loss
-from espnet.nets.e2e_asr_th import pad_list
+from espnet.nets.pytorch.e2e_asr_th import E2E
+from espnet.nets.pytorch.e2e_asr_th import Loss
+from espnet.nets.pytorch.e2e_asr_th import pad_list
 
 # for kaldi io
 import kaldi_io_py
@@ -48,13 +48,21 @@ import espnet.lm.lm_pytorch as lm_pytorch
 # matplotlib related
 import matplotlib
 import numpy as np
+
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
-    '''Custom evaluater for pytorch'''
+    """
+    Custom Evaluator for Pytorch
+    :param torch.nn.Module model : The model to evaluate
+    :param chainer.dataset.Iterator : The train iterator
+    :param target :
+    :param CustomConverter converter : The batch converter
+    :param torch.device device : The device used
+    """
 
     def __init__(self, model, iterator, target, converter, device):
         super(CustomEvaluator, self).__init__(iterator, target)
@@ -94,7 +102,16 @@ class CustomEvaluator(extensions.Evaluator):
 
 
 class CustomUpdater(training.StandardUpdater):
-    '''Custom updater for pytorch'''
+    """
+    Custom Updater for Pytorch
+    :param torch.nn.Module model : The model to update
+    :param int grad_clip_threshold : The gradient clipping value to use
+    :param chainer.dataset.Iterator train_iter : The training iterator
+    :param optimizer:
+    :param CustomConverter converter: The batch converter
+    :param torch.device device : The device to use
+    :param int ngpu : The number of gpus to use
+    """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
                  optimizer, converter, device, ngpu):
@@ -136,22 +153,31 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
-    """CUSTOM CONVERTER"""
+    """
+    Custom batch converter for Pytorch
+    :param int subsampling_factor : The subsampling factor
+    """
 
-    def __init__(self, subsamping_factor=1):
-        self.subsamping_factor = subsamping_factor
+    def __init__(self, subsampling_factor=1):
+        self.subsampling_factor = subsampling_factor
         self.ignore_id = -1
 
     def transform(self, item):
         return load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
+        """
+        Transforms a batch and send it to a device
+        :param list batch: The batch to transform
+        :param torch.device device: The device to send to
+        :return: a tuple xs_pad, ilens, ys_pad
+        """
         # batch should be located in list
         assert len(batch) == 1
         xs, ys = batch[0]
 
-        # perform subsamping
-        if self.subsamping_factor > 1:
+        # perform subsampling
+        if self.subsampling_factor > 1:
             xs = [x[::self.subsampling_factor, :] for x in xs]
 
         # get batch of lengths of input sequences
@@ -166,7 +192,10 @@ class CustomConverter(object):
 
 
 def train(args):
-    '''Run training'''
+    """
+    Train with the given args
+    :param namespace args: The program arguments
+    """
     # seed setting
     torch.manual_seed(args.seed)
 
@@ -377,7 +406,10 @@ def train(args):
 
 
 def recog(args):
-    '''Run recognition'''
+    """
+    Decode with the given args
+    :param namespace args: The program arguments
+    """
     # seed setting
     torch.manual_seed(args.seed)
 

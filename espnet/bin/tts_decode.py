@@ -65,7 +65,7 @@ def main():
 
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -81,7 +81,7 @@ def main():
         from espnet.tts.tts_pytorch import decode
         decode(args)
     else:
-        raise ValueError("chainer and pytorch are only supported.")
+        raise ValueError("Only chainer and pytorch are supported.")
 
 
 if __name__ == '__main__':

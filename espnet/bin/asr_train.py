@@ -44,7 +44,7 @@ def main():
                         help='Filename of train label data (json)')
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
-    # network archtecture
+    # network architecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
@@ -184,7 +184,7 @@ def main():
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -218,7 +218,7 @@ def main():
         from espnet.asr.asr_pytorch import train
         train(args)
     else:
-        raise ValueError("chainer and pytorch are only supported.")
+        raise ValueError("Only chainer and pytorch are supported.")
 
 
 if __name__ == '__main__':

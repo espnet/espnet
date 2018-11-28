@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet.nets.e2e_asr_th import pad_list
+from espnet.nets.pytorch.e2e_asr_th import pad_list
 
 
 def make_arg(**kwargs):

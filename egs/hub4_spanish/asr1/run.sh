@@ -20,7 +20,7 @@ seed=1
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
 elayers=6

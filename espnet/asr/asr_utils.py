@@ -26,6 +26,7 @@ import kaldi_io_py
 
 # matplotlib related
 import matplotlib
+
 matplotlib.use('Agg')
 
 
@@ -115,14 +116,14 @@ def load_inputs_and_targets(batch):
 
 # * -------------------- chainer extension related -------------------- *
 class CompareValueTrigger(object):
-    '''Trigger invoked when key value getting bigger or lower than before
+    """Trigger invoked when key value getting bigger or lower than before
 
     Args:
         key (str): Key of value.
         compare_fn: Function to compare the values.
         trigger: Trigger that decide the comparison interval
 
-    '''
+    """
 
     def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
         self._key = key
@@ -165,7 +166,7 @@ class PlotAttentionReport(extension.Extension):
     :param function att_vis_fn: function of attention visualization
     :param list data: list json utt key items
     :param str outdir: directory to save figures
-    :param function converter: function to convert data
+    :param CustomConverter converter: function to convert data
     :param int device: device id
     :param bool reverse: If True, input and output length are reversed
     """
@@ -217,7 +218,8 @@ class PlotAttentionReport(extension.Extension):
 
 
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
-    '''Extension to restore snapshot'''
+    """Extension to restore snapshot"""
+
     @training.make_extension(trigger=(1, 'epoch'))
     def restore_snapshot(trainer):
         _restore_snapshot(model, snapshot, load_fn)
@@ -231,7 +233,8 @@ def _restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
 
 
 def adadelta_eps_decay(eps_decay):
-    '''Extension to perform adadelta eps decay'''
+    """Extension to perform adadelta eps decay"""
+
     @training.make_extension(trigger=(1, 'epoch'))
     def adadelta_eps_decay(trainer):
         _adadelta_eps_decay(trainer, eps_decay)
@@ -256,6 +259,7 @@ def _adadelta_eps_decay(trainer, eps_decay):
 def torch_snapshot(savefun=torch.save,
                    filename='snapshot.ep.{.updater.epoch}'):
     """Returns a trainer extension to take snapshots of the trainer for pytorch."""
+
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def torch_snapshot(trainer):
         _torch_snapshot_object(trainer, trainer, filename.format(trainer), savefun)
@@ -431,8 +435,8 @@ def parse_hypothesis(hyp, char_list):
 
     :param list hyp: recognition hypothesis
     :param list char_list: list of characters
-    :return: recognition text strinig
-    :return: recognition token strinig
+    :return: recognition text string
+    :return: recognition token string
     :return: recognition tokenid string
     """
     # remove sos and get results

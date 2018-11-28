@@ -42,7 +42,7 @@ def main():
                         help='Filename of training json')
     parser.add_argument('--valid-json', type=str, required=True,
                         help='Filename of validation json')
-    # network archtecture
+    # network architecture
     # encoder
     parser.add_argument('--embed_dim', default=512, type=int,
                         help='Number of dimension of embedding')
@@ -175,7 +175,7 @@ def main():
 
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -189,7 +189,7 @@ def main():
         from espnet.tts.tts_pytorch import train
         train(args)
     else:
-        raise NotImplementedError
+        raise ValueError("Only pytorch is supported.")
 
 
 if __name__ == "__main__":

@@ -51,7 +51,7 @@ if __name__ =="__main__":
         vocabulary.append(w)
         invocab_count += c
 
-    logging.warn('OOV rate = %.2f %%' % (float(total_count - invocab_count)/total_count*100))
+    logging.warning('OOV rate = %.2f %%' % (float(total_count - invocab_count)/total_count*100))
     # write the vocabulary
     fd = open(args.output, 'w') if args.output else sys.stdout
     six.print_('<unk> 1', file=fd)

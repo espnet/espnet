@@ -34,12 +34,19 @@ from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 
-import espnet.nets.deterministic_embed_id as DL
+import espnet.nets.chainer.deterministic_embed_id as DL
 
 REPORT_INTERVAL = 100
 
 
 class ClassifierWithState(link.Chain):
+    """
+    A wrapper for a chainer RNNLM
+
+    :param link.Chain predictor : The RNNLM
+    :param function lossfun: The loss function to use
+    :param int/str label_key:
+    """
 
     def __init__(self, predictor,
                  lossfun=softmax_cross_entropy.softmax_cross_entropy,
@@ -60,21 +67,18 @@ class ClassifierWithState(link.Chain):
     def __call__(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
-        Args:
-            args (list of ~chainer.Variable): Input minibatch.
-            kwargs (dict of ~chainer.Variable): Input minibatch.
+            When ``label_key`` is ``int``, the corresponding element in ``args``
+            is treated as ground truth labels. And when it is ``str``, the
+            element in ``kwargs`` is used.
+            The all elements of ``args`` and ``kwargs`` except the groundtruth
+            labels are features.
+            It feeds features to the predictor and compare the result
+            with ground truth labels.
 
-        When ``label_key`` is ``int``, the correpoding element in ``args``
-        is treated as ground truth labels. And when it is ``str``, the
-        element in ``kwargs`` is used.
-        The all elements of ``args`` and ``kwargs`` except the ground trush
-        labels are features.
-        It feeds features to the predictor and compare the result
-        with ground truth labels.
-
-        Returns:
-            ~chainer.Variable: Loss value.
-
+        :param list[chainer.Variable] args : Input minibatch
+        :param dict[chainer.Variable] kwargs : Input minibatch
+        :return loss value
+        :rtype chainer.Variable
         """
 
         if isinstance(self.label_key, int):
@@ -102,10 +106,10 @@ class ClassifierWithState(link.Chain):
     def predict(self, state, x):
         """Predict log probabilities for given state and input x using the predictor
 
-        Returns:
-            any type: new state
-            cupy/numpy array: log probability vector
-
+        :param state : the state
+        :param x : the input
+        :return a tuple (state, log prob vector)
+        :rtype cupy/numpy array
         """
         if hasattr(self.predictor, 'normalized') and self.predictor.normalized:
             return self.predictor(state, x)
@@ -116,8 +120,9 @@ class ClassifierWithState(link.Chain):
     def final(self, state):
         """Predict final log probabilities for given state using the predictor
 
-        Returns:
-            cupy/numpy array: log probability vector
+        :param state : the state
+        :return log probability vector
+        :rtype cupy/numpy array
 
         """
         if hasattr(self.predictor, 'final'):
@@ -128,6 +133,13 @@ class ClassifierWithState(link.Chain):
 
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
+    """
+    A chainer RNNLM
+
+    :param int n_vocab: The size of the vocabulary
+    :param int n_layers: The number of layers to create
+    :param int n_units: The number of units per layer
+    """
 
     def __init__(self, n_vocab, n_layers, n_units):
         super(RNNLM, self).__init__()
@@ -156,6 +168,13 @@ class RNNLM(chainer.Chain):
 
 
 class BPTTUpdater(training.updaters.StandardUpdater):
+    """
+    An updater for a chainer LM
+
+    :param chainer.dataset.Iterator train_iter : The train iterator
+    :param optimizer:
+    :param int device : The device id
+    """
 
     def __init__(self, train_iter, optimizer, device):
         super(BPTTUpdater, self).__init__(
@@ -197,6 +216,13 @@ class BPTTUpdater(training.updaters.StandardUpdater):
 
 
 class LMEvaluator(extensions.Evaluator):
+    """
+    A custom evaluator for a chainer LM
+
+    :param chainer.dataset.Iterator val_iter : The validation iterator
+    :param eval_model : The model to evaluate
+    :param int device : The device id to use
+    """
 
     def __init__(self, val_iter, eval_model, device):
         super(LMEvaluator, self).__init__(
@@ -224,6 +250,11 @@ class LMEvaluator(extensions.Evaluator):
 
 
 def train(args):
+    """
+    Train with the given args
+
+    :param namespace args: The program arguments
+    """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
@@ -280,7 +311,7 @@ def train(args):
     rnn = RNNLM(args.n_vocab, args.layer, args.unit)
     model = ClassifierWithState(rnn)
     if args.ngpu > 1:
-        logging.warn("currently, multi-gpu is not supported. use single gpu.")
+        logging.warning("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:
         # Make the specified GPU current
         gpu_id = 0
