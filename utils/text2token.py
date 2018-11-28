@@ -49,8 +49,7 @@ def main():
     n = args.nchar
     while line:
         x = unicode(line, 'utf_8').split()
-        print
-        ' '.join(x[:args.skip_ncols]).encode('utf_8'),
+        print ' '.join(x[:args.skip_ncols]).encode('utf_8'),
         a = ' '.join(x[args.skip_ncols:])
 
         # get all matched positions
