@@ -67,7 +67,7 @@ def main():
     parser.add_argument('--aconv-filts', default=15, type=int,
                         help='Filter size of attention convolution')
     parser.add_argument('--cumulate_att_w', default=True, type=strtobool,
-                        help="Whether or not to cumulate attetion weights")
+                        help="Whether or not to cumulate attention weights")
     # decoder
     parser.add_argument('--dlayers', default=2, type=int,
                         help='Number of decoder layers')
