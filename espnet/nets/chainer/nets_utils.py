@@ -9,7 +9,8 @@ def _subsamplex(x, n):
 
 # TODO(kan-bayashi): no need to use linear tensor
 def linear_tensor(linear, x):
-    """Apply linear matrix operation only for the last dimension of a tensor
+    """
+    Apply linear matrix operation only for the last dimension of a tensor
 
     :param Link linear: Linear link (M x N matrix)
     :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)

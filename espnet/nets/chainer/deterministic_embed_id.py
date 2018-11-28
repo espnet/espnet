@@ -91,7 +91,8 @@ class EmbedIDGrad(function_node.FunctionNode):
                     continue
                 gW[ix] += igy
         else:
-            """# original code based on cuda elementwise method
+            """
+            # original code based on cuda elementwise method
             if self.ignore_label is None:
                 cuda.elementwise(
                     'T gy, S x, S n_out', 'raw T gW',

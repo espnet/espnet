@@ -8,7 +8,8 @@ from nets.pytorch.nets_utils_th import to_cuda
 
 
 class CTC(torch.nn.Module):
-    """CTC module
+    """
+    CTC module
 
     :param int odim: dimension of outputs
     :param int eprojs: number of encoder projection units
@@ -24,7 +25,8 @@ class CTC(torch.nn.Module):
         self.ignore_id = -1
 
     def forward(self, hs_pad, hlens, ys_pad):
-        """CTC forward
+        """
+        CTC forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
@@ -59,7 +61,8 @@ class CTC(torch.nn.Module):
         return self.loss
 
     def log_softmax(self, hs_pad):
-        """log_softmax of frame activations
+        """
+        log_softmax of frame activations
 
         :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
         :return: log softmax applied 3d tensor (B, Tmax, odim)
