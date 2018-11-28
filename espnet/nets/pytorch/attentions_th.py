@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import six
 import math
 
-from nets.pytorch.nets_utils import make_pad_mask, to_cuda
+from nets.pytorch.nets_utils_th import make_pad_mask, to_cuda
 
 
 class NoAtt(torch.nn.Module):
