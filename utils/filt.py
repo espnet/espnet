@@ -12,7 +12,7 @@ if __name__ == '__main__':
     parser.add_argument('infile', type=str, help='input file')
     args = parser.parse_args()
 
-    vocab=set()
+    vocab = set()
     with open(args.filt) as vocabfile:
         for line in vocabfile:
             vocab.add(unicode(line, 'utf_8').strip())
@@ -20,7 +20,8 @@ if __name__ == '__main__':
     with open(args.infile) as textfile:
         for line in textfile:
             if args.exclude:
-                print " ".join(map(lambda word: word if not word in vocab else '', unicode(line, 'utf_8').strip().split())).encode('utf_8')
+                print " ".join(map(lambda word: word if word not in vocab else '', unicode(line, 'utf_8').strip()
+                                   .split())).encode('utf_8')
             else:
-                print " ".join(map(lambda word: word if word in vocab else '<UNK>', unicode(line, 'utf_8').strip().split())).encode('utf_8')
-
+                print " ".join(map(lambda word: word if word in vocab else '<UNK>', unicode(line, 'utf_8').strip()
+                                   .split())).encode('utf_8')

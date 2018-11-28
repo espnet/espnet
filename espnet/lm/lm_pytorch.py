@@ -201,7 +201,7 @@ def concat_examples(batch, device=None, padding=None):
     Custom concat_examples for pytorch
     :param np.ndarray batch: The batch to concatenate
     :param int device: The device to send to
-    :param int padding: The padding to use
+    :param Tuple[int,int] padding: The padding to use
     :return: (inputs, targets)
     :rtype (torch.Tensor, torch.Tensor)
     """

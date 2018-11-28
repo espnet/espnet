@@ -15,7 +15,6 @@ import sys
 
 import numpy as np
 
-
 is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':

@@ -22,6 +22,7 @@ class EmbedIDFunction(function_node.FunctionNode):
 
     def __init__(self, ignore_label=None):
         self.ignore_label = ignore_label
+        self._w_shape = None
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -72,6 +73,7 @@ class EmbedIDGrad(function_node.FunctionNode):
     def __init__(self, w_shape, ignore_label=None):
         self.w_shape = w_shape
         self.ignore_label = ignore_label
+        self._gy_shape = None
 
     def forward(self, inputs):
         self.retain_inputs((0,))

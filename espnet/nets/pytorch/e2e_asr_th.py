@@ -410,7 +410,7 @@ class Decoder(torch.nn.Module):
         self.embed = torch.nn.Embedding(odim, dunits)
         self.decoder = torch.nn.ModuleList()
         self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
         self.ignore_id = -1
         self.output = torch.nn.Linear(dunits, odim)
@@ -472,7 +472,7 @@ class Decoder(torch.nn.Module):
         # initialization
         c_list = [self.zero_state(hs_pad)]
         z_list = [self.zero_state(hs_pad)]
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list.append(self.zero_state(hs_pad))
             z_list.append(self.zero_state(hs_pad))
         att_w = None
@@ -550,7 +550,7 @@ class Decoder(torch.nn.Module):
         # initialization
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
         a = None
@@ -927,7 +927,7 @@ class Decoder(torch.nn.Module):
         # initialization
         c_list = [self.zero_state(hs_pad)]
         z_list = [self.zero_state(hs_pad)]
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list.append(self.zero_state(hs_pad))
             z_list.append(self.zero_state(hs_pad))
         att_w = None
@@ -961,7 +961,7 @@ class Encoder(torch.nn.Module):
     :param int elayers: number of layers of encoder network
     :param int eunits: number of lstm units of encoder network
     :param int epojs: number of projection units of encoder network
-    :param list subsample: list of subsampling numbers
+    :param np.ndarray subsample: list of subsampling numbers
     :param float dropout: dropout rate
     :param int in_channel: number of input channels
     """

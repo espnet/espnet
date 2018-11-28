@@ -13,8 +13,8 @@ def linear_tensor(linear, x):
 
     :param Link linear: Linear link (M x N matrix)
     :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
-    :return:
-    :param Variable y: Tensor (D_1 x D_2 x ... x N matrix)
+    :return: Tensor (D_1 x D_2 x ... x N matrix)
+    :rtype Variable
     """
     y = linear(F.reshape(x, (-1, x.shape[-1])))
     return F.reshape(y, (x.shape[:-1] + (-1,)))

@@ -354,6 +354,7 @@ class Tacotron2(torch.nn.Module):
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor olens:
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
         :return: outputs with postnets (B, Lmax, odim)
         :rtype: torch.Tensor
@@ -705,7 +706,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
@@ -778,7 +779,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(1, self.odim)
@@ -850,7 +851,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
@@ -1057,7 +1058,7 @@ class HighwayNet(torch.nn.Module):
     def forward(self, x):
         """HIGHWAY NETWORK FORWARD
 
-        :param torch.Tensor xs: batch of inputs (B, *, idim)
+        :param torch.Tensor x: batch of inputs (B, *, idim)
         :return: batch of outputs (B, *, idim)
         :rtype: torch.Tensor
         """

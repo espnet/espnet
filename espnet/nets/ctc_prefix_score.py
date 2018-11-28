@@ -32,6 +32,8 @@ class CTCPrefixScoreTH(object):
 
         self.x = x
         self.device_id = device_id
+        self.cs = torch.from_numpy(np.arange(self.odim, dtype=np.int32))
+        self.cs = self.to_cuda(self.cs)
 
     def to_cuda(self, x):
         if self.device_id == -1:
@@ -46,9 +48,6 @@ class CTCPrefixScoreTH(object):
         self.x = self.x.view(self.batch, 1, self.input_length, self.odim)
         self.x = self.x.repeat(1, self.beam, 1, 1)
         self.x = self.x.view(self.n_bb, self.input_length, self.odim)
-        self.cs = torch.from_numpy(np.arange(self.odim, dtype=np.int32))
-        self.cs = self.to_cuda(self.cs)
-
         # initial CTC state is made of a n_bb x frame x 2 tensor that corresponds to
         # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
         # superscripts n and b (non-blank and blank), respectively.
@@ -67,8 +66,8 @@ class CTCPrefixScoreTH(object):
         """Compute CTC prefix scores for next labels
 
         :param y     : prefix label sequence
-        :param cs    : array of next labels
         :param r_prev: previous CTC state
+        :param last:
         :return ctc_scores, ctc_states
         """
 

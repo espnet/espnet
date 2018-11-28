@@ -18,7 +18,7 @@ if __name__ == '__main__':
         f = open(args.text)
     else:
         f = sys.stdin
-        
+
     line = f.readline()
     while line:
         x = unicode(line, 'utf_8').split()

@@ -16,12 +16,12 @@ if [ $# != 2 ]; then
 fi
 
 lang=$1
-DATA_ROOT=$2/$lang
-if   [ $lang = 'en' ]; then
+DATA_ROOT=$2/${lang}
+if   [ ${lang} = 'en' ]; then
     DATA_SRC="http://www.repository.voxforge1.org/downloads/SpeechCorpus/Trunk/Audio/Main/16kHz_16bit" 
-elif [ $lang = 'nl' ]; then
+elif [ ${lang} = 'nl' ]; then
     DATA_SRC="http://www.repository.voxforge1.org/downloads/Dutch/Trunk/Audio/Main/16kHz_16bit" 
-elif [ $lang = 'ru' ]; then
+elif [ ${lang} = 'ru' ]; then
     DATA_SRC="http://www.repository.voxforge1.org/downloads/Russian/Trunk/Audio/Main/16kHz_16bit" 
 else
     DATA_SRC="http://www.repository.voxforge1.org/downloads/$lang/Trunk/Audio/Main/16kHz_16bit" 
@@ -43,5 +43,5 @@ mkdir -p ${DATA_EXTRACT}
 
 echo "--- Starting VoxForge archives extraction ..."
 for a in ${DATA_TGZ}/*.tgz; do
-    tar -C ${DATA_EXTRACT} -xf $a
+    tar -C ${DATA_EXTRACT} -xf ${a}
 done

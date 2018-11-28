@@ -158,11 +158,10 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 class CustomConverter(object):
     """
     Custom Converter
-    :param int device: The device number
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, device, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1):
         self.subsampling_factor = subsampling_factor
 
     def transform(self, item):

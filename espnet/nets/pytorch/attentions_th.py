@@ -725,7 +725,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.mlp_q = torch.nn.ModuleList()
         self.mlp_k = torch.nn.ModuleList()
         self.mlp_v = torch.nn.ModuleList()
-        for h in six.moves.range(aheads):
+        for _ in six.moves.range(aheads):
             self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
             self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
             self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
@@ -828,7 +828,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.mlp_k = torch.nn.ModuleList()
         self.mlp_v = torch.nn.ModuleList()
         self.gvec = torch.nn.ModuleList()
-        for h in six.moves.range(aheads):
+        for _ in six.moves.range(aheads):
             self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
             self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
             self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
@@ -936,7 +936,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.gvec = torch.nn.ModuleList()
         self.loc_conv = torch.nn.ModuleList()
         self.mlp_att = torch.nn.ModuleList()
-        for h in six.moves.range(aheads):
+        for _ in six.moves.range(aheads):
             self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
             self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
             self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
@@ -1002,7 +1002,7 @@ class AttMultiHeadLoc(torch.nn.Module):
 
         if att_prev is None:
             att_prev = []
-            for h in six.moves.range(self.aheads):
+            for _ in six.moves.range(self.aheads):
                 # if no bias, 0 0-pad goes 0
                 mask = 1. - make_pad_mask(enc_hs_len).float()
                 att_prev += [to_cuda(self, mask / mask.new(enc_hs_len).unsqueeze(-1))]
@@ -1129,7 +1129,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
         if att_prev is None:
             att_prev = []
-            for h in six.moves.range(self.aheads):
+            for _ in six.moves.range(self.aheads):
                 # if no bias, 0 0-pad goes 0
                 mask = 1. - make_pad_mask(enc_hs_len).float()
                 att_prev += [to_cuda(self, mask / mask.new(enc_hs_len).unsqueeze(-1))]
@@ -1420,7 +1420,7 @@ def att_for_args(args):
 def att_to_numpy(att_ws, att):
     """
     Converts attention weights to a numpy array given the attention
-    :param torch.Tensor att_ws: The attention weights
+    :param list att_ws: The attention weights
     :param torch.nn.Module att: The attention
     :rtype: np.ndarray
     :return: The numpy array of the attention weights
