@@ -48,7 +48,7 @@ if __name__ == '__main__':
             elif args.mictype == 'worn':
                 mictype = 'original'
             else:
-                mictype = args.mictype.upper() # convert from u01 to U01
+                mictype = args.mictype.upper()  # convert from u01 to U01
 
             # add location tag for scoring (only for dev and eval sets)
             if 'location' in x.keys():
@@ -58,15 +58,15 @@ if __name__ == '__main__':
 
             start_time = x['start_time'][mictype]
             end_time = x['end_time'][mictype]
-        
+
             # remove meta chars and convert to lower
-            words = x['words'].replace('"', '')\
-                              .replace('.', '')\
-                              .replace('?', '')\
-                              .replace(',', '')\
-                              .replace(':', '')\
-                              .replace(';', '')\
-                              .replace('!', '').lower()
+            words = x['words'].replace('"', '') \
+                .replace('.', '') \
+                .replace('?', '') \
+                .replace(',', '') \
+                .replace(':', '') \
+                .replace(';', '') \
+                .replace('!', '').lower()
 
             # remove multiple spaces
             words = " ".join(words.split())

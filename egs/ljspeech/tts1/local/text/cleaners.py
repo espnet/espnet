@@ -18,7 +18,6 @@ import re
 from numbers import normalize_numbers
 from unidecode import unidecode
 
-
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
 

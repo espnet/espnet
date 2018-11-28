@@ -151,6 +151,7 @@ class E2E(chainer.Chain):
         :param x:
         :param recog_args:
         :param char_list:
+        :param rnnlm
         :return:
         """
         # subsample frame
@@ -178,11 +179,12 @@ class E2E(chainer.Chain):
     def calculate_all_attentions(self, xs, ilens, ys):
         """E2E attention calculation
 
-        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
-        :param ndarray ilens: batch of lengths of input sequences (B)
+        :param xs:
+        :param list xs: list of padded input sequences [(T1, idim), (T2, idim), ...]
+        :param np.ndarray ilens: batch of lengths of input sequences (B)
         :param list ys: list of character id sequence tensor [(L1), (L2), (L3), ...]
         :return: attention weights (B, Lmax, Tmax)
-        :rtype: float ndarray
+        :rtype: float np.ndarray
         """
         hs, ilens = self.enc(xs, ilens)
         att_ws = self.dec.calculate_all_attentions(hs, ys)
@@ -244,7 +246,7 @@ class Decoder(chainer.Chain):
         # initialization
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         att_w = None
@@ -309,15 +311,17 @@ class Decoder(chainer.Chain):
         """beam search implementation
 
         :param h:
+        :param lpz:
         :param recog_args:
         :param char_list:
+        :param rnnlm:
         :return:
         """
         logging.info('input lengths: ' + str(h.shape[0]))
         # initialization
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         a = None
@@ -498,7 +502,7 @@ class Decoder(chainer.Chain):
         # initialization
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
-        for l in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         att_w = None
@@ -534,8 +538,8 @@ class Encoder(chainer.Chain):
     :param int idim: number of dimensions of encoder network
     :param int elayers: number of layers of encoder network
     :param int eunits: number of lstm units of encoder network
-    :param int epojs: number of projection units of encoder network
-    :param str subsample: subsampling number e.g. 1_2_2_2_1
+    :param int eprojs: number of projection units of encoder network
+    :param np.ndarray subsample: subsampling number e.g. 1_2_2_2_1
     :param float dropout: dropout rate
     :return:
 

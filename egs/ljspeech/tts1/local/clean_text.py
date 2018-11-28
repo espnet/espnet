@@ -8,7 +8,6 @@ import codecs
 
 from cleaners import english_cleaners
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('text', type=str, help='text to be cleaned')

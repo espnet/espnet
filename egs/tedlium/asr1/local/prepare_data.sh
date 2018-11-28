@@ -11,12 +11,12 @@
 
 export LC_ALL=C
 
-sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
+sph2pipe=${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
 
 # Prepare: test, train,
 for set in dev test train; do
-  dir=data/$set.orig
-  mkdir -p $dir
+  dir=data/${set}.orig
+  mkdir -p ${dir}
 
   # Merge transcripts into a single 'stm' file, do some mappings:
   # - <F0_M> -> <o,f0,male> : map dev stm labels to be coherent with train + test,
@@ -34,47 +34,47 @@ for set in dev test train; do
 ;; LABEL "female" "Female" "Female Talkers"
 ;;'
     # Process the STMs
-    cat db/TEDLIUM_release2/$set/stm/*.stm | sort -k1,1 -k2,2 -k4,4n | \
+    cat db/TEDLIUM_release2/${set}/stm/*.stm | sort -k1,1 -k2,2 -k4,4n | \
       sed -e 's:<F0_M>:<o,f0,male>:' \
           -e 's:<F0_F>:<o,f0,female>:' \
           -e 's:([0-9])::g' \
           -e 's:<sil>::g' \
           -e 's:([^ ]*)$::' | \
       awk '{ $2 = "A"; print $0; }'
-  } | local/join_suffix.py > data/$set.orig/stm
+  } | local/join_suffix.py > data/${set}.orig/stm
 
   # Prepare 'text' file
   # - {NOISE} -> [NOISE] : map the tags to match symbols in dictionary
-  cat $dir/stm | grep -v -e 'ignore_time_segment_in_scoring' -e ';;' | \
+  cat ${dir}/stm | grep -v -e 'ignore_time_segment_in_scoring' -e ';;' | \
     awk '{ printf ("%s-%07d-%07d", $1, $4*100, $5*100);
            for (i=7;i<=NF;i++) { printf(" %s", $i); }
            printf("\n");
-         }' | tr '{}' '[]' | sort -k1,1 > $dir/text || exit 1
+         }' | tr '{}' '[]' | sort -k1,1 > ${dir}/text || exit 1
 
   # Prepare 'segments', 'utt2spk', 'spk2utt'
-  cat $dir/text | cut -d" " -f 1 | awk -F"-" '{printf("%s %s %07.2f %07.2f\n", $0, $1, $2/100.0, $3/100.0)}' > $dir/segments
-  cat $dir/segments | awk '{print $1, $2}' > $dir/utt2spk
-  cat $dir/utt2spk | utils/utt2spk_to_spk2utt.pl > $dir/spk2utt
+  cat ${dir}/text | cut -d" " -f 1 | awk -F"-" '{printf("%s %s %07.2f %07.2f\n", $0, $1, $2/100.0, $3/100.0)}' > ${dir}/segments
+  cat ${dir}/segments | awk '{print $1, $2}' > ${dir}/utt2spk
+  cat ${dir}/utt2spk | utils/utt2spk_to_spk2utt.pl > ${dir}/spk2utt
 
   # Prepare 'wav.scp', 'reco2file_and_channel'
-  cat $dir/spk2utt | awk -v set=$set -v pwd=$PWD '{ printf("%s '$sph2pipe' -f wav -p %s/db/TEDLIUM_release2/%s/sph/%s.sph |\n", $1, pwd, set, $1); }' > $dir/wav.scp
-  cat $dir/wav.scp | awk '{ print $1, $1, "A"; }' > $dir/reco2file_and_channel
+  cat ${dir}/spk2utt | awk -v set=${set} -v pwd=$PWD '{ printf("%s '${sph2pipe}' -f wav -p %s/db/TEDLIUM_release2/%s/sph/%s.sph |\n", $1, pwd, set, $1); }' > ${dir}/wav.scp
+  cat ${dir}/wav.scp | awk '{ print $1, $1, "A"; }' > ${dir}/reco2file_and_channel
 
   # Create empty 'glm' file
   echo ';; empty.glm
   [FAKE]     =>  %HESITATION     / [ ] __ [ ] ;; hesitation token
-  ' > data/$set.orig/glm
+  ' > data/${set}.orig/glm
 
   # The training set seems to not have enough silence padding in the segmentations,
   # especially at the beginning of segments.  Extend the times.
-  if [ $set == "train" ]; then
-    mv data/$set.orig/segments data/$set.orig/segments.temp
+  if [ ${set} == "train" ]; then
+    mv data/${set}.orig/segments data/${set}.orig/segments.temp
     utils/data/extend_segment_times.py --start-padding=0.15 \
-      --end-padding=0.1 <data/$set.orig/segments.temp >data/$set.orig/segments || exit 1
-    rm data/$set.orig/segments.temp
+      --end-padding=0.1 <data/${set}.orig/segments.temp >data/${set}.orig/segments || exit 1
+    rm data/${set}.orig/segments.temp
   fi
 
   # Check that data dirs are okay!
-  utils/validate_data_dir.sh --no-feats $dir || exit 1
+  utils/validate_data_dir.sh --no-feats ${dir} || exit 1
 done
 

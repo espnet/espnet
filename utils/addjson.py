@@ -10,7 +10,6 @@ import logging
 
 from distutils.util import strtobool
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('jsons', type=str, nargs='+',

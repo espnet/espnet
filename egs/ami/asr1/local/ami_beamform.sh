@@ -32,49 +32,49 @@ wdir=data/local/beamforming
 set -e
 set -u
 
-mkdir -p $odir
-mkdir -p $wdir/log
+mkdir -p ${odir}
+mkdir -p ${wdir}/log
 
-[ -e $odir/.done_beamforming ] && echo "Beamforming already done, skipping..." && exit 0
+[ -e ${odir}/.done_beamforming ] && echo "Beamforming already done, skipping..." && exit 0
 
-meetings=$wdir/meetings.list
+meetings=${wdir}/meetings.list
 
-cat local/split_train.orig local/split_dev.orig local/split_eval.orig | sort > $meetings
+cat local/split_train.orig local/split_dev.orig local/split_eval.orig | sort > ${meetings}
 # Removing ``lost'' MDM session-ids : http://groups.inf.ed.ac.uk/ami/corpus/dataproblems.shtml
-mv $meetings{,.orig}; grep -v "IS1003b\|IS1007d" $meetings.orig >$meetings
+mv ${meetings}{,.orig}; grep -v "IS1003b\|IS1007d" ${meetings}.orig >${meetings}
 
 ch_inc=$((8/$numch))
 bmf=
-for ch in `seq 1 $ch_inc 8`; do
+for ch in `seq 1 ${ch_inc} 8`; do
   bmf="$bmf $ch"
 done
 
 echo "Will use the following channels: $bmf"
 
 # make the channel file,
-if [ -f $wdir/channels_$numch ]; then
-  rm $wdir/channels_$numch
+if [ -f ${wdir}/channels_${numch} ]; then
+  rm ${wdir}/channels_${numch}
 fi
-touch $wdir/channels_$numch
+touch ${wdir}/channels_${numch}
 
 while read line;
 do
   channels="$line "
-  for ch in $bmf; do
+  for ch in ${bmf}; do
     channels="$channels $line/audio/$line.Array1-0$ch.wav"
   done
-  echo $channels >> $wdir/channels_$numch
-done < $meetings
+  echo ${channels} >> ${wdir}/channels_${numch}
+done < ${meetings}
 
 # do noise cancellation,
-if [ $wiener_filtering == "true" ]; then
+if [ ${wiener_filtering} == "true" ]; then
   echo "Wiener filtering not yet implemented."
   exit 1;
 fi
 
 # do beamforming,
 echo -e "Beamforming\n"
-$cmd JOB=1:$nj $wdir/log/beamform.JOB.log \
-     local/beamformit.sh $nj JOB $numch $meetings $sdir $odir
+${cmd} JOB=1:${nj} ${wdir}/log/beamform.JOB.log \
+     local/beamformit.sh ${nj} JOB ${numch} ${meetings} ${sdir} ${odir}
 
-touch $odir/.done_beamforming
+touch ${odir}/.done_beamforming

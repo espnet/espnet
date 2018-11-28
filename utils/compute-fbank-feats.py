@@ -79,7 +79,7 @@ def main():
         job_id = "." + args.out.split(".")[-1] if args.out.split(".")[-1].isdigit() else ""
         arkscp = ('ark:| copy-feats --print-args=false --write-num-frames=ark,t:%s '
                   'ark:- ark,scp:%s.ark,%s.scp') % (
-                      os.path.dirname(args.out) + "/utt2num_frames" + job_id, args.out, args.out)
+                     os.path.dirname(args.out) + "/utt2num_frames" + job_id, args.out, args.out)
     else:
         arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
 

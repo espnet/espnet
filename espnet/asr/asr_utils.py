@@ -167,7 +167,7 @@ class PlotAttentionReport(extension.Extension):
     :param list data: list json utt key items
     :param str outdir: directory to save figures
     :param CustomConverter converter: function to convert data
-    :param int device: device id
+    :param int | torch.device device: device
     :param bool reverse: If True, input and output length are reversed
     """
 

@@ -17,8 +17,8 @@ for line in sys.stdin:
     new_items = []
     i = 1
     while i < len(items):
-        if i < len(items) - 1 and items[i+1][0] == '\'':
-            new_items.append(items[i] + items[i+1])
+        if i < len(items) - 1 and items[i + 1][0] == '\'':
+            new_items.append(items[i] + items[i + 1])
             i = i + 1
         else:
             new_items.append(items[i])

@@ -12,5 +12,5 @@ if [ ! -e ${db}/LJSpeech-1.1 ];then
     wget http://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2
     tar -vxf ./*.tar.bz2
     rm ./*.tar.bz2
-    cd $cwd
+    cd ${cwd}
 fi

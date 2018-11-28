@@ -23,14 +23,14 @@ dict=$2
 expdir=$3
 decode_part_dir=$4
 
-if $print_clean; then
+if ${print_clean}; then
     echo "RESULTS - Cln"
     local/score_for_reverb_cln.sh --wer true --nlsyms ${nlsyms} \
         		      "${expdir}/decode_*_cln_${decode_part_dir}/data.json" \
         		      ${dict} ${expdir}/decode_summary_cln_${decode_part_dir}
     echo ""
 fi
-if $print_nf; then
+if ${print_nf}; then
     echo "RESULTS - 1ch - No Front End"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
         		      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
@@ -42,7 +42,7 @@ local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
     		      "${expdir}/decode_*_1ch_wpe_${decode_part_dir}/data.json" \
     		      ${dict} ${expdir}/decode_summary_1ch_wpe_${decode_part_dir}
 echo ""
-if $print_2ch; then
+if ${print_2ch}; then
     echo "RESULTS - 2ch - WPE+BeamformIt"
     local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
         		      "${expdir}/decode_*_2ch_beamformit_${decode_part_dir}/data.json" \

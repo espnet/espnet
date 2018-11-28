@@ -10,7 +10,7 @@ import logging
 
 ##################################
 # main
-if __name__ =="__main__":
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', '-o', default='', type=str,
                         help='output a vocabulary file')
@@ -43,7 +43,7 @@ if __name__ =="__main__":
     total_count = sum(counts.values())
     invocab_count = 0
     vocabulary = []
-    for w,c in sorted(counts.items(), key=lambda x:-x[1]):
+    for w, c in sorted(counts.items(), key=lambda x: -x[1]):
         if c <= args.cutoff:
             break
         if len(vocabulary) >= args.vocabsize:
@@ -51,12 +51,11 @@ if __name__ =="__main__":
         vocabulary.append(w)
         invocab_count += c
 
-    logging.warning('OOV rate = %.2f %%' % (float(total_count - invocab_count)/total_count*100))
+    logging.warning('OOV rate = %.2f %%' % (float(total_count - invocab_count) / total_count * 100))
     # write the vocabulary
     fd = open(args.output, 'w') if args.output else sys.stdout
     six.print_('<unk> 1', file=fd)
-    for n,w in enumerate(sorted(vocabulary)):
-        six.print_('%s %d' % (w, n+2), file=fd)
+    for n, w in enumerate(sorted(vocabulary)):
+        six.print_('%s %d' % (w, n + 2), file=fd)
     if args.output:
         fd.close()
-

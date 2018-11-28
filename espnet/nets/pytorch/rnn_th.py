@@ -13,7 +13,7 @@ class BLSTMP(torch.nn.Module):
     :param int elayers: number of encoder layers
     :param int cdim: number of lstm units (resulted in cdim * 2 due to biderectional)
     :param int hdim: number of projection units
-    :param list subsample: list of subsampling numbers
+    :param np.ndarray subsample: list of subsampling numbers
     :param float dropout: dropout rate
     """
 
