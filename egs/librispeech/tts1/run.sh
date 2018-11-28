@@ -44,7 +44,7 @@ atype=forward_ta
 adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
-cumulate_att_w=true # whether to cumulate attetion weight
+cumulate_att_w=true # whether to cumulate attention weight
 use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
 use_residual=false  # whether to use residual connection in encoder convolution

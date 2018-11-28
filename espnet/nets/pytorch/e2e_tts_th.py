@@ -33,7 +33,7 @@ def decoder_init(m):
 
 def make_non_pad_mask(lengths):
     """
-    FUNCTION TO MAKE MASK TENSOR CONTAINING INDICES OF NON-PADDED PART
+    Function to make tensor mask containing indices of the non-padded part
 
     e.g.: lengths = [5, 3, 2]
           mask = [[1, 1, 1, 1 ,1],
@@ -60,7 +60,7 @@ class Reporter(chainer.Chain):
 
 class ZoneOutCell(torch.nn.Module):
     """
-    ZONEOUT CELL
+    ZoneOut Cell
 
     This code is modified from https://github.com/eladhoffer/seq2seq.pytorch
 
@@ -98,7 +98,7 @@ class ZoneOutCell(torch.nn.Module):
 
 class Tacotron2Loss(torch.nn.Module):
     """
-    TACOTRON2 LOSS FUNCTION
+    Tacotron2 loss function
 
     :param torch.nn.Module model: tacotron2 model
     :param bool use_masking: whether to mask padded part in loss calculation
@@ -120,7 +120,7 @@ class Tacotron2Loss(torch.nn.Module):
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
         """
-        TACOTRON2 LOSS FORWARD CALCULATION
+        Tacotron2 loss forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
@@ -197,7 +197,7 @@ class Tacotron2Loss(torch.nn.Module):
 
 class Tacotron2(torch.nn.Module):
     """
-    TACOTRON2 BASED SEQ2SEQ MODEL CONVERTS CHARS TO FEATURES
+    Tacotron2 based Seq2Seq converts chars to features
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
@@ -355,7 +355,7 @@ class Tacotron2(torch.nn.Module):
 
     def forward(self, xs, ilens, ys, olens=None, spembs=None):
         """
-        TACOTRON2 FORWARD CALCULATION
+        Tacotron2 forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
@@ -368,7 +368,7 @@ class Tacotron2(torch.nn.Module):
         :rtype: torch.Tensor
         :return: stop logits (B, Lmax)
         :rtype: torch.Tensor
-        :return: attetion weights (B, Lmax, Tmax)
+        :return: attention weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
         # check ilens type (should be list of int)
@@ -391,20 +391,20 @@ class Tacotron2(torch.nn.Module):
 
     def inference(self, x, inference_args, spemb=None):
         """
-        GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
+        Generates the sequence of features given the sequences of characters
 
-        :param tensor x: the sequence of characters (T)
+        :param torch.Tensor x: the sequence of characters (T)
         :param namespace inference_args: argments containing following attributes
             (float) threshold: threshold in inference
             (float) minlenratio: minimum length ratio in inference
             (float) maxlenratio: maximum length ratio in inference
-        :param tensor spemb: speaker embedding vector (spk_embed_dim)
+        :param torch.Tensor spemb: speaker embedding vector (spk_embed_dim)
         :return: the sequence of features (L, odim)
-        :rtype: tensor
+        :rtype: torch.Tensor
         :return: the sequence of stop probabilities (L)
-        :rtype: tensor
-        :return: the sequence of attetion weight (L, T)
-        :rtype: tensor
+        :rtype: torch.Tensor
+        :return: the sequence of attention weight (L, T)
+        :rtype: torch.Tensor
         """
         # get options
         threshold = inference_args.threshold
@@ -426,13 +426,13 @@ class Tacotron2(torch.nn.Module):
 
     def calculate_all_attentions(self, xs, ilens, ys, spembs=None):
         """
-        TACOTRON2 FORWARD CALCULATION
+        Tacotron2 forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
-        :return: attetion weights (B, Lmax, Tmax)
+        :return: attention weights (B, Lmax, Tmax)
         :rtype: numpy array
         """
         # check ilens type (should be list of int)
@@ -453,10 +453,10 @@ class Tacotron2(torch.nn.Module):
 
 class Encoder(torch.nn.Module):
     """
-    CHARACTER EMBEDDING ENCODER
+    Character embedding encoder
 
     This is the encoder which converts the sequence of characters into
-    the sequence of hidden states. The newtwork structure is based on
+    the sequence of hidden states. The network structure is based on
     that of tacotron2 in the field of speech synthesis.
 
     :param int idim: dimension of the inputs
@@ -521,13 +521,13 @@ class Encoder(torch.nn.Module):
 
     def forward(self, xs, ilens):
         """
-        CHARACTER ENCODER FORWARD CALCULATION
+        Character encoding forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each batch (B)
         :return: batch of sequences of padded encoder states (B, Tmax, eunits)
         :rtype: torch.Tensor
-        :return: batch of lenghts of each encoder states (B)
+        :return: batch of lengths of each encoder states (B)
         :rtype: list
         """
         xs = self.embed(xs).transpose(1, 2)
@@ -545,7 +545,7 @@ class Encoder(torch.nn.Module):
 
     def inference(self, x):
         """
-        CHARACTER ENCODER INFERENCE
+        Character encoder inference
 
         :param torch.Tensor x: the sequence of character ids (T)
         :return: the sequence encoder states (T, eunits)
@@ -560,7 +560,7 @@ class Encoder(torch.nn.Module):
 
 class Decoder(torch.nn.Module):
     """
-    DECODER TO PREDICT THE SEQUENCE OF FEATURES
+    Decoder to predict the sequence of features
 
     This the decoder which generate the sequence of features from
     the sequence of the hidden states. The network structure is
@@ -568,7 +568,7 @@ class Decoder(torch.nn.Module):
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
-    :param instance att: instance of attetion class
+    :param instance att: instance of attention class
     :param int dlayers: the number of decoder lstm layers
     :param int dunits: the number of decoder lstm units
     :param int prenet_layers: the number of prenet layers
@@ -695,7 +695,7 @@ class Decoder(torch.nn.Module):
 
     def forward(self, hs, hlens, ys):
         """
-        DECODER FORWARD CALCULATION
+        Decoder forward computation
 
         :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
         :param list hlens: list of lengths of each input batch (B)
@@ -706,7 +706,7 @@ class Decoder(torch.nn.Module):
         :rtype: torch.Tensor
         :return: stop logits (B, Lmax)
         :rtype: torch.Tensor
-        :return: attetion weights (B, Lmax, Tmax)
+        :return: attention weights (B, Lmax, Tmax)
         :rtype: torch.Tensor
         """
         # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
@@ -770,18 +770,18 @@ class Decoder(torch.nn.Module):
 
     def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0):
         """
-        GENERATE THE SEQUENCE OF FEATURES FROM ENCODER HIDDEN STATES
+        Generate the sequence of features given the encoder hidden states
 
-        :param tensor h: the sequence of encoder states (T, C)
+        :param torch.Tensor h: the sequence of encoder states (T, C)
         :param float threshold: threshold in inference
         :param float minlenratio: minimum length ratio in inference
         :param float maxlenratio: maximum length ratio in inference
         :return: the sequence of features (L, D)
-        :rtype: tensor
+        :rtype: torch.Tensor
         :return: the sequence of stop probabilities (L)
-        :rtype: tensor
-        :return: the sequence of attetion weight (L, T)
-        :rtype: tensor
+        :rtype: torch.Tensor
+        :return: the sequence of attention weight (L, T)
+        :rtype: torch.Tensor
         """
         # setup
         assert len(h.size()) == 2
@@ -852,12 +852,12 @@ class Decoder(torch.nn.Module):
 
     def calculate_all_attentions(self, hs, hlens, ys):
         """
-        DECODER ATTENTION CALCULATION
+        Decoder attention calculation
 
         :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
         :param list hlens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
-        :return: attetion weights (B, Lmax, Tmax)
+        :return: attention weights (B, Lmax, Tmax)
         :rtype: numpy array
         """
         # length list should be list of int
@@ -914,7 +914,7 @@ class Decoder(torch.nn.Module):
 
 class CBHG(torch.nn.Module):
     """
-    CBHG MODULE TO CONVERT LOG MEL-FBANK TO LINEAR SPECTROGRAM
+    CBHG module to convert log mel-fbank to linear spectrogram
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
@@ -995,13 +995,13 @@ class CBHG(torch.nn.Module):
 
     def forward(self, xs, ilens):
         """
-        CBHG MODULE FORWARD
+        CBHG module forward
 
         :param torch.Tensor xs: batch of the sequences of inputs (B, Tmax, idim)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
         :return: batch of sequences of padded outputs (B, Tmax, eunits)
         :rtype: torch.Tensor
-        :return: batch of lenghts of each encoder states (B)
+        :return: batch of lengths of each encoder states (B)
         :rtype: list
         """
         xs = xs.transpose(1, 2)  # (B, idim, Tmax)
@@ -1036,7 +1036,7 @@ class CBHG(torch.nn.Module):
 
     def inference(self, x):
         """
-        CBHG MODULE INFERENCE
+        CBHG module inference
 
         :param torch.Tensor x: input (T, idim)
         :return: the sequence encoder states (T, odim)
@@ -1059,7 +1059,7 @@ class CBHG(torch.nn.Module):
 
 class HighwayNet(torch.nn.Module):
     """
-    HIGHWAY NETWORK
+    Highway Network
 
     :param int idim: dimension of the inputs
     """
@@ -1076,7 +1076,7 @@ class HighwayNet(torch.nn.Module):
 
     def forward(self, x):
         """
-        HIGHWAY NETWORK FORWARD
+        Highway Network forward
 
         :param torch.Tensor x: batch of inputs (B, *, idim)
         :return: batch of outputs (B, *, idim)
