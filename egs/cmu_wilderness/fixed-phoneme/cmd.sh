@@ -16,6 +16,6 @@
 
 # JHU setup
 export train_cmd="queue.pl --mem 2G"
-export cuda_cmd="queue.pl --mem 10G --gpu 1 --config conf/gpu.conf"
+export cuda_cmd="queue.pl --mem 14G --gpu 1 --config conf/gpu.conf"
 export big_cuda_cmd="queue.pl --mem 10G --gpu 1 --config conf/big_gpu.conf"
 export decode_cmd="queue.pl --mem 4G"

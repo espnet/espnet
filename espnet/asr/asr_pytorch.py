@@ -406,6 +406,9 @@ def train(args):
 
         model.load_state_dict(torch.load(args.pretrained_model,
                 map_location=lambda storage, loc: storage))
+        logging.info("===MODEL OBJECTIVE WEIGHTS===")
+        logging.info("mtlalpha: {}".format(model.mtlalpha))
+        logging.info("phoneme_objective_weight: {}".format(model.phoneme_objective_weight))
 
     else:
         # specify model architecture
