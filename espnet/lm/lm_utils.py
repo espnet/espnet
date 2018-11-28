@@ -20,7 +20,8 @@ from chainer.training import extension
 
 
 def read_tokens(filename, label_dict):
-    """Read tokens as a sequence of sentences
+    """
+    Read tokens as a sequence of sentences
 
     :param str filename : The name of the input file
     :param dict label_dict : dictionary that maps token label string to its ID number
@@ -37,7 +38,8 @@ def read_tokens(filename, label_dict):
 
 
 def count_tokens(data, unk_id=None):
-    """Count tokens and oovs in token ID sequences
+    """
+    Count tokens and oovs in token ID sequences
 
     :param list[np.ndarray] data: list of token ID sequences
     :param int unk_id: ID of unknown token '<unk>'
@@ -66,7 +68,8 @@ def compute_perplexity(result):
 
 
 class ParallelSentenceIterator(chainer.dataset.Iterator):
-    """Dataset iterator to create a batch of sentences.
+    """
+    Dataset iterator to create a batch of sentences.
 
        This iterator returns a pair of sentences, where one token is shifted
        between the sentences like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
@@ -166,7 +169,8 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
 
 
 class MakeSymlinkToBestModel(extension.Extension):
-    """Extension that makes a symbolic link to the best model
+    """
+    Extension that makes a symbolic link to the best model
 
     :param str key: Key of value
     :param str prefix: Prefix of model files and link target

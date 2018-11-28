@@ -7,7 +7,9 @@ from nets.pytorch.nets_utils import make_pad_mask, to_cuda
 
 
 class NoAtt(torch.nn.Module):
-    """No attention"""
+    """
+    No attention
+    """
 
     def __init__(self):
         super(NoAtt, self).__init__()
@@ -17,7 +19,9 @@ class NoAtt(torch.nn.Module):
         self.c = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -74,7 +78,9 @@ class AttDot(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -145,7 +151,9 @@ class AttAdd(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -230,7 +238,9 @@ class AttLoc(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -322,7 +332,9 @@ class AttCov(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -422,7 +434,9 @@ class AttLoc2D(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -526,7 +540,9 @@ class AttLocRec(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -636,7 +652,9 @@ class AttCovLoc(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
@@ -743,7 +761,9 @@ class AttMultiHeadDot(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -847,7 +867,9 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -958,7 +980,9 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -1086,7 +1110,9 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -1192,7 +1218,9 @@ class AttForward(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """reset states"""
+        """
+        reset states
+        """
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None

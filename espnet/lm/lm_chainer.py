@@ -65,7 +65,8 @@ class ClassifierWithState(link.Chain):
             self.predictor = predictor
 
     def __call__(self, state, *args, **kwargs):
-        """Computes the loss value for an input and label pair.
+        """
+        Computes the loss value for an input and label pair.
 
             When ``label_key`` is ``int``, the corresponding element in ``args``
             is treated as ground truth labels. And when it is ``str``, the
@@ -104,7 +105,8 @@ class ClassifierWithState(link.Chain):
         return state, self.loss
 
     def predict(self, state, x):
-        """Predict log probabilities for given state and input x using the predictor
+        """
+        Predict log probabilities for given state and input x using the predictor
 
         :param state : the state
         :param x : the input
@@ -118,7 +120,8 @@ class ClassifierWithState(link.Chain):
             return state, F.log_softmax(z).data
 
     def final(self, state):
-        """Predict final log probabilities for given state using the predictor
+        """
+        Predict final log probabilities for given state using the predictor
 
         :param state : the state
         :return log probability vector
