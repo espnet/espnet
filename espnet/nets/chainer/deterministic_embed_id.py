@@ -145,7 +145,8 @@ class EmbedIDGrad(function_node.FunctionNode):
 
 
 def embed_id(x, W, ignore_label=None):
-    """Efficient linear function for one-hot input.
+    """
+    Efficient linear function for one-hot input.
 
     This function implements so called *word embeddings*. It takes two
     arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
@@ -155,19 +156,11 @@ def embed_id(x, W, ignore_label=None):
 
     This function is only differentiable on the input ``W``.
 
-    Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Batch vectors of IDs. Each element must be signed integer.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Distributed representation of each ID (a.k.a. word embeddings).
-        ignore_label (:class:`int` or :class:`None`):
-            If ``ignore_label`` is an int value, ``i``-th column of return
-            value is filled with ``0``.
-
-    Returns:
-        ~chainer.Variable: Output variable.
+    :param chainer.Variable | np.ndarray x : Batch vectors of IDs. Each element must be signed integer
+    :param chainer.Variable | np.ndarray W : Distributed representation of each ID (a.k.a. word embeddings)
+    :param int ignore_label : If ignore_label is an int value, i-th column of return value is filled with 0
+    :return Output variable
+    :rtype chainer.Variable
 
     .. seealso:: :class:`~chainer.links.EmbedID`
 
@@ -195,20 +188,15 @@ def embed_id(x, W, ignore_label=None):
 
 
 class EmbedID(link.Link):
-    """Efficient linear layer for one-hot input.
+    """
+    Efficient linear layer for one-hot input.
 
     This is a link that wraps the :func:`~chainer.functions.embed_id` function.
     This link holds the ID (word) embedding matrix ``W`` as a parameter.
 
-    Args:
-        in_size (int): Number of different identifiers (a.k.a. vocabulary
-            size).
-        out_size (int): Size of embedding vector.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        ignore_label (int or None): If ``ignore_label`` is an int value,
-            ``i``-th column of return value is filled with ``0``.
+    :param int in_size: Number of different identifiers (a.k.a. vocabulary size)
+    :param int out_size: Initializer to initialize the weight. When it is np.ndarray, its ndim should be 2
+    :param int ignore_label: If `ignore_label` is an int value, i-th column of return value is filled with 0
 
     .. seealso:: :func:`~chainer.functions.embed_id`
 
@@ -247,7 +235,8 @@ class EmbedID(link.Link):
             self.W = variable.Parameter(initialW, (in_size, out_size))
 
     def __call__(self, x):
-        """Extracts the word embedding of given IDs.
+        """
+        Extracts the word embedding of given IDs.
 
         :param chainer.Variable x : Batch vectors of IDs
         :return Batch of corresponding embeddings

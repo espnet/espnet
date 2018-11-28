@@ -44,7 +44,9 @@ def text_to_sequence(text, cleaner_names):
 
 
 def sequence_to_text(sequence):
-    """Converts a sequence of IDs back to a string"""
+    """
+    Converts a sequence of IDs back to a string
+    """
     result = ''
     for symbol_id in sequence:
         if symbol_id in _id_to_symbol:

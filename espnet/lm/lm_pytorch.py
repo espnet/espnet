@@ -70,7 +70,8 @@ class ClassifierWithState(nn.Module):
         self.reporter = Reporter()
 
     def forward(self, state, *args, **kwargs):
-        """Computes the loss value for an input and label pair.az
+        """
+        Computes the loss value for an input and label pair.az
         It also computes accuracy and stores it to the attribute.
 
         When ``label_key`` is ``int``, the corresponding element in ``args``
@@ -111,7 +112,8 @@ class ClassifierWithState(nn.Module):
         return state, self.loss
 
     def predict(self, state, x):
-        """Predict log probabilities for given state and input x using the predictor
+        """
+        Predict log probabilities for given state and input x using the predictor
 
         :param torch.Tensor state : The current state
         :param torch.Tensor x : The input
@@ -139,7 +141,8 @@ class ClassifierWithState(nn.Module):
         return new_state, torch.cat(new_log_y)
 
     def final(self, state):
-        """Predict final log probabilities for given state using the predictor
+        """
+        Predict final log probabilities for given state using the predictor
 
         :param state: The state
         :return The final log probabilities

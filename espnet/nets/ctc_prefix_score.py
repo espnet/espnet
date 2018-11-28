@@ -41,7 +41,8 @@ class CTCPrefixScoreTH(object):
         return x.cuda(self.device_id)
 
     def initial_state(self):
-        """Obtain an initial CTC state
+        """
+        Obtain an initial CTC state
 
         :return: CTC state
         """
@@ -63,7 +64,8 @@ class CTCPrefixScoreTH(object):
         return r
 
     def __call__(self, y, r_prev, last=None):
-        """Compute CTC prefix scores for next labels
+        """
+        Compute CTC prefix scores for next labels
 
         :param y     : prefix label sequence
         :param r_prev: previous CTC state
@@ -125,7 +127,8 @@ class CTCPrefixScore(object):
         self.x = x
 
     def initial_state(self):
-        """Obtain an initial CTC state
+        """
+        Obtain an initial CTC state
 
         :return: CTC state
         """
@@ -139,7 +142,8 @@ class CTCPrefixScore(object):
         return r
 
     def __call__(self, y, cs, r_prev):
-        """Compute CTC prefix scores for next labels
+        """
+        Compute CTC prefix scores for next labels
 
         :param y     : prefix label sequence
         :param cs    : array of next labels

@@ -32,7 +32,8 @@ def decoder_init(m):
 
 
 def make_non_pad_mask(lengths):
-    """FUNCTION TO MAKE MASK TENSOR CONTAINING INDICES OF NON-PADDED PART
+    """
+    FUNCTION TO MAKE MASK TENSOR CONTAINING INDICES OF NON-PADDED PART
 
     e.g.: lengths = [5, 3, 2]
           mask = [[1, 1, 1, 1 ,1],
@@ -58,7 +59,8 @@ class Reporter(chainer.Chain):
 
 
 class ZoneOutCell(torch.nn.Module):
-    """ZONEOUT CELL
+    """
+    ZONEOUT CELL
 
     This code is modified from https://github.com/eladhoffer/seq2seq.pytorch
 
@@ -95,7 +97,8 @@ class ZoneOutCell(torch.nn.Module):
 
 
 class Tacotron2Loss(torch.nn.Module):
-    """TACOTRON2 LOSS FUNCTION
+    """
+    TACOTRON2 LOSS FUNCTION
 
     :param torch.nn.Module model: tacotron2 model
     :param bool use_masking: whether to mask padded part in loss calculation
@@ -116,7 +119,8 @@ class Tacotron2Loss(torch.nn.Module):
         self.reporter = Reporter()
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
-        """TACOTRON2 LOSS FORWARD CALCULATION
+        """
+        TACOTRON2 LOSS FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
@@ -192,7 +196,8 @@ class Tacotron2Loss(torch.nn.Module):
 
 
 class Tacotron2(torch.nn.Module):
-    """TACOTRON2 BASED SEQ2SEQ MODEL CONVERTS CHARS TO FEATURES
+    """
+    TACOTRON2 BASED SEQ2SEQ MODEL CONVERTS CHARS TO FEATURES
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
@@ -349,7 +354,8 @@ class Tacotron2(torch.nn.Module):
         self.dec.apply(decoder_init)
 
     def forward(self, xs, ilens, ys, olens=None, spembs=None):
-        """TACOTRON2 FORWARD CALCULATION
+        """
+        TACOTRON2 FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
@@ -384,7 +390,8 @@ class Tacotron2(torch.nn.Module):
             return after_outs, before_outs, logits
 
     def inference(self, x, inference_args, spemb=None):
-        """GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
+        """
+        GENERATE THE SEQUENCE OF FEATURES FROM THE SEQUENCE OF CHARACTERS
 
         :param tensor x: the sequence of characters (T)
         :param namespace inference_args: argments containing following attributes
@@ -418,7 +425,8 @@ class Tacotron2(torch.nn.Module):
             return outs, probs, att_ws
 
     def calculate_all_attentions(self, xs, ilens, ys, spembs=None):
-        """TACOTRON2 FORWARD CALCULATION
+        """
+        TACOTRON2 FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
@@ -444,7 +452,8 @@ class Tacotron2(torch.nn.Module):
 
 
 class Encoder(torch.nn.Module):
-    """CHARACTER EMBEDDING ENCODER
+    """
+    CHARACTER EMBEDDING ENCODER
 
     This is the encoder which converts the sequence of characters into
     the sequence of hidden states. The newtwork structure is based on
@@ -511,7 +520,8 @@ class Encoder(torch.nn.Module):
             bidirectional=True)
 
     def forward(self, xs, ilens):
-        """CHARACTER ENCODER FORWARD CALCULATION
+        """
+        CHARACTER ENCODER FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each batch (B)
@@ -534,7 +544,8 @@ class Encoder(torch.nn.Module):
         return xs, hlens
 
     def inference(self, x):
-        """CHARACTER ENCODER INFERENCE
+        """
+        CHARACTER ENCODER INFERENCE
 
         :param torch.Tensor x: the sequence of character ids (T)
         :return: the sequence encoder states (T, eunits)
@@ -548,7 +559,8 @@ class Encoder(torch.nn.Module):
 
 
 class Decoder(torch.nn.Module):
-    """DECODER TO PREDICT THE SEQUENCE OF FEATURES
+    """
+    DECODER TO PREDICT THE SEQUENCE OF FEATURES
 
     This the decoder which generate the sequence of features from
     the sequence of the hidden states. The network structure is
@@ -682,7 +694,8 @@ class Decoder(torch.nn.Module):
         return init_hs
 
     def forward(self, hs, hlens, ys):
-        """DECODER FORWARD CALCULATION
+        """
+        DECODER FORWARD CALCULATION
 
         :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
         :param list hlens: list of lengths of each input batch (B)
@@ -756,7 +769,8 @@ class Decoder(torch.nn.Module):
         return after_outs, before_outs, logits
 
     def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0):
-        """GENERATE THE SEQUENCE OF FEATURES FROM ENCODER HIDDEN STATES
+        """
+        GENERATE THE SEQUENCE OF FEATURES FROM ENCODER HIDDEN STATES
 
         :param tensor h: the sequence of encoder states (T, C)
         :param float threshold: threshold in inference
@@ -837,7 +851,8 @@ class Decoder(torch.nn.Module):
         return outs, probs, att_ws
 
     def calculate_all_attentions(self, hs, hlens, ys):
-        """DECODER ATTENTION CALCULATION
+        """
+        DECODER ATTENTION CALCULATION
 
         :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
         :param list hlens: list of lengths of each input batch (B)
@@ -898,7 +913,8 @@ class Decoder(torch.nn.Module):
 
 
 class CBHG(torch.nn.Module):
-    """CBHG MODULE TO CONVERT LOG MEL-FBANK TO LINEAR SPECTROGRAM
+    """
+    CBHG MODULE TO CONVERT LOG MEL-FBANK TO LINEAR SPECTROGRAM
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
@@ -978,7 +994,8 @@ class CBHG(torch.nn.Module):
         self.output = torch.nn.Linear(gru_units, odim, bias=True)
 
     def forward(self, xs, ilens):
-        """CBHG MODULE FORWARD
+        """
+        CBHG MODULE FORWARD
 
         :param torch.Tensor xs: batch of the sequences of inputs (B, Tmax, idim)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
@@ -1018,7 +1035,8 @@ class CBHG(torch.nn.Module):
         return xs, ilens
 
     def inference(self, x):
-        """CBHG MODULE INFERENCE
+        """
+        CBHG MODULE INFERENCE
 
         :param torch.Tensor x: input (T, idim)
         :return: the sequence encoder states (T, odim)
@@ -1040,7 +1058,8 @@ class CBHG(torch.nn.Module):
 
 
 class HighwayNet(torch.nn.Module):
-    """HIGHWAY NETWORK
+    """
+    HIGHWAY NETWORK
 
     :param int idim: dimension of the inputs
     """
@@ -1056,7 +1075,8 @@ class HighwayNet(torch.nn.Module):
             torch.nn.Sigmoid())
 
     def forward(self, x):
-        """HIGHWAY NETWORK FORWARD
+        """
+        HIGHWAY NETWORK FORWARD
 
         :param torch.Tensor x: batch of inputs (B, *, idim)
         :return: batch of outputs (B, *, idim)

@@ -57,7 +57,8 @@ class Reporter(chainer.Chain):
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    """Multi-task learning loss module
+    """
+    Multi-task learning loss module
 
     :param torch.nn.Module predictor: E2E model instance
     :param float mtlalpha: mtl coefficient value (0.0 ~ 1.0)
