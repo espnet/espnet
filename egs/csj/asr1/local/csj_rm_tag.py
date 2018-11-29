@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -18,7 +18,7 @@ if __name__ == '__main__':
         f = open(args.text)
     else:
         f = sys.stdin
-        
+
     line = f.readline()
     while line:
         x = unicode(line, 'utf_8').split()
