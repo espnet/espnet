@@ -88,13 +88,13 @@ eval_data=/export/corpora/LDC/LDC2001S91
 dev_list=dev.list
 
 
-if [ $stage -le 0 ]; then
+if [ ${stage} -le 0 ]; then
   # Eval dataset preparation
   # prepare_data.sh does not really care about the order or number of the
   # corpus directories
   local/prepare_data.sh \
-    $eval_data/HUB4_1997NE/doc/h4ne97sp.sgm \
-    $eval_data/HUB4_1997NE/h4ne_sp/h4ne97sp.sph data/eval
+    ${eval_data}/HUB4_1997NE/doc/h4ne97sp.sgm \
+    ${eval_data}/HUB4_1997NE/h4ne_sp/h4ne97sp.sph data/eval
   local/prepare_test_text.pl \
     "<unk>" data/eval/text > data/eval/text.clean
   mv data/eval/text data/eval/text.old
@@ -102,7 +102,7 @@ if [ $stage -le 0 ]; then
   utils/fix_data_dir.sh data/eval
 
   ## Training dataset preparation
-  local/prepare_data.sh $audio_data $transcript_data data/train
+  local/prepare_data.sh ${audio_data} ${transcript_data} data/train
   local/prepare_training_text.pl \
     "<unk>" data/train/text > data/train/text.clean
   mv data/train/text data/train/text.old
@@ -113,7 +113,7 @@ if [ $stage -le 0 ]; then
   # num_dev=$(cat data/eval/segments | wc -l)
   # ./utils/subset_data_dir.sh data/train ${num_dev} data/dev
 
-  ./utils/subset_data_dir.sh --utt-list $dev_list data/train data/dev
+  ./utils/subset_data_dir.sh --utt-list ${dev_list} data/train data/dev
 
   mv data/train data/train.tmp
   mkdir -p data/train
@@ -148,13 +148,13 @@ if [ ${stage} -le 1 ]; then
         /export/b{10,11,12,13}/${USER}/espnet-data/egs/hub4_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
