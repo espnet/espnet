@@ -50,7 +50,9 @@ class Loss(chainer.Chain):
     def __call__(self, xs, ilens, ys):
         """Loss forward
 
-        :param x:
+        :param xs:
+        :param ilens:
+        :param ys:
         :return:
         """
         self.loss = None
@@ -126,7 +128,9 @@ class E2E(chainer.Chain):
     def __call__(self, xs, ilens, ys):
         """E2E forward
 
-        :param data:
+        :param xs:
+        :param ilens:
+        :param ys:
         :return:
         """
         # 1. encoder

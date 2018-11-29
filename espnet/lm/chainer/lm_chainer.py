@@ -65,8 +65,8 @@ class ClassifierWithState(link.Chain):
 
     def __call__(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.
-            It also computes accuracy and stores it to the attribute.
 
+            It also computes accuracy and stores it to the attribute.
             When ``label_key`` is ``int``, the corresponding element in ``args``
             is treated as ground truth labels. And when it is ``str``, the
             element in ``kwargs`` is used.
