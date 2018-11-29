@@ -107,10 +107,10 @@ def main():
     # recog
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        fromespnet.lmchainer.asr_chainer import recog
+        from espnet.lmchainer.asr_chainer import recog
         recog(args)
     elif args.backend == "pytorch":
-        fromespnet.lmpytorch.asr_pytorch import recog
+        from espnet.lmpytorch.asr_pytorch import recog
         recog(args)
     else:
         raise ValueError("Only chainer and pytorch are supported.")
