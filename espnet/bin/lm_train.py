@@ -114,7 +114,7 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from espnet.lm.chainer.lm_chainer import train
+        from espnet.lm.chain.lm_chainer import train
         train(args)
     elif args.backend == "pytorch":
         from espnet.lm.pytorch.lm_pytorch import train

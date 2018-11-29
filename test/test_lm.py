@@ -1,7 +1,7 @@
 import chainer
 import torch
 
-import espnet.lm.chainer.lm_chainer as lm_chainer
+import espnet.lm.chain.lm_chainer as lm_chainer
 import espnet.lm.pytorch.lm_pytorch as lm_pytorch
 
 

@@ -212,7 +212,7 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from espnet.asr.chainer.asr_chainer import train
+        from espnet.asr.chain.asr_chainer import train
         train(args)
     elif args.backend == "pytorch":
         from espnet.asr.pytorch.asr_pytorch import train

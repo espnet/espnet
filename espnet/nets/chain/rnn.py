@@ -8,7 +8,7 @@ import numpy as np
 
 from chainer import cuda
 
-from espnet.nets.chainer.nets_utils import _subsamplex
+from espnet.nets.chain.nets_utils import _subsamplex
 
 
 # TODO(watanabe) explanation of BLSTMP

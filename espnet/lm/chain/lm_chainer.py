@@ -34,7 +34,7 @@ from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 
-import espnet.nets.chainer.deterministic_embed_id as DL
+import espnet.nets.chain.deterministic_embed_id as DL
 
 REPORT_INTERVAL = 100
 

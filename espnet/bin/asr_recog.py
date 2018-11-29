@@ -107,7 +107,7 @@ def main():
     # recog
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from espnet.asr.chainer.asr_chainer import recog
+        from espnet.asr.chain.asr_chainer import recog
         recog(args)
     elif args.backend == "pytorch":
         from espnet.asr.pytorch.asr_pytorch import recog
