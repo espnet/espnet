@@ -20,12 +20,12 @@ import chainer.links as L
 
 from chainer import reporter
 
-from espnet.nets.chainer.attentions import att_for_args
-from espnet.nets.chainer.ctc import ctc_for_args
-import espnet.nets.chainer.deterministic_embed_id as DL
-from espnet.nets.chainer.rnn import BLSTM
-from espnet.nets.chainer.rnn import BLSTMP
-from espnet.nets.chainer.rnn import VGG2L
+from espnet.nets.chain.attentions import att_for_args
+from espnet.nets.chain.ctc import ctc_for_args
+import espnet.nets.chain.deterministic_embed_id as DL
+from espnet.nets.chain.rnn import BLSTM
+from espnet.nets.chain.rnn import BLSTMP
+from espnet.nets.chain.rnn import VGG2L
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.e2e_asr_common import get_vgg2l_odim

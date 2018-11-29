@@ -4,7 +4,7 @@ espnet nets package
 e2e_asr module
 ---------------------------
 
-.. automodule:: espnet.nets.chainer.e2e_asr
+.. automodule:: espnet.nets.chain.e2e_asr
     :members:
     :undoc-members:
     :show-inheritance:
