@@ -43,8 +43,8 @@ from espnet.nets.chainer.e2e_asr import Loss
 import kaldi_io_py
 
 # rnnlm
-import lm.chainer.extlm_chainer as extlm_chainer
-import lm.chainer.lm_chainer as lm_chainer
+importespnet.lmchainer.extlm_chainer as extlm_chainer
+importespnet.lmchainer.lm_chainer as lm_chainer
 
 # numpy related
 import matplotlib
