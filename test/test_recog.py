@@ -58,10 +58,10 @@ def init_chainer_weight_const(m, val):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.e2e_asr", 0),
-    ("blstmp", "espnet.nets.e2e_asr_th", 1),
-    ("vggblstmp", "espnet.nets.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.e2e_asr_th", 3),
+    ("blstmp", "espnet.nets.chainer.e2e_asr", 0),
+    ("blstmp", "espnet.nets.pytorch.e2e_asr_th", 1),
+    ("vggblstmp", "espnet.nets.chainer.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.pytorch.e2e_asr_th", 3),
 ])
 def test_recognition_results(etype, m_str, text_idx1):
     const = 1e-4
@@ -100,10 +100,10 @@ def test_recognition_results(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.e2e_asr", 0),
-    ("blstmp", "espnet.nets.e2e_asr_th", 1),
-    ("vggblstmp", "espnet.nets.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.e2e_asr_th", 3),
+    ("blstmp", "espnet.nets.chainer.e2e_asr", 0),
+    ("blstmp", "espnet.nets.pytorch.e2e_asr_th", 1),
+    ("vggblstmp", "espnet.nets.chainer.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.pytorch.e2e_asr_th", 3),
 ])
 def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
@@ -149,10 +149,10 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str"), [
-    ("blstmp", "espnet.nets.e2e_asr"),
-    ("blstmp", "espnet.nets.e2e_asr_th"),
-    ("vggblstmp", "espnet.nets.e2e_asr"),
-    ("vggblstmp", "espnet.nets.e2e_asr_th"),
+    ("blstmp", "espnet.nets.chainer.e2e_asr"),
+    ("blstmp", "espnet.nets.pytorch.e2e_asr_th"),
+    ("vggblstmp", "espnet.nets.chainer.e2e_asr"),
+    ("vggblstmp", "espnet.nets.pytorch.e2e_asr_th"),
 ])
 def test_batch_beam_search(etype, m_str):
     const = 1e-4
