@@ -1,8 +1,8 @@
+import logging
+import numpy as np
 import torch
 import torch.nn.functional as F
-import logging
 import warpctc_pytorch as warp_ctc
-import numpy as np
 
 from nets.pytorch.nets_utils_th import to_cuda
 

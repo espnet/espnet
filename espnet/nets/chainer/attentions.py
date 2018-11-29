@@ -1,13 +1,14 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
-from espnet.nets.chainer.nets_utils import linear_tensor
-import numpy as np
+
 import logging
+import numpy as np
 import sys
 
+from espnet.nets.chainer.nets_utils import linear_tensor
 
-# ------------- Attention Network --------------------------------------------------------------------------------------
+
 # dot product based attention
 class AttDot(chainer.Chain):
     def __init__(self, eprojs, dunits, att_dim):

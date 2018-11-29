@@ -1,11 +1,14 @@
+import logging
+import six
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
-import six
-import logging
-from espnet.nets.chainer.nets_utils import _subsamplex
 import numpy as np
+
 from chainer import cuda
+
+from espnet.nets.chainer.nets_utils import _subsamplex
 
 
 # TODO(watanabe) explanation of BLSTMP

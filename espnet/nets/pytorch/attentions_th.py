@@ -1,9 +1,11 @@
+import math
+import six
+
 import torch
 import torch.nn.functional as F
-import six
-import math
 
-from espnet.nets.pytorch.nets_utils_th import make_pad_mask, to_cuda
+from espnet.nets.pytorch.nets_utils_th import make_pad_mask
+from espnet.nets.pytorch.nets_utils_th import to_cuda
 
 
 class NoAtt(torch.nn.Module):

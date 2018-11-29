@@ -1,9 +1,11 @@
-import torch
-import six
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import logging
+import six
+
 import numpy as np
+import torch
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pack_padded_sequence
+from torch.nn.utils.rnn import pad_packed_sequence
 
 
 class BLSTMP(torch.nn.Module):
