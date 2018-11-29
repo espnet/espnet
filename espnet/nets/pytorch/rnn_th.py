@@ -7,8 +7,7 @@ import torch.nn.functional as F
 
 
 class BLSTMP(torch.nn.Module):
-    """
-    Bidirectional LSTM with projection layer module
+    """Bidirectional LSTM with projection layer module
 
     :param int idim: dimension of inputs
     :param int elayers: number of encoder layers
@@ -35,8 +34,7 @@ class BLSTMP(torch.nn.Module):
         self.subsample = subsample
 
     def forward(self, xs_pad, ilens):
-        """
-        BLSTMP forward
+        """BLSTMP forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -64,8 +62,7 @@ class BLSTMP(torch.nn.Module):
 
 
 class BLSTM(torch.nn.Module):
-    """
-    Bidirectional LSTM module
+    """Bidirectional LSTM module
 
     :param int idim: dimension of inputs
     :param int elayers: number of encoder layers
@@ -81,8 +78,7 @@ class BLSTM(torch.nn.Module):
         self.l_last = torch.nn.Linear(cdim * 2, hdim)
 
     def forward(self, xs_pad, ilens):
-        """
-        BLSTM forward
+        """BLSTM forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -103,8 +99,7 @@ class BLSTM(torch.nn.Module):
 
 
 class VGG2L(torch.nn.Module):
-    """
-    VGG-like module
+    """VGG-like module
 
     :param int in_channel: number of input channels
     """
@@ -120,8 +115,7 @@ class VGG2L(torch.nn.Module):
         self.in_channel = in_channel
 
     def forward(self, xs_pad, ilens):
-        """
-        VGG2L forward
+        """VGG2L forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)

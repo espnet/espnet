@@ -39,8 +39,7 @@ REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
-    """
-    Custom Evaluator for Tacotron2 training
+    """Custom Evaluator for Tacotron2 training
 
     :param torch.nn.Model model : The model to evaluate
     :param chainer.dataset.Iterator iterator : The validation iterator
@@ -85,8 +84,7 @@ class CustomEvaluator(extensions.Evaluator):
 
 
 class CustomUpdater(training.StandardUpdater):
-    """
-    Custom updater for Tacotron2 training
+    """Custom updater for Tacotron2 training
 
     :param torch.nn.Module model: The model to update
     :param float grad_clip : The gradient clipping value to use
@@ -130,8 +128,7 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
-    """
-    Custom converter for Tacotron2 training
+    """Custom converter for Tacotron2 training
 
     :param bool return_targets:
     :param bool use_speaker_embedding:
@@ -193,8 +190,8 @@ class CustomConverter(object):
 
 
 def train(args):
-    """
-    Train with the given args
+    """Train with the given args
+
     :param namespace args: The program arguments
     """
     # seed setting
@@ -366,8 +363,8 @@ def train(args):
 
 
 def decode(args):
-    """
-    Decode with the given args
+    """Decode with the given args
+
     :param namespace args: The program arguments
     """
     # read training config

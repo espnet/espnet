@@ -14,8 +14,7 @@ _curly_re = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
 
 def text_to_sequence(text, cleaner_names):
-    """
-    Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
+    """Converts a string of text to a sequence of IDs corresponding to the symbols in the text.
 
     The text can optionally have ARPAbet sequences enclosed in curly braces embedded
     in it. For example, "Turn left on {HH AW1 S S T AH0 N} Street."
@@ -43,9 +42,7 @@ def text_to_sequence(text, cleaner_names):
 
 
 def sequence_to_text(sequence):
-    """
-    Converts a sequence of IDs back to a string
-    """
+    """Converts a sequence of IDs back to a string"""
     result = ''
     for symbol_id in sequence:
         if symbol_id in _id_to_symbol:

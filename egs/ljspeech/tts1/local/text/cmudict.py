@@ -16,8 +16,7 @@ _valid_symbol_set = set(valid_symbols)
 
 
 class CMUDict:
-    """
-    Thin wrapper around CMUDict data. http://www.speech.cs.cmu.edu/cgi-bin/cmudict
+    """Thin wrapper around CMUDict data. http://www.speech.cs.cmu.edu/cgi-bin/cmudict
     """
 
     def __init__(self, file_or_path, keep_ambiguous=True):
@@ -34,9 +33,7 @@ class CMUDict:
         return len(self._entries)
 
     def lookup(self, word):
-        """
-        Returns list of ARPAbet pronunciations of the given word.
-        """
+        """Returns list of ARPAbet pronunciations of the given word."""
         return self._entries.get(word.upper())
 
 

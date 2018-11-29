@@ -24,8 +24,7 @@ class AttDot(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def reset(self):
-        """
-        reset states
+        """reset states
 
         :return:
         """
@@ -34,8 +33,7 @@ class AttDot(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        """
-        AttDot forward
+        """AttDot forward
 
         :param enc_hs:
         :param dec_z:
@@ -93,8 +91,7 @@ class AttLoc(chainer.Chain):
         self.aconv_chans = aconv_chans
 
     def reset(self):
-        """
-        reset states
+        """reset states
 
         :return:
         """
@@ -103,8 +100,7 @@ class AttLoc(chainer.Chain):
         self.pre_compute_enc_h = None
 
     def __call__(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        """
-        AttLoc forward
+        """AttLoc forward
 
         :param enc_hs:
         :param dec_z:
@@ -172,8 +168,7 @@ class NoAtt(chainer.Chain):
         self.c = None
 
     def reset(self):
-        """
-        reset states
+        """reset states
 
         :return:
         """
@@ -183,8 +178,7 @@ class NoAtt(chainer.Chain):
         self.c = None
 
     def __call__(self, enc_hs, dec_z, att_prev):
-        """
-        NoAtt forward
+        """NoAtt forward
 
         :param enc_hs:
         :param dec_z: dummy
@@ -208,8 +202,8 @@ class NoAtt(chainer.Chain):
 
 
 def att_for_args(args):
-    """
-    Returns an attention given the program arguments
+    """Returns an attention given the program arguments
+
     :param namespace args: the arguments
     :return: The corresponding attention module
     :rtype chainer.Chain

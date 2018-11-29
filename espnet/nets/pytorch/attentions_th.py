@@ -3,13 +3,11 @@ import torch.nn.functional as F
 import six
 import math
 
-from nets.pytorch.nets_utils_th import make_pad_mask, to_cuda
+from espnet.nets.pytorch.nets_utils_th import make_pad_mask, to_cuda
 
 
 class NoAtt(torch.nn.Module):
-    """
-    No attention
-    """
+    """No attention"""
 
     def __init__(self):
         super(NoAtt, self).__init__()
@@ -19,17 +17,14 @@ class NoAtt(torch.nn.Module):
         self.c = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.c = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        """
-        NoAtt forward
+        """NoAtt forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, T_max, D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -58,8 +53,7 @@ class NoAtt(torch.nn.Module):
 
 
 class AttDot(torch.nn.Module):
-    """
-    Dot product attention
+    """Dot product attention
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -80,17 +74,14 @@ class AttDot(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        """
-        AttDot forward
+        """AttDot forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -133,8 +124,7 @@ class AttDot(torch.nn.Module):
 
 
 class AttAdd(torch.nn.Module):
-    """
-    Additive attention
+    """Additive attention
 
     :param int eprojs: # projection-units of encoder
     :param int dunits: # units of decoder
@@ -155,17 +145,14 @@ class AttAdd(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        """
-        AttLoc forward
+        """AttLoc forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -213,8 +200,7 @@ class AttAdd(torch.nn.Module):
 
 
 class AttLoc(torch.nn.Module):
-    """
-    location-aware attention
+    """location-aware attention
 
     Reference: Attention-Based Models for Speech Recognition
         (https://arxiv.org/pdf/1506.07503.pdf)
@@ -244,17 +230,14 @@ class AttLoc(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        """
-        AttLoc forward
+        """AttLoc forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -313,8 +296,7 @@ class AttLoc(torch.nn.Module):
 
 
 class AttCov(torch.nn.Module):
-    """
-    Coverage mechanism attention
+    """Coverage mechanism attention
 
     Reference: Get To The Point: Summarization with Pointer-Generator Network
        (https://arxiv.org/abs/1704.04368)
@@ -340,17 +322,14 @@ class AttCov(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
-        """
-        AttCov forward
+        """AttCov forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -410,8 +389,7 @@ class AttCov(torch.nn.Module):
 
 
 class AttLoc2D(torch.nn.Module):
-    """
-    2D location-aware attention
+    """2D location-aware attention
 
     This attention is an extended version of location aware attention.
     It take not only one frame before attention weights, but also earlier frames into account.
@@ -444,17 +422,14 @@ class AttLoc2D(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        """
-        AttLoc2D forward
+        """AttLoc2D forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -521,8 +496,7 @@ class AttLoc2D(torch.nn.Module):
 
 
 class AttLocRec(torch.nn.Module):
-    """
-    location-aware recurrent attention
+    """location-aware recurrent attention
 
     This attention is an extended version of location aware attention.
     With the use of RNN, it take the effect of the history of attention weights into account.
@@ -552,17 +526,14 @@ class AttLocRec(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_states, scaling=2.0):
-        """
-        AttLocRec forward
+        """AttLocRec forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -635,8 +606,7 @@ class AttLocRec(torch.nn.Module):
 
 
 class AttCovLoc(torch.nn.Module):
-    """
-    Coverage mechanism location aware attention
+    """Coverage mechanism location aware attention
 
     This attention is a combination of coverage and location-aware attentions.
 
@@ -666,17 +636,14 @@ class AttCovLoc(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev_list, scaling=2.0):
-        """
-        AttCovLoc forward
+        """AttCovLoc forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -741,8 +708,7 @@ class AttCovLoc(torch.nn.Module):
 
 
 class AttMultiHeadDot(torch.nn.Module):
-    """
-    Multi head dot product attention
+    """Multi head dot product attention
 
     Reference: Attention is all you need
         (https://arxiv.org/abs/1706.03762)
@@ -777,9 +743,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -787,8 +751,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        """
-        AttMultiHeadDot forward
+        """AttMultiHeadDot forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -845,8 +808,7 @@ class AttMultiHeadDot(torch.nn.Module):
 
 
 class AttMultiHeadAdd(torch.nn.Module):
-    """
-    Multi head additive attention
+    """Multi head additive attention
 
     Reference: Attention is all you need
         (https://arxiv.org/abs/1706.03762)
@@ -885,9 +847,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -895,8 +855,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        """
-        AttMultiHeadAdd forward
+        """AttMultiHeadAdd forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -953,8 +912,7 @@ class AttMultiHeadAdd(torch.nn.Module):
 
 
 class AttMultiHeadLoc(torch.nn.Module):
-    """
-    Multi head location based attention
+    """Multi head location based attention
 
     Reference: Attention is all you need
         (https://arxiv.org/abs/1706.03762)
@@ -1000,9 +958,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -1010,8 +966,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
-        """
-        AttMultiHeadLoc forward
+        """AttMultiHeadLoc forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -1081,8 +1036,7 @@ class AttMultiHeadLoc(torch.nn.Module):
 
 
 class AttMultiHeadMultiResLoc(torch.nn.Module):
-    """
-    Multi head multi resolution location based attention
+    """Multi head multi resolution location based attention
 
     Reference: Attention is all you need
         (https://arxiv.org/abs/1706.03762)
@@ -1132,9 +1086,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_k = None
@@ -1142,8 +1094,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
-        """
-        AttMultiHeadMultiResLoc forward
+        """AttMultiHeadMultiResLoc forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -1212,8 +1163,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
 
 class AttForward(torch.nn.Module):
-    """
-    Forward attention
+    """Forward attention
 
     Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
         (https://arxiv.org/pdf/1807.06736.pdf)
@@ -1242,17 +1192,14 @@ class AttForward(torch.nn.Module):
         self.mask = None
 
     def reset(self):
-        """
-        reset states
-        """
+        """reset states"""
         self.h_length = None
         self.enc_h = None
         self.pre_compute_enc_h = None
         self.mask = None
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=1.0):
-        """
-        AttForward forward
+        """AttForward forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -1317,8 +1264,7 @@ class AttForward(torch.nn.Module):
 
 
 class AttForwardTA(torch.nn.Module):
-    """
-    Forward attention with transition agent
+    """Forward attention with transition agent
 
     Reference: Forward attention in sequence-to-sequence acoustic modeling for speech synthesis
         (https://arxiv.org/pdf/1807.06736.pdf)
@@ -1357,8 +1303,7 @@ class AttForwardTA(torch.nn.Module):
         self.trans_agent_prob = 0.5
 
     def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, out_prev, scaling=1.0):
-        """
-        AttForwardTA forward
+        """AttForwardTA forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, Tmax, eunits)
         :param list enc_hs_len: padded encoder hidden state length (B)
@@ -1428,8 +1373,8 @@ class AttForwardTA(torch.nn.Module):
 
 
 def att_for_args(args):
-    """
-    Instantiates an attention module given the program arguments
+    """Instantiates an attention module given the program arguments
+
     :param namespace args: The arguments
     :rtype torch.nn.Module
     :return: The attention module
@@ -1473,8 +1418,8 @@ def att_for_args(args):
 
 
 def att_to_numpy(att_ws, att):
-    """
-    Converts attention weights to a numpy array given the attention
+    """Converts attention weights to a numpy array given the attention
+
     :param list att_ws: The attention weights
     :param torch.nn.Module att: The attention
     :rtype: np.ndarray

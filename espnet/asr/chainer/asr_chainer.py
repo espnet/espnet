@@ -68,9 +68,7 @@ def sum_sqnorm(arr):
 
 
 class CustomUpdater(training.StandardUpdater):
-    """
-    Custom updater for chainer
-    """
+    """Custom updater for chainer"""
 
     def __init__(self, train_iter, optimizer, converter, device):
         super(CustomUpdater, self).__init__(
@@ -103,9 +101,7 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
-    """
-    Custom parallel updater for chainer
-    """
+    """Custom parallel updater for chainer"""
 
     def __init__(self, train_iters, optimizer, converter, devices):
         super(CustomParallelUpdater, self).__init__(
@@ -160,8 +156,8 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
 
 class CustomConverter(object):
-    """
-    Custom Converter
+    """Custom Converter
+
     :param int subsampling_factor : The subsampling factor
     """
 
@@ -195,8 +191,8 @@ class CustomConverter(object):
 
 
 def train(args):
-    """
-    Train with the given args
+    """Train with the given args
+
     :param namespace args: The program arguments
     """
     # display chainer version
@@ -449,8 +445,8 @@ def train(args):
 
 
 def recog(args):
-    """
-    Decode with the given args
+    """Decode with the given args
+
     :param namespace args: The program arguments
     """
     # display chainer version

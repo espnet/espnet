@@ -33,8 +33,7 @@ matplotlib.use('Agg')
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, min_batch_size=1):
-    """
-    Make batch set from json dictionary
+    """Make batch set from json dictionary
 
     :param dict data: dictionary loaded from data.json
     :param int batch_size: batch size
@@ -88,8 +87,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
 
 
 def load_inputs_and_targets(batch):
-    """
-    Function to load inputs and targets from list of dicts
+    """Function to load inputs and targets from list of dicts
 
     :param list batch: list of dict which is subset of loaded data.json
     :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
@@ -118,8 +116,7 @@ def load_inputs_and_targets(batch):
 
 # * -------------------- chainer extension related -------------------- *
 class CompareValueTrigger(object):
-    """
-    Trigger invoked when key value getting bigger or lower than before
+    """Trigger invoked when key value getting bigger or lower than before
 
     :param str key : Key of value
     :param function compare_fn : Function to compare the values
@@ -162,8 +159,7 @@ class CompareValueTrigger(object):
 
 
 class PlotAttentionReport(extension.Extension):
-    """
-    Plot attention reporter
+    """Plot attention reporter
 
     :param function att_vis_fn: function of attention visualization
     :param list data: list json utt key items
@@ -220,9 +216,7 @@ class PlotAttentionReport(extension.Extension):
 
 
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
-    """
-    Extension to restore snapshot
-    """
+    """Extension to restore snapshot"""
 
     @training.make_extension(trigger=(1, 'epoch'))
     def restore_snapshot(trainer):
@@ -237,9 +231,7 @@ def _restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
 
 
 def adadelta_eps_decay(eps_decay):
-    """
-    Extension to perform adadelta eps decay
-    """
+    """Extension to perform adadelta eps decay"""
 
     @training.make_extension(trigger=(1, 'epoch'))
     def adadelta_eps_decay(trainer):
@@ -264,9 +256,7 @@ def _adadelta_eps_decay(trainer, eps_decay):
 
 def torch_snapshot(savefun=torch.save,
                    filename='snapshot.ep.{.updater.epoch}'):
-    """
-    Returns a trainer extension to take snapshots of the trainer for pytorch.
-    """
+    """Returns a trainer extension to take snapshots of the trainer for pytorch."""
 
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def torch_snapshot(trainer):
@@ -346,8 +336,7 @@ class AttributeDict(object):
 
 
 def get_model_conf(model_path, conf_path=None):
-    """
-    Get model config information by reading a model config file (model.json)
+    """Get model config information by reading a model config file (model.json)
 
     :param str model_path: model path
     :param str conf_path: optional model config path
@@ -363,8 +352,7 @@ def get_model_conf(model_path, conf_path=None):
 
 
 def chainer_load(path, model):
-    """
-    Function to load chainer model parameters
+    """Function to load chainer model parameters
 
     :param str path: model file or snapshot file to be loaded
     :param chainer.Chain model: chainer model
@@ -376,8 +364,7 @@ def chainer_load(path, model):
 
 
 def torch_save(path, model):
-    """
-    Function to save torch model states
+    """Function to save torch model states
 
     :param str path: file path to be saved
     :param torch.nn.Module model: torch model
@@ -389,8 +376,7 @@ def torch_save(path, model):
 
 
 def torch_load(path, model):
-    """
-    Function to load torch model states
+    """Function to load torch model states
 
     :param str path: model file or snapshot file to be loaded
     :param torch.nn.Module model: torch model
@@ -408,8 +394,7 @@ def torch_load(path, model):
 
 
 def torch_resume(snapshot_path, trainer):
-    """
-    Function to resume from snapshot for pytorch
+    """Function to resume from snapshot for pytorch
 
     :param str snapshot_path: snapshot file path
     :param instance trainer: chainer trainer instance
@@ -444,8 +429,7 @@ def torch_resume(snapshot_path, trainer):
 
 # * ------------------ recognition related ------------------ *
 def parse_hypothesis(hyp, char_list):
-    """
-    Function to parse hypothesis
+    """Function to parse hypothesis
 
     :param list hyp: recognition hypothesis
     :param list char_list: list of characters
@@ -467,8 +451,7 @@ def parse_hypothesis(hyp, char_list):
 
 
 def add_results_to_json(js, nbest_hyps, char_list):
-    """
-    Function to add N-best results to json
+    """Function to add N-best results to json
 
     :param dict js: groundtruth utterance dict
     :param list nbest_hyps: list of hypothesis

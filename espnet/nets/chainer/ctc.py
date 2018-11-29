@@ -19,8 +19,7 @@ class CTC(chainer.Chain):
             self.ctc_lo = L.Linear(eprojs, odim)
 
     def __call__(self, hs, ys):
-        """
-        CTC forward
+        """CTC forward
 
         :param hs:
         :param ys:
@@ -52,8 +51,7 @@ class CTC(chainer.Chain):
         return self.loss
 
     def log_softmax(self, hs):
-        """
-        log_softmax of frame activations
+        """log_softmax of frame activations
 
         :param hs:
         :return:
@@ -72,8 +70,7 @@ class WarpCTC(chainer.Chain):
             self.ctc_lo = L.Linear(eprojs, odim)
 
     def __call__(self, hs, ys):
-        """
-        CTC forward
+        """CTC forward
 
         :param hs:
         :param ys:
@@ -99,8 +96,7 @@ class WarpCTC(chainer.Chain):
         return self.loss
 
     def log_softmax(self, hs):
-        """
-        log_softmax of frame activations
+        """log_softmax of frame activations
 
         :param hs:
         :return:
@@ -110,8 +106,8 @@ class WarpCTC(chainer.Chain):
 
 
 def ctc_for_args(args, odim):
-    """
-    Return the CTC corresponding to the args
+    """Return the CTC corresponding to the args
+
     :param namespace args: The program arguments
     :param int odim: The output dimension
     :return: The CTC module
