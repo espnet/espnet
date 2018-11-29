@@ -9,6 +9,7 @@ import json
 import logging
 import re
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('jsons', type=str, nargs='+',
@@ -18,7 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     args = parser.parse_args()
-
+    
     # logging info
     if args.verbose > 0:
         logging.basicConfig(
@@ -29,7 +30,7 @@ if __name__ == '__main__':
 
     # make union set for utterance keys
     new_dic = dict()
-    for x in args.jsons:
+    for x in args.jsons:        # 
         with open(x, 'r') as f:
             j = json.load(f)
         ks = j['utts'].keys()
@@ -38,7 +39,7 @@ if __name__ == '__main__':
             if re.search(args.filt, k):
                 new_dic[k] = j['utts'][k]
     logging.info('new json has ' + str(len(new_dic.keys())) + ' utterances')
-
+        
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8')
     print(jsonstring)

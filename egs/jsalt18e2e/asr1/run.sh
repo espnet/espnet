@@ -25,7 +25,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network architecture
+# network archtecture
 # encoder related
 etype=blstmp     # encoder architecture type
 elayers=4
@@ -146,8 +146,8 @@ if [ ${stage} -le 0 ]; then
 
     # Babel
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
-	langid=`echo ${x} | cut -f 1 -d"-"`
-	lang_code=`echo ${x} | cut -f 2 -d"-"`
+	langid=`echo $x | cut -f 1 -d"-"`
+	lang_code=`echo $x | cut -f 2 -d"-"`
 	if [ ! -d "$babeldir/asr1_${lang_code}/data" ]; then
 	    echo "run $babeldir/asr1/local/run_all.sh first"
 	    exit 1
@@ -165,9 +165,9 @@ if [ ${stage} -le 1 ]; then
     utils/combine_data.sh data/tr_babel10_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
     utils/combine_data.sh data/dt_babel10_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
 
-    if [ ! -z ${subset_num_spk} ]; then
+    if [ ! -z $subset_num_spk ]; then
         # create a trainng subset with ${subset_num_spk} speakers (in total 7470)
-        head -n ${subset_num_spk} <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
+        head -n $subset_num_spk <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
         utils/subset_data_dir.sh \
         --spk-list data/tr_babel10_org/spk_list_${subset_num_spk}spk \
         data/tr_babel10_org data/${train_set}_org
@@ -192,13 +192,13 @@ if [ ${stage} -le 1 ]; then
         /export/b{01,02,03,04}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta ${do_delta} \
+    [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set}_${train_set} ${feat_tr_dir}
-    [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta ${do_delta} \
+    [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev}_${train_set} ${feat_dt_dir}
    for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta ${do_delta} \
+        [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "$train_cmd" --nj 40 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask}_${train_set} \
             ${feat_recog_dir}
     done

@@ -44,7 +44,7 @@ atype=location
 adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
-cumulate_att_w=true # whether to cumulate attention weight
+cumulate_att_w=true # whether to cumulate attetion weight
 use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
 use_residual=false  # whether to use residual connection in encoder convolution
@@ -258,7 +258,7 @@ if [ ${stage} -le 4 ];then
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
@@ -270,7 +270,7 @@ if [ ${stage} -le 4 ];then
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
         # concatenate scp files
-        for n in $(seq ${nj}); do
+        for n in $(seq $nj); do
             cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
     done

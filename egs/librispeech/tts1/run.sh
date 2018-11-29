@@ -44,7 +44,7 @@ atype=forward_ta
 adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
-cumulate_att_w=true # whether to cumulate attention weight
+cumulate_att_w=true # whether to cumulate attetion weight
 use_batch_norm=true # whether to use batch normalization in conv layer
 use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
 use_residual=false  # whether to use residual connection in encoder convolution
@@ -183,7 +183,7 @@ if [ ${stage} -le 3 ]; then
             --write-utt2num-frames true \
             --mfcc-config conf/mfcc.conf \
             --nj ${nj} --cmd "$train_cmd" \
-            data/${name}_mfcc exp/make_mfcc ${mfccdir}
+            data/${name}_mfcc exp/make_mfcc $mfccdir
         utils/fix_data_dir.sh data/${name}_mfcc
         sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
             data/${name}_mfcc exp/make_vad ${vaddir}
@@ -191,7 +191,7 @@ if [ ${stage} -le 3 ]; then
     done
     # Check pretrained model existence
     nnet_dir=exp/xvector_nnet_1a
-    if [ ! -e ${nnet_dir} ];then
+    if [ ! -e $nnet_dir ];then
         echo "X-vector model does not exist. Download pre-trained model."
         wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
         tar xvf 0008_sitw_v2_1a.tar.gz
@@ -201,8 +201,8 @@ if [ ${stage} -le 3 ]; then
     # Extract x-vector
     for name in ${train_set} ${train_dev} ${eval_set}; do
         sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
-            ${nnet_dir} data/${name}_mfcc \
-            ${nnet_dir}/xvectors_${name}
+            $nnet_dir data/${name}_mfcc \
+            $nnet_dir/xvectors_${name}
     done
     # Update json
     for name in ${train_set} ${train_dev} ${eval_set}; do
@@ -306,7 +306,7 @@ if [ ${stage} -le 5 ];then
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
@@ -318,7 +318,7 @@ if [ ${stage} -le 5 ];then
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
         # concatenate scp files
-        for n in $(seq ${nj}); do
+        for n in $(seq $nj); do
             cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
     done

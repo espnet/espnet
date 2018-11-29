@@ -46,17 +46,17 @@ for nch in 1 2 8; do
     # make a wav list
     task=tr
     for x in `ls ${taskdir} | grep SimData | grep _${task}_`; do
-	perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${wavdir}/REVERB_WSJCAM0_${task}/data ${taskdir}/${x} |\
+	perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${wavdir}/REVERB_WSJCAM0_${task}/data ${taskdir}/$x |\
 	    sed -e "s/^\(...\)/\1_${x}_\1/"
     done > ${dir}/${task}_simu_${nch}ch_wav.scp
     for task in dt et; do
 	for x in `ls ${taskdir} | grep SimData | grep _${task}_ | grep -e far -e near`; do
-	    perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${reverb}/REVERB_WSJCAM0_${task}/data ${taskdir}/${x} |\
+	    perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${reverb}/REVERB_WSJCAM0_${task}/data ${taskdir}/$x |\
 		sed -e "s/^\(...\)/\1_${x}_\1/"
 	done > ${dir}/${task}_simu_${nch}ch_wav.scp
 	if [ ${nch} == 1 ]; then
 	    for x in `ls ${taskdir} | grep SimData | grep _${task}_ | grep -e cln`; do
-	        perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${reverb}/REVERB_WSJCAM0_${task}/data ${taskdir}/${x} |\
+	        perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${reverb}/REVERB_WSJCAM0_${task}/data ${taskdir}/$x |\
 	    	sed -e "s/^\(...\)/\1_${x}_\1/"
 	    done > ${dir}/${task}_cln_wav.scp
         fi
@@ -64,12 +64,12 @@ for nch in 1 2 8; do
 
     task=tr
     for x in `ls ${taskdir} | grep SimData | grep _${task}_`; do
-	perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${wavdir}/WPE/${nch}ch/REVERB_WSJCAM0_${task}/data ${taskdir}/${x} |\
+	perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${wavdir}/WPE/${nch}ch/REVERB_WSJCAM0_${task}/data ${taskdir}/$x |\
 	    sed -e "s/^\(...\)/\1_${x}_\1/"
     done > ${dir}/${task}_simu_${nch}ch_wpe_wav.scp
     for task in dt et; do
 	for x in `ls ${taskdir} | grep SimData | grep _${task}_ | grep -e far -e near`; do
-	    perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${wavdir}/WPE/${nch}ch/REVERB_WSJCAM0_${task}/data ${taskdir}/${x} |\
+	    perl -se 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, " ", $dir, $_, "\n"; } }' -- -dir=${wavdir}/WPE/${nch}ch/REVERB_WSJCAM0_${task}/data ${taskdir}/$x |\
 		sed -e "s/^\(...\)/\1_${x}_\1/"
 	done > ${dir}/${task}_simu_${nch}ch_wpe_wav.scp
     done
@@ -77,21 +77,21 @@ for nch in 1 2 8; do
     # make a transcript
     task=tr
     for x in `ls ${taskdir} | grep SimData | grep _${task}_`; do
-        perl -e 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, "\n"; } }' ${taskdir}/${x} |\
+        perl -e 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, "\n"; } }' ${taskdir}/$x |\
 	    perl local/find_transcripts_singledot.pl ${dir}/${task}.dot |\
 	    sed -e "s/^\(...\)/\1_${x}_\1/"
     done > ${dir}/${task}_simu_${nch}ch.trans1 || exit 1;
     cat ${dir}/${task}_simu_${nch}ch.trans1 | local/normalize_transcript.pl ${noiseword} > ${dir}/${task}_simu_${nch}ch.txt || exit 1;
     for task in dt et; do
 	for x in `ls ${taskdir} | grep SimData | grep _${task}_ | grep -e far -e near`; do
-	    perl -e 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, "\n"; } }' ${taskdir}/${x} |\
+	    perl -e 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, "\n"; } }' ${taskdir}/$x |\
 		perl local/find_transcripts_singledot.pl ${dir}/${task}.dot |\
 		sed -e "s/^\(...\)/\1_${x}_\1/"
 	done > ${dir}/${task}_simu_${nch}ch.trans1 || exit 1;
 	cat ${dir}/${task}_simu_${nch}ch.trans1 | local/normalize_transcript.pl ${noiseword} > ${dir}/${task}_simu_${nch}ch.txt || exit 1;
 	if [ ${nch} == 1 ]; then
 	    for x in `ls ${taskdir} | grep SimData | grep _${task}_ | grep -e cln`; do
-		perl -e 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, "\n"; } }' ${taskdir}/${x} |\
+		perl -e 'while (<>) { chomp; if (m/\/(\w{8})[^\/]+$/) { print $1, "\n"; } }' ${taskdir}/$x |\
 		    perl local/find_transcripts_singledot.pl ${dir}/${task}.dot |\
 		    sed -e "s/^\(...\)/\1_${x}_\1/"
 	    done > ${dir}/${task}_cln.trans1 || exit 1;

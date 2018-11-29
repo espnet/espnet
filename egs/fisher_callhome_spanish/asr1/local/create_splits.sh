@@ -15,16 +15,16 @@ splitFile=$1
 for split in train dev test dev2
 do
 
-  cp -r ${train_all} ${data_dir}/${split}
+  cp -r $train_all $data_dir/$split
 
   awk 'BEGIN {FS=" "}; FNR==NR { a[$1]; next } ((substr($2,0,length($2)-2) ".sph") in a)' \
-  ${splitFile}/${split} ${train_all}/segments > ${data_dir}/${split}/segments
+  $splitFile/$split $train_all/segments > $data_dir/$split/segments
 
-  n=`awk 'BEGIN {FS = " "}; {print substr($2,0,length($2)-2)}' ${data_dir}/${split}/segments | sort | uniq | wc -l`
+  n=`awk 'BEGIN {FS = " "}; {print substr($2,0,length($2)-2)}' $data_dir/$split/segments | sort | uniq | wc -l`
 
   echo "$n conversations left in split $split"
 
-  utils/fix_data_dir.sh ${data_dir}/${split}
-  utils/validate_data_dir.sh ${data_dir}/${split}
+  utils/fix_data_dir.sh $data_dir/$split
+  utils/validate_data_dir.sh $data_dir/$split
 done
 

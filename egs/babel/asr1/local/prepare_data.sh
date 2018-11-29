@@ -21,7 +21,7 @@ fi
 l=$1
 
 l_suffix=${l}
-if ${FLP}; then
+if $FLP; then
   l_suffix=${l_suffix}_FLP
 fi
 
@@ -60,7 +60,7 @@ if [[ ! -f data/train/wav.scp || data/train/wav.scp -ot "$train_data_dir" ]]; th
   mkdir -p data/train.tmp
   local/prepare_acoustic_training_data.pl \
     --vocab ${!lexicon_file} --fragmentMarkers \-\*\~ \
-    ${train_data_dir} data/train.tmp > data/train.tmp/skipped_utts.log
+    $train_data_dir data/train.tmp > data/train.tmp/skipped_utts.log
 fi
 
 if [[ ! -f data/dev10h.pem/wav.scp || data/dev10h.pem/wav.scp -ot "$dev10h_data_dir" ]]; then
@@ -70,7 +70,7 @@ if [[ ! -f data/dev10h.pem/wav.scp || data/dev10h.pem/wav.scp -ot "$dev10h_data_
   mkdir -p data/dev10h.pem
   local/prepare_acoustic_training_data.pl \
     --vocab ${!lexicon_file} --fragmentMarkers \-\*\~ \
-    ${dev10h_data_dir} data/dev10h.pem > data/dev10h.pem/skipped_utts.log
+    $dev10h_data_dir data/dev10h.pem > data/dev10h.pem/skipped_utts.log
 fi
 
 

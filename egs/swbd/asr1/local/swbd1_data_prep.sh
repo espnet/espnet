@@ -28,29 +28,29 @@ fi
 SWBD_DIR=$1
 
 dir=data/local/train
-mkdir -p ${dir}
+mkdir -p $dir
 
 
 # Audio data directory check
-if [ ! -d ${SWBD_DIR} ]; then
+if [ ! -d $SWBD_DIR ]; then
   echo "Error: run.sh requires a directory argument"
   exit 1; 
 fi  
 
-sph2pipe=${KALDI_ROOT}/tools/sph2pipe_v2.5/sph2pipe
-[ ! -x ${sph2pipe} ] \
+sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
+[ ! -x $sph2pipe ] \
   && echo "Could not execute the sph2pipe program at $sph2pipe" && exit 1;
 
 # Option A: SWBD dictionary file check
-[ ! -f ${dir}/swb_ms98_transcriptions/sw-ms98-dict.text ] && \
+[ ! -f $dir/swb_ms98_transcriptions/sw-ms98-dict.text ] && \
   echo  "SWBD dictionary file does not exist" &&  exit 1;
 
 # find sph audio files
-find ${SWBD_DIR} -iname '*.sph' | sort > ${dir}/sph.flist
+find $SWBD_DIR -iname '*.sph' | sort > $dir/sph.flist
 
-n=`cat ${dir}/sph.flist | wc -l`
-[ ${n} -ne 2435 ] && [ ${n} -ne 2438 ] && \
-  echo Warning: expected 2435 or 2438 data data files, found ${n}
+n=`cat $dir/sph.flist | wc -l`
+[ $n -ne 2435 ] && [ $n -ne 2438 ] && \
+  echo Warning: expected 2435 or 2438 data data files, found $n
 
 
 # (1a) Transcriptions preparation
@@ -65,11 +65,11 @@ awk '{
        printf("%s-%s_%06.0f-%06.0f", 
               name, side, int(100*stime+0.5), int(100*etime+0.5));
        for(i=4;i<=NF;i++) printf(" %s", $i); printf "\n"
-}' ${dir}/swb_ms98_transcriptions/*/*/*-trans.text  > ${dir}/transcripts1.txt
+}' $dir/swb_ms98_transcriptions/*/*/*-trans.text  > $dir/transcripts1.txt
 
 # test if trans. file is sorted
 export LC_ALL=C;
-sort -c ${dir}/transcripts1.txt || exit 1; # check it's sorted.
+sort -c $dir/transcripts1.txt || exit 1; # check it's sorted.
 
 # Remove SILENCE, <B_ASIDE> and <E_ASIDE>.
 
@@ -78,22 +78,22 @@ sort -c ${dir}/transcripts1.txt || exit 1; # check it's sorted.
 # speech to somone; we will give phones to the other three (NSN, SPN, LAU). 
 # There will also be a silence phone, SIL.
 # **NOTE: modified the pattern matches to make them case insensitive
-cat ${dir}/transcripts1.txt \
+cat $dir/transcripts1.txt \
   | perl -ane 's:\s\[SILENCE\](\s|$):$1:gi; 
                s/<B_ASIDE>//gi; 
                s/<E_ASIDE>//gi; 
                print;' \
-  | awk '{if(NF > 1) { print; } } ' > ${dir}/transcripts2.txt
+  | awk '{if(NF > 1) { print; } } ' > $dir/transcripts2.txt
 
 
 # **NOTE: swbd1_map_words.pl has been modified to make the pattern matches 
 # case insensitive
-local/swbd1_map_words.pl -f 2- ${dir}/transcripts2.txt  > ${dir}/text
+local/swbd1_map_words.pl -f 2- $dir/transcripts2.txt  > $dir/text
 
 # format acronyms in text
-python local/map_acronyms_transcripts.py -i ${dir}/text -o ${dir}/text_map \
+python local/map_acronyms_transcripts.py -i $dir/text -o $dir/text_map \
   -M data/local/dict_nosp/acronyms.map 
-mv ${dir}/text_map ${dir}/text
+mv $dir/text_map $dir/text
 
 # (1c) Make segment files from transcript
 #segments file format is: utt-id side-id start-time end-time, e.g.:
@@ -103,15 +103,15 @@ awk '{
        split(segment,S,"[_-]");
        side=S[2]; audioname=S[1]; startf=S[3]; endf=S[4];
        print segment " " audioname "-" side " " startf/100 " " endf/100
-}' < ${dir}/text > ${dir}/segments
+}' < $dir/text > $dir/segments
 
-sed -e 's?.*/??' -e 's?.sph??' ${dir}/sph.flist | paste - ${dir}/sph.flist \
-  > ${dir}/sph.scp
+sed -e 's?.*/??' -e 's?.sph??' $dir/sph.flist | paste - $dir/sph.flist \
+  > $dir/sph.scp
 
-awk -v sph2pipe=${sph2pipe} '{
+awk -v sph2pipe=$sph2pipe '{
   printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2); 
   printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);
-}' < ${dir}/sph.scp | sort > ${dir}/wav.scp || exit 1;
+}' < $dir/sph.scp | sort > $dir/wav.scp || exit 1;
 #side A - channel 1, side B - channel 2
 
 # this file reco2file_and_channel maps recording-id (e.g. sw02001-A)
@@ -119,14 +119,14 @@ awk -v sph2pipe=${sph2pipe} '{
 # sw02001-A  sw02001 A
 # In this case it's trivial, but in other corpora the information might
 # be less obvious.  Later it will be needed for ctm scoring.
-awk '{print $1}' ${dir}/wav.scp \
+awk '{print $1}' $dir/wav.scp \
   | perl -ane '$_ =~ m:^(\S+)-([AB])$: || die "bad label $_"; 
                print "$1-$2 $1 $2\n"; ' \
-  > ${dir}/reco2file_and_channel || exit 1;
+  > $dir/reco2file_and_channel || exit 1;
 
-awk '{spk=substr($1,1,9); print $1 " " spk}' ${dir}/segments > ${dir}/utt2spk \
+awk '{spk=substr($1,1,9); print $1 " " spk}' $dir/segments > $dir/utt2spk \
   || exit 1;
-sort -k 2 ${dir}/utt2spk | utils/utt2spk_to_spk2utt.pl > ${dir}/spk2utt || exit 1;
+sort -k 2 $dir/utt2spk | utils/utt2spk_to_spk2utt.pl > $dir/spk2utt || exit 1;
 
 # We assume each conversation side is a separate speaker. This is a very 
 # reasonable assumption for Switchboard. The actual speaker info file is at:
@@ -136,19 +136,19 @@ sort -k 2 ${dir}/utt2spk | utils/utt2spk_to_spk2utt.pl > ${dir}/spk2utt || exit 
 # script]
 mkdir -p data/train
 for f in spk2utt utt2spk wav.scp text segments reco2file_and_channel; do
-  cp data/local/train/${f} data/train/${f} || exit 1;
+  cp data/local/train/$f data/train/$f || exit 1;
 done
 
 if [ $# == 2 ]; then # fix speaker IDs
-  find $2 -name conv.tab > ${dir}/conv.tab
-  local/swbd1_fix_speakerid.pl `cat ${dir}/conv.tab` data/train
+  find $2 -name conv.tab > $dir/conv.tab
+  local/swbd1_fix_speakerid.pl `cat $dir/conv.tab` data/train
   utils/utt2spk_to_spk2utt.pl data/train/utt2spk.new > data/train/spk2utt.new
   # patch files
   for f in spk2utt utt2spk text segments; do
-    cp data/train/${f} data/train/${f}.old || exit 1;
-    cp data/train/${f}.new data/train/${f} || exit 1;
+    cp data/train/$f data/train/$f.old || exit 1;
+    cp data/train/$f.new data/train/$f || exit 1;
   done
-  rm ${dir}/conv.tab
+  rm $dir/conv.tab
 fi 
 
 echo Switchboard-1 data preparation succeeded.

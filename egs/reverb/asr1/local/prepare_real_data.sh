@@ -69,7 +69,7 @@ s/\x0D$//' \
                               s/\([A-Z]\)\n\./\1\.\n\./
                       }
               }' \
-	${mlf} |\
+	$mlf |\
 	perl local/mlf2text.pl > ${dir}/${task}.txt
 done
 
@@ -87,18 +87,18 @@ for nch in 1 2 8; do
 	    audiodir_wpe=${wavdir}/WPE/${nch}ch/MC_WSJ_AV_Eval
 	fi
 	for x in `ls ${taskdir} | grep RealData | grep _${task}_`; do
-	    perl -se 'while(<>){m:^\S+/[\w\-]*_(T\w{6,7})\.wav$: || die "Bad line $_"; $id = lc $1; print "$id $dir$_";}' -- -dir=${audiodir} ${taskdir}/${x} |\
+	    perl -se 'while(<>){m:^\S+/[\w\-]*_(T\w{6,7})\.wav$: || die "Bad line $_"; $id = lc $1; print "$id $dir$_";}' -- -dir=${audiodir} ${taskdir}/$x |\
 		sed -e "s/^\(...\)/\1_${x}_\1/"
 	done > ${dir}/${task}_real_${nch}ch_wav.scp
 	for x in `ls ${taskdir} | grep RealData | grep _${task}_`; do
-	    perl -se 'while(<>){m:^\S+/[\w\-]*_(T\w{6,7})\.wav$: || die "Bad line $_"; $id = lc $1; print "$id $dir$_";}' -- -dir=${audiodir_wpe} ${taskdir}/${x} |\
+	    perl -se 'while(<>){m:^\S+/[\w\-]*_(T\w{6,7})\.wav$: || die "Bad line $_"; $id = lc $1; print "$id $dir$_";}' -- -dir=${audiodir_wpe} ${taskdir}/$x |\
 		sed -e "s/^\(...\)/\1_${x}_\1/"
 	done > ${dir}/${task}_real_${nch}ch_wpe_wav.scp
     done
     # make a transcript
     for task in dt et; do
 	for x in `ls ${taskdir} | grep RealData | grep _${task}_`; do
-	    perl -se 'while(<>){m:^\S+/[\w\-]*_(T\w{6,7})\.wav$: || die "Bad line $_"; $id = lc $1; print "$id\n";}' ${taskdir}/${x} |\
+	    perl -se 'while(<>){m:^\S+/[\w\-]*_(T\w{6,7})\.wav$: || die "Bad line $_"; $id = lc $1; print "$id\n";}' ${taskdir}/$x |\
 		perl local/find_transcripts_txt.pl ${dir}/${task}.txt |\
 		sed -e "s/^\(...\)/\1_${x}_\1/"
 	done > ${dir}/${task}_real_${nch}ch.trans1 || exit 1;
