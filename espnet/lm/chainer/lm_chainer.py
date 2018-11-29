@@ -65,6 +65,7 @@ class ClassifierWithState(link.Chain):
 
     def __call__(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.
+            It also computes accuracy and stores it to the attribute.
 
             When ``label_key`` is ``int``, the corresponding element in ``args``
             is treated as ground truth labels. And when it is ``str``, the
@@ -74,6 +75,7 @@ class ClassifierWithState(link.Chain):
             It feeds features to the predictor and compare the result
             with ground truth labels.
 
+        :param state : The LM state
         :param list[chainer.Variable] args : Input minibatch
         :param dict[chainer.Variable] kwargs : Input minibatch
         :return loss value

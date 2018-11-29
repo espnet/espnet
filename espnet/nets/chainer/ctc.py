@@ -1,11 +1,12 @@
+import logging
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
-from chainer import cuda
-from chainer_ctc.warpctc import ctc as warp_ctc
 import numpy as np
 
-import logging
+from chainer import cuda
+from chainer_ctc.warpctc import ctc as warp_ctc
 
 from espnet.nets.chainer.nets_utils import linear_tensor
 
