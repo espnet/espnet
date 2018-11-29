@@ -151,13 +151,13 @@ if [ ${stage} -le 1 ]; then
         /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 80 --do_delta ${do_delta} \
+    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
+        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done

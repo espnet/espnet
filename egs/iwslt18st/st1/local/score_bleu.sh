@@ -26,14 +26,14 @@ dic=$2
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
 json2text.py ${dir}/data.json ${dic} ${dir}/ref ${dir}/hyp
 
-if ${remove_blank}; then
+if $remove_blank; then
     sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp
 fi
 if [ ! -z ${nlsyms} ]; then
     cp ${dir}/ref ${dir}/ref.org
     cp ${dir}/hyp ${dir}/hyp.org
-    filt.py -v ${nlsyms} ${dir}/ref.org > ${dir}/ref
-    filt.py -v ${nlsyms} ${dir}/hyp.org > ${dir}/hyp
+    filt.py -v $nlsyms ${dir}/ref.org > ${dir}/ref
+    filt.py -v $nlsyms ${dir}/hyp.org > ${dir}/hyp
 fi
 if [ ! -z ${filter} ]; then
     sed -i.bak3 -f ${filter} ${dir}/hyp
@@ -52,7 +52,7 @@ echo "write a character-level BLEU result in ${dir}/result.txt"
 cat ${dir}/result.txt
 
 if ${word}; then
-    if [ ! -z ${bpe} ]; then
+    if [ ! -z $bpe ]; then
     	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref | sed -e "s/▁/ /g" > ${dir}/ref.wrd
     	spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp | sed -e "s/▁/ /g" > ${dir}/hyp.wrd
     else

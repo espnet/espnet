@@ -21,18 +21,18 @@ fi
 SWBD_DIR=$1
 
 dir=data/local/train
-mkdir -p ${dir}
+mkdir -p $dir
 
 # Audio data directory check
-if [ ! -d ${SWBD_DIR} ]; then
+if [ ! -d $SWBD_DIR ]; then
   echo "Error: run.sh requires a directory argument"
   exit 1; 
 fi  
 
 # Trans directory check
-if [ ! -d ${SWBD_DIR}/transcriptions/swb_ms98_transcriptions ]; then
+if [ ! -d $SWBD_DIR/transcriptions/swb_ms98_transcriptions ]; then
   ( 
-    cd ${dir};
+    cd $dir;
     if [ ! -d swb_ms98_transcriptions ]; then
       echo " *** Downloading trascriptions and dictionary ***" 
       wget http://www.openslr.org/resources/5/switchboard_word_alignments.tar.gz ||
@@ -42,6 +42,6 @@ if [ ! -d ${SWBD_DIR}/transcriptions/swb_ms98_transcriptions ]; then
   )
 else
   echo "Directory with transcriptions exists, skipping downloading"
-  [ -f ${dir}/swb_ms98_transcriptions ] \
-    || ln -sf ${SWBD_DIR}/transcriptions/swb_ms98_transcriptions ${dir}/
+  [ -f $dir/swb_ms98_transcriptions ] \
+    || ln -sf $SWBD_DIR/transcriptions/swb_ms98_transcriptions $dir/
 fi

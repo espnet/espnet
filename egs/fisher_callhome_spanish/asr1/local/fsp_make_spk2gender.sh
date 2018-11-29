@@ -12,7 +12,7 @@ tmpFileLocation = 'data/local/tmp/spk2gendertmp'
 tmpFile = None
 
 try:
-    tmpFile = open(tmpFileLocation)
+     tmpFile = open(tmpFileLocation)
 except IOError:
     print 'The file spk2gendertmp does not exist. Run fsp_make_trans.pl first?'
 

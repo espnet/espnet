@@ -36,8 +36,8 @@ for l in ${all_langs}; do
 
   ln -sf ${cwd}/local .
   for f in ${cwd}/{utils,steps,conf}; do
-    link=`make_absolute.sh ${f}`
-    ln -sf ${link} .
+    link=`make_absolute.sh $f`
+    ln -sf $link .
   done
 
   cp ${cwd}/cmd.sh .

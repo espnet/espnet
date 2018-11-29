@@ -20,3 +20,4 @@ if __name__ == '__main__':
         text = ' '.join(unicode(x, 'utf_8').rstrip().split()[1:])
         if text in fil:
             print x.split()[0], text.encode('utf_8')
+                                                

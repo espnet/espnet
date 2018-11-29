@@ -23,7 +23,7 @@ tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
 rm -f ${tmpdir}/*.scp
 
 # make utt2num_frames
-utils/data/get_utt2num_frames.sh "$(dirname ${feat})"
+utils/data/get_utt2num_frames.sh "$(dirname $feat)"
 
 # feats scp
 cat ${feat} > ${tmpdir}/feat.scp

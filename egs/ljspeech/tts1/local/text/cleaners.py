@@ -1,6 +1,6 @@
 """ from https://github.com/keithito/tacotron """
 
-"""
+'''
 Cleaners are transformations that run over the input text at both training and eval time.
 
 Cleaners can be selected by passing a comma-delimited list of cleaner names as the "cleaners"
@@ -10,13 +10,14 @@ hyperparameter. Some cleaners are English-specific. You'll typically want to use
 the Unidecode library (https://pypi.python.org/pypi/Unidecode)
 3. "basic_cleaners" if you do not want to transliterate (in this case, you should also update
 the symbols in symbols.py to match your data).
-"""
+'''
 
 import sys
 import re
 
 from numbers import normalize_numbers
 from unidecode import unidecode
+
 
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r'\s+')
@@ -87,14 +88,14 @@ def uppercase(text):
 
 
 def basic_cleaners(text):
-    """Basic pipeline that lowercases and collapses whitespace without transliteration."""
+    '''Basic pipeline that lowercases and collapses whitespace without transliteration.'''
     text = lowercase(text)
     text = collapse_whitespace(text)
     return text
 
 
 def transliteration_cleaners(text):
-    """Pipeline for non-English text that transliterates to ASCII."""
+    '''Pipeline for non-English text that transliterates to ASCII.'''
     text = convert_to_ascii(text)
     text = lowercase(text)
     text = collapse_whitespace(text)
@@ -102,7 +103,7 @@ def transliteration_cleaners(text):
 
 
 def english_cleaners(text):
-    """Pipeline for English text, including number and abbreviation expansion."""
+    '''Pipeline for English text, including number and abbreviation expansion.'''
     text = convert_to_ascii(text)
     text = lowercase(text)
     text = expand_numbers(text)

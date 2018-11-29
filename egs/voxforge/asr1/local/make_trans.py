@@ -16,10 +16,8 @@ prefix_a0405 IT SEEMED THE ORDAINED ORDER OF THINGS THAT DOGS SHOULD WORK
 
 import sys
 
-
 def err(msg):
     print >> sys.stderr, msg
-
 
 if len(sys.argv) < 3:
     err("Usage: %s <prompts-file> <id-prefix> <utt-id1> <utt-id2> ... " % sys.argv[0])
@@ -36,7 +34,7 @@ for l in file(sys.argv[1]):
     # convert to upper case
     trans = unicode(trans, 'utf_8').strip().replace("-", " ").upper()
     if not trans.isupper() or \
-            not trans.strip().replace(' ', '').replace("'", "").isalnum():
+       not trans.strip().replace(' ', '').replace("'", "").isalnum():
         err("The transcript for '%s'(user '%s') is not properly normalized"
             % (u, id_prefix))
         err(trans.encode('utf_8'))
@@ -44,8 +42,9 @@ for l in file(sys.argv[1]):
 
 for uid in utt_ids:
     if uid in unnorm_utt:
-        continue  # avoid double reporting the same problem
-    if uid not in utt2trans:
+        continue # avoid double reporting the same problem
+    if not uid in utt2trans:
         err("No transcript found for %s_%s" % (id_prefix, uid))
         continue
     print "%s-%s %s" % (id_prefix, uid, utt2trans[uid])
+                                                                                            

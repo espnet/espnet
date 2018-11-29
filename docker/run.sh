@@ -18,15 +18,15 @@ do
         --docker*) ext=${1#--}
               frombreak=true
               for i in _ {a..z} {A..Z}; do
-                for var in `eval echo "\\${!${i}@}"`; do
+                for var in `eval echo "\\${!$i@}"`; do
                   if [ "$var" == "$ext" ]; then
-                    eval ${ext}=$2
+                    eval $ext=$2
                     frombreak=false
                     break 2
                   fi 
                 done 
               done
-              if ${frombreak} ; then
+              if $frombreak ; then
                 echo "bad option $1" 
                 exit 1
               fi

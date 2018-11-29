@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network architecture
+# network archtecture
 # encoder related
 etype=vggblstm     # encoder architecture type
 elayers=3
@@ -127,7 +127,7 @@ if [ ${stage} -le 1 ]; then
     utils/subset_data_dir.sh --first data/train 4000 data/${train_dev}
     utils/fix_data_dir.sh data/${train_dev}
     n=$[`cat data/train/segments | wc -l` - 4000]
-    utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
+    utils/subset_data_dir.sh --last data/train $n data/train_nodev
 
     # make a training set
     utils/data/remove_dup_utts.sh 300 data/train_nodev data/train_nodup
@@ -156,13 +156,13 @@ if [ ${stage} -le 1 ]; then
         /export/a{11,12,13,14}/${USER}/espnet-data/egs/${split_dir}/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
+    dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
+        dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done

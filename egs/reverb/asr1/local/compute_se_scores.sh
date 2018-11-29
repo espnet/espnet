@@ -30,18 +30,18 @@ fi
 reverb_data=$1
 enhancement_directory=$2
 pesqdir=$3
-enhancement_directory_sim=${enhancement_directory}/WPE/${nch}ch/REVERB_WSJCAM0_dt/data/
-enhancement_directory_real=${enhancement_directory}/WPE/${nch}ch/MC_WSJ_AV_Dev/
+enhancement_directory_sim=$enhancement_directory/WPE/${nch}ch/REVERB_WSJCAM0_dt/data/
+enhancement_directory_real=$enhancement_directory/WPE/${nch}ch/MC_WSJ_AV_Dev/
 expdir=${PWD}/exp/compute_se_${nch}ch
-if ${enable_pesq}; then
+if $enable_pesq; then
    compute_pesq=1
 else
    compute_pesq=0
 fi
 
 pushd local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools
-${cmd} ${expdir}/compute_se_real.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_RealData('$reverb_data','$enhancement_directory_real');exit"
-${cmd} ${expdir}/compute_se_sim.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_SimData('$reverb_data','$enhancement_directory_sim','$pesqdir',$compute_pesq);exit"
+$cmd $expdir/compute_se_real.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_RealData('$reverb_data','$enhancement_directory_real');exit"
+$cmd $expdir/compute_se_sim.log matlab -nodisplay -nosplash -r "addpath('SRMRToolbox'); score_SimData('$reverb_data','$enhancement_directory_sim','$pesqdir',$compute_pesq);exit"
 popd
-rm -rf ${expdir}/scores
-mv local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/scores ${expdir}/
+rm -rf $expdir/scores
+mv local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/scores $expdir/

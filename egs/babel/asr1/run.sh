@@ -20,7 +20,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network architecture
+# network archtecture
 # encoder related
 etype=blstmp # encoder architecture type
 elayers=6
@@ -110,7 +110,7 @@ for l in ${recog}; do
 done
 recog_set=${recog_set%% }
 
-if [ ${stage} -le 0 ]; then
+if [ $stage -le 0 ]; then
   echo "stage 0: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --recog "${recog}"
   for x in ${train_set} ${train_dev} ${recog_set}; do
@@ -120,7 +120,7 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+if [ $stage -le 1 ]; then
   echo "stage 1: Feature extraction"
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
@@ -146,13 +146,13 @@ if [ ${stage} -le 1 ]; then
       /export/b{10,11,12,13}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
       ${feat_dt_dir}/storage
   fi
-  dump.sh --cmd "$train_cmd" --nj 20 --do_delta ${do_delta} \
+  dump.sh --cmd "$train_cmd" --nj 20 --do_delta $do_delta \
       data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-  dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
+  dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
       data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
   for rtask in ${recog_set}; do
       feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-      dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
+      dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
   done
@@ -190,7 +190,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 
-if ${use_lm}; then
+if $use_lm; then
   lm_train_set=data/local/train.txt
   lm_valid_set=data/local/dev.txt
 
@@ -287,14 +287,14 @@ if [ ${stage} -le 4 ]; then
     nj=32
 
     extra_opts=""
-    if ${use_lm}; then
+    if $use_lm; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
     fi
 
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-        if ${use_lm}; then
+        if $use_lm; then
             decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}

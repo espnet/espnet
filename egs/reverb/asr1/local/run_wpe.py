@@ -7,23 +7,22 @@
 import numpy as np
 import soundfile as sf
 import time
-import os
-import errno
+import os, errno
 from tqdm import tqdm
 import argparse
 
 from nara_wpe.wpe import wpe
-from nara_wpe.utils import stft, istft
+from nara_wpe.utils import stft, istft 
 from nara_wpe import project_root
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--files', '-f', nargs='+')
 args = parser.parse_args()
 
-input_files = args.files[:len(args.files) // 2]
-output_files = args.files[len(args.files) // 2:]
+input_files = args.files[:len(args.files)//2]
+output_files = args.files[len(args.files)//2:]
 out_dir = os.path.dirname(output_files[0])
-try:
+try: 
     os.makedirs(out_dir)
 except OSError as e:
     if e.errno != errno.EEXIST:
@@ -53,4 +52,4 @@ Z = wpe(Y, iterations=iterations, statistics_mode='full').transpose(1, 2, 0)
 z = istft(Z, size=stft_options['size'], shift=stft_options['shift'])
 
 for d in range(len(signal_list)):
-    sf.write(output_files[d], z[d, :], sampling_rate)
+    sf.write(output_files[d], z[d,:], sampling_rate)
