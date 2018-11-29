@@ -1,7 +1,6 @@
 import torch
 
 
-# ------------- Utility functions --------------------------------------------------------------------------------------
 def to_cuda(m, x):
     """Function to send tensor into corresponding device
 

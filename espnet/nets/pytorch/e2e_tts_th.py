@@ -17,7 +17,10 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from nets.pytorch.attentions_th import AttLoc, AttForward, AttForwardTA
+from nets.pytorch.attentions_th import AttForward
+from nets.pytorch.attentions_th import AttForwardTA
+from nets.pytorch.attentions_th import AttLoc
+
 from nets.pytorch.nets_utils_th import to_cuda
 
 

@@ -1,14 +1,15 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
-from espnet.nets.chainer.nets_utils import linear_tensor
-import logging
-import numpy as np
 from chainer import cuda
 from chainer_ctc.warpctc import ctc as warp_ctc
+import numpy as np
+
+import logging
+
+from espnet.nets.chainer.nets_utils import linear_tensor
 
 
-# ------------- CTC Network --------------------------------------------------------------------------------------------
 class CTC(chainer.Chain):
     def __init__(self, odim, eprojs, dropout_rate):
         super(CTC, self).__init__()

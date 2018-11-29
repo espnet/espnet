@@ -12,8 +12,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from espnet.nets.pytorch.nets_utils_th import to_cuda
 from espnet.lm.lm_utils import make_lexical_tree
+from espnet.nets.pytorch.nets_utils_th import to_cuda
 
 
 # Definition of a multi-level (subword/word) language model
