@@ -70,15 +70,15 @@ class ClassifierWithState(nn.Module):
 
     def forward(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.az
-        It also computes accuracy and stores it to the attribute.
+            It also computes accuracy and stores it to the attribute.
 
-        When ``label_key`` is ``int``, the corresponding element in ``args``
-        is treated as ground truth labels. And when it is ``str``, the
-        element in ``kwargs`` is used.
-        The all elements of ``args`` and ``kwargs`` except the groundtruth
-        labels are features.
-        It feeds features to the predictor and compare the result
-        with ground truth labels.
+            When ``label_key`` is ``int``, the corresponding element in ``args``
+            is treated as ground truth labels. And when it is ``str``, the
+            element in ``kwargs`` is used.
+            The all elements of ``args`` and ``kwargs`` except the groundtruth
+            labels are features.
+            It feeds features to the predictor and compare the result
+            with ground truth labels.
 
         :param torch.Tensor state : the LM state
         :param list[torch.Tensor] args : Input minibatch
