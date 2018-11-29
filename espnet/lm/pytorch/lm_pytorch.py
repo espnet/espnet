@@ -47,8 +47,7 @@ class Reporter(Chain):
 
 
 class ClassifierWithState(nn.Module):
-    """
-    A wrapper for pytorch RNNLM
+    """A wrapper for pytorch RNNLM
 
     :param torch.nn.Module predictor : The RNNLM
     :param function lossfun : The loss function to use
@@ -70,8 +69,7 @@ class ClassifierWithState(nn.Module):
         self.reporter = Reporter()
 
     def forward(self, state, *args, **kwargs):
-        """
-        Computes the loss value for an input and label pair.az
+        """Computes the loss value for an input and label pair.az
         It also computes accuracy and stores it to the attribute.
 
         When ``label_key`` is ``int``, the corresponding element in ``args``
@@ -112,8 +110,7 @@ class ClassifierWithState(nn.Module):
         return state, self.loss
 
     def predict(self, state, x):
-        """
-        Predict log probabilities for given state and input x using the predictor
+        """Predict log probabilities for given state and input x using the predictor
 
         :param torch.Tensor state : The current state
         :param torch.Tensor x : The input
@@ -141,8 +138,7 @@ class ClassifierWithState(nn.Module):
         return new_state, torch.cat(new_log_y)
 
     def final(self, state):
-        """
-        Predict final log probabilities for given state using the predictor
+        """Predict final log probabilities for given state using the predictor
 
         :param state: The state
         :return The final log probabilities
@@ -156,8 +152,7 @@ class ClassifierWithState(nn.Module):
 
 # Definition of a recurrent net for language modeling
 class RNNLM(nn.Module):
-    """
-    A pytorch RNNLM
+    """A pytorch RNNLM
 
     :param int n_vocab: The size of the vocabulary
     :param int n_layers: The number of layers to create
@@ -200,8 +195,8 @@ class RNNLM(nn.Module):
 
 
 def concat_examples(batch, device=None, padding=None):
-    """
-    Custom concat_examples for pytorch
+    """Custom concat_examples for pytorch
+
     :param np.ndarray batch: The batch to concatenate
     :param int device: The device to send to
     :param Tuple[int,int] padding: The padding to use
@@ -218,8 +213,8 @@ def concat_examples(batch, device=None, padding=None):
 
 
 class BPTTUpdater(training.StandardUpdater):
-    """
-    An updater for a pytorch LM
+    """An updater for a pytorch LM
+
     :param chainer.dataset.Iterator train_iter : The train iterator
     :param torch.nn.Module model : The model to update
     :param optimizer:
@@ -268,8 +263,8 @@ class BPTTUpdater(training.StandardUpdater):
 
 
 class LMEvaluator(extensions.Evaluator):
-    """
-    A custom evaluator for a pytorch LM
+    """A custom evaluator for a pytorch LM
+
     :param chainer.dataset.Iterator val_iter : The validation iterator
     :param torch.nn.Module eval_model : The model to evaluate
     :param chainer.Reporter reporter : The observations reporter
@@ -304,8 +299,8 @@ class LMEvaluator(extensions.Evaluator):
 
 
 def train(args):
-    """
-    Train with the given args
+    """Train with the given args
+
     :param namespace args: The program arguments
     """
     # display torch version

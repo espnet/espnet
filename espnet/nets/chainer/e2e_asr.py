@@ -46,8 +46,7 @@ class Loss(chainer.Chain):
             self.predictor = predictor
 
     def __call__(self, xs, ilens, ys):
-        """
-        Loss forward
+        """Loss forward
 
         :param x:
         :return:
@@ -123,8 +122,7 @@ class E2E(chainer.Chain):
                                labeldist, args.lsm_weight, args.sampling_probability)
 
     def __call__(self, xs, ilens, ys):
-        """
-        E2E forward
+        """E2E forward
 
         :param data:
         :return:
@@ -148,8 +146,7 @@ class E2E(chainer.Chain):
         return loss_ctc, loss_att, acc
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
-        """
-        E2E greedy/beam search
+        """E2E greedy/beam search
 
         :param x:
         :param recog_args:
@@ -180,8 +177,7 @@ class E2E(chainer.Chain):
             return y
 
     def calculate_all_attentions(self, xs, ilens, ys):
-        """
-        E2E attention calculation
+        """E2E attention calculation
 
         :param xs:
         :param list xs: list of padded input sequences [(T1, idim), (T2, idim), ...]
@@ -223,8 +219,7 @@ class Decoder(chainer.Chain):
         self.sampling_probability = sampling_probability
 
     def __call__(self, hs, ys):
-        """
-        Decoder forward
+        """Decoder forward
 
         :param Variable hs:
         :param Variable ys:
@@ -313,8 +308,7 @@ class Decoder(chainer.Chain):
         return self.loss, acc
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
-        """
-        beam search implementation
+        """beam search implementation
 
         :param h:
         :param lpz:
@@ -487,8 +481,7 @@ class Decoder(chainer.Chain):
         return nbest_hyps
 
     def calculate_all_attentions(self, hs, ys):
-        """
-        Calculate all of attentions
+        """Calculate all of attentions
 
         :return: list of attentions
         """
@@ -537,8 +530,7 @@ class Decoder(chainer.Chain):
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
 class Encoder(chainer.Chain):
-    """
-    ENCODER NETWORK CLASS
+    """ENCODER NETWORK CLASS
 
     This is the example of docstring.
 
@@ -581,8 +573,7 @@ class Encoder(chainer.Chain):
         self.etype = etype
 
     def __call__(self, xs, ilens):
-        """
-        Encoder forward
+        """Encoder forward
 
         :param xs:
         :param ilens:

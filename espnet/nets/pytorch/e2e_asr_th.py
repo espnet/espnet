@@ -32,7 +32,7 @@ from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch.attentions_th import att_for_args, att_to_numpy
 from espnet.nets.pytorch.rnn_th import BLSTMP, BLSTM, VGG2L
 from espnet.nets.pytorch.ctc_th import CTC
-from nets.pytorch.nets_utils_th import to_cuda, pad_list, th_accuracy, mask_by_length, get_last_yseq, \
+from espnet.nets.pytorch.nets_utils_th import to_cuda, pad_list, th_accuracy, mask_by_length, get_last_yseq, \
     index_select_list, append_ids, index_select_lm_state, make_pad_mask
 
 CTC_LOSS_THRESHOLD = 10000
@@ -41,9 +41,7 @@ MAX_DECODER_OUTPUT = 5
 
 
 class Reporter(chainer.Chain):
-    """
-    A chainer reporter wrapper
-    """
+    """A chainer reporter wrapper"""
 
     def report(self, loss_ctc, loss_att, acc, cer, wer, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
@@ -57,8 +55,7 @@ class Reporter(chainer.Chain):
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
-    """
-    Multi-task learning loss module
+    """Multi-task learning loss module
 
     :param torch.nn.Module predictor: E2E model instance
     :param float mtlalpha: mtl coefficient value (0.0 ~ 1.0)
@@ -74,8 +71,7 @@ class Loss(torch.nn.Module):
         self.reporter = Reporter()
 
     def forward(self, xs_pad, ilens, ys_pad):
-        """
-        Multi-task learning loss forward
+        """Multi-task learning loss forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -109,8 +105,7 @@ class Loss(torch.nn.Module):
 
 
 class E2E(torch.nn.Module):
-    """
-    E2E module
+    """E2E module
 
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
@@ -184,8 +179,7 @@ class E2E(torch.nn.Module):
         self.logzero = -10000000000.0
 
     def init_like_chainer(self):
-        """
-        Initialize weight like chainer
+        """Initialize weight like chainer
 
         chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0
         pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)
@@ -231,8 +225,7 @@ class E2E(torch.nn.Module):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
     def forward(self, xs_pad, ilens, ys_pad):
-        """
-        E2E forward
+        """E2E forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -298,8 +291,7 @@ class E2E(torch.nn.Module):
         return loss_ctc, loss_att, acc, cer, wer
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
-        """
-        E2E beam search
+        """E2E beam search
 
         :param ndarray x: input acoustic feature (T, D)
         :param namespace recog_args: argument namespace containing options
@@ -336,8 +328,7 @@ class E2E(torch.nn.Module):
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
-        """
-        E2E beam search
+        """E2E beam search
 
         :param ndarray xs: input acoustic feature (T, D)
         :param namespace recog_args: argument namespace containing options
@@ -372,8 +363,7 @@ class E2E(torch.nn.Module):
         return y
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
-        """
-        E2E attention calculation
+        """E2E attention calculation
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
@@ -395,8 +385,7 @@ class E2E(torch.nn.Module):
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------
 class Decoder(torch.nn.Module):
-    """
-    Decoder module
+    """Decoder module
 
     :param int eprojs: # encoder projection units
     :param int odim: dimension of outputs
@@ -444,8 +433,7 @@ class Decoder(torch.nn.Module):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
 
     def forward(self, hs_pad, hlens, ys_pad):
-        """
-        Decoder forward
+        """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
@@ -546,8 +534,7 @@ class Decoder(torch.nn.Module):
         return self.loss, acc
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
-        """
-        beam search implementation
+        """beam search implementation
 
         :param torch.Tensor h: encoder hidden state (T, eprojs)
         :param torch.Tensor lpz: ctc log softmax output (T, odim)
@@ -904,8 +891,7 @@ class Decoder(torch.nn.Module):
         return nbest_hyps
 
     def calculate_all_attentions(self, hs_pad, hlen, ys_pad):
-        """
-        Calculate all of attentions
+        """Calculate all of attentions
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
@@ -966,8 +952,7 @@ class Decoder(torch.nn.Module):
 
 # ------------- Encoder Network ----------------------------------------------------------------------------------------
 class Encoder(torch.nn.Module):
-    """
-    Encoder module
+    """Encoder module
 
     :param str etype: type of encoder network
     :param int idim: number of dimensions of encoder network
@@ -1008,8 +993,7 @@ class Encoder(torch.nn.Module):
         self.etype = etype
 
     def forward(self, xs_pad, ilens):
-        """
-        Encoder forward
+        """Encoder forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)

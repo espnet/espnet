@@ -146,8 +146,7 @@ class EmbedIDGrad(function_node.FunctionNode):
 
 
 def embed_id(x, W, ignore_label=None):
-    """
-    Efficient linear function for one-hot input.
+    """Efficient linear function for one-hot input.
 
     This function implements so called *word embeddings*. It takes two
     arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
@@ -189,8 +188,7 @@ def embed_id(x, W, ignore_label=None):
 
 
 class EmbedID(link.Link):
-    """
-    Efficient linear layer for one-hot input.
+    """Efficient linear layer for one-hot input.
 
     This is a link that wraps the :func:`~chainer.functions.embed_id` function.
     This link holds the ID (word) embedding matrix ``W`` as a parameter.
@@ -236,8 +234,7 @@ class EmbedID(link.Link):
             self.W = variable.Parameter(initialW, (in_size, out_size))
 
     def __call__(self, x):
-        """
-        Extracts the word embedding of given IDs.
+        """Extracts the word embedding of given IDs.
 
         :param chainer.Variable x : Batch vectors of IDs
         :return Batch of corresponding embeddings

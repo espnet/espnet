@@ -13,8 +13,7 @@ import kaldi_io_py
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, batch_sort_key='shuffle', min_batch_size=1):
-    """
-    Make batch set from json dictionary
+    """Make batch set from json dictionary
 
     :param dict data: dictionary loaded from data.json
     :param int batch_size: batch size
@@ -88,8 +87,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
 
 
 def load_inputs_and_targets(batch, use_speaker_embedding=False, use_second_target=False):
-    """
-    Load inputs and targets from list of dicts (json)
+    """Load inputs and targets from list of dicts (json)
 
     :param list batch: list of dict which is subset of loaded data.json
     :param bool use_speaker_embedding: whether to load speaker embedding vector

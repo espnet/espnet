@@ -40,8 +40,7 @@ REPORT_INTERVAL = 100
 
 
 class ClassifierWithState(link.Chain):
-    """
-    A wrapper for a chainer RNNLM
+    """A wrapper for a chainer RNNLM
 
     :param link.Chain predictor : The RNNLM
     :param function lossfun: The loss function to use
@@ -65,8 +64,7 @@ class ClassifierWithState(link.Chain):
             self.predictor = predictor
 
     def __call__(self, state, *args, **kwargs):
-        """
-        Computes the loss value for an input and label pair.
+        """Computes the loss value for an input and label pair.
 
             When ``label_key`` is ``int``, the corresponding element in ``args``
             is treated as ground truth labels. And when it is ``str``, the
@@ -105,8 +103,7 @@ class ClassifierWithState(link.Chain):
         return state, self.loss
 
     def predict(self, state, x):
-        """
-        Predict log probabilities for given state and input x using the predictor
+        """Predict log probabilities for given state and input x using the predictor
 
         :param state : the state
         :param x : the input
@@ -120,8 +117,7 @@ class ClassifierWithState(link.Chain):
             return state, F.log_softmax(z).data
 
     def final(self, state):
-        """
-        Predict final log probabilities for given state using the predictor
+        """Predict final log probabilities for given state using the predictor
 
         :param state : the state
         :return log probability vector
@@ -136,8 +132,7 @@ class ClassifierWithState(link.Chain):
 
 # Definition of a recurrent net for language modeling
 class RNNLM(chainer.Chain):
-    """
-    A chainer RNNLM
+    """A chainer RNNLM
 
     :param int n_vocab: The size of the vocabulary
     :param int n_layers: The number of layers to create
@@ -171,8 +166,7 @@ class RNNLM(chainer.Chain):
 
 
 class BPTTUpdater(training.updaters.StandardUpdater):
-    """
-    An updater for a chainer LM
+    """An updater for a chainer LM
 
     :param chainer.dataset.Iterator train_iter : The train iterator
     :param optimizer:
@@ -219,8 +213,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
 
 
 class LMEvaluator(extensions.Evaluator):
-    """
-    A custom evaluator for a chainer LM
+    """A custom evaluator for a chainer LM
 
     :param chainer.dataset.Iterator val_iter : The validation iterator
     :param eval_model : The model to evaluate
@@ -253,8 +246,7 @@ class LMEvaluator(extensions.Evaluator):
 
 
 def train(args):
-    """
-    Train with the given args
+    """Train with the given args
 
     :param namespace args: The program arguments
     """

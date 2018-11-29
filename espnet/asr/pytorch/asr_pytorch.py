@@ -55,8 +55,8 @@ REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
-    """
-    Custom Evaluator for Pytorch
+    """Custom Evaluator for Pytorch
+
     :param torch.nn.Module model : The model to evaluate
     :param chainer.dataset.Iterator : The train iterator
     :param target :
@@ -102,8 +102,8 @@ class CustomEvaluator(extensions.Evaluator):
 
 
 class CustomUpdater(training.StandardUpdater):
-    """
-    Custom Updater for Pytorch
+    """Custom Updater for Pytorch
+
     :param torch.nn.Module model : The model to update
     :param int grad_clip_threshold : The gradient clipping value to use
     :param chainer.dataset.Iterator train_iter : The training iterator
@@ -153,8 +153,8 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
-    """
-    Custom batch converter for Pytorch
+    """Custom batch converter for Pytorch
+
     :param int subsampling_factor : The subsampling factor
     """
 
@@ -166,8 +166,8 @@ class CustomConverter(object):
         return load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
-        """
-        Transforms a batch and send it to a device
+        """Transforms a batch and send it to a device
+
         :param list batch: The batch to transform
         :param torch.device device: The device to send to
         :return: a tuple xs_pad, ilens, ys_pad
@@ -193,8 +193,8 @@ class CustomConverter(object):
 
 
 def train(args):
-    """
-    Train with the given args
+    """Train with the given args
+
     :param namespace args: The program arguments
     """
     # seed setting
@@ -407,8 +407,8 @@ def train(args):
 
 
 def recog(args):
-    """
-    Decode with the given args
+    """Decode with the given args
+
     :param namespace args: The program arguments
     """
     # seed setting
