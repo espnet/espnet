@@ -2320,7 +2320,7 @@ class Decoder(torch.nn.Module):
         pad_bo = to_cuda(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
         pad_o = to_cuda(self, torch.LongTensor([i * self.odim for i in six.moves.range(n_bb)]).view(-1, 1))
 
-        max_hlen = max(hlens)
+        max_hlen = int(max(hlens))
         if recog_args.maxlenratio == 0:
             maxlen = max_hlen
         else:
