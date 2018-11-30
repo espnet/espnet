@@ -60,16 +60,31 @@ if [ ! -d links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest -o ! -d 
     exit 1;
 fi
 
-speech_train=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN
-speech_dev=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST
-speech_test=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST
+if [ -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST -o -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN ]
+then
+    speech_train=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN
+    speech_dev=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST
+    speech_test=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST
+    fcount_train=`find ${speech_train} -iname '*.SPH' | wc -l`
+    fcount_dev=`find ${speech_dev} -iname '*.SPH' | wc -l`
+    fcount_test=`find ${speech_test} -iname '*.SPH' | wc -l`
+elif [ -d links/LDC96S35/callhome/spanish/speech/devtest -o -d links/LDC96S35/callhome/spanish/speech/evltest -o -d links/LDC96S35/callhome/spanish/speech/train ]
+then
+    speech_train=$dir/links/LDC96S35/callhome/spanish/speech/train
+    speech_dev=$dir/links/LDC96S35/callhome/spanish/speech/devtest
+    speech_test=$dir/links/LDC96S35/callhome/spanish/speech/evltest
+    fcount_train=`find ${speech_train} -iname '*.sph' | wc -l`
+    fcount_dev=`find ${speech_dev} -iname '*.sph' | wc -l`
+    fcount_test=`find ${speech_test} -iname '*.sph' | wc -l`
+else
+    echo "Dev, Eval or Train directories missing or not properly organised within the speech data dir"
+    exit 1;
+fi
+
 transcripts_train=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/train
 transcripts_dev=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest
 transcripts_test=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/evltest
 
-fcount_train=`find ${speech_train} -iname '*.SPH' | wc -l`
-fcount_dev=`find ${speech_dev} -iname '*.SPH' | wc -l`
-fcount_test=`find ${speech_test} -iname '*.SPH' | wc -l`
 fcount_t_train=`find ${transcripts_train} -iname '*.txt' | wc -l`
 fcount_t_dev=`find ${transcripts_dev} -iname '*.txt' | wc -l`
 fcount_t_test=`find ${transcripts_test} -iname '*.txt' | wc -l`
@@ -84,9 +99,9 @@ fi
 if [ $stage -le 0 ]; then
   #Gather all the speech files together to create a file list
   (
-    find $speech_train -iname '*.sph';
-    find $speech_dev -iname '*.sph';
-    find $speech_test -iname '*.sph';
+    find $speech_train -iname '*.(SPH|sph)';
+    find $speech_dev -iname '*.(SPH|sph)';
+    find $speech_test -iname '*.(SPH|sph)';
   )  > $tmpdir/callhome_train_sph.flist
 
   #Get all the transcripts in one place
@@ -125,7 +140,7 @@ if [ $stage -le 3 ]; then
         make_absolute.sh $f
     done > $tmpdir/callhome_train_sph_abs.flist
 
-    cat $tmpdir/callhome_train_sph_abs.flist | perl -ane 'm:/([^/]+)\.SPH$: || die "bad line $_; ";  print lc($1)," $_"; ' > $tmpdir/callhome_sph.scp
+    cat $tmpdir/callhome_train_sph_abs.flist | perl -ane 'm:/([^/]+)\.(SPH|sph)$: || die "bad line $_; ";  print lc($1)," $_"; ' > $tmpdir/callhome_sph.scp
     cat $tmpdir/callhome_sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2); printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
     sort -k1,1 -u  > $dir/callhome_train_all/callhome_wav.scp || exit 1;
 fi
