@@ -15,7 +15,7 @@ def test_ctc_loss():
     import torch
     import warpctc_pytorch
 
-    from espnet.nets.pytorch.e2e_asr_th import pad_list
+    from espnet.nets.pytorch.e2e_asr import pad_list
 
     n_out = 7
     input_length = numpy.array([11, 17, 15], dtype=numpy.int32)
@@ -45,7 +45,7 @@ def test_attn_loss():
     pytest.importorskip("torch")
     import torch
 
-    from espnet.nets.pytorch.e2e_asr_th import pad_list
+    from espnet.nets.pytorch.e2e_asr import pad_list
 
     n_out = 7
     _eos = n_out - 1
@@ -87,8 +87,8 @@ def test_train_acc():
     pytest.importorskip("torch")
     import torch
 
-    from espnet.nets.pytorch.e2e_asr_th import pad_list
-    from espnet.nets.pytorch.e2e_asr_th import th_accuracy
+    from espnet.nets.pytorch.e2e_asr import pad_list
+    from espnet.nets.pytorch.e2e_asr import th_accuracy
 
     n_out = 7
     _eos = n_out - 1

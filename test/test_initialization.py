@@ -48,7 +48,7 @@ def test_lecun_init_torch():
     torch.manual_seed(nseed)
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
-    import espnet.nets.pytorch.e2e_asr_th as m
+    import espnet.nets.pytorch.e2e_asr as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.bias.data.numpy()
     assert numpy.all(b == 0.0)

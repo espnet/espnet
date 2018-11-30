@@ -17,11 +17,11 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from espnet.nets.pytorch.attentions_th import AttForward
-from espnet.nets.pytorch.attentions_th import AttForwardTA
-from espnet.nets.pytorch.attentions_th import AttLoc
+from espnet.nets.pytorch.attentions import AttForward
+from espnet.nets.pytorch.attentions import AttForwardTA
+from espnet.nets.pytorch.attentions import AttLoc
 
-from espnet.nets.pytorch.nets_utils_th import to_cuda
+from espnet.nets.pytorch.nets_utils import to_cuda
 
 
 def encoder_init(m):

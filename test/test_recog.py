@@ -3,9 +3,9 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import espnet.lm.pytorch.lm_pytorch as lm_pytorch
+import espnet.lm.pytorch.lm as lm_pytorch
 
-import espnet.lm.chain.lm_chainer as lm_chainer
+import espnet.lm.chain.lm as lm_chainer
 
 import argparse
 import importlib
@@ -59,9 +59,9 @@ def init_chainer_weight_const(m, val):
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
     ("blstmp", "espnet.nets.chain.e2e_asr", 0),
-    ("blstmp", "espnet.nets.pytorch.e2e_asr_th", 1),
+    ("blstmp", "espnet.nets.pytorch.e2e_asr", 1),
     ("vggblstmp", "espnet.nets.chain.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.pytorch.e2e_asr_th", 3),
+    ("vggblstmp", "espnet.nets.pytorch.e2e_asr", 3),
 ])
 def test_recognition_results(etype, m_str, text_idx1):
     const = 1e-4
@@ -79,7 +79,7 @@ def test_recognition_results(etype, m_str, text_idx1):
         m = importlib.import_module(m_str)
         model = m.Loss(m.E2E(40, 5, args), 0.5)
 
-        if "_th" in m_str:
+        if "pytorch" in m_str:
             init_torch_weight_const(model, const)
         else:
             init_chainer_weight_const(model, const)
@@ -101,9 +101,9 @@ def test_recognition_results(etype, m_str, text_idx1):
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
     ("blstmp", "espnet.nets.chain.e2e_asr", 0),
-    ("blstmp", "espnet.nets.pytorch.e2e_asr_th", 1),
+    ("blstmp", "espnet.nets.pytorch.e2e_asr", 1),
     ("vggblstmp", "espnet.nets.chain.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.pytorch.e2e_asr_th", 3),
+    ("vggblstmp", "espnet.nets.pytorch.e2e_asr", 3),
 ])
 def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
@@ -122,7 +122,7 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         m = importlib.import_module(m_str)
         model = m.Loss(m.E2E(40, 5, args), 0.5)
 
-        if "_th" in m_str:
+        if "pytorch" in m_str:
             rnnlm = lm_pytorch.ClassifierWithState(
                 lm_pytorch.RNNLM(len(args.char_list), 2, 10))
             init_torch_weight_const(model, const)
@@ -150,9 +150,9 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
 
 @pytest.mark.parametrize(("etype", "m_str"), [
     ("blstmp", "espnet.nets.chain.e2e_asr"),
-    ("blstmp", "espnet.nets.pytorch.e2e_asr_th"),
+    ("blstmp", "espnet.nets.pytorch.e2e_asr"),
     ("vggblstmp", "espnet.nets.chain.e2e_asr"),
-    ("vggblstmp", "espnet.nets.pytorch.e2e_asr_th"),
+    ("vggblstmp", "espnet.nets.pytorch.e2e_asr"),
 ])
 def test_batch_beam_search(etype, m_str):
     const = 1e-4
@@ -165,7 +165,7 @@ def test_batch_beam_search(etype, m_str):
         m = importlib.import_module(m_str)
         model = m.Loss(m.E2E(40, 5, args), 0.5)
 
-        if "_th" in m_str:
+        if "pytorch" in m_str:
             rnnlm = lm_pytorch.ClassifierWithState(
                 lm_pytorch.RNNLM(len(args.char_list), 2, 10))
             init_torch_weight_const(model, const)
