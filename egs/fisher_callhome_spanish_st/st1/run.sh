@@ -34,11 +34,11 @@ atype=add
 adim=1024
 
 # regualrization option
-samp_prob=0
+samp_prob=0.2
 lsm_type=unigram
-lsm_weight=0
-dropout=0
-weight_decay=0
+lsm_weight=0.1
+dropout=0.3
+weight_decay=0.000001
 
 # minibatch related
 batchsize=15
@@ -61,7 +61,7 @@ lmtag=            # tag for managing LMs
 
 # decoding parameter
 lm_weight=0
-beam_size=5
+beam_size=10
 penalty=0.2
 maxlenratio=0.8
 minlenratio=0
@@ -134,8 +134,9 @@ if [ ${stage} -le 1 ]; then
     done
 
     for lang in es en; do
-        utils/combine_data.sh data/train.${lang} data/fisher_train.${lang} data/callhome_train.${lang}
-        utils/combine_data.sh data/dev.${lang} data/fisher_dev.${lang} data/fisher_dev2.${lang} data/callhome_devtest.${lang}
+        cp -rf data/fisher_train.${lang} data/train.${lang}
+        cp -rf data/fisher_dev.${lang} data/dev.${lang}
+        # NOTE: do not use callhome_train for the training set
     done
 
     for x in train dev; do
@@ -193,12 +194,12 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d " " data/train.es/text data/train.en/text | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
+    cut -f 2- -d " " data/train*/text | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between Es and En
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train.es/text data/train.en/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
+    cat data/train*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -213,7 +214,7 @@ if [ ${stage} -le 2 ]; then
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 
-    # Update json (Add En)
+    # update json (add source references)
     for x in ${train_set} ${train_dev}; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/`echo ${x} | cut -f -1 -d "."`.es
@@ -234,7 +235,7 @@ fi
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
 fi
-lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${train_set}_rnnlm_${backend}_${lmtag}
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
