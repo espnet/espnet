@@ -47,8 +47,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=30
-eps_decay=0.01
+epochs=35
 
 lm_layers=2
 lm_units=650
@@ -120,7 +119,7 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callhome_devtest callhome_evltest; do
+    for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         # upsample audio from 8k to 16k to make a recipe consistent with others
         sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
 
@@ -129,7 +128,7 @@ if [ ${stage} -le 1 ]; then
     done
 
     # Divide into Es and En
-    for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callhome_devtest callhome_evltest; do
+    for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         local/divide_lang.sh data/${x}
     done
 
@@ -146,7 +145,7 @@ if [ ${stage} -le 1 ]; then
             remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
         done
 
-        # Match the number of utterances between Es and En
+        # Match the number of utterances between source and target languages
         # extract commocn lines
         cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.es.tmp/reclist1
         cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.es.tmp/reclist2
@@ -197,7 +196,7 @@ if [ ${stage} -le 2 ]; then
     cut -f 2- -d " " data/train*/text | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    # Share the same dictinary between Es and En
+    # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cat data/train*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
@@ -311,7 +310,6 @@ if [ ${stage} -le 4 ]; then
         --dropout-rate ${dropout} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --eps-decay ${eps_decay} \
         --weight-decay ${weight_decay}
 fi
 
