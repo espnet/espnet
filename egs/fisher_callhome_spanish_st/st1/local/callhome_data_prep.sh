@@ -60,16 +60,14 @@ if [ ! -d links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest -o ! -d 
     exit 1;
 fi
 
-if [ -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST -o -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN ]
-then
+if [ -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST -o -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN ]; then
     speech_train=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN
     speech_dev=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST
     speech_test=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST
     fcount_train=`find ${speech_train} -iname '*.SPH' | wc -l`
     fcount_dev=`find ${speech_dev} -iname '*.SPH' | wc -l`
     fcount_test=`find ${speech_test} -iname '*.SPH' | wc -l`
-elif [ -d links/LDC96S35/callhome/spanish/speech/devtest -o -d links/LDC96S35/callhome/spanish/speech/evltest -o -d links/LDC96S35/callhome/spanish/speech/train ]
-then
+elif [ -d links/LDC96S35/callhome/spanish/speech/devtest -o -d links/LDC96S35/callhome/spanish/speech/evltest -o -d links/LDC96S35/callhome/spanish/speech/train ]; then
     speech_train=$dir/links/LDC96S35/callhome/spanish/speech/train
     speech_dev=$dir/links/LDC96S35/callhome/spanish/speech/devtest
     speech_test=$dir/links/LDC96S35/callhome/spanish/speech/evltest
@@ -99,9 +97,9 @@ fi
 if [ $stage -le 0 ]; then
   #Gather all the speech files together to create a file list
   (
-    find $speech_train -iname '*.(SPH|sph)';
-    find $speech_dev -iname '*.(SPH|sph)';
-    find $speech_test -iname '*.(SPH|sph)';
+    find $speech_train -iname '*.sph';
+    find $speech_dev -iname '*.sph';
+    find $speech_test -iname '*.sph';
   )  > $tmpdir/callhome_train_sph.flist
 
   #Get all the transcripts in one place
