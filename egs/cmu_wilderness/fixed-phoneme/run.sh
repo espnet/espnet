@@ -145,6 +145,7 @@ if [ ${stage} -le 1 ]; then
             if [[ ! -e data/${x}/feats.scp ]]; then
                 echo "Couldn't find preprocessed data/${x}/feats.scp. Run preprocess.sh"
                 echo "Exiting."
+                exit
             fi
         done
 
@@ -173,6 +174,7 @@ if [ ${stage} -le 1 ]; then
             if [[ ! -e data/${x}/feats.scp ]]; then
                 echo "Couldn't find preprocessed data/${x}/feats.scp. Run preprocess.sh"
                 echo "Exiting."
+                exit
             fi
         done
 
@@ -212,8 +214,9 @@ if [ ${stage} -le 1 ]; then
         fi
 
         if [[ ! -e data/${rtask}/feats.scp ]]; then
-            echo "Couldn't find preprocessed data/${x}/feats.scp. Run preprocess.sh"
+            echo "Couldn't find preprocessed data/${rtask}/feats.scp. Run preprocess.sh"
             echo "Exiting."
+            exit
         fi
 
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
