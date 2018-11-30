@@ -76,7 +76,7 @@ def main():
     # extract
     logging.info('backend = ' + args.backend)
     if args.backend == "pytorch":
-        from espnet.tts.pytorch.tts_pytorch import decode
+        from espnet.tts.pytorch.tts import decode
         decode(args)
     else:
         raise NotImplementedError("Only pytorch is supported.")

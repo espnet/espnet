@@ -10,10 +10,10 @@ e2e_asr module
     :show-inheritance:
 
 
-e2e_asr_th module
+e2e_asr module
 ------------------------------
 
-.. automodule:: espnet.nets.pytorch.e2e_asr_th
+.. automodule:: espnet.nets.pytorch.e2e_asr
     :members:
     :undoc-members:
     :show-inheritance:

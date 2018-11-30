@@ -8,9 +8,9 @@ import torch
 
 from argparse import Namespace
 
-from espnet.nets.pytorch.e2e_asr_th import pad_list
-from espnet.nets.pytorch.e2e_tts_th import Tacotron2
-from espnet.nets.pytorch.e2e_tts_th import Tacotron2Loss
+from espnet.nets.pytorch.e2e_asr import pad_list
+from espnet.nets.pytorch.e2e_tts import Tacotron2
+from espnet.nets.pytorch.e2e_tts import Tacotron2Loss
 
 
 def make_model_args(**kwargs):

@@ -30,7 +30,7 @@ from espnet.lm.lm_utils import count_tokens
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
-from espnet.nets.pytorch.e2e_asr_th import to_cuda
+from espnet.nets.pytorch.e2e_asr import to_cuda
 
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
