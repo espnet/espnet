@@ -100,10 +100,9 @@ detokenizer.perl -l en < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
 detokenizer.perl -l en < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 
 ### case-insensitive
-multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.wrd.txt
-echo "write a case-insensitive word-level BLEU result in ${dir}/result.wrd.txt"
-echo ${dir}
-cat ${dir}/result.wrd.txt
+multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.txt
+echo "write a case-insensitive BLEU result in ${dir}/result.txt"
+cat ${dir}/result.txt
 
 
 # TODO(hirofumi): add TER & METEOR metrics here
