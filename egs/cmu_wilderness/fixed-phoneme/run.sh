@@ -241,10 +241,12 @@ if [ ${stage} -le 2 ]; then
         rtasks="${train_set} ${train_dev}"
     fi
     for rtask in ${rtasks} ${recog_set}; do
-        echo $rtask
         feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-        mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
-            data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
+        if [[ ! -e ${feat_recog_dir}/data.json ]]; then
+          echo $rtask
+          mkjson.py --non-lang-syms ${nlsyms} ${feat_recog_dir}/feats.scp \
+              data/${rtask} ${dict} --phonemes > ${feat_recog_dir}/data.json
+        fi
     done
 fi
 
