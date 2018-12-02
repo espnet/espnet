@@ -139,6 +139,9 @@ def main():
                                     stdout=subprocess.PIPE).communicate()[0])
 
 
+    logging.warn("Len utt2num_frames: {}".format(len(utt2num_frames)))
+    logging.warn("Len feats_scp: {}".format(len(feats_scp)))
+
     # Read in targets
     dataset = {}
     with codecs.open(text_file, 'r', encoding='utf-8') as f:
@@ -178,7 +181,7 @@ def main():
                         'shape': [utt2num_frames[uttname], feat_dim]
                     }
                 ]
-            except KeyError:
+            except KeyError as e:
                 logging.warn("uttname {} not found in feats_scp or utt2num_frames".format(uttname))
                 continue
 
@@ -245,7 +248,8 @@ def main():
 
 
     # Remove all utterances that don't have phoneme output
-    for uttname in dataset:
+    uttnames = dataset.keys()
+    for uttname in uttnames:
         if len(dataset[uttname]['output']) < 2:
             # Then there can't be both phonemes and graphemes for the
             # utterance. Remove it.
