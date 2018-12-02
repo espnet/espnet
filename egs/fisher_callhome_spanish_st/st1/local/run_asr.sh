@@ -41,8 +41,8 @@ mtlalpha=0.5
 # regualrization option
 samp_prob=0
 lsm_type=unigram
-lsm_weight=0
-dropout=0
+lsm_weight=0.1
+dropout=0.3
 
 # minibatch related
 batchsize=15
@@ -138,8 +138,9 @@ if [ ${stage} -le 1 ]; then
     done
 
     for lang in es en; do
-        utils/combine_data.sh data/train.${lang} data/fisher_train.${lang} data/callhome_train.${lang}
-        utils/combine_data.sh data/dev.${lang} data/fisher_dev.${lang} data/fisher_dev2.${lang} data/callhome_devtest.${lang}
+        cp -rf data/fisher_train.${lang} data/train.${lang}
+        cp -rf data/fisher_dev.${lang} data/dev.${lang}
+        # NOTE: do not use callhome_train for the training set
     done
 
     for x in train dev; do
@@ -151,12 +152,12 @@ if [ ${stage} -le 1 ]; then
 
         # Match the number of utterances between source and target languages
         # extract commocn lines
-        cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.es.tmp/reclist1
-        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.es.tmp/reclist2
-        comm -12 data/${x}.es.tmp/reclist1 data/${x}.es.tmp/reclist2 > data/${x}.es.tmp/reclist
+        cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.en.tmp/reclist1
+        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.en.tmp/reclist2
+        comm -12 data/${x}.en.tmp/reclist1 data/${x}.en.tmp/reclist2 > data/${x}.en.tmp/reclist
 
         for lang in es en; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.es.tmp/reclist data/${x}.${lang}
+            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
             utils/fix_data_dir.sh data/${x}.${lang}
         done
         rm -rf data/${x}.*.tmp
