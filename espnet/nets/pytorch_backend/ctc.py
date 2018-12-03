@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import warpctc_pytorch as warp_ctc
 
-from espnet.nets.pytorch.nets_utils import to_cuda
+from espnet.nets.pytorch_backend.nets_utils import to_cuda
 
 
 class CTC(torch.nn.Module):

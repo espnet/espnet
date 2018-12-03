@@ -25,9 +25,9 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.pytorch.e2e_asr import pad_list
-from espnet.nets.pytorch.e2e_tts import Tacotron2
-from espnet.nets.pytorch.e2e_tts import Tacotron2Loss
+from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
+from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 

@@ -36,15 +36,15 @@ from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
-from espnet.nets.chain.e2e_asr import E2E
-from espnet.nets.chain.e2e_asr import Loss
+from espnet.nets.chainer_backend.e2e_asr import E2E
+from espnet.nets.chainer_backend.e2e_asr import Loss
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
-import espnet.lm.chain.extlm as extlm_chainer
-import espnet.lm.chain.lm as lm_chainer
+import espnet.lm.chainer_backend.extlm as extlm_chainer
+import espnet.lm.chainer_backend.lm as lm_chainer
 
 # numpy related
 import matplotlib

@@ -3,9 +3,9 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import espnet.lm.pytorch.lm as lm_pytorch
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 
-import espnet.lm.chain.lm as lm_chainer
+import espnet.lm.chainer_backend.lm as lm_chainer
 
 import argparse
 import importlib
@@ -58,10 +58,10 @@ def init_chainer_weight_const(m, val):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.chain.e2e_asr", 0),
-    ("blstmp", "espnet.nets.pytorch.e2e_asr", 1),
-    ("vggblstmp", "espnet.nets.chain.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.pytorch.e2e_asr", 3),
+    ("blstmp", "espnet.nets.chainer_backend.e2e_asr", 0),
+    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr", 1),
+    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr", 3),
 ])
 def test_recognition_results(etype, m_str, text_idx1):
     const = 1e-4
@@ -100,10 +100,10 @@ def test_recognition_results(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.chain.e2e_asr", 0),
-    ("blstmp", "espnet.nets.pytorch.e2e_asr", 1),
-    ("vggblstmp", "espnet.nets.chain.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.pytorch.e2e_asr", 3),
+    ("blstmp", "espnet.nets.chainer_backend.e2e_asr", 0),
+    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr", 1),
+    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr", 3),
 ])
 def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
@@ -149,10 +149,10 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str"), [
-    ("blstmp", "espnet.nets.chain.e2e_asr"),
-    ("blstmp", "espnet.nets.pytorch.e2e_asr"),
-    ("vggblstmp", "espnet.nets.chain.e2e_asr"),
-    ("vggblstmp", "espnet.nets.pytorch.e2e_asr"),
+    ("blstmp", "espnet.nets.chainer_backend.e2e_asr"),
+    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr"),
+    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr"),
+    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr"),
 ])
 def test_batch_beam_search(etype, m_str):
     const = 1e-4

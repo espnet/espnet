@@ -6,7 +6,7 @@ import logging
 import numpy as np
 import sys
 
-from espnet.nets.chain.nets_utils import linear_tensor
+from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
 
 # dot product based attention

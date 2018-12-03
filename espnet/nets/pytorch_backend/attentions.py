@@ -4,8 +4,8 @@ import six
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch.nets_utils import make_pad_mask
-from espnet.nets.pytorch.nets_utils import to_cuda
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import to_cuda
 
 
 class NoAtt(torch.nn.Module):

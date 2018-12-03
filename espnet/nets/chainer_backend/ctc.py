@@ -8,7 +8,7 @@ import numpy as np
 from chainer import cuda
 from chainer_ctc.warpctc import ctc as warp_ctc
 
-from espnet.nets.chain.nets_utils import linear_tensor
+from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
 
 class CTC(chainer.Chain):
