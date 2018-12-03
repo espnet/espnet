@@ -61,57 +61,6 @@ class Reporter(chainer.Chain):
         reporter.report({'loss': mtl_loss}, self)
 
 
-# TODO(watanabe) merge Loss and E2E: there is no need to make these separately
-class Loss(torch.nn.Module):
-    """Multi-task learning loss module
-
-    :param torch.nn.Module predictor: E2E model instance
-    :param float mtlalpha: mtl coefficient value (0.0 ~ 1.0)
-    """
-
-    def __init__(self, predictor, mtlalpha):
-        super(Loss, self).__init__()
-        assert 0.0 <= mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
-        self.mtlalpha = mtlalpha
-        self.loss = None
-        self.accuracy = None
-        self.predictor = predictor
-        self.reporter = Reporter()
-
-    def forward(self, xs_pad, ilens, ys_pad):
-        """Multi-task learning loss forward
-
-        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
-        :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :return: loss value
-        :rtype: torch.Tensor
-        """
-        self.loss = None
-        loss_ctc, loss_att, acc, cer, wer = self.predictor(xs_pad, ilens, ys_pad)
-        alpha = self.mtlalpha
-        if alpha == 0:
-            self.loss = loss_att
-            loss_att_data = float(loss_att)
-            loss_ctc_data = None
-        elif alpha == 1:
-            self.loss = loss_ctc
-            loss_att_data = None
-            loss_ctc_data = float(loss_ctc)
-        else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = float(loss_att)
-            loss_ctc_data = float(loss_ctc)
-
-        loss_data = float(self.loss)
-        if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
-        else:
-            logging.warning('loss (=%f) is not correct', loss_data)
-
-        return self.loss
-
-
 class E2E(torch.nn.Module):
     """E2E module
 
@@ -122,11 +71,13 @@ class E2E(torch.nn.Module):
 
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
+        self.mtlalpha = args.mtlalpha
+        assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
-        self.mtlalpha = args.mtlalpha
+        self.reporter = Reporter()
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -185,6 +136,8 @@ class E2E(torch.nn.Module):
         self.rnnlm = None
 
         self.logzero = -10000000000.0
+        self.loss = None
+        self.accuracy = None
 
     def init_like_chainer(self):
         """Initialize weight like chainer
@@ -260,6 +213,7 @@ class E2E(torch.nn.Module):
             acc = None
         else:
             loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
+        self.acc = acc
 
         # 5. compute cer/wer
         if self.training or not (self.report_cer or self.report_wer):
@@ -296,7 +250,27 @@ class E2E(torch.nn.Module):
             wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
             cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
 
-        return loss_ctc, loss_att, acc, cer, wer
+        alpha = self.mtlalpha
+        if alpha == 0:
+            self.loss = loss_att
+            loss_att_data = float(loss_att)
+            loss_ctc_data = None
+        elif alpha == 1:
+            self.loss = loss_ctc
+            loss_att_data = None
+            loss_ctc_data = float(loss_ctc)
+        else:
+            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+            loss_att_data = float(loss_att)
+            loss_ctc_data = float(loss_ctc)
+
+        loss_data = float(self.loss)
+        if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
+        else:
+            logging.warning('loss (=%f) is not correct', loss_data)
+
+        return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search

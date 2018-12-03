@@ -32,56 +32,15 @@ CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
-# TODO(watanabe) merge Loss and E2E: there is no need to make these separately
-class Loss(chainer.Chain):
-    def __init__(self, predictor, mtlalpha):
-        super(Loss, self).__init__()
-        self.mtlalpha = mtlalpha
-        self.loss = None
-        self.accuracy = None
-
-        with self.init_scope():
-            self.predictor = predictor
-
-    def __call__(self, xs, ilens, ys):
-        """Loss forward
-
-        :param xs:
-        :param ilens:
-        :param ys:
-        :return:
-        """
-        self.loss = None
-        loss_ctc, loss_att, acc = self.predictor(xs, ilens, ys)
-        alpha = self.mtlalpha
-        if alpha == 0:
-            self.loss = loss_att
-        elif alpha == 1:
-            self.loss = loss_ctc
-        else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-
-        if self.loss.data < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data):
-            reporter.report({'loss_ctc': loss_ctc}, self)
-            reporter.report({'loss_att': loss_att}, self)
-            reporter.report({'acc': acc}, self)
-
-            logging.info('mtl loss:' + str(self.loss.data))
-            reporter.report({'loss': self.loss}, self)
-        else:
-            logging.warning('loss (=%f) is not correct', self.loss.data)
-
-        return self.loss
-
-
 class E2E(chainer.Chain):
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
+        self.mtlalpha = args.mtlalpha
+        assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
         self.etype = args.etype
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
-        self.mtlalpha = args.mtlalpha
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -121,6 +80,9 @@ class E2E(chainer.Chain):
                                self.sos, self.eos, self.att, self.verbose, self.char_list,
                                labeldist, args.lsm_weight, args.sampling_probability)
 
+        self.acc = None
+        self.loss = None
+
     def __call__(self, xs, ilens, ys):
         """E2E forward
 
@@ -145,7 +107,26 @@ class E2E(chainer.Chain):
         else:
             loss_att, acc = self.dec(hs, ys)
 
-        return loss_ctc, loss_att, acc
+        self.acc = acc
+        alpha = self.mtlalpha
+        if alpha == 0:
+            self.loss = loss_att
+        elif alpha == 1:
+            self.loss = loss_ctc
+        else:
+            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+
+        if self.loss.data < CTC_LOSS_THRESHOLD and not math.isnan(self.loss.data):
+            reporter.report({'loss_ctc': loss_ctc}, self)
+            reporter.report({'loss_att': loss_att}, self)
+            reporter.report({'acc': acc}, self)
+
+            logging.info('mtl loss:' + str(self.loss.data))
+            reporter.report({'loss': self.loss}, self)
+        else:
+            logging.warning('loss (=%f) is not correct', self.loss.data)
+
+        return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E greedy/beam search
