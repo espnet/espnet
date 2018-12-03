@@ -1,7 +1,7 @@
 import torch
 
 
-def to_cuda(m, x):
+def to_device(m, x):
     """Function to send tensor into corresponding device
 
     :param torch.nn.Module m: torch module

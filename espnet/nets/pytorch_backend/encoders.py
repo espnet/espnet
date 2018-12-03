@@ -10,7 +10,7 @@ from torch.nn.utils.rnn import pad_packed_sequence
 
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import to_cuda
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class BLSTMP(torch.nn.Module):
@@ -205,7 +205,7 @@ class Encoder(torch.nn.Module):
         xs_pad, ilens = self.enc(xs_pad, ilens)
 
         # make mask to remove bias value in padded part
-        mask = to_cuda(self, make_pad_mask(ilens).unsqueeze(-1))
+        mask = to_device(self, make_pad_mask(ilens).unsqueeze(-1))
 
         return xs_pad.masked_fill(mask, 0.0), ilens
 

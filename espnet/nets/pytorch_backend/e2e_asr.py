@@ -40,7 +40,7 @@ from espnet.nets.pytorch_backend.nets_utils import index_select_lm_state
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.nets_utils import to_cuda
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
@@ -285,7 +285,7 @@ class E2E(torch.nn.Module):
         # subsample frame
         x = x[::self.subsample[0], :]
         ilen = [x.shape[0]]
-        h = to_cuda(self, torch.from_numpy(
+        h = to_device(self, torch.from_numpy(
             np.array(x, dtype=np.float32)))
 
         # 1. encoder
@@ -322,7 +322,7 @@ class E2E(torch.nn.Module):
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_cuda(self, torch.from_numpy(np.array(xx, dtype=np.float32)))
+        hs = [to_device(self, torch.from_numpy(np.array(xx, dtype=np.float32)))
               for xx in xs]
 
         # 1. encoder
@@ -507,7 +507,7 @@ class Decoder(torch.nn.Module):
 
         if self.labeldist is not None:
             if self.vlabeldist is None:
-                self.vlabeldist = to_cuda(self, torch.from_numpy(self.labeldist))
+                self.vlabeldist = to_device(self, torch.from_numpy(self.labeldist))
             loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
@@ -708,9 +708,9 @@ class Decoder(torch.nn.Module):
         n_bb = batch * beam
         n_bo = beam * self.odim
         n_bbo = n_bb * self.odim
-        pad_b = to_cuda(self, torch.LongTensor([i * beam for i in six.moves.range(batch)]).view(-1, 1))
-        pad_bo = to_cuda(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
-        pad_o = to_cuda(self, torch.LongTensor([i * self.odim for i in six.moves.range(n_bb)]).view(-1, 1))
+        pad_b = to_device(self, torch.LongTensor([i * beam for i in six.moves.range(batch)]).view(-1, 1))
+        pad_bo = to_device(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
+        pad_o = to_device(self, torch.LongTensor([i * self.odim for i in six.moves.range(n_bb)]).view(-1, 1))
 
         max_hlen = max(hlens)
         if recog_args.maxlenratio == 0:
@@ -722,11 +722,11 @@ class Decoder(torch.nn.Module):
         logging.info('min output length: ' + str(minlen))
 
         # initialization
-        c_prev = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
-        z_prev = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
-        c_list = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
-        z_list = [to_cuda(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
-        vscores = to_cuda(self, torch.zeros(batch, beam))
+        c_prev = [to_device(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        z_prev = [to_device(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        c_list = [to_device(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        z_list = [to_device(self, torch.zeros(n_bb, self.dunits)) for _ in range(self.dlayers)]
+        vscores = to_device(self, torch.zeros(batch, beam))
 
         a_prev = None
         rnnlm_prev = None
@@ -748,12 +748,12 @@ class Decoder(torch.nn.Module):
             device_id = torch.cuda.device_of(next(self.parameters()).data).idx
             ctc_prefix_score = CTCPrefixScoreTH(lpz, 0, self.eos, beam, exp_hlens, device_id)
             ctc_states_prev = ctc_prefix_score.initial_state()
-            ctc_scores_prev = to_cuda(self, torch.zeros(batch, n_bo))
+            ctc_scores_prev = to_device(self, torch.zeros(batch, n_bo))
 
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
-            vy = to_cuda(self, torch.LongTensor(get_last_yseq(yseq)))
+            vy = to_device(self, torch.LongTensor(get_last_yseq(yseq)))
             ey = self.embed(vy)
             att_c, att_w = self.att(exp_h, exp_hlens, z_prev[0], a_prev)
             ey = torch.cat((ey, att_c), dim=1)
@@ -787,7 +787,7 @@ class Decoder(torch.nn.Module):
             _best_odims = _best_odims.view(-1).cpu().numpy()
             _best_score = local_best_scores.view(-1).cpu().detach().numpy()
             local_scores[_best_odims] = _best_score
-            local_scores = to_cuda(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
+            local_scores = to_device(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
 
             # (or indexing)
             # local_scores = to_cuda(self, torch.full((batch, beam, self.odim), self.logzero))
@@ -813,7 +813,7 @@ class Decoder(torch.nn.Module):
             yseq = index_select_list(yseq, accum_padded_beam_ids)
             yseq = append_ids(yseq, accum_odim_ids)
             vscores = accum_best_scores
-            vidx = to_cuda(self, torch.LongTensor(accum_padded_beam_ids))
+            vidx = to_device(self, torch.LongTensor(accum_padded_beam_ids))
 
             a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
             z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
@@ -822,7 +822,7 @@ class Decoder(torch.nn.Module):
             if rnnlm:
                 rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
             if lpz is not None:
-                ctc_vidx = to_cuda(self, torch.LongTensor(accum_padded_odim_ids))
+                ctc_vidx = to_device(self, torch.LongTensor(accum_padded_odim_ids))
                 ctc_scores_prev = torch.index_select(ctc_scores.view(-1), 0, ctc_vidx)
                 ctc_scores_prev = ctc_scores_prev.view(-1, 1).repeat(1, self.odim).view(batch, n_bo)
 

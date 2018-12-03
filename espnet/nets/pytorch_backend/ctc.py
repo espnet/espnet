@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import warpctc_pytorch as warp_ctc
 
-from espnet.nets.pytorch_backend.nets_utils import to_cuda
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class CTC(torch.nn.Module):
@@ -53,7 +53,7 @@ class CTC(torch.nn.Module):
         # get ctc loss
         # expected shape of seqLength x batchSize x alphabet_size
         ys_hat = ys_hat.transpose(0, 1)
-        self.loss = to_cuda(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
+        self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
         logging.info('ctc loss:' + str(float(self.loss)))
 
         return self.loss
