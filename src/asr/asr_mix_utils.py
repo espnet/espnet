@@ -29,6 +29,12 @@ import kaldi_io_py
 import matplotlib
 matplotlib.use('Agg')
 
+'''
+reuse modules in asr_utils:
+CompareValueTrigger, restore_snapshot, _restore_snapshot, adadelta_eps_decay, _adadelta_eps_decay, torch_snapshot, _torch_snapshot_object, AttributeDict, get_model_conf, chainer_load, torch_save, torch_load, torch_resume
+'''
+from asr_utils import parse_hypothesis
+
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):

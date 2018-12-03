@@ -340,7 +340,7 @@ if [ ${stage} -le 5 ]; then
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
+            asr_mix_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
@@ -354,7 +354,8 @@ if [ ${stage} -le 5 ]; then
             --lm-weight ${lm_weight} \
             $recog_opts &
         wait
-        local/score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+
+        score_sclite.sh --wer true --nlsyms ${nlsyms} --num_spkrs 2 ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
