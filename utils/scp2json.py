@@ -7,6 +7,7 @@
 import sys
 import json
 import argparse
+from builtins import str
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -17,7 +18,7 @@ if __name__ == '__main__':
     new_line = {}
     line = sys.stdin.readline()
     while line:
-        x = unicode(line, 'utf_8').rstrip().split()
+        x = str(line, 'utf_8').rstrip().split()
         v = {args.key: ' '.join(x[1:]).encode('utf_8')}
         new_line[x[0].encode('utf_8')] = v
         line = sys.stdin.readline()

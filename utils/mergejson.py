@@ -9,6 +9,7 @@ import codecs
 import json
 import logging
 import sys
+from builtins import str
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -57,21 +58,21 @@ if __name__ == '__main__':
         dic = old_dic[id]
 
         in_dic = {}
-        # if dic.has_key(unicode('idim', 'utf-8')):
-        if unicode('idim', 'utf-8') in dic:
-            in_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('ilen', 'utf-8')]), int(dic[unicode('idim', 'utf-8')]))
-        in_dic[unicode('name', 'utf-8')] = unicode('input1', 'utf-8')
-        in_dic[unicode('feat', 'utf-8')] = dic[unicode('feat', 'utf-8')]
+        # if dic.has_key(str('idim', 'utf-8')):
+        if str('idim', 'utf-8') in dic:
+            in_dic[str('shape', 'utf-8')] = (int(dic[str('ilen', 'utf-8')]), int(dic[str('idim', 'utf-8')]))
+        in_dic[str('name', 'utf-8')] = str('input1', 'utf-8')
+        in_dic[str('feat', 'utf-8')] = dic[str('feat', 'utf-8')]
 
         out_dic = {}
-        out_dic[unicode('name', 'utf-8')] = unicode('target1', 'utf-8')
-        out_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('olen', 'utf-8')]), int(dic[unicode('odim', 'utf-8')]))
-        out_dic[unicode('text', 'utf-8')] = dic[unicode('text', 'utf-8')]
-        out_dic[unicode('token', 'utf-8')] = dic[unicode('token', 'utf-8')]
-        out_dic[unicode('tokenid', 'utf-8')] = dic[unicode('tokenid', 'utf-8')]
+        out_dic[str('name', 'utf-8')] = str('target1', 'utf-8')
+        out_dic[str('shape', 'utf-8')] = (int(dic[str('olen', 'utf-8')]), int(dic[str('odim', 'utf-8')]))
+        out_dic[str('text', 'utf-8')] = dic[str('text', 'utf-8')]
+        out_dic[str('token', 'utf-8')] = dic[str('token', 'utf-8')]
+        out_dic[str('tokenid', 'utf-8')] = dic[str('tokenid', 'utf-8')]
 
-        new_dic[id] = {unicode('input', 'utf-8'): [in_dic], unicode('output', 'utf-8'): [out_dic],
-                       unicode('utt2spk', 'utf-8'): dic[unicode('utt2spk', 'utf-8')]}
+        new_dic[id] = {str('input', 'utf-8'): [in_dic], str('output', 'utf-8'): [out_dic],
+                       str('utt2spk', 'utf-8'): dic[str('utt2spk', 'utf-8')]}
 
     # ensure "ensure_ascii=False", which is a bug
     if args.output_json:
