@@ -19,8 +19,8 @@ import chainer.links as L
 
 from chainer import reporter
 
-from espnet.nets.chainer_backend.attentions import att_for_args
-from espnet.nets.chainer_backend.ctc import ctc_for_args
+from espnet.nets.chainer_backend.attentions import att_for
+from espnet.nets.chainer_backend.ctc import ctc_for
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 from espnet.nets.chainer_backend.encoders import encoder_for
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
@@ -69,12 +69,11 @@ class E2E(chainer.Chain):
 
         with self.init_scope():
             # encoder
-            self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
-                               self.subsample, args.dropout_rate)
+            self.enc = encoder_for(args, idim, self.subsample)
             # ctc
-            self.ctc = ctc_for_args(args, odim)
+            self.ctc = ctc_for(args, odim)
             # attention
-            self.att = att_for_args(args)
+            self.att = att_for(args)
             # decoder
             self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                                self.sos, self.eos, self.att, self.verbose, self.char_list,
@@ -509,37 +508,3 @@ class Decoder(chainer.Chain):
         att_ws.to_cpu()
 
         return att_ws.data
-
-
-# ------------- Encoder Network ----------------------------------------------------------------------------------------
-class Encoder(chainer.Chain):
-    """ENCODER NETWORK CLASS
-
-    This is the example of docstring.
-
-    :param str etype: type of encoder network
-    :param int idim: number of dimensions of encoder network
-    :param int elayers: number of layers of encoder network
-    :param int eunits: number of lstm units of encoder network
-    :param int eprojs: number of projection units of encoder network
-    :param np.ndarray subsample: subsampling number e.g. 1_2_2_2_1
-    :param float dropout: dropout rate
-    :return:
-
-    """
-
-    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
-        super(Encoder, self).__init__()
-        with self.init_scope():
-            self.enc = encoder_for(etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel)
-
-    def __call__(self, xs, ilens):
-        """Encoder forward
-
-        :param xs:
-        :param ilens:
-        :return:
-        """
-        xs, ilens = self.enc(xs, ilens)
-
-        return xs, ilens

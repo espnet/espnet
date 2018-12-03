@@ -9,6 +9,8 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import to_cuda
 
 
 class BLSTMP(torch.nn.Module):
@@ -156,25 +158,57 @@ class VGG2L(torch.nn.Module):
         return xs_pad, ilens
 
 
-def encoder_for(etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel):
-    if etype == 'blstm':
-        enc = torch.nn.Sequential([BLSTM(idim, elayers, eunits, eprojs, dropout)])
-        logging.info('BLSTM without projection for encoder')
-    elif etype == 'blstmp':
-        enc = torch.nn.Sequential([BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)])
-        logging.info('BLSTM with every-layer projection for encoder')
-    elif etype == 'vggblstmp':
-        enc = torch.nn.Sequential([VGG2L(in_channel),
-                                   BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
-                                          subsample, dropout)])
-        logging.info('Use CNN-VGG + BLSTMP for encoder')
-    elif etype == 'vggblstm':
-        enc = torch.nn.Sequential([VGG2L(in_channel),
-                                   BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
-                                         dropout)])
-        logging.info('Use CNN-VGG + BLSTM for encoder')
-    else:
-        logging.error(
-            "Error: need to specify an appropriate encoder architecture")
-        sys.exit()
-    return enc
+class Encoder(torch.nn.Module):
+    """Encoder module
+
+    :param str etype: type of encoder network
+    :param int idim: number of dimensions of encoder network
+    :param int elayers: number of layers of encoder network
+    :param int eunits: number of lstm units of encoder network
+    :param int eprojs: number of projection units of encoder network
+    :param np.ndarray subsample: list of subsampling numbers
+    :param float dropout: dropout rate
+    :param int in_channel: number of input channels
+    """
+
+    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
+        super(Encoder, self).__init__()
+        if etype == 'blstm':
+            self.enc = torch.nn.Sequential([BLSTM(idim, elayers, eunits, eprojs, dropout)])
+            logging.info('BLSTM without projection for encoder')
+        elif etype == 'blstmp':
+            self.enc = torch.nn.Sequential([BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)])
+            logging.info('BLSTM with every-layer projection for encoder')
+        elif etype == 'vggblstmp':
+            self.enc = torch.nn.Sequential([VGG2L(in_channel),
+                                            BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
+                                                   subsample, dropout)])
+            logging.info('Use CNN-VGG + BLSTMP for encoder')
+        elif etype == 'vggblstm':
+            self.enc = torch.nn.Sequential([VGG2L(in_channel),
+                                            BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
+                                                  dropout)])
+            logging.info('Use CNN-VGG + BLSTM for encoder')
+        else:
+            logging.error(
+                "Error: need to specify an appropriate encoder architecture")
+            sys.exit()
+
+    def forward(self, xs_pad, ilens):
+        """Encoder forward
+
+        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
+        :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :return: batch of hidden state sequences (B, Tmax, eprojs)
+        :rtype: torch.Tensor
+        """
+        xs_pad, ilens = self.enc(xs_pad, ilens)
+
+        # make mask to remove bias value in padded part
+        mask = to_cuda(self, make_pad_mask(ilens).unsqueeze(-1))
+
+        return xs_pad.masked_fill(mask, 0.0), ilens
+
+
+def encoder_for(args, idim, subsample):
+    return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout)

@@ -27,17 +27,16 @@ from espnet.nets.ctc_prefix_score import CTCPrefixScoreTH
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
-from espnet.nets.pytorch_backend.attentions import att_for_args
+from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.attentions import att_to_numpy
 
-from espnet.nets.pytorch_backend.ctc import ctc_for_args
+from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import append_ids
 from espnet.nets.pytorch_backend.nets_utils import get_last_yseq
 from espnet.nets.pytorch_backend.nets_utils import index_select_list
 from espnet.nets.pytorch_backend.nets_utils import index_select_lm_state
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
@@ -105,12 +104,11 @@ class E2E(torch.nn.Module):
             labeldist = None
 
         # encoder
-        self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
-                           self.subsample, args.dropout_rate)
+        self.enc = encoder_for(args, idim, self.subsample)
         # ctc
-        self.ctc = ctc_for_args(args, odim)
+        self.ctc = ctc_for(args, odim)
         # attention
-        self.att = att_for_args(args)
+        self.att = att_for(args)
         # decoder
         self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                            self.sos, self.eos, self.att, self.verbose, self.char_list,
@@ -137,7 +135,7 @@ class E2E(torch.nn.Module):
 
         self.logzero = -10000000000.0
         self.loss = None
-        self.accuracy = None
+        self.acc = None
 
     def init_like_chainer(self):
         """Initialize weight like chainer
@@ -930,38 +928,3 @@ class Decoder(torch.nn.Module):
         # convert to numpy array with the shape (B, Lmax, Tmax)
         att_ws = att_to_numpy(att_ws, self.att)
         return att_ws
-
-
-# ------------- Encoder Network ----------------------------------------------------------------------------------------
-class Encoder(torch.nn.Module):
-    """Encoder module
-
-    :param str etype: type of encoder network
-    :param int idim: number of dimensions of encoder network
-    :param int elayers: number of layers of encoder network
-    :param int eunits: number of lstm units of encoder network
-    :param int eprojs: number of projection units of encoder network
-    :param np.ndarray subsample: list of subsampling numbers
-    :param float dropout: dropout rate
-    :param int in_channel: number of input channels
-    """
-
-    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
-        super(Encoder, self).__init__()
-
-        self.enc = encoder_for(etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel)
-
-    def forward(self, xs_pad, ilens):
-        """Encoder forward
-
-        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
-        :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :return: batch of hidden state sequences (B, Tmax, eprojs)
-        :rtype: torch.Tensor
-        """
-        xs_pad, ilens = self.enc(xs_pad, ilens)
-
-        # make mask to remove bias value in padded part
-        mask = to_cuda(self, make_pad_mask(ilens).unsqueeze(-1))
-
-        return xs_pad.masked_fill(mask, 0.0), ilens
