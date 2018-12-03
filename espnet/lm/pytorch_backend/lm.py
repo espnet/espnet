@@ -30,7 +30,7 @@ from espnet.lm.lm_utils import count_tokens
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
-from espnet.nets.pytorch_backend.e2e_asr import to_cuda
+from espnet.nets.pytorch_backend.e2e_asr import to_device
 
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
@@ -179,8 +179,8 @@ class RNNLM(nn.Module):
 
     def forward(self, state, x):
         if state is None:
-            c = [to_cuda(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
-            h = [to_cuda(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
+            c = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
+            h = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
             state = {'c': c, 'h': h}
 
         h = [None] * self.n_layers

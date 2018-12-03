@@ -21,7 +21,7 @@ from espnet.nets.pytorch_backend.attentions import AttForward
 from espnet.nets.pytorch_backend.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.attentions import AttLoc
 
-from espnet.nets.pytorch_backend.nets_utils import to_cuda
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 def encoder_init(m):
@@ -153,7 +153,7 @@ class Tacotron2Loss(torch.nn.Module):
 
         # perform masking for padded values
         if self.use_masking:
-            mask = to_cuda(self, make_non_pad_mask(olens).unsqueeze(-1))
+            mask = to_device(self, make_non_pad_mask(olens).unsqueeze(-1))
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
             before_outs = before_outs.masked_select(mask)
