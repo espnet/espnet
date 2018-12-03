@@ -670,7 +670,7 @@ def recog(args):
     if args.encoder_states:
         logging.info("Storing encoder states.")
         logging.info("per-frame-ali: {}".format(args.per_frame_ali))
-        per_frame_phns = dict()
+        per_frame_phns = defaultdict(list)
         with open(args.per_frame_ali) as f:
             for line in f:
                 sp = line.split()
@@ -680,7 +680,7 @@ def recog(args):
                 start = float(sp[2])
                 dur = float(sp[3])
                 phn = sp[4]
-                per_frame_phns[unicode(uttname)] = (start, dur, phn)
+                per_frame_phns[unicode(uttname)].append((start, dur, phn))
 
         phn_units = []
         with open(args.phoneme_dict, "r") as f:
@@ -690,18 +690,17 @@ def recog(args):
         for uttname in list(per_frame_phns.keys())[:10]:
             logging.info("{}: {}".format(uttname, per_frame_phns[uttname]))
 
-        import sys; sys.exit()
-
         NUM_ENCODER_STATES = None
         #target_phns = ["a", "i", "o", "6",]# "u", "@", "E",]
         target_phns = phn_units
-        target_langs = ["102", "103", "104", "105", "106", "204", "206", "207"]
+        #target_langs = ["102", "103", "104", "105", "106", "204", "206", "207"]
         encoder_states = defaultdict(list)
         uttids = defaultdict(list)
-        for idx, name in enumerate(js.keys(), 1):
-            lang = name.split("_")[0]
-            uttids[lang].append(name)
-        for lang in target_langs:
+        for uttname in js.keys():
+            lang = uttid2lang(uttname)
+            uttids[lang].append(uttname)
+        #for lang in target_langs:
+        for lang in uttids.keys():
             write_enc_states(lang, target_phns,
                              js, uttids, per_frame_phns, e2e, train_args,
                              num_encoder_states=NUM_ENCODER_STATES)
@@ -783,42 +782,48 @@ def write_enc_states(lang, tgt_phns,
                      num_encoder_states=500):
     """ Writes the encoder states for a given language and phoneme. """
 
+    logging.info("extracting enc states for language {}".format(lang))
     logging.info("target_phns: {}".format(tgt_phns))
     encoder_states = defaultdict(list)
-    for name in uttids[lang]:
-        if name in per_frame_phns:
-            logging.info("name: {}".format(name))
-            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+    for uttid in uttids[lang]:
+        if uttid in per_frame_phns:
+            logging.info("uttid: {}".format(uttid))
+            feat = kaldi_io_py.read_mat(js[uttid]['input'][0]['feat'])
             logging.info("feat.shape: {}".format(feat.shape))
             logging.info("e2e.subsample: {}".format(e2e.subsample))
             h, lens = e2e.encode_from_feat(feat)
             logging.info("h.shape: {}".format(h.shape))
             logging.info("lens: {}".format(lens))
             logging.info("per_frame_phns: {}".format(
-                         per_frame_phns[name]))
+                         per_frame_phns[uttid]))
             logging.info("len(per_frame_phns): {}".format(
-                         len(per_frame_phns[name])))
+                         len(per_frame_phns[uttid])))
 
             i = 0
-            phns = per_frame_phns[name]
-            while i < len(phns):
-                if phns[i] in tgt_phns:
-                    tgt = phns[i]
-                    start = i
-                    while i < len(phns) and phns[i] == tgt:
-                        i += 1
-                    end = i - 1
-                    # Midpoint between when the phoneme starts and ends.
-                    mid = int((start + end)/2)
+            phn_tuples = per_frame_phns[uttid]
+
+            # Get duration of the utterance
+            final_phn_start = per_frame_phns[uttid][-1][0]
+            final_phn_dur = per_frame_phns[uttid][-1][1]
+            utt_dur = final_phn_start + final_phn_dur
+            logging.info("utt_dir: {}".format(utt_dur))
+
+            for phn_tuple in phn_tuples:
+                start, dur, phn = phn_tuple
+                if phn in tgt_phns:
+                    # Midpoint of the phoneme in seconds
+                    phn_mid = start+(dur/2)
+                    logging.info("phn_mid of {} is {}".format(phn, phn_mid))
+                    logging.info("hlen is {}".format(h.shape[1]))
                     # Turn that midpoint into an index in the encoder
-                    # states by scaling by the length of phonemes.
-                    h_i = int((mid/float(len(phns)))*h.shape[1])
+                    # states by scaling by the duration of the utterance
+                    h_i = int((phn_mid/utt_dur)*h.shape[1])
+                    logging.info("h_i is {}".format(h_i))
                     if num_encoder_states:
-                        if len(encoder_states[tgt]) < num_encoder_states:
-                            encoder_states[tgt].append(h[0,h_i,:].detach().numpy())
+                        if len(encoder_states[phn]) < num_encoder_states:
+                            encoder_states[phn].append(h[0,h_i,:].detach().numpy())
                     else:
-                        encoder_states[tgt].append(h[0,h_i,:].detach().numpy())
-                i += 1
+                        encoder_states[phn].append(h[0,h_i,:].detach().numpy())
 
             done = True
             for tgt in encoder_states:
