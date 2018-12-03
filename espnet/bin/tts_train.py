@@ -186,7 +186,7 @@ def main():
     np.random.seed(args.seed)
 
     if args.backend == "pytorch":
-        from espnet.tts.pytorch.tts import train
+        from espnet.tts.pytorch_backend.tts import train
         train(args)
     else:
         raise NotImplementedError("Only pytorch is supported.")

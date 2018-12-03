@@ -1,8 +1,8 @@
 import chainer
 import torch
 
-import espnet.lm.chain.lm as lm_chainer
-import espnet.lm.pytorch.lm as lm_pytorch
+import espnet.lm.chainer_backend.lm as lm_chainer
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 
 def transfer_lstm(ch_lstm, th_lstm):

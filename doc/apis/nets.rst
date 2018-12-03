@@ -4,7 +4,7 @@ espnet nets package
 e2e_asr module
 ---------------------------
 
-.. automodule:: espnet.nets.chain.e2e_asr
+.. automodule:: espnet.nets.chainer_backend.e2e_asr
     :members:
     :undoc-members:
     :show-inheritance:
@@ -13,7 +13,7 @@ e2e_asr module
 e2e_asr module
 ------------------------------
 
-.. automodule:: espnet.nets.pytorch.e2e_asr
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr
     :members:
     :undoc-members:
     :show-inheritance:

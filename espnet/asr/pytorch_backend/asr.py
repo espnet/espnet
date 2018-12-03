@@ -34,16 +34,16 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.pytorch.e2e_asr import E2E
-from espnet.nets.pytorch.e2e_asr import Loss
-from espnet.nets.pytorch.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.e2e_asr import E2E
+from espnet.nets.pytorch_backend.e2e_asr import Loss
+from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
-import espnet.lm.pytorch.extlm as extlm_pytorch
-import espnet.lm.pytorch.lm as lm_pytorch
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 # matplotlib related
 import matplotlib

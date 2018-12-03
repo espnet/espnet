@@ -14,15 +14,15 @@ if __name__ == '__main__':
                         help='key')
     args = parser.parse_args()
 
-    l = {}
+    new_line = {}
     line = sys.stdin.readline()
     while line:
         x = unicode(line, 'utf_8').rstrip().split()
         v = {args.key: ' '.join(x[1:]).encode('utf_8')}
-        l[x[0].encode('utf_8')] = v
+        new_line[x[0].encode('utf_8')] = v
         line = sys.stdin.readline()
 
-    all_l = {'utts': l}
+    all_l = {'utts': new_line}
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps(all_l, indent=4, ensure_ascii=False)
