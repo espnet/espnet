@@ -7,6 +7,7 @@
 import json
 import argparse
 import logging
+from builtins import str
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -26,7 +27,7 @@ if __name__ == '__main__':
     logging.info("reading %s", args.dict)
     with open(args.dict, 'r') as f:
         dictionary = f.readlines()
-    char_list = [unicode(entry.split(' ')[0], 'utf_8') for entry in dictionary]
+    char_list = [str(entry.split(' ')[0], 'utf_8') for entry in dictionary]
     char_list.insert(0, '<blank>')
     char_list.append('<eos>')
     # print([x.encode('utf-8') for x in char_list])

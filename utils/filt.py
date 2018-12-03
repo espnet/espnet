@@ -2,8 +2,9 @@
 
 # Apache 2.0
 
-import sys
 import argparse
+from builtins import str
+from six import print_function
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -15,13 +16,13 @@ if __name__ == '__main__':
     vocab = set()
     with open(args.filt) as vocabfile:
         for line in vocabfile:
-            vocab.add(unicode(line, 'utf_8').strip())
+            vocab.add(str(line, 'utf_8').strip())
 
     with open(args.infile) as textfile:
         for line in textfile:
             if args.exclude:
-                print " ".join(map(lambda word: word if word not in vocab else '', unicode(line, 'utf_8').strip()
-                                   .split())).encode('utf_8')
+                print_function(" ".join(map(lambda word: word if word not in vocab else '', str(line, 'utf_8').strip()
+                                            .split())).encode('utf_8'))
             else:
-                print " ".join(map(lambda word: word if word in vocab else '<UNK>', unicode(line, 'utf_8').strip()
-                                   .split())).encode('utf_8')
+                print_function(" ".join(map(lambda word: word if word in vocab else '<UNK>', str(line, 'utf_8').strip()
+                                            .split())).encode('utf_8'))
