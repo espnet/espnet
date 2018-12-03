@@ -1,11 +1,14 @@
 import logging
 import six
+import sys
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
+
+from espnet.nets.e2e_asr_common import get_vgg2l_odim
 
 
 class BLSTMP(torch.nn.Module):
@@ -84,7 +87,7 @@ class BLSTM(torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :return: batch of hidden state sequences (B, Tmax, erojs)
+        :return: batch of hidden state sequences (B, Tmax, eprojs)
         :rtype: torch.Tensor
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
@@ -151,3 +154,27 @@ class VGG2L(torch.nn.Module):
         xs_pad = xs_pad.contiguous().view(
             xs_pad.size(0), xs_pad.size(1), xs_pad.size(2) * xs_pad.size(3))
         return xs_pad, ilens
+
+
+def encoder_for(etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel):
+    if etype == 'blstm':
+        enc = torch.nn.Sequential([BLSTM(idim, elayers, eunits, eprojs, dropout)])
+        logging.info('BLSTM without projection for encoder')
+    elif etype == 'blstmp':
+        enc = torch.nn.Sequential([BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)])
+        logging.info('BLSTM with every-layer projection for encoder')
+    elif etype == 'vggblstmp':
+        enc = torch.nn.Sequential([VGG2L(in_channel),
+                                   BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
+                                          subsample, dropout)])
+        logging.info('Use CNN-VGG + BLSTMP for encoder')
+    elif etype == 'vggblstm':
+        enc = torch.nn.Sequential([VGG2L(in_channel),
+                                   BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
+                                         dropout)])
+        logging.info('Use CNN-VGG + BLSTM for encoder')
+    else:
+        logging.error(
+            "Error: need to specify an appropriate encoder architecture")
+        sys.exit()
+    return enc
