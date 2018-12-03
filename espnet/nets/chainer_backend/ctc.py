@@ -107,7 +107,7 @@ class WarpCTC(chainer.Chain):
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
 
-def ctc_for_args(args, odim):
+def ctc_for(args, odim):
     """Return the CTC corresponding to the args
 
     :param namespace args: The program arguments

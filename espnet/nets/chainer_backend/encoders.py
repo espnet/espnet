@@ -145,25 +145,59 @@ class VGG2L(chainer.Chain):
         return xs, ilens
 
 
-def encoder_for(etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel):
-    if etype == 'blstm':
-        enc = chainer.Sequential([BLSTM(idim, elayers, eunits, eprojs, dropout)])
-        logging.info('BLSTM without projection for encoder')
-    elif etype == 'blstmp':
-        enc = chainer.Sequential([BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)])
-        logging.info('BLSTM with every-layer projection for encoder')
-    elif etype == 'vggblstmp':
-        enc = chainer.Sequential([VGG2L(in_channel),
-                                  BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
-                                         subsample, dropout)])
-        logging.info('Use CNN-VGG + BLSTMP for encoder')
-    elif etype == 'vggblstm':
-        enc = chainer.Sequential([VGG2L(in_channel),
-                                  BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
-                                        dropout)])
-        logging.info('Use CNN-VGG + BLSTM for encoder')
-    else:
-        logging.error(
-            "Error: need to specify an appropriate encoder architecture")
-        sys.exit()
-    return enc
+class Encoder(chainer.Chain):
+    """Encoder network class
+
+    This is the example of docstring.
+
+    :param str etype: type of encoder network
+    :param int idim: number of dimensions of encoder network
+    :param int elayers: number of layers of encoder network
+    :param int eunits: number of lstm units of encoder network
+    :param int eprojs: number of projection units of encoder network
+    :param np.ndarray subsample: subsampling number e.g. 1_2_2_2_1
+    :param float dropout: dropout rate
+    :return:
+
+    """
+
+    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
+        super(Encoder, self).__init__()
+        with self.init_scope():
+            if etype == 'blstm':
+                self.enc = chainer.Sequential([BLSTM(idim, elayers, eunits, eprojs, dropout)])
+                logging.info('BLSTM without projection for encoder')
+            elif etype == 'blstmp':
+                self.enc = chainer.Sequential([BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)])
+                logging.info('BLSTM with every-layer projection for encoder')
+            elif etype == 'vggblstmp':
+                self.enc = chainer.Sequential([VGG2L(in_channel),
+                                               BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
+                                                      eprojs,
+                                                      subsample, dropout)])
+                logging.info('Use CNN-VGG + BLSTMP for encoder')
+            elif etype == 'vggblstm':
+                self.enc = chainer.Sequential([VGG2L(in_channel),
+                                               BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
+                                                     eprojs,
+                                                     dropout)])
+                logging.info('Use CNN-VGG + BLSTM for encoder')
+            else:
+                logging.error(
+                    "Error: need to specify an appropriate encoder architecture")
+                sys.exit()
+
+    def __call__(self, xs, ilens):
+        """Encoder forward
+
+        :param xs:
+        :param ilens:
+        :return:
+        """
+        xs, ilens = self.enc(xs, ilens)
+
+        return xs, ilens
+
+
+def encoder_for(args, idim, subsample):
+    return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout)

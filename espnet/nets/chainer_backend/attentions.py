@@ -202,7 +202,7 @@ class NoAtt(chainer.Chain):
         return self.c, att_prev
 
 
-def att_for_args(args):
+def att_for(args):
     """Returns an attention given the program arguments
 
     :param namespace args: the arguments
