@@ -6,7 +6,6 @@
 
 import logging
 import math
-import sys
 
 from argparse import Namespace
 
@@ -23,12 +22,9 @@ from chainer import reporter
 from espnet.nets.chainer_backend.attentions import att_for_args
 from espnet.nets.chainer_backend.ctc import ctc_for_args
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
-from espnet.nets.chainer_backend.encoders import BLSTM
-from espnet.nets.chainer_backend.encoders import BLSTMP
-from espnet.nets.chainer_backend.encoders import VGG2L
+from espnet.nets.chainer_backend.encoders import encoder_for
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
-from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 CTC_LOSS_THRESHOLD = 10000
@@ -554,29 +550,7 @@ class Encoder(chainer.Chain):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
         with self.init_scope():
-            if etype == 'blstm':
-                self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
-                logging.info('BLSTM without projection for encoder')
-            elif etype == 'blstmp':
-                self.enc1 = BLSTMP(idim, elayers, eunits,
-                                   eprojs, subsample, dropout)
-                logging.info('BLSTM with every-layer projection for encoder')
-            elif etype == 'vggblstmp':
-                self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTMP(get_vgg2l_odim(
-                    idim, in_channel=in_channel), elayers, eunits, eprojs, subsample, dropout)
-                logging.info('Use CNN-VGG + BLSTMP for encoder')
-            elif etype == 'vggblstm':
-                self.enc1 = VGG2L(in_channel)
-                self.enc2 = BLSTM(get_vgg2l_odim(
-                    idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
-                logging.info('Use CNN-VGG + BLSTM for encoder')
-            else:
-                logging.error(
-                    "Error: need to specify an appropriate encoder architecture")
-                sys.exit()
-
-        self.etype = etype
+            self.enc = encoder_for(etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel)
 
     def __call__(self, xs, ilens):
         """Encoder forward
@@ -585,19 +559,6 @@ class Encoder(chainer.Chain):
         :param ilens:
         :return:
         """
-        if self.etype == 'blstm':
-            xs, ilens = self.enc1(xs, ilens)
-        elif self.etype == 'blstmp':
-            xs, ilens = self.enc1(xs, ilens)
-        elif self.etype == 'vggblstmp':
-            xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
-        elif self.etype == 'vggblstm':
-            xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
-        else:
-            logging.error(
-                "Error: need to specify an appropriate encoder architecture")
-            sys.exit()
+        xs, ilens = self.enc(xs, ilens)
 
         return xs, ilens

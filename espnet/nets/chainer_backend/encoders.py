@@ -1,5 +1,6 @@
 import logging
 import six
+import sys
 
 import chainer
 import chainer.functions as F
@@ -9,6 +10,7 @@ import numpy as np
 from chainer import cuda
 
 from espnet.nets.chainer_backend.nets_utils import _subsamplex
+from espnet.nets.e2e_asr_common import get_vgg2l_odim
 
 
 # TODO(watanabe) explanation of BLSTMP
@@ -141,3 +143,27 @@ class VGG2L(chainer.Chain):
         xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
 
         return xs, ilens
+
+
+def encoder_for(etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel):
+    if etype == 'blstm':
+        enc = chainer.Sequential([BLSTM(idim, elayers, eunits, eprojs, dropout)])
+        logging.info('BLSTM without projection for encoder')
+    elif etype == 'blstmp':
+        enc = chainer.Sequential([BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)])
+        logging.info('BLSTM with every-layer projection for encoder')
+    elif etype == 'vggblstmp':
+        enc = chainer.Sequential([VGG2L(in_channel),
+                                  BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
+                                         subsample, dropout)])
+        logging.info('Use CNN-VGG + BLSTMP for encoder')
+    elif etype == 'vggblstm':
+        enc = chainer.Sequential([VGG2L(in_channel),
+                                  BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
+                                        dropout)])
+        logging.info('Use CNN-VGG + BLSTM for encoder')
+    else:
+        logging.error(
+            "Error: need to specify an appropriate encoder architecture")
+        sys.exit()
+    return enc

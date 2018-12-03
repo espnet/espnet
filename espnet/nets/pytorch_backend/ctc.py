@@ -66,3 +66,12 @@ class CTC(torch.nn.Module):
         :rtype: torch.Tensor
         """
         return F.log_softmax(self.ctc_lo(hs_pad), dim=2)
+
+
+def ctc_for_args(args, odim):
+    """Returns the CTC module for the given args and output dimension
+    :param namespace args: the program args
+    :param int odim : The output dimension
+    :return: the corresponding CTC module
+    """
+    return CTC(odim, args.eprojs, args.dropout_rate)

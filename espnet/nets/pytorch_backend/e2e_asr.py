@@ -9,7 +9,6 @@ from __future__ import division
 import argparse
 import logging
 import math
-import sys
 
 from argparse import Namespace
 import editdistance
@@ -26,16 +25,13 @@ from chainer import reporter
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.ctc_prefix_score import CTCPrefixScoreTH
 from espnet.nets.e2e_asr_common import end_detect
-from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 from espnet.nets.pytorch_backend.attentions import att_for_args
 from espnet.nets.pytorch_backend.attentions import att_to_numpy
 
-from espnet.nets.pytorch_backend.ctc import CTC
-from espnet.nets.pytorch_backend.encoders import BLSTM
-from espnet.nets.pytorch_backend.encoders import BLSTMP
-from espnet.nets.pytorch_backend.encoders import VGG2L
+from espnet.nets.pytorch_backend.ctc import ctc_for_args
+from espnet.nets.pytorch_backend.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import append_ids
 from espnet.nets.pytorch_backend.nets_utils import get_last_yseq
@@ -161,7 +157,7 @@ class E2E(torch.nn.Module):
         self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
                            self.subsample, args.dropout_rate)
         # ctc
-        self.ctc = CTC(odim, args.eprojs, args.dropout_rate)
+        self.ctc = ctc_for_args(args, odim)
         # attention
         self.att = att_for_args(args)
         # decoder
@@ -979,53 +975,17 @@ class Encoder(torch.nn.Module):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
 
-        if etype == 'blstm':
-            self.enc1 = BLSTM(idim, elayers, eunits, eprojs, dropout)
-            logging.info('BLSTM without projection for encoder')
-        elif etype == 'blstmp':
-            self.enc1 = BLSTMP(idim, elayers, eunits,
-                               eprojs, subsample, dropout)
-            logging.info('BLSTM with every-layer projection for encoder')
-        elif etype == 'vggblstmp':
-            self.enc1 = VGG2L(in_channel)
-            self.enc2 = BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel),
-                               elayers, eunits, eprojs,
-                               subsample, dropout)
-            logging.info('Use CNN-VGG + BLSTMP for encoder')
-        elif etype == 'vggblstm':
-            self.enc1 = VGG2L(in_channel)
-            self.enc2 = BLSTM(get_vgg2l_odim(idim, in_channel=in_channel),
-                              elayers, eunits, eprojs, dropout)
-            logging.info('Use CNN-VGG + BLSTM for encoder')
-        else:
-            logging.error(
-                "Error: need to specify an appropriate encoder architecture")
-            sys.exit()
-
-        self.etype = etype
+        self.enc = encoder_for(etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel)
 
     def forward(self, xs_pad, ilens):
         """Encoder forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :return: batch of hidden state sequences (B, Tmax, erojs)
+        :return: batch of hidden state sequences (B, Tmax, eprojs)
         :rtype: torch.Tensor
         """
-        if self.etype == 'blstm':
-            xs_pad, ilens = self.enc1(xs_pad, ilens)
-        elif self.etype == 'blstmp':
-            xs_pad, ilens = self.enc1(xs_pad, ilens)
-        elif self.etype == 'vggblstmp':
-            xs_pad, ilens = self.enc1(xs_pad, ilens)
-            xs_pad, ilens = self.enc2(xs_pad, ilens)
-        elif self.etype == 'vggblstm':
-            xs_pad, ilens = self.enc1(xs_pad, ilens)
-            xs_pad, ilens = self.enc2(xs_pad, ilens)
-        else:
-            logging.error(
-                "Error: need to specify an appropriate encoder architecture")
-            sys.exit()
+        xs_pad, ilens = self.enc(xs_pad, ilens)
 
         # make mask to remove bias value in padded part
         mask = to_cuda(self, make_pad_mask(ilens).unsqueeze(-1))
