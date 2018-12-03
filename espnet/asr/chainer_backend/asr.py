@@ -37,7 +37,6 @@ from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
-from espnet.nets.chainer_backend.e2e_asr import Loss
 
 # for kaldi io
 import kaldi_io_py
@@ -247,8 +246,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    e2e = E2E(idim, odim, args)
-    model = Loss(e2e, args.mtlalpha)
+    model = E2E(idim, odim, args)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -295,7 +293,7 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
-    converter = CustomConverter(e2e.subsample[0])
+    converter = CustomConverter(model.subsample[0])
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -464,8 +462,7 @@ def recog(args):
 
     # specify model architecture
     logging.info('reading model parameters from ' + args.model)
-    e2e = E2E(idim, odim, train_args)
-    model = Loss(e2e, train_args.mtlalpha)
+    model = E2E(idim, odim, train_args)
     chainer_load(args.model, model)
 
     # read rnnlm
@@ -504,7 +501,7 @@ def recog(args):
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+            nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     # TODO(watanabe) fix character coding problems when saving it

@@ -35,7 +35,6 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
-from espnet.nets.pytorch_backend.e2e_asr import Loss
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
 # for kaldi io
@@ -239,8 +238,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    e2e = E2E(idim, odim, args)
-    model = Loss(e2e, args.mtlalpha)
+    model = E2E(idim, odim, args)
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -248,7 +246,7 @@ def train(args):
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         torch.load(args.rnnlm, rnnlm)
-        e2e.rnnlm = rnnlm
+        model.rnnlm = rnnlm
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -285,7 +283,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(e2e.subsample[0])
+    converter = CustomConverter(model.subsample[0])
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -419,10 +417,9 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    e2e = E2E(idim, odim, train_args)
-    model = Loss(e2e, train_args.mtlalpha)
+    model = E2E(idim, odim, train_args)
     torch_load(args.model, model)
-    e2e.recog_args = args
+    model.recog_args = args
 
     # read rnnlm
     if args.rnnlm:
@@ -471,7 +468,7 @@ def recog(args):
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-                nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
         try:
@@ -494,7 +491,7 @@ def recog(args):
                 names = [name for name in names if name]
                 feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
                          for name in names]
-                nbest_hyps = e2e.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
