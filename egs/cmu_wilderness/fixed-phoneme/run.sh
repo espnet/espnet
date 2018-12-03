@@ -83,14 +83,24 @@ recog_set=""
 train_langs=""
 adapt_langs=""
 adapt_no_phoneme=""
+adapt_subset=""
 
 . ./utils/parse_options.sh || exit 1;
 
 datasets=/export/b15/oadams/datasets-CMU_Wilderness
 
+
 if [[ ${adapt_langs} ]]; then
-    adapt_langs_train="${adapt_langs}_train"
-    adapt_langs_dev="${adapt_langs}_dev"
+    if [[ ${adapt_subset} ]]; then
+        subset_data_dir.sh "data/${adapt_langs}_train" "${adapt_subset}" "data/${adapt_langs}-${adapt_subset}_train"
+        cp -r "data/${adapt_langs}_train/text.phn" "data/${adapt_langs}-${adapt_subset}_train/"
+        cp -r "data/${adapt_langs}_dev" "data/${adapt_langs}-${adapt_subset}_dev"
+        adapt_langs_train="${adapt_langs}-${adapt_subset}_train"
+        adapt_langs_dev="${adapt_langs}-${adapt_subset}_dev"
+    else
+        adapt_langs_train="${adapt_langs}_train"
+        adapt_langs_dev="${adapt_langs}_dev"
+    fi
 fi
 
 if [[ ${train_langs} ]]; then
