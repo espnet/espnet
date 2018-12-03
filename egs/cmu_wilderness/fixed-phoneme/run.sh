@@ -84,6 +84,9 @@ train_langs=""
 adapt_langs=""
 adapt_no_phoneme=""
 
+extract_encoder_states=""
+per_frame_ali="/export/b14/mwiesner/JSALT_07_25_2018/espnet/tools/kaldi_github/egs/bible_wild/s5_99langs/data/dev/text.perframe.phn"
+
 . ./utils/parse_options.sh || exit 1;
 
 datasets=/export/b15/oadams/datasets-CMU_Wilderness
@@ -403,4 +406,39 @@ if [ ${stage} -le 4 ] && [ ! -z ${recog_set} ]; then
     done
     wait
     echo "Finished"
+fi
+
+if [ ${stage} -le 5 ] && [[ ${extract_encoder_states} ]]; then
+    echo "stage 5: Extract encoder states for different phonemes"
+    nj=1
+
+    (
+        feat_recog_dir=${feat_dt_dir}
+        decode_dir=encoder-states_${train_dev}_e${recog_model}
+
+        # split data
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+
+        #### use CPU for decoding
+        ngpu=0
+
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            asr_recog.py \
+            --ngpu ${ngpu} \
+            --verbose ${verbose} \
+            --backend ${backend} \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/${recog_model}  \
+            --model-conf ${expdir}/results/model.json  \
+            --langs_file ${langs_file} \
+            --encoder-states \
+            --per-frame-ali ${per_frame_ali} \
+            --phoneme-dict data/lang_1char/${train_set}_units.txt.phn &
+        wait
+
+    ) &
+    wait
+    echo "Finished"
+    exit
 fi

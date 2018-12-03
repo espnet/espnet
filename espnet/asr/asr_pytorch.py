@@ -674,16 +674,23 @@ def recog(args):
         with open(args.per_frame_ali) as f:
             for line in f:
                 sp = line.split()
-                name = sp[0]
-                phns = sp[1:]
-                per_frame_phns[unicode(name)] = phns
+                assert len(sp) == 5
+                uttname = sp[0]
+                _conf = float(sp[1])
+                start = float(sp[2])
+                dur = float(sp[3])
+                phn = sp[4]
+                per_frame_phns[unicode(uttname)] = (start, dur, phn)
 
-        phn_units_path=("/export/b13/oadams/espnet-merge/egs/babel/"
-                       "phoneme_objective/data/lang_1char/train_units.txt.phn")
         phn_units = []
-        with open(phn_units_path, "r") as f:
+        with open(args.phoneme_dict, "r") as f:
             for line in f:
                 phn_units.append(line.split()[0])
+
+        for uttname in list(per_frame_phns.keys())[:10]:
+            logging.info("{}: {}".format(uttname, per_frame_phns[uttname]))
+
+        import sys; sys.exit()
 
         NUM_ENCODER_STATES = None
         #target_phns = ["a", "i", "o", "6",]# "u", "@", "E",]
