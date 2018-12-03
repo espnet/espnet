@@ -669,6 +669,11 @@ def recog(args):
 
     if args.encoder_states:
         logging.info("Storing encoder states.")
+
+        enc_states_dir = os.path.dirname(args.result_label) + "/encoder_states"
+        if not os.path.exists(enc_states_dir):
+            os.mkdir(enc_states_dir)
+
         logging.info("per-frame-ali: {}".format(args.per_frame_ali))
         per_frame_phns = defaultdict(list)
         with open(args.per_frame_ali) as f:
@@ -703,6 +708,7 @@ def recog(args):
         for lang in uttids.keys():
             write_enc_states(lang, target_phns,
                              js, uttids, per_frame_phns, e2e, train_args,
+                             enc_states_dir,
                              num_encoder_states=NUM_ENCODER_STATES)
 
         return
@@ -779,6 +785,7 @@ def recog(args):
 
 def write_enc_states(lang, tgt_phns,
                      js, uttids, per_frame_phns, e2e, train_args,
+                     enc_states_dir,
                      num_encoder_states=500):
     """ Writes the encoder states for a given language and phoneme. """
 
@@ -841,9 +848,12 @@ def write_enc_states(lang, tgt_phns,
                     train_args.mtlalpha, train_args.phoneme_objective_weight,
                     train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
                     tgt, num_encoder_states))
-                    np.save("dev_encoder_states/{}_alpha{}beta{}_predict-lang-{}-{}_phn-{}_num{}_encoder_states".format(lang,
-                    train_args.mtlalpha, train_args.phoneme_objective_weight,
-                    train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
-                    tgt, num_encoder_states), np.array(encoder_states[tgt]))
+                    #np.save("dev_encoder_states/{}_alpha{}beta{}_predict-lang-{}-{}_phn-{}_num{}_encoder_states".format(lang,
+                    #train_args.mtlalpha, train_args.phoneme_objective_weight,
+                    #train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
+                    #tgt, num_encoder_states), np.array(encoder_states[tgt]))
+                    npy_path = os.path.join(
+                            enc_states_dir, "lang-{}_phn-{}".format(lang, tgt))
+                    np.save(npy_path, np.array(encoder_states[tgt]))
                 if num_encoder_states:
                     return
