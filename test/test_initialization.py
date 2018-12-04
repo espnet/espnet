@@ -50,9 +50,9 @@ def test_lecun_init_torch():
     os.environ["CHAINER_SEED"] = str(nseed)
     import espnet.nets.pytorch_backend.e2e_asr as m
     model = m.E2E(40, 5, args)
-    b = model.predictor.ctc.ctc_lo.bias.data.numpy()
+    b = model.ctc.ctc_lo.bias.data.numpy()
     assert numpy.all(b == 0.0)
-    w = model.predictor.ctc.ctc_lo.weight.data.numpy()
+    w = model.ctc.ctc_lo.weight.data.numpy()
     numpy.testing.assert_allclose(w.mean(), 0.0, 1e-2, 1e-2)
     numpy.testing.assert_allclose(w.var(), 1.0 / w.shape[1], 1e-2, 1e-2)
 
@@ -81,9 +81,9 @@ def test_lecun_init_chainer():
     os.environ["CHAINER_SEED"] = str(nseed)
     import espnet.nets.chainer_backend.e2e_asr as m
     model = m.E2E(40, 5, args)
-    b = model.predictor.ctc.ctc_lo.b.data
+    b = model.ctc.ctc_lo.b.data
     assert numpy.all(b == 0.0)
-    w = model.predictor.ctc.ctc_lo.W.data
+    w = model.ctc.ctc_lo.W.data
     numpy.testing.assert_allclose(w.mean(), 0.0, 1e-2, 1e-2)
     numpy.testing.assert_allclose(w.var(), 1.0 / w.shape[1], 1e-2, 1e-2)
 

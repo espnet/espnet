@@ -90,7 +90,7 @@ def test_recognition_results(etype, m_str, text_idx1):
         ]
 
         in_data = data[0][1]["feat"]
-        nbest_hyps = model.predictor.recognize(in_data, args, args.char_list)
+        nbest_hyps = model.recognize(in_data, args, args.char_list)
         y_hat = nbest_hyps[0]['yseq'][1:]
         seq_hat = [args.char_list[int(idx)] for idx in y_hat]
         seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
@@ -139,7 +139,7 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         ]
 
         in_data = data[0][1]["feat"]
-        nbest_hyps = model.predictor.recognize(in_data, args, args.char_list, rnnlm)
+        nbest_hyps = model.recognize(in_data, args, args.char_list, rnnlm)
         y_hat = nbest_hyps[0]['yseq'][1:]
         seq_hat = [args.char_list[int(idx)] for idx in y_hat]
         seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
@@ -179,10 +179,10 @@ def test_batch_beam_search(etype, m_str):
 
         for lm_weight in [0.0, 0.3]:
             if lm_weight == 0.0:
-                s_nbest_hyps = model.predictor.recognize(in_data, args, args.char_list)
-                b_nbest_hyps = model.predictor.recognize_batch([in_data], args, args.char_list)
+                s_nbest_hyps = model.recognize(in_data, args, args.char_list)
+                b_nbest_hyps = model.recognize_batch([in_data], args, args.char_list)
             else:
-                s_nbest_hyps = model.predictor.recognize(in_data, args, args.char_list, rnnlm)
-                b_nbest_hyps = model.predictor.recognize_batch([in_data], args, args.char_list, rnnlm)
+                s_nbest_hyps = model.recognize(in_data, args, args.char_list, rnnlm)
+                b_nbest_hyps = model.recognize_batch([in_data], args, args.char_list, rnnlm)
 
             assert s_nbest_hyps[0]['yseq'] == b_nbest_hyps[0][0]['yseq']
