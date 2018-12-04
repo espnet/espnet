@@ -25,7 +25,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp     # encoder architecture type
 elayers=4
@@ -108,7 +108,7 @@ set -e
 set -u
 set -o pipefail
 
-if [ ${stage} -le 0 ]; then
+if [ "${stage}" -le 0 ]; then
     # TODO
     # add a check whether the following data preparation is completed or not
 
@@ -118,18 +118,18 @@ if [ ${stage} -le 0 ]; then
 	exit 1
     fi
     lang_code=csj_japanese
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_nodup data/tr_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/train_dev   data/dt_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval1       data/et_${lang_code}_1
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval2       data/et_${lang_code}_2
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval3       data/et_${lang_code}_3
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../csj/asr1/data/train_nodup "data/tr_${lang_code}"
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../csj/asr1/data/train_dev   "data/dt_${lang_code}"
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../csj/asr1/data/eval1       "data/et_${lang_code}_1"
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../csj/asr1/data/eval2       "data/et_${lang_code}_2"
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../csj/asr1/data/eval3       "data/et_${lang_code}_3"
     # 1) change wide to narrow chars
     # 2) lower to upper chars
     for x in data/*${lang_code}*; do
-        utils/copy_data_dir.sh ${x} ${x}_org
-        cat ${x}_org/text | nkf -Z |\
-            awk '{for(i=2;i<=NF;++i){$i = toupper($i)} print}' > ${x}/text
-        rm -fr ${x}_org
+        utils/copy_data_dir.sh "${x}" "${x}_org"
+        cat "${x}_org/text" | nkf -Z |\
+            awk '{for(i=2;i<=NF;++i){$i = toupper($i)} print}' > "${x}/text"
+        rm -fr "${x}_org"
     done
 
     # librispeech
@@ -138,176 +138,176 @@ if [ ${stage} -le 0 ]; then
 	echo "run ${libridir}/asr1/run.sh first"
 	exit 1
     fi
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/train_960  data/tr_${lang_code}
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/dev_clean  data/dt_${lang_code}_clean
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/dev_other  data/dt_${lang_code}_other
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/test_clean data/et_${lang_code}_clean
-    utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../librispeech/asr1/data/test_other data/et_${lang_code}_other
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../librispeech/asr1/data/train_960  "data/tr_${lang_code}"
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../librispeech/asr1/data/dev_clean  "data/dt_${lang_code}_clean"
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../librispeech/asr1/data/dev_other  "data/dt_${lang_code}_other"
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../librispeech/asr1/data/test_clean "data/et_${lang_code}_clean"
+    utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../librispeech/asr1/data/test_other "data/et_${lang_code}_other"
 
     # Babel
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
-	langid=`echo ${x} | cut -f 1 -d"-"`
-	lang_code=`echo ${x} | cut -f 2 -d"-"`
+	langid=`echo "${x}" | cut -f 1 -d"-"`
+	lang_code=`echo "${x}" | cut -f 2 -d"-"`
 	if [ ! -d "${babeldir}/asr1_${lang_code}/data" ]; then
 	    echo "run ${babeldir}/asr1/local/run_all.sh first"
 	    exit 1
 	fi
-        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/train          data/tr_babel_${lang_code}
-        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/dev            data/dt_babel_${lang_code}
-        utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../babel/asr1_${lang_code}/data/eval_${langid} data/et_babel_${lang_code}
+        utils/copy_data_dir.sh --utt-suffix "-${lang_code}" "../../babel/asr1_${lang_code}/data/train"          "data/tr_babel_${lang_code}"
+        utils/copy_data_dir.sh --utt-suffix "-${lang_code}" "../../babel/asr1_${lang_code}/data/dev"            "data/dt_babel_${lang_code}"
+        utils/copy_data_dir.sh --utt-suffix "-${lang_code}" "../../babel/asr1_${lang_code}/data/eval_${langid}" "data/et_babel_${lang_code}"
     done
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}_${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}_${train_set}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+feat_tr_dir="${dumpdir}/${train_set}_${train_set}/delta${do_delta}"; mkdir -p "${feat_tr_dir}"
+feat_dt_dir="${dumpdir}/${train_dev}_${train_set}/delta${do_delta}"; mkdir -p "${feat_dt_dir}"
+if [ "${stage}" -le 1 ]; then
 
     utils/combine_data.sh data/tr_babel10_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
     utils/combine_data.sh data/dt_babel10_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
 
-    if [ ! -z ${subset_num_spk} ]; then
-        # create a trainng subset with ${subset_num_spk} speakers (in total 7470)
-        head -n ${subset_num_spk} <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
+    if [ ! -z "${subset_num_spk}" ]; then
+        # create a trainng subset with "${subset_num_spk}" speakers (in total 7470)
+        head -n "${subset_num_spk}" <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
         utils/subset_data_dir.sh \
-        --spk-list data/tr_babel10_org/spk_list_${subset_num_spk}spk \
-        data/tr_babel10_org data/${train_set}_org
+        --spk-list "data/tr_babel10_org/spk_list_${subset_num_spk}spk" \
+        data/tr_babel10_org "data/${train_set}_org"
     fi
 
     # remove utt having more than 3000 frames or less than 10 frames or
     # remove utt having more than 400 characters or no more than 0 characters
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 "data/${train_set}_org" "data/${train_set}"
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 "data/${train_dev}_org" "data/${train_dev}"
 
     # compute global CMVN
-    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+    compute-cmvn-stats scp:"data/${train_set}/feats.scp" "data/${train_set}/cmvn.ark"
 
     # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d "${feat_tr_dir}/storage" ]; then
     utils/create_split_dir.pl \
-        /export/b{01,02,03,04}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_set}/delta${do_delta}/storage \
-        ${feat_tr_dir}/storage
+        /export/b{01,02,03,04}/"${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_set}/delta${do_delta}/storage" \
+        "${feat_tr_dir}/storage"
     fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d "${feat_dt_dir}/storage" ]; then
     utils/create_split_dir.pl \
-        /export/b{01,02,03,04}/${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage \
-        ${feat_dt_dir}/storage
+        /export/b{01,02,03,04}/"${USER}/espnet-data/egs/jsalt18e2e/asr1/dump/${train_dev}/delta${do_delta}/storage" \
+        "${feat_dt_dir}/storage"
     fi
-    [ ! -d ${feat_tr_dir}/feats.scp ] && dump.sh --cmd "${train_cmd}" --nj 40 --do_delta ${do_delta} \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set}_${train_set} ${feat_tr_dir}
-    [ ! -d ${feat_dt_dir}/feats.scp ] && dump.sh --cmd "${train_cmd}" --nj 40 --do_delta ${do_delta} \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_dev}_${train_set} ${feat_dt_dir}
+    [ ! -d "${feat_tr_dir}/feats.scp" ] && dump.sh --cmd "${train_cmd}" --nj 40 --do_delta "${do_delta}" \
+        "data/${train_set}/feats.scp" "data/${train_set}/cmvn.ark" "exp/dump_feats/${train_set}_${train_set}" "${feat_tr_dir}"
+    [ ! -d "${feat_dt_dir}/feats.scp" ] && dump.sh --cmd "${train_cmd}" --nj 40 --do_delta "${do_delta}" \
+        "data/${train_dev}/feats.scp" "data/${train_set}/cmvn.ark" "exp/dump_feats/${train_dev}_${train_set}" "${feat_dt_dir}"
    for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        [ ! -d ${feat_recog_dir}/feats.scp ] && dump.sh --cmd "${train_cmd}" --nj 40 --do_delta ${do_delta} \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask}_${train_set} \
-            ${feat_recog_dir}
+        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}; mkdir -p "${feat_recog_dir}"
+        [ ! -d "${feat_recog_dir}/feats.scp" ] && dump.sh --cmd "${train_cmd}" --nj 40 --do_delta "${do_delta}" \
+            "data/${rtask}/feats.scp" "data/${train_set}/cmvn.ark" "exp/dump_feats/recog/${rtask}_${train_set}" \
+            "${feat_recog_dir}"
     done
 fi
 dict=data/lang_1char/train_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ "${stage}" -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- data/tr_*/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms}
-    cat ${nlsyms}
+    cut -f 2- data/tr_*/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > "${nlsyms}"
+    cat "${nlsyms}"
 
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/tr_*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
+    echo "<unk> 1" > "${dict}" # <unk> must be 1, 0 will be used for "blank" in CTC
+    cat data/tr_*/text | text2token.py -s 1 -n 1 -l "${nlsyms}" | cut -f 2- -d" " | tr " " "\n" \
+    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> "${dict}"
+    wc -l "${dict}"
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --feat "${feat_tr_dir}/feats.scp" --nlsyms "${nlsyms}" \
+         "data/${train_set}" "${dict}" > "${feat_tr_dir}/data.json"
+    data2json.sh --feat "${feat_dt_dir}/feats.scp" --nlsyms "${nlsyms}" \
+         "data/${train_dev}" "${dict}" > "${feat_dt_dir}/data.json"
     for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+        feat_recog_dir="${dumpdir}/${rtask}_${train_set}/delta${do_delta}"
+        data2json.sh --feat "${feat_recog_dir}/feats.scp" \
+            --nlsyms "${nlsyms}" "data/${rtask}" "${dict}" > "${feat_recog_dir}/data.json"
     done
 fi
 
-if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
-    if ${do_delta}; then
-        expdir=${expdir}_delta
+if [ -z "${tag}" ]; then
+    expdir="exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}"
+    if "${do_delta}"; then
+        expdir="${expdir}_delta"
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expdir="exp/${train_set}_${backend}_${tag}"
 fi
-mkdir -p ${expdir}
+mkdir -p "${expdir}"
 
-if [ ${stage} -le 3 ]; then
+if [ "${stage}" -le 3 ]; then
     echo "stage 3: Network Training"
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    "${cuda_cmd}"  --gpu "${ngpu}" "${expdir}/train.log" \
         asr_train.py \
-        --ngpu ${ngpu} \
-        --backend ${backend} \
-        --outdir ${expdir}/results \
-        --debugmode ${debugmode} \
-        --dict ${dict} \
-        --debugdir ${expdir} \
-        --minibatches ${N} \
-        --verbose ${verbose} \
-        --resume ${resume} \
-        --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --opt ${opt} \
-        --epochs ${epochs}
+        --ngpu "${ngpu}" \
+        --backend "${backend}" \
+        --outdir "${expdir}/results" \
+        --debugmode "${debugmode}" \
+        --dict "${dict}" \
+        --debugdir "${expdir}" \
+        --minibatches "${N}" \
+        --verbose "${verbose}" \
+        --resume "${resume}" \
+        --train-json "${feat_tr_dir}/data.json" \
+        --valid-json "${feat_dt_dir}/data.json" \
+        --etype "${etype}" \
+        --elayers "${elayers}" \
+        --eunits "${eunits}" \
+        --eprojs "${eprojs}" \
+        --subsample "${subsample}" \
+        --dlayers "${dlayers}" \
+        --dunits "${dunits}" \
+        --atype "${atype}" \
+        --aconv-chans "${aconv_chans}" \
+        --aconv-filts "${aconv_filts}" \
+        --mtlalpha "${mtlalpha}" \
+        --batch-size "${batchsize}" \
+        --maxlen-in "${maxlen_in}" \
+        --maxlen-out "${maxlen_out}" \
+        --sampling-probability "${samp_prob}" \
+        --opt "${opt}" \
+        --epochs "${epochs}"
 fi
 
-if [ ${stage} -le 4 ]; then
+if [ "${stage}" -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-        feat_recog_dir=${dumpdir}/${rtask}_${train_set}/delta${do_delta}
+        decode_dir="decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}"
+        feat_recog_dir="${dumpdir}/${rtask}_${train_set}/delta${do_delta}"
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
+        splitjson.py --parts "${nj}" "${feat_recog_dir}/data.json"
 
         #### use CPU for decoding
         ngpu=0
 
-        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+        "${decode_cmd}" JOB=1:"${nj}" "${expdir}/${decode_dir}/log/"decode.JOB.log \
             asr_recog.py \
-            --ngpu ${ngpu} \
-            --backend ${backend} \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
-            --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
+            --ngpu "${ngpu}" \
+            --backend "${backend}" \
+            --recog-json "${feat_recog_dir}/split${nj}utt/"data.JOB.json \
+            --result-label "${expdir}/${decode_dir}/"data.JOB.json \
+            --model "${expdir}/results/${recog_model}" \
+            --beam-size "${beam_size}" \
+            --penalty "${penalty}" \
+            --maxlenratio "${maxlenratio}" \
+            --minlenratio "${minlenratio}" \
+            --ctc-weight "${ctc_weight}" \
             &
         wait
 
-        score_sclite.sh --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --nlsyms "${nlsyms}" --wer true "${expdir}/${decode_dir}" "${dict}"
 
     ) &
     done
