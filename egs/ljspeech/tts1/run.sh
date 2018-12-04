@@ -134,11 +134,11 @@ if [ ${stage} -le 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "${train_cmd}" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "${train_cmd}" --nj ${nj} --do_delta false \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "${train_cmd}" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
@@ -271,7 +271,7 @@ if [ ${stage} -le 4 ];then
                 --minlenratio ${minlenratio}
         # concatenate scp files
         for n in $(seq ${nj}); do
-            cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
+            cat "${outdir}/${sets}/feats.${n}.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
     done
 fi

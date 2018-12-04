@@ -130,13 +130,13 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+    steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 20 --write_utt2num_frames true \
         data/train_all exp/make_fbank/train_all ${fbankdir}
 
     utils/fix_data_dir.sh data/train_all
     utils/validate_data_dir.sh data/train_all
 
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+    steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 20 --write_utt2num_frames true \
         data/callhome_train_all exp/make_fbank/callhome_train_all ${fbankdir}
 
     utils/fix_data_dir.sh data/callhome_train_all
@@ -161,13 +161,13 @@ if [ ${stage} -le 1 ]; then
         ${feat_dt_dir}/storage
     fi
 
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
+    dump.sh --cmd "${train_cmd}" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
+    dump.sh --cmd "${train_cmd}" --nj 4 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
+        dump.sh --cmd "${train_cmd}" --nj 4 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done

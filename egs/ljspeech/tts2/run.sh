@@ -142,11 +142,11 @@ if [ ${stage} -le 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "${train_cmd}" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "${train_cmd}" --nj ${nj} --do_delta false \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+    dump.sh --cmd "${train_cmd}" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
@@ -175,7 +175,7 @@ if [ ${stage} -le 3 ]; then
     stftdir=stft
     for name in ${train_set} ${train_dev} ${eval_set}; do
         utils/copy_data_dir.sh data/${name} data/${name}_stft
-        make_stft.sh --nj ${nj} --cmd "$train_cmd" \
+        make_stft.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} \
             --n_fft ${n_fft} \
             --n_shift ${n_shift} \
@@ -191,7 +191,7 @@ if [ ${stage} -le 3 ]; then
 
     for name in ${train_set} ${train_dev} ${eval_set}; do
         # dump features for training
-        dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        dump.sh --cmd "${train_cmd}" --nj ${nj} --do_delta false \
             data/${name}_stft/feats.scp \
             data/${train_set}_stft/cmvn.ark \
             exp/dump_feats/${name}_stft \
@@ -318,7 +318,7 @@ if [ ${stage} -le 5 ];then
                 --minlenratio ${minlenratio}
         # concatenate scp files
         for n in $(seq ${nj}); do
-            cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
+            cat "${outdir}/${sets}/feats.${n}.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
     done
 fi
