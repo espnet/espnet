@@ -85,7 +85,7 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(*x)
+        loss = optimizer.target(*x)[0]
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
@@ -120,7 +120,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             batch = self.get_iterator('main').next()
             x = self.converter(batch, self._devices[0])
 
-            loss = self._master(*x)
+            loss = self._master(*x)[0]
 
             self._master.cleargrads()
             loss.backward()

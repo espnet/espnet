@@ -251,7 +251,7 @@ class E2E(torch.nn.Module):
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
 
-        return self.loss
+        return self.loss, loss_ctc_data, loss_att_data, acc, cer, wer
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search

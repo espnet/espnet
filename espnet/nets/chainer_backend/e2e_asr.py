@@ -114,7 +114,7 @@ class E2E(chainer.Chain):
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
 
-        return self.loss
+        return self.loss, loss_ctc, loss_att, acc
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E greedy/beam search

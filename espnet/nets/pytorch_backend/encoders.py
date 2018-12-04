@@ -174,20 +174,20 @@ class Encoder(torch.nn.Module):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
         if etype == 'blstm':
-            self.enc = torch.nn.Sequential(BLSTM(idim, elayers, eunits, eprojs, dropout))
+            self.enc = torch.nn.ModuleList([BLSTM(idim, elayers, eunits, eprojs, dropout)])
             logging.info('BLSTM without projection for encoder')
         elif etype == 'blstmp':
-            self.enc = torch.nn.Sequential(BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout))
+            self.enc = torch.nn.ModuleList([BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)])
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
-            self.enc = torch.nn.Sequential(VGG2L(in_channel),
-                                           BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
-                                                  subsample, dropout))
+            self.enc = torch.nn.ModuleList([VGG2L(in_channel),
+                                            BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
+                                                   subsample, dropout)])
             logging.info('Use CNN-VGG + BLSTMP for encoder')
         elif etype == 'vggblstm':
-            self.enc = torch.nn.Sequential(VGG2L(in_channel),
-                                           BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
-                                                 dropout))
+            self.enc = torch.nn.ModuleList([VGG2L(in_channel),
+                                            BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits, eprojs,
+                                                  dropout)])
             logging.info('Use CNN-VGG + BLSTM for encoder')
         else:
             logging.error(
@@ -202,7 +202,8 @@ class Encoder(torch.nn.Module):
         :return: batch of hidden state sequences (B, Tmax, eprojs)
         :rtype: torch.Tensor
         """
-        xs_pad, ilens = self.enc(xs_pad, ilens)
+        for module in self.enc:
+            xs_pad, ilens = self.enc(xs_pad, ilens)
 
         # make mask to remove bias value in padded part
         mask = to_device(self, make_pad_mask(ilens).unsqueeze(-1))

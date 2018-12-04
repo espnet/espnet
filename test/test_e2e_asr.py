@@ -144,7 +144,7 @@ def test_chainer_ctc_type():
         args = make_arg(ctc_type=ctc_type)
         np.random.seed(0)
         model = ch.E2E(40, 5, args)
-        ch_ctc, _, _ = model(*batch)
+        _, ch_ctc, _, _ = model(*batch)
         ch_ctc.backward()
         W_grad = model.ctc.ctc_lo.W.grad
         b_grad = model.ctc.ctc_lo.b.grad
@@ -173,8 +173,8 @@ def test_loss_and_ctc_grad(etype):
     ch_batch = prepare_inputs("chainer")
     th_batch = prepare_inputs("pytorch")
 
-    ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
-    th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
+    _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+    _, th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
@@ -197,8 +197,8 @@ def test_loss_and_ctc_grad(etype):
     ch_model.cleargrads()
     th_model.zero_grad()
 
-    ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
-    th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
+    _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+    _, th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
     ch_att.backward()
     th_att.backward()
     np.testing.assert_allclose(ch_model.dec.output.W.grad,
@@ -222,8 +222,8 @@ def test_mtl_loss(etype):
     ch_batch = prepare_inputs("chainer")
     th_batch = prepare_inputs("pytorch")
 
-    ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
-    th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
+    _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+    _, th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
@@ -263,8 +263,8 @@ def test_zero_length_target(etype):
     ch_batch = prepare_inputs("chainer", olens=[4, 0])
     th_batch = prepare_inputs("pytorch", olens=[4, 0])
 
-    ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
-    th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
+    _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+    _, th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
 
     # NOTE: We ignore all zero length case because chainer also fails. Have a nice data-prep!
     # out_data = ""
