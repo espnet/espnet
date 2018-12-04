@@ -97,11 +97,18 @@ if [[ ${adapt_langs} ]]; then
         cp -r "data/${adapt_langs}_dev" "data/${adapt_langs}-${adapt_subset}_dev"
         adapt_langs_train="${adapt_langs}-${adapt_subset}_train"
         adapt_langs_dev="${adapt_langs}-${adapt_subset}_dev"
+        echo "1"
+        echo "${adapt_subset}"
     else
         adapt_langs_train="${adapt_langs}_train"
         adapt_langs_dev="${adapt_langs}_dev"
+        echo "2"
+        echo "${adapt_subset}"
     fi
 fi
+
+echo "Adapting to train set: ${adapt_langs_train}"
+echo "Adapting with dev set: ${adapt_langs_dev}"
 
 if [[ ${train_langs} ]]; then
     train_set="${train_langs}_train"
@@ -287,10 +294,15 @@ if [[ ${adapt_langs} ]]; then
         else
             expdir="${expdir}_adapt-${adapt_langs}"
         fi
+        if [[ ${adapt_subset} ]]; then
+            expdir="${expdir}-${adapt_subset}"
+        fi
     fi
     echo "Adapting model from ${pretrained_model}"
     echo "expdir: $expdir"
 fi
+
+
 mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
