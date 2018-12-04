@@ -15,9 +15,10 @@ from chainer import reporter
 
 from espnet.nets.chainer_backend.attentions import att_for
 from espnet.nets.chainer_backend.ctc import ctc_for
+from espnet.nets.chainer_backend.decoders import decoder_for
 from espnet.nets.chainer_backend.encoders import encoder_for
+
 from espnet.nets.e2e_asr_common import label_smoothing_dist
-from nets.chainer_backend.decoders import decoder_for
 
 CTC_LOSS_THRESHOLD = 10000
 
