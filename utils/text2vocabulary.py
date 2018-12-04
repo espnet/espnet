@@ -4,9 +4,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import sys
-import six
 import logging
+import six
+import sys
 
 ##################################
 # main
