@@ -165,22 +165,22 @@ class Encoder(chainer.Chain):
         super(Encoder, self).__init__()
         with self.init_scope():
             if etype == 'blstm':
-                self.enc = chainer.Sequential([BLSTM(idim, elayers, eunits, eprojs, dropout)])
+                self.enc = chainer.Sequential(BLSTM(idim, elayers, eunits, eprojs, dropout))
                 logging.info('BLSTM without projection for encoder')
             elif etype == 'blstmp':
-                self.enc = chainer.Sequential([BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout)])
+                self.enc = chainer.Sequential(BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout))
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
-                self.enc = chainer.Sequential([VGG2L(in_channel),
-                                               BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                      eprojs,
-                                                      subsample, dropout)])
+                self.enc = chainer.Sequential(VGG2L(in_channel),
+                                              BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
+                                                     eprojs,
+                                                     subsample, dropout))
                 logging.info('Use CNN-VGG + BLSTMP for encoder')
             elif etype == 'vggblstm':
-                self.enc = chainer.Sequential([VGG2L(in_channel),
-                                               BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                     eprojs,
-                                                     dropout)])
+                self.enc = chainer.Sequential(VGG2L(in_channel),
+                                              BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
+                                                    eprojs,
+                                                    dropout))
                 logging.info('Use CNN-VGG + BLSTM for encoder')
             else:
                 logging.error(
