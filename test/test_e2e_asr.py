@@ -120,7 +120,7 @@ def test_model_trainable_and_decodable(module, etype, atype):
 
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 40)
-        model.predictor.recognize(in_data, args, args.char_list)  # decodable
+        model.recognize(in_data, args, args.char_list)  # decodable
 
 
 def init_torch_weight_const(m, val):
