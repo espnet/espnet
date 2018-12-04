@@ -9,6 +9,7 @@ slurm-*.out
 espnet.egg-info/
 
 doc/_build
+.idea
 
 # recipe related
 egs/*/*/data*
