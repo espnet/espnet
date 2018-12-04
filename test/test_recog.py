@@ -77,7 +77,7 @@ def test_recognition_results(etype, m_str, text_idx1):
 
         args = make_arg(etype=etype, ctc_weight=ctc_weight)
         m = importlib.import_module(m_str)
-        model = m.Loss(m.E2E(40, 5, args), 0.5)
+        model = m.E2E(40, 5, args)
 
         if "pytorch" in m_str:
             init_torch_weight_const(model, const)
@@ -120,7 +120,7 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
                         lm_weight=0.3)
         m = importlib.import_module(m_str)
-        model = m.Loss(m.E2E(40, 5, args), 0.5)
+        model = m.E2E(40, 5, args)
 
         if "pytorch" in m_str:
             rnnlm = lm_pytorch.ClassifierWithState(
@@ -163,7 +163,7 @@ def test_batch_beam_search(etype, m_str):
         args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
                         lm_weight=0.3)
         m = importlib.import_module(m_str)
-        model = m.Loss(m.E2E(40, 5, args), 0.5)
+        model = m.E2E(40, 5, args)
 
         if "pytorch" in m_str:
             rnnlm = lm_pytorch.ClassifierWithState(

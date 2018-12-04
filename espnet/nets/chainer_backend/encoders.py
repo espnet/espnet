@@ -200,4 +200,4 @@ class Encoder(chainer.Chain):
 
 
 def encoder_for(args, idim, subsample):
-    return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout)
+    return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout_rate)

@@ -49,7 +49,7 @@ def test_lecun_init_torch():
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
     import espnet.nets.pytorch_backend.e2e_asr as m
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    model = m.E2E(40, 5, args)
     b = model.predictor.ctc.ctc_lo.bias.data.numpy()
     assert numpy.all(b == 0.0)
     w = model.predictor.ctc.ctc_lo.weight.data.numpy()
@@ -80,7 +80,7 @@ def test_lecun_init_chainer():
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
     import espnet.nets.chainer_backend.e2e_asr as m
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    model = m.E2E(40, 5, args)
     b = model.predictor.ctc.ctc_lo.b.data
     assert numpy.all(b == 0.0)
     w = model.predictor.ctc.ctc_lo.W.data
