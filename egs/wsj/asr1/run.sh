@@ -54,6 +54,9 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=15
+lr_init=1.0
+warmup_steps=12800
+dropout=0.0
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
@@ -293,6 +296,9 @@ if [ ${stage} -le 4 ]; then
         --lsm-type ${lsm_type} \
         --lsm-weight ${lsm_weight} \
         --batch-size ${batchsize} \
+        --lr-init ${lr_init} \
+        --warmup-steps ${warmup_steps} \
+        --dropout-rate ${dropout} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
