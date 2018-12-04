@@ -3,16 +3,16 @@ import random
 import six
 
 import chainer
-import chainer.links as L
 import chainer.functions as F
+import chainer.links as L
 import numpy as np
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
 from argparse import Namespace
 
-from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet.nets.e2e_asr_common import end_detect
 
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5

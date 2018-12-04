@@ -9,6 +9,7 @@ import codecs
 import json
 import logging
 import sys
+
 from builtins import str
 
 if __name__ == '__main__':
