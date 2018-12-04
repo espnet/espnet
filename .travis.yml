@@ -70,7 +70,7 @@ script:
   - test ! -s check_autopep8
   - pytest
   - travis-sphinx build --source=doc --nowarn
-  - bash -c 'find . -name "run.sh" -printf "%p" -execdir shellcheck -x {} \; ; cd ${TRAVIS_BUILD_DIR}/utils ; shellcheck -x *.sh'
+  - bash -c 'find . -name "run.sh" -printf "%p" -execdir shellcheck -x -e SC1091 {} \; ; cd ${TRAVIS_BUILD_DIR}/utils ; shellcheck -x -e SC1091 *.sh'
 
 sudo: false
 
