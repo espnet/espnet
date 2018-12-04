@@ -108,7 +108,7 @@ base_mic=$(echo ${mic} | sed 's/[0-9]//g') # sdm, ihm or mdm
 nmics=$(echo ${mic} | sed 's/[a-z]//g') # e.g. 8 for mdm8.
 
 # Path where AMI gets downloaded (or where locally available):
-AMI_DIR=$PWD/wav_db # Default,
+AMI_DIR=${PWD}/wav_db # Default,
 case $(hostname -d) in
     clsp.jhu.edu) AMI_DIR=/export/corpora4/ami/amicorpus ;; # JHU,
 esac
@@ -121,12 +121,12 @@ recog_set="${mic}_dev ${mic}_eval"
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"
     if [ -d ${AMI_DIR} ] && ! touch ${AMI_DIR}/.foo 2>/dev/null; then
-	echo "$0: directory $AMI_DIR seems to exist and not be owned by you."
+	echo "$0: directory ${AMI_DIR} seems to exist and not be owned by you."
 	echo " ... Assuming the data does not need to be downloaded.  Please use --stage 0 or more."
 	exit 1
     fi
     if [ -e data/local/downloads/wget_${mic}.sh ]; then
-	echo "data/local/downloads/wget_$mic.sh already exists, better quit than re-download... (use --stage N)"
+	echo "data/local/downloads/wget_${mic}.sh already exists, better quit than re-download... (use --stage N)"
 	exit 1
     fi
     local/ami_download.sh ${mic} ${AMI_DIR}
@@ -143,14 +143,14 @@ if [ ${stage} -le 0 ]; then
     fi
 
     # beamforming
-    if [ "$base_mic" == "mdm" ]; then
+    if [ "${base_mic}" == "mdm" ]; then
 	PROCESSED_AMI_DIR=${PWD}/beamformed
 	if [ -z ${BEAMFORMIT} ] ; then
 	    export BEAMFORMIT=${KALDI_ROOT}/tools/BeamformIt
 	fi
 	export PATH=${PATH}:${BEAMFORMIT}
 	! hash BeamformIt && echo "Missing BeamformIt, run 'cd ../../../tools/kaldi/tools; extras/install_beamformit.sh; cd -;'" && exit 1
-	local/ami_beamform.sh --cmd "$train_cmd" --nj 20 ${nmics} ${AMI_DIR} ${PROCESSED_AMI_DIR}
+	local/ami_beamform.sh --cmd "${train_cmd}" --nj 20 ${nmics} ${AMI_DIR} ${PROCESSED_AMI_DIR}
     else
 	PROCESSED_AMI_DIR=${AMI_DIR}
     fi
@@ -172,7 +172,7 @@ if [ ${stage} -le 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in ${mic}_train ${mic}_dev ${mic}_eval; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
@@ -190,13 +190,13 @@ if [ ${stage} -le 1 ]; then
         /export/b{14,15,16,17}/${USER}/espnet-data/egs/ami/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
+    dump.sh --cmd "${train_cmd}" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
+    dump.sh --cmd "${train_cmd}" --nj 10 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
+        dump.sh --cmd "${train_cmd}" --nj 10 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
