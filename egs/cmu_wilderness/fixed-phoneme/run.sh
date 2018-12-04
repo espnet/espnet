@@ -422,7 +422,7 @@ if [ ${stage} -le 5 ] && [[ ${extract_encoder_states} ]]; then
         #### use CPU for decoding
         ngpu=0
 
-        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+        decode_cmd_str="${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
             --verbose ${verbose} \
@@ -431,10 +431,13 @@ if [ ${stage} -le 5 ] && [[ ${extract_encoder_states} ]]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --model-conf ${expdir}/results/model.json  \
-            --langs_file ${langs_file} \
             --encoder-states \
             --per-frame-ali ${per_frame_ali} \
-            --phoneme-dict data/lang_1char/${train_set}_units.txt.phn &
+            --phoneme-dict data/lang_1char/${train_set}_units.txt.phn"
+        if [[ ${langs_file} ]]; then
+            decode_cmd_str="${decode_cmd_str} --langs_file ${langs_file}"
+        fi
+        $decode_cmd_str &
         wait
 
     ) &
