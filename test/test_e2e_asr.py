@@ -114,7 +114,7 @@ def test_model_trainable_and_decodable(module, etype, atype):
         batch = prepare_inputs("chainer")
 
     m = importlib.import_module(module)
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    model = m.E2E(40, 5, args)
     attn_loss = model(*batch)
     attn_loss.backward()  # trainable
 
@@ -313,7 +313,7 @@ def test_chainer_save_and_load():
     m = importlib.import_module('espnet.nets.chainer_backend.e2e_asr')
     utils = importlib.import_module('espnet.asr.asr_utils')
     args = make_arg()
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    model = m.E2E(40, 5, args)
     # initialize randomly
     for p in model.params():
         p.data = np.random.randn(*p.data.shape)
@@ -334,7 +334,7 @@ def test_torch_save_and_load():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
     utils = importlib.import_module('espnet.asr.asr_utils')
     args = make_arg()
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    model = m.E2E(40, 5, args)
     # initialize randomly
     for p in model.parameters():
         p.data.uniform_()
@@ -358,7 +358,7 @@ def test_torch_save_and_load():
 def test_gpu_trainable(module):
     m = importlib.import_module(module)
     args = make_arg()
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    model = m.E2E(40, 5, args)
     if "pytorch" in module:
         batch = prepare_inputs("pytorch", is_cuda=True)
         model.cuda()
@@ -375,7 +375,7 @@ def test_torch_multi_gpu_trainable():
     ngpu = 2
     device_ids = list(range(ngpu))
     args = make_arg()
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
+    model = m.E2E(40, 5, args)
     model = torch.nn.DataParallel(model, device_ids)
     batch = prepare_inputs("pytorch", is_cuda=True)
     model.cuda()
