@@ -87,8 +87,8 @@ def test_train_acc():
     pytest.importorskip("torch")
     import torch
 
-    from espnet.nets.pytorch_backend.e2e_asr import pad_list
-    from espnet.nets.pytorch_backend.e2e_asr import th_accuracy
+    from espnet.nets.pytorch_backend.nets_utils import pad_list
+    from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
     n_out = 7
     _eos = n_out - 1
