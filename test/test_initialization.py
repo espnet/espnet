@@ -62,9 +62,9 @@ def test_lecun_init_torch():
         if "embed" in name:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
             numpy.testing.assert_allclose(data.var(), 1.0, 5e-2, 5e-2)
-        elif "predictor.dec.decoder.0.bias_ih" in name:
+        elif "dec.decoder.0.bias_ih" in name:
             assert data.sum() == data.size // 4
-        elif "predictor.dec.decoder.1.bias_ih" in name:
+        elif "dec.decoder.1.bias_ih" in name:
             assert data.sum() == data.size // 4
         elif data.ndim == 1:
             assert numpy.all(data == 0.0)
