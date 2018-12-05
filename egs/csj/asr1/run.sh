@@ -127,7 +127,7 @@ if [ "${stage}" -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 4000 "data/${train_dev}" # 6hr 31min
-    n=$(($(wc -l data/train/segments) - 4000))
+    n=$(($(wc -l < data/train/segments) - 4000))
     utils/subset_data_dir.sh --last data/train "${n}" data/train_nodev
 
     # make a training set

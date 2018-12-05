@@ -123,7 +123,7 @@ if [ "${stage}" -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 100 "data/${train_dev}"
-    n=$(($(wc -l data/train_text) - 100))
+    n=$(($(wc -l < data/train_text) - 100))
     utils/subset_data_dir.sh --last data/train "${n}" "data/${train_set}"
 
     # compute global CMVN
