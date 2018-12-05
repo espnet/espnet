@@ -139,31 +139,37 @@ class RNNLM(chainer.Chain):
     :param int n_vocab: The size of the vocabulary
     :param int n_layers: The number of layers to create
     :param int n_units: The number of units per layer
+    :param str type: The RNN type
     """
 
-    def __init__(self, n_vocab, n_layers, n_units):
+    def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(n_vocab, n_units)
-            self.lstm = chainer.ChainList(
-                *[L.StatelessLSTM(n_units, n_units) for _ in range(n_layers)])
+            self.rnn = L.NStepLSTM(n_layers, n_units, n_units, dropout=0.5) if typ == "lstm" \
+                else L.NStepGRU(n_layers, n_units, n_units, dropout=0.5)
             self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
         self.n_layers = n_layers
+        self.typ = typ
 
     def __call__(self, state, x):
         if state is None:
-            state = {'c': [None] * self.n_layers, 'h': [None] * self.n_layers}
-        h = [None] * self.n_layers
-        c = [None] * self.n_layers
+            if self.typ == "lstm":
+                state = {'c': None, 'h': None}
+            else:
+                state = {'h': None}
+
         emb = self.embed(x)
-        c[0], h[0] = self.lstm[0](state['c'][0], state['h'][0], F.dropout(emb))
-        for n in six.moves.range(1, self.n_layers):
-            c[n], h[n] = self.lstm[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
-        y = self.lo(F.dropout(h[-1]))
-        state = {'c': c, 'h': h}
+        if self.typ == "lstm":
+            (h, c), out = self.rnn(state['c'], state['h'], emb)
+            state = {'c': c, 'h': h}
+        else:
+            h, out = self.rnn(state['h'], emb)
+            state = {'h': h}
+        y = self.lo(out)
         return state, y
 
 
@@ -305,7 +311,7 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layer, args.unit)
+    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
     model = ClassifierWithState(rnn)
     if args.ngpu > 1:
         logging.warning("currently, multi-gpu is not supported. use single gpu.")

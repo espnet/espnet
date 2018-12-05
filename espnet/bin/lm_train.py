@@ -56,6 +56,8 @@ def main():
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
+    parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
+                        help="Which type of RNN to use")
     parser.add_argument('--layer', '-l', type=int, default=2,
                         help='Number of hidden layers')
     parser.add_argument('--unit', '-u', type=int, default=650,

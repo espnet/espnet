@@ -157,15 +157,16 @@ class RNNLM(nn.Module):
     :param int n_vocab: The size of the vocabulary
     :param int n_layers: The number of layers to create
     :param int n_units: The number of units per layer
+    :param str typ: The RNN type
     """
 
-    def __init__(self, n_vocab, n_layers, n_units):
+    def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
-        self.lstm = nn.ModuleList(
-            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)])
-        self.dropout = nn.ModuleList(
-            [nn.Dropout() for _ in range(n_layers + 1)])
+        self.rnn = nn.LSTM(input_size=n_units, hidden_size=n_units, num_layers=n_layers, bidirectional=False,
+                           batch_first=True, dropout=0.5) if typ == "lstm" \
+            else nn.GRU(input_size=n_units, hidden_size=n_units, num_layers=n_layers, bidirectional=False,
+                        batch_first=True, dropout=0.5)
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
@@ -175,22 +176,25 @@ class RNNLM(nn.Module):
             param.data.uniform_(-0.1, 0.1)
 
     def zero_state(self, batchsize):
-        return torch.zeros(batchsize, self.n_units).float()
+        return torch.zeros(self.n_layers, batchsize, self.n_units).float()
 
     def forward(self, state, x):
         if state is None:
-            c = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
-            h = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
-            state = {'c': c, 'h': h}
+            h = to_device(self, self.zero_state(x.size(0)))
+            if self.typ == "lstm":
+                c = to_device(self, self.zero_state(x.size(0)))
+                state = {'c': c, 'h': h}
+            else:
+                state = {'h': h}
 
-        h = [None] * self.n_layers
-        c = [None] * self.n_layers
         emb = self.embed(x)
-        h[0], c[0] = self.lstm[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
-        for n in six.moves.range(1, self.n_layers):
-            h[n], c[n] = self.lstm[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
-        y = self.lo(self.dropout[-1](h[-1]))
-        state = {'c': c, 'h': h}
+        if self.typ == "lstm":
+            out, (h, c) = self.rnn(emb, (state['h'], state['c']))
+            state = {'c': c, 'h': h}
+        else:
+            out, h = self.rnn(emb, state['h'])
+            state = {'h': h}
+        y = self.lo(out)
         return state, y
 
 
@@ -350,7 +354,7 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layer, args.unit)
+    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
     model = ClassifierWithState(rnn)
     if args.ngpu > 1:
         logging.warning("currently, multi-gpu is not supported. use single gpu.")
