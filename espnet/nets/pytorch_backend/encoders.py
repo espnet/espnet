@@ -203,7 +203,7 @@ class Encoder(torch.nn.Module):
         :rtype: torch.Tensor
         """
         for module in self.enc:
-            xs_pad, ilens = self.enc(xs_pad, ilens)
+            xs_pad, ilens = module(xs_pad, ilens)
 
         # make mask to remove bias value in padded part
         mask = to_device(self, make_pad_mask(ilens).unsqueeze(-1))

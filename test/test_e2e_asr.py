@@ -115,7 +115,7 @@ def test_model_trainable_and_decodable(module, etype, atype):
 
     m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
-    attn_loss = model(*batch)
+    attn_loss = model(*batch)[0]
     attn_loss.backward()  # trainable
 
     with torch.no_grad(), chainer.no_backprop_mode():
@@ -365,7 +365,7 @@ def test_gpu_trainable(module):
     else:
         batch = prepare_inputs("chainer", is_cuda=True)
         model.to_gpu()
-    loss = model(*batch)
+    loss = model(*batch)[0]
     loss.backward()  # trainable
 
 
