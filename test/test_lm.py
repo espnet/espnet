@@ -21,7 +21,7 @@ def transfer_lm(ch_rnnlm, th_rnnlm):
     assert isinstance(th_rnnlm, lm_pytorch.RNNLM)
     th_rnnlm.embed.weight.data = torch.from_numpy(ch_rnnlm.embed.W.data)
     for n in range(ch_rnnlm.n_layers):
-        transfer_lstm(ch_rnnlm.lstm[n], th_rnnlm.lstm[n])
+        transfer_lstm(ch_rnnlm.rnn[n], th_rnnlm.rnn[n])
     th_rnnlm.lo.weight.data = torch.from_numpy(ch_rnnlm.lo.W.data)
     th_rnnlm.lo.bias.data = torch.from_numpy(ch_rnnlm.lo.b.data)
 
