@@ -50,7 +50,7 @@ class E2E(torch.nn.Module):
 
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
-    :param namespace args: argument namespace containing options
+    :param Namespace args: argument Namespace containing options
     """
 
     def __init__(self, idim, odim, args):
@@ -257,7 +257,7 @@ class E2E(torch.nn.Module):
         """E2E beam search
 
         :param ndarray x: input acoustic feature (T, D)
-        :param namespace recog_args: argument namespace containing options
+        :param Namespace recog_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
         :return: N-best decoding results
@@ -294,7 +294,7 @@ class E2E(torch.nn.Module):
         """E2E beam search
 
         :param ndarray xs: input acoustic feature (T, D)
-        :param namespace recog_args: argument namespace containing options
+        :param Namespace recog_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
         :return: N-best decoding results

@@ -81,7 +81,7 @@ samp_prob=0.0
 # data
 sfisher_speech=/export/corpora/LDC/LDC2010S01
 sfisher_transcripts=/export/corpora/LDC/LDC2010T04
-spanish_lexicon=/export/corpora/LDC/LDC96L16
+#spanish_lexicon=/export/corpora/LDC/LDC96L16
 split=local/splits/split_fisher
 
 callhome_speech=/export/corpora/LDC/LDC96S35
@@ -105,7 +105,7 @@ set -o pipefail
 
 train_set=train
 train_dev=dev
-train_test=test
+train_test="test"
 recog_set="dev test callhome_dev callhome_test callhome_train"
 
 if [ "${stage}" -le 0 ]; then
@@ -224,9 +224,9 @@ if [ "${stage}" -le 3 ]; then
         lmdatadir=data/local/wordlm_train
         lmdict="${lmdatadir}/wordlist_${lm_vocabsize}.txt"
         mkdir -p "${lmdatadir}"
-        cat "data/${train_set}/text" | cut -f 2- -d" " > "${lmdatadir}/train.txt"
-        cat "data/${train_dev}/text" | cut -f 2- -d" " > "${lmdatadir}/valid.txt"
-        cat "data/${train_test}/text" | cut -f 2- -d" " > "${lmdatadir}/test.txt"
+        cut -f 2- -d" " "data/${train_set}/text" > "${lmdatadir}/train.txt"
+        cut -f 2- -d" " "data/${train_dev}/text" > "${lmdatadir}/valid.txt"
+        cut -f 2- -d" " "data/${train_test}/text" > "${lmdatadir}/test.txt"
         text2vocabulary.py -s "${lm_vocabsize}" -o "${lmdict}" "${lmdatadir}/train.txt"
     else
         lmdatadir=data/local/lm_train

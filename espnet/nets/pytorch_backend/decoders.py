@@ -181,7 +181,7 @@ class Decoder(torch.nn.Module):
 
         :param torch.Tensor h: encoder hidden state (T, eprojs)
         :param torch.Tensor lpz: ctc log softmax output (T, odim)
-        :param Namespace recog_args: argument namespace containing options
+        :param Namespace recog_args: argument Namespace containing options
         :param char_list: list of character strings
         :param torch.nn.Module rnnlm: language module
         :return: N-best decoding results

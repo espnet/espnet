@@ -105,7 +105,7 @@ if [ "${stage}" -le 0 ]; then
     echo "stage 0: Data preparation"
     for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
         # use underscore-separated names in data directories.
-        local/data_prep.sh "${datadir}/LibriSpeech/${part}" data/"$(echo "${part}" | sed s/-/_/g)"
+        local/data_prep.sh "${datadir}/LibriSpeech/${part}" data/"${part//-/_}"
     done
 fi
 

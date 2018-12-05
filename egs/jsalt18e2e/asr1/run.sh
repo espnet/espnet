@@ -125,9 +125,9 @@ if [ "${stage}" -le 0 ]; then
     utils/copy_data_dir.sh --utt-suffix "-${lang_code}" ../../csj/asr1/data/eval3       "data/et_${lang_code}_3"
     # 1) change wide to narrow chars
     # 2) lower to upper chars
-    for x in data/*${lang_code}*; do
+    for x in data/*"${lang_code}"*; do
         utils/copy_data_dir.sh "${x}" "${x}_org"
-        cat "${x}_org/text" | nkf -Z |\
+        nkf -Z "${x}_org/text" |\
             awk '{for(i=2;i<=NF;++i){$i = toupper($i)} print}' > "${x}/text"
         rm -fr "${x}_org"
     done
@@ -146,8 +146,8 @@ if [ "${stage}" -le 0 ]; then
 
     # Babel
     for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagalog 107-vietnamese 201-haitian 202-swahili 203-lao 204-tamil 205-kurmanji 206-zulu 207-tokpisin 404-georgian; do
-	langid=`echo "${x}" | cut -f 1 -d"-"`
-	lang_code=`echo "${x}" | cut -f 2 -d"-"`
+	langid=$(echo "${x}" | cut -f 1 -d"-")
+	lang_code=$(echo "${x}" | cut -f 2 -d"-")
 	if [ ! -d "${babeldir}/asr1_${lang_code}/data" ]; then
 	    echo "run ${babeldir}/asr1/local/run_all.sh first"
 	    exit 1
@@ -165,7 +165,7 @@ if [ "${stage}" -le 1 ]; then
     utils/combine_data.sh data/tr_babel10_org data/tr_babel_cantonese data/tr_babel_bengali data/tr_babel_pashto data/tr_babel_turkish data/tr_babel_vietnamese data/tr_babel_haitian data/tr_babel_tamil data/tr_babel_kurmanji data/tr_babel_tokpisin data/tr_babel_georgian
     utils/combine_data.sh data/dt_babel10_org data/dt_babel_cantonese data/dt_babel_bengali data/dt_babel_pashto data/dt_babel_turkish data/dt_babel_vietnamese data/dt_babel_haitian data/dt_babel_tamil data/dt_babel_kurmanji data/dt_babel_tokpisin data/dt_babel_georgian
 
-    if [ ! -z "${subset_num_spk}" ]; then
+    if [ -n "${subset_num_spk}" ]; then
         # create a trainng subset with "${subset_num_spk}" speakers (in total 7470)
         head -n "${subset_num_spk}" <(utils/shuffle_list.pl data/tr_babel10_org/spk2utt | awk '{print $1}') > data/tr_babel10_org/spk_list_${subset_num_spk}spk
         utils/subset_data_dir.sh \

@@ -134,7 +134,7 @@ if [ "${stage}" -le 1 ]; then
   compute-cmvn-stats scp:"data/${train_set}/feats.scp" "data/${train_set}/cmvn.ark"
   ./utils/fix_data_dir.sh "data/${train_set}"
 
-  exp_name=`basename "${PWD}"`
+  exp_name=$(basename "${PWD}")
   # dump features for training
   if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d "${feat_tr_dir}/storage" ]; then
   utils/create_split_dir.pl \
@@ -288,7 +288,7 @@ if [ "${stage}" -le 4 ]; then
 
     extra_opts=""
     if "${use_lm}"; then
-      extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight "${lm_weight}" ${extra_opts}"
+      extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
     fi
 
     for rtask in ${recog_set}; do

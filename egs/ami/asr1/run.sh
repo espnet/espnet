@@ -244,9 +244,9 @@ if [[ "${stage}" -le 3 && "${use_lm}" == true ]]; then
 	lmdatadir=data/local/wordlm_train
 	lmdict="${lmdatadir}/wordlist_${lm_vocabsize}.txt"
 	mkdir -p "${lmdatadir}"
-        < "data/${train_set}/text" cut -f 2- -d" " > "${lmdatadir}/train.txt"
-        < "data/${train_dev}/text" cut -f 2- -d" " > "${lmdatadir}/valid.txt"
-        < "data/${train_test}/text" cut -f 2- -d" " > "${lmdatadir}/test.txt"
+         cut -f 2- -d" " "data/${train_set}/text" > "${lmdatadir}/train.txt"
+         cut -f 2- -d" " "data/${train_dev}/text" > "${lmdatadir}/valid.txt"
+         cut -f 2- -d" " "data/${train_test}/text" > "${lmdatadir}/test.txt"
         text2vocabulary.py -s "${lm_vocabsize}" -o "${lmdict}" "${lmdatadir}/train.txt"
     else
 	lmdatadir=data/local/lm_train
@@ -263,7 +263,7 @@ if [[ "${stage}" -le 3 && "${use_lm}" == true ]]; then
     if [ "${ngpu}" -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
     fi
-    """ --gpu "${ngpu}" "${lmexpdir}/train.log" \
+    "${cuda_cmd}" --gpu "${ngpu}" "${lmexpdir}/train.log" \
         lm_train.py \
         --ngpu "${ngpu}" \
         --backend "${backend}" \
@@ -298,7 +298,7 @@ mkdir -p "${expdir}"
 if [ "${stage}" -le 4 ]; then
     echo "stage 4: Network Training"
 
-    ""${cuda_cmd}" " --gpu "${ngpu}" "${expdir}/train.log" \
+    "${cuda_cmd}" --gpu "${ngpu}" "${expdir}/train.log" \
         asr_train.py \
         --ngpu "${ngpu}" \
         --backend "${backend}" \

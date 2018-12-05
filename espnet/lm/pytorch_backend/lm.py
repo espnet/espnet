@@ -301,7 +301,7 @@ class LMEvaluator(extensions.Evaluator):
 def train(args):
     """Train with the given args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     """
     # display torch version
     logging.info('torch version = ' + torch.__version__)

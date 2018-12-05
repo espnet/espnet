@@ -192,7 +192,7 @@ class CustomConverter(object):
 def train(args):
     """Train with the given args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     """
     # seed setting
     torch.manual_seed(args.seed)
@@ -365,7 +365,7 @@ def train(args):
 def decode(args):
     """Decode with the given args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     """
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
