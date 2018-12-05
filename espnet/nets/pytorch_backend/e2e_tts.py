@@ -199,7 +199,7 @@ class Tacotron2(torch.nn.Module):
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
-    :param namespace args: argments containing following attributes
+    :param Namespace args: argments containing following attributes
         (int) spk_embed_dim: dimension of the speaker embedding
         (int) embed_dim: dimension of character embedding
         (int) elayers: the number of encoder blstm layers
@@ -390,7 +390,7 @@ class Tacotron2(torch.nn.Module):
         """Generates the sequence of features given the sequences of characters
 
         :param torch.Tensor x: the sequence of characters (T)
-        :param namespace inference_args: argments containing following attributes
+        :param Namespace inference_args: argments containing following attributes
             (float) threshold: threshold in inference
             (float) minlenratio: minimum length ratio in inference
             (float) maxlenratio: maximum length ratio in inference

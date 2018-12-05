@@ -192,7 +192,7 @@ class CustomConverter(object):
 def train(args):
     """Train with the given args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
@@ -445,7 +445,7 @@ def train(args):
 def recog(args):
     """Decode with the given args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)

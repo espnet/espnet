@@ -71,7 +71,7 @@ class CTC(torch.nn.Module):
 def ctc_for(args, odim):
     """Returns the CTC module for the given args and output dimension
 
-    :param namespace args: the program args
+    :param Namespace args: the program args
     :param int odim : The output dimension
     :return: the corresponding CTC module
     """

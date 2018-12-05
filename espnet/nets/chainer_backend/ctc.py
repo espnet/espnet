@@ -110,7 +110,7 @@ class WarpCTC(chainer.Chain):
 def ctc_for(args, odim):
     """Return the CTC corresponding to the args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     :param int odim: The output dimension
     :return: The CTC module
     """

@@ -115,10 +115,11 @@ if [ "${stage}" -le 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
     fbankdir=fbank
-    for x in train; do
-        steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 32 --write_utt2num_frames true \
-            "data/${x}" "exp/make_fbank/${x}" "${fbankdir}"
-    done
+
+    x=train
+    steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 32 --write_utt2num_frames true \
+        "data/${x}" "exp/make_fbank/${x}" "${fbankdir}"
+
     for x in eval1 eval2 eval3; do
         steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 10 --write_utt2num_frames true \
             "data/${x}" "exp/make_fbank/${x}" "${fbankdir}"
@@ -126,7 +127,7 @@ if [ "${stage}" -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 4000 "data/${train_dev}" # 6hr 31min
-    n=$[`cat data/train/segments | wc -l` - 4000]
+    n=$(($(wc -l data/train/segments) - 4000))
     utils/subset_data_dir.sh --last data/train "${n}" data/train_nodev
 
     # make a training set

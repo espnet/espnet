@@ -205,7 +205,7 @@ class NoAtt(chainer.Chain):
 def att_for(args):
     """Returns an attention given the program arguments
 
-    :param namespace args: the arguments
+    :param Namespace args: the arguments
     :return: The corresponding attention module
     :rtype chainer.Chain
     """

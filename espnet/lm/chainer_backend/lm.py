@@ -250,7 +250,7 @@ class LMEvaluator(extensions.Evaluator):
 def train(args):
     """Train with the given args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)

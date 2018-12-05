@@ -194,7 +194,7 @@ class CustomConverter(object):
 def train(args):
     """Train with the given args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     """
     # seed setting
     torch.manual_seed(args.seed)
@@ -407,7 +407,7 @@ def train(args):
 def recog(args):
     """Decode with the given args
 
-    :param namespace args: The program arguments
+    :param Namespace args: The program arguments
     """
     # seed setting
     torch.manual_seed(args.seed)

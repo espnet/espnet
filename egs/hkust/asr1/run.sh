@@ -126,7 +126,7 @@ if [ "${stage}" -le 1 ]; then
     # make a dev set
     utils/subset_data_dir.sh --first data/train 4000 "data/${train_dev}"
     utils/fix_data_dir.sh "data/${train_dev}"
-    n=$[`cat data/train/segments | wc -l` - 4000]
+    n=$(($(wc -l data/train/segments) - 4000))
     utils/subset_data_dir.sh --last data/train "${n}" data/train_nodev
 
     # make a training set
@@ -145,7 +145,7 @@ if [ "${stage}" -le 1 ]; then
     compute-cmvn-stats scp:"data/${train_set}/feats.scp" "data/${train_set}/cmvn.ark"
 
     # dump features for training
-    split_dir=`echo "${PWD}" | awk -F "/" '{print ${NF} "/" $(NF-1)}'`
+    split_dir=$(echo "${PWD}" | awk -F "/" '{print ${NF} "/" $(NF-1)}')
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d "${feat_tr_dir}/storage" ]; then
     utils/create_split_dir.pl \
         /export/a{11,12,13,14}/"${USER}/espnet-data/egs/${split_dir}/dump/${train_set}/delta${do_delta}/storage" \

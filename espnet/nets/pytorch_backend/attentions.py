@@ -1377,7 +1377,7 @@ class AttForwardTA(torch.nn.Module):
 def att_for(args):
     """Instantiates an attention module given the program arguments
 
-    :param namespace args: The arguments
+    :param Namespace args: The arguments
     :rtype torch.nn.Module
     :return: The attention module
     """
