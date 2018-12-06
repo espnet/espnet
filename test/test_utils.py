@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import shutil
 import importlib
+import subprocess
 
 import h5py
 import numpy as np
@@ -52,7 +52,8 @@ def test_make_batchset():
 
 
 def test_load_inputs_and_targets_legacy_format(tmpdir):
-    if shutil.which('copy-feats') is None:
+    # (shutil.which doesn't exist in Python2)
+    if subprocess.run(['which', 'copy-feats']).returncode != 0:
         pytest.skip('You don\'t have copy-feats')
     # batch = [("F01_050C0101_PED_REAL",
     #          {"input": [{"feat": "some/path.ark:123"}],
@@ -65,7 +66,7 @@ def test_load_inputs_and_targets_legacy_format(tmpdir):
     desire_ys = []
     with kaldi_io_py.open_or_fd(wspec, 'wb') as f:
         for i in range(10):
-            x = np.random.random((100, 100))
+            x = np.random.random((100, 100)).astype(np.float32)
             uttid = 'uttid{}'.format(i)
             kaldi_io_py.write_mat(f, x, key=uttid)
             desire_xs.append(x)
@@ -79,8 +80,8 @@ def test_load_inputs_and_targets_legacy_format(tmpdir):
                           {'input': [{'feat': path}],
                            'output': [{'tokenid': '1 2 3 4'}]}))
 
-    l = LoadInputsAndTargets()
-    xs, ys = l(batch)
+    load_inputs_and_targets = LoadInputsAndTargets()
+    xs, ys = load_inputs_and_targets(batch)
     for x, xd in zip(xs, desire_xs):
         np.testing.assert_array_equal(x, xd)
     for y, yd in zip(ys, desire_ys):
@@ -101,7 +102,7 @@ def test_load_inputs_and_targets_new_format(tmpdir):
     with h5py.File(str(p), 'w') as f:
         # batch: List[Tuple[str, Dict[str, List[Dict[str, Any]]]]]
         for i in range(10):
-            x = np.random.random((100, 100))
+            x = np.random.random((100, 100)).astype(np.float32)
             uttid = 'uttid{}'.format(i)
             f[uttid] = x
             batch.append((uttid,
@@ -111,8 +112,8 @@ def test_load_inputs_and_targets_new_format(tmpdir):
             desire_xs.append(x)
             desire_ys.append(np.array([1, 2, 3, 4]))
 
-    l = LoadInputsAndTargets()
-    xs, ys = l(batch)
+    load_inputs_and_targets = LoadInputsAndTargets()
+    xs, ys = load_inputs_and_targets (batch)
     for x, xd in zip(xs, desire_xs):
         np.testing.assert_array_equal(x, xd)
     for y, yd in zip(ys, desire_ys):
