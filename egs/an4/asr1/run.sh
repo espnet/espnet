@@ -123,7 +123,7 @@ if [ "${stage}" -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 100 "data/${train_dev}"
-    n=$(($(wc -l < data/train_text) - 100))
+    n=$(($(wc -l < data/train/text) - 100))
     utils/subset_data_dir.sh --last data/train "${n}" "data/${train_set}"
 
     # compute global CMVN
@@ -177,7 +177,7 @@ mkdir -p "${expdir}"
 
 if [ "${stage}" -le 3 ]; then
     echo "stage 3: Network Training"
-    "${cuda_cmd}"  --gpu "${ngpu}" "${expdir}/train.log" \
+    ${cuda_cmd}  --gpu "${ngpu}" "${expdir}/train.log" \
         asr_train.py \
         --ngpu "${ngpu}" \
         --backend "${backend}" \
@@ -225,7 +225,7 @@ if [ "${stage}" -le 4 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        "${decode_cmd}" JOB=1:"${nj}" "${expdir}/${decode_dir}/log/"decode.JOB.log \
+        ${decode_cmd} JOB=1:"${nj}" "${expdir}/${decode_dir}/log/"decode.JOB.log \
             asr_recog.py \
             --ngpu "${ngpu}" \
             --backend "${backend}" \
