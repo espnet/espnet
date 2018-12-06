@@ -46,6 +46,8 @@ def make_non_pad_mask(lengths):
     :return: mask tensor containing indices of non-padded part (B, Tmax)
     :rtype: torch.Tensor
     """
+    if not isinstance(lengths, list):
+        lengths = lengths.tolist()
     bs = int(len(lengths))
     maxlen = int(max(lengths))
     seq_range = torch.arange(0, maxlen, dtype=torch.int64)

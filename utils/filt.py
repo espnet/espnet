@@ -1,10 +1,10 @@
 #!/usr/bin/env python2
 
 # Apache 2.0
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import argparse
-from builtins import str
-from six import print_function
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -16,13 +16,11 @@ if __name__ == '__main__':
     vocab = set()
     with open(args.filt) as vocabfile:
         for line in vocabfile:
-            vocab.add(str(line, 'utf_8').strip())
+            vocab.add(line.strip())
 
     with open(args.infile) as textfile:
         for line in textfile:
             if args.exclude:
-                print_function(" ".join(map(lambda word: word if word not in vocab else '', str(line, 'utf_8').strip()
-                                            .split())).encode('utf_8'))
+                print(" ".join(map(lambda word: word if word not in vocab else '', line.strip().split())))
             else:
-                print_function(" ".join(map(lambda word: word if word in vocab else '<UNK>', str(line, 'utf_8').strip()
-                                            .split())).encode('utf_8'))
+                print(" ".join(map(lambda word: word if word in vocab else '<UNK>', line.strip().split())))
