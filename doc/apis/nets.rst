@@ -4,16 +4,16 @@ espnet nets package
 e2e_asr module
 ---------------------------
 
-.. automodule:: e2e_asr
+.. automodule:: espnet.nets.chainer_backend.e2e_asr
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-e2e_asr_th module
+e2e_asr module
 ------------------------------
 
-.. automodule:: e2e_asr_th
+.. automodule:: espnet.nets.pytorch_backend.e2e_asr
     :members:
     :undoc-members:
     :show-inheritance:
@@ -22,7 +22,7 @@ e2e_asr_th module
 e2e_asr_common module
 ----------------------------------
 
-.. automodule:: e2e_asr_common
+.. automodule:: espnet.nets.e2e_asr_common
     :members:
     :undoc-members:
     :show-inheritance:
