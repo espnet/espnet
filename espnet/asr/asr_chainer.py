@@ -32,7 +32,7 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import load_inputs_and_targets
+from espnet.asr.asr_utils import LoadInputsAndTargets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
@@ -159,9 +159,10 @@ class CustomConverter(object):
 
     def __init__(self, device, subsamping_factor=1):
         self.subsamping_factor = subsamping_factor
+        self.load_inputs_and_targets = LoadInputsAndTargets()
 
     def transform(self, item):
-        return load_inputs_and_targets(item)
+        return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         # set device

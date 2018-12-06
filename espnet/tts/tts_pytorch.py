@@ -20,6 +20,7 @@ from chainer.training import extensions
 import kaldi_io_py
 
 from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import LoadInputsAndTargets
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
@@ -28,7 +29,6 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.e2e_asr_th import pad_list
 from espnet.nets.e2e_tts_th import Tacotron2
 from espnet.nets.e2e_tts_th import Tacotron2Loss
-from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 
 import matplotlib
@@ -121,10 +121,11 @@ class CustomConverter(object):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
+        self.load_inputs_and_targets = LoadInputsAndTargets()
 
     def transform(self, item):
         # load batch
-        xs, ys, spembs, spcs = load_inputs_and_targets(
+        xs, ys, spembs, spcs = self.load_inputs_and_targets(
             item, self.use_speaker_embedding, self.use_second_target)
 
         # added eos into input sequence
