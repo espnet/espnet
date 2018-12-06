@@ -10,6 +10,7 @@ import os
 import shutil
 import tempfile
 
+import h5py
 import numpy as np
 import torch
 
@@ -34,13 +35,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, min_batch_size=1):
     """Make batch set from json dictionary
 
-    :param dict data: dictionary loaded from data.json
+    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
     :param int batch_size: batch size
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: mininum batch size (for multi-gpu)
-    :return: list of batches
+    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
     """
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
@@ -55,8 +56,9 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     minibatches = []
     start = 0
     while True:
-        ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
-        olen = int(sorted_data[start][1]['output'][0]['shape'][0])
+        _, info = sorted_data[start]
+        ilen = int(info['input'][0]['shape'][0])
+        olen = int(info['output'][0]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
@@ -69,7 +71,8 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         # check each batch is more than minimum batchsize
         if len(minibatch) < min_batch_size:
             mod = min_batch_size - len(minibatch) % min_batch_size
-            additional_minibatch = [sorted_data[i] for i in np.random.randint(0, start, mod)]
+            additional_minibatch = [sorted_data[i]
+                                    for i in np.random.randint(0, start, mod)]
             minibatch.extend(additional_minibatch)
         minibatches.append(minibatch)
 
@@ -82,35 +85,187 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         minibatches = minibatches[:num_batches]
     logging.info('# minibatches: ' + str(len(minibatches)))
 
+    # such like: [('uttid1',
+    #              {'input': [{'shape': ...}],
+    #               'output': [{'shape': ...}]}),
+    #             ...]
     return minibatches
 
 
-def load_inputs_and_targets(batch):
-    """Function to load inputs and targets from list of dicts
+class LoadInputsAndTargets(object):
+    def __init__(self, mode='asr'):
+        self._loaders = {}
+        if mode not in ['asr', 'tts']:
+            raise ValueError(
+                'Only asr or tts are allowed: mode={}'.format(mode))
+        self.mode = mode
 
-    :param list batch: list of dict which is subset of loaded data.json
-    :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :rtype: list of float ndarray
-    :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
-    :rtype: list of int ndarray
-    """
-    # load acoustic features and target sequence of token ids
-    xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-    ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
+    def __call__(self, batch,
+                 use_speaker_embedding=False,
+                 use_second_target=False):
+        """Function to load inputs and targets from list of dicts
 
-    # get index of non-zero length samples
-    nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
-    # sort in input lengths
-    nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
-    if len(nonzero_sorted_idx) != len(xs):
-        logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-            len(xs), len(nonzero_sorted_idx)))
+        :param list batch: list of dict which is subset of loaded data.json
+        :param (tts mode only) bool use_speaker_embedding:
+            whether to load speaker embedding vector
+        :param (tts mode only) bool use_second_target:
+            whether to load second target vector
+        :return: list of input token id sequences [(L_1), (L_2), ..., (L_B)]
+        :return: list of input feature sequences
+            [(T_1, D), (T_2, D), ..., (T_B, D)]
+        :rtype: list of float ndarray
+        :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
+        :rtype: list of int ndarray
+        """
+        if self.mode == 'tts':
+            if use_speaker_embedding and use_second_target:
+                raise ValueError('One of use_speaker_embedding '
+                                 'and use_second_target can be used')
+        elif use_speaker_embedding:
+            logging.warning('use_speaker_embedding is used for tts mode')
+        elif use_second_target:
+            logging.warning('use_second_target is used for tts mode')
 
-    # remove zero-length samples
-    xs = [xs[i] for i in nonzero_sorted_idx]
-    ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
+        x_list_list = []
+        y_list_list = []
+        for uttid, info in batch:
+            if len(info['input']) == 0:
+                raise RuntimeError('No input found in the batch')
+            if len(info['output']) == 0:
+                raise RuntimeError('No output found in the batch')
 
-    return xs, ys
+            if self.mode == 'tts' and \
+                    (use_speaker_embedding or use_second_target):
+                if len(info['input']) != 2:
+                    raise RuntimeError(
+                        'Require 2 inputs: {}'.format(len(info['input'])))
+            else:
+                # Use only the first item
+                info['input'] = info['input'][:1]
+            # Use only the first item
+            info['output'] = info['output'][:1]
+
+            x_list = []
+            y_list = []
+            for key in ['input', 'output']:
+                for idx, inp in enumerate(info[key]):
+                    if 'feat' in inp:
+                        if self.mode == 'tts' and idx == 1 \
+                                and use_speaker_embedding:
+                            x = kaldi_io_py.read_vec_flt(inp['feat'])
+                        else:
+                            # ======= Legacy format =======
+                            # batch = [("F01_050C0101_PED_REAL",
+                            #           {"input": [{"feat": "some/path.ark:123"}]),
+                            x = kaldi_io_py.read_mat(inp['feat'])
+                    elif 'tokenid' in inp:
+                        # ======= Legacy format =======
+                        # batch = [("F01_050C0101_PED_REAL":
+                        #           {"output": [{"tokenid": "1 2 3 4"}])
+                        assert isinstance(inp['tokenid'], str), \
+                            type(inp['tokenid'])
+                        x = np.fromiter(map(int, inp['tokenid'].split()),
+                                        dtype=np.int64)
+                    else:
+                        # ======= New format =======
+                        # batch = [("F01_050C0101_PED_REAL",
+                        #           {"input": [{"path": "some/path.h5",
+                        #                       "type": "hdf5",
+                        #                       "key": "F01_050C0101_PED_REAL"}])
+
+                        # If "key" doesn't exist, using uttid as its key
+                        x = self._get_from_loader(
+                            file_path=inp['path'],
+                            loader_type=inp['type'], key=inp.get('key', uttid))
+
+                    if key == 'input':
+                        x_list.append(x)
+                    elif key == 'output':
+                        y_list.append(x)
+            x_list_list.append(x_list)
+            y_list_list.append(y_list)
+
+        # Create a list from the first item
+        xs = [x_list[0] for x_list in x_list_list]
+        ys = [y_list[0] for y_list in y_list_list]
+
+        # get index of non-zero length samples
+        nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
+        # sort in input lengths
+        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        if len(nonzero_sorted_idx) != len(xs):
+            logging.warning(
+                'Target sequences include empty tokenid (batch %d -> %d).' % (
+                    len(xs), len(nonzero_sorted_idx)))
+
+        # remove zero-length samples
+        xs = [xs[i] for i in nonzero_sorted_idx]
+        ys = [ys[i] for i in nonzero_sorted_idx]
+
+        if self.mode == 'asr':
+            return xs, ys
+        else:
+            spembs = None
+            spcs = None
+            if use_second_target:
+                spcs = [x_list[1] for x_list in x_list_list]
+                spcs = [spcs[i] for i in nonzero_sorted_idx]
+            if use_speaker_embedding:
+                spembs = [x_list[1] for x_list in x_list_list]
+                spembs = [spembs[i] for i in nonzero_sorted_idx]
+            return xs, ys, spembs, spcs
+
+    def _get_from_loader(self, file_path, loader_type, key):
+        """ In order to make the fds to be opened only at the first referring,
+        the loader are stored in self._loaders
+
+        :param: str file_path
+        :param: str loader_type
+        :param: Hashable key
+        :return:
+        :rtype: np.ndarray
+
+        """
+        loader = self._loaders.get(file_path)
+        if loader is None:
+            if loader_type == 'hdf5':
+                #    {"input": [{"path": "some/path.h5",
+                #                "type": "hdf5",
+                #                "key": "F01_050C0101_PED_REAL"}]},
+                loader = h5py.File(file_path, 'r')
+                self._loaders[file_path] = loader
+            elif loader_type == 'npz':
+                #    {"input": [{"path": "some/path.npz",
+                #                "type": "npz",
+                #                "key": "F01_050C0101_PED_REAL"}]},
+                loader = np.load(file_path)
+                self._loaders[file_path] = loader
+            elif loader_type == 'npy':
+                # In this case, key is not required
+                #    {"input": [{"path": "some/path.npy",
+                #                "type": "npz"},
+                return np.load(file_path)
+            elif loader_type == 'ark':
+                # In this case, key is not required
+                #    {"input": [{"path": "some/path.ark:123",
+                #                "type": "ark"}]},
+                return kaldi_io_py.read_mat(file_path)
+            elif loader_type == 'vec':
+                # In this case, key is not required
+                #    {"input": [{"path": "some/path.ark:123",
+                #                "type": "vec"}]},
+                return kaldi_io_py.read_vec_flt(file_path)
+            elif loader_type == 'scp':
+                #    {"input": [{"path": "some/path.scp",
+                #                "type": "scp",
+                #                "key": "F01_050C0101_PED_REAL"}]},
+                raise NotImplementedError(
+                    'Not supported: loader_type={}'.format(loader_type))
+            else:
+                raise NotImplementedError(
+                    'Not supported: loader_type={}'.format(loader_type))
+
+        return loader[key]
 
 
 # * -------------------- chainer extension related -------------------- *
