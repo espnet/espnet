@@ -1,6 +1,5 @@
 import logging
 import six
-import sys
 
 import numpy as np
 import torch
@@ -35,7 +34,7 @@ class BRNNP(torch.nn.Module):
             setattr(self, "birnn%d" % i, torch.nn.LSTM(inputdim, cdim, dropout=dropout,
                                                        num_layers=1, bidirectional=True,
                                                        batch_first=True) if typ == "lstm"
-            else torch.nn.GRU(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=True, batch_first=True))
+                else torch.nn.GRU(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=True, batch_first=True))
             # bottleneck layer to merge
             setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
 
@@ -184,28 +183,27 @@ class Encoder(torch.nn.Module):
         typ = etype.lstrip("vgg").lstrip("b").rstrip("p")
         if typ != "lstm" and typ != "gru":
             logging.error("Error: need to specify an appropriate encoder architecture")
-        with self.init_scope():
-            if etype.startswith("vgg"):
-                if etype[-1] == "p":
-                    self.enc = torch.nn.ModuleList([VGG2L(in_channel),
-                                                    BRNNP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                          eprojs,
-                                                          subsample, dropout, typ=typ)])
-                    logging.info('Use CNN-VGG + B' + typ.upper() + 'P for encoder')
-                else:
-                    self.enc = torch.nn.ModuleList([VGG2L(in_channel),
-                                                    BRNN(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                         eprojs,
-                                                         dropout, typ=typ)])
-                    logging.info('Use CNN-VGG + B' + typ.upper() + ' for encoder')
+        if etype.startswith("vgg"):
+            if etype[-1] == "p":
+                self.enc = torch.nn.ModuleList([VGG2L(in_channel),
+                                                BRNNP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
+                                                      eprojs,
+                                                      subsample, dropout, typ=typ)])
+                logging.info('Use CNN-VGG + B' + typ.upper() + 'P for encoder')
             else:
-                if etype[-1] == "p":
-                    self.enc = torch.nn.ModuleList(
-                        [BRNNP(idim, elayers, eunits, eprojs, subsample, dropout, typ=typ)])
-                    logging.info('B' + typ.upper() + ' with every-layer projection for encoder')
-                else:
-                    self.enc = torch.nn.ModuleList([BRNN(idim, elayers, eunits, eprojs, dropout, typ=typ)])
-                    logging.info('B' + typ.upper() + ' without projection for encoder')
+                self.enc = torch.nn.ModuleList([VGG2L(in_channel),
+                                                BRNN(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
+                                                     eprojs,
+                                                     dropout, typ=typ)])
+                logging.info('Use CNN-VGG + B' + typ.upper() + ' for encoder')
+        else:
+            if etype[-1] == "p":
+                self.enc = torch.nn.ModuleList(
+                    [BRNNP(idim, elayers, eunits, eprojs, subsample, dropout, typ=typ)])
+                logging.info('B' + typ.upper() + ' with every-layer projection for encoder')
+            else:
+                self.enc = torch.nn.ModuleList([BRNN(idim, elayers, eunits, eprojs, dropout, typ=typ)])
+                logging.info('B' + typ.upper() + ' without projection for encoder')
 
     def forward(self, xs_pad, ilens):
         """Encoder forward

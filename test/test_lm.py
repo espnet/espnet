@@ -5,23 +5,22 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 
-def transfer_lstm(ch_lstm, th_lstm):
-    ch_lstm.upward.W.data[:] = 1
-    th_lstm.weight_ih.data[:] = torch.from_numpy(ch_lstm.upward.W.data)
-    ch_lstm.upward.b.data[:] = 1
-    th_lstm.bias_hh.data[:] = torch.from_numpy(ch_lstm.upward.b.data)
+def transfer_rnn(ch_rnn, th_rnn, num_layers):
+    ch_rnn.upward.W.data[:] = 1
+    th_rnn.weight_ih.data[:] = torch.from_numpy(ch_rnn.upward.W.data)
+    ch_rnn.upward.b.data[:] = 1
+    th_rnn.bias_hh.data[:] = torch.from_numpy(ch_rnn.upward.b.data)
     # NOTE: only lateral weight can directly transfer
     # rest of the weights and biases have quite different placements
-    th_lstm.weight_hh.data[:] = torch.from_numpy(ch_lstm.lateral.W.data)
-    th_lstm.bias_ih.data.zero_()
+    th_rnn.weight_hh.data[:] = torch.from_numpy(ch_rnn.lateral.W.data)
+    th_rnn.bias_ih.data.zero_()
 
 
 def transfer_lm(ch_rnnlm, th_rnnlm):
     assert isinstance(ch_rnnlm, lm_chainer.RNNLM)
     assert isinstance(th_rnnlm, lm_pytorch.RNNLM)
     th_rnnlm.embed.weight.data = torch.from_numpy(ch_rnnlm.embed.W.data)
-    for n in range(ch_rnnlm.n_layers):
-        transfer_lstm(ch_rnnlm.rnn[n], th_rnnlm.rnn[n])
+    transfer_rnn(ch_rnnlm.rnn, th_rnnlm.rnn, ch_rnnlm.n_layers)
     th_rnnlm.lo.weight.data = torch.from_numpy(ch_rnnlm.lo.W.data)
     th_rnnlm.lo.bias.data = torch.from_numpy(ch_rnnlm.lo.b.data)
 

@@ -1,6 +1,5 @@
 import logging
 import six
-import sys
 
 import chainer
 import chainer.functions as F
