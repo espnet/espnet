@@ -709,7 +709,8 @@ def recog(args):
             write_enc_states(lang, target_phns,
                              js, uttids, per_frame_phns, e2e, train_args,
                              enc_states_dir,
-                             num_encoder_states=NUM_ENCODER_STATES)
+                             num_encoder_states=NUM_ENCODER_STATES,
+                             request_vgg=args.request_vgg)
 
         return
 
@@ -786,7 +787,7 @@ def recog(args):
 def write_enc_states(lang, tgt_phns,
                      js, uttids, per_frame_phns, e2e, train_args,
                      enc_states_dir,
-                     num_encoder_states=500):
+                     num_encoder_states=500, request_vgg=False):
     """ Writes the encoder states for a given language and phoneme. """
 
     logging.info("extracting enc states for language {}".format(lang))
@@ -798,7 +799,7 @@ def write_enc_states(lang, tgt_phns,
             feat = kaldi_io_py.read_mat(js[uttid]['input'][0]['feat'])
             logging.info("feat.shape: {}".format(feat.shape))
             logging.info("e2e.subsample: {}".format(e2e.subsample))
-            h, lens = e2e.encode_from_feat(feat)
+            h, lens = e2e.encode_from_feat(feat, request_vgg=request_vgg)
             logging.info("h.shape: {}".format(h.shape))
             logging.info("lens: {}".format(lens))
             logging.info("per_frame_phns: {}".format(
@@ -854,6 +855,9 @@ def write_enc_states(lang, tgt_phns,
                     #tgt, num_encoder_states), np.array(encoder_states[tgt]))
                     npy_path = os.path.join(
                             enc_states_dir, "lang-{}_phn-{}".format(lang, tgt))
+                    if request_vgg:
+                        npy_path = os.path.join(
+                                enc_states_dir, "lang-{}_phn-{}-vgg".format(lang, tgt))
                     np.save(npy_path, np.array(encoder_states[tgt]))
                 if num_encoder_states:
                     return

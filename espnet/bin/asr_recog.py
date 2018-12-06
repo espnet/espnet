@@ -76,6 +76,8 @@ def main():
     parser.add_argument("--encoder-states", action="store_true",
                         help="Flag to request storing encoder states instead"
                         " of full decoding")
+    parser.add_argument("--request-vgg", action="store_true",
+                        help="If extracting encoder states, take the VGG encoder states.")
     parser.add_argument('--per-frame-ali', type=str, default=None,
                         help="A file that aligns phonemes to frames")
     parser.add_argument('--langs_file', type=str, default=None,

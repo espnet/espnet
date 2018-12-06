@@ -601,13 +601,16 @@ class E2E(torch.nn.Module):
 
         return phn_hyp
 
-    def encode_from_feat(self, x):
+    def encode_from_feat(self, x, request_vgg=False):
         """ Encodes given raw features. """
         x = x[::self.subsample[0], :]
         logging.info("subsample x.shape: {}".format(x.shape))
         ilen = [x.shape[0]]
         h = to_cuda(self, torch.from_numpy(
             np.array(x, dtype=np.float32)))
+        if request_vgg:
+            h, _ = self.enc(h.unsqueeze(0), ilen, request_vgg=request_vgg)
+            return h, ilen
         h, _ = self.enc(h.unsqueeze(0), ilen)
         if self.phoneme_objective_layer:
             if self.etype == "blstmp":
@@ -2911,7 +2914,7 @@ class Encoder(torch.nn.Module):
 
         self.etype = etype
 
-    def forward(self, xs_pad, ilens):
+    def forward(self, xs_pad, ilens, request_vgg=False):
         '''Encoder forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
@@ -2925,6 +2928,12 @@ class Encoder(torch.nn.Module):
             xs_pad, ilens = self.enc1(xs_pad, ilens)
         elif self.etype == 'vggblstmp':
             xs_pad, ilens = self.enc1(xs_pad, ilens)
+
+            if request_vgg:
+                # Then just return what we have
+                mask = to_cuda(self, make_pad_mask(ilens).unsqueeze(-1))
+                return xs_pad.masked_fill(mask, 0.0), ilens
+
             xs_pad, ilens = self.enc2(xs_pad, ilens)
         elif self.etype == 'vggblstm':
             xs_pad, ilens = self.enc1(xs_pad, ilens)
