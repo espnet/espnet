@@ -17,7 +17,7 @@ from distutils.util import strtobool
 import numpy as np
 
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -147,7 +147,7 @@ def main():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=5, type=int,
                         help='Number of samples of attention to be saved')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose > 0:
@@ -193,4 +193,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
