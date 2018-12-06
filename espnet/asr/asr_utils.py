@@ -155,28 +155,23 @@ class LoadInputsAndTargets(object):
                             x = kaldi_io_py.read_vec_flt(inp['feat'])
                         else:
                             # ======= Legacy format =======
-                            # batch = [("F01_050C0101_PED_REAL",
-                            #           {"input": [{"feat": "some/path.ark:123"}]),
+                            # {"input": [{"feat": "some/path.ark:123"}]),
                             x = kaldi_io_py.read_mat(inp['feat'])
                     elif 'tokenid' in inp:
                         # ======= Legacy format =======
-                        # batch = [("F01_050C0101_PED_REAL":
-                        #           {"output": [{"tokenid": "1 2 3 4"}])
+                        # {"output": [{"tokenid": "1 2 3 4"}])
                         assert isinstance(inp['tokenid'], str), \
                             type(inp['tokenid'])
                         x = np.fromiter(map(int, inp['tokenid'].split()),
                                         dtype=np.int64)
                     else:
                         # ======= New format =======
-                        # batch = [("F01_050C0101_PED_REAL",
-                        #           {"input": [{"path": "some/path.h5",
-                        #                       "type": "hdf5",
-                        #                       "key": "F01_050C0101_PED_REAL"}])
+                        # {"input":
+                        #  [{"path": "some/path.h5:F01_050C0101_PED_REAL",
+                        #    "type": "hdf5",
 
-                        # If "key" doesn't exist, using uttid as its key
                         x = self._get_from_loader(
-                            file_path=inp['path'],
-                            loader_type=inp['type'], key=inp.get('key', uttid))
+                            file_path=inp['path'], loader_type=inp['type'])
 
                     if key == 'input':
                         x_list.append(x)
@@ -215,7 +210,7 @@ class LoadInputsAndTargets(object):
                 spembs = [spembs[i] for i in nonzero_sorted_idx]
             return xs, ys, spembs, spcs
 
-    def _get_from_loader(self, file_path, loader_type, key):
+    def _get_from_loader(self, file_path, loader_type):
         """ In order to make the fds to be opened only at the first referring,
         the loader are stored in self._loaders
 
@@ -227,45 +222,43 @@ class LoadInputsAndTargets(object):
 
         """
         loader = self._loaders.get(file_path)
-        if loader is None:
-            if loader_type == 'hdf5':
-                #    {"input": [{"path": "some/path.h5",
+        if loader_type in ['hdf5', 'h5']:
+            file_path, key = file_path.split(':', 1)
+            if loader is None:
+                #    {"input": [{"path": "some/path.h5:F01_050C0101_PED_REAL",
                 #                "type": "hdf5",
-                #                "key": "F01_050C0101_PED_REAL"}]},
                 loader = h5py.File(file_path, 'r')
                 self._loaders[file_path] = loader
-            elif loader_type == 'npz':
-                #    {"input": [{"path": "some/path.npz",
+            return loader[key]
+
+        elif loader_type == 'npz':
+            file_path, key = file_path.split(':', 1)
+            if loader is None:
+                #    {"input": [{"path": "some/path.npz:F01_050C0101_PED_REAL",
                 #                "type": "npz",
-                #                "key": "F01_050C0101_PED_REAL"}]},
                 loader = np.load(file_path)
                 self._loaders[file_path] = loader
-            elif loader_type == 'npy':
-                # In this case, key is not required
-                #    {"input": [{"path": "some/path.npy",
-                #                "type": "npz"},
-                return np.load(file_path)
-            elif loader_type == 'ark':
-                # In this case, key is not required
-                #    {"input": [{"path": "some/path.ark:123",
-                #                "type": "ark"}]},
-                return kaldi_io_py.read_mat(file_path)
-            elif loader_type == 'vec':
-                # In this case, key is not required
-                #    {"input": [{"path": "some/path.ark:123",
-                #                "type": "vec"}]},
-                return kaldi_io_py.read_vec_flt(file_path)
-            elif loader_type == 'scp':
-                #    {"input": [{"path": "some/path.scp",
-                #                "type": "scp",
-                #                "key": "F01_050C0101_PED_REAL"}]},
-                raise NotImplementedError(
-                    'Not supported: loader_type={}'.format(loader_type))
-            else:
-                raise NotImplementedError(
-                    'Not supported: loader_type={}'.format(loader_type))
-
-        return loader[key]
+            return loader[key]
+        elif loader_type == 'npy':
+            #    {"input": [{"path": "some/path.npy",
+            #                "type": "npy"},
+            return np.load(file_path)
+        elif loader_type == 'ark':
+            #    {"input": [{"path": "some/path.ark:123",
+            #                "type": "ark"}]},
+            return kaldi_io_py.read_mat(file_path)
+        elif loader_type == 'vec':
+            #    {"input": [{"path": "some/path.ark:123",
+            #                "type": "vec"}]},
+            return kaldi_io_py.read_vec_flt(file_path)
+        elif loader_type == 'scp':
+            #    {"input": [{"path": "some/path.scp:F01_050C0101_PED_REAL",
+            #                "type": "scp",
+            raise NotImplementedError(
+                'Not supported: loader_type={}'.format(loader_type))
+        else:
+            raise NotImplementedError(
+                'Not supported: loader_type={}'.format(loader_type))
 
 
 # * -------------------- chainer extension related -------------------- *

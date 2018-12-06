@@ -106,7 +106,7 @@ def test_load_inputs_and_targets_new_format(tmpdir):
             uttid = 'uttid{}'.format(i)
             f[uttid] = x
             batch.append((uttid,
-                          {'input': [{'path': str(p),
+                          {'input': [{'path': str(p) + ':' + uttid,
                                       'type': 'hdf5'}],
                            'output': [{'tokenid': '1 2 3 4'}]}))
             desire_xs.append(x)
