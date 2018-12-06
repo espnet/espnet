@@ -76,7 +76,7 @@ def main():
     # load scp
     reader = kaldi_io_py.read_mat_scp(args.scp)
 
-    # chech direcitory
+    # check directory
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 

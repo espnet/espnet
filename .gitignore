@@ -39,3 +39,6 @@ tools/warp-ctc*
 tools/sentencepiece/*
 tools/moses
 tools/*.done
+
+.idea/
+.hypothesis/

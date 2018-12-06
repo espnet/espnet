@@ -13,7 +13,7 @@ write_utt2num_frames=true
 cmd=run.pl
 # End configuration section.
 
-echo "$0 $@"  # Print the command line for logging
+echo "$0 $*"  # Print the command line for logging
 
 . parse_options.sh || exit 1;
 
@@ -31,69 +31,69 @@ data=$1
 if [ $# -ge 2 ]; then
   logdir=$2
 else
-  logdir=$data/log
+  logdir="${data}/log"
 fi
 if [ $# -ge 3 ]; then
   fbankdir=$3
 else
-  fbankdir=$data/data
+  fbankdir="${data}/data"
 fi
 
 # make $fbankdir an absolute pathname.
-fbankdir=`perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' $fbankdir ${PWD}`
+fbankdir=$(perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' "${fbankdir}" "${PWD}")
 
 # use "name" as part of name of the archive.
-name=`basename $data`
+name=$(basename "${data}")
 
-mkdir -p $fbankdir || exit 1;
-mkdir -p $logdir || exit 1;
+mkdir -p "${fbankdir}" || exit 1;
+mkdir -p "${logdir}" || exit 1;
 
-if [ -f $data/feats.scp ]; then
-  mkdir -p $data/.backup
-  echo "$0: moving $data/feats.scp to $data/.backup"
-  mv $data/feats.scp $data/.backup
+if [ -f "${data}/feats.scp" ]; then
+  mkdir -p "${data}/.backup"
+  echo "$0: moving ${data}/feats.scp to ${data}/.backup"
+  mv "${data}/feats.scp" "${data}/.backup"
 fi
 
-scp=$data/wav.scp
+scp="${data}/wav.scp"
 
-utils/validate_data_dir.sh --no-text --no-feats $data || exit 1;
+utils/validate_data_dir.sh --no-text --no-feats "${data}" || exit 1;
 
 split_scps=""
-for n in $(seq $nj); do
-    split_scps="$split_scps $logdir/wav.$n.scp"
+for n in $(seq "${nj}"); do
+    split_scps="${split_scps} ${logdir}/wav.${n}.scp"
 done
 
-utils/split_scp.pl $scp $split_scps || exit 1;
+utils/split_scp.pl "${scp}" "${split_scps}" || exit 1;
 
-$cmd JOB=1:$nj $logdir/make_stft_${name}.JOB.log \
+"${cmd}" JOB=1:"${nj}" "${logdir}/make_stft_${name}".JOB.log \
     compute-stft-feats.py \
-        --fs $fs \
-        --win_length $win_length \
-        --n_fft $n_fft \
-        --n_shift $n_shift \
-        --write_utt2num_frames ${write_utt2num_frames} \
-        $logdir/wav.JOB.scp \
-        $fbankdir/raw_stft_$name.JOB
+        --fs "${fs}" \
+        --win_length "${win_length}" \
+        --n_fft "${n_fft}" \
+        --n_shift "${n_shift}" \
+        --write_utt2num_frames "${write_utt2num_frames}" \
+        "${logdir}"/wav.JOB.scp \
+        "${fbankdir}"/raw_stft_"${name}".JOB
 
 # concatenate the .scp files together.
-for n in $(seq $nj); do
-    cat $fbankdir/raw_stft_$name.$n.scp || exit 1;
-done > $data/feats.scp || exit 1
+for n in $(seq "${nj}"); do
+    cat "${fbankdir}/raw_stft_${name}.${n}.scp" || exit 1;
+done > "${data}/feats.scp" || exit 1
 
-if $write_utt2num_frames; then
-    for n in $(seq $nj); do
-        cat $fbankdir/utt2num_frames.$n || exit 1;
-    done > $data/utt2num_frames || exit 1
-    rm $fbankdir/utt2num_frames.* 2>/dev/null
+if "${write_utt2num_frames}"; then
+    for n in $(seq "${nj}"); do
+        cat "${fbankdir}/utt2num_frames.${n}" || exit 1;
+    done > "${data}/utt2num_frames" || exit 1
+    rm "${fbankdir}"/utt2num_frames.* 2>/dev/null
 fi
 
-rm $logdir/wav.*.scp 2>/dev/null
+rm "${logdir}"/wav.*.scp 2>/dev/null
 
-nf=`cat $data/feats.scp | wc -l`
-nu=`cat $data/wav.scp | wc -l`
-if [ $nf -ne $nu ]; then
-    echo "It seems not all of the feature files were successfully ($nf != $nu);"
-    echo "consider using utils/fix_data_dir.sh $data"
+nf=$(wc -l "${data}"/feats.scp)
+nu=$(wc -l "${data}"/wav.scp)
+if [ "${nf}" -ne "${nu}" ]; then
+    echo "It seems not all of the feature files were successfully (${nf} != ${nu});"
+    echo "consider using utils/fix_data_dir.sh ${data}"
 fi
 
-echo "Succeeded creating filterbank features for $name"
+echo "Succeeded creating filterbank features for ${name}"

@@ -36,19 +36,19 @@ from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
-from espnet.nets.e2e_asr import E2E
-from espnet.nets.e2e_asr import Loss
+from espnet.nets.chainer_backend.e2e_asr import E2E
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
-import espnet.lm.extlm_chainer as extlm_chainer
-import espnet.lm.lm_chainer as lm_chainer
+import espnet.lm.chainer_backend.extlm as extlm_chainer
+import espnet.lm.chainer_backend.lm as lm_chainer
 
 # numpy related
 import matplotlib
 import numpy as np
+
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
@@ -67,7 +67,7 @@ def sum_sqnorm(arr):
 
 
 class CustomUpdater(training.StandardUpdater):
-    '''Custom updater for chainer'''
+    """Custom updater for chainer"""
 
     def __init__(self, train_iter, optimizer, converter, device):
         super(CustomUpdater, self).__init__(
@@ -85,7 +85,7 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(*x)
+        loss = optimizer.target(*x)[0]
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
@@ -100,7 +100,7 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
-    '''Custom parallel updater for chainer'''
+    """Custom parallel updater for chainer"""
 
     def __init__(self, train_iters, optimizer, converter, devices):
         super(CustomParallelUpdater, self).__init__(
@@ -120,7 +120,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             batch = self.get_iterator('main').next()
             x = self.converter(batch, self._devices[0])
 
-            loss = self._master(*x)
+            loss = self._master(*x)[0]
 
             self._master.cleargrads()
             loss.backward()
@@ -155,10 +155,13 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
 
 class CustomConverter(object):
-    """CUSTOM CONVERTER"""
+    """Custom Converter
 
-    def __init__(self, device, subsamping_factor=1):
-        self.subsamping_factor = subsamping_factor
+    :param int subsampling_factor : The subsampling factor
+    """
+
+    def __init__(self, subsampling_factor=1):
+        self.subsampling_factor = subsampling_factor
 
     def transform(self, item):
         return load_inputs_and_targets(item)
@@ -171,8 +174,8 @@ class CustomConverter(object):
         assert len(batch) == 1
         xs, ys = batch[0]
 
-        # perform subsamping
-        if self.subsamping_factor > 1:
+        # perform subsampling
+        if self.subsampling_factor > 1:
             xs = [x[::self.subsampling_factor, :] for x in xs]
 
         # get batch of lengths of input sequences
@@ -187,7 +190,10 @@ class CustomConverter(object):
 
 
 def train(args):
-    '''Run training'''
+    """Train with the given args
+
+    :param Namespace args: The program arguments
+    """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
@@ -198,11 +204,11 @@ def train(args):
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
     # by considering reproducability
-    # revmoe type check
+    # remove type check
     if args.debugmode < 2:
         chainer.config.type_check = False
         logging.info('chainer type check is disabled')
-    # use determinisitic computation or not
+    # use deterministic computation or not
     if args.debugmode < 1:
         chainer.config.cudnn_deterministic = False
         logging.info('chainer cudnn deterministic is disabled')
@@ -240,8 +246,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    e2e = E2E(idim, odim, args)
-    model = Loss(e2e, args.mtlalpha)
+    model = E2E(idim, odim, args)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -288,7 +293,7 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
-    converter = CustomConverter(e2e.subsample[0])
+    converter = CustomConverter(model.subsample[0])
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -438,7 +443,10 @@ def train(args):
 
 
 def recog(args):
-    '''Run recognition'''
+    """Decode with the given args
+
+    :param Namespace args: The program arguments
+    """
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
@@ -454,8 +462,7 @@ def recog(args):
 
     # specify model architecture
     logging.info('reading model parameters from ' + args.model)
-    e2e = E2E(idim, odim, train_args)
-    model = Loss(e2e, train_args.mtlalpha)
+    model = E2E(idim, odim, train_args)
     chainer_load(args.model, model)
 
     # read rnnlm
@@ -494,7 +501,7 @@ def recog(args):
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-            nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+            nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     # TODO(watanabe) fix character coding problems when saving it

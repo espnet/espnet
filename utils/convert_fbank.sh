@@ -16,7 +16,7 @@ iters=1000
 cmd=run.pl
 # End configuration section.
 
-echo "$0 $@"  # Print the command line for logging
+echo "$0 $*"  # Print the command line for logging
 
 . parse_options.sh || exit 1;
 
@@ -34,42 +34,42 @@ data=$1
 if [ $# -ge 2 ]; then
   logdir=$2
 else
-  logdir=$data/log
+  logdir="${data}/log"
 fi
 if [ $# -ge 3 ]; then
   wavdir=$3
 else
-  wavdir=$data/data
+  wavdir="${data}/data"
 fi
 
 # use "name" as part of name of the archive.
-name=`basename $data`
+name=$(basename "${data}")
 
-mkdir -p $wavdir || exit 1;
-mkdir -p $logdir || exit 1;
+mkdir -p "${wavdir}" || exit 1;
+mkdir -p "${logdir}" || exit 1;
 
-scp=$data/feats.scp
+scp="${data}"/feats.scp
 
 split_scps=""
-for n in $(seq $nj); do
-    split_scps="$split_scps $logdir/feats.$n.scp"
+for n in $(seq "${nj}"); do
+    split_scps="${split_scps} ${logdir}/feats.${n}.scp"
 done
 
-utils/split_scp.pl $scp $split_scps || exit 1;
+utils/split_scp.pl "${scp}" "${split_scps}" || exit 1;
 
-$cmd JOB=1:$nj $logdir/griffin_lim_${name}.JOB.log \
+"${cmd}" JOB=1:"${nj}" "${logdir}/griffin_lim_${name}.JOB.log" \
     convert_fbank_to_wav.py \
-        --fs $fs \
-        --fmax $fmax \
-        --fmin $fmin \
-        --win_length $win_length \
-        --n_fft $n_fft \
-        --n_shift $n_shift \
-        --n_mels $n_mels \
-        --iters $iters \
-        $logdir/feats.JOB.scp \
-        $wavdir
+        --fs "${fs}" \
+        --fmax "${fmax}" \
+        --fmin "${fmin}" \
+        --win_length "${win_length}" \
+        --n_fft "${n_fft}" \
+        --n_shift "${n_shift}" \
+        --n_mels "${n_mels}" \
+        --iters "${iters}" \
+        "${logdir}/feats.JOB.scp" \
+        "${wavdir}"
 
-rm $logdir/feats.*.scp 2>/dev/null
+rm "${logdir}"/feats.*.scp 2>/dev/null
 
-echo "Succeeded creating wav for $name"
+echo "Succeeded creating wav for ${name}"

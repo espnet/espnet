@@ -65,11 +65,12 @@ install:
 
 script:
   # TODO test coding style?
-  - flake8 espnet test
-  - autopep8 -r espnet test --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
+  - flake8 espnet test utils
+  - autopep8 -r espnet test utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
   - pytest
   - travis-sphinx build --source=doc --nowarn
+  - bash -c 'find egs -name "run.sh" -printf "%p" -execdir shellcheck -x -e SC1091 {} \; ; cd ${TRAVIS_BUILD_DIR}/utils ; shellcheck -x -e SC1091 *.sh'
 
 sudo: false
 
