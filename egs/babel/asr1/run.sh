@@ -20,7 +20,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp # encoder architecture type
 elayers=6
@@ -97,10 +97,10 @@ train_set=train
 train_dev=dev
 
 # LM Directories
-if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+if [ -z "${lmtag}" ]; then
+    lmtag="${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}"
 fi
-lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
+lmexpdir="exp/train_rnnlm_${backend}_${lmtag}"
 lm_train_set=data/local/train.txt
 lm_valid_set=data/local/dev.txt
 
@@ -110,87 +110,87 @@ for l in ${recog}; do
 done
 recog_set=${recog_set%% }
 
-if [ $stage -le 0 ]; then
+if [ "${stage}" -le 0 ]; then
   echo "stage 0: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --recog "${recog}"
   for x in ${train_set} ${train_dev} ${recog_set}; do
-	  sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+	  sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" "data/${x}/wav.scp"
   done
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ $stage -le 1 ]; then
+feat_tr_dir="${dumpdir}/${train_set}/delta${do_delta}"; mkdir -p "${feat_tr_dir}"
+feat_dt_dir="${dumpdir}/${train_dev}/delta${do_delta}"; mkdir -p "${feat_dt_dir}"
+if [ "${stage}" -le 1 ]; then
   echo "stage 1: Feature extraction"
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
   for x in ${train_set} ${train_dev} ${recog_set}; do
-      steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
-          data/${x} exp/make_fbank/${x} ${fbankdir}
-      ./utils/fix_data_dir.sh data/${x}
+      steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 20 --write_utt2num_frames true \
+          "data/${x}" "exp/make_fbank/${x}" "${fbankdir}"
+      ./utils/fix_data_dir.sh "data/${x}"
   done
 
   # compute global CMVN
-  compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-  ./utils/fix_data_dir.sh data/${train_set}
+  compute-cmvn-stats scp:"data/${train_set}/feats.scp" "data/${train_set}/cmvn.ark"
+  ./utils/fix_data_dir.sh "data/${train_set}"
 
-  exp_name=`basename $PWD`
+  exp_name=$(basename "${PWD}")
   # dump features for training
-  if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+  if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d "${feat_tr_dir}/storage" ]; then
   utils/create_split_dir.pl \
-      /export/b{10,11,12,13}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_set}/delta${do_delta}/storage \
-      ${feat_tr_dir}/storage
+      /export/b{10,11,12,13}/"${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_set}/delta${do_delta}/storage" \
+      "${feat_tr_dir}/storage"
   fi
-  if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+  if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d "${feat_dt_dir}/storage" ]; then
   utils/create_split_dir.pl \
-      /export/b{10,11,12,13}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
-      ${feat_dt_dir}/storage
+      /export/b{10,11,12,13}/"${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_dev}/delta${do_delta}/storage" \
+      "${feat_dt_dir}/storage"
   fi
-  dump.sh --cmd "$train_cmd" --nj 20 --do_delta $do_delta \
-      data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-  dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
-      data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+  dump.sh --cmd "${train_cmd}" --nj 20 --do_delta "${do_delta}" \
+      "data/${train_set}/feats.scp" "data/${train_set}/cmvn.ark" exp/dump_feats/train "${feat_tr_dir}"
+  dump.sh --cmd "${train_cmd}" --nj 10 --do_delta "${do_delta}" \
+      "data/${train_dev}/feats.scp" "data/${train_set}/cmvn.ark" exp/dump_feats/dev "${feat_dt_dir}"
   for rtask in ${recog_set}; do
-      feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-      dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
-            data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
-            ${feat_recog_dir}
+      feat_recog_dir="${dumpdir}/${rtask}/delta${do_delta}"; mkdir -p "${feat_recog_dir}"
+      dump.sh --cmd "${train_cmd}" --nj 10 --do_delta "${do_delta}" \
+            "data/${rtask}/feats.scp" "data/${train_set}/cmvn.ark" "exp/dump_feats/recog/${rtask}" \
+            "${feat_recog_dir}"
   done
 fi
 
-dict=data/lang_1char/${train_set}_units.txt
+dict="data/lang_1char/${train_set}_units.txt"
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ "${stage}" -le 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
-    cat ${nlsyms}
+    cut -f 2- "data/${train_set}/text" | tr " " "\n" | sort | uniq | grep "<" > "${nlsyms}"
+    cat "${nlsyms}"
 
     echo "make a dictionary"
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | grep -v '<unk>' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
+    echo "<unk> 1" > "${dict}" # <unk> must be 1, 0 will be used for "blank" in CTC
+    text2token.py -s 1 -n 1 -l "${nlsyms}" "data/${train_set}/text" | cut -f 2- -d" " | tr " " "\n" \
+    | sort | uniq | grep -v -e '^\s*$' | grep -v '<unk>' | awk '{print $0 " " NR+1}' >> "${dict}"
+    wc -l "${dict}"
 
     echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --feat "${feat_tr_dir}/feats.scp" --nlsyms "${nlsyms}" \
+         "data/${train_set}" "${dict}" > "${feat_tr_dir}/data.json"
+    data2json.sh --feat "${feat_dt_dir}/feats.scp" --nlsyms "${nlsyms}" \
+         "data/${train_dev}" "${dict}" > "${feat_dt_dir}/data.json"
     for rtask in ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+        feat_recog_dir="${dumpdir}/${rtask}/delta${do_delta}"
+        data2json.sh --feat "${feat_recog_dir}/feats.scp" \
+            --nlsyms "${nlsyms}" "data/${rtask}" "${dict}" > "${feat_recog_dir}/data.json"
     done
 fi
 
 
-if $use_lm; then
+if "${use_lm}"; then
   lm_train_set=data/local/train.txt
   lm_valid_set=data/local/dev.txt
 
@@ -198,129 +198,129 @@ if $use_lm; then
   text2token.py --nchar 1 \
                 --space "<space>" \
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
-                <(cut -d' ' -f2- data/${train_set}/text | head -100) \
-                > ${lm_train_set}
+                <(cut -d' ' -f2- "data/${train_set}/text" | head -100) \
+                > "${lm_train_set}"
 
   text2token.py --nchar 1 \
                 --space "<space>" \
                 --non-lang-syms data/lang_1char/non_lang_syms.txt \
-                <(cut -d' ' -f2- data/${train_dev}/text | head -100) \
-                > ${lm_valid_set}
+                <(cut -d' ' -f2- "data/${train_dev}/text" | head -100) \
+                > "${lm_valid_set}"
 
-  if [ ${ngpu} -gt 1 ]; then
+  if [ "${ngpu}" -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
   fi
 
-  ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
+  "${cuda_cmd}"  --gpu "${ngpu}" "${lmexpdir}/train.log" \
           lm_train.py \
-          --ngpu ${ngpu} \
-          --backend ${backend} \
+          --ngpu "${ngpu}" \
+          --backend "${backend}" \
           --verbose 1 \
-          --outdir ${lmexpdir} \
-          --train-label ${lm_train_set} \
-          --valid-label ${lm_valid_set} \
-          --resume ${lm_resume} \
-          --layer ${lm_layers} \
-          --unit ${lm_units} \
-          --opt ${lm_opt} \
-          --batchsize ${lm_batchsize} \
-          --epoch ${lm_epochs} \
-          --maxlen ${lm_maxlen} \
-          --dict ${dict}
+          --outdir "${lmexpdir}" \
+          --train-label "${lm_train_set}" \
+          --valid-label "${lm_valid_set}" \
+          --resume "${lm_resume}" \
+          --layer "${lm_layers}" \
+          --unit "${lm_units}" \
+          --opt "${lm_opt}" \
+          --batchsize "${lm_batchsize}" \
+          --epoch "${lm_epochs}" \
+          --maxlen "${lm_maxlen}" \
+          --dict "${dict}"
 fi
 
 
-if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
-    if ${do_delta}; then
-        expdir=${expdir}_delta
+if [ -z "${tag}" ]; then
+    expdir="exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}"
+    if "${do_delta}"; then
+        expdir="${expdir}_delta"
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expdir="exp/${train_set}_${backend}_${tag}"
 fi
-mkdir -p ${expdir}
+mkdir -p "${expdir}"
 
-if [ ${stage} -le 3 ]; then
+if [ "${stage}" -le 3 ]; then
     echo "stage 3: Network Training"
 
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    "${cuda_cmd}"  --gpu "${ngpu}" "${expdir}/train.log" \
         asr_train.py \
-        --ngpu ${ngpu} \
-        --backend ${backend} \
-        --outdir ${expdir}/results \
-        --debugmode ${debugmode} \
-        --dict ${dict} \
-        --debugdir ${expdir} \
-        --minibatches ${N} \
-        --verbose ${verbose} \
-        --resume ${resume} \
-        --seed ${seed} \
-        --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --awin ${awin} \
-        --aheads ${aheads} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --lsm-type ${lsm_type} \
-        --lsm-weight ${lsm_weight} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --opt ${opt} \
-        --epochs ${epochs}
+        --ngpu "${ngpu}" \
+        --backend "${backend}" \
+        --outdir "${expdir}/results" \
+        --debugmode "${debugmode}" \
+        --dict "${dict}" \
+        --debugdir "${expdir}" \
+        --minibatches "${N}" \
+        --verbose "${verbose}" \
+        --resume "${resume}" \
+        --seed "${seed}" \
+        --train-json "${feat_tr_dir}/data.json" \
+        --valid-json "${feat_dt_dir}/data.json" \
+        --etype "${etype}" \
+        --elayers "${elayers}" \
+        --eunits "${eunits}" \
+        --eprojs "${eprojs}" \
+        --subsample "${subsample}" \
+        --dlayers "${dlayers}" \
+        --dunits "${dunits}" \
+        --atype "${atype}" \
+        --adim "${adim}" \
+        --awin "${awin}" \
+        --aheads "${aheads}" \
+        --aconv-chans "${aconv_chans}" \
+        --aconv-filts "${aconv_filts}" \
+        --mtlalpha "${mtlalpha}" \
+        --lsm-type "${lsm_type}" \
+        --lsm-weight "${lsm_weight}" \
+        --batch-size "${batchsize}" \
+        --maxlen-in "${maxlen_in}" \
+        --maxlen-out "${maxlen_out}" \
+        --sampling-probability "${samp_prob}" \
+        --opt "${opt}" \
+        --epochs "${epochs}"
 fi
 
 
-if [ ${stage} -le 4 ]; then
+if [ "${stage}" -le 4 ]; then
     echo "stage 4: Decoding"
     nj=32
 
     extra_opts=""
-    if $use_lm; then
+    if "${use_lm}"; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
     fi
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-        if $use_lm; then
-            decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
+        decode_dir="decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}"
+        if "${use_lm}"; then
+            decode_dir="${decode_dir}_rnnlm${lm_weight}_${lmtag}"
         fi
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir="${dumpdir}/${rtask}/delta${do_delta}"
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
+        splitjson.py --parts "${nj}" "${feat_recog_dir}/data.json"
 
         #### use CPU for decoding
         ngpu=0
 
-        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+        "${decode_cmd}" JOB=1:"${nj}" "${expdir}/${decode_dir}/log/"decode.JOB.log \
             asr_recog.py \
-            --ngpu ${ngpu} \
-            --backend ${backend} \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
-            --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --ctc-weight ${ctc_weight} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            ${extra_opts} &
+            --ngpu "${ngpu}" \
+            --backend "${backend}" \
+            --recog-json "${feat_recog_dir}/split${nj}utt/"data.JOB.json \
+            --result-label "${expdir}/${decode_dir}/"data.JOB.json \
+            --model "${expdir}/results/${recog_model}" \
+            --beam-size "${beam_size}" \
+            --penalty "${penalty}" \
+            --ctc-weight "${ctc_weight}" \
+            --maxlenratio "${maxlenratio}" \
+            --minlenratio "${minlenratio}" \
+            "${extra_opts}" &
         wait
 
-        score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --wer true --nlsyms "${nlsyms}" "${expdir}/${decode_dir}" "${dict}"
 
     ) &
     done

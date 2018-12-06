@@ -30,7 +30,7 @@ from espnet.lm.lm_utils import count_tokens
 from espnet.lm.lm_utils import MakeSymlinkToBestModel
 from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
-from espnet.nets.e2e_asr_th import to_cuda
+from espnet.nets.pytorch_backend.e2e_asr import to_device
 
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
@@ -47,6 +47,12 @@ class Reporter(Chain):
 
 
 class ClassifierWithState(nn.Module):
+    """A wrapper for pytorch RNNLM
+
+    :param torch.nn.Module predictor : The RNNLM
+    :param function lossfun : The loss function to use
+    :param int/str label_key :
+    """
 
     def __init__(self, predictor,
                  lossfun=F.cross_entropy,
@@ -65,23 +71,20 @@ class ClassifierWithState(nn.Module):
     def forward(self, state, *args, **kwargs):
         """Computes the loss value for an input and label pair.az
 
-        It also computes accuracy and stores it to the attribute.
+            It also computes accuracy and stores it to the attribute.
+            When ``label_key`` is ``int``, the corresponding element in ``args``
+            is treated as ground truth labels. And when it is ``str``, the
+            element in ``kwargs`` is used.
+            The all elements of ``args`` and ``kwargs`` except the groundtruth
+            labels are features.
+            It feeds features to the predictor and compare the result
+            with ground truth labels.
 
-        Args:
-            args (list of ~torch.Tensor): Input minibatch.
-            kwargs (dict of ~torch.Tensor): Input minibatch.
-
-        When ``label_key`` is ``int``, the correpoding element in ``args``
-        is treated as ground truth labels. And when it is ``str``, the
-        element in ``kwargs`` is used.
-        The all elements of ``args`` and ``kwargs`` except the ground trush
-        labels are features.
-        It feeds features to the predictor and compare the result
-        with ground truth labels.
-
-        Returns:
-            ~torch.Tensor: Loss value.
-
+        :param torch.Tensor state : the LM state
+        :param list[torch.Tensor] args : Input minibatch
+        :param dict[torch.Tensor] kwargs : Input minibatch
+        :return loss value
+        :rtype torch.Tensor
         """
 
         if isinstance(self.label_key, int):
@@ -109,10 +112,10 @@ class ClassifierWithState(nn.Module):
     def predict(self, state, x):
         """Predict log probabilities for given state and input x using the predictor
 
-        Returns:
-            any type: new state
-            TorchTensor: log probability vector
-
+        :param torch.Tensor state : The current state
+        :param torch.Tensor x : The input
+        :return a tuple (new state, log prob vector)
+        :rtype (torch.Tensor, torch.Tensor)
         """
         if hasattr(self.predictor, 'normalized') and self.predictor.normalized:
             return self.predictor(state, x)
@@ -137,9 +140,9 @@ class ClassifierWithState(nn.Module):
     def final(self, state):
         """Predict final log probabilities for given state using the predictor
 
-        Returns:
-            cupy/numpy array: log probability vector
-
+        :param state: The state
+        :return The final log probabilities
+        :rtype torch.Tensor
         """
         if hasattr(self.predictor, 'final'):
             return self.predictor.final(state)
@@ -149,6 +152,12 @@ class ClassifierWithState(nn.Module):
 
 # Definition of a recurrent net for language modeling
 class RNNLM(nn.Module):
+    """A pytorch RNNLM
+
+    :param int n_vocab: The size of the vocabulary
+    :param int n_layers: The number of layers to create
+    :param int n_units: The number of units per layer
+    """
 
     def __init__(self, n_vocab, n_layers, n_units):
         super(RNNLM, self).__init__()
@@ -170,8 +179,8 @@ class RNNLM(nn.Module):
 
     def forward(self, state, x):
         if state is None:
-            c = [to_cuda(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
-            h = [to_cuda(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
+            c = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
+            h = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
             state = {'c': c, 'h': h}
 
         h = [None] * self.n_layers
@@ -186,6 +195,14 @@ class RNNLM(nn.Module):
 
 
 def concat_examples(batch, device=None, padding=None):
+    """Custom concat_examples for pytorch
+
+    :param np.ndarray batch: The batch to concatenate
+    :param int device: The device to send to
+    :param Tuple[int,int] padding: The padding to use
+    :return: (inputs, targets)
+    :rtype (torch.Tensor, torch.Tensor)
+    """
     x, t = convert.concat_examples(batch, padding=padding)
     x = torch.from_numpy(x)
     t = torch.from_numpy(t)
@@ -196,6 +213,14 @@ def concat_examples(batch, device=None, padding=None):
 
 
 class BPTTUpdater(training.StandardUpdater):
+    """An updater for a pytorch LM
+
+    :param chainer.dataset.Iterator train_iter : The train iterator
+    :param torch.nn.Module model : The model to update
+    :param optimizer:
+    :param int device : The device id
+    :param int gradclip : The gradient clipping value to use
+    """
 
     def __init__(self, train_iter, model, optimizer, device, gradclip=None):
         super(BPTTUpdater, self).__init__(train_iter, optimizer)
@@ -238,6 +263,13 @@ class BPTTUpdater(training.StandardUpdater):
 
 
 class LMEvaluator(extensions.Evaluator):
+    """A custom evaluator for a pytorch LM
+
+    :param chainer.dataset.Iterator val_iter : The validation iterator
+    :param torch.nn.Module eval_model : The model to evaluate
+    :param chainer.Reporter reporter : The observations reporter
+    :param int device : The device id to use
+    """
 
     def __init__(self, val_iter, eval_model, reporter, device):
         super(LMEvaluator, self).__init__(
@@ -267,6 +299,10 @@ class LMEvaluator(extensions.Evaluator):
 
 
 def train(args):
+    """Train with the given args
+
+    :param Namespace args: The program arguments
+    """
     # display torch version
     logging.info('torch version = ' + torch.__version__)
 
@@ -278,7 +314,7 @@ def train(args):
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
     # by considering reproducability
-    # use determinisitic computation or not
+    # use deterministic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
         logging.info('torch cudnn deterministic is disabled')
@@ -317,7 +353,7 @@ def train(args):
     rnn = RNNLM(args.n_vocab, args.layer, args.unit)
     model = ClassifierWithState(rnn)
     if args.ngpu > 1:
-        logging.warn("currently, multi-gpu is not supported. use single gpu.")
+        logging.warning("currently, multi-gpu is not supported. use single gpu.")
     if args.ngpu > 0:
         # Make the specified GPU current
         gpu_id = 0

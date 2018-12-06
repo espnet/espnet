@@ -59,7 +59,7 @@ def main():
         paths = [scp_[-2] for scp_ in scp]
         scp = [[utt_id, path] for utt_id, path in zip(utt_ids, paths)]
 
-    # chech direcitory
+    # check directory
     outdir = os.path.dirname(args.out)
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -67,9 +67,8 @@ def main():
     # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
     if args.write_utt2num_frames:
         job_id = "." + args.out.split(".")[-1] if args.out.split(".")[-1].isdigit() else ""
-        arkscp = ('ark:| copy-feats --print-args=false --write-num-frames=ark,t:%s '
-                  'ark:- ark,scp:%s.ark,%s.scp') % (
-                      os.path.dirname(args.out) + "/utt2num_frames" + job_id, args.out, args.out)
+        arkscp = 'ark:| copy-feats --print-args=false --write-num-frames=ark,t:%s ark:- ark,scp:%s.ark,%s.scp' % (
+            os.path.dirname(args.out) + "/utt2num_frames" + job_id, args.out, args.out)
     else:
         arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
 
