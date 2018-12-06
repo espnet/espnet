@@ -121,7 +121,7 @@ class CustomConverter(object):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
-        self.load_inputs_and_targets = LoadInputsAndTargets()
+        self.load_inputs_and_targets = LoadInputsAndTargets(mode='tts')
 
     def transform(self, item):
         # load batch
