@@ -203,7 +203,7 @@ def train(args):
 
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
+    # considering reproducibility
     # remove type check
     if args.debugmode < 2:
         chainer.config.type_check = False
