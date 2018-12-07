@@ -164,7 +164,7 @@ class RNNLM(chainer.Chain):
 
         emb = self.embed(x)
         if self.typ == "lstm":
-            (h, c), out = self.rnn(state['c'], state['h'], emb)
+            c, h, out = self.rnn(state['c'], state['h'], emb)
             state = {'c': c, 'h': h}
         else:
             h, out = self.rnn(state['h'], emb)
