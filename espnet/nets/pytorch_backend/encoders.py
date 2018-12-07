@@ -31,10 +31,10 @@ class BRNNP(torch.nn.Module):
                 inputdim = idim
             else:
                 inputdim = hdim
-            setattr(self, "birnn%d" % i, torch.nn.LSTM(inputdim, cdim, dropout=dropout,
-                                                       num_layers=1, bidirectional=True,
-                                                       batch_first=True) if typ == "lstm"
-                else torch.nn.GRU(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=True, batch_first=True))
+            rnn = torch.nn.LSTM(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=True,
+                                batch_first=True) if typ == "lstm" \
+                else torch.nn.GRU(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=True, batch_first=True)
+            setattr(self, "birnn%d" % i, rnn)
             # bottleneck layer to merge
             setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
 
