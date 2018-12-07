@@ -5,28 +5,23 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 
-def transfer_rnn(ch_rnn, th_rnn, num_layers):
-    for name, param in ch_rnn.namedparams():
-        if "w" in name:
-            param.data[:] = 1
-            w_chainer = param.data
-        elif "b" in name:
-            param.data[:] = 1
-            b_chainer = param.data
-    for layer in range(num_layers):
-        getattr(th_rnn, "weight_ih_l" + str(layer)).data[:] = torch.from_numpy(w_chainer)
-        getattr(th_rnn, "bias_hh_l" + str(layer)).data[:] = torch.from_numpy(b_chainer)
-        # NOTE: only lateral weight can directly transfer
-        # rest of the weights and biases have quite different placements
-        # th_lstm.weight_hh.data[:] = torch.from_numpy(ch_lstm.lateral.W.data)
-        getattr(th_rnn, "bias_ih_l" + str(layer)).data.zero_()
+def transfer_rnn(ch_rnn, th_rnn):
+    ch_rnn.upward.W.data[:] = 1
+    th_rnn.weight_ih.data[:] = torch.from_numpy(ch_rnn.upward.W.data)
+    ch_rnn.upward.b.data[:] = 1
+    th_rnn.bias_hh.data[:] = torch.from_numpy(ch_rnn.upward.b.data)
+    # NOTE: only lateral weight can directly transfer
+    # rest of the weights and biases have quite different placements
+    th_rnn.weight_hh.data[:] = torch.from_numpy(ch_rnn.lateral.W.data)
+    th_rnn.bias_ih.data.zero_()
 
 
 def transfer_lm(ch_rnnlm, th_rnnlm):
     assert isinstance(ch_rnnlm, lm_chainer.RNNLM)
     assert isinstance(th_rnnlm, lm_pytorch.RNNLM)
     th_rnnlm.embed.weight.data = torch.from_numpy(ch_rnnlm.embed.W.data)
-    transfer_rnn(ch_rnnlm.rnn, th_rnnlm.rnn, ch_rnnlm.n_layers)
+    for n in range(ch_rnnlm.n_layers):
+        transfer_rnn(ch_rnnlm.rnn[n], th_rnnlm.rnn[n])
     th_rnnlm.lo.weight.data = torch.from_numpy(ch_rnnlm.lo.W.data)
     th_rnnlm.lo.bias.data = torch.from_numpy(ch_rnnlm.lo.b.data)
 
@@ -37,8 +32,8 @@ def test_lm():
     n_units = 2
     batchsize = 5
     for typ in ["gru", "lstm"]:
-        rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_layers, n_units, typ))
-        rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_layers, n_units, typ))
+        rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_layers, n_units, typ=typ))
+        rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_layers, n_units, typ=typ))
         transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
         import numpy
         # TODO(karita) implement weight transfer

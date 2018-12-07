@@ -163,10 +163,11 @@ class RNNLM(nn.Module):
     def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
-        self.rnn = nn.LSTM(input_size=n_units, hidden_size=n_units, num_layers=n_layers, bidirectional=False,
-                           batch_first=True, dropout=0.5) if typ == "lstm" \
-            else nn.GRU(input_size=n_units, hidden_size=n_units, num_layers=n_layers, bidirectional=False,
-                        batch_first=True, dropout=0.5)
+        self.rnn = nn.ModuleList(
+            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)] if typ == "lstm" else [nn.GRUCell(n_units, n_units)
+                                                                                            for _ in range(n_layers)])
+        self.dropout = nn.ModuleList(
+            [nn.Dropout() for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
@@ -177,25 +178,30 @@ class RNNLM(nn.Module):
             param.data.uniform_(-0.1, 0.1)
 
     def zero_state(self, batchsize):
-        return torch.zeros(self.n_layers, batchsize, self.n_units).float()
+        return torch.zeros(batchsize, self.n_units).float()
 
     def forward(self, state, x):
         if state is None:
-            h = to_device(self, self.zero_state(x.size(0)))
+            h = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
+            state = {'h': h}
             if self.typ == "lstm":
-                c = to_device(self, self.zero_state(x.size(0)))
+                c = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
                 state = {'c': c, 'h': h}
-            else:
-                state = {'h': h}
 
+        h = [None] * self.n_layers
         emb = self.embed(x)
         if self.typ == "lstm":
-            out, (h, c) = self.rnn(emb, (state['h'], state['c']))
+            c = [None] * self.n_layers
+            h[0], c[0] = self.rnn[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
+            for n in six.moves.range(1, self.n_layers):
+                h[n], c[n] = self.rnn[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
             state = {'c': c, 'h': h}
         else:
-            out, h = self.rnn(emb, state['h'])
+            h[0] = self.rnn[0](self.dropout[0](emb), state['h'][0])
+            for n in six.moves.range(1, self.n_layers):
+                h[n] = self.rnn[n](self.dropout[n](h[n - 1]), state['h'][n])
             state = {'h': h}
-        y = self.lo(out)
+        y = self.lo(self.dropout[-1](h[-1]))
         return state, y
 
 
