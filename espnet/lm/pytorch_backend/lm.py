@@ -170,7 +170,7 @@ class RNNLM(nn.Module):
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
-        self.typ=typ
+        self.typ = typ
 
         # initialize parameters from uniform distribution
         for param in self.parameters():

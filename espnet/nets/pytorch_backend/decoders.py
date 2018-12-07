@@ -91,6 +91,7 @@ class Decoder(torch.nn.Module):
             z_list[0] = self.decoder[0](ey, z_prev[0])
             for l in six.moves.range(1, self.dlayers):
                 z_list[l] = self.decoder[l](z_list[l - 1], z_prev[l])
+        return z_list, c_list
 
     def forward(self, hs_pad, hlens, ys_pad):
         """Decoder forward
@@ -151,7 +152,7 @@ class Decoder(torch.nn.Module):
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
-            self.rnn_forward(ey, z_list, c_list, z_list, c_list)
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
 
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
@@ -257,7 +258,7 @@ class Decoder(torch.nn.Module):
                 ey.unsqueeze(0)
                 att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
-                self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
+                z_list, c_list = self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1)
@@ -432,7 +433,7 @@ class Decoder(torch.nn.Module):
             ey = torch.cat((ey, att_c), dim=1)
 
             # attention decoder
-            self.rnn_forward(ey, z_list, c_list, z_prev, c_prev)
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_prev, c_prev)
             local_scores = att_weight * F.log_softmax(self.output(z_list[-1]), dim=1)
 
             # rnnlm
@@ -590,7 +591,7 @@ class Decoder(torch.nn.Module):
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs_pad, hlen, z_list[0], att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
-            self.rnn_forward(ey, z_list, c_list, z_list, c_list)
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             att_ws.append(att_w)
 
         # convert to numpy array with the shape (B, Lmax, Tmax)

@@ -55,6 +55,7 @@ class Decoder(chainer.Chain):
             z_list[0] = self.rnn0(z_prev[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 z_list[l] = self['rnn%d' % l](z_prev[l], z_list[l - 1])
+        return z_list, c_list
 
     def __call__(self, hs, ys):
         """Decoder forward
@@ -106,7 +107,7 @@ class Decoder(chainer.Chain):
                 ey = F.hstack((z_out, att_c))  # utt x (zdim + hdim)
             else:
                 ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
-            self.rnn_forward(ey, z_list, c_list, z_list, c_list)
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             z_all.append(z_list[-1])
 
         z_all = F.reshape(F.stack(z_all, axis=1),
@@ -205,7 +206,7 @@ class Decoder(chainer.Chain):
                 att_c, att_w = self.att([h], hyp['z_prev'][0], hyp['a_prev'])
                 ey = F.hstack((ey, att_c))  # utt(1) x (zdim + hdim)
 
-                self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
+                z_list, c_list = self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1])).data
@@ -351,7 +352,7 @@ class Decoder(chainer.Chain):
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
             ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
-            self.rnn_forward(ey, z_list, c_list, z_list, c_list)
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             att_ws.append(att_w)  # for debugging
 
         att_ws = F.stack(att_ws, axis=1)
