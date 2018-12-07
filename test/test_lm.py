@@ -36,34 +36,35 @@ def test_lm():
     n_layers = 2
     n_units = 2
     batchsize = 5
-    rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_layers, n_units))
-    rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_layers, n_units))
-    transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
-    import numpy
-    # TODO(karita) implement weight transfer
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.embed.W.data, rnnlm_th.predictor.embed.weight.data.numpy())
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.upward.b.data, rnnlm_th.predictor.l1.bias_ih.data.numpy())
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.upward.W.data, rnnlm_th.predictor.l1.weight_ih.data.numpy())
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.lateral.W.data, rnnlm_th.predictor.l1.weight_hh.data.numpy())
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.upward.b.data, rnnlm_th.predictor.l2.bias_ih.data.numpy())
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.upward.W.data, rnnlm_th.predictor.l2.weight_ih.data.numpy())
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.lateral.W.data, rnnlm_th.predictor.l2.weight_hh.data.numpy())
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.b.data, rnnlm_th.predictor.lo.bias.data.numpy())
-    # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.W.data, rnnlm_th.predictor.lo.weight.data.numpy())
+    for typ in ["gru", "lstm"]:
+        rnnlm_ch = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(n_vocab, n_layers, n_units, typ))
+        rnnlm_th = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(n_vocab, n_layers, n_units, typ))
+        transfer_lm(rnnlm_ch.predictor, rnnlm_th.predictor)
+        import numpy
+        # TODO(karita) implement weight transfer
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.embed.W.data, rnnlm_th.predictor.embed.weight.data.numpy())
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.upward.b.data, rnnlm_th.predictor.l1.bias_ih.data.numpy())
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.upward.W.data, rnnlm_th.predictor.l1.weight_ih.data.numpy())
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.l1.lateral.W.data, rnnlm_th.predictor.l1.weight_hh.data.numpy())
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.upward.b.data, rnnlm_th.predictor.l2.bias_ih.data.numpy())
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.upward.W.data, rnnlm_th.predictor.l2.weight_ih.data.numpy())
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.l2.lateral.W.data, rnnlm_th.predictor.l2.weight_hh.data.numpy())
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.b.data, rnnlm_th.predictor.lo.bias.data.numpy())
+        # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.W.data, rnnlm_th.predictor.lo.weight.data.numpy())
 
-    # test prediction equality
-    x = torch.from_numpy(numpy.random.randint(n_vocab, size=batchsize)).long()
-    with torch.no_grad(), chainer.no_backprop_mode(), chainer.using_config('train', False):
-        rnnlm_th.predictor.eval()
-        state_th, y_th = rnnlm_th.predictor(None, x.long())
-        state_ch, y_ch = rnnlm_ch.predictor(None, x.data.numpy())
-        for k in state_ch.keys():
-            for n in range(len(state_th[k])):
-                print(k, n)
-                print(state_th[k][n].data.numpy())
-                print(state_ch[k][n].data)
-                numpy.testing.assert_allclose(state_th[k][n].data.numpy(), state_ch[k][n].data, 1e-5)
-        print("y")
-        print(y_th.data.numpy())
-        print(y_ch.data)
-        numpy.testing.assert_allclose(y_th.data.numpy(), y_ch.data, 1e-5)
+        # test prediction equality
+        x = torch.from_numpy(numpy.random.randint(n_vocab, size=batchsize)).long()
+        with torch.no_grad(), chainer.no_backprop_mode(), chainer.using_config('train', False):
+            rnnlm_th.predictor.eval()
+            state_th, y_th = rnnlm_th.predictor(None, x.long())
+            state_ch, y_ch = rnnlm_ch.predictor(None, x.data.numpy())
+            for k in state_ch.keys():
+                for n in range(len(state_th[k])):
+                    print(k, n)
+                    print(state_th[k][n].data.numpy())
+                    print(state_ch[k][n].data)
+                    numpy.testing.assert_allclose(state_th[k][n].data.numpy(), state_ch[k][n].data, 1e-5)
+            print("y")
+            print(y_th.data.numpy())
+            print(y_ch.data)
+            numpy.testing.assert_allclose(y_th.data.numpy(), y_ch.data, 1e-5)
