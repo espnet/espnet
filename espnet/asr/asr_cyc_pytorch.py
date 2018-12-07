@@ -92,35 +92,35 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
-        gid = batch[0][0][1]['groupid'] if 'groupid' in batch[0][0][1] else 0
-        if gid == 0: # paired data training
+        utt_type = batch[0][0][1]['utt_type'] if 'utt_type' in batch[0][0][1] else 0
+        if utt_type == 0: # paired data training
             if self.update_asr_only:
                 models = [ self.asr_model ]
             else:
                 models = [ self.asr_model, self.tts_model ]
-        elif gid == 1: # ASR with TTS loss
+        elif utt_type == 1: # ASR with TTS loss
             models = [ self.asr2tts_model ]
-        elif gid == 2: # TTS with ASR loss
+        elif utt_type == 2: # TTS with ASR loss
             models = [ self.tts2asr_model ]
         else:
             raise NotImplementedError
 
         for n, model in enumerate(models):
             # Compute the loss at this time step and accumulate it
-            if gid==0 and n==0:  # asr with CE loss
+            if utt_type==0 and n==0:  # asr with CE loss
                 self.asr_model.train()
                 x = self.asr_converter(batch, self.device)
                 loss = 1. / self.num_gpu * model(*x)
-            elif gid==0 and n==1:  # tts with MSE loss
+            elif utt_type==0 and n==1:  # tts with MSE loss
                 self.asr_model.eval()
                 self.tts_model.train()
                 xs, ilens, ys, labels, olens, spembs = self.tts_converter(batch, self.device)
                 loss = 1. / self.num_gpu * model(xs, ilens, ys, labels, olens=olens)
-            elif gid==1:  # asr with tts loss
+            elif utt_type==1:  # asr with tts loss
                 self.asr_model.train()
                 x = self.asr_converter(batch, self.device)
                 loss = 1. / self.num_gpu * model(*x)
-            else: #gid==2  tts with asr loss
+            else: #utt_type==2  tts with asr loss
                 self.asr_model.train()
                 self.tts_model.train()
                 xs, ilens, ys, labels, olens, spembs = self.tts_converter(batch, self.device)
@@ -129,7 +129,7 @@ class CustomUpdater(training.StandardUpdater):
             optimizer.zero_grad()  # Clear the parameter gradients
             loss.backward()  # Backprop
             loss.detach()  # Truncate the graph
-            if gid == 2:
+            if utt_type == 2:
                 if self.freeze_asr:
                     self.asr_model.zero_grad()
                 if self.freeze_tts:
