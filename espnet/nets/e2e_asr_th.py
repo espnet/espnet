@@ -98,6 +98,19 @@ def mask_by_length(xs, length, fill=0):
     return ret
 
 
+def mask_by_length_and_multiply(xs, length, fill=0, msize=1):
+    assert xs.size(0) == len(length)
+    ret = Variable(xs.data.new(xs.size(0) * msize, xs.size(1), xs.size(2)).fill_(fill))
+    k = 0
+    new_length = length.new(len(length) * msize)
+    for i, l in enumerate(length):
+        for j in range(msize):
+            ret[k, :l] = xs[i, :l]
+            new_length[k] = length[i]
+            k += 1
+    return ret, new_length
+
+
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
     """Function to calculate accuracy
 
@@ -172,6 +185,19 @@ class Reporter(chainer.Chain):
         logging.info('mtl loss:' + str(mtl_loss))
         reporter.report({'loss': mtl_loss}, self)
 
+    def report_cyc(self, loss_att, acc, loss_cyc, expected_loss):
+        reporter.report({'loss_att': loss_att}, self)
+        reporter.report({'acc': acc}, self)
+        reporter.report({'loss_cyc': loss_cyc}, self)
+        logging.info('expected loss:' + str(expected_loss))
+        reporter.report({'loss': expected_loss}, self)
+
+    def report_tts(self, l1_loss, mse_loss, bce_loss, tts_loss):
+        reporter.report({'loss_l1': l1_loss}, self)
+        reporter.report({'loss_mse': mse_loss}, self)
+        reporter.report({'loss_bce': bce_loss}, self)
+        reporter.report({'loss': tts_loss}, self)
+
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(torch.nn.Module):
@@ -181,13 +207,14 @@ class Loss(torch.nn.Module):
     :param float mtlalpha: mtl coefficient value (0.0 ~ 1.0)
     """
 
-    def __init__(self, predictor, mtlalpha):
+    def __init__(self, predictor, mtlalpha, weight=1.0):
         super(Loss, self).__init__()
         assert 0.0 <= mtlalpha <= 1.0, "mtlalpha shoule be [0.0, 1.0]"
         self.mtlalpha = mtlalpha
         self.loss = None
         self.accuracy = None
         self.predictor = predictor
+        self.weight = weight
         self.reporter = Reporter()
 
     def forward(self, xs_pad, ilens, ys_pad):
@@ -203,15 +230,15 @@ class Loss(torch.nn.Module):
         loss_ctc, loss_att, acc, cer, wer = self.predictor(xs_pad, ilens, ys_pad)
         alpha = self.mtlalpha
         if alpha == 0:
-            self.loss = loss_att
+            self.loss = loss_att * self.weight
             loss_att_data = float(loss_att)
             loss_ctc_data = None
         elif alpha == 1:
-            self.loss = loss_ctc
+            self.loss = loss_ctc * self.weight
             loss_att_data = None
             loss_ctc_data = float(loss_ctc)
         else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+            self.loss = (alpha * loss_ctc + (1 - alpha) * loss_att) * self.weight
             loss_att_data = float(loss_att)
             loss_ctc_data = float(loss_ctc)
 
@@ -221,6 +248,154 @@ class Loss(torch.nn.Module):
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
 
+        return self.loss
+
+
+class ExpectedLoss(torch.nn.Module):
+    def __init__(self, predictor, args, loss_fn=None, reporter=None, rnnlm=None, lm_loss_weight=1.0):
+        super(ExpectedLoss, self).__init__()
+        self.mtlalpha = args.mtlalpha
+        self.loss = None
+        self.accuracy = None
+        self.predictor = predictor
+        self.verbose = args.verbose
+        self.char_list = args.char_list
+        self.reporter = reporter if reporter is not None else Reporter()
+        self.loss_fn = loss_fn
+        self.n_samples_per_input = args.n_samples_per_input
+        self.maxlenratio = args.sample_maxlenratio
+        self.minlenratio = args.sample_minlenratio
+        self.topk = args.sample_topk
+        self.policy_gradient = args.policy_gradient
+        self.sample_scaling = args.sample_scaling
+        self.oracle = args.sample_oracle
+        self.rnnlm=rnnlm
+        self.lm_loss_weight=lm_loss_weight
+        # needed for Tacotron loss
+        self.ngpu = args.ngpu
+
+    def batch_factor(self, x):
+        '''Returns the factor by which a batch is normalized e.g. number of
+        elements in the batch'''
+        return len(x)
+
+    def forward(self, x):
+        '''Loss forward
+
+        :param x:
+        :param ys:  self.n_samples_per_input per each x entry
+        :return:
+        '''
+        # sample output sequence with the current model
+        loss_ctc, loss_att, ys, ygen, ylens, hpad, hlens = self.predictor.generate(x,
+                                         n_samples_per_input=self.n_samples_per_input,
+                                         topk=self.topk,
+                                         maxlenratio=self.maxlenratio,
+                                         minlenratio=self.minlenratio,
+                                         freeze_encoder=True,
+                                         return_encoder_states=True,
+                                         oracle=self.oracle)
+
+        acc = None
+        loss = None
+        alpha = self.mtlalpha
+        if alpha == 0:
+            loss = loss_att
+            loss_att_data = loss_att.detach().cpu().numpy()
+            loss_ctc_data = None
+        elif alpha == 1:
+            loss = loss_ctc
+            loss_att_data = None
+            loss_ctc_data = loss_ctc.detach().cpu().numpy()
+        else:
+            loss = (alpha * loss_ctc + (1 - alpha) * loss_att)
+            loss_att_data = loss_att.detach().cpu().numpy()
+            loss_ctc_data = loss_ctc.detach().cpu().numpy()
+
+        #x_taco = extract_tacotron_features(
+        #    x, ys, self.n_samples_per_input, self.ngpu
+        #)
+
+        # Get (log) posterior probabilities from loss. We need to normalize
+        # within the samples (batch_size * n_samples_per_input)
+        if self.policy_gradient: # use log posterior probs
+            weight = self.sample_scaling * -loss
+        else: # use posterior probs
+            weight = (self.sample_scaling * -loss).view(len(x), self.n_samples_per_input)
+            weight = torch.nn.Softmax(dim=1)(weight)
+            weight = weight.view(-1)
+
+        ylens, indices = torch.sort(ylens, descending=True)
+        ygen = ygen[indices]
+        hpad = hpad[indices]
+        hlens = hlens[indices]
+        weight = weight[indices]
+
+        if self.rnnlm:
+            with torch.no_grad():
+                sos = Variable(ygen.data.new([self.predictor.sos] * len(ygen)))
+                rnnlm_state, lmz = self.rnnlm.predictor(None, sos)
+                lm_loss = F.cross_entropy(lmz, ygen[:, 0], reduce=False)
+                for i in six.moves.range(1, ylens[0]):
+                    rnnlm_state, lmz = self.rnnlm.predictor(rnnlm_state, ygen[:, i-1])
+                    loss_i = F.cross_entropy(lmz, ygen[:, i], reduce=False)
+                    loss_i[ygen[:, i]==0] = 0
+                    lm_loss += loss_i
+                lm_loss = lm_loss / ylens.type_as(lm_loss)
+        else:
+            lm_loss = None
+
+        # Weighted loss
+        if self.loss_fn is not None:
+            # make labels for stop prediction
+            labels = hpad.new(hpad.size(0), hpad.size(1)).zero_()
+            for i, l in enumerate(hlens):
+                labels[i, l - 1:] = 1
+            labels = to_cuda(self, labels)
+            # compute taco loss
+            x_taco = (ygen, ylens, hpad, labels, None)
+            self.loss_fn.eval()
+            with torch.no_grad():
+                taco_loss = self.loss_fn(*x_taco).mean(2).mean(1)
+            if lm_loss is not None:
+                taco_loss += lm_loss * self.lm_loss_weight
+            self.loss = ((taco_loss - taco_loss.mean()) * weight).mean()
+        else:
+            if lm_loss is not None:
+                self.loss = (-weight + lm_loss * self.lm_loss_weight).mean()
+            else:
+                self.loss = -weight.mean()
+
+        #self.loss = (taco_loss * weight).mean()
+        self.loss = self.loss * 1. / self.ngpu
+
+        # Inform user
+        if self.verbose > 0 and self.char_list is not None:
+            for i in six.moves.range(len(x)):
+                for j in six.moves.range(self.n_samples_per_input):
+                    k = i * self.n_samples_per_input + j
+                    y_str = "".join([self.char_list[int(ygen[k,l])] for l in range(ylens[k])])
+                    if self.loss_fn is not None:
+                        logging.info("generation[%d]: %.4f %.4f " % (k, weight[k], taco_loss[k]) + y_str)
+                    else:
+                        logging.info("generation[%d]: %.4f " % (k, weight[k]) + y_str)
+
+        if self.loss_fn is not None:
+            if self.policy_gradient: # use log posterior probs
+                loss_cyc_data = float(taco_loss.mean())
+                loss_data = loss_cyc_data
+            else:
+                loss_cyc_data = float((taco_loss * weight.detach()).sum()) / len(x)
+                loss_data = loss_cyc_data
+        else:
+            loss_cyc_data = None
+            loss_data = self.sample_scaling * loss_att_data
+
+        if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
+            self.reporter.report_cyc(loss_att_data, acc, loss_cyc_data, loss_data)
+        else:
+            logging.warning('loss (=%f) is not correct', self.loss.data)
+        # Compute
         return self.loss
 
 
@@ -517,6 +692,72 @@ class E2E(torch.nn.Module):
         if prev:
             self.train()
         return y
+
+    def generate(self, data, n_samples_per_input=10, topk=0, maxlenratio=1.0, minlenratio=0.3, freeze_encoder=False, return_encoder_states=False, oracle=False):
+        '''E2E generate
+
+        :param data:
+        :return:
+        '''
+        torch.set_grad_enabled(self.training)
+
+        # utt list of frame x dim
+        xs = [d[1]['feat'] for d in data]
+
+        # remove 0-output-length utterances
+        tids = [d[1]['output'][0]['tokenid'].split() for d in data]
+        filtered_index = filter(lambda i: len(tids[i]) > 0, range(len(xs)))
+        sorted_index = sorted(filtered_index, key=lambda i: -len(xs[i]))
+        if len(sorted_index) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(sorted_index)))
+        xs = [xs[i] for i in sorted_index]
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+        if self.training:
+            hs = [to_cuda(self, Variable(torch.from_numpy(xx))) for xx in xs]
+        else:
+            hs = [to_cuda(self, torch.from_numpy(xx)) for xx in xs]
+
+        # 1. encoder
+        xpad = pad_list(hs)
+        hpad, hlens = self.enc(xpad, ilens)
+        # expand encoder states by n_sample_per_input
+        hpad, hlens = mask_by_length_and_multiply(hpad, hlens, 0, n_samples_per_input)
+        if freeze_encoder:
+            new_hpad = hpad.detach()
+            del hpad
+            hpad = new_hpad
+        # 2. attention-based generation
+        if self.mtlalpha == 1:
+            raise Exception('CTC-only mode (mtlalpha=1) is not supported.')
+
+        if oracle:
+            # utt list of olen
+            ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
+                  for i in sorted_index]
+            ys = [to_cuda(self, torch.from_numpy(y)) for y in ys for _ in range(n_samples_per_input)]
+
+            loss_att, y_gen, ylens = self.dec.gen_oracle(hpad, hlens, ys)
+        else:
+            loss_att, ys, y_gen, ylens = self.dec.generate(hpad, hlens, topk=topk, maxlenratio=maxlenratio, minlenratio=minlenratio)
+            # 3. CTC loss
+            ys = [to_cuda(self, Variable(torch.from_numpy(y))) for y in ys]
+
+        loss_ctc = None
+        if self.mtlalpha == 0:
+            loss_ctc = None
+        else:
+            loss_ctc = self.ctc(hpad, hlens, ys, reduce=False)
+
+        if return_encoder_states:
+            y_gen = to_cuda(self, Variable(torch.from_numpy(y_gen)))
+            ylens = to_cuda(self, Variable(torch.from_numpy(ylens)))
+            return loss_ctc, loss_att, ys, y_gen, ylens, hpad, hlens
+        else:
+            return loss_ctc, loss_att, ys
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         '''E2E attention calculation
@@ -2477,6 +2718,102 @@ class Decoder(torch.nn.Module):
                       for samp_i in six.moves.range(batch)]
 
         return nbest_hyps
+
+    def generate(self, hpad, hlen, topk=0, maxlenratio=1.0, minlenratio=0.3, rnnlm=None):
+        '''Decoder generate
+
+        :param hs:
+        :return:
+        '''
+        # get dim, length info
+        # initialization
+        self.loss = None
+        logzero = -1.0e+10
+        n_samples = len(hlen)
+        c_list = [self.zero_state(hpad)]
+        z_list = [self.zero_state(hpad)]
+        for l in six.moves.range(1, self.dlayers):
+            c_list.append(self.zero_state(hpad))
+            z_list.append(self.zero_state(hpad))
+        att_w = None
+        z_all = []
+        self.att.reset()  # reset pre-computation of h
+
+        # preprate sos
+        if maxlenratio == 0:
+            maxlen = int(max(hlen))
+        else:
+            # maxlen >= 1
+            maxlen = max(1, int(maxlenratio * int(max(hlen))))
+        minlen = int(minlenratio * int(min(hlen)))
+        odim = self.eos + 1
+        # prepare the first label <sos>
+        y = to_cuda(self, Variable(torch.from_numpy(np.full(n_samples, self.sos, dtype=np.int64))))
+        indices = [np.array(range(odim), dtype=np.int32)] * n_samples
+        y_gen = np.full((maxlen, n_samples), self.ignore_id, dtype=np.int64)
+        not_ended = np.array([True] * n_samples, dtype=np.bool_)
+        # make a mask to avoid <blank>:0, <unk>:1, and sentence end prediction
+        suppress_mask = np.zeros((1, odim), dtype=np.float32)
+        suppress_mask[0, (0, 1, self.eos)] = logzero
+        suppress_mask = to_cuda(self, Variable(torch.from_numpy(suppress_mask)))
+        suppress_mask_without_eos = suppress_mask.clone()
+        suppress_mask_without_eos[0, self.eos] = 0.
+        y_lens = np.zeros(n_samples, dtype=np.int64)
+        loss_list = []
+        for i in six.moves.range(maxlen):
+            if i > 0:
+                yg = y_gen[i-1]
+                yg[yg == -1] = 0
+                y = to_cuda(self, Variable(torch.from_numpy(yg)))
+            ey = self.embed(y)  # utt x zdim
+            att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
+            ey = torch.cat((ey, att_c), dim=1)  # n_samples x (zdim + hdim)
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](
+                    z_list[l - 1], (z_list[l], c_list[l]))
+            if i == minlen:  # exclude <eos> while sequence is short
+                suppress_mask = suppress_mask_without_eos
+            oy = self.output(z_list[-1]) + suppress_mask
+            if 0 < topk < odim:
+                topk_logits, topk_indices = torch.topk(oy, topk, dim=1)
+                sy = F.softmax(topk_logits, dim=1).data.cpu().numpy()
+                indices = topk_indices.data.cpu().numpy()
+            else:
+                sy = F.softmax(oy, dim=1).data.cpu().numpy()
+
+            if i < maxlen-1:
+                for j in six.moves.range(n_samples):
+                    if not_ended[j]:
+                        y_gen[i, j] = np.random.choice(indices[j], 1, p=sy[j]) # or argmax in some cases
+                not_ended &= y_gen[i, :]!=self.eos
+                y_lens[y_gen[i, :]==self.eos] = i + 1
+            else:
+                y_gen[i, not_ended] = self.eos
+                y_lens[not_ended] = i + 1
+            del sy
+
+            t = to_cuda(self, Variable(torch.from_numpy(y_gen[i])))
+            ce_loss = F.cross_entropy(oy, t, ignore_index=self.ignore_id, size_average=False, reduce=False)
+            loss_list.append(ce_loss)
+            # all ended -> break
+            if np.sum(not_ended)==0:
+                break
+        # loss array needs to be masked by 0 to exclude indeterminate valuse for igored_id
+        masked_loss = mask_by_length(torch.stack(loss_list).transpose(1, 0), y_lens, fill=0.0)
+        sample_loss = torch.sum(masked_loss, dim=1)
+        # show predicted character sequence for debug
+        y_list = []
+        y_gen = y_gen.transpose(1, 0)
+        y_gen[y_gen == -1] = 0
+        for i in six.moves.range(n_samples):
+            y_seq = np.array(y_gen[i, :y_lens[i]-1], dtype=np.int32)
+            y_list.append(y_seq)
+            if self.verbose > 0 and self.char_list is not None:
+                y_str = "".join([self.char_list[int(idx)] for idx in y_seq])
+                #logging.info("generation[%d]: %.4f " % (i, sample_loss.data[i]) + y_str)
+        #return sample_loss, y_list
+        return sample_loss, y_list, y_gen, y_lens
 
     def calculate_all_attentions(self, hs_pad, hlen, ys_pad):
         '''Calculate all of attentions
