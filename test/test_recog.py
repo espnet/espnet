@@ -21,6 +21,7 @@ def make_arg(**kwargs):
         etype="blstmp",
         eunits=100,
         eprojs=100,
+        dtype="lstm",
         dlayers=1,
         dunits=300,
         atype="location",
@@ -57,11 +58,15 @@ def init_chainer_weight_const(m, val):
         p.data[:] = val
 
 
-@pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.chainer_backend.e2e_asr", 0),
-    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr", 1),
-    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr", 3),
+@pytest.mark.parametrize(("etype", "dtype", "m_str", "text_idx1"), [
+    ("blstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 0),
+    ("blstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 1),
+    ("vggblstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 2),
+    ("vggblstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 3),
+    ("bgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 4),
+    ("bgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 5),
+    ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 6),
+    ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 7),
 ])
 def test_recognition_results(etype, m_str, text_idx1):
     const = 1e-4
@@ -99,11 +104,15 @@ def test_recognition_results(etype, m_str, text_idx1):
         assert seq_hat_text == seq_true_text
 
 
-@pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.chainer_backend.e2e_asr", 0),
-    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr", 1),
-    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr", 3),
+@pytest.mark.parametrize(("etype", "dtype", "m_str", "text_idx1"), [
+    ("blstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 0),
+    ("blstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 1),
+    ("vggblstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 2),
+    ("vggblstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 3),
+    ("bgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 4),
+    ("bgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 5),
+    ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 6),
+    ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 7),
 ])
 def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
@@ -148,11 +157,15 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         assert seq_hat_text == seq_true_text
 
 
-@pytest.mark.parametrize(("etype", "m_str"), [
-    ("blstmp", "espnet.nets.chainer_backend.e2e_asr"),
-    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr"),
-    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr"),
-    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr"),
+@pytest.mark.parametrize(("etype", "dtype", "m_str"), [
+    ("blstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr"),
+    ("blstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr"),
+    ("vggblstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr"),
+    ("vggblstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr"),
+    ("bgrup", "gru", "espnet.nets.chainer_backend.e2e_asr"),
+    ("bgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr"),
+    ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr"),
+    ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr"),
 ])
 def test_batch_beam_search(etype, m_str):
     const = 1e-4

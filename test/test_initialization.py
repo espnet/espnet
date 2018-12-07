@@ -11,13 +11,13 @@ import os
 import pytest
 import random
 
-
 args = argparse.Namespace(
     elayers=4,
     subsample="1_2_2_1_1",
     etype="vggblstmp",
     eunits=320,
     eprojs=320,
+    dtype="lstm",
     dlayers=2,
     dunits=300,
     atype="location",
