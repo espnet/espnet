@@ -31,11 +31,12 @@ from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 
+from espnet.bin.bin_utils import set_deterministic_pytorch
+
 import matplotlib
 
 matplotlib.use('Agg')
 
-from espnet.bin.bin_utils import set_deterministic_pytorch
 
 REPORT_INTERVAL = 100
 
