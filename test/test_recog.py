@@ -68,7 +68,7 @@ def init_chainer_weight_const(m, val):
     ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 6),
     ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 7),
 ])
-def test_recognition_results(etype, m_str, text_idx1):
+def test_recognition_results(etype, dtype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
     seq_true_texts = ([["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
@@ -114,7 +114,7 @@ def test_recognition_results(etype, m_str, text_idx1):
     ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 6),
     ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 7),
 ])
-def test_recognition_results_with_lm(etype, m_str, text_idx1):
+def test_recognition_results_with_lm(etype, dtype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
     seq_true_texts = [["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
@@ -167,7 +167,7 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
     ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr"),
     ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr"),
 ])
-def test_batch_beam_search(etype, m_str):
+def test_batch_beam_search(etype, dtype, m_str):
     const = 1e-4
     numpy.random.seed(1)
 
