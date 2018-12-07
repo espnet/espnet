@@ -74,6 +74,10 @@ def test_recognition_results(etype, dtype, m_str, text_idx1):
     seq_true_texts = ([["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
                        ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
                        ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
+                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
+                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
                        ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"]])
 
     # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
@@ -118,6 +122,10 @@ def test_recognition_results_with_lm(etype, dtype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
     seq_true_texts = [["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
+                      ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
+                      ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
+                      ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
+                      ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"]]
