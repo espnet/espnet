@@ -146,8 +146,9 @@ class RNNLM(chainer.Chain):
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(n_vocab, n_units)
-            self.rnn = L.NStepLSTM(n_layers, n_units, n_units, dropout=0.5) if typ == "lstm" \
-                else L.NStepGRU(n_layers, n_units, n_units, dropout=0.5)
+            self.rnn = chainer.ChainList(
+                *[L.StatelessLSTM(n_units, n_units) for _ in range(n_layers)]) if typ == "lstm" \
+                else chainer.ChainList(*[L.StatelessGRU(n_units, n_units) for _ in range(n_layers)])
             self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
@@ -158,18 +159,24 @@ class RNNLM(chainer.Chain):
     def __call__(self, state, x):
         if state is None:
             if self.typ == "lstm":
-                state = {'c': None, 'h': None}
+                state = {'c': [None] * self.n_layers, 'h': [None] * self.n_layers}
             else:
-                state = {'h': None}
+                state = {'h': [None] * self.n_layers}
 
+        h = [None] * self.n_layers
+        c = [None] * self.n_layers
         emb = self.embed(x)
         if self.typ == "lstm":
-            c, h, out = self.rnn(state['c'], state['h'], emb)
+            c[0], h[0] = self.rnn[0](state['c'][0], state['h'][0], F.dropout(emb))
+            for n in six.moves.range(1, self.n_layers):
+                c[n], h[n] = self.rnn[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
             state = {'c': c, 'h': h}
         else:
-            h, out = self.rnn(state['h'], emb)
+            h[0] = self.rnn[0](state['h'][0], F.dropout(emb))
+            for n in six.moves.range(1, self.n_layers):
+                h[n] = self.rnn[n](state['h'][n], F.dropout(h[n - 1]))
             state = {'h': h}
-        y = self.lo(out)
+        y = self.lo(F.dropout(h[-1]))
         return state, y
 
 
