@@ -164,9 +164,9 @@ class RNNLM(chainer.Chain):
                 state = {'h': [None] * self.n_layers}
 
         h = [None] * self.n_layers
-        c = [None] * self.n_layers
         emb = self.embed(x)
         if self.typ == "lstm":
+            c = [None] * self.n_layers
             c[0], h[0] = self.rnn[0](state['c'][0], state['h'][0], F.dropout(emb))
             for n in six.moves.range(1, self.n_layers):
                 c[n], h[n] = self.rnn[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
