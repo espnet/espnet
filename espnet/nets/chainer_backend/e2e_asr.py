@@ -122,7 +122,7 @@ class E2E(chainer.Chain):
         :param x:
         :param recog_args:
         :param char_list:
-        :param rnnlm
+        :param rnnlm:
         :return:
         """
         # subsample frame
