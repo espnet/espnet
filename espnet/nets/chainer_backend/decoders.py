@@ -27,9 +27,8 @@ class Decoder(chainer.Chain):
             self.rnn0 = L.StatelessLSTM(dunits + eprojs, dunits) if dtype == "lstm" \
                 else L.StatelessGRU(dunits + eprojs, dunits)
             for l in six.moves.range(1, dlayers):
-                rnn = L.StatelessLSTM(dunits, dunits) if dtype == "lstm" \
-                    else L.StatelessGRU(dunits, dunits)
-                setattr(self, 'rnn%d' % l, rnn)
+                setattr(self, 'rnn%d' % l,
+                        L.StatelessLSTM(dunits, dunits) if dtype == "lstm" else L.StatelessGRU(dunits, dunits))
             self.output = L.Linear(dunits, odim)
         self.dtype = dtype
         self.loss = None
