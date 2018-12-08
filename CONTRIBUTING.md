@@ -25,7 +25,7 @@ TBD
 
 ## Unit testing
 
-ESPnet's testing is located under `test/` and `test_utils`.  You can install additional packages for testing as follows:
+ESPnet's testing is located under `test/`.  You can install additional packages for testing as follows:
 ``` console
 $ cd <espnet_root>
 $ pip install -e ".[test]"
@@ -48,7 +48,7 @@ $ test ! -s check_autopep8
 
 You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
 
-You can test the scripts in `utils` with [bats](https://github.com/sstephenson/bats).  To install:
+You can also test the scripts in `utils` with [bats](https://github.com/sstephenson/bats).  To install:
 
 ``` console
 $ git clone https://github.com/sstephenson/bats.git
