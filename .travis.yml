@@ -61,9 +61,9 @@ install:
   - cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
   - pip install . && cd ..
   - export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`pwd`/chainer_ctc/ext/warp-ctc/build
-  # install bats
-  - git clone https://github.com/sstephenson/bats.git
-  - export PATH=$(pwd)/bats/bin:$PATH
+  # install bats-core
+  - git clone https://github.com/bats-core/bats-core.git
+  - export PATH=$(pwd)/bats-core/bin:$PATH
 
 
 script:
