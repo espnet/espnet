@@ -4,11 +4,11 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from __future__ import unicode_literals
+
 import argparse
 import json
 import logging
-
-from builtins import str
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     logging.info("reading %s", args.dict)
     with open(args.dict, 'r') as f:
         dictionary = f.readlines()
-    char_list = [str(entry.split(' ')[0], 'utf_8') for entry in dictionary]
+    char_list = [entry.split(' ')[0] for entry in dictionary]
     char_list.insert(0, '<blank>')
     char_list.append('<eos>')
     # print([x.encode('utf-8') for x in char_list])
@@ -40,9 +40,9 @@ if __name__ == '__main__':
 
     for x in j['utts']:
         seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['rec_tokenid'].split()]
-        h.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
+        h.write(" ".join(seq).replace('<eos>', '')),
         h.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
         seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid'].split()]
-        r.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
+        r.write(" ".join(seq).replace('<eos>', '')),
         r.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")

@@ -3,12 +3,12 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
 import re
 import sys
-
-from builtins import str
-from six import print_function
 
 
 def exist_or_not(i, match_pos):
@@ -41,7 +41,7 @@ def main():
     rs = []
     if args.non_lang_syms is not None:
         with open(args.non_lang_syms, 'r') as f:
-            nls = [str(x.rstrip(), 'utf_8') for x in f.readlines()]
+            nls = [x.rstrip() for x in f.readlines()]
             rs = [re.compile(re.escape(x)) for x in nls]
 
     if args.text:
@@ -51,8 +51,8 @@ def main():
     line = f.readline()
     n = args.nchar
     while line:
-        x = str(line, 'utf_8').split()
-        print_function(' '.join(x[:args.skip_ncols]).encode('utf_8')),
+        x = line.split()
+        print(' '.join(x[:args.skip_ncols]), end=" ")
         a = ' '.join(x[args.skip_ncols:])
 
         # get all matched positions
@@ -87,7 +87,7 @@ def main():
             a_flat.append("".join(z))
 
         a_chars = [z.replace(' ', args.space) for z in a_flat]
-        print_function(' '.join(a_chars).encode('utf_8'))
+        print(' '.join(a_chars))
         line = f.readline()
 
 

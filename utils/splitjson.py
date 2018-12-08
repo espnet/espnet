@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 from __future__ import division
+from __future__ import unicode_literals
 
 import argparse
 import json
@@ -14,8 +15,6 @@ import os
 import sys
 
 import numpy as np
-
-is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -38,7 +37,7 @@ if __name__ == '__main__':
 
     # load json and split keys
     j = json.load(open(args.json))
-    utt_ids = j['utts'].keys()
+    utt_ids = sorted(list(j['utts'].keys()))
     logging.info("number of utterances = %d" % len(utt_ids))
     if len(utt_ids) < args.parts:
         logging.error("#utterances < #splits. Use smaller split number.")
@@ -53,12 +52,9 @@ if __name__ == '__main__':
         jsonstring = json.dumps({'utts': new_dic},
                                 indent=4,
                                 ensure_ascii=False,
-                                sort_keys=True)
+                                sort_keys=True,
+                                separators=(',', ': '))
         fl = '{}/{}.{}.json'.format(dirname, filename, i + 1)
-        if is_python2:
-            sys.stdout = open(fl, "wb+")
-            print(jsonstring.encode('utf_8'))
-        else:
-            sys.stdout = open(fl, "w+")
-            print(jsonstring)
+        sys.stdout = open(fl, "w+")
+        print(jsonstring)
         sys.stdout.close()
