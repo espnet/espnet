@@ -68,9 +68,10 @@ def sum_sqnorm(arr):
 class CustomUpdater(training.StandardUpdater):
     '''Custom updater for chainer'''
 
-    def __init__(self, train_iter, optimizer, converter, device):
+    def __init__(self, train_iter, optimizer, converter, device, unchained=False):
         super(CustomUpdater, self).__init__(
             train_iter, optimizer, converter=converter, device=device)
+        self.unchained = unchained
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -87,7 +88,8 @@ class CustomUpdater(training.StandardUpdater):
         loss = optimizer.target(*x)
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
-        loss.unchain_backward()  # Truncate the graph
+        if self.unchained:
+            loss.unchain_backward()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
         grad_norm = np.sqrt(sum_sqnorm(
             [p.grad for p in optimizer.target.params(False)]))
@@ -242,9 +244,11 @@ def train(args):
     if args.ntype == 'e2e':
         from espnet.nets.e2e_asr import E2E
         e2e = E2E(idim, odim, args)
+        unchained = True
     elif args.ntype == 'transformer':
         from espnet.nets.e2e_asr_transformer import E2E
         e2e = E2E(idim, odim, args)
+        unchained = False
     else:
         raise ValueError('Incorrect type of architecture')
     model = Loss(e2e, args.mtlalpha)
@@ -281,7 +285,7 @@ def train(args):
 
     # Setup an optimizer
     if args.opt == 'adadelta':
-        optimizer = chainer.optimizers.AdaDelta(eps=args.eps)
+        optimizer = chainer.optimizers.AdaDelta(rho=args.rho, eps=args.eps)
     elif args.opt == 'adam':
         optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
@@ -312,7 +316,7 @@ def train(args):
 
         # set up updater
         updater = CustomUpdater(
-            train_iter, optimizer, converter=converter, device=gpu_id)
+            train_iter, optimizer, converter=converter, device=gpu_id, unchained=unchained)
     else:
         # set up minibatches
         train_subsets = []
@@ -379,6 +383,7 @@ def train(args):
             # VaswaniRule('alpha', d=args.unit, warmup_steps=16000, scale=1.),
             VaswaniRule('alpha', d=args.eunits, warmup_steps=args.warmup_steps, init=args.lr_init),
             trigger=(1, 'iteration'))
+        trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.Evaluator(
         valid_iter, model, converter=converter, device=gpu_id), trigger=(1, 'epoch'))
 

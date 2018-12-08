@@ -54,6 +54,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=15
+rho=0.95
 lr_init=1.0
 warmup_steps=12800
 dropout=0.0
@@ -249,7 +250,12 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${ntype}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    if [ "${opt}" == "adam" ]; then
+        lr=${lr_init}
+    else
+        lr=${rho}
+    fi
+    expdir=exp/${train_set}_${backend}_${ntype}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}${lr}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -301,6 +307,7 @@ if [ ${stage} -le 4 ]; then
         --dropout-rate ${dropout} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
+        --rho ${rho} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
         --epochs ${epochs}

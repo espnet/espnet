@@ -1,8 +1,6 @@
 # encoding: utf-8
 
 import chainer
-from chainer import cuda
-from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
 from chainer.training import extension
@@ -10,77 +8,36 @@ from chainer.training import extension
 # import espnet.nets.deterministic_embed_id as DL
 
 import logging
-
+from matplotlib import pyplot as plt  # NOQA
 import numpy as np
 
 CTC_LOSS_THRESHOLD = 10000
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
+MIN_VALUE = float(np.finfo(np.float32).min)
 
 # linear_init = chainer.initializers.GlorotNormal()
 linear_init = chainer.initializers.LeCunUniform()
+one_init = chainer.initializers.One()
+identity_init = chainer.initializers.Identity()
+zero_init = chainer.initializers.Zero()
 
 
-def seq2seq_pad_concat_convert(xy_batch, device, eos_id=0, bos_id=2):
-    """seq2seq_pad_concat_convert
-
-    Args:
-        xy_batch (list of tuple of two numpy.ndarray-s or cupy.ndarray-s):
-            xy_batch[i][0] is an array
-            of token ids of i-th input sentence in a minibatch.
-            xy_batch[i][1] is an array
-            of token ids of i-th target sentence in a minibatch.
-            The shape of each array is `(sentence length, )`.
-        device (int or None): Device ID to which an array is sent. If it is
-            negative value, an array is sent to CPU. If it is positive, an
-            array is sent to GPU with the given ID. If it is ``None``, an
-            array is left in the original device.
-
-    Returns:
-        Tuple of Converted array.
-            (input_sent_batch_array, target_sent_batch_input_array,
-            target_sent_batch_output_array).
-            The shape of each array is `(batchsize, max_sentence_length)`.
-            All sentences are padded with -1 to reach max_sentence_length.
-    """
-
-    x_seqs, y_seqs = zip(*xy_batch)
-
-    x_block = convert.concat_examples(x_seqs, device, padding=-1)
-    y_block = convert.concat_examples(y_seqs, device, padding=-1)
-    xp = cuda.get_array_module(x_block)
-
-    # The paper did not mention eos
-    # add eos
-    x_block = xp.pad(x_block, ((0, 0), (0, 1)),
-                     'constant', constant_values=-1)
-    for i_batch, seq in enumerate(x_seqs):
-        x_block[i_batch, len(seq)] = eos_id
-    x_block = xp.pad(x_block, ((0, 0), (1, 0)),
-                     'constant', constant_values=bos_id)
-
-    y_out_block = xp.pad(y_block, ((0, 0), (0, 1)),
-                         'constant', constant_values=-1)
-    for i_batch, seq in enumerate(y_seqs):
-        y_out_block[i_batch, len(seq)] = eos_id
-
-    y_in_block = xp.pad(y_block, ((0, 0), (1, 0)),
-                        'constant', constant_values=bos_id)
-    return (x_block, y_in_block, y_out_block)
-
-
-def source_pad_concat_convert(x_seqs, device, eos_id=0, bos_id=2):
-    x_block = convert.concat_examples(x_seqs, device, padding=-1)
-    xp = cuda.get_array_module(x_block)
-
-    # add eos
-    x_block = xp.pad(x_block, ((0, 0), (0, 1)),
-                     'constant', constant_values=-1)
-    for i_batch, seq in enumerate(x_seqs):
-        x_block[i_batch, len(seq)] = eos_id
-    x_block = xp.pad(x_block, ((0, 0), (1, 0)),
-                     'constant', constant_values=bos_id)
-    return x_block
+def get_topk(xp, x, k=5, axis=1):
+    ids_list = []
+    scores_list = []
+    # xp = cuda.get_array_module(x)
+    for i in range(k):
+        ids = xp.argmax(x, axis=axis).astype('i')
+        if axis == 0:
+            scores = x[ids]
+            x[ids] = - float('inf')
+        else:
+            scores = x[xp.arange(ids.shape[0]), ids]
+            x[xp.arange(ids.shape[0]), ids] = - float('inf')
+        ids_list.append(ids)
+        scores_list.append(scores)
+    return ids_list, scores_list
 
 
 def seq_func(func, x, reconstruct_shape=True):
@@ -89,7 +46,6 @@ def seq_func(func, x, reconstruct_shape=True):
     Apply a given function for array of ndim 3,
     shape (batchsize, dimension, sentence_length),
     instead for array of ndim 2.
-
     """
 
     batch, units, length = x.shape
@@ -121,75 +77,270 @@ def sentence_block_embed(embed, x):
     return e
 
 
-class LayerNormalizationSentence(L.LayerNormalization):
+class VaswaniRule(extension.Extension):
 
-    """Position-wise Linear Layer for Sentence Block
+    """Trainer extension to shift an optimizer attribute magically by Vaswani.
 
-    Position-wise layer-normalization layer for array of shape
-    (batchsize, dimension, sentence_length).
-
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(LayerNormalizationSentence, self).__init__(*args, **kwargs)
-
-    def __call__(self, x):
-        y = seq_func(super(LayerNormalizationSentence, self).__call__, x)
-        return y
-
-
-class ConvolutionSentence(L.Convolution2D):
-
-    """Position-wise Linear Layer for Sentence Block
-
-    Position-wise linear layer for array of shape
-    (batchsize, dimension, sentence_length)
-    can be implemented a convolution layer.
+    Args:
+        attr (str): Name of the attribute to shift.
+        rate (float): Rate of the exponential shift. This value is multiplied
+            to the attribute at each call.
+        init (float): Initial value of the attribute. If it is ``None``, the
+            extension extracts the attribute at the first call and uses it as
+            the initial value.
+        target (float): Target value of the attribute. If the attribute reaches
+            this value, the shift stops.
+        optimizer (~chainer.Optimizer): Target optimizer to adjust the
+            attribute. If it is ``None``, the main optimizer of the updater is
+            used.
 
     """
 
-    def __init__(self, in_channels, out_channels,
-                 ksize=1, stride=1, pad=0, nobias=False,
-                 initialW=None, initial_bias=None):
-        super(ConvolutionSentence, self).__init__(
-            in_channels, out_channels,
-            ksize, stride, pad, nobias,
-            initialW, initial_bias)
+    def __init__(self, attr, d, warmup_steps=4000,
+                 init=None, target=None, optimizer=None,
+                 scale=1.):
+        self._attr = attr
+        self._d_inv05 = d ** (-0.5) * scale
+        self._warmup_steps_inv15 = warmup_steps ** (-1.5)
+        self._init = init
+        self._target = target
+        self._optimizer = optimizer
+        self._t = 0
+        self._last_value = None
 
-    def __call__(self, x):
-        """Applies the linear layer.
+    def initialize(self, trainer):
+        optimizer = self._get_optimizer(trainer)
+        # ensure that _init is set
+        if self._init is None:
+            # self._init = getattr(optimizer, self._attr)
+            self._init = self._d_inv05 * (1. * self._warmup_steps_inv15)
 
-        Args:
-            x (~chainer.Variable): Batch of input vector block. Its shape is
-                (batchsize, in_channels, sentence_length).
+        if self._last_value is not None:  # resuming from a snapshot
+            self._update_value(optimizer, self._last_value)
+        else:
+            self._update_value(optimizer, self._init)
 
-        Returns:
-            ~chainer.Variable: Output of the linear layer. Its shape is
-                (batchsize, out_channels, sentence_length).
+    def __call__(self, trainer):
+        self._t += 1
 
-        """
-        if len(x.shape) < 4:
-            x = F.expand_dims(x, axis=3)
-        y = super(ConvolutionSentence, self).__call__(x)
-        y = F.squeeze(y, axis=3)
-        return y
+        optimizer = self._get_optimizer(trainer)
+        value = self._d_inv05 * \
+            min(self._t ** (-0.5), self._t * self._warmup_steps_inv15)
+        self._update_value(optimizer, value)
+
+    def serialize(self, serializer):
+        self._t = serializer('_t', self._t)
+        self._last_value = serializer('_last_value', self._last_value)
+
+    def _get_optimizer(self, trainer):
+        return self._optimizer or trainer.updater.get_optimizer('main')
+
+    def _update_value(self, optimizer, value):
+        setattr(optimizer, self._attr, value)
+        self._last_value = value
+
+
+class LayerNorm(chainer.Link):
+    def __init__(self, features, eps=1e-6):
+        super(LayerNorm, self).__init__()
+        with self.init_scope():
+            self.a_2 = chainer.Parameter(1, (features))
+            self.b_2 = chainer.Parameter(0, (features))
+            self.eps = eps
+
+    def __call__(self, e):
+        xp = self.xp
+        mean = xp.mean(e.data, -1, keepdims=True)
+        std = xp.std(e.data, -1, keepdims=True)
+        return self.a_2 * (e - mean) / (std + self.eps) + self.b_2
+
+
+class MultiHeadAttention(chainer.Chain):
+
+    """Multi Head Attention Layer for Sentence Blocks
+
+    For batch computation efficiency, dot product to calculate query-key
+    scores is performed all heads together.
+
+    """
+
+    def __init__(self, n_units, h=8, dropout=0.1):
+        super(MultiHeadAttention, self).__init__()
+        assert n_units % h == 0
+        with self.init_scope():
+            self.W_q = L.Linear(n_units, n_units)
+            self.W_k = L.Linear(n_units, n_units)
+            self.W_v = L.Linear(n_units, n_units)
+            self.W_o = L.Linear(n_units, n_units)
+        self.d_k = n_units // h
+        self.h = h
+        self.dropout = dropout
+        self.attn = None
+
+    def __call__(self, q, k, v, mask):
+        xp = self.xp
+        # x dims = batch, len, dims
+        batch = q.shape[0]
+
+        # batch, head, time1/2, d_k)
+        Q = self.W_q(q, n_batch_axes=2).reshape(batch, self.h, -1, self.d_k)
+        K = self.W_k(k, n_batch_axes=2).reshape(batch, self.h, -1, self.d_k)
+        V = self.W_v(v, n_batch_axes=2).reshape(batch, self.h, -1, self.d_k)
+
+        mask = xp.stack([mask] * self.h, axis=1)
+        scores = F.matmul(Q, F.swapaxes(K, -2, -1)) / np.sqrt(self.d_k)
+        scores = F.where(mask, scores, xp.full(scores.shape, MIN_VALUE, 'f'))
+        self.attn = F.softmax(scores, axis=-1)
+
+        p_attn = F.dropout(self.attn, self.dropout)
+        x = F.matmul(p_attn, V)
+        x = F.swapaxes(x, 1, 2).reshape(batch, -1, self.h * self.d_k)
+        return self.W_o(x, n_batch_axes=2)
+
+
+class FeedForwardLayer(chainer.Chain):
+    def __init__(self, n_units):
+        super(FeedForwardLayer, self).__init__()
+        n_inner_units = n_units * 4
+        with self.init_scope():
+            self.W_1 = L.Linear(n_units, n_inner_units,
+                                initialW=linear_init)
+            self.W_2 = L.Linear(n_inner_units, n_units,
+                                initialW=linear_init)
+            self.act = F.relu
+            # self.act = F.leaky_relu
+
+    def __call__(self, e):
+        e = self.W_1(e, n_batch_axes=2)
+        e = self.act(e)
+        e = self.W_2(e, n_batch_axes=2)
+        return e
+
+
+class EncoderLayer(chainer.Chain):
+    def __init__(self, idim, n_units, h=8, dropout=0.1):
+        super(EncoderLayer, self).__init__()
+        with self.init_scope():
+            self.self_attention = MultiHeadAttention(n_units, h, dropout=dropout)
+            self.feed_forward = FeedForwardLayer(n_units)
+            self.ln_1 = LayerNorm(n_units, eps=1e-6)
+            self.ln_2 = LayerNorm(n_units, eps=1e-6)
+        self.dropout = dropout
+
+    def __call__(self, e, xx_mask):
+        e = self.ln_1(e)
+        sub = self.self_attention(e, e, e, xx_mask)
+        e = e + F.dropout(sub, self.dropout)
+
+        e = self.ln_2(e)
+        sub = self.feed_forward(e)
+        e = e + F.dropout(sub, self.dropout)
+        return e
+
+
+class DecoderLayer(chainer.Chain):
+    def __init__(self, n_units, h=8, dropout=0.1):
+        super(DecoderLayer, self).__init__()
+        with self.init_scope():
+            self.self_attention = MultiHeadAttention(n_units, h, dropout=dropout)
+            self.source_attention = MultiHeadAttention(n_units, h, dropout=dropout)
+            self.feed_forward = FeedForwardLayer(n_units)
+            self.ln_1 = LayerNorm(n_units, eps=1e-6)
+            self.ln_2 = LayerNorm(n_units, eps=1e-6)
+            self.ln_3 = LayerNorm(n_units, eps=1e-6)
+        self.dropout = dropout
+
+    def __call__(self, e, s, xy_mask, yy_mask):
+        e = self.ln_1(e)
+        sub = self.self_attention(e, e, e, yy_mask)
+        e = e + F.dropout(sub, self.dropout)
+
+        e = self.ln_2(e)
+        sub = self.source_attention(e, s, s, xy_mask)
+        e = e + F.dropout(sub, self.dropout)
+
+        e = self.ln_3(e)
+        sub = self.feed_forward(e)
+        e = e + F.dropout(sub, self.dropout)
+        return e
+
+    def calculate_attentions(self, e, s, xy_mask, yy_mask):
+        e = self.ln_1(e)
+        sub = self.self_attention(e, e, e, yy_mask)
+        e_self = e + F.dropout(sub, self.dropout)
+
+        e = self.ln_2(e_self)
+        sub = self.source_attention(e, s, s, xy_mask)
+        e_source = e + F.dropout(sub, self.dropout)
+        e = F.stack([e_self, e_source], axis=1)
+        e.to_cpu()
+        return e.data
+
+
+class Encoder(chainer.Chain):
+    def __init__(self, idim, n_layers, n_units, h=8, dropout=0.1):
+        super(Encoder, self).__init__()
+        self.layer_names = []
+        for i in range(n_layers):
+            name = 'l{}'.format(i)
+            layer = EncoderLayer(idim, n_units, h, dropout)
+            self.add_link(name, layer)
+            self.layer_names.append(name)
+
+    def __call__(self, e, x_mask):
+        xp = self.xp
+        mask = (x_mask[:, None, :] >= 0) * (x_mask[:, :, None] >= 0)
+        mask = xp.array(mask)
+        for i in range(len(self.layer_names)):
+            e = self['l{}'.format(i)](e, mask)
+        return e
+
+
+class Decoder(chainer.Chain):
+    def __init__(self, n_layers, n_units, h=8, dropout=0.1):
+        super(Decoder, self).__init__()
+        self.layer_names = []
+        for i in range(n_layers):
+            name = 'l{}'.format(i)
+            layer = DecoderLayer(n_units, h, dropout)
+            self.add_link(name, layer)
+            self.layer_names.append(name)
+
+    def __call__(self, e, source, xy_mask, yy_mask):
+        for i in range(len(self.layer_names)):
+            # logging.info('Input size decoder {}: '.format(name) + str(e.shape))
+            e = self['l{}'.format(i)](e, source, xy_mask, yy_mask)
+        return e
+
+    def calculate_all_attentions(self, e, source, xy_mask, yy_mask):
+        '''Calculate all of attentions
+
+        :return: list of attentions
+        '''
+        e = self.l1.calculate_attentions(e, source, xy_mask, yy_mask)
+        return e
 
 
 class E2E(chainer.Chain):
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
         max_length = 800
+        idim = int(np.ceil(np.ceil(idim / 2) / 2)) * 64
         with self.init_scope():
-            self.embed_y = L.EmbedID(odim, args.eunits, ignore_label=-1,
-                                      initialW=linear_init)
-            self.encoder = Encoder(idim, args.elayers, args.eunits, args.aconv_chans, args.dropout_rate)
-            self.decoder = Decoder(args.dlayers, args.dunits, args.aconv_chans, args.dropout_rate)
-
+            self.conv1 = L.Convolution2D(1, 64, 3, stride=2, pad=1,
+                                         initialW=linear_init, initial_bias=zero_init)
+            self.conv2 = L.Convolution2D(64, 64, 3, stride=2, pad=1,
+                                         initialW=linear_init, initial_bias=zero_init)
+            self.feat_reduce = L.Linear(idim, args.adim, initialW=linear_init,
+                                        initial_bias=zero_init)
+            self.encoder = Encoder(idim, args.elayers, args.adim, args.aheads, args.dropout_rate)
+            self.decoder = Decoder(args.dlayers, args.adim, args.aheads, args.dropout_rate)
+            self.embed_y = L.EmbedID(odim, args.adim, ignore_label=-1,
+                                     initialW=linear_init)
             if False:
-                self.embed_pos = L.EmbedID(max_length, args.eunits, ignore_label=-1)
+                self.embed_pos = L.EmbedID(max_length, args.adim, ignore_label=-1)
 
         self.n_target_vocab = len(args.char_list)
-        # self.dropout = dropout
         # self.use_label_smoothing = use_label_smoothing
         self.use_label_smoothing = False
         self.char_list = args.char_list
@@ -198,8 +349,8 @@ class E2E(chainer.Chain):
             logging.info("Use label smoothing ")
             self.use_label_smoothing = True
             # labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
-        self.initialize_position_encoding(args.maxlen_in, args.eunits)
-        self.scale_emb = args.eunits ** 0.5
+        self.initialize_position_encoding(max_length, args.adim)
+        self.scale_emb = args.adim ** 0.5
         self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = [0]
@@ -207,9 +358,13 @@ class E2E(chainer.Chain):
         self.verbose = args.verbose
         self.max_length = max_length
 
+        # activation function
+        # self.act = F.leaky_relu
+        self.act = F.relu
+
     def initialize_position_encoding(self, length, n_units):
         xp = self.xp
-        """
+
         # Implementation described in the paper
         start = 1  # index starts from 1 or 0
         posi_block = xp.arange(
@@ -239,17 +394,22 @@ class E2E(chainer.Chain):
             [xp.sin(scaled_time), xp.cos(scaled_time)], axis=1)
         signal = xp.reshape(signal, [1, length, channels])
         self.position_encoding_block = xp.transpose(signal, (0, 2, 1))
+        """
 
-    def make_input_embedding(self, embed, block):
-        batch, length = block.shape
-        emb_block = sentence_block_embed(embed, block) * self.scale_emb
+    def make_input_embedding(self, block, embed=None, do_x=False):
+        if not do_x:
+            batch, length = block.shape
+            emb_block = sentence_block_embed(embed, block) * self.scale_emb
+        else:
+            batch, dims, length = block.shape
+            emb_block = block * self.scale_emb
         emb_block += self.xp.array(self.position_encoding_block[:, :, :length])
         if hasattr(self, 'embed_pos'):
             emb_block += sentence_block_embed(
                 self.embed_pos,
                 self.xp.broadcast_to(
-                    self.xp.arange(length).astype('i')[None, :], block.shape))
-        # emb_block = F.dropout(emb_block, self.dropout)
+                    self.xp.arange(length).astype('i')[None, :], [batch, length]))
+        emb_block = F.dropout(emb_block, self.dropout)
         return emb_block
 
     def make_attention_mask(self, source_block, target_block):
@@ -343,38 +503,51 @@ class E2E(chainer.Chain):
         xp = self.xp
         ilens = np.array([int(x) for x in ilens])
         logging.info('ilens: ' + str(ilens))
+        # change ilens accordingly
+        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
+        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
 
         if not predict:
             eos = xp.array([self.eos], 'i')
+            sos = xp.array([self.sos], 'i')
             ys_out = [F.concat([y, eos], axis=0) for y in ys]
-
-            xs = F.pad_sequence(xs, padding=-1)
             ys_out = F.pad_sequence(ys_out, padding=-1)
-        # xs: utt x dim x frame
-        sos = xp.array([self.sos], 'i')
-        ys = [F.concat([sos, y], axis=0) for y in ys]
-        ys = F.pad_sequence(ys, padding=self.eos).data
-        ey_block = self.make_input_embedding(self.embed_y, ys)
+            ys = [F.concat([sos, y], axis=0) for y in ys]
+            ys = F.pad_sequence(ys, padding=self.eos).data
+            xs = F.pad_sequence(xs, padding=-1)
+            xs = F.pad(xs, ((0, 0), (0, 1), (0, 0)),
+                       'constant', constant_values=-1).data
 
-        xs = F.swapaxes(xs, 1, 2).data
+        ey_block = self.make_input_embedding(ys, self.embed_y)
+        ey_block = F.swapaxes(ey_block, 1, 2)
 
         yy_mask = self.make_attention_mask(ys, ys)
         yy_mask *= self.make_history_mask(ys)
 
         # Encode Sources
-        z_blocks, ilens = self.encoder(xs, ilens)
-        # [(batch, n_units, x_length), ...]
-        batch, x_dim, x_length = z_blocks.shape
+        # xs: utt x frame x dim
+        logging.info('Init size: ' + str(xs.shape))
+        xs = F.expand_dims(xs, axis=1)
+        xs = self.act(self.conv1(xs))
+        xs = self.act(self.conv2(xs))
+        x_blocks = self.feat_reduce(F.swapaxes(xs, 1, 2), n_batch_axes=2)
+        batch, length, _ = x_blocks.shape
+        x_mask = np.ones([batch, length])
+        for j in range(batch):
+            x_mask[j, ilens[j]:] = -1
 
-        x_mask = np.ones([batch, x_length]) 
-        for i in range(batch):
-            x_mask[i, ilens[i]:] = -1
+        # x_blocks: utt x frame // 4 x enc_dim
+        if hasattr(self, 'embed_pos'):
+            x_blocks = self.make_input_embedding(x_blocks, do_x=True)
+
+        z_blocks = self.encoder(x_blocks, x_mask)
         xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
 
         if calculate_attentions:
             return self.decoder.calculate_all_attentions(ey_block, z_blocks, xy_mask, yy_mask)
 
         h_block = self.decoder(ey_block, z_blocks, xy_mask, yy_mask)
+        h_block = F.swapaxes(h_block, 1, 2)
         if not predict:
             loss_att, acc = self.output_and_loss(h_block, ys_out)
             # return self.output_and_loss(h_block, y_out_block)
@@ -500,401 +673,3 @@ class E2E(chainer.Chain):
         att_ws = self(xs, ilens, ys, calculate_attentions=True)
 
         return att_ws
-
-
-class MultiHeadAttention(chainer.Chain):
-
-    """Multi Head Attention Layer for Sentence Blocks
-
-    For batch computation efficiency, dot product to calculate query-key
-    scores is performed all heads together.
-
-    """
-
-    def __init__(self, n_units, h=8, dropout=0.1, self_attention=True, idim=0):
-        super(MultiHeadAttention, self).__init__()
-        idim = n_units if idim == 0 else idim
-
-        with self.init_scope():
-            if self_attention:
-                self.W_QKV = ConvolutionSentence(
-                    idim, n_units * 3, nobias=True,
-                    initialW=linear_init)
-            else:
-                self.W_Q = ConvolutionSentence(
-                    idim, n_units, nobias=True,
-                    initialW=linear_init)
-                self.W_KV = ConvolutionSentence(
-                    idim, n_units * 2, nobias=True,
-                    initialW=linear_init)
-            self.finishing_linear_layer = ConvolutionSentence(
-                n_units, n_units, nobias=True,
-                initialW=linear_init)
-        self.h = h
-        self.scale_score = 1. / (n_units // h) ** 0.5
-        self.dropout = dropout
-        self.is_self_attention = self_attention
-        self.n_units = n_units
-        self.idim = idim
-
-    def __call__(self, x, z=None, mask=None):
-        xp = self.xp
-        h = self.h
-
-        if self.is_self_attention:
-            Q, K, V = F.split_axis(self.W_QKV(x), 3, axis=1)
-        else:
-            Q = self.W_Q(x)
-            K, V = F.split_axis(self.W_KV(z), 2, axis=1)
-        batch, n_units, n_querys = Q.shape
-        _, _, n_keys = K.shape
-
-        # Calculate Attention Scores with Mask for Zero-padded Areas
-        # Perform Multi-head Attention using pseudo batching
-        # all together at once for efficiency
-
-        batch_Q = F.concat(F.split_axis(Q, h, axis=1), axis=0)
-        batch_K = F.concat(F.split_axis(K, h, axis=1), axis=0)
-        batch_V = F.concat(F.split_axis(V, h, axis=1), axis=0)
-        assert(batch_Q.shape == (batch * h, n_units // h, n_querys))
-        assert(batch_K.shape == (batch * h, n_units // h, n_keys))
-        assert(batch_V.shape == (batch * h, n_units // h, n_keys))
-        mask = xp.concatenate([mask] * h, axis=0)
-        batch_A = F.batch_matmul(batch_Q, batch_K, transa=True) \
-            * self.scale_score
-        batch_A = F.where(mask, batch_A, xp.full(batch_A.shape, -np.inf, 'f'))
-        batch_A = F.softmax(batch_A, axis=2)
-        batch_A = F.where(
-            xp.isnan(batch_A.data), xp.zeros(batch_A.shape, 'f'), batch_A)
-        assert(batch_A.shape == (batch * h, n_querys, n_keys))
-
-        # Calculate Weighted Sum
-        batch_A, batch_V = F.broadcast(
-            batch_A[:, None], batch_V[:, :, None])
-        batch_C = F.sum(batch_A * batch_V, axis=3)
-        assert(batch_C.shape == (batch * h, n_units // h, n_querys))
-        C = F.concat(F.split_axis(batch_C, h, axis=0), axis=1)
-        assert(C.shape == (batch, n_units, n_querys))
-        C = self.finishing_linear_layer(C)
-        return C
-
-
-# FIXME: WIP
-class MultiHeadLocationAttention(chainer.Chain):
-
-    """Multi Head Location based Attention Layer for Sentence Blocks
-
-    For batch computation efficiency, dot product to calculate query-key
-    scores is performed all heads together.
-
-    """
-
-    def __init__(self, n_units, h=8, dropout=0.1, self_attention=True, idim=0, aconv_filts=100):
-        super(MultiHeadAttention, self).__init__()
-        idim = n_units if idim == 0 else idim
-
-        with self.init_scope():
-            if self_attention:
-                self.W_QKV = ConvolutionSentence(
-                    idim, n_units * 3, nobias=True,
-                    initialW=linear_init)
-            else:
-                self.W_Q = ConvolutionSentence(
-                    idim, n_units, nobias=True,
-                    initialW=linear_init)
-                self.W_KV = ConvolutionSentence(
-                    idim, n_units * 2, nobias=True,
-                    initialW=linear_init)
-            self.loc_conv = L.Convolution2D(h, n_units, ksize=(1, 2 * aconv_filts + 1), pad=(0, aconv_filts))
-            self.finishing_linear_layer = ConvolutionSentence(
-                n_units, n_units, nobias=True,
-                initialW=linear_init)
-        self.h = h
-        self.scale_score = 1. / (n_units // h) ** 0.5
-        self.dropout = dropout
-        self.is_self_attention = self_attention
-        self.n_units = n_units
-        self.idim = idim
-        self.prev_att = None
-
-    def __call__(self, x, z=None, mask=None):
-        xp = self.xp
-        h = self.h
-
-        if self.is_self_attention:
-            Q, K, V = F.split_axis(self.W_QKV(x), 3, axis=1)
-        else:
-            Q = self.W_Q(x)
-            K, V = F.split_axis(self.W_KV(z), 2, axis=1)
-        batch, n_units, n_querys = Q.shape
-        _, _, n_keys = K.shape
-
-        # Calculate Attention Scores with Mask for Zero-padded Areas
-        # Perform Multi-head Attention using pseudo batching
-        # all together at once for efficiency
-
-        batch_Q = F.concat(F.split_axis(Q, h, axis=1), axis=0)
-        batch_K = F.concat(F.split_axis(K, h, axis=1), axis=0)
-        batch_V = F.concat(F.split_axis(V, h, axis=1), axis=0)
-        assert(batch_Q.shape == (batch * h, n_units // h, n_querys))
-        assert(batch_K.shape == (batch * h, n_units // h, n_keys))
-        assert(batch_V.shape == (batch * h, n_units // h, n_keys))
-        mask = xp.concatenate([mask] * h, axis=0)
-        batch_A = F.batch_matmul(batch_Q, batch_K, transa=True) \
-            * self.scale_score
-        batch_A = F.where(mask, batch_A, xp.full(batch_A.shape, -np.inf, 'f'))
-        batch_A = F.softmax(batch_A, axis=2)
-        batch_A = F.where(
-            xp.isnan(batch_A.data), xp.zeros(batch_A.shape, 'f'), batch_A)
-        assert(batch_A.shape == (batch * h, n_querys, n_keys))
-
-        # Calculate Weighted Sum
-        batch_A, batch_V = F.broadcast(
-            batch_A[:, None], batch_V[:, :, None])
-        batch_C = F.sum(batch_A * batch_V, axis=3)
-        assert(batch_C.shape == (batch * h, n_units // h, n_querys))
-        C = F.concat(F.split_axis(batch_C, h, axis=0), axis=1)
-        assert(C.shape == (batch, n_units, n_querys))
-        C = self.finishing_linear_layer(C)
-        return C
-
-
-class FeedForwardLayer(chainer.Chain):
-    def __init__(self, n_units):
-        super(FeedForwardLayer, self).__init__()
-        n_inner_units = n_units * 4
-        with self.init_scope():
-            self.W_1 = ConvolutionSentence(n_units, n_inner_units,
-                                           initialW=linear_init)
-            self.W_2 = ConvolutionSentence(n_inner_units, n_units,
-                                           initialW=linear_init)
-            # self.act = F.relu
-            self.act = F.leaky_relu
-
-    def __call__(self, e):
-        e = self.W_1(e)
-        e = self.act(e)
-        e = self.W_2(e)
-        return e
-
-
-class EncoderLayer(chainer.Chain):
-    def __init__(self, idim, n_units, h=8, dropout=0.1):
-        super(EncoderLayer, self).__init__()
-        with self.init_scope():
-            if idim != n_units:
-                self.input = ConvolutionSentence(idim, n_units)  # Reshape the input to n_units
-            else: 
-                self.input = None
-            self.self_attention = MultiHeadAttention(n_units, h)
-            self.feed_forward = FeedForwardLayer(n_units)
-            self.ln_1 = LayerNormalizationSentence(n_units, eps=1e-6)
-            self.ln_2 = LayerNormalizationSentence(n_units, eps=1e-6)
-        self.dropout = dropout
-
-    def __call__(self, e, xx_mask):
-        if self.input is not None:
-            e = self.input(e)
-        sub = self.self_attention(e, e, xx_mask)
-        e = e + F.dropout(sub, self.dropout)
-        e = self.ln_1(e)
-
-        sub = self.feed_forward(e)
-        e = e + F.dropout(sub, self.dropout)
-        e = self.ln_2(e)
-        return e
-
-
-class DecoderLayer(chainer.Chain):
-    def __init__(self, n_units, h=8, dropout=0.1):
-        super(DecoderLayer, self).__init__()
-        with self.init_scope():
-            self.self_attention = MultiHeadAttention(n_units, h)
-            self.source_attention = MultiHeadAttention(
-                n_units, h, self_attention=False)
-            self.feed_forward = FeedForwardLayer(n_units)
-            self.ln_1 = LayerNormalizationSentence(n_units, eps=1e-6)
-            self.ln_2 = LayerNormalizationSentence(n_units, eps=1e-6)
-            self.ln_3 = LayerNormalizationSentence(n_units, eps=1e-6)
-        self.dropout = dropout
-
-    def __call__(self, e, s, xy_mask, yy_mask):
-        sub = self.self_attention(e, e, yy_mask)
-        e = e + F.dropout(sub, self.dropout)
-        e = self.ln_1(e)
-
-        sub = self.source_attention(e, s, xy_mask)
-        e = e + F.dropout(sub, self.dropout)
-        e = self.ln_2(e)
-
-        sub = self.feed_forward(e)
-        e = e + F.dropout(sub, self.dropout)
-        e = self.ln_3(e)
-        return e
-
-    def calculate_attentions(self, e, s, xy_mask, yy_mask):
-        sub = self.self_attention(e, e, yy_mask)
-        e = e + sub
-        e_self = self.ln_1(e)
-
-        sub = self.source_attention(e_self, s, xy_mask)
-        e = e_self + sub
-        e_source = self.ln_2(e)
-        e = F.stack([e_self, e_source], axis=1)
-        e.to_cpu()
-        return e.data
-
-
-class Encoder(chainer.Chain):
-    def __init__(self, idim, n_layers, n_units, h=8, dropout=0.1):
-        super(Encoder, self).__init__()
-        with self.init_scope():
-            self.conv1_1 = L.Convolution2D(1, 32, 3, stride=1, pad=1)
-            self.conv1_2 = L.Convolution2D(32, 32, 3, stride=1, pad=1)
-            self.conv2_1 = L.Convolution2D(32, 64, 3, stride=1, pad=1)
-            self.conv2_2 = L.Convolution2D(64, 64, 3, stride=1, pad=1)
-        idim = int(np.ceil(np.ceil(idim / 2) / 2)) * 64
-        # self.idim = idim
-        self.layer_names = []
-        for i in range(1, n_layers + 1):
-            name = 'l{}'.format(i)
-            layer = EncoderLayer(idim, n_units, h, dropout)
-            self.add_link(name, layer)
-            self.layer_names.append(name)
-            idim = n_units
-
-    def __call__(self, e, ilens):
-        xp = self.xp
-        logging.info('Input size convnet: ' + str(e.shape))
-        e = F.swapaxes(F.expand_dims(e, axis=3), 1, 3)
-        e = F.relu(self.conv1_1(e))
-        e = F.relu(self.conv1_2(e))
-        e = F.max_pooling_2d(e, 2, stride=2)
-
-        e = F.relu(self.conv2_1(e))
-        e = F.relu(self.conv2_2(e))
-        e = F.max_pooling_2d(e, 2, stride=2)
-        bs, ch, ln, dim = e.shape
-        e = F.reshape(F.swapaxes(e, 2, 3), [bs, ch * dim, ln])  # F.squeeze(, axis=3)
-        # change ilens accordingly
-        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
-        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
-
-        batch, _, x_length = e.shape
-
-        x_mask = np.ones([batch, x_length])
-        for j in range(batch):
-            x_mask[j, ilens[j]:] = -1
-
-        mask = (x_mask[:, None, :] >= 0) * (x_mask[:, :, None] >= 0)
-        mask = xp.array(mask)
-        for i in range(len(self.layer_names)):
-            # logging.info('Input size encoder {}: '.format(name) + str(e.shape))
-
-            e = self['l{}'.format(i + 1)](e, mask)
-        return e, ilens
-
-
-class Decoder(chainer.Chain):
-    def __init__(self, n_layers, n_units, h=8, dropout=0.1):
-        super(Decoder, self).__init__()
-        self.layer_names = []
-        for i in range(1, n_layers + 1):
-            name = 'l{}'.format(i)
-            layer = DecoderLayer(n_units, h, dropout)
-            self.add_link(name, layer)
-            self.layer_names.append(name)
-
-    def __call__(self, e, source, xy_mask, yy_mask):
-        for i in range(len(self.layer_names)):
-            # logging.info('Input size decoder {}: '.format(name) + str(e.shape))
-            e = self['l{}'.format(i + 1)](e, source, xy_mask, yy_mask)
-        return e
-
-    def calculate_all_attentions(self, e, source, xy_mask, yy_mask):
-        '''Calculate all of attentions
-
-        :return: list of attentions
-        '''
-        e = self.l1.calculate_attentions(e, source, xy_mask, yy_mask)
-        return e
-
-
-class VaswaniRule(extension.Extension):
-
-    """Trainer extension to shift an optimizer attribute magically by Vaswani.
-
-    Args:
-        attr (str): Name of the attribute to shift.
-        rate (float): Rate of the exponential shift. This value is multiplied
-            to the attribute at each call.
-        init (float): Initial value of the attribute. If it is ``None``, the
-            extension extracts the attribute at the first call and uses it as
-            the initial value.
-        target (float): Target value of the attribute. If the attribute reaches
-            this value, the shift stops.
-        optimizer (~chainer.Optimizer): Target optimizer to adjust the
-            attribute. If it is ``None``, the main optimizer of the updater is
-            used.
-
-    """
-
-    def __init__(self, attr, d, warmup_steps=4000,
-                 init=None, target=None, optimizer=None,
-                 scale=1.):
-        self._attr = attr
-        self._d_inv05 = d ** (-0.5) * scale
-        self._warmup_steps_inv15 = warmup_steps ** (-1.5)
-        self._init = init
-        self._target = target
-        self._optimizer = optimizer
-        self._t = 0
-        self._last_value = None
-
-    def initialize(self, trainer):
-        optimizer = self._get_optimizer(trainer)
-        # ensure that _init is set
-        if self._init is None:
-            # self._init = getattr(optimizer, self._attr)
-            self._init = self._d_inv05 * (1. * self._warmup_steps_inv15)
-
-        if self._last_value is not None:  # resuming from a snapshot
-            self._update_value(optimizer, self._last_value)
-        else:
-            self._update_value(optimizer, self._init)
-
-    def __call__(self, trainer):
-        self._t += 1
-
-        optimizer = self._get_optimizer(trainer)
-        value = self._d_inv05 * \
-            min(self._t ** (-0.5), self._t * self._warmup_steps_inv15)
-        self._update_value(optimizer, value)
-
-    def serialize(self, serializer):
-        self._t = serializer('_t', self._t)
-        self._last_value = serializer('_last_value', self._last_value)
-
-    def _get_optimizer(self, trainer):
-        return self._optimizer or trainer.updater.get_optimizer('main')
-
-    def _update_value(self, optimizer, value):
-        setattr(optimizer, self._attr, value)
-        self._last_value = value
-
-
-def get_topk(xp, x, k=5, axis=1):
-    ids_list = []
-    scores_list = []
-    # xp = cuda.get_array_module(x)
-    for i in range(k):
-        ids = xp.argmax(x, axis=axis).astype('i')
-        if axis == 0:
-            scores = x[ids]
-            x[ids] = - float('inf')
-        else:
-            scores = x[xp.arange(ids.shape[0]), ids]
-            x[xp.arange(ids.shape[0]), ids] = - float('inf')
-        ids_list.append(ids)
-        scores_list.append(scores)
-    return ids_list, scores_list

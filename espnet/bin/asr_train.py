@@ -146,6 +146,8 @@ def main():
                         choices=['adadelta', 'adam'],
                         help='Optimizer')
     parser.add_argument('--eps', default=1e-8, type=float,
+                        help='Exponential decay rate for optimizer')
+    parser.add_argument('--rho', default=0.95, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
                         help='Decaying ratio of epsilon')
@@ -156,7 +158,7 @@ def main():
                         help='Threshold to stop iteration')
     parser.add_argument('--epochs', '-e', default=30, type=int,
                         help='Number of maximum epochs')
-    parser.add_argument('--grad-clip', default=5, type=float,
+    parser.add_argument('--grad-clip', default=10, type=float,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
