@@ -377,9 +377,9 @@ def train(args):
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         if hasattr(model, "module"):
-            att_vis_fn = model.module.predictor.calculate_all_attentions
+            att_vis_fn = model.module.calculate_all_attentions
         else:
-            att_vis_fn = model.predictor.calculate_all_attentions
+            att_vis_fn = model.calculate_all_attentions
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=gpu_id), trigger=(1, 'epoch'))
