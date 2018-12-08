@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstm     # encoder architecture type
 elayers=3
@@ -30,7 +30,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 dlayers=2
 dunits=1024
 # attention related
-atype=dot
+atype="dot"
 adim=1024
 aconv_chans=10
 aconv_filts=100
@@ -81,7 +81,7 @@ set -o pipefail
 train_set=train_de
 train_dev=dev2010_de
 recog_set="dev2010_de tst2010_de tst2013_de tst2014_de tst2015_de"
-eval_set=tst2018_de
+#eval_set=tst2018_de
 
 
 if [ ${stage} -le -1 ]; then

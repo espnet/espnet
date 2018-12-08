@@ -6,7 +6,7 @@
 . ./path.sh
 . ./cmd.sh
 
-# genearl configuration
+# general configuration
 backend=pytorch
 stage=-1
 ngpu=1       # number of gpu in training
@@ -94,7 +94,7 @@ set -o pipefail
 
 train_set=train_no_dev
 train_dev=train_dev
-eval_set=eval
+eval_set="eval"
 
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"

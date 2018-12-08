@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
 elayers=6
@@ -107,38 +107,33 @@ if [ ${stage} -le 0 ]; then
 			      ${audio_dir}/train ${json_dir}/train data/train_${mictype}
     done
     #eval#for dset in dev eval; do
-    for dset in dev; do
-	for mictype in worn; do
-	    local/prepare_data.sh --mictype ${mictype} \
-				  ${audio_dir}/${dset} ${json_dir}/${dset} \
-				  data/${dset}_${mictype}
-	done
-    done
+    dset=dev
+    mictype=worn
+    local/prepare_data.sh --mictype ${mictype} \
+		  ${audio_dir}/${dset} ${json_dir}/${dset} \
+		  data/${dset}_${mictype}
     enhandir=enhan
     #eval#for dset in dev eval; do
-    for dset in dev; do
-	for mictype in u01 u02 u03 u04 u05 u06; do
-	    local/run_beamformit.sh --cmd "$train_cmd" \
-				    ${audio_dir}/${dset} \
-				    ${enhandir}/${dset}_${enhancement}_${mictype} \
-				    ${mictype} &
-	done
+    dset=dev
+    for mictype in u01 u02 u03 u04 u05 u06; do
+	local/run_beamformit.sh --cmd "$train_cmd" \
+			    ${audio_dir}/${dset} \
+			    ${enhandir}/${dset}_${enhancement}_${mictype} \
+			    ${mictype} &
     done
     wait
     #eval#for dset in dev eval; do
-    for dset in dev; do
-	local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
-			      ${json_dir}/${dset} data/${dset}_${enhancement}_ref
-    done
+    dset=dev
+    local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
+			  ${json_dir}/${dset} data/${dset}_${enhancement}_ref
 
     # only use left channel for worn mic recognition
     # you can use both left and right channels for training
     #eval#for dset in train dev eval; do
-    for dset in dev; do
-	utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
-	grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
-	utils/fix_data_dir.sh data/${dset}_worn
-    done
+    dset=dev
+    utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
+    grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
+    utils/fix_data_dir.sh data/${dset}_worn
 
     # combine mix array and worn mics
     # randomly extract first 100k utterances from all mics

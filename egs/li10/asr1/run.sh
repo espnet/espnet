@@ -23,7 +23,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp     # encoder architecture type
 elayers=8
@@ -97,9 +97,9 @@ if [ ${stage} -le 0 ]; then
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval3 data/et_${lang_code}_3
     # 1) change wide to narrow chars
     # 2) lower to upper chars
-    for x in data/*_${lang_code}*; do
+    for x in data/*_"${lang_code}"*; do
         utils/copy_data_dir.sh ${x} ${x}_org
-        cat ${x}_org/text | nkf -Z |\
+        < ${x}_org/text nkf -Z |\
             awk '{for(i=2;i<=NF;++i){$i = toupper($i)} print}' > ${x}/text
         rm -fr ${x}_org
     done

@@ -20,7 +20,7 @@ seed=1
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp     # encoder architecture type
 elayers=8
@@ -104,8 +104,8 @@ set -e
 set -u
 set -o pipefail
 
-base_mic=$(echo ${mic} | sed 's/[0-9]//g') # sdm, ihm or mdm
-nmics=$(echo ${mic} | sed 's/[a-z]//g') # e.g. 8 for mdm8.
+base_mic=${mic//[0-9]/} # sdm, ihm or mdm
+nmics=${mic//[a-z]/} # e.g. 8 for mdm8.
 
 # Path where AMI gets downloaded (or where locally available):
 AMI_DIR=$PWD/wav_db # Default,
@@ -244,9 +244,9 @@ if [[ ${stage} -le 3 && ${use_lm} == true ]]; then
 	lmdatadir=data/local/wordlm_train
 	lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
 	mkdir -p ${lmdatadir}
-        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train.txt
-        cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
-        cat data/${train_test}/text | cut -f 2- -d" " > ${lmdatadir}/test.txt
+        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train.txt
+        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
+        cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
 	lmdatadir=data/local/lm_train
