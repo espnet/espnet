@@ -61,6 +61,9 @@ install:
   - cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
   - pip install . && cd ..
   - export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`pwd`/chainer_ctc/ext/warp-ctc/build
+  # install bats
+  - git clone https://github.com/sstephenson/bats.git
+  - export PATH=$(pwd)/bats/bin:$PATH
 
 
 script:
@@ -69,6 +72,7 @@ script:
   - autopep8 -r espnet test --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
   - pytest
+  - bats test_utils
   - travis-sphinx build --source=doc --nowarn
 
 sudo: false
