@@ -224,7 +224,7 @@ if [ "${stage}" -le 3 ]; then
     if [ "${ngpu}" -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
     fi
-    "${cuda_cmd}"  --gpu "${ngpu}" "${lmexpdir}/train.log" \
+    ${cuda_cmd}  --gpu "${ngpu}" "${lmexpdir}/train.log" \
         lm_train.py \
         --ngpu "${ngpu}" \
         --backend "${backend}" \
@@ -260,7 +260,7 @@ mkdir -p "${expdir}"
 if [ "${stage}" -le 4 ]; then
     echo "stage 4: Network Training"
 
-    "${cuda_cmd}"  --gpu "${ngpu}" "${expdir}/train.log" \
+    ${cuda_cmd}  --gpu "${ngpu}" "${expdir}/train.log" \
         asr_train.py \
         --ngpu "${ngpu}" \
         --backend "${backend}" \
@@ -321,7 +321,7 @@ if [ "${stage}" -le 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        "${decode_cmd}" JOB=1:"${nj}" "${expdir}/${decode_dir}/log/"decode.JOB.log \
+        ${decode_cmd} JOB=1:"${nj}" "${expdir}/${decode_dir}/log/"decode.JOB.log \
             asr_recog.py \
             --ngpu "${ngpu}" \
             --backend "${backend}" \
