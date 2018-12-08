@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp # encoder architecture type
 elayers=6
@@ -121,7 +121,7 @@ if [ ${stage} -le 1 ]; then
     done
 
     utils/subset_data_dir.sh --first data/train 4000 data/${train_dev} # 5hr 6min
-    n=$[`cat data/train/segments | wc -l` - 4000]
+    n=$(($(wc -l < data/train/segments) - 4000))
     utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
     utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set} # 286hr
 

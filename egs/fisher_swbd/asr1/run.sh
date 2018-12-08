@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp # encoder architecture type
 elayers=8
@@ -149,7 +149,7 @@ if [ ${stage} -le 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    split_dir=`echo $PWD | awk -F "/" '{print $(NF-1) "/" $NF}'`
+    split_dir=$(echo $PWD | awk -F "/" '{print $(NF-1) "/" $NF}')
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
         /export/b{10,11,12,13}/${USER}/espnet-data/egs/${split_dir}/dump/${train_set}/delta${do_delta}/storage \

@@ -20,7 +20,7 @@ seed=1
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
 elayers=6
@@ -110,7 +110,7 @@ if [ ${stage} -le 0 ]; then
   utils/fix_data_dir.sh data/train
 
   # For generating the dev set. Use provided utterance list otherwise
-  # num_dev=$(cat data/eval/segments | wc -l)
+  # num_dev=$(wc -l < data/eval/segments)
   # ./utils/subset_data_dir.sh data/train ${num_dev} data/dev
 
   ./utils/subset_data_dir.sh --utt-list ${dev_list} data/train data/dev

@@ -222,10 +222,10 @@ if [ ${stage} -le 3 ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
+        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-                | grep -v "<" | tr [a-z] [A-Z] > ${lmdatadir}/train_others.txt
-        cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+                | grep -v "<" | tr "[:lower:]" "[:upper:]" > ${lmdatadir}/train_others.txt
+        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
@@ -235,7 +235,7 @@ if [ ${stage} -le 3 ]; then
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
             | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-            | grep -v "<" | tr [a-z] [A-Z] \
+            | grep -v "<" | tr "[:lower:]" "[:upper:]" \
             | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
@@ -264,7 +264,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${sampprob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
