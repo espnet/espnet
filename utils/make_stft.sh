@@ -13,7 +13,7 @@ write_utt2num_frames=true
 cmd=run.pl
 # End configuration section.
 
-echo "$0 $@"  # Print the command line for logging
+echo "$0 $*"  # Print the command line for logging
 
 . parse_options.sh || exit 1;
 
@@ -40,10 +40,10 @@ else
 fi
 
 # make $fbankdir an absolute pathname.
-fbankdir=`perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' $fbankdir ${PWD}`
+fbankdir=$(perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' $fbankdir ${PWD})
 
 # use "name" as part of name of the archive.
-name=`basename $data`
+name=$(basename $data)
 
 mkdir -p $fbankdir || exit 1;
 mkdir -p $logdir || exit 1;
@@ -89,8 +89,8 @@ fi
 
 rm $logdir/wav.*.scp 2>/dev/null
 
-nf=`cat $data/feats.scp | wc -l`
-nu=`cat $data/wav.scp | wc -l`
+nf=$(wc -l < $data/feats.scp)
+nu=$(wc -l < $data/wav.scp)
 if [ $nf -ne $nu ]; then
     echo "It seems not all of the feature files were successfully ($nf != $nu);"
     echo "consider using utils/fix_data_dir.sh $data"
