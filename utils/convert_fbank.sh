@@ -16,7 +16,7 @@ iters=1000
 cmd=run.pl
 # End configuration section.
 
-echo "$0 $@"  # Print the command line for logging
+echo "$0 $*"  # Print the command line for logging
 
 . parse_options.sh || exit 1;
 
@@ -43,7 +43,7 @@ else
 fi
 
 # use "name" as part of name of the archive.
-name=`basename $data`
+name=$(basename $data)
 
 mkdir -p $wavdir || exit 1;
 mkdir -p $logdir || exit 1;

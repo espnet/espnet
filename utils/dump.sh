@@ -27,7 +27,7 @@ fi
 mkdir -p $logdir
 mkdir -p $dumpdir
 
-dumpdir=`perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' ${dumpdir} ${PWD}`
+dumpdir=$(perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' ${dumpdir} ${PWD})
 
 for n in $(seq $nj); do
     # the next command does nothing unless $dumpdir/storage/ exists, see

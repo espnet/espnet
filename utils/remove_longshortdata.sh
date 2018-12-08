@@ -24,8 +24,7 @@ mkdir -p $odir/tmp
 
 echo "remove utterances having more than $maxframes or less than $minframes frames"
 utils/data/get_utt2num_frames.sh ${sdir}
-cat ${sdir}/utt2num_frames \
-    | awk -v maxframes="$maxframes" '{ if ($2 < maxframes) print }' \
+< ${sdir}/utt2num_frames  awk -v maxframes="$maxframes" '{ if ($2 < maxframes) print }' \
     | awk -v minframes="$minframes" '{ if ($2 > minframes) print }' \
     | awk '{print $1}' > $odir/tmp/reclist1
 
@@ -49,6 +48,6 @@ comm -12 <(sort $odir/tmp/reclist1) <(sort $odir/tmp/reclist2) > $odir/tmp/recli
 reduce_data_dir.sh $sdir $odir/tmp/reclist $odir
 utils/fix_data_dir.sh $odir
 
-oldnum=`wc -l $sdir/feats.scp | awk '{print $1}'`
-newnum=`wc -l $odir/feats.scp | awk '{print $1}'`
+oldnum=$(wc -l $sdir/feats.scp | awk '{print $1}')
+newnum=$(wc -l $odir/feats.scp | awk '{print $1}')
 echo "change from $oldnum to $newnum"

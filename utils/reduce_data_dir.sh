@@ -37,8 +37,8 @@ function do_filtering {
 		[ -f $srcdir/stm ] && utils/filter_scp.pl $destdir/reco < $srcdir/stm > $destdir/stm
 		rm $destdir/reco
 	fi
-	srcutts=`cat $srcdir/utt2spk | wc -l`
-	destutts=`cat $destdir/utt2spk | wc -l`
+	srcutts=$(wc -l < $srcdir/utt2spk)
+	destutts=$(wc -l < $destdir/utt2spk)
 	echo "Reduced #utt from $srcutts to $destutts"
 }
 
