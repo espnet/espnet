@@ -2,7 +2,7 @@
 
 setup() {
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
-    tmpdir=$(mktemp -d testXXX)
+    tmpdir=$(mktemp -d testXXXXXX)
     python << EOF
 # coding: UTF-8
 import json
