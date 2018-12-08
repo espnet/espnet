@@ -47,18 +47,18 @@ for n in $(seq "${nj}"); do
     split_scps="${split_scps} ${logdir}/feats.${n}.scp"
 done
 
-utils/split_scp.pl "${scp}" "${split_scps}" || exit 1;
+utils/split_scp.pl "${scp}" ${split_scps} || exit 1;
 
 # dump features
 if "${do_delta}";then
-    "${cmd}" JOB=1:"${nj}" "${logdir}"/dump_feature.JOB.log \
+    ${cmd} JOB=1:"${nj}" "${logdir}"/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true "${cvmnark}" scp:"${logdir}"/feats.JOB.scp ark:- \| \
         add-deltas ark:- ark:- \| \
         copy-feats --compress="${compress}" --compression-method=2 "${write_num_frames_opt}" \
             ark:- ark,scp:"${dumpdir}"/feats.JOB.ark,"${dumpdir}"/feats.JOB.scp \
         || exit 1
 else
-    "${cmd}" JOB=1:"${nj}" "${logdir}"/dump_feature.JOB.log \
+    ${cmd} JOB=1:"${nj}" "${logdir}"/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true "${cvmnark}" scp:"${logdir}"/feats.JOB.scp ark:- \| \
         copy-feats --compress="${compress}" --compression-method=2 "${write_num_frames_opt}" \
             ark:- ark,scp:"${dumpdir}"/feats.JOB.ark,"${dumpdir}"/feats.JOB.scp \

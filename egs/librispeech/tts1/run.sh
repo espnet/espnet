@@ -251,7 +251,7 @@ if [ "${stage}" -le 4 ];then
     echo "stage 4: Text-to-speech model training"
     tr_json="${feat_tr_dir}/data.json"
     dt_json="${feat_dt_dir}/data.json"
-    "${cuda_cmd}"  --gpu "${ngpu}" "${expdir}/train.log" \
+    ${cuda_cmd}  --gpu "${ngpu}" "${expdir}/train.log" \
         tts_train.py \
            --backend "${backend}" \
            --ngpu "${ngpu}" \
@@ -306,7 +306,7 @@ if [ "${stage}" -le 5 ];then
         cp "${dumpdir}/${sets}/data.json" "${outdir}/${sets}"
         splitjson.py --parts "${nj}" "${outdir}/${sets}/data.json"
         # decode in parallel
-        "${train_cmd}" JOB=1:"${nj}" "${outdir}/${sets}/log/decode".JOB.log \
+        ${train_cmd} JOB=1:"${nj}" "${outdir}/${sets}/log/decode".JOB.log \
             tts_decode.py \
                 --backend "${backend}" \
                 --ngpu 0 \

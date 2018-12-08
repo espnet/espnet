@@ -203,7 +203,7 @@ if [ "${stage}" -le 3 ];then
     echo "stage 3: Text-to-speech model training"
     tr_json="${feat_tr_dir}/data.json"
     dt_json="${feat_dt_dir}/data.json"
-    "${cuda_cmd}"  --gpu "${ngpu}" "${expdir}/train.log" \
+    ${cuda_cmd}  --gpu "${ngpu}" "${expdir}/train.log" \
         tts_train.py \
            --backend "${backend}" \
            --ngpu "${ngpu}" \
