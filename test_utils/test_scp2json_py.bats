@@ -2,14 +2,14 @@
 
 setup() {
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
-    testdir=$(mktemp -d testXXX)
-    cat << EOF >> $testdir/test.scp
+    tmpdir=$(mktemp -d testXXX)
+    cat << EOF >> $tmpdir/test.scp
 uttid1 あ い う
 uttid2 え お
 uttid3 か き く け こ
 EOF
 
-    cat << EOF > $testdir/valid
+    cat << EOF > $tmpdir/valid
 {
     "utts": {
         "uttid1": {
@@ -27,10 +27,10 @@ EOF
 }
 
 teardown() {
-    rm -rf $testdir
+    rm -rf $tmpdir
 }
 
 @test "" {
-    cat $testdir/test.scp | python $utils/scp2json.py --key text  > $testdir/out.json
-    jsondiff $testdir/out.json $testdir/valid
+    cat $tmpdir/test.scp | python $utils/scp2json.py --key text  > $tmpdir/out.json
+    jsondiff $tmpdir/out.json $tmpdir/valid
 }

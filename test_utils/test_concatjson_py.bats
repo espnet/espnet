@@ -2,16 +2,16 @@
 
 setup() {
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
-    testdir=$(mktemp -d testXXX)
-    cat << EOF > $testdir/test1.json
+    tmpdir=$(mktemp -d testXXX)
+    cat << EOF > $tmpdir/test1.json
 {"utts": {"uttid1": [{"feat": "aaa.ark:123", "text": "あ い"}]}}
 EOF
 
-    cat << EOF > $testdir/test2.json
+    cat << EOF > $tmpdir/test2.json
 {"utts": {"uttid2": [{"feat": "aaa.ark:456", "text": "か き"}]}}
 EOF
 
-    cat << EOF > $testdir/valid
+    cat << EOF > $tmpdir/valid
 {
     "utts": {
         "uttid1": [
@@ -33,11 +33,11 @@ EOF
 }
 
 teardown() {
-    rm -rf $testdir
+    rm -rf $tmpdir
 }
 
 @test "" {
-    python $utils/concatjson.py $testdir/*.json > $testdir/out.json
-    jsondiff $testdir/out.json $testdir/valid
+    python $utils/concatjson.py $tmpdir/*.json > $tmpdir/out.json
+    jsondiff $tmpdir/out.json $tmpdir/valid
 }
 
