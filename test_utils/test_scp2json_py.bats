@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-    utils=$(dirname BATS_TEST_FILENAME)/../utils
+    utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
     testdir=$(mktemp -d testXXX)
     cat << EOF >> $testdir/test.scp
 uttid1 あ い う
