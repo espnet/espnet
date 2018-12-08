@@ -2,7 +2,7 @@
 
 setup() {
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
-    tmpdir=$(mktemp -d testXXX)
+    tmpdir=$(mktemp -d testXXXXXX)
     cat << EOF > $tmpdir/test1.json
 {"utts": {"uttid1": [{"feat": "aaa.ark:123", "text": "あ い"}]}}
 EOF

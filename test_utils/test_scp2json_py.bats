@@ -2,7 +2,7 @@
 
 setup() {
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
-    tmpdir=$(mktemp -d testXXX)
+    tmpdir=$(mktemp -d testXXXXXX)
     cat << EOF >> $tmpdir/test.scp
 uttid1 あ い う
 uttid2 え お
