@@ -12,6 +12,7 @@ import codecs
 import json
 import logging
 import sys
+
 from distutils.util import strtobool
 
 is_python2 = sys.version_info[0] == 2
