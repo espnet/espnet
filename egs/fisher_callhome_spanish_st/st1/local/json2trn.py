@@ -15,6 +15,8 @@ if __name__ == '__main__':
     parser.add_argument('ref', type=str, help='ref')
     parser.add_argument('--hyp', type=str, help='hyp', default=False, nargs='?')
     parser.add_argument('--src', type=str, help='src', default=False, nargs='?')
+    parser.add_argument('--dict-src', type=str, help='dict for source language',
+                        default=False, nargs='?')
     args = parser.parse_args()
 
     # logging info
@@ -30,6 +32,14 @@ if __name__ == '__main__':
     char_list = [unicode(entry.split(' ')[0], 'utf_8') for entry in dictionary]
     char_list.insert(0, '<blank>')
     char_list.append('<eos>')
+
+    if args.dict_src:
+        logging.info("reading %s", args.dict_src)
+        with open(args.dict_src, 'r') as f:
+            dictionary_src = f.readlines()
+        char_list_src = [unicode(entry.split(' ')[0], 'utf_8') for entry in dictionary_src]
+        char_list_src.insert(0, '<blank>')
+        char_list_src.append('<eos>')
 
     if args.hyp:
         logging.info("writing hyp trn to %s", args.hyp)
@@ -53,6 +63,9 @@ if __name__ == '__main__':
         r.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
         if args.src and 'tokenid_src' in j['utts'][x]['output'][0].keys():
-            seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid_src'].split()]
+            if args.dict_src:
+                seq = [char_list_src[int(i)] for i in j['utts'][x]['output'][0]['tokenid_src'].split()]
+            else:
+                seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid_src'].split()]
             s.write(" ".join(seq).encode('utf-8').replace('<eos>', '')),
             s.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
