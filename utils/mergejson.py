@@ -85,5 +85,5 @@ if __name__ == '__main__':
     if args.output_json:
         sys.stdout = codecs.open(args.output_json, "w", encoding="utf-8")
     else:
-        sys.stdout = codecs.getwriter(sys.stdout if is_python2 else sys.stdout.buffer)
+        sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     print(json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': ')))
