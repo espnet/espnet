@@ -7,12 +7,13 @@ import argparse
 import codecs
 import logging
 import os
-from distutils.util import strtobool
 
 import kaldi_io_py
 import librosa
 import numpy as np
 import soundfile as sf
+
+from distutils.util import strtobool
 
 EPS = 1e-10
 

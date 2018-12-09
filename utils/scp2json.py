@@ -11,6 +11,8 @@ import codecs
 import json
 import sys
 
+is_python2 = sys.version_info[0] == 2
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--key', '-k', type=str,
@@ -18,13 +20,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     new_line = {}
-    stream_in = codecs.getreader("utf-8")(sys.stdin if sys.version_info[0] == 2 else sys.stdin.buffer)
-    line = stream_in.readline()
+    sys.stdin = codecs.getreader("utf-8")(sys.stdin if is_python2 else sys.stdin.buffer)
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
+    line = sys.stdin.readline()
     while line:
         x = line.rstrip().split()
         v = {args.key: ' '.join(x[1:])}
         new_line[x[0]] = v
-        line = stream_in.readline()
+        line = sys.stdin.readline()
 
     all_l = {'utts': new_line}
 

@@ -6,6 +6,9 @@ from __future__ import unicode_literals
 
 import argparse
 import codecs
+import sys
+
+is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -19,6 +22,7 @@ if __name__ == '__main__':
         for line in vocabfile:
             vocab.add(line.strip())
 
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     with codecs.open(args.infile, "r", encoding="utf-8") as textfile:
         for line in textfile:
             if args.exclude:
