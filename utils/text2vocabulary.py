@@ -6,9 +6,8 @@
 import argparse
 import codecs
 import logging
-import sys
-
 import six
+import sys
 
 is_python2 = sys.version_info[0] == 2
 
