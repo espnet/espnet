@@ -95,20 +95,19 @@ if [ $fcount_train != 80 -o $fcount_dev != 20 -o $fcount_test != 20 -o $fcount_t
 fi
 
 if [ $stage -le 0 ]; then
-  #Gather all the speech files together to create a file list
-  (
-    find $speech_train -iname '*.sph';
-    find $speech_dev -iname '*.sph';
-    find $speech_test -iname '*.sph';
-  )  > $tmpdir/callhome_train_sph.flist
+    #Gather all the speech files together to create a file list
+    (
+        find $speech_train -iname '*.sph';
+        find $speech_dev -iname '*.sph';
+        find $speech_test -iname '*.sph';
+    )  > $tmpdir/callhome_train_sph.flist
 
-  #Get all the transcripts in one place
-  (
-    find $transcripts_train -iname '*.txt';
-    find $transcripts_dev -iname '*.txt';
-    find $transcripts_test -iname '*.txt';
-  )  > $tmpdir/callhome_train_transcripts.flist
-
+    #Get all the transcripts in one place
+    (
+        find $transcripts_train -iname '*.txt';
+        find $transcripts_dev -iname '*.txt';
+        find $transcripts_test -iname '*.txt';
+    )  > $tmpdir/callhome_train_transcripts.flist
 fi
 
 if [ $stage -le 1 ]; then

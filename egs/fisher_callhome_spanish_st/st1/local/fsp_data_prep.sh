@@ -87,16 +87,16 @@ if [ $fcount_s != 819 -o $fcount_t != 819 ]; then
 fi
 
 if [ $stage -le 0 ]; then
-  #Gather all the speech files together to create a file list
-  #TODO: Train and test split might be required
-  (
-    #find $speech_d1 -iname '*.sph';
-    #find $speech_d2 -iname '*.sph';
-    find $speech -iname '*.sph';
-  ) > $tmpdir/train_sph.flist
+    #Gather all the speech files together to create a file list
+    #TODO: Train and test split might be required
+    (
+        #find $speech_d1 -iname '*.sph';
+        #find $speech_d2 -iname '*.sph';
+        find $speech -iname '*.sph';
+    ) > $tmpdir/train_sph.flist
 
-  #Get all the transcripts in one place
-  find $transcripts -iname '*.tdf' > $tmpdir/train_transcripts.flist
+    #Get all the transcripts in one place
+    find $transcripts -iname '*.tdf' > $tmpdir/train_transcripts.flist
 fi
 
 if [ $stage -le 1 ]; then
