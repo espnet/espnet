@@ -6,6 +6,9 @@
 # Begin configuration section.
 nj=4
 fs=22050
+fmax=
+fmin=
+n_mels=80
 n_fft=1024
 n_shift=512
 win_length=
@@ -19,7 +22,7 @@ echo "$0 $*"  # Print the command line for logging
 
 if [ $# -lt 1 ] || [ $# -gt 3 ]; then
    echo "Usage: $0 [options] <data-dir> [<log-dir> [<fbank-dir>] ]";
-   echo "e.g.: $0 data/train exp/make_stft/train stft"
+   echo "e.g.: $0 data/train exp/make_fbank/train mfcc"
    echo "Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data"
    echo "Options: "
    echo "  --nj <nj>                                        # number of parallel jobs"
@@ -65,19 +68,22 @@ done
 
 utils/split_scp.pl ${scp} ${split_scps} || exit 1;
 
-${cmd} JOB=1:${nj} ${logdir}/make_stft_${name}.JOB.log \
-    compute-stft-feats.py \
+${cmd} JOB=1:${nj} ${logdir}/make_fbank_${name}.JOB.log \
+    compute-fbank-feats.py \
         --fs ${fs} \
-        --win_length ${win_length} \
+        --fmax ${fmax} \
+        --fmin ${fmin} \
         --n_fft ${n_fft} \
         --n_shift ${n_shift} \
+        --win_length ${win_length} \
+        --n_mels ${n_mels} \
         --write_utt2num_frames ${write_utt2num_frames} \
         ${logdir}/wav.JOB.scp \
-        ${fbankdir}/raw_stft_${name}.JOB
+        ${fbankdir}/raw_fbank_${name}.JOB
 
 # concatenate the .scp files together.
 for n in $(seq ${nj}); do
-    cat ${fbankdir}/raw_stft_${name}.${n}.scp || exit 1;
+    cat ${fbankdir}/raw_fbank_${name}.${n}.scp || exit 1;
 done > ${data}/feats.scp || exit 1
 
 if ${write_utt2num_frames}; then
