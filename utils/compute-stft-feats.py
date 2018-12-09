@@ -9,6 +9,7 @@ import os
 
 from distutils.util import strtobool
 
+import codecs
 import librosa
 import numpy as np
 import soundfile as sf
@@ -52,7 +53,7 @@ def main():
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
     # load scp
-    with open(args.scp, 'r') as f:
+    with codecs.open(args.scp, 'r', encoding="utf-8") as f:
         scp = [x.replace('\n', '').split() for x in f.readlines()]
     if len(scp[0]) != 2:
         utt_ids = [scp_[0] for scp_ in scp]

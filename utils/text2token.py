@@ -7,6 +7,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import codecs
 import re
 import sys
 
@@ -40,14 +41,14 @@ def main():
 
     rs = []
     if args.non_lang_syms is not None:
-        with open(args.non_lang_syms, 'r') as f:
+        with codecs.open(args.non_lang_syms, 'r', encoding="utf-8") as f:
             nls = [x.rstrip() for x in f.readlines()]
             rs = [re.compile(re.escape(x)) for x in nls]
 
     if args.text:
-        f = open(args.text)
+        f = codecs.open(args.text, encoding="utf-8")
     else:
-        f = sys.stdin
+        f = codecs.getreader("utf-8")(sys.stdin if sys.version_info[0] == 2 else sys.stdin.buffer)
     line = f.readline()
     n = args.nchar
     while line:
