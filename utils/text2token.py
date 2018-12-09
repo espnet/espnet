@@ -11,6 +11,8 @@ import codecs
 import re
 import sys
 
+is_python2 = sys.version_info[0] == 2
+
 
 def exist_or_not(i, match_pos):
     start_pos = None
@@ -48,7 +50,9 @@ def main():
     if args.text:
         f = codecs.open(args.text, encoding="utf-8")
     else:
-        f = codecs.getreader("utf-8")(sys.stdin if sys.version_info[0] == 2 else sys.stdin.buffer)
+        f = codecs.getreader("utf-8")(sys.stdin if is_python2 else sys.stdin.buffer)
+
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     line = f.readline()
     n = args.nchar
     while line:

@@ -8,8 +8,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import codecs
 import json
 import logging
+import sys
+
+is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -32,4 +36,5 @@ if __name__ == '__main__':
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps({'utts': js}, indent=4, sort_keys=True, ensure_ascii=False, separators=(',', ': '))
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     print(jsonstring)

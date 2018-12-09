@@ -13,6 +13,8 @@ import json
 import logging
 import sys
 
+is_python2 = sys.version_info[0] == 2
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('jsons', type=str, nargs='+',
@@ -82,4 +84,6 @@ if __name__ == '__main__':
     # ensure "ensure_ascii=False", which is a bug
     if args.output_json:
         sys.stdout = codecs.open(args.output_json, "w", encoding="utf-8")
+    else:
+        sys.stdout = codecs.getwriter(sys.stdout if is_python2 else sys.stdout.buffer)
     print(json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': ')))

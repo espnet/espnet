@@ -11,8 +11,10 @@ import argparse
 import codecs
 import json
 import logging
-
+import sys
 from distutils.util import strtobool
+
+is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -118,4 +120,5 @@ if __name__ == '__main__':
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps(
         {'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': '))
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     print(jsonstring)
