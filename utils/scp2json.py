@@ -5,7 +5,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 from __future__ import print_function
 from __future__ import unicode_literals
+
 import argparse
+import codecs
 import json
 import sys
 
@@ -16,12 +18,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     new_line = {}
-    line = sys.stdin.readline()
+    stream_in = codecs.getreader("utf-8")(sys.stdin if sys.version_info[0] == 2 else sys.stdin.buffer)
+    line = stream_in.readline()
     while line:
         x = line.rstrip().split()
         v = {args.key: ' '.join(x[1:])}
         new_line[x[0]] = v
-        line = sys.stdin.readline()
+        line = stream_in.readline()
 
     all_l = {'utts': new_line}
 

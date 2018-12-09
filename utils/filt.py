@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import codecs
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -14,11 +15,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     vocab = set()
-    with open(args.filt) as vocabfile:
+    with codecs.open(args.filt, "r", encoding="utf-8") as vocabfile:
         for line in vocabfile:
             vocab.add(line.strip())
 
-    with open(args.infile) as textfile:
+    with codecs.open(args.infile, "r", encoding="utf-8") as textfile:
         for line in textfile:
             if args.exclude:
                 print(" ".join(map(lambda word: word if word not in vocab else '', line.strip().split())))

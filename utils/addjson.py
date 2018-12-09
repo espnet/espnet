@@ -8,6 +8,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import codecs
 import json
 import logging
 
@@ -35,7 +36,7 @@ if __name__ == '__main__':
     js = []
     intersec_ks = []
     for x in args.jsons:
-        with open(x, 'r') as f:
+        with codecs.open(x, 'r', encoding="utf-8") as f:
             j = json.load(f)
         ks = j['utts'].keys()
         logging.info(x + ': has ' + str(len(ks)) + ' utterances')
