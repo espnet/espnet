@@ -27,7 +27,7 @@ tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
 rm -f ${tmpdir}/*.scp
 
 if [ -z ${text} ]; then
-  text=${dir}/text
+    text=${dir}/text
 fi
 
 # input, which is not necessary for decoding mode, and make it as an option
@@ -65,15 +65,15 @@ if [ ! -z ${lang} ]; then
 fi
 # feats
 if [ ! -z ${feat} ]; then
-  cat ${feat} > ${tmpdir}/feat.scp
+    cat ${feat} > ${tmpdir}/feat.scp
 fi
 
 rm -f ${tmpdir}/*.json
 if [ -f ${text} ]; then
-  cat ${text} | scp2json.py --key text > ${tmpdir}/text.json
+    cat ${text} | scp2json.py --key text > ${tmpdir}/text.json
 fi
 if $utt2spk; then
-  cat ${dir}/utt2spk | scp2json.py --key utt2spk > ${tmpdir}/utt2spk.json
+    cat ${dir}/utt2spk | scp2json.py --key utt2spk > ${tmpdir}/utt2spk.json
 fi
 for x in ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`

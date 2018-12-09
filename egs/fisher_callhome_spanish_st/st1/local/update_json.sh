@@ -30,16 +30,16 @@ tmpdir=${json_dir}/tmp
 rm -f ${tmpdir}/*.scp
 
 if [ -z ${text} ]; then
-  text=${data_dir}/text
+    text=${data_dir}/text
 fi
 
 # output
 if [ ! -z ${bpecode} ]; then
-  paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
+    paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
 elif [ ! -z ${nlsyms} ]; then
-  text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/token.scp
 else
-  text2token.py -s 1 -n 1 ${text} > ${tmpdir}/token.scp
+    text2token.py -s 1 -n 1 ${text} > ${tmpdir}/token.scp
 fi
 cat ${tmpdir}/token.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid.scp
 cat ${tmpdir}/tokenid.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/olen.scp
@@ -52,13 +52,13 @@ awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/odim.scp
 rm -f ${tmpdir}/*.json
 cat ${text} | scp2json.py --key text > ${tmpdir}/text.json
 for x in ${tmpdir}/*.scp; do
-  k=`basename ${x} .scp`
-  cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
+    k=`basename ${x} .scp`
+    cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done
 
 # add to json
 addjson.py --verbose ${verbose} -i false \
-    ${json} ${tmpdir}/text.json ${tmpdir}/token.json ${tmpdir}/tokenid.json ${tmpdir}/olen.json ${tmpdir}/odim.json > ${tmpdir}/data.json
+  ${json} ${tmpdir}/text.json ${tmpdir}/token.json ${tmpdir}/tokenid.json ${tmpdir}/olen.json ${tmpdir}/odim.json > ${tmpdir}/data.json
 mkdir -p ${json_dir}/.backup
 echo "json updated. original json is kept in ${json_dir}/.backup."
 cp ${json} ${json_dir}/.backup/$(basename ${json})
