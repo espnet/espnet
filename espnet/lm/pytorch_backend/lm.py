@@ -19,6 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import chainer
 from chainer import Chain
 from chainer.dataset import convert
 from chainer import reporter
@@ -398,6 +399,10 @@ def train(args):
         logging.info('resumed from %s' % args.resume)
         torch_resume(args.resume, trainer)
 
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
     trainer.run()
 
     # compute perplexity for test set
