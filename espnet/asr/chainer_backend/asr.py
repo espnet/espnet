@@ -438,6 +438,11 @@ def train(args):
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
+
     # Run the training
     trainer.run()
 
