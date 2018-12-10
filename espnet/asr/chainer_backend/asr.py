@@ -49,6 +49,9 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 import matplotlib
 import numpy as np
 
+from espnet.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
@@ -437,6 +440,10 @@ def train(args):
         report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer))
 
     # Run the training
     trainer.run()
