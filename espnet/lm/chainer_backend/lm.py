@@ -36,6 +36,9 @@ from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
+from espnet.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
 REPORT_INTERVAL = 100
 
 
@@ -350,6 +353,10 @@ def train(args):
     if args.resume:
         logging.info('resumed from %s' % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
+
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer))
 
     trainer.run()
 

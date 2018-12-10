@@ -25,7 +25,8 @@ requirements = {
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
-        'editdistance==0.5.2'],
+        'editdistance==0.5.2',
+        'tensorboardX>=1.4'],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
         'pytest>=3.3.0',
