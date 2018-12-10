@@ -12,6 +12,8 @@ import random
 import subprocess
 import sys
 
+from distutils.util import strtobool
+
 import numpy as np
 
 
@@ -157,6 +159,7 @@ def main(args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    parser.add_argument('--sortagrad', default=True, type=strtobool, nargs='?', help="Use Sortagrad")
     args = parser.parse_args(args)
 
     # logging info
