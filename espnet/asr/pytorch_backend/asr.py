@@ -37,6 +37,10 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
+from espnet.asr.iterators import ShufflingEnabler
+from espnet.asr.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.asr.iterators import ToggleableShufflingSerialIterator
+
 # for kaldi io
 import kaldi_io_py
 
@@ -294,25 +298,26 @@ def train(args):
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=args.sortagrad)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
+        train_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(train, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
+            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+            shuffle=not args.sortagrad)
+        valid_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
-        train_iter = chainer.iterators.SerialIterator(
+        train_iter = ToggleableShufflingSerialIterator(
             TransformDataset(train, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
+            batch_size=1, shuffle=not args.sortagrad)
+        valid_iter = ToggleableShufflingSerialIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False)
 
@@ -321,6 +326,9 @@ def train(args):
         model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
+
+    if args.sortagrad:
+        trainer.extend(ShufflingEnabler(list(train_iter)), trigger=(1, 'epoch'))
 
     # Resume from a snapshot
     if args.resume:

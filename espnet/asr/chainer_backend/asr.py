@@ -38,6 +38,10 @@ from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
 
+from espnet.asr.iterators import ShufflingEnabler
+from espnet.asr.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.asr.iterators import ToggleableShufflingSerialIterator
+
 # for kaldi io
 import kaldi_io_py
 
@@ -297,21 +301,22 @@ def train(args):
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
-                              args.maxlen_in, args.maxlen_out, args.minibatches)
+                              args.maxlen_in, args.maxlen_out, args.minibatches, shortest_first=args.sortagrad)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
-            train_iter = chainer.iterators.MultiprocessIterator(
+            train_iters = list(ToggleableShufflingMultiprocessIterator(
                 TransformDataset(train, converter.transform),
-                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+                shuffle=not args.sortagrad))
         else:
-            train_iter = chainer.iterators.SerialIterator(
+            train_iters = list(ToggleableShufflingSerialIterator(
                 TransformDataset(train, converter.transform),
-                batch_size=1)
+                batch_size=1, shuffle=not args.sortagrad))
 
         # set up updater
         updater = CustomUpdater(
-            train_iter, optimizer, converter=converter, device=gpu_id)
+            train_iters[0], optimizer, converter=converter, device=gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -333,14 +338,15 @@ def train(args):
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
-            train_iters = [chainer.iterators.MultiprocessIterator(
+            train_iters = [ToggleableShufflingMultiprocessIterator(
                 TransformDataset(train_subsets[gid], converter.transform),
-                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+                shuffle=not args.sortagrad)
                 for gid in six.moves.xrange(ngpu)]
         else:
-            train_iters = [chainer.iterators.SerialIterator(
+            train_iters = [ToggleableShufflingSerialIterator(
                 TransformDataset(train_subsets[gid], converter.transform),
-                batch_size=1)
+                batch_size=1, shuffle=not args.sortagrad)
                 for gid in six.moves.xrange(ngpu)]
 
         # set up updater
@@ -350,6 +356,8 @@ def train(args):
     # Set up a trainer
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
+
+    trainer.extend(ShufflingEnabler(train_iters), trigger=(1, 'epoch'))
 
     # Resume from a snapshot
     if args.resume:
