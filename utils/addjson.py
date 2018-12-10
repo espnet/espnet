@@ -8,10 +8,14 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import codecs
 import json
 import logging
+import sys
 
 from distutils.util import strtobool
+
+is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -35,7 +39,7 @@ if __name__ == '__main__':
     js = []
     intersec_ks = []
     for x in args.jsons:
-        with open(x, 'r') as f:
+        with codecs.open(x, 'r', encoding="utf-8") as f:
             j = json.load(f)
         ks = j['utts'].keys()
         logging.info(x + ': has ' + str(len(ks)) + ' utterances')
@@ -117,4 +121,5 @@ if __name__ == '__main__':
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps(
         {'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': '))
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     print(jsonstring)
