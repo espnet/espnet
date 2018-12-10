@@ -33,6 +33,9 @@ from espnet.tts.tts_utils import make_batchset
 
 import matplotlib
 
+from espnet.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
@@ -358,6 +361,10 @@ def train(args):
     trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer))
+        
     # Run the training
     trainer.run()
 
