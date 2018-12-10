@@ -7,6 +7,7 @@
 from __future__ import unicode_literals
 
 import argparse
+import codecs
 import json
 import logging
 
@@ -22,11 +23,11 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
     logging.info("reading %s", args.json)
-    with open(args.json, 'r') as f:
+    with codecs.open(args.json, 'r', encoding="utf-8") as f:
         j = json.load(f)
 
     logging.info("reading %s", args.dict)
-    with open(args.dict, 'r') as f:
+    with codecs.open(args.dict, 'r', encoding="utf-8") as f:
         dictionary = f.readlines()
     char_list = [entry.split(' ')[0] for entry in dictionary]
     char_list.insert(0, '<blank>')
@@ -35,8 +36,8 @@ if __name__ == '__main__':
 
     logging.info("writing hyp trn to %s", args.hyp)
     logging.info("writing ref trn to %s", args.ref)
-    h = open(args.hyp, 'w')
-    r = open(args.ref, 'w')
+    h = codecs.open(args.hyp, 'w', encoding="utf-8")
+    r = codecs.open(args.ref, 'w', encoding="utf-8")
 
     for x in j['utts']:
         seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['rec_tokenid'].split()]
