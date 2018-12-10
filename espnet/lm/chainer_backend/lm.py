@@ -351,6 +351,10 @@ def train(args):
         logging.info('resumed from %s' % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
 
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
     trainer.run()
 
     # compute perplexity for test set
