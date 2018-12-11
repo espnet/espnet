@@ -9,6 +9,7 @@ import os
 
 from distutils.util import strtobool
 
+import h5py
 import librosa
 import numpy as np
 import soundfile as sf
@@ -40,6 +41,10 @@ def main():
                         help='Type of window')
     parser.add_argument('--write_utt2num_frames', type=strtobool, default=True,
                         help='Whether to write utt2num file')
+    parser.add_argument('--hdf5', type=strtobool, default=False,
+                        help='Dump in HDF5 format instead of ark')
+    parser.add_argument('--compress', type=strtobool, default=False,
+                        help='Save in compressed format')
     parser.add_argument('scp', type=str,
                         help='WAV scp files')
     parser.add_argument('out', type=str,
@@ -64,29 +69,60 @@ def main():
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
-    if args.write_utt2num_frames:
-        job_id = "." + args.out.split(".")[-1] if args.out.split(".")[-1].isdigit() else ""
-        arkscp = ('ark:| copy-feats --print-args=false --write-num-frames=ark,t:%s '
-                  'ark:- ark,scp:%s.ark,%s.scp') % (
-                      os.path.dirname(args.out) + "/utt2num_frames" + job_id, args.out, args.out)
-    else:
-        arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
+    if not args.hdf5:
+        # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
+        if args.write_utt2num_frames:
+            job_id = "." + args.out.split(".")[-1] if args.out.split(".")[-1].isdigit() else ""
+            arkscp = ('ark:| copy-feats --print-args=false --write-num-frames=ark,t:%s '
+                      'ark:- ark,scp:%s.ark,%s.scp') % (
+                          os.path.dirname(args.out) + "/utt2num_frames" + job_id, args.out, args.out)
+        else:
+            arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
 
-    # extract feature and then write as ark with scp format
-    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
-        for idx, (utt_id, path) in enumerate(scp, 1):
-            x, fs = sf.read(path)
-            assert fs == args.fs
-            spc = spectrogram(
-                x=x,
-                fs=args.fs,
-                n_fft=args.n_fft,
-                n_shift=args.n_shift,
-                win_length=args.win_length,
-                window=args.window)
-            logging.info("(%d/%d) %s" % (idx, len(scp), utt_id))
-            kaldi_io_py.write_mat(f, spc, utt_id)
+        # extract feature and then write as ark with scp format
+        with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+            for idx, (utt_id, path) in enumerate(scp, 1):
+                x, fs = sf.read(path)
+                assert fs == args.fs
+                spc = spectrogram(
+                    x=x,
+                    fs=args.fs,
+                    n_fft=args.n_fft,
+                    n_shift=args.n_shift,
+                    win_length=args.win_length,
+                    window=args.window)
+                logging.info("(%d/%d) %s" % (idx, len(scp), utt_id))
+                kaldi_io_py.write_mat(f, spc, utt_id)
+    else:
+        if args.write_utt2num_frames:
+            job_id = "." + args.out.split(".")[-1] \
+                if args.out.split(".")[-1].isdigit() else ""
+            utt2num_frames = open(
+                os.path.dirname(args.out) + "/utt2num_frames" + job_id, 'w')
+        else:
+            utt2num_frames = None
+
+        with h5py.File(args.out + '.h5') as f, open(args.out + '.scp') as fscp:
+            for idx, (utt_id, path) in enumerate(scp, 1):
+                x, fs = sf.read(path)
+                assert fs == args.fs
+                spc = spectrogram(
+                    x=x,
+                    fs=args.fs,
+                    n_fft=args.n_fft,
+                    n_shift=args.n_shift,
+                    win_length=args.win_length,
+                    window=args.window)
+
+                f.create_dataset(
+                    utt_id, data=spc,
+                    compression='gzip' if args.compression else None)
+                fscp.write('{} {}.h5:{}\n'.format(utt_id, args.out, utt_id))
+                if utt2num_frames is not None:
+                    utt2num_frames.write('{} {}\n'.format(utt_id, len(spc)))
+
+        if utt2num_frames is not None:
+            utt2num_frames.close()
 
 
 if __name__ == "__main__":
