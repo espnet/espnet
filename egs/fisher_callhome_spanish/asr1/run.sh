@@ -81,7 +81,7 @@ samp_prob=0.0
 # data
 sfisher_speech=/export/corpora/LDC/LDC2010S01
 sfisher_transcripts=/export/corpora/LDC/LDC2010T04
-spanish_lexicon=/export/corpora/LDC/LDC96L16
+#spanish_lexicon=/export/corpora/LDC/LDC96L16
 split=local/splits/split_fisher
 
 callhome_speech=/export/corpora/LDC/LDC96S35
@@ -105,15 +105,15 @@ set -o pipefail
 
 train_set=train
 train_dev=dev
-train_test=test
+train_test="test"
 recog_set="dev test callhome_dev callhome_test callhome_train"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/fsp_data_prep.sh $sfisher_speech $sfisher_transcripts
-    local/callhome_data_prep.sh $callhome_speech $callhome_transcripts
+    local/fsp_data_prep.sh ${sfisher_speech} ${sfisher_transcripts}
+    local/callhome_data_prep.sh ${callhome_speech} ${callhome_transcripts}
     utils/fix_data_dir.sh data/local/data/train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and test though the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
     utils/fix_data_dir.sh data/local/data/callhome_train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and testthough the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
     cp -r data/local/data/train_all data/train_all
@@ -143,8 +143,8 @@ if [ ${stage} -le 1 ]; then
     utils/validate_data_dir.sh data/callhome_train_all
 
 
-    local/create_splits.sh $split
-    local/callhome_create_splits.sh $split_callhome
+    local/create_splits.sh ${split}
+    local/callhome_create_splits.sh ${split_callhome}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -161,13 +161,13 @@ if [ ${stage} -le 1 ]; then
         ${feat_dt_dir}/storage
     fi
 
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
@@ -210,7 +210,7 @@ fi
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
-    if [ $use_wordlm = true ]; then
+    if [ ${use_wordlm} = true ]; then
         lmtag=${lmtag}_word${lm_vocabsize}
     fi
 fi
@@ -220,17 +220,17 @@ mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
 
-    if [ $use_wordlm = true ]; then
+    if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train.txt
-        cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
-        cat data/${train_test}/text | cut -f 2- -d" " > ${lmdatadir}/test.txt
+        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train.txt
+        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
+        cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
         lmdatadir=data/local/lm_train
-        lmdict=$dict
+        lmdict=${dict}
         mkdir -p ${lmdatadir}
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
             | cut -f 2- -d" " > ${lmdatadir}/train.txt
@@ -325,12 +325,12 @@ if [ ${stage} -le 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
-        if [ $use_wordlm = true ]; then
+        if [ ${use_wordlm} = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
             recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
         fi
-        if [ $lm_weight == 0 ]; then
+        if [ ${lm_weight} == 0 ]; then
             recog_opts=""
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
@@ -354,7 +354,7 @@ if [ ${stage} -le 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --lm-weight ${lm_weight} \
-            $recog_opts &
+            ${recog_opts} &
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}

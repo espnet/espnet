@@ -17,7 +17,7 @@ from distutils.util import strtobool
 import numpy as np
 
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -42,7 +42,7 @@ def main():
                         help='Filename of training json')
     parser.add_argument('--valid-json', type=str, required=True,
                         help='Filename of validation json')
-    # network archtecture
+    # network architecture
     # encoder
     parser.add_argument('--embed_dim', default=512, type=int,
                         help='Number of dimension of embedding')
@@ -67,7 +67,7 @@ def main():
     parser.add_argument('--aconv-filts', default=15, type=int,
                         help='Filter size of attention convolution')
     parser.add_argument('--cumulate_att_w', default=True, type=strtobool,
-                        help="Whether or not to cumulate attetion weights")
+                        help="Whether or not to cumulate attention weights")
     # decoder
     parser.add_argument('--dlayers', default=2, type=int,
                         help='Number of decoder layers')
@@ -147,7 +147,7 @@ def main():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=5, type=int,
                         help='Number of samples of attention to be saved')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose > 0:
@@ -175,7 +175,7 @@ def main():
 
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -186,11 +186,11 @@ def main():
     np.random.seed(args.seed)
 
     if args.backend == "pytorch":
-        from espnet.tts.tts_pytorch import train
+        from espnet.tts.pytorch_backend.tts import train
         train(args)
     else:
-        raise NotImplementedError
+        raise NotImplementedError("Only pytorch is supported.")
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

@@ -6,7 +6,7 @@
 . ./path.sh
 . ./cmd.sh
 
-# genearl configuration
+# general configuration
 backend=pytorch
 stage=-1
 ngpu=1       # number of gpu in training
@@ -86,7 +86,7 @@ set -o pipefail
 
 train_set=train_no_dev
 train_dev=train_dev
-eval_set=eval
+eval_set="eval"
 
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"
@@ -258,7 +258,7 @@ if [ ${stage} -le 4 ];then
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
@@ -270,7 +270,7 @@ if [ ${stage} -le 4 ];then
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
         # concatenate scp files
-        for n in $(seq $nj); do
+        for n in $(seq ${nj}); do
             cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
     done

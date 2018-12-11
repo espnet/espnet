@@ -4,12 +4,18 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
+import codecs
 import json
 import logging
+import sys
 
 from distutils.util import strtobool
 
+is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -33,12 +39,15 @@ if __name__ == '__main__':
     js = []
     intersec_ks = []
     for x in args.jsons:
-        with open(x, 'r') as f:
+        with codecs.open(x, 'r', encoding="utf-8") as f:
             j = json.load(f)
         ks = j['utts'].keys()
         logging.info(x + ': has ' + str(len(ks)) + ' utterances')
         if len(intersec_ks) > 0:
             intersec_ks = intersec_ks.intersection(set(ks))
+            if len(intersec_ks) == 0:
+                logging.warning("Empty intersection")
+                break
         else:
             intersec_ks = set(ks)
         js.append(j)
@@ -58,9 +67,9 @@ if __name__ == '__main__':
         intersec_add_dic[k] = v
 
     new_dic = dict()
-    for id in intersec_org_dic:
-        orgdic = intersec_org_dic[id]
-        adddic = intersec_add_dic[id]
+    for key_id in intersec_org_dic:
+        orgdic = intersec_org_dic[key_id]
+        adddic = intersec_add_dic[key_id]
         # add as input
         if args.is_input:
             # original input
@@ -81,9 +90,9 @@ if __name__ == '__main__':
             in_add_dic['name'] = 'input%d' % (len(input_list) + 1)
 
             input_list.append(in_add_dic)
-            new_dic[id] = {'input': input_list,
-                           'output': orgdic['output'],
-                           'utt2spk': orgdic['utt2spk']}
+            new_dic[key_id] = {'input': input_list,
+                               'output': orgdic['output'],
+                               'utt2spk': orgdic['utt2spk']}
         # add as output
         else:
             # original output
@@ -105,11 +114,12 @@ if __name__ == '__main__':
             out_add_dic['name'] = 'target%d' % (len(output_list) + 1)
 
             output_list.append(out_add_dic)
-            new_dic[id] = {'input': orgdic['input'],
-                           'output': output_list,
-                           'utt2spk': orgdic['utt2spk']}
+            new_dic[key_id] = {'input': orgdic['input'],
+                               'output': output_list,
+                               'utt2spk': orgdic['utt2spk']}
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps(
-        {'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8')
+        {'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': '))
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     print(jsonstring)

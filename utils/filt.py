@@ -1,9 +1,14 @@
 #!/usr/bin/env python2
 
 # Apache 2.0
+from __future__ import print_function
+from __future__ import unicode_literals
 
-import sys
 import argparse
+import codecs
+import sys
+
+is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -12,15 +17,15 @@ if __name__ == '__main__':
     parser.add_argument('infile', type=str, help='input file')
     args = parser.parse_args()
 
-    vocab=set()
-    with open(args.filt) as vocabfile:
+    vocab = set()
+    with codecs.open(args.filt, "r", encoding="utf-8") as vocabfile:
         for line in vocabfile:
-            vocab.add(unicode(line, 'utf_8').strip())
+            vocab.add(line.strip())
 
-    with open(args.infile) as textfile:
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
+    with codecs.open(args.infile, "r", encoding="utf-8") as textfile:
         for line in textfile:
             if args.exclude:
-                print " ".join(map(lambda word: word if not word in vocab else '', unicode(line, 'utf_8').strip().split())).encode('utf_8')
+                print(" ".join(map(lambda word: word if word not in vocab else '', line.strip().split())))
             else:
-                print " ".join(map(lambda word: word if word in vocab else '<UNK>', unicode(line, 'utf_8').strip().split())).encode('utf_8')
-
+                print(" ".join(map(lambda word: word if word in vocab else '<UNK>', line.strip().split())))

@@ -34,27 +34,34 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.e2e_asr_th import E2E
-from espnet.nets.e2e_asr_th import Loss
-from espnet.nets.e2e_asr_th import pad_list
+from espnet.nets.pytorch_backend.e2e_asr import E2E
+from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
 # for kaldi io
 import kaldi_io_py
 
 # rnnlm
-import espnet.lm.extlm_pytorch as extlm_pytorch
-import espnet.lm.lm_pytorch as lm_pytorch
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 # matplotlib related
 import matplotlib
 import numpy as np
+
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
-    '''Custom evaluater for pytorch'''
+    """Custom Evaluator for Pytorch
+
+    :param torch.nn.Module model : The model to evaluate
+    :param chainer.dataset.Iterator : The train iterator
+    :param target :
+    :param CustomConverter converter : The batch converter
+    :param torch.device device : The device used
+    """
 
     def __init__(self, model, iterator, target, converter, device):
         super(CustomEvaluator, self).__init__(iterator, target)
@@ -94,7 +101,16 @@ class CustomEvaluator(extensions.Evaluator):
 
 
 class CustomUpdater(training.StandardUpdater):
-    '''Custom updater for pytorch'''
+    """Custom Updater for Pytorch
+
+    :param torch.nn.Module model : The model to update
+    :param int grad_clip_threshold : The gradient clipping value to use
+    :param chainer.dataset.Iterator train_iter : The training iterator
+    :param torch.optim.optimizer optimizer: The training optimizer
+    :param CustomConverter converter: The batch converter
+    :param torch.device device : The device to use
+    :param int ngpu : The number of gpus to use
+    """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
                  optimizer, converter, device, ngpu):
@@ -119,10 +135,10 @@ class CustomUpdater(training.StandardUpdater):
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
         if self.ngpu > 1:
-            loss = 1. / self.ngpu * self.model(*x)
+            loss = 1. / self.ngpu * (self.model(*x)[0])
             loss.backward(loss.new_ones(self.ngpu))  # Backprop
         else:
-            loss = self.model(*x)
+            loss = self.model(*x)[0]
             loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
@@ -136,7 +152,10 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
-    """CUSTOM CONVERTER"""
+    """Custom batch converter for Pytorch
+
+    :param int subsampling_factor : The subsampling factor
+    """
 
     def __init__(self, subsamping_factor=1):
         self.subsamping_factor = subsamping_factor
@@ -147,12 +166,19 @@ class CustomConverter(object):
         return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
+        """Transforms a batch and send it to a device
+
+        :param list batch: The batch to transform
+        :param torch.device device: The device to send to
+        :return: a tuple xs_pad, ilens, ys_pad
+        :rtype (torch.Tensor, torch.Tensor, torch.Tensor)
+        """
         # batch should be located in list
         assert len(batch) == 1
         xs, ys = batch[0]
 
-        # perform subsamping
-        if self.subsamping_factor > 1:
+        # perform subsampling
+        if self.subsampling_factor > 1:
             xs = [x[::self.subsampling_factor, :] for x in xs]
 
         # get batch of lengths of input sequences
@@ -167,18 +193,21 @@ class CustomConverter(object):
 
 
 def train(args):
-    '''Run training'''
+    """Train with the given args
+
+    :param Namespace args: The program arguments
+    """
     # seed setting
     torch.manual_seed(args.seed)
 
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
     # by considering reproducability
-    # revmoe type check
+    # remove type check
     if args.debugmode < 2:
         chainer.config.type_check = False
         logging.info('torch type check is disabled')
-    # use determinisitic computation or not
+    # use deterministic computation or not
     if args.debugmode < 1:
         torch.backends.cudnn.deterministic = False
         logging.info('torch cudnn deterministic is disabled')
@@ -210,8 +239,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    e2e = E2E(idim, odim, args)
-    model = Loss(e2e, args.mtlalpha)
+    model = E2E(idim, odim, args)
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -219,7 +247,7 @@ def train(args):
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
         torch.load(args.rnnlm, rnnlm)
-        e2e.rnnlm = rnnlm
+        model.rnnlm = rnnlm
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -256,7 +284,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(e2e.subsample[0])
+    converter = CustomConverter(model.subsample[0])
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -271,7 +299,7 @@ def train(args):
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1)
-    # hack to make batchsze argument as 1
+    # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
         train_iter = chainer.iterators.MultiprocessIterator(
@@ -308,9 +336,9 @@ def train(args):
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         if hasattr(model, "module"):
-            att_vis_fn = model.module.predictor.calculate_all_attentions
+            att_vis_fn = model.module.calculate_all_attentions
         else:
-            att_vis_fn = model.predictor.calculate_all_attentions
+            att_vis_fn = model.calculate_all_attentions
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=device), trigger=(1, 'epoch'))
@@ -378,7 +406,10 @@ def train(args):
 
 
 def recog(args):
-    '''Run recognition'''
+    """Decode with the given args
+
+    :param Namespace args: The program arguments
+    """
     # seed setting
     torch.manual_seed(args.seed)
 
@@ -387,10 +418,9 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    e2e = E2E(idim, odim, train_args)
-    model = Loss(e2e, train_args.mtlalpha)
+    model = E2E(idim, odim, train_args)
     torch_load(args.model, model)
-    e2e.recog_args = args
+    model.recog_args = args
 
     # read rnnlm
     if args.rnnlm:
@@ -439,7 +469,7 @@ def recog(args):
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-                nbest_hyps = e2e.recognize(feat, args, train_args.char_list, rnnlm)
+                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
         try:
@@ -462,7 +492,7 @@ def recog(args):
                 names = [name for name in names if name]
                 feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
                          for name in names]
-                nbest_hyps = e2e.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)

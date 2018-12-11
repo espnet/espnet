@@ -19,7 +19,7 @@ import subprocess
 import sys
 
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -62,7 +62,7 @@ def main():
                         help='Number of hidden units')
     parser.add_argument('--maxlen', type=int, default=40,
                         help='Batch size is reduced if the input sequence > ML')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose > 0:
@@ -89,7 +89,7 @@ def main():
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -114,14 +114,14 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from espnet.lm.lm_chainer import train
+        from espnet.lm.chainer_backend.lm import train
         train(args)
     elif args.backend == "pytorch":
-        from espnet.lm.lm_pytorch import train
+        from espnet.lm.pytorch_backend.lm import train
         train(args)
     else:
-        raise ValueError("chainer and pytorch are only supported.")
+        raise ValueError("Only chainer and pytorch are supported.")
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

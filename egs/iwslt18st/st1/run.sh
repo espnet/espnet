@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstm     # encoder architecture type
 elayers=3
@@ -30,7 +30,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 dlayers=2
 dunits=1024
 # attention related
-atype=dot
+atype="dot"
 adim=1024
 aconv_chans=10
 aconv_filts=100
@@ -81,7 +81,7 @@ set -o pipefail
 train_set=train_de
 train_dev=dev2010_de
 recog_set="dev2010_de tst2010_de tst2013_de tst2014_de tst2015_de"
-eval_set=tst2018_de
+#eval_set=tst2018_de
 
 
 if [ ${stage} -le -1 ]; then
@@ -150,13 +150,13 @@ if [ ${stage} -le 1 ]; then
           /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18st/asr1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 80 --do_delta ${do_delta} \
         data/${train_set}_trim/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_dev}_trim/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/${train_dev} ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}_trim/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
