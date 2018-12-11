@@ -4,11 +4,12 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import codecs
 import json
 import logging
 import os
@@ -36,7 +37,7 @@ if __name__ == '__main__':
         os.makedirs(dirname)
 
     # load json and split keys
-    j = json.load(open(args.json))
+    j = json.load(codecs.open(args.json, 'r', encoding="utf-8"))
     utt_ids = sorted(list(j['utts'].keys()))
     logging.info("number of utterances = %d" % len(utt_ids))
     if len(utt_ids) < args.parts:
@@ -55,6 +56,6 @@ if __name__ == '__main__':
                                 sort_keys=True,
                                 separators=(',', ': '))
         fl = '{}/{}.{}.json'.format(dirname, filename, i + 1)
-        sys.stdout = open(fl, "w+")
+        sys.stdout = codecs.open(fl, "w+", encoding="utf-8")
         print(jsonstring)
         sys.stdout.close()
