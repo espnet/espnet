@@ -29,7 +29,7 @@ def main():
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
     parser.add_argument('--batchsize', default=1, type=int,
-                        help='Batch size for beam search')
+                        help='Batch size for beam search (0: means no batch processing)')
     # task related
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')

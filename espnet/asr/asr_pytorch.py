@@ -265,9 +265,11 @@ def train(args):
 
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsze argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
@@ -431,7 +433,7 @@ def recog(args):
         js = json.load(f)['utts']
     new_js = {}
 
-    if args.batchsize is None:
+    if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
