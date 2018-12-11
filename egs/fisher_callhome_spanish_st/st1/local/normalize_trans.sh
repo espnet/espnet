@@ -45,26 +45,26 @@ for set in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callho
 
     # normalize punctuation
     cat data/local/fisher-callhome-corpus/corpus/ldc/$set.es > data/$set/es.joshua.org
-    normalize-punctuation.perl -l es < data/$set/es.joshua.org > data/$set/es.joshua.norm
+    cat data/$set/es.joshua.org | normalize-punctuation.perl -l es | local/normalize_punctuation.perl > data/$set/es.joshua.norm
     lowercase.perl < data/$set/es.joshua.norm > data/$set/es.joshua.norm.lc
-    local/remove_punctuation.pl < data/$set/es.joshua.norm.lc > data/$set/es.joshua.norm.lc.rm
-    tokenizer.perl -a -l es < data/$set/es.joshua.norm.lc.rm > data/$set/es.joshua.norm.lc.rm.tok
+    tokenizer.perl -a -l es < data/$set/es.joshua.norm.lc.rm > data/$set/es.joshua.norm.lc.tok
 
     # Now checking these Es transcriptions are matching (double check)
     cat data/$set/text > data/$set/text.tmp
     cut -f 2- -d " " data/$set/text.tmp > data/$set/es.kaldi.org
-    normalize-punctuation.perl -l es < data/$set/es.kaldi.org > data/$set/es.kaldi.norm
+    cat data/$set/es.kaldi.org | normalize-punctuation.perl -l es < local/normalize_punctuation.perl > data/$set/es.kaldi.norm
     lowercase.perl < data/$set/es.kaldi.norm > data/$set/es.kaldi.norm.lc
-    local/remove_punctuation.pl < data/$set/es.kaldi.norm.lc > data/$set/es.kaldi.norm.lc.rm
-    tokenizer.perl -a -l es < data/$set/es.kaldi.norm.lc.rm > data/$set/es.kaldi.norm.lc.rm.tok
+    tokenizer.perl -a -l es < data/$set/es.kaldi.norm.lc.rm > data/$set/es.kaldi.norm.lc.tok
 
     # use references from joshua-decoder/fisher-callhome-corpus
-    paste -d " " <(awk '{print $1}' data/$set/text.tmp) <(cat data/$set/es.joshua.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
+    paste -d " " <(awk '{print $1}' data/$set/text.tmp) <(cat data/$set/es.joshua.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
       > data/$set/text.es
 
-    # save original punctuation
-    cat data/local/fisher-callhome-corpus/corpus/ldc/$set.* | lowercase.perl | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
-      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation
+    # save original and cleaned punctuation
+    cat data/$set/es.joshua.org | lowercase.perl | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.es
+    cat data/$set/es.joshua.norm.lc | lowercase.perl | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.clean.es
 done
 
 
@@ -72,24 +72,34 @@ done
 for set in fisher_train callhome_train callhome_devtest callhome_evltest; do
     # having one En reference
     cat data/local/fisher-callhome-corpus/corpus/ldc/$set.en > data/$set/en.org
-    normalize-punctuation.perl -l en < data/$set/en.org > data/$set/en.norm
+    cat data/$set/en.org | normalize-punctuation.perl -l en | local/normalize_punctuation.pl > data/$set/en.norm
     lowercase.perl < data/$set/en.norm > data/$set/en.norm.lc
-    local/remove_punctuation.pl < data/$set/en.norm.lc > data/$set/en.norm.lc.rm
-    tokenizer.perl -a -l en < data/$set/en.norm.lc.rm > data/$set/en.norm.lc.rm.tok
-    paste -d " " <(awk '{print $1}' data/$set/text.es) <(cat data/$set/en.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
+    tokenizer.perl -a -l en < data/$set/en.norm.lc.rm > data/$set/en.norm.lc.tok
+    paste -d " " <(awk '{print $1}' data/$set/text.es) <(cat data/$set/en.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
       > data/$set/text.en
+
+    # save original and cleaned punctuation
+    cat data/$set/en.org | lowercase.perl | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.en
+    cat data/$set/en.norm.lc | lowercase.perl | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.clean.en
 done
 for set in fisher_dev fisher_dev2 fisher_test; do
     # having four En references
     for no in 0 1 2 3; do
         cat data/local/fisher-callhome-corpus/corpus/ldc/$set.en.${no} > data/$set/en.${no}.org
-        normalize-punctuation.perl -l en < data/$set/en.${no}.org > data/$set/en.${no}.norm
+        cat data/$set/en.${no}.org | normalize-punctuation.perl -l en | local/normalize_punctuation.pl > data/$set/en.${no}.norm
         lowercase.perl < data/$set/en.${no}.norm > data/$set/en.${no}.norm.lc
-        local/remove_punctuation.pl < data/$set/en.${no}.norm.lc > data/$set/en.${no}.norm.lc.rm
-        tokenizer.perl -a -l en < data/$set/en.${no}.norm.lc.rm > data/$set/en.${no}.norm.lc.rm.tok
-        paste -d " " <(awk '{print $1}' data/$set/text.es) <(cat data/$set/en.${no}.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
+        tokenizer.perl -a -l en < data/$set/en.${no}.norm.lc.rm > data/$set/en.${no}.norm.lc.tok
+        paste -d " " <(awk '{print $1}' data/$set/text.es) <(cat data/$set/en.${no}.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
           > data/$set/text.en.${no}
     done
+
+    # save original and cleaned punctuation
+    cat data/$set/en.*.org | lowercase.perl | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.en
+    cat data/$set/en.*.norm.lc | lowercase.perl | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.clean.en
 done
 
 

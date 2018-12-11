@@ -16,21 +16,6 @@ while(<STDIN>) {
   s/`/'/g;     # for En
   s/´/'/g;     # for En
 
-  # reserve some punctuations
-  s/'/apostrophe/g;
-  s/&/ampersand/g;
-  s/\$/dollarsign/g;  # for En
-  s/%/percentsign/g;  # for En
-
-  # remove punctuation
-  s/[[:punct:]]/ /g;
-
-  # reserve some punctuations
-  s/apostrophe/'/g;
-  s/ampersand/&/g;
-  s/dollarsign/\$/g;  # for En
-  s/percentsign/%/g;  # for En
-
   # remove noisy parts
   s/background speech//g;
   s/background noise//g;
