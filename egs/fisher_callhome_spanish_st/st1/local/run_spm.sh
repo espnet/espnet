@@ -50,7 +50,7 @@ opt=adadelta
 epochs=20
 
 # decoding parameter
-beam_size=10
+beam_size=20
 penalty=1.0
 maxlenratio=0.5
 minlenratio=0
