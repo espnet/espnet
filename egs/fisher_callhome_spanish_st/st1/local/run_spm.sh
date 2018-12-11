@@ -47,19 +47,9 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=35
-
-lm_layers=2
-lm_units=650
-lm_opt=adam       # or sgd
-lm_batchsize=256  # batch size in LM training
-lm_epochs=60      # if the data size is large, we can reduce this
-lm_maxlen=100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
-lm_resume=        # specify a snapshot file to resume LM training
-lmtag=            # tag for managing LMs
+epochs=20
 
 # decoding parameter
-lm_weight=0
 beam_size=10
 penalty=1.0
 maxlenratio=0.5
@@ -78,7 +68,7 @@ callhome_transcripts=/export/corpora/LDC/LDC96T17
 split_callhome=local/splits/split_callhome
 
 # bpemode (unigram or bpe)
-nbpe=500
+nbpe=1000
 bpemode=unigram
 
 # exp tag
@@ -98,7 +88,6 @@ set -o pipefail
 train_set=train.en
 train_dev=dev.en
 recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
-
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -151,12 +140,12 @@ if [ ${stage} -le 1 ]; then
 
         # Match the number of utterances between source and target languages
         # extract commocn lines
-        cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.es.tmp/reclist1
-        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.es.tmp/reclist2
-        comm -12 data/${x}.es.tmp/reclist1 data/${x}.es.tmp/reclist2 > data/${x}.es.tmp/reclist
+        cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.en.tmp/reclist1
+        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.en.tmp/reclist2
+        comm -12 data/${x}.en.tmp/reclist1 data/${x}.en.tmp/reclist2 > data/${x}.en.tmp/reclist
 
         for lang in es en; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.es.tmp/reclist data/${x}.${lang}
+            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
             utils/fix_data_dir.sh data/${x}.${lang}
         done
         rm -rf data/${x}.*.tmp
@@ -237,41 +226,7 @@ if [ ${stage} -le 2 ]; then
     done
 fi
 
-# You can skip this and remove --rnnlm option in the recognition (stage 3)
-if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
-fi
-lmexpdir=exp/${train_set}_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
-mkdir -p ${lmexpdir}
-if [ ${stage} -le 3 ]; then
-    echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_${train_set}_${bpemode}${nbpe}
-    mkdir -p ${lmdatadir}
-    cut -f 2- -d " " data/${train_set}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/train.txt
-    cut -f 2- -d " " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/valid.txt
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-    fi
-    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
-        lm_train.py \
-        --ngpu ${ngpu} \
-        --backend ${backend} \
-        --verbose 1 \
-        --outdir ${lmexpdir} \
-        --train-label ${lmdatadir}/train.txt \
-        --valid-label ${lmdatadir}/valid.txt \
-        --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --maxlen ${lm_maxlen} \
-        --dict ${dict}
-fi
+# NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${dropout}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
@@ -326,7 +281,7 @@ if [ ${stage} -le 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_rnnlm${lm_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
         mkdir -p ${expdir}/${decode_dir}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
@@ -347,15 +302,13 @@ if [ ${stage} -le 5 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight} \
             &
         wait
 
         # Fisher has 4 references per utterance
         if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
             for no in 1 2 3; do
-              cp ${feat_recog_dir}/data_${no}.json ${expdir}/${decode_dir}/data_ref${no}.json
+              cp ${feat_recog_dir}/data_${bpemode}${nbpe}_${no}.json ${expdir}/${decode_dir}/data_ref${no}.json
             done
         fi
 
