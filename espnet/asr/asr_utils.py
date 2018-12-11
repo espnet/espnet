@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import copy
+import io
 import json
 import logging
 import os
@@ -11,6 +12,7 @@ import shutil
 import tempfile
 
 import h5py
+import librosa
 import numpy as np
 import torch
 
@@ -92,13 +94,207 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     return minibatches
 
 
+def spectrogram(x, n_fft, n_shift,
+                win_length=None, window='hann'):
+    spc = np.abs(librosa.stft(x, n_fft, n_shift, win_length, window=window)).T
+    return spc
+
+
+def logmelspectrogram(x, fs, n_mels, n_fft, n_shift,
+                      win_length=None, window='hann', fmin=None, fmax=None,
+                      eps=1e-10):
+    fmin = 0 if fmin is None else fmin
+    fmax = fs / 2 if fmax is None else fmax
+    mel_basis = librosa.filters.mel(fs, n_fft, n_mels, fmin, fmax)
+    spc = np.abs(librosa.stft(x, n_fft, n_shift, win_length, window=window))
+    lmspc = np.log10(np.maximum(eps, np.dot(mel_basis, spc).T))
+
+    return lmspc
+
+
+def delta(feat, window: int=2):
+    assert window > 0
+    delta_feat = np.zeros_like(feat)
+    for i in range(1, window + 1):
+        delta_feat[:-i] += i * feat[i:]
+        delta_feat[i:] += -i * feat[:-i]
+        delta_feat[-i:] += i * feat[-1]
+        delta_feat[:i] += -i * feat[0]
+    delta_feat /= 2 * sum(i ** 2 for i in range(1, window + 1))
+    return delta_feat
+
+
+def add_deltas(x, window=2, order=2):
+    feats = [x]
+    for _ in range(order):
+        feats.append(delta(feats[-1], window))
+    return np.concatenate(feats, axis=1)
+
+
+class CMVN(object):
+    def __init__(self, stats, norm_means=True, norm_vars=False,
+                 std_floor: float=1.0e-20):
+        stats = kaldi_io_py.read_mat(stats)
+        # Kaldi makes a matrix for cmvn which has a shape of (2, feat_dim + 1),
+        # and the first vector contains the sum of feats and the second is
+        # the sum of squares. The last value of the first, i.e. stats[0,1],
+        # is the number of samples for this statistics.
+        assert len(stats) == 2, stats.shape
+
+        count = stats[0, -1]
+        mean = stats[0, :-1] / count
+        var = stats[1, :-1] / count - mean * mean
+        std = np.maximum(np.sqrt(var), std_floor)
+        self.bias = -mean
+        self.scale = 1 / std
+        self.norm_means = norm_means
+        self.norm_vars = norm_vars
+
+    def __call__(self, x):
+        if self.norm_vars:
+            np.divide(x, self.scale, x, dtype=x.dtype)
+        if self.norm_means:
+            np.subtract(x, self.bias, x, dtype=x.dtype)
+        return x
+
+
+class PreProcessing(object):
+    """
+
+    Examples:
+        >>> kwargs = {"process": [{"type": "fbank",
+        ...                        "n_mels": 80,
+        ...                        "fs": 16000},
+        ...                       {"type": "cmvn",
+        ...                        "stats": "data/train/cmvn.ark",
+        ...                        "norm_vars": True},
+        ...                       {"type": "delta", "window": 2, "order": 2}],
+        ...           "mode": "sequential"}
+        >>> preprocessing = PreProcessing(**kwargs)
+        >>> bs = 10
+        >>> xs = [np.random.randn(100, 80).astype(np.float32) for _ in range(bs)]
+        >>> processed_xs = preprocessing(xs)
+
+    """
+    def __init__(self, **kwargs):
+        if len(kwargs) == 0:
+            self.conf = {'mode': 'sequential', 'process': []}
+        else:
+            self.conf = copy.deepcopy(kwargs)
+        self.cache = {}
+
+    def __call__(self, xs):
+        """
+
+        :param List[np.ndarray] xs:
+        :return: batch:
+        :rtype: List[np.ndarray]
+        """
+        if self.conf.get('mode', 'sequential') == 'sequential':
+            if len(self.conf['process']) == 0:
+                return xs
+
+            for process in self.conf['process']:
+                assert isinstance(process, dict), type(process)
+                if process['type'] == 'fbank':
+                    print(process)
+                    xs = [logmelspectrogram(
+                        x=x,
+                        fs=process['fs'],
+                        n_mels=process.get('n_mels', 80),
+                        n_fft=process.get('n_fft', 1024),
+                        n_shift=process.get('n_shift', 512),
+                        win_length=process.get('win_length', None),
+                        window=process.get('window', 'hann'),
+                        fmin=process.get('fmin', None),
+                        fmax=process.get('fmax', None)) for x in xs]
+                elif process['type'] == 'spectrogram':
+                    # x: array[Time, Freq]
+                    xs = [spectrogram(
+                        x=x,
+                        n_fft=process.get('n_fft', 1024),
+                        n_shift=process.get('n_shift', 512),
+                        win_length=process.get('win_length', None),
+                        window=process.get('window', 'hann')) for x in xs]
+                elif process['type'] == 'stft':
+                    if xs[0].ndim == 1:
+                        single_channel = True
+                        xs = [x[None] for x in xs]
+                    else:
+                        single_channel = False
+
+                    # FIXME(kamo): librosa can't use multi-channel?
+                    xs = [[librosa.stft(
+                        x=x[i],
+                        n_fft=process.get('n_fft', 1024),
+                        hop_length=process.get('n_shift', 512),
+                        win_length=process.get('win_length', None),
+                        window=process.get('window', 'hann').T)
+                        for i in range(x.shape[0])] for x in xs]
+                    if single_channel:
+                        # x: array[Time, Freq]
+                        xs = [x[0] for x in xs]
+                    else:
+                        # x: array[Channel, Time, Freq]
+                        xs = [np.stack(x) for x in xs]
+
+                elif process['type'] == 'delta':
+                    print(process)
+                    xs = [add_deltas(x,
+                                     window=process.get('window', 2),
+                                     order=process.get('order', 2))
+                          for x in xs]
+                elif process['type'] == 'cmvn':
+                    print(process)
+                    key = tuple(process.items())
+                    cmvn = self.cache.get(key)
+                    if cmvn is None:
+                        cmvn = CMVN(stats=process['stats'],
+                                    norm_means=process.get('norm_means', True),
+                                    norm_vars=process.get('norm_vars', False))
+                        self.cache[key] = cmvn
+                    xs = [cmvn(x) for x in xs]
+                elif process['type'] == 'wpe':
+                    from nara_wpe.wpe import wpe
+                    # x: array[Channel, Time, Freq]
+                    xs = [wpe(
+                        x.transpose((2, 0, 1)),
+                        taps=process.get('taps', 5),
+                        delay=process.get('delay', 3),
+                        iterations=process.get('iterations', 3),
+                        psd_context=process.get('psd_context', 0),
+                        statistics_mode=process.get('statistics_mode', 'full')
+                        ).transpose(1, 2, 0) for x in xs]
+                else:
+                    raise NotImplementedError(
+                        'Not supporting: type={}'.format(process['type']))
+            return xs
+        else:
+            raise NotImplementedError(
+                'Not supporting mode={}'.format(self.conf['mode']))
+
+
 class LoadInputsAndTargets(object):
-    def __init__(self, mode='asr'):
+    def __init__(self, mode='asr',
+                 preprocess_conf='conf/preprocess.json',
+                 load_target=True):
         self._loaders = {}
         if mode not in ['asr', 'tts']:
             raise ValueError(
                 'Only asr or tts are allowed: mode={}'.format(mode))
         self.mode = mode
+        if os.path.exists(preprocess_conf):
+            logging.info(
+                '{} was found, trying to apply some pre-processing '
+                'in the mini-batch creation'.format(preprocess_conf))
+            with io.open(preprocess_conf, encoding='utf-8') as f:
+                conf = json.load(f)
+                assert isinstance(conf, dict), type(conf)
+                self.preprocessings = PreProcessing(**conf[feat_id])
+        else:
+            # If conf doesn't exist, this function don't touch anything.
+            self.preprocessing = None
+        self.load_target = load_target
 
     def __call__(self, batch,
                  use_speaker_embedding=False,
@@ -119,20 +315,25 @@ class LoadInputsAndTargets(object):
         """
         if self.mode == 'tts':
             if use_speaker_embedding and use_second_target:
-                raise ValueError('One of use_speaker_embedding '
+                raise ValueError('Either one of use_speaker_embedding '
                                  'and use_second_target can be used')
         elif use_speaker_embedding:
             logging.warning('use_speaker_embedding is used for tts mode')
         elif use_second_target:
             logging.warning('use_second_target is used for tts mode')
 
-        x_list_list = []
-        y_list_list = []
+        x_feats_list = []
+        y_feats_list = []
+
+        # Now "name" is never used, but getting them for the future extending
+        x_names_list = []
+        y_names_list = []
         for uttid, info in batch:
             if len(info['input']) == 0:
                 raise RuntimeError('No input found in the batch')
-            if len(info['output']) == 0:
-                raise RuntimeError('No output found in the batch')
+            if self.load_target:
+                if len(info['output']) == 0:
+                    raise RuntimeError('No output found in the batch')
 
             if self.mode == 'tts' and \
                     (use_speaker_embedding or use_second_target):
@@ -142,21 +343,31 @@ class LoadInputsAndTargets(object):
             else:
                 # Use only the first item
                 info['input'] = info['input'][:1]
-            # Use only the first item
-            info['output'] = info['output'][:1]
+            if self.load_target:
+                # Use only the first item
+                info['output'] = info['output'][:1]
 
-            x_list = []
-            y_list = []
-            for key in ['input', 'output']:
+            x_feats = []
+            y_feats = []
+            x_names = []
+            y_names = []
+            if self.load_target:
+                keys = ['input', 'output']
+            else:
+                keys = ['input']
+
+            for key in keys:
                 for idx, inp in enumerate(info[key]):
                     if 'feat' in inp:
+                        # ======= Legacy format =======
+                        # {"input": [{"feat": "some/path.ark:123"}]),
+
                         if self.mode == 'tts' and idx == 1 \
                                 and use_speaker_embedding:
                             x = kaldi_io_py.read_vec_flt(inp['feat'])
                         else:
-                            # ======= Legacy format =======
-                            # {"input": [{"feat": "some/path.ark:123"}]),
                             x = kaldi_io_py.read_mat(inp['feat'])
+
                     elif 'tokenid' in inp:
                         # ======= Legacy format =======
                         # {"output": [{"tokenid": "1 2 3 4"}])
@@ -174,18 +385,28 @@ class LoadInputsAndTargets(object):
                             file_path=inp['path'], loader_type=inp['type'])
 
                     if key == 'input':
-                        x_list.append(x)
+                        x_feats.append(x)
+                        x_names.append(inp['name'])
+
                     elif key == 'output':
-                        y_list.append(x)
-            x_list_list.append(x_list)
-            y_list_list.append(y_list)
+                        y_feats.append(x)
+                        y_names.append(inp['name'])
+
+            x_feats_list.append(x_feats)
+            y_feats_list.append(y_feats)
+            x_names_list.append(x_names)
+            y_names_list.append(y_names)
 
         # Create a list from the first item
-        xs = [x_list[0] for x_list in x_list_list]
-        ys = [y_list[0] for y_list in y_list_list]
+        xs = [x_list[0] for x_list in x_feats_list]
+        # Assuming the names are common in the mini-batch
+        if self.load_target:
+            ys = [y_list[0] for y_list in y_feats_list]
 
-        # get index of non-zero length samples
-        nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
+            # get index of non-zero length samples
+            nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
+        else:
+            nonzero_idx = range(len(xs))
         # sort in input lengths
         nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
         if len(nonzero_sorted_idx) != len(xs):
@@ -195,20 +416,39 @@ class LoadInputsAndTargets(object):
 
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
-        ys = [ys[i] for i in nonzero_sorted_idx]
+        if self.load_target:
+            ys = [ys[i] for i in nonzero_sorted_idx]
 
         if self.mode == 'asr':
-            return xs, ys
-        else:
+            if self.load_target:
+                return_batch = (xs, ys)
+            else:
+                return_batch = (xs,)
+
+        elif self.mode == 'tts':
             spembs = None
             spcs = None
             if use_second_target:
-                spcs = [x_list[1] for x_list in x_list_list]
+                spcs = [x_list[1] for x_list in x_feats_list]
                 spcs = [spcs[i] for i in nonzero_sorted_idx]
             if use_speaker_embedding:
-                spembs = [x_list[1] for x_list in x_list_list]
+                spembs = [x_list[1] for x_list in x_feats_list]
                 spembs = [spembs[i] for i in nonzero_sorted_idx]
-            return xs, ys, spembs, spcs
+
+            if self.load_target:
+                return_batch = (xs, ys, spembs, spcs)
+            else:
+                return_batch = (xs, spembs, spcs)
+        else:
+            raise NotImplementedError
+
+        if self.preprocessing is not None:
+            # Apply pre-processing for the first feat
+            xs = return_batch[0]
+            xs = self.preprocessing(xs)
+            return (xs,) + return_batch[1]
+        else:
+            return return_batch
 
     def _get_from_loader(self, file_path, loader_type):
         """ In order to make the fds to be opened only at the first referring,
@@ -230,7 +470,9 @@ class LoadInputsAndTargets(object):
                 loader = h5py.File(file_path, 'r')
                 self._loaders[file_path] = loader
             return loader[key]
-
+        elif loader_type == 'wav':
+            raise NotImplementedError(
+                'Not supported: loader_type={}'.format(loader_type))
         elif loader_type == 'npz':
             file_path, key = file_path.split(':', 1)
             if loader is None:

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 import importlib
 import subprocess
 
@@ -7,7 +8,9 @@ import numpy as np
 import kaldi_io_py
 import pytest
 
-from espnet.asr.asr_utils import LoadInputsAndTargets
+from espnet.asr.asr_utils import LoadInputsAndTargets, CMVN, add_deltas
+from espnet.asr.asr_utils import logmelspectrogram
+from espnet.asr.asr_utils import PreProcessing
 
 
 def make_dummy_json(n_utts=10, ilen_range=[100, 300], olen_range=[10, 300]):
@@ -49,6 +52,49 @@ def test_make_batchset():
         print([len(batch) for batch in batchset])
         batchset = utils.make_batchset(dummy_json, 24, 256, 64, min_batch_size=10)
         assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
+
+
+def test_preprocessing(tmpdir):
+    cmvn_ark = str(tmpdir.join('cmvn.ark'))
+    kwargs = {"process": [{"type": "fbank",
+                           "n_mels": 80,
+                           "fs": 16000,
+                           "n_fft": 1024,
+                           "n_shift": 512},
+                          {"type": "cmvn",
+                           "stats": cmvn_ark,
+                           "norm_vars": True},
+                          {"type": "delta", "window": 2, "order": 2}],
+              "mode": "sequential"}
+
+    # Creates cmvn_ark
+    samples = np.random.randn(100, 80)
+    stats = np.empty((2, 81), dtype=np.float32)
+    stats[0, :80] = samples.sum(axis=0)
+    stats[1, :80] = (samples ** 2).sum(axis=0)
+    stats[0, -1] = 100.
+    stats[1, -1] = 0.
+    kaldi_io_py.write_mat(cmvn_ark, stats)
+
+    bs = 1
+    xs = [np.random.randn(1000).astype(np.float32) for _ in range(bs)]
+    preprocessing = PreProcessing(**kwargs)
+    processed_xs = preprocessing(xs)
+
+    for idx, x in enumerate(xs):
+        opt = dict(kwargs['process'][0])
+        opt.pop('type')
+        x = logmelspectrogram(x, **opt)
+
+        opt = dict(kwargs['process'][1])
+        opt.pop('type')
+        x = CMVN(**opt)(x)
+
+        opt = dict(kwargs['process'][2])
+        opt.pop('type')
+        x = add_deltas(x, **opt)
+
+        np.testing.assert_allclose(processed_xs[idx], x)
 
 
 def test_load_inputs_and_targets_legacy_format(tmpdir):
@@ -107,8 +153,10 @@ def test_load_inputs_and_targets_new_format(tmpdir):
             f[uttid] = x
             batch.append((uttid,
                           {'input': [{'path': str(p) + ':' + uttid,
-                                      'type': 'hdf5'}],
-                           'output': [{'tokenid': '1 2 3 4'}]}))
+                                      'type': 'hdf5',
+                                      'name': 'input1'}],
+                           'output': [{'tokenid': '1 2 3 4',
+                                       'name': 'target1'}]}))
             desire_xs.append(x)
             desire_ys.append(np.array([1, 2, 3, 4]))
 
