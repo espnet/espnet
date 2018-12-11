@@ -163,13 +163,13 @@ if [ ${stage} -le 1 ]; then
         /export/b{14,15,16}/${USER}/espnet-data/egs/chime4/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data-fbank/${train_set}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data-fbank/${train_dev}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data-fbank/${rtask}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
@@ -209,7 +209,7 @@ fi
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
-    if [ $use_wordlm = true ]; then
+    if [ ${use_wordlm} = true ]; then
         lmtag=${lmtag}_word${lm_vocabsize}
     fi
 fi
@@ -218,24 +218,24 @@ mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    if [ $use_wordlm = true ]; then
+    if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
+        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-                | grep -v "<" | tr [a-z] [A-Z] > ${lmdatadir}/train_others.txt
-        cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+                | grep -v "<" | tr "[:lower:]" "[:upper:]" > ${lmdatadir}/train_others.txt
+        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
         lmdatadir=data/local/lm_train
-        lmdict=$dict
+        lmdict=${dict}
         mkdir -p ${lmdatadir}
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
             | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-            | grep -v "<" | tr [a-z] [A-Z] \
+            | grep -v "<" | tr "[:lower:]" "[:upper:]" \
             | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
@@ -264,7 +264,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${sampprob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -315,7 +315,7 @@ if [ ${stage} -le 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
-        if [ $use_wordlm = true ]; then
+        if [ ${use_wordlm} = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
             recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
@@ -342,7 +342,7 @@ if [ ${stage} -le 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --lm-weight ${lm_weight} \
-            $recog_opts &
+            ${recog_opts} &
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}

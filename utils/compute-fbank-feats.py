@@ -4,17 +4,19 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import codecs
 import logging
 import os
 
 from distutils.util import strtobool
 
 import h5py
+import kaldi_io_py
 import librosa
 import numpy as np
 import soundfile as sf
 
-import kaldi_io_py
+from distutils.util import strtobool
 
 EPS = 1e-10
 
@@ -67,14 +69,14 @@ def main():
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
     # load scp
-    with open(args.scp, 'r') as f:
+    with codecs.open(args.scp, 'r', encoding="utf-8") as f:
         scp = [x.replace('\n', '').split() for x in f.readlines()]
     if len(scp[0]) != 2:
         utt_ids = [scp_[0] for scp_ in scp]
         paths = [scp_[-2] for scp_ in scp]
         scp = [[utt_id, path] for utt_id, path in zip(utt_ids, paths)]
 
-    # chech direcitory
+    # check directory
     outdir = os.path.dirname(args.out)
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)

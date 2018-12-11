@@ -4,12 +4,16 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
 import codecs
 import json
 import logging
 import sys
 
+is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -22,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-json', default='', type=str,
                         help='output json file')
     args = parser.parse_args()
-    
+
     # logging info
     if args.verbose > 0:
         logging.basicConfig(
@@ -35,17 +39,20 @@ if __name__ == '__main__':
     js = []
     intersec_ks = []
     for x in args.jsons:
-        with open(x, 'r') as f:
+        with codecs.open(x, encoding="utf-8") as f:
             j = json.load(f)
         ks = j['utts'].keys()
         logging.info(x + ': has ' + str(len(ks)) + ' utterances')
         if len(intersec_ks) > 0:
             intersec_ks = intersec_ks.intersection(set(ks))
+            if len(intersec_ks) == 0:
+                logging.warning("No intersection")
+                break
         else:
             intersec_ks = set(ks)
         js.append(j)
     logging.info('new json has ' + str(len(intersec_ks)) + ' utterances')
-        
+
     old_dic = dict()
     for k in intersec_ks:
         v = js[0]['utts'][k]
@@ -54,31 +61,29 @@ if __name__ == '__main__':
         old_dic[k] = v
 
     new_dic = dict()
-    for id in old_dic:
-        dic = old_dic[id]
+    for key_id in old_dic:
+        dic = old_dic[key_id]
 
         in_dic = {}
-        #if unicode('idim', 'utf-8') in dic:
-        if dic.has_key(unicode('idim', 'utf-8')):
-            in_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('ilen', 'utf-8')]), int(dic[unicode('idim', 'utf-8')]))
-        in_dic[unicode('name', 'utf-8')] = unicode('input1', 'utf-8')
-        in_dic[unicode('feat', 'utf-8')] = dic[unicode('feat', 'utf-8')]
+        # if dic.has_key(('idim', 'utf-8')):
+        if 'idim' in dic:
+            in_dic['shape'] = (int(dic['ilen']), int(dic['idim']))
+        in_dic['name'] = 'input1'
+        in_dic['feat'] = dic['feat']
 
         out_dic = {}
-        out_dic[unicode('name', 'utf-8')] = unicode('target1', 'utf-8')
-        out_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('olen', 'utf-8')]), int(dic[unicode('odim', 'utf-8')]))
-        out_dic[unicode('text', 'utf-8')] = dic[unicode('text', 'utf-8')]
-        out_dic[unicode('token', 'utf-8')] = dic[unicode('token', 'utf-8')]
-        out_dic[unicode('tokenid', 'utf-8')] = dic[unicode('tokenid', 'utf-8')]
+        out_dic['name'] = 'target1'
+        out_dic['shape'] = (int(dic['olen']), int(dic['odim']))
+        out_dic['text'] = dic['text']
+        out_dic['token'] = dic['token']
+        out_dic['tokenid'] = dic['tokenid']
 
+        new_dic[key_id] = {'input': [in_dic], 'output': [out_dic],
+                           'utt2spk': dic['utt2spk']}
 
-        new_dic[id] = {unicode('input', 'utf-8'):[in_dic], unicode('output', 'utf-8'):[out_dic],
-            unicode('utt2spk', 'utf-8'):dic[unicode('utt2spk', 'utf-8')]}
-    
     # ensure "ensure_ascii=False", which is a bug
     if args.output_json:
-	with codecs.open(args.output_json, "w", encoding='utf-8') as json_file:
-            json.dump({'utts': new_dic}, json_file, indent=4, ensure_ascii=False, sort_keys=True, encoding="utf-8")
+        sys.stdout = codecs.open(args.output_json, "w", encoding="utf-8")
     else:
-        sys.stdout = codecs.getwriter('utf8')(sys.stdout)
-        json.dump({'utts': new_dic}, sys.stdout, indent=4, ensure_ascii=False, sort_keys=True, encoding="utf-8")
+        sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
+    print(json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': ')))

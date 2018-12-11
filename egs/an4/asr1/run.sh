@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp     # encoder architecture type
 elayers=4
@@ -123,20 +123,20 @@ if [ ${stage} -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 100 data/${train_dev}
-    n=$[`cat data/train/text | wc -l` - 100]
+    n=$(($(wc -l < data/train/text) - 100))
     utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features
-    dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 8 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 8 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 8 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 8 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done

@@ -3,9 +3,9 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import espnet.lm.lm_pytorch as lm_pytorch
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 
-import espnet.lm.lm_chainer as lm_chainer
+import espnet.lm.chainer_backend.lm as lm_chainer
 
 import argparse
 import importlib
@@ -58,10 +58,10 @@ def init_chainer_weight_const(m, val):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.e2e_asr", 0),
-    ("blstmp", "espnet.nets.e2e_asr_th", 1),
-    ("vggblstmp", "espnet.nets.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.e2e_asr_th", 3),
+    ("blstmp", "espnet.nets.chainer_backend.e2e_asr", 0),
+    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr", 1),
+    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr", 3),
 ])
 def test_recognition_results(etype, m_str, text_idx1):
     const = 1e-4
@@ -77,9 +77,9 @@ def test_recognition_results(etype, m_str, text_idx1):
 
         args = make_arg(etype=etype, ctc_weight=ctc_weight)
         m = importlib.import_module(m_str)
-        model = m.Loss(m.E2E(40, 5, args), 0.5)
+        model = m.E2E(40, 5, args)
 
-        if "_th" in m_str:
+        if "pytorch" in m_str:
             init_torch_weight_const(model, const)
         else:
             init_chainer_weight_const(model, const)
@@ -90,7 +90,7 @@ def test_recognition_results(etype, m_str, text_idx1):
         ]
 
         in_data = data[0][1]["feat"]
-        nbest_hyps = model.predictor.recognize(in_data, args, args.char_list)
+        nbest_hyps = model.recognize(in_data, args, args.char_list)
         y_hat = nbest_hyps[0]['yseq'][1:]
         seq_hat = [args.char_list[int(idx)] for idx in y_hat]
         seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
@@ -100,10 +100,10 @@ def test_recognition_results(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.e2e_asr", 0),
-    ("blstmp", "espnet.nets.e2e_asr_th", 1),
-    ("vggblstmp", "espnet.nets.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.e2e_asr_th", 3),
+    ("blstmp", "espnet.nets.chainer_backend.e2e_asr", 0),
+    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr", 1),
+    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr", 2),
+    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr", 3),
 ])
 def test_recognition_results_with_lm(etype, m_str, text_idx1):
     const = 1e-4
@@ -120,9 +120,9 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
                         lm_weight=0.3)
         m = importlib.import_module(m_str)
-        model = m.Loss(m.E2E(40, 5, args), 0.5)
+        model = m.E2E(40, 5, args)
 
-        if "_th" in m_str:
+        if "pytorch" in m_str:
             rnnlm = lm_pytorch.ClassifierWithState(
                 lm_pytorch.RNNLM(len(args.char_list), 2, 10))
             init_torch_weight_const(model, const)
@@ -139,7 +139,7 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         ]
 
         in_data = data[0][1]["feat"]
-        nbest_hyps = model.predictor.recognize(in_data, args, args.char_list, rnnlm)
+        nbest_hyps = model.recognize(in_data, args, args.char_list, rnnlm)
         y_hat = nbest_hyps[0]['yseq'][1:]
         seq_hat = [args.char_list[int(idx)] for idx in y_hat]
         seq_hat_text = "".join(seq_hat).replace('<space>', ' ')
@@ -149,10 +149,10 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
 
 
 @pytest.mark.parametrize(("etype", "m_str"), [
-    ("blstmp", "espnet.nets.e2e_asr"),
-    ("blstmp", "espnet.nets.e2e_asr_th"),
-    ("vggblstmp", "espnet.nets.e2e_asr"),
-    ("vggblstmp", "espnet.nets.e2e_asr_th"),
+    ("blstmp", "espnet.nets.chainer_backend.e2e_asr"),
+    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr"),
+    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr"),
+    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr"),
 ])
 def test_batch_beam_search(etype, m_str):
     const = 1e-4
@@ -163,9 +163,9 @@ def test_batch_beam_search(etype, m_str):
         args = make_arg(etype=etype, rnnlm="dummy", ctc_weight=ctc_weight,
                         lm_weight=0.3)
         m = importlib.import_module(m_str)
-        model = m.Loss(m.E2E(40, 5, args), 0.5)
+        model = m.E2E(40, 5, args)
 
-        if "_th" in m_str:
+        if "pytorch" in m_str:
             rnnlm = lm_pytorch.ClassifierWithState(
                 lm_pytorch.RNNLM(len(args.char_list), 2, 10))
             init_torch_weight_const(model, const)
@@ -179,10 +179,10 @@ def test_batch_beam_search(etype, m_str):
 
         for lm_weight in [0.0, 0.3]:
             if lm_weight == 0.0:
-                s_nbest_hyps = model.predictor.recognize(in_data, args, args.char_list)
-                b_nbest_hyps = model.predictor.recognize_batch([in_data], args, args.char_list)
+                s_nbest_hyps = model.recognize(in_data, args, args.char_list)
+                b_nbest_hyps = model.recognize_batch([in_data], args, args.char_list)
             else:
-                s_nbest_hyps = model.predictor.recognize(in_data, args, args.char_list, rnnlm)
-                b_nbest_hyps = model.predictor.recognize_batch([in_data], args, args.char_list, rnnlm)
+                s_nbest_hyps = model.recognize(in_data, args, args.char_list, rnnlm)
+                b_nbest_hyps = model.recognize_batch([in_data], args, args.char_list, rnnlm)
 
             assert s_nbest_hyps[0]['yseq'] == b_nbest_hyps[0][0]['yseq']
