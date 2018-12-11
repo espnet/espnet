@@ -48,6 +48,18 @@ $ test ! -s check_autopep8
 
 You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
 
+You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core).  To install:
+
+``` console
+$ git clone https://github.com/bats-core/bats-core.git
+$ export PATH=$(pwd)/bats/bin:$PATH
+
+To test:
+
+``` console
+$ bats test_utils
+```
+
 ### Configuration files
 
 - [setup.cfg](setup.cfg) configures pytest and flake8.
