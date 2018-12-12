@@ -1,10 +1,10 @@
-import pickle
-import torch
 from e2e_tts_cyc_th import Tacotron2
 from e2e_tts_cyc_th import Tacotron2Loss
 from tts_cyc_pytorch import CustomConverter
 
 import logging
+import pickle
+import torch
 
 
 def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
@@ -90,11 +90,6 @@ def sanity_check_json(valid_json):
 
 def convert_espnet_to_taco_batch(x, ys, batch_size, n_samples_per_input,
                                  ngpu, use_speaker_embedding=False):
-    """
-    Convert data to format suitable for Tacotron, borrow code from
-    needs xs, ilens, ys, spembs for tacotron loss
-    src/tts/tts_pytorch.py:CustomConverter:__call__
-    """
 
     assert use_speaker_embedding, "use_speaker_embedding=False not supported yet"
 
