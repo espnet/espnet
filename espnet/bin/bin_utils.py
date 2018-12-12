@@ -8,7 +8,6 @@ import torch
 def set_deterministic_pytorch(args):
     # seed setting
     torch.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
 
     # debug mode setting
     # 0 would be fastest, but 1 seems to be reasonable
