@@ -1,6 +1,7 @@
-import torch
 import pickle
-from e2e_tts_cyc_th import Tacotron2, Tacotron2Loss
+import torch
+from e2e_tts_cyc_th import Tacotron2
+from e2e_tts_cyc_th import Tacotron2Loss
 from tts_cyc_pytorch import CustomConverter
 
 import logging
@@ -81,11 +82,9 @@ def sanity_check_json(valid_json):
 
     # Sanity check for first sample
     sample = list(valid_json.values())[0]
-    assert len(sample['input']) == 3, \
-        "Expected three inputs in data asr-mel tts-mel and x-vector"
+    assert len(sample['input']) == 3, "Expected three inputs in data asr-mel tts-mel and x-vector"
     assert (
-        sample['input'][0]['shape'][1] ==
-        sample['input'][1]['shape'][1]
+        sample['input'][0]['shape'][1] == sample['input'][1]['shape'][1]
     ), "Expected inputs 0 and 1 (asr-mel, tts-mel) to be same size"
 
 
@@ -97,8 +96,7 @@ def convert_espnet_to_taco_batch(x, ys, batch_size, n_samples_per_input,
     src/tts/tts_pytorch.py:CustomConverter:__call__
     """
 
-    assert use_speaker_embedding, \
-        "use_speaker_embedding=False not supported yet"
+    assert use_speaker_embedding, "use_speaker_embedding=False not supported yet"
 
     # Number of gpus
     if ngpu == 1:

@@ -273,12 +273,12 @@ class ExpectedLoss(torch.nn.Module):
         # needed for Tacotron loss
         self.ngpu = args.ngpu
 
-    def batch_factor(self, x):
-        '''Returns the factor by which a batch is normalized e.g. number of
-        elements in the batch
-        '''
+    # def batch_factor(self, x):
+    #    '''Returns the factor by which a batch is normalized e.g. number of
+    #    elements in the batch
+    #    '''
 
-        return len(x)
+    #    return len(x)
 
     def forward(self, xs, ilens, ys):
         '''Loss forward

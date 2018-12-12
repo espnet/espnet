@@ -123,9 +123,6 @@ class CustomUpdater(training.StandardUpdater):
         self.freeze_tts = freeze_tts
 
     def update_core(self):
-        """
-        Update multiple models
-        """
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
@@ -298,11 +295,8 @@ def train(args):
         # need to specify a loss function (loss_fn) to compute the expected
         # loss
         if args.expected_loss == 'tts':
-            from taco_cycle_consistency import (
-                load_tacotron_loss,
-            )
-            assert args.tts_model, \
-                "Need to provide --tts-model and set --expected-loss tts"
+            from taco_cycle_consistency import load_tacotron_loss
+            assert args.tts_model, "Need to provide --tts-model and set --expected-loss tts"
             loss_fn = load_tacotron_loss(args.tts_model_conf, args.tts_model)
         elif args.expected_loss == 'none':
             loss_fn = None
