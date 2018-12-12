@@ -46,7 +46,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     try:
         sorted_data = sorted(data.items(), key=lambda data: int(
             data[1]['input'][0]['shape'][0]), reverse=True)
-    except:
+    except Exception:
         sorted_data = sorted(data.items(), key=lambda data: int(
             data[1]['output'][0]['shape'][0]), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))

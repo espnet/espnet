@@ -275,7 +275,8 @@ class ExpectedLoss(torch.nn.Module):
 
     def batch_factor(self, x):
         '''Returns the factor by which a batch is normalized e.g. number of
-        elements in the batch'''
+        elements in the batch
+        '''
 
         return len(x)
 

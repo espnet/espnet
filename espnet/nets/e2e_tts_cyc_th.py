@@ -317,7 +317,7 @@ class Tacotron2TTELoss(torch.nn.Module):
         l1_loss_data = l1_loss.detach().cpu().numpy()
         mse_loss_data = mse_loss.detach().cpu().numpy()
 
-        # TODO: The logic here could be simplified
+        # TODO( The logic here could be simplified)
         if self.reduce:
             if self.use_bce_loss:
                 bce_loss_data = bce_loss.detach().cpu().numpy()
