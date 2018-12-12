@@ -43,10 +43,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :return: list of batches
     """
     # sort it by input lengths (long to short)
-    sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['input'][0]['shape'][0]), reverse=True)
+    try:
+        sorted_data = sorted(data.items(), key=lambda data: int(
+            data[1]['input'][0]['shape'][0]), reverse=True)
+    except:
+        sorted_data = sorted(data.items(), key=lambda data: int(
+            data[1]['output'][0]['shape'][0]), reverse=True)
     logging.info('# utts: ' + str(len(sorted_data)))
-
     # check #utts is more than min_batch_size
     if len(sorted_data) < min_batch_size:
         raise ValueError("#utts is less than min_batch_size.")
@@ -55,9 +58,17 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     minibatches = []
     start = 0
     while True:
-        ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
-        olen = int(sorted_data[start][1]['output'][0]['shape'][0])
-        factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+        if 'input' in sorted_data[0][1].keys() and 'output' in sorted_data[0][1].keys():
+            ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
+            olen = int(sorted_data[start][1]['output'][0]['shape'][0])
+            factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+        if 'output' not in sorted_data[0][1].keys():
+            ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
+            factor = int(ilen / max_length_in)
+        if 'input' not in sorted_data[0][1].keys():
+            olen = int(sorted_data[start][1]['output'][0]['shape'][0])
+            factor = int(olen / max_length_out)
+
         # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
         # then b = batchsize / 2
@@ -85,6 +96,17 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     return minibatches
 
 
+def merge_batchsets(train_subsets, shuffle=True):
+    ndata = len(train_subsets)
+    train = []
+    for num in range(ndata):
+        train.extend(train_subsets[num])
+    if shuffle:
+        import random
+        random.shuffle(train)
+    return train
+
+
 def load_inputs_and_targets(batch):
     """Function to load inputs and targets from list of dicts
 
@@ -95,22 +117,52 @@ def load_inputs_and_targets(batch):
     :rtype: list of int ndarray
     """
     # load acoustic features and target sequence of token ids
-    xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-    ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
+    if 'input' in batch[0][1].keys() and 'output' in batch[0][1].keys():
+        xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
+        ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
 
-    # get index of non-zero length samples
-    nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
-    # sort in input lengths
-    nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
-    if len(nonzero_sorted_idx) != len(xs):
-        logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-            len(xs), len(nonzero_sorted_idx)))
+        # get index of non-zero length samples
+        nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
+        # sort in input lengths
+        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        if len(nonzero_sorted_idx) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(nonzero_sorted_idx)))
 
-    # remove zero-length samples
-    xs = [xs[i] for i in nonzero_sorted_idx]
-    ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
+        # remove zero-length samples
+        xs = [xs[i] for i in nonzero_sorted_idx]
+        ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
 
-    return xs, ys
+        return xs, ys
+    if 'input' not in batch[0][1].keys():
+        ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
+
+        # get index of non-zero length samples
+        nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(ys)))
+        # sort in input lengths
+        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(ys[i]))
+        if len(nonzero_sorted_idx) != len(ys):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(ys), len(nonzero_sorted_idx)))
+
+        # remove zero-length samples
+        ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
+        return ys, ys
+    if 'output' not in batch[0][1].keys():
+        xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
+
+        # get index of non-zero length samples
+        nonzero_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
+        # sort in input lengths
+        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        if len(nonzero_sorted_idx) != len(xs):
+            logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
+                len(xs), len(nonzero_sorted_idx)))
+
+        # remove zero-length samples
+        xs = [xs[i] for i in nonzero_sorted_idx]
+
+        return xs, xs
 
 
 # * -------------------- chainer extension related -------------------- *
