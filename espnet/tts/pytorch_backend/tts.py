@@ -362,7 +362,6 @@ def decode(args):
 
     :param Namespace args: The program arguments
     """
-
     set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
