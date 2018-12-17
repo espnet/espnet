@@ -387,7 +387,7 @@ class Decoder(torch.nn.Module):
         pad_bo = to_device(self, torch.LongTensor([i * n_bo for i in six.moves.range(batch)]).view(-1, 1))
         pad_o = to_device(self, torch.LongTensor([i * self.odim for i in six.moves.range(n_bb)]).view(-1, 1))
 
-        max_hlen = max(hlens)
+        max_hlen = int(max(hlens))
         if recog_args.maxlenratio == 0:
             maxlen = max_hlen
         else:
@@ -488,7 +488,11 @@ class Decoder(torch.nn.Module):
             vscores = accum_best_scores
             vidx = to_device(self, torch.LongTensor(accum_padded_beam_ids))
 
-            a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
+            if not isinstance(a_prev, list):
+                a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
+            else:
+                # adapt for multi-head attention
+                a_prev = [torch.index_select(att_w_one.view(n_bb, -1), 0, vidx) for att_w_one in att_w]
             z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 

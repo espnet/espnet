@@ -9,7 +9,11 @@ export LC_ALL=C
 
 export PATH=$MAIN_ROOT/tools/sentencepiece/build/src:$MAIN_ROOT/tools/nkf/nkf-2.1.4/:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
-source $MAIN_ROOT/tools/venv/bin/activate
+if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
+    source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
+else
+    source $MAIN_ROOT/tools/venv/bin/activate
+fi
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 
 export OMP_NUM_THREADS=1
