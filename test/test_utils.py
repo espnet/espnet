@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import copy
 import importlib
 import subprocess
 
@@ -8,9 +7,11 @@ import numpy as np
 import kaldi_io_py
 import pytest
 
-from espnet.asr.asr_utils import LoadInputsAndTargets, CMVN, add_deltas
-from espnet.asr.asr_utils import logmelspectrogram
-from espnet.asr.asr_utils import PreProcessing
+from espnet.utils.io import LoadInputsAndTargets
+from espnet.utils.io import PreProcessing
+from espnet.utils.processings.spectrogram import logmelspectrogram
+from espnet.utils.processings.add_deltas import add_deltas
+from espnet.utils.processings.cmvn import CMVN
 
 
 def make_dummy_json(n_utts=10, ilen_range=[100, 300], olen_range=[10, 300]):
@@ -123,8 +124,10 @@ def test_load_inputs_and_targets_legacy_format(tmpdir):
         for line in f:
             uttid, path = line.strip().split()
             batch.append((uttid,
-                          {'input': [{'feat': path}],
-                           'output': [{'tokenid': '1 2 3 4'}]}))
+                          {'input': [{'feat': path,
+                                      'name': 'input1'}],
+                           'output': [{'tokenid': '1 2 3 4',
+                                       'name': 'target1'}]}))
 
     load_inputs_and_targets = LoadInputsAndTargets()
     xs, ys = load_inputs_and_targets(batch)
@@ -136,8 +139,8 @@ def test_load_inputs_and_targets_legacy_format(tmpdir):
 
 def test_load_inputs_and_targets_new_format(tmpdir):
     # batch = [("F01_050C0101_PED_REAL",
-    #           {"input": [{"path": "some/path.h5",
-    #                       "type": "hdf5"}],
+    #           {"input": [{"feat": "some/path.h5",
+    #                       "filetype": "hdf5"}],
     #           "output": [{"tokenid": "1 2 3 4"}],
 
     p = tmpdir.join('test.h5')
@@ -152,8 +155,8 @@ def test_load_inputs_and_targets_new_format(tmpdir):
             uttid = 'uttid{}'.format(i)
             f[uttid] = x
             batch.append((uttid,
-                          {'input': [{'path': str(p) + ':' + uttid,
-                                      'type': 'hdf5',
+                          {'input': [{'feat': str(p) + ':' + uttid,
+                                      'filetype': 'hdf5',
                                       'name': 'input1'}],
                            'output': [{'tokenid': '1 2 3 4',
                                        'name': 'target1'}]}))
