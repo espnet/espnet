@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # make intersection set for utterance keys
     js = {}
     for x in args.jsons:
-        with open(x, 'r') as f:
+        with codecs.open(x, encoding="utf-8") as f:
             j = json.load(f)
         ks = j['utts'].keys()
         logging.debug(x + ': has ' + str(len(ks)) + ' utterances')
