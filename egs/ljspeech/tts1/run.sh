@@ -132,7 +132,7 @@ if [ ${stage} -le 1 ]; then
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set} && cp -f data/train/filetype data/${train_set}
 
     # compute global CMVN
-    compute-cmvn-stats.py --in-filetype $(cat data/${train_set}/filetype) scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+    compute-cmvn-stats.py --in-filetype "$(cat data/${train_set}/filetype)" scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     cat > data/${train_set}/preprocess.json << EOF
 {"mode": "sequential",
@@ -156,11 +156,11 @@ if [ ${stage} -le 2 ]; then
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --filetype $(cat data/${train_set}/filetype) --feat data/${train_set}/feats.scp \
+    data2json.sh --filetype "$(cat data/${train_set}/filetype)" --feat data/${train_set}/feats.scp \
          data/${train_set} ${dict} > data/${train_set}/data.json
-    data2json.sh --filetype $(cat data/${train_dev}/filetype) --feat data/${train_dev}/feats.scp \
+    data2json.sh --filetype "$(cat data/${train_dev}/filetype)" --feat data/${train_dev}/feats.scp \
          data/${train_dev} ${dict} > data/${train_dev}/data.json
-    data2json.sh --filetype $(cat data/${eval_set}/filetype) --feat data/${eval_set}/feats.scp \
+    data2json.sh --filetype "$(cat data/${eval_set}/filetype)" --feat data/${eval_set}/feats.scp \
          data/${eval_set} ${dict} > data/${eval_set}/data.json
 fi
 
