@@ -9,9 +9,9 @@ import pytest
 
 from espnet.utils.io import LoadInputsAndTargets
 from espnet.utils.io import PreProcessing
-from espnet.utils.processings.spectrogram import logmelspectrogram
 from espnet.utils.processings.add_deltas import add_deltas
 from espnet.utils.processings.cmvn import CMVN
+from espnet.utils.processings.spectrogram import logmelspectrogram
 
 
 def make_dummy_json(n_utts=10, ilen_range=[100, 300], olen_range=[10, 300]):
