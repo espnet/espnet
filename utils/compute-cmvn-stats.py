@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 import argparse
 import logging
 
 import h5py
 import kaldi_io_py
 import numpy as np
+
+from espnet.utils.cli_utils import read_hdf5_scp
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def main():
@@ -16,104 +17,145 @@ def main():
                     'variance normalization statistics'
                     'If wspecifier provided: per-utterance by default, '
                     'or per-speaker if'
-                    'spk2utt option provided; if wxfilename: global')
+                    'spk2utt option provided; if wxfilename: global',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--spk2utt', type=str,
                         help='A text file of speaker to utterance-list map. '
                              '(Don\'t give rspecifier format, such as '
                              '"ark:utt2spk")')
+    parser.add_argument('--verbose', '-V', default=0, type=int,
+                        help='Verbose option')
+    parser.add_argument('--in-filetype', type=str, default='mat',
+                        choices=['mat', 'hdf5'],
+                        help='Specify the file format for the rspecifier. '
+                             '"mat" is the matrix format in kaldi')
+    parser.add_argument('--out-filetype', type=str, default='mat',
+                        choices=['mat', 'hdf5', 'npy'],
+                        help='Specify the file format for the wspecifier. '
+                             '"mat" is the matrix format in kaldi')
     parser.add_argument('rspecifier', type=str,
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('wspecifier_or_wxfilename', type=str,
                         help='Output file id. e.g. ark:some.ark or some.ark')
     args = parser.parse_args()
 
-    # logging info
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
-    logging.basicConfig(
-        level=logging.INFO,
-        format=logfmt)
+    if args.verbose > 0:
+        logging.basicConfig(level=logging.INFO, format=logfmt)
+    else:
+        logging.basicConfig(level=logging.WARN, format=logfmt)
+    logging.info(get_commandline_args())
 
     if ':' not in args.rspecifier:
         raise RuntimeError('Give "rspecifier" such as "ark:some.ark: {}"'
                            .format(args.rspecifier))
     ftype, filepath = args.rspecifier.split(':', 1)
-    if ftype == 'scp':
-        matrices = kaldi_io_py.read_mat_scp(filepath)
-    elif ftype == 'ark':
-        matrices = kaldi_io_py.read_mat_ark(filepath)
-    elif ftype == 'h5':
-        matrices = h5py.File(filepath).items()
-    else:
-        raise RuntimeError('The file type must be one of scp,ark, or hdf5: {}'
+    if ftype not in ['ark', 'scp']:
+        raise RuntimeError('The file type must be one of scp, ark: {}'
                            .format(ftype))
+    if args.in_filetype == 'mat':
+        if ftype == 'scp':
+            matrices = kaldi_io_py.read_mat_scp(filepath)
+        else:
+            matrices = kaldi_io_py.read_mat_ark(filepath)
+
+    elif args.in_filetype == 'hdf5':
+        if ftype == 'scp':
+            matrices = read_hdf5_scp(filepath)
+        else:
+            matrices = h5py.File(filepath).items()
+    else:
+        raise NotImplementedError(
+            'Not supporting: --filetype {}'.format(args.filetype))
 
     is_wspecifier = ':' in args.wspecifier_or_wxfilename
 
     if is_wspecifier:
         if args.spk2utt is not None:
+            logging.info('Performing as speaker CMVN mode')
             utt2spk_dict = {}
             with open(args.spk2utt) as f:
                 for line in f:
-                    spk, utts = line.split(None, 1)
+                    spk, utts = line.rstrip().split(None, 1)
                     for utt in utts.split():
                         utt2spk_dict[utt] = spk
-            # Speaker cmvn
             utt2spk = lambda x: utt2spk_dict[x]
         else:
-            # Per utterance cmvn
+            logging.info('Performing as utterance CMVN mode')
             utt2spk = lambda x: x
+
+        if args.out_filetype == 'npy':
+            logging.warning('--out-filetype npy is allowed only for '
+                            'Global CMVN mode, changing to hdf5')
+            args.out_filetype = 'hdf5'
+
     else:
-        # Global cmvn
+        logging.info('Performing as global CMVN mode')
         if args.spk2utt is not None:
-            logging.warning('spk2utt is not used when wxfilename is specified')
+            logging.warning('spk2utt is not used for global CMVN mode')
         utt2spk = lambda x: None
+
+        if args.out_filetype == 'hdf5':
+            logging.warning('--out-filetype hdf5 is not allowed for '
+                            'Global CMVN mode, changing to npy')
+            args.out_filetype = 'npy'
 
     # Calculate stats for each speaker
     counts = {}
     sum_feats = {}
     square_sum_feats = {}
 
-    for utt, matrix in matrices:
+    idx = 0
+    for idx, (utt, matrix) in enumerate(matrices, 1):
         assert isinstance(matrix, np.ndarray), type(matrix)
-        assert matrix.ndim == 2, matrix.ndim
         spk = utt2spk(utt)
 
         # Init at the first seen of the spk
         if spk not in counts:
             counts[spk] = 0
-            feat_dim = matrix.shape[1]
+            feat_shape = matrix.shape[1:]
             # Accumulate in double precision
-            sum_feats[spk] = np.zeros((feat_dim,), dtype=np.float64)
-            square_sum_feats[spk] = np.zeros((feat_dim,), dtype=np.float64)
+            sum_feats[spk] = np.zeros(feat_shape, dtype=np.float64)
+            square_sum_feats[spk] = np.zeros(feat_shape, dtype=np.float64)
 
         counts[spk] += matrix.shape[0]
         sum_feats[spk] += matrix.sum(axis=0)
         square_sum_feats[spk] += (matrix ** 2).sum(axis=0)
+    logging.info('Processed {} utterances'.format(idx))
+    assert idx > 0, idx
 
     cmvn_stats = {}
     for spk in counts:
-        feat_dim = len(sum_feats[spk])
-        _cmvn_stats = np.empty((2, feat_dim + 1), dtype=np.float64)
+        feat_shape = sum_feats[spk].shape
+        cmvn_shape = (2, feat_shape[0] + 1) + feat_shape[1:]
+        _cmvn_stats = np.empty(cmvn_shape, dtype=np.float64)
         _cmvn_stats[0, :-1] = sum_feats[spk]
         _cmvn_stats[1, :-1] = square_sum_feats[spk]
+
         _cmvn_stats[0, -1] = counts[spk]
         _cmvn_stats[1, -1] = 0.
 
+        # You can get the mean and std as following,
+        # >>> N = _cmvn_stats[0, 0]
+        # >>> mean = _cmvn_stats[0, :-1] / N
+        # >>> std = np.sqrt(_cmvn_stats[1, :-1] / N - mean ** 2)
+
         cmvn_stats[spk] = _cmvn_stats
 
+    # Per utterance or speaker CMVN
     if is_wspecifier:
         ftype, filepath = args.wspecifier_or_wxfilename.split(':', 1)
-        if ftype in ['h5,scp', 'scp,h5', 'h5']:
-            if ftype == 'h5,scp':
+        if args.out_filetype == 'hdf5':
+            if ftype == 'ark,scp':
                 h5_file, scp_file = filepath.split(',')
-            elif ftype == 'scp,h5':
+            elif ftype == 'scp,ark':
                 scp_file, h5_file = filepath.split(',')
-            elif ftype == 'h5':
+            elif ftype == 'ark':
                 h5_file = filepath
                 scp_file = None
             else:
-                # Can't reach
-                raise RuntimeError()
+                raise RuntimeError(
+                    'Give "wspecifier" such as "ark:some.ark: {}"')
             if scp_file is not None:
                 fscp = open(scp_file, 'w')
             else:
@@ -127,7 +169,7 @@ def main():
             if fscp is not None:
                 fscp.close()
 
-        else:
+        elif args.out_filetype == 'mat':
             # Use an external command: "copy-feats"
             # FIXME(kamo): copy-feats change the precision to float?
             arkscp = 'ark:| copy-feats --print-args=false ark:- {}'.format(
@@ -135,8 +177,21 @@ def main():
             with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
                 for spk, mat in cmvn_stats.items():
                     kaldi_io_py.write_mat(f, mat, spk)
+        else:
+            raise RuntimeError('Not supporting: --out-filetype {}'
+                               .format(args.out_filetype))
+
+    # Global CMVN
     else:
-        kaldi_io_py.write_mat(args.wspecifier_or_wxfilename, cmvn_stats[None])
+        matrix = cmvn_stats[None]
+        if args.out_filetype == 'npy':
+            np.save(args.wspecifier_or_wxfilename, matrix)
+        elif args.out_filetype == 'mat':
+            # Kaldi supports only matrix or vector
+            kaldi_io_py.write_mat(args.wspecifier_or_wxfilename, matrix)
+        else:
+            raise RuntimeError('Not supporting: --out-filetype {}'
+                               .format(args.out_filetype))
 
 
 if __name__ == "__main__":
