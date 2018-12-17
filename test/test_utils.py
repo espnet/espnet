@@ -100,7 +100,7 @@ def test_preprocessing(tmpdir):
 
 def test_load_inputs_and_targets_legacy_format(tmpdir):
     # (shutil.which doesn't exist in Python2)
-    if subprocess.run(['which', 'copy-feats']).returncode != 0:
+    if subprocess.call(['which', 'copy-feats']) != 0:
         pytest.skip('You don\'t have copy-feats')
     # batch = [("F01_050C0101_PED_REAL",
     #          {"input": [{"feat": "some/path.ark:123"}],
