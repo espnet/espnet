@@ -11,6 +11,7 @@ nj=1
 verbose=0
 compress=true
 write_utt2num_frames=true
+filetype='mat'  # mat or hdf5
 
 . utils/parse_options.sh
 
@@ -23,6 +24,8 @@ if [ $# != 4 ]; then
     echo "Usage: $0 <scp> <cmvnark> <logdir> <dumpdir>"
     exit 1;
 fi
+
+set -euo pipefail
 
 mkdir -p ${logdir}
 mkdir -p ${dumpdir}
@@ -54,13 +57,15 @@ if ${do_delta};then
     ${cmd} JOB=1:${nj} ${logdir}/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true ${cvmnark} scp:${logdir}/feats.JOB.scp ark:- \| \
         add-deltas ark:- ark:- \| \
-        copy-feats --compress=${compress} --compression-method=2 ${write_num_frames_opt} \
+        copy-feats.py --out-filetype ${filetype} \
+            --compress=${compress} --compression-method=2 ${write_num_frames_opt} \
             ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
         || exit 1
 else
     ${cmd} JOB=1:${nj} ${logdir}/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true ${cvmnark} scp:${logdir}/feats.JOB.scp ark:- \| \
-        copy-feats --compress=${compress} --compression-method=2 ${write_num_frames_opt} \
+        copy-feats.py --out-filetype ${filetype} \
+            --compress=${compress} --compression-method=2 ${write_num_frames_opt} \
             ark:- ark,scp:${dumpdir}/feats.JOB.ark,${dumpdir}/feats.JOB.scp \
         || exit 1
 fi
@@ -76,6 +81,10 @@ if ${write_utt2num_frames}; then
     done > ${dumpdir}/utt2num_frames || exit 1
     rm ${dumpdir}/utt2num_frames.* 2>/dev/null
 fi
+
+# Write the filetype, this will be used for data2json.sh
+echo ${filetype} > ${dumpdir}/filetype
+
 
 # remove temp scps
 rm ${logdir}/feats.*.scp 2>/dev/null
