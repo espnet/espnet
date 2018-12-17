@@ -31,9 +31,12 @@ from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import make_batchset
 from espnet.utils.io import LoadInputsAndTargets
 
+from espnet.bin.bin_utils import set_deterministic_pytorch
+
 import matplotlib
 
 matplotlib.use('Agg')
+
 
 REPORT_INTERVAL = 100
 
@@ -194,15 +197,7 @@ def train(args):
 
     :param Namespace args: The program arguments
     """
-    # seed setting
-    torch.manual_seed(args.seed)
-
-    # use deterministic computation or not
-    if args.debugmode < 1:
-        torch.backends.cudnn.deterministic = False
-        logging.info('torch cudnn deterministic is disabled')
-    else:
-        torch.backends.cudnn.deterministic = True
+    set_deterministic_pytorch(args)
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -367,6 +362,7 @@ def decode(args):
 
     :param Namespace args: The program arguments
     """
+    set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
