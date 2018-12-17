@@ -40,9 +40,6 @@ from espnet.utils.io import LoadInputsAndTargets
 
 from espnet.bin.bin_utils import set_deterministic_chainer
 
-# for kaldi io
-import kaldi_io_py
-
 # rnnlm
 import espnet.lm.chainer_backend.extlm as extlm_chainer
 import espnet.lm.chainer_backend.lm as lm_chainer

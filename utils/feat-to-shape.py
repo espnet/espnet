@@ -7,8 +7,8 @@ import sys
 import h5py
 import kaldi_io_py
 
-from espnet.utils.cli_utils import read_hdf5_scp
 from espnet.utils.cli_utils import get_commandline_args
+from espnet.utils.cli_utils import read_hdf5_scp
 
 
 def main():

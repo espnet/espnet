@@ -79,10 +79,12 @@ def main():
                     spk, utts = line.rstrip().split(None, 1)
                     for utt in utts.split():
                         utt2spk_dict[utt] = spk
-            utt2spk = lambda x: utt2spk_dict[x]
+
+            def utt2spk(x): return utt2spk_dict[x]
         else:
             logging.info('Performing as utterance CMVN mode')
-            utt2spk = lambda x: x
+
+            def utt2spk(x): return x
 
         if args.out_filetype == 'npy':
             logging.warning('--out-filetype npy is allowed only for '
@@ -93,7 +95,8 @@ def main():
         logging.info('Performing as global CMVN mode')
         if args.spk2utt is not None:
             logging.warning('spk2utt is not used for global CMVN mode')
-        utt2spk = lambda x: None
+
+        def utt2spk(x): return None
 
         if args.out_filetype == 'hdf5':
             logging.warning('--out-filetype hdf5 is not allowed for '
