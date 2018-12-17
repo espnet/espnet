@@ -119,7 +119,7 @@ class Stft(object):
                             window=self.window,
                             center=self.center,
                             pad_mode=self.pad_mode).T
-              for i in range(x.shape[0])] for x in xs]
+               for i in range(x.shape[0])] for x in xs]
         if single_channel:
             # x: array[Time, Freq]
             xs = [x[0] for x in xs]
