@@ -359,7 +359,7 @@ def train(args):
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer))
-        
+
     # Run the training
     trainer.run()
 
