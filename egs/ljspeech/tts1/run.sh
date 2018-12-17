@@ -75,7 +75,6 @@ griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 # root directory of db
 db_root=downloads
 
-
 # exp tag
 tag="" # tag for managing experiments.
 
