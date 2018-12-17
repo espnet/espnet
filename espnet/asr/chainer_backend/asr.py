@@ -32,11 +32,11 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import LoadInputsAndTargets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
+from espnet.utils.io import LoadInputsAndTargets
 
 # for kaldi io
 import kaldi_io_py
@@ -160,8 +160,8 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, device, subsamping_factor=1):
-        self.subsamping_factor = subsamping_factor
+    def __init__(self, device, subsampling_factor=1):
+        self.subsampling_factor = subsampling_factor
         self.load_inputs_and_targets = LoadInputsAndTargets()
 
     def transform(self, item):
@@ -496,12 +496,17 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
 
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='asr', load_output=False,
+        preprocess_conf=train_args.preprocess_conf)
+
     # decode each utterance
     new_js = {}
     with chainer.no_backprop_mode():
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            batch = [(name, js[name])]
+            feat = load_inputs_and_targets(batch)[0][0]
             nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
