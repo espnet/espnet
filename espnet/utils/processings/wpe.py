@@ -22,7 +22,7 @@ class WPE(object):
                         statistics_mode=self.statistics_mode))
 
     def __call__(self, xs):
-        """
+        """Return enhanced
 
         :param np.ndarray xs: (Channel, Time, Frequency)
         :return: enhanced_xs

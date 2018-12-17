@@ -47,6 +47,7 @@ class PreProcessing(object):
         >>> processed_xs = preprocessing(xs)
 
     """
+
     def __init__(self, **kwargs):
         if len(kwargs) == 0:
             self.conf = {'mode': 'sequential', 'process': []}

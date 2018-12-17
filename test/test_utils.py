@@ -164,7 +164,7 @@ def test_load_inputs_and_targets_new_format(tmpdir):
             desire_ys.append(np.array([1, 2, 3, 4]))
 
     load_inputs_and_targets = LoadInputsAndTargets()
-    xs, ys = load_inputs_and_targets (batch)
+    xs, ys = load_inputs_and_targets(batch)
     for x, xd in zip(xs, desire_xs):
         np.testing.assert_array_equal(x, xd)
     for y, yd in zip(ys, desire_ys):

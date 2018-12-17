@@ -8,8 +8,8 @@ from distutils.util import strtobool
 import h5py
 import kaldi_io_py
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import read_hdf5_scp
+from espnet.utils.cli_utils import get_commandline_args
 
 PY2 = sys.version_info[0] == 2
 
