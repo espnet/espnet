@@ -354,7 +354,6 @@ class LoadInputsAndTargets(object):
         :param: Hashable key
         :return:
         :rtype: np.ndarray
-
         """
         if loader_type in ['hdf5', 'h5']:
             file_path, key = file_path.split(':', 1)
