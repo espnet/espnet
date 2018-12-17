@@ -33,7 +33,8 @@ requirements = {
         'pytest-pythonpath>=0.7.1',
         'hacking>=1.1.0',
         'mock>=2.0.0',
-        'autopep8>=1.3.3'],
+        'autopep8>=1.3.3',
+        'jsondiff'],
     'doc': [
         'Sphinx==1.7.4',
         'sphinx-rtd-theme>=0.2.4',
