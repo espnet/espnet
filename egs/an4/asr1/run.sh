@@ -124,7 +124,7 @@ if [ ${stage} -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 100 data/${train_dev}
-    n=$[`cat data/train/text | wc -l` - 100]
+    n=$(($(cat data/train/text | wc -l) - 100))
     utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
     # compute global CMVN
@@ -155,13 +155,13 @@ if [ ${stage} -le 2 ]; then
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --filetype $(cat ${feat_tr_dir}/filetype) --feat ${feat_tr_dir}/feats.scp \
+    data2json.sh --filetype "$(cat ${feat_tr_dir}/filetype)" --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --filetype $(cat ${feat_dt_dir}/filetype) --feat ${feat_dt_dir}/feats.scp \
+    data2json.sh --filetype "$(cat ${feat_dt_dir}/filetype)" --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --filetype $(cat ${feat_recog_dir}/filetype) --feat ${feat_recog_dir}/feats.scp \
+        data2json.sh --filetype "$(cat ${feat_recog_dir}/filetype)" --feat ${feat_recog_dir}/feats.scp \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi

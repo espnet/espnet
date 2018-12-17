@@ -25,7 +25,7 @@ set -euo pipefail
 dir=$1
 dic=$2
 tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
-trap "rm -rf ${tmpdir}" EXIT
+trap 'rm -rf ${tmpdir}' EXIT
 
 rm -f ${tmpdir}/*/*.scp
 
