@@ -3,8 +3,8 @@ import importlib
 import subprocess
 
 import h5py
-import numpy as np
 import kaldi_io_py
+import numpy as np
 import pytest
 
 from espnet.utils.io import LoadInputsAndTargets
