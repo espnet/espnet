@@ -29,7 +29,7 @@ def lazy_scp_reader(file_or_fd):
 
 
 class PreProcessing(object):
-    """
+    """Apply some functions to the mini-batch
 
     Examples:
         >>> kwargs = {"process": [{"type": "fbank",
@@ -102,7 +102,7 @@ class PreProcessing(object):
         self.functions[key] = func
 
     def __call__(self, xs):
-        """
+        """Return new mini-batch
 
         :param List[np.ndarray] xs:
         :return: batch:
@@ -251,6 +251,7 @@ class LoadInputsAndTargets(object):
 
         if self.mode == 'asr':
             return_batch = self._create_batch_asr(x_feats_list, y_feats_list)
+
         elif self.mode == 'tts':
             eos = int(batch[0][1]['output'][0]['shape'][1]) - 1
             return_batch = self._create_batch_tts(x_feats_list, y_feats_list,
@@ -259,10 +260,19 @@ class LoadInputsAndTargets(object):
             raise NotImplementedError
 
         if self.preprocessing is not None:
-            # Apply pre-processing only for the first item, now
-            xs = return_batch[0]
-            xs = self.preprocessing(xs)
-            return (xs,) + return_batch[1:]
+            if self.mode == 'asr':
+                # Apply pre-processing only for the first item, now
+                xs = return_batch[0]
+                xs = self.preprocessing(xs)
+                return (xs,) + return_batch[1:]
+
+            elif self.mode == 'tts':
+                xs = return_batch[1]
+                xs = self.preprocessing(xs)
+                return return_batch[0:1] + (xs,) + return_batch[2:]
+
+            else:
+                raise NotImplementedError
         else:
             return return_batch
 
