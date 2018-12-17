@@ -72,7 +72,7 @@ sentencepiece.done:
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
-nara_wpe: venv
+nara_wpe: espnet.done
 	. venv/bin/activate; pip install git+https://github.com/fgnt/nara_wpe.git
 	. venv/bin/activate; pip install soundfile
 
