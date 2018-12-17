@@ -346,7 +346,9 @@ class LoadInputsAndTargets(object):
         return return_batch
 
     def _get_from_loader(self, file_path, loader_type):
-        """In order to make the fds to be opened only at the first referring,
+        """Return ndarray
+
+        In order to make the fds to be opened only at the first referring,
         the loader are stored in self._loaders
 
         :param: str file_path
