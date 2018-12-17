@@ -13,7 +13,6 @@ import copy
 import json
 import logging
 import numpy as np
-import os
 import six
 
 import chainer
@@ -35,6 +34,8 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
+
+from espnet.bin.bin_utils import set_deterministic_chainer
 
 REPORT_INTERVAL = 100
 
@@ -268,24 +269,7 @@ def train(args):
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
-    # seed setting (chainer seed may not need it)
-    nseed = args.seed
-    os.environ['CHAINER_SEED'] = str(nseed)
-    logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
-
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # remove type check
-    if args.debugmode < 2:
-        chainer.config.type_check = False
-        logging.info('chainer type check is disabled')
-    # use deterministic computation or not
-    if args.debugmode < 1:
-        chainer.config.cudnn_deterministic = False
-        logging.info('chainer cudnn deterministic is disabled')
-    else:
-        chainer.config.cudnn_deterministic = True
+    set_deterministic_chainer(args)
 
     # check cuda and cudnn availability
     if not chainer.cuda.available:
