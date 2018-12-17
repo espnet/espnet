@@ -20,7 +20,7 @@ filetype=hdf5  # The filetype of the feature: mat or hdf5
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp     # encoder architecture type
 elayers=4
@@ -124,7 +124,7 @@ if [ ${stage} -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 100 data/${train_dev}
-    n=$(($(< data/train/text wc -l) - 100))
+    n=$(($(wc -l < data/train/text) - 100))
     utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
     # compute global CMVN
