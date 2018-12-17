@@ -269,7 +269,7 @@ class LoadInputsAndTargets(object):
             elif self.mode == 'tts':
                 xs = return_batch[1]
                 xs = self.preprocessing(xs)
-                return return_batch[0:1] + (xs,) + return_batch[2:]
+                return (return_batch[0], xs) + return_batch[2:]
 
             else:
                 raise NotImplementedError
