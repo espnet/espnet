@@ -24,6 +24,8 @@ n_mels=80   # number of mel basis
 n_fft=1024  # number of fft points
 n_shift=256 # number of shift points
 win_length="" # window length
+filetype=hdf5  # The filetype of the feature: mat or hdf5
+
 # encoder related
 embed_dim=512
 elayers=1
@@ -73,6 +75,7 @@ griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 # root directory of db
 db_root=downloads
 
+
 # exp tag
 tag="" # tag for managing experiments.
 
@@ -101,9 +104,6 @@ if [ ${stage} -le 0 ]; then
     utils/validate_data_dir.sh --no-feats data/train
 fi
 
-feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
-feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
 if [ ${stage} -le 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -112,6 +112,7 @@ if [ ${stage} -le 1 ]; then
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
     make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+        --filetype ${filetype} \
         --fs ${fs} \
         --fmax "${fmax}" \
         --fmin "${fmin}" \
@@ -124,22 +125,23 @@ if [ ${stage} -le 1 ]; then
         ${fbankdir}
 
     # make a dev set
-    utils/subset_data_dir.sh --last data/train 500 data/deveval
-    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 250 data/${train_dev}
+    utils/subset_data_dir.sh --last data/train 500 data/deveval && cp -f data/train/filetype data/deveval
+    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set} && cp -f data/deveval/filetype data/${eval_set}
+    utils/subset_data_dir.sh --first data/deveval 250 data/${train_dev} && cp -f data/deveval/filetype data/${train_dev}
     n=$(( $(wc -l < data/train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --first data/train ${n} data/${train_set} && cp -f data/train/filetype data/${train_set}
 
     # compute global CMVN
-    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
+    compute-cmvn-stats.py --in-filetype $(cat data/${train_set}/filetype) scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
-    # dump features for training
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
-    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
+    cat > data/${train_set}/preprocess.json << EOF
+{"mode": "sequential",
+ "process": [{"type": "cmvn", "stats": "data/${train_set}/cmvn.ark", "norm_vars": true}]
+ }
+EOF
+    # Validate the json file
+    python -c "import json as j;j.load(open('data/${train_set}/preprocess.json'))"
+
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
@@ -154,12 +156,12 @@ if [ ${stage} -le 2 ]; then
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
-    data2json.sh --feat ${feat_ev_dir}/feats.scp \
-         data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
+    data2json.sh --filetype $(cat data/${train_set}/filetype) --feat data/${train_set}/feats.scp \
+         data/${train_set} ${dict} > data/${train_set}/data.json
+    data2json.sh --filetype $(cat data/${train_dev}/filetype) --feat data/${train_dev}/feats.scp \
+         data/${train_dev} ${dict} > data/${train_dev}/data.json
+    data2json.sh --filetype $(cat data/${eval_set}/filetype) --feat data/${eval_set}/feats.scp \
+         data/${eval_set} ${dict} > data/${eval_set}/data.json
 fi
 
 
@@ -201,8 +203,8 @@ else
 fi
 if [ ${stage} -le 3 ];then
     echo "stage 3: Text-to-speech model training"
-    tr_json=${feat_tr_dir}/data.json
-    dt_json=${feat_dt_dir}/data.json
+    tr_json=data/${train_set}/data.json
+    dt_json=data/${train_dev}/data.json
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         tts_train.py \
            --backend ${backend} \
@@ -214,6 +216,7 @@ if [ ${stage} -le 3 ];then
            --resume ${resume} \
            --train-json ${tr_json} \
            --valid-json ${dt_json} \
+           --preprocess-conf data/${train_set}/preprocess.json \
            --embed_dim ${embed_dim} \
            --elayers ${elayers} \
            --eunits ${eunits} \
