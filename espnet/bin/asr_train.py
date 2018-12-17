@@ -138,6 +138,8 @@ def main(args):
                         help='Batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n_iter_processes', default=0, type=int,
                         help='Number of processes of iterator')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam'],
