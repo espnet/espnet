@@ -159,9 +159,10 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, device, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, preprocess_conf=None):
         self.subsampling_factor = subsampling_factor
-        self.load_inputs_and_targets = LoadInputsAndTargets()
+        self.load_inputs_and_targets = LoadInputsAndTargets(
+            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
 
     def transform(self, item):
         return self.load_inputs_and_targets(item)
@@ -277,7 +278,8 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
-    converter = CustomConverter(model.subsample[0])
+    converter = CustomConverter(subsampling_factor=model.subsample[0],
+                                preprocess_conf=args.preprocess_conf)
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,

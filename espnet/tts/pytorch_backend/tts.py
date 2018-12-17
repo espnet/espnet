@@ -259,7 +259,9 @@ def train(args):
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(True, args.use_speaker_embedding, args.use_cbhg,
+    converter = CustomConverter(return_targets=True,
+                                use_speaker_embedding=args.use_speaker_embedding,
+                                use_second_target=args.use_cbhg,
                                 preprocess_conf=args.preprocess_conf)
 
     # read json data
@@ -324,7 +326,9 @@ def train(args):
             att_vis_fn = tacotron2.calculate_all_attentions
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + '/att_ws',
-            converter=CustomConverter(False, args.use_speaker_embedding),
+            converter=CustomConverter(return_targets=False,
+                                      use_speaker_embedding=args.use_speaker_embedding,
+                                      preprocess_conf=args.preprocess_conf),
             device=device, reverse=True), trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
