@@ -7,8 +7,8 @@ import h5py
 import kaldi_io_py
 import numpy as np
 
-from espnet.utils.cli_utils import read_hdf5_scp
 from espnet.utils.cli_utils import get_commandline_args
+from espnet.utils.cli_utils import read_hdf5_scp
 
 
 def main():
@@ -80,11 +80,13 @@ def main():
                     for utt in utts.split():
                         utt2spk_dict[utt] = spk
 
-            def utt2spk(x): return utt2spk_dict[x]
+            def utt2spk(x):
+                return utt2spk_dict[x]
         else:
             logging.info('Performing as utterance CMVN mode')
 
-            def utt2spk(x): return x
+            def utt2spk(x):
+                return x
 
         if args.out_filetype == 'npy':
             logging.warning('--out-filetype npy is allowed only for '
@@ -96,7 +98,8 @@ def main():
         if args.spk2utt is not None:
             logging.warning('spk2utt is not used for global CMVN mode')
 
-        def utt2spk(x): return None
+        def utt2spk(x):
+            return None
 
         if args.out_filetype == 'hdf5':
             logging.warning('--out-filetype hdf5 is not allowed for '

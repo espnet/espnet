@@ -30,4 +30,3 @@ def read_hdf5_scp(filepath):
                 hdf5_file = h5py.File(path, 'r')
                 hdf5_dict[path] = hdf5_file
             yield key, hdf5_file[h5_key].value
-
