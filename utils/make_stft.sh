@@ -9,8 +9,11 @@ fs=22050
 n_fft=1024
 n_shift=512
 win_length=
+window=hann
 write_utt2num_frames=true
 cmd=run.pl
+compress=true
+filetype=mat # mat or hdf5
 # End configuration section.
 
 echo "$0 $*"  # Print the command line for logging
@@ -26,6 +29,8 @@ if [ $# -lt 1 ] || [ $# -gt 3 ]; then
    echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
    exit 1;
 fi
+
+set -euo pipefail
 
 data=$1
 if [ $# -ge 2 ]; then
@@ -71,7 +76,10 @@ ${cmd} JOB=1:${nj} ${logdir}/make_stft_${name}.JOB.log \
         --win_length ${win_length} \
         --n_fft ${n_fft} \
         --n_shift ${n_shift} \
+        --window ${window} \
         --write_utt2num_frames ${write_utt2num_frames} \
+        --compress=${compress} \
+        --filetype ${filetype} \
         ${logdir}/wav.JOB.scp \
         ${fbankdir}/raw_stft_${name}.JOB
 
@@ -88,6 +96,9 @@ if ${write_utt2num_frames}; then
 fi
 
 rm ${logdir}/wav.*.scp 2>/dev/null
+
+# Write the filetype, this will be used for data2json.sh
+echo ${filetype} > ${data}/filetype
 
 nf=$(wc -l < ${data}/feats.scp)
 nu=$(wc -l < ${data}/wav.scp)
