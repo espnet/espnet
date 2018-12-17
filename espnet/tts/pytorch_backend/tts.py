@@ -259,7 +259,8 @@ def train(args):
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(True, args.use_speaker_embedding, args.use_cbhg)
+    converter = CustomConverter(True, args.use_speaker_embedding, args.use_cbhg,
+                                preprocess_conf=args.preprocess_conf)
 
     # read json data
     with open(args.train_json, 'rb') as f:
