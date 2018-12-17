@@ -10,7 +10,8 @@ lang=""
 feat="" # feat.scp
 oov="<unk>"
 bpecode=""
-verbose=0
+verbose=1
+filetype=""
 
 . utils/parse_options.sh
 
@@ -19,51 +20,77 @@ if [ $# != 2 ]; then
     exit 1;
 fi
 
+set -euo pipefail
+
 dir=$1
 dic=$2
 tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
-rm -f ${tmpdir}/*.scp
+trap "rm -rf ${tmpdir}" EXIT
 
-# input, which is not necessary for decoding mode, and make it as an option
+rm -f ${tmpdir}/*/*.scp
+
+
+# 1. Create scp files for inputs
+#   These are not necessary for decoding mode, and make it as an option
+mkdir -p ${tmpdir}/input
 if [ -n "${feat}" ]; then
-    if [ ${verbose} -eq 0 ]; then
-        utils/data/get_utt2num_frames.sh ${dir} &> /dev/null
-        cp ${dir}/utt2num_frames ${tmpdir}/ilen.scp
-        feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp &> /dev/null
+    cat ${feat} > ${tmpdir}/input/feat.scp
+
+    # Dump in the "new" style JSON format
+    if [ -n "${filetype}" ]; then
+        feat-to-shape.py --filetype $filetype scp:${feat} ${tmpdir}/input/shape.scp
+        awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
+            > ${tmpdir}/input/filetype.scp
+
+    # Dump in the "legacy" style JSON format
     else
-        utils/data/get_utt2num_frames.sh ${dir}
-        cp ${dir}/utt2num_frames ${tmpdir}/ilen.scp
-        feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp
+        feat-to-shape.py scp:${feat} ${tmpdir}/input/shape.scp
     fi
+
 fi
 
-# output
+
+# 2. Create scp files for outputs
+mkdir -p ${tmpdir}/output
 if [ -n "${bpecode}" ]; then
-    paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
+    paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text \
+        | spm_encode --model=${bpecode} --output_format=piece) \
+        > ${tmpdir}/output/token.scp
 elif [ -n "${nlsyms}" ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/output/token.scp
 else
-    text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/token.scp
+    text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/output/token.scp
 fi
-< ${tmpdir}/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid.scp
-< ${tmpdir}/tokenid.scp awk '{print $1 " " NF-1}' > ${tmpdir}/olen.scp
+< ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
 # +2 comes from CTC blank and EOS
 vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
-awk -v odim=${odim} '{print $1 " " odim}' ${dir}/text > ${tmpdir}/odim.scp
+< ${tmpdir}/output/tokenid.scp awk -v odim=${odim} '{print $1 " " NF-1 "," odim}' > ${tmpdir}/output/shape.scp
 
-# others
+cat ${dir}/text > ${tmpdir}/output/text.scp
+
+
+# 3. Create scp files for the others
+mkdir -p ${tmpdir}/other
 if [ -n "${lang}" ]; then
-    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/lang.scp
+    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/other/lang.scp
 fi
-# feats
-cat ${feat} > ${tmpdir}/feat.scp
+cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
 
-rm -f ${tmpdir}/*.json
-for x in ${dir}/text ${dir}/utt2spk "${tmpdir}"/*.scp; do
-    k=$(basename ${x} .scp)
-    < ${x} scp2json.py --key ${k} > ${tmpdir}/${k}.json
+
+# 4. Create JSON files from each scp files
+rm -f ${tmpdir}/*/*.json
+for intype in 'input' 'output' 'other'; do
+    for x in "${tmpdir}/${intype}"/*.scp; do
+        k=$(basename ${x} .scp)
+        < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
+    done
 done
-mergejson.py --verbose ${verbose} ${tmpdir}/*.json
+
+# 5. Merge JSON files into one and output to stdout
+mergejson.py --verbose ${verbose} \
+    --input-jsons ${tmpdir}/input/*.json \
+    --output-jsons ${tmpdir}/output/*.json \
+    --jsons ${tmpdir}/other/*.json
 
 rm -fr ${tmpdir}
