@@ -1,5 +1,4 @@
 from chainer.training.extension import Extension
-from torch import Tensor
 
 
 class TensorboardLogger(Extension):
