@@ -3,13 +3,12 @@ from torch import Tensor
 
 
 class TensorboardLogger(Extension):
-    """
-    A tensorboard logger extension
+    """A tensorboard logger extension
     """
 
     def __init__(self, logger, entries=None):
-        """
-        Init the extension
+        """Init the extension
+
         :param logger: The logger to use
         :param entries: The entries to watch
         """
@@ -17,10 +16,9 @@ class TensorboardLogger(Extension):
         self._logger = logger
 
     def __call__(self, trainer):
-        """
-        Updates the events file with the new values
+        """Updates the events file with the new values
+
         :param trainer: The trainer
-        :return:
         """
         observation = trainer.observation
         for k, v in observation.items():
