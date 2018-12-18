@@ -37,10 +37,10 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 
-from espnet.tensorboard_logger import TensorboardLogger
+from espnet.utils.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
-from espnet.bin.bin_utils import set_deterministic_pytorch
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
 
 REPORT_INTERVAL = 100
 

@@ -31,11 +31,11 @@ from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 
-from espnet.bin.bin_utils import set_deterministic_pytorch
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
 
 import matplotlib
 
-from espnet.tensorboard_logger import TensorboardLogger
+from espnet.utils.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')

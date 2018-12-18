@@ -48,10 +48,10 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 import matplotlib
 import numpy as np
 
-from espnet.tensorboard_logger import TensorboardLogger
+from espnet.utils.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
-from espnet.bin.bin_utils import set_deterministic_pytorch
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
 
 matplotlib.use('Agg')
 
