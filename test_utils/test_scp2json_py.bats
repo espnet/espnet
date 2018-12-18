@@ -14,10 +14,10 @@ EOF
     "utts": {
         "uttid1": {
             "text": "あ い う"
-        }, 
+        },
         "uttid2": {
             "text": "え お"
-        }, 
+        },
         "uttid3": {
             "text": "か き く け こ"
         }
@@ -30,7 +30,7 @@ teardown() {
     rm -rf $tmpdir
 }
 
-@test "" {
+@test "scp2json.py" {
     cat $tmpdir/test.scp | python $utils/scp2json.py --key text  > $tmpdir/out.json
     jsondiff $tmpdir/out.json $tmpdir/valid
 }

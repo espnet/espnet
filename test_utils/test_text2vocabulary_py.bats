@@ -26,7 +26,7 @@ teardown() {
     rm -rf $tmpdir
 }
 
-@test "" {
+@test "text2vocabulary.py" {
     python $utils/text2vocabulary.py $tmpdir/text > $tmpdir/vocab
     diff $tmpdir/vocab $tmpdir/valid
 }
