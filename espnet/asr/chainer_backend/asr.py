@@ -38,7 +38,7 @@ from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
 
-from espnet.bin.bin_utils import set_deterministic_chainer
+from espnet.utils.deterministic_utils import set_deterministic_chainer
 
 # for kaldi io
 import kaldi_io_py
@@ -51,7 +51,7 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 import matplotlib
 import numpy as np
 
-from espnet.tensorboard_logger import TensorboardLogger
+from espnet.utils.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')

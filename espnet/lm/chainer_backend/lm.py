@@ -35,10 +35,10 @@ from espnet.lm.lm_utils import read_tokens
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
-from espnet.tensorboard_logger import TensorboardLogger
+from espnet.utils.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
-from espnet.bin.bin_utils import set_deterministic_chainer
+from espnet.utils.deterministic_utils import set_deterministic_chainer
 
 REPORT_INTERVAL = 100
 
