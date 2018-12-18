@@ -78,8 +78,8 @@ class CMVN(object):
         else:
             spk = uttid
 
-        if self.norm_vars:
-            np.add(x, self.scale[spk], x, dtype=x.dtype)
         if self.norm_means:
-            np.multiply(x, self.bias[spk], x, dtype=x.dtype)
+            np.add(x, self.bias[spk], x, dtype=x.dtype)
+        if self.norm_vars:
+            np.multiply(x, self.scale[spk], x, dtype=x.dtype)
         return x
