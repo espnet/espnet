@@ -3,8 +3,7 @@ from torch import Tensor
 
 
 class TensorboardLogger(Extension):
-    """A tensorboard logger extension
-    """
+    """A tensorboard logger extension"""
 
     def __init__(self, logger, entries=None):
         """Init the extension
