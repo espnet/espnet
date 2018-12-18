@@ -185,7 +185,7 @@ class RNNLM(chainer.Chain):
                     xp = self.xp
                     with chainer.backends.cuda.get_device_from_id(self._device_id):
                         state['h'][n] = chainer.Variable(
-                            xp.zeros((h[n-1].shape[0], self.n_units), dtype=h[n-1].dtype))
+                            xp.zeros((h[n - 1].shape[0], self.n_units), dtype=h[n - 1].dtype))
                 h[n] = self.rnn[n](state['h'][n], F.dropout(h[n - 1]))
             state = {'h': h}
         y = self.lo(F.dropout(h[-1]))

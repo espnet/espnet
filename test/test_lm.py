@@ -6,7 +6,7 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 
 def transfer_gru(ch_gru, th_gru):
-    pass  # TODO
+    pass  # TODO(chainer_pytorch_expert)
 
 
 def transfer_lstm(ch_lstm, th_lstm):

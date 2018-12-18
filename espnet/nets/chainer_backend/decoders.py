@@ -62,7 +62,7 @@ class Decoder(chainer.Chain):
                     xp = self.xp
                     with chainer.backends.cuda.get_device_from_id(self._device_id):
                         z_prev[l] = chainer.Variable(
-                            xp.zeros((z_list[l-1].shape[0], self.dunits), dtype=z_list[l-1].dtype))
+                            xp.zeros((z_list[l - 1].shape[0], self.dunits), dtype=z_list[l - 1].dtype))
                 z_list[l] = self['rnn%d' % l](z_prev[l], z_list[l - 1])
         return z_list, c_list
 
