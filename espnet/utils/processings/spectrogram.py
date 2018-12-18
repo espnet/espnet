@@ -1,6 +1,5 @@
-import numpy as np
-
 import librosa
+import numpy as np
 
 
 def spectrogram(x, n_fft, n_shift,
