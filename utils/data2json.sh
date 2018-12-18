@@ -3,6 +3,7 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+echo "$0 $*" >&2 # Print the command line for logging
 . ./path.sh
 
 nlsyms=""
@@ -10,7 +11,7 @@ lang=""
 feat="" # feat.scp
 oov="<unk>"
 bpecode=""
-verbose=1
+verbose=0
 filetype=""
 
 . utils/parse_options.sh
@@ -38,13 +39,14 @@ if [ -n "${feat}" ]; then
 
     # Dump in the "new" style JSON format
     if [ -n "${filetype}" ]; then
-        feat-to-shape.py --filetype $filetype scp:${feat} ${tmpdir}/input/shape.scp
+        feat-to-shape.py --verbose ${verbose} --filetype $filetype \
+            scp:${feat} ${tmpdir}/input/shape.scp
         awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
             > ${tmpdir}/input/filetype.scp
 
     # Dump in the "legacy" style JSON format
     else
-        feat-to-shape.py scp:${feat} ${tmpdir}/input/shape.scp
+        feat-to-shape.py --verbose ${verbose} scp:${feat} ${tmpdir}/input/shape.scp
     fi
 
 fi
