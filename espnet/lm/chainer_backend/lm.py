@@ -155,6 +155,7 @@ class RNNLM(chainer.Chain):
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
         self.n_layers = n_layers
+        self.n_units = n_units
         self.typ = typ
 
     def __call__(self, state, x):
@@ -173,6 +174,17 @@ class RNNLM(chainer.Chain):
                 c[n], h[n] = self.rnn[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
             state = {'c': c, 'h': h}
         else:
+            if state['h'][0] is None:
+                xp = self.xp
+                with chainer.backends.cuda.get_device_from_id(self._device_id):
+                    state['h'][0] = chainer.Variable(
+                        xp.zeros((emb.shape[0], self.n_units), dtype=emb.dtype))
+            for l in six.moves.range(1, self.n_layers):
+                if state['h'][l] is None:
+                    xp = self.xp
+                    with chainer.backends.cuda.get_device_from_id(self._device_id):
+                        state['h'][l] = chainer.Variable(
+                            xp.zeros((h[l-1].shape[0], self.n_units), dtype=h[l-1].dtype))
             h[0] = self.rnn[0](state['h'][0], F.dropout(emb))
             for n in six.moves.range(1, self.n_layers):
                 h[n] = self.rnn[n](state['h'][n], F.dropout(h[n - 1]))
