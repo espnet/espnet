@@ -244,6 +244,7 @@ if [ -z ${tag} ]; then
 else
     expdir=exp/${train_set}_${backend}_${tag}
 fi
+expdir=exp${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
