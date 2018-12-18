@@ -24,5 +24,4 @@ class TensorboardLogger(Extension):
             if (self._entries is not None) and (k not in self._entries):
                 continue
             if k is not None and v is not None:
-                v = Tensor([v])  # Not sure if needed
                 self._logger.add_scalar(k, v, trainer.updater.iteration)
