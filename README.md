@@ -188,6 +188,10 @@ When using multiple GPUs, if the training freezes or lower performance than expe
 Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
 To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
 
+### Tensorboard logging
+
+Tensorboard events are automatically logged in the `tensorboard/${expname}` folder. You can therefore easily compare several experiments by using `tensorboard --logdir tensorboard` and connecting to the given address (default : localhost:6006).
+
 ### Docker Container
 
 go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
