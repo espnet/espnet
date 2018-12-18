@@ -16,13 +16,13 @@ EOF
     "utts": {
         "uttid1": [
             {
-                "feat": "aaa.ark:123", 
+                "feat": "aaa.ark:123",
                 "text": "あ い"
             }
-        ], 
+        ],
         "uttid2": [
             {
-                "feat": "aaa.ark:456", 
+                "feat": "aaa.ark:456",
                 "text": "か き"
             }
         ]
@@ -36,7 +36,7 @@ teardown() {
     rm -rf $tmpdir
 }
 
-@test "" {
+@test "concatjson.py" {
     python $utils/concatjson.py $tmpdir/*.json > $tmpdir/out.json
     jsondiff $tmpdir/out.json $tmpdir/valid
 }

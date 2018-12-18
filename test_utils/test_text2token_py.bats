@@ -20,7 +20,7 @@ teardown() {
     rm -rf $tmpdir
 }
 
-@test "" {
+@test "text2token.py" {
     python $utils/text2token.py $tmpdir/text > $tmpdir/vocab
     diff $tmpdir/vocab $tmpdir/valid
 }

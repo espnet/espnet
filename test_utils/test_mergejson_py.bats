@@ -76,7 +76,7 @@ teardown() {
     rm -rf $tmpdir
 }
 
-@test "" {
+@test "mergejson.py" {
     python $utils/mergejson.py --input-jsons $tmpdir/input/*.json --output-jsons $tmpdir/output/*.json --jsons $tmpdir/other/*.json > $tmpdir/out.json
     jsondiff $tmpdir/out.json $tmpdir/valid
 }
