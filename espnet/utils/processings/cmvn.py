@@ -54,9 +54,12 @@ class CMVN(object):
             assert len(stats) == 2, stats.shape
 
             count = stats[0, -1]
+
+            # If the feature has two or more dimensions
             if not (np.isscalar(count) or isinstance(count, (int, float))):
                 # The first is only used
                 count = count.flattten()[0]
+
             mean = stats[0, :-1] / count
             # V(x) = E(x^2) - (E(x))^2
             var = stats[1, :-1] / count - mean * mean
