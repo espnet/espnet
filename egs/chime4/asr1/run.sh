@@ -252,7 +252,7 @@ if [ ${stage} -le 3 ]; then
 		--backend ${backend} \
 		--verbose 1 \
 		--outdir ${lmexpdir} \
-        --tensorboard-dir tensorboard/${lmexpname} \
+		--tensorboard-dir tensorboard/${lmexpname} \
 		--train-label ${lmdatadir}/train.txt \
 		--valid-label ${lmdatadir}/valid.txt \
                 --resume ${lm_resume} \
