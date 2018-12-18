@@ -179,14 +179,13 @@ class RNNLM(chainer.Chain):
                 with chainer.backends.cuda.get_device_from_id(self._device_id):
                     state['h'][0] = chainer.Variable(
                         xp.zeros((emb.shape[0], self.n_units), dtype=emb.dtype))
-            for l in six.moves.range(1, self.n_layers):
-                if state['h'][l] is None:
-                    xp = self.xp
-                    with chainer.backends.cuda.get_device_from_id(self._device_id):
-                        state['h'][l] = chainer.Variable(
-                            xp.zeros((h[l-1].shape[0], self.n_units), dtype=h[l-1].dtype))
             h[0] = self.rnn[0](state['h'][0], F.dropout(emb))
             for n in six.moves.range(1, self.n_layers):
+                if state['h'][n] is None:
+                    xp = self.xp
+                    with chainer.backends.cuda.get_device_from_id(self._device_id):
+                        state['h'][n] = chainer.Variable(
+                            xp.zeros((h[n-1].shape[0], self.n_units), dtype=h[n-1].dtype))
                 h[n] = self.rnn[n](state['h'][n], F.dropout(h[n - 1]))
             state = {'h': h}
         y = self.lo(F.dropout(h[-1]))
