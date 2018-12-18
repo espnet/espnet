@@ -1,4 +1,4 @@
-from tools.kaldi.tools.nara_wpe.nara_wpe.wpe import wpe
+from nara_wpe.wpe import wpe
 
 
 class WPE(object):
