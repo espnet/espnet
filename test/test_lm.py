@@ -6,10 +6,7 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 
 def transfer_gru(ch_gru, th_gru):
-    ch_gru.U.W.data[:] = 1
-    th_gru.weight_ih.data[:] = torch.from_numpy(ch_gru.U.W.data)
-    ch_gru.U.b.data[:] = 1
-    th_gru.bias_hh.data[:] = torch.from_numpy(ch_gru.U.b.data)
+    pass  # TODO
 
 
 def transfer_lstm(ch_lstm, th_lstm):
