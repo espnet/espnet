@@ -17,6 +17,7 @@ import chainer
 from chainer import training
 from chainer.serializers.npz import DictionarySerializer
 from chainer.serializers.npz import NpzDeserializer
+
 from chainer.training import extension
 
 # io related
