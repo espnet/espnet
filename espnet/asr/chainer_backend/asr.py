@@ -369,9 +369,10 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=gpu_id), trigger=(1, 'epoch'))
+            converter=converter, device=gpu_id)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
@@ -429,7 +430,7 @@ def train(args):
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer))
+        trainer.extend(TensorboardLogger(writer, att_reporter))
 
     # Run the training
     trainer.run()
