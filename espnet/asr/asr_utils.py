@@ -187,6 +187,7 @@ class PlotAttentionReport(extension.Extension):
         att_ws = self.get_attention_weights()
         num_rows = len(att_ws)
         num_cols = max([len(att_w) for att_w in att_ws])
+        print("Num rows : " + str(num_rows) + " ; " + str(num_cols))
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
             plot = self.draw_attention_plot(att_w, num_rows, num_cols, idx + 1)
@@ -222,6 +223,9 @@ class PlotAttentionReport(extension.Extension):
                 plt.xlabel("Encoder Index")
                 plt.ylabel("Decoder Index")
         else:
+            print("rows : " + str(num_rows) + " cols : " + str(num_cols) + " idx : " + str(
+                idx))
+            plt.subplot(num_rows, num_cols, idx)
             plt.imshow(att_w, aspect="auto")
             plt.xlabel("Encoder Index")
             plt.ylabel("Decoder Index")
