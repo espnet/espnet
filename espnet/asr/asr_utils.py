@@ -185,18 +185,12 @@ class PlotAttentionReport(extension.Extension):
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
     def get_figure(self):
-        import matplotlib.pyplot as plt
         att_ws = self.get_attention_weights()
-        fig = plt.gcf()
-        num_plots = len(att_ws)
-        num_rows = math.ceil(num_plots / 4.0)
-        fig.subplots(num_rows, 4)
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
-            plt.subplot(num_rows, 4, idx + 1)
-            plot = self.get_attention_plot(att_w)
+            plot = self.draw_attention_plot(att_w, idx+1)
             plot.show()
-        return fig
+        return plot.gcf()
 
     def get_attention_weights(self):
         batch = self.converter([self.converter.transform(self.data)], self.device)
@@ -216,11 +210,11 @@ class PlotAttentionReport(extension.Extension):
             att_w = att_w[:dec_len, :enc_len]
         return att_w
 
-    def get_attention_plot(self, att_w):
+    def draw_attention_plot(self, att_w, row_idx=1):
         import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
-                plt.subplot(1, len(att_w), h)
+                plt.subplot(row_idx, len(att_w), h)
                 plt.imshow(aw, aspect="auto")
                 plt.xlabel("Encoder Index")
                 plt.ylabel("Decoder Index")
@@ -233,7 +227,7 @@ class PlotAttentionReport(extension.Extension):
 
     def _plot_and_save_attention(self, att_w, filename):
         # dynamically import matplotlib due to not found error
-        plt = self.get_attention_plot(att_w)
+        plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
 
