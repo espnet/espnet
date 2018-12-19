@@ -228,7 +228,6 @@ class PlotAttentionReport(extension.Extension):
         return plt
 
     def _plot_and_save_attention(self, att_w, filename):
-        # dynamically import matplotlib due to not found error
         plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()

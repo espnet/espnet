@@ -8,7 +8,9 @@ class TensorboardLogger(Extension):
         """Init the extension
 
         :param SummaryWriter logger: The logger to use
+        :param PlotAttentionReporter att_reporter: The (optional) PlotAttentionReporter
         :param entries: The entries to watch
+        :param int epoch: The starting epoch
         """
         self._entries = entries
         self._att_reporter = att_reporter
