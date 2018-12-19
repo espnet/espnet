@@ -6,26 +6,23 @@
 import copy
 import json
 import logging
+# matplotlib related
+import math
 import os
 import shutil
 import tempfile
 
-import numpy as np
-import torch
-
 # chainer related
 import chainer
-
-from chainer.serializers.npz import DictionarySerializer
-from chainer.serializers.npz import NpzDeserializer
-from chainer import training
-from chainer.training import extension
-
 # io related
 import kaldi_io_py
-
-# matplotlib related
 import matplotlib
+import numpy as np
+import torch
+from chainer import training
+from chainer.serializers.npz import DictionarySerializer
+from chainer.serializers.npz import NpzDeserializer
+from chainer.training import extension
 
 matplotlib.use('Agg')
 
@@ -180,25 +177,45 @@ class PlotAttentionReport(extension.Extension):
             os.makedirs(self.outdir)
 
     def __call__(self, trainer):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
-        att_ws = self.att_vis_fn(*batch)
+        att_ws = self.get_attention_weights()
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])
-            if self.reverse:
-                dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
-                enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
-            else:
-                dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
-                enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
-            if len(att_w.shape) == 3:
-                att_w = att_w[:, :dec_len, :enc_len]
-            else:
-                att_w = att_w[:dec_len, :enc_len]
+            att_w = self.get_attention_weight(idx, att_w)
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
-    def _plot_and_save_attention(self, att_w, filename):
-        # dynamically import matplotlib due to not found error
+    def get_figure(self):
+        import matplotlib.pyplot as plt
+        att_ws = self.get_attention_weights()
+        fig = plt.gcf()
+        num_plots = len(att_ws)
+        num_rows = math.ceil(num_plots / 4.0)
+        for idx, att_w in enumerate(att_ws):
+            att_w = self.get_attention_weight(idx, att_w)
+            fig.subplots(num_rows, 4, idx + 1)
+            plot = self.get_attention_plot(att_w)
+            plot.show()
+        return fig
+
+    def get_attention_weights(self):
+        batch = self.converter([self.converter.transform(self.data)], self.device)
+        att_ws = self.att_vis_fn(*batch)
+        return att_ws
+
+    def get_attention_weight(self, idx, att_w):
+        if self.reverse:
+            dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
+            enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
+        else:
+            dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
+            enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
+        if len(att_w.shape) == 3:
+            att_w = att_w[:, :dec_len, :enc_len]
+        else:
+            att_w = att_w[:dec_len, :enc_len]
+        return att_w
+
+    def get_attention_plot(self, att_w):
         import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
@@ -211,6 +228,11 @@ class PlotAttentionReport(extension.Extension):
             plt.xlabel("Encoder Index")
             plt.ylabel("Decoder Index")
         plt.tight_layout()
+        return plt
+
+    def _plot_and_save_attention(self, att_w, filename):
+        # dynamically import matplotlib due to not found error
+        plt = self.get_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
 
