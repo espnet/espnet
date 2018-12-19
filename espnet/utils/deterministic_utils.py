@@ -6,6 +6,10 @@ import torch
 
 
 def set_deterministic_pytorch(args):
+    """Ensures pytorch produces deterministic results depending on the program arguments
+
+    :param Namespace args: The program arguments
+    """
     # seed setting
     torch.manual_seed(args.seed)
 
@@ -26,6 +30,10 @@ def set_deterministic_pytorch(args):
 
 
 def set_deterministic_chainer(args):
+    """Ensures chainer produces deterministic results depending on the program arguments
+
+    :param Namespace args: The program arguments
+    """
     # seed setting (chainer seed may not need it)
     os.environ['CHAINER_SEED'] = str(args.seed)
     logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])

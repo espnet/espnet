@@ -37,7 +37,10 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 
-from espnet.bin.bin_utils import set_deterministic_pytorch
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
 
 REPORT_INTERVAL = 100
 
@@ -386,6 +389,10 @@ def train(args):
     if args.resume:
         logging.info('resumed from %s' % args.resume)
         torch_resume(args.resume, trainer)
+
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer))
 
     trainer.run()
 
