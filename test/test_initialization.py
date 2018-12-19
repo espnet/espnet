@@ -26,6 +26,7 @@ args = argparse.Namespace(
     mtlalpha=0.5,
     lsm_type="",
     lsm_weight=0.0,
+    sampling_probability=0.0,
     adim=320,
     dropout_rate=0.0,
     beam_size=3,
@@ -47,7 +48,7 @@ def test_lecun_init_torch():
     torch.manual_seed(nseed)
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
-    import e2e_asr_attctc_th as m
+    import espnet.nets.e2e_asr_th as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.bias.data.numpy()
     assert numpy.all(b == 0.0)
@@ -78,7 +79,7 @@ def test_lecun_init_chainer():
     random.seed(nseed)
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
-    import e2e_asr_attctc as m
+    import espnet.nets.e2e_asr as m
     model = m.Loss(m.E2E(40, 5, args), 0.5)
     b = model.predictor.ctc.ctc_lo.b.data
     assert numpy.all(b == 0.0)
