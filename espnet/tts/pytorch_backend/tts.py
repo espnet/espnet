@@ -31,7 +31,12 @@ from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
+
 import matplotlib
+
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
@@ -194,15 +199,7 @@ def train(args):
 
     :param Namespace args: The program arguments
     """
-    # seed setting
-    torch.manual_seed(args.seed)
-
-    # use deterministic computation or not
-    if args.debugmode < 1:
-        torch.backends.cudnn.deterministic = False
-        logging.info('torch cudnn deterministic is disabled')
-    else:
-        torch.backends.cudnn.deterministic = True
+    set_deterministic_pytorch(args)
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -326,10 +323,13 @@ def train(args):
             att_vis_fn = tacotron2.module.calculate_all_attentions
         else:
             att_vis_fn = tacotron2.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + '/att_ws',
             converter=CustomConverter(False, args.use_speaker_embedding),
-            device=device, reverse=True), trigger=(1, 'epoch'))
+            device=device, reverse=True)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     plot_keys = ['main/loss', 'validation/main/loss',
@@ -362,6 +362,10 @@ def train(args):
         trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
                                                                               patients=args.patience,
                                                                               max_trigger=(args.epochs, 'epoch'))
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
+
     # Run the training
     trainer.run()
 
@@ -371,6 +375,7 @@ def decode(args):
 
     :param Namespace args: The program arguments
     """
+    set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 

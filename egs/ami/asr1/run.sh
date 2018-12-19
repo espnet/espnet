@@ -53,6 +53,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=15
+patience=10
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
@@ -62,6 +63,7 @@ lm_units=1000       # 650 for character LMs
 lm_opt=sgd          # adam for character LMs
 lm_batchsize=64    # 1024 for character LMs
 lm_epochs=20        # number of epochs
+lm_patience=10
 lm_maxlen=40        # 150 for character LMs
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
@@ -235,7 +237,8 @@ if [ -z ${lmtag} ]; then
         lmtag=${lmtag}_word${lm_vocabsize}
     fi
 fi
-lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
+lmexpname=train_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
 if [[ ${stage} -le 3 && ${use_lm} == true ]]; then
@@ -269,6 +272,7 @@ if [[ ${stage} -le 3 && ${use_lm} == true ]]; then
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --test-label ${lmdatadir}/test.txt \
@@ -278,21 +282,23 @@ if [[ ${stage} -le 3 && ${use_lm} == true ]]; then
         --opt ${lm_opt} \
         --batchsize ${lm_batchsize} \
         --epoch ${lm_epochs} \
+        --patience ${lm_patience} \
         --maxlen ${lm_maxlen} \
         --dict ${lmdict}
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
-        expdir=${expdir}_lsm${lsm_type}${lsm_weight}
+        expname=${expname}_lsm${lsm_type}${lsm_weight}
     fi
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
@@ -303,6 +309,7 @@ if [ ${stage} -le 4 ]; then
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -333,7 +340,8 @@ if [ ${stage} -le 4 ]; then
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --patience ${patience}
 fi
 
 if [ ${stage} -le 5 ]; then
