@@ -125,10 +125,23 @@ class PreProcessing(object):
 
 
 class LoadInputsAndTargets(object):
+    """Create a mini-batch from a list of dicts
+
+    :param: str mode: Specify the task mode, "asr" or "tts"
+    :param: str preproces_conf: The path of a json file for pre-processing
+    :param: bool load_input: If False, not to load the input data
+    :param: bool load_output: If False, not to load the output data
+    :param: bool sort_in_input_length: Sort the mini-batch in descending order
+        of the input length
+    :param: bool use_speaker_embedding: Used for tts mode only
+    :param: bool use_second_target: Used for tts mode only
+
+    """
     def __init__(self, mode='asr',
                  preprocess_conf=None,
                  load_input=True,
                  load_output=True,
+                 sort_in_input_length=True,
                  use_speaker_embedding=False,
                  use_second_target=False
                  ):
@@ -136,7 +149,6 @@ class LoadInputsAndTargets(object):
         if mode not in ['asr', 'tts']:
             raise ValueError(
                 'Only asr or tts are allowed: mode={}'.format(mode))
-        self.mode = mode
         if preprocess_conf is not None:
             with io.open(preprocess_conf, encoding='utf-8') as f:
                 conf = json.load(f)
@@ -149,8 +161,6 @@ class LoadInputsAndTargets(object):
         else:
             # If conf doesn't exist, this function don't touch anything.
             self.preprocessing = None
-        self.load_output = load_output
-        self.load_input = load_input
 
         if use_second_target and use_speaker_embedding and mode == 'tts':
             raise ValueError('Choose one of "use_second_target" and '
@@ -160,6 +170,10 @@ class LoadInputsAndTargets(object):
                 '"use_second_target" and "use_speaker_embedding" is '
                 'used only for tts mode')
 
+        self.mode = mode
+        self.load_output = load_output
+        self.load_input = load_input
+        self.sort_in_input_length = sort_in_input_length
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
 
@@ -178,15 +192,16 @@ class LoadInputsAndTargets(object):
         x_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         y_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
 
-        for uttid, info in batch:
-            keys = []
-            if self.load_input:
-                keys.append('input')
-            if self.load_output:
-                keys.append('output')
+        keys = []
+        if self.load_input:
+            keys.append('input')
+        if self.load_output:
+            keys.append('output')
 
-            for key in keys:
+        for key in keys:
+            for uttid, info in batch:
                 for idx, inp in enumerate(info[key]):
+
                     if 'tokenid' in inp:
                         # ======= Legacy format for output =======
                         # {"output": [{"tokenid": "1 2 3 4"}])
@@ -274,8 +289,11 @@ class LoadInputsAndTargets(object):
         else:
             nonzero_idx = range(len(xs))
 
-        # sort in input lengths
-        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        if self.sort_in_input_length:
+            # sort in input lengths
+            nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        else:
+            nonzero_sorted_idx = nonzero_idx
 
         if len(nonzero_sorted_idx) != len(xs):
             logging.warning(
@@ -308,7 +326,11 @@ class LoadInputsAndTargets(object):
         # get index of non-zero length samples
         nonzero_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
         # sort in input lengths
-        nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        if self.sort_in_input_length:
+            # sort in input lengths
+            nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        else:
+            nonzero_sorted_idx = nonzero_idx
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
         # Added eos into input sequence
@@ -362,9 +384,8 @@ class LoadInputsAndTargets(object):
         In order to make the fds to be opened only at the first referring,
         the loader are stored in self._loaders
 
-        :param: str file_path
-        :param: str loader_type
-        :param: Hashable key
+        :param: str file_path:
+        :param: str loader_type:
         :return:
         :rtype: np.ndarray
         """
