@@ -46,7 +46,7 @@ class CMVN(object):
 
         # Kaldi makes a matrix for CMVN which has a shape of (2, feat_dim + 1),
         # and the first vector contains the sum of feats and the second is
-        # the sum of squares. The last value of the first, i.e. stats[0,1],
+        # the sum of squares. The last value of the first, i.e. stats[0,-1],
         # is the number of samples for this statistics.
         self.bias = {}
         self.scale = {}
