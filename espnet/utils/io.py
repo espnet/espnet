@@ -2,6 +2,7 @@ import copy
 import io
 import json
 import logging
+from collections import OrderedDict
 
 import h5py
 import kaldi_io_py
@@ -60,7 +61,7 @@ class PreProcessing(object):
 
     def __repr__(self):
         rep = '\n' + '\n'.join(
-            '{}: {}'.format(k, v) for k, v in self.functions.items()) + '\n'
+            '    {}: {}'.format(k, v) for k, v in self.functions.items())
         return '{}({})'.format(self.__class__.__name__, rep)
 
     def _config(self):
@@ -143,7 +144,8 @@ class LoadInputsAndTargets(object):
                 self.preprocessing = PreProcessing(**conf)
             logging.warning(
                 '[Experimental feature] Some pre-processings will be done '
-                'for the mini-batch creation using {}'.format(preprocess_conf))
+                'for the mini-batch creation using {}'
+                .format(self.preprocessing))
         else:
             # If conf doesn't exist, this function don't touch anything.
             self.preprocessing = None
@@ -173,19 +175,10 @@ class LoadInputsAndTargets(object):
         :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
         :rtype: list of int ndarray
         """
-        x_feats_list = []
-        y_feats_list = []
-
-        # Now "name" is never used, but getting them for the future extending
-        x_names_list = []
-        y_names_list = []
+        x_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
+        y_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
 
         for uttid, info in batch:
-            x_feats = []
-            y_feats = []
-            x_names = []
-            y_names = []
-
             keys = []
             if self.load_input:
                 keys.append('input')
@@ -205,6 +198,7 @@ class LoadInputsAndTargets(object):
                         # ======= Legacy format for input =======
                         # {"input": [{"feat": "some/path.ark:123"}]),
 
+                        # FIXME(kamo): Ad-hoc
                         if idx == 1 and self.mode == 'tts' \
                                 and self.use_speaker_embedding:
                             x = kaldi_io_py.read_vec_flt(inp['feat'])
@@ -221,12 +215,10 @@ class LoadInputsAndTargets(object):
                             file_path=inp['feat'], loader_type=inp['filetype'])
 
                     if key == 'input':
-                        x_feats.append(x)
-                        x_names.append(inp['name'])
+                        x_feats_dict.setdefault(inp['name'], []).append(x)
 
                     elif key == 'output':
-                        y_feats.append(x)
-                        y_names.append(inp['name'])
+                        y_feats_dict.setdefault(inp['name'], []).append(x)
 
                 # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
                 if not self.load_input and \
@@ -241,39 +233,40 @@ class LoadInputsAndTargets(object):
                                 x = self._get_from_loader(
                                     file_path=inp['feat'],
                                     loader_type=inp['filetype'])
-                        x_feats.append(x)
-                        x_names.append(inp['name'])
-
-            x_feats_list.append(x_feats)
-            y_feats_list.append(y_feats)
-            x_names_list.append(x_names)
-            y_names_list.append(y_names)
+                        x_feats_dict.setdefault(inp['name'], []).append(x)
 
         if self.mode == 'asr':
-            return_batch = self._create_batch_asr(x_feats_list, y_feats_list)
+            return_batch = self._create_batch_asr(x_feats_dict, y_feats_dict)
 
         elif self.mode == 'tts':
             eos = int(batch[0][1]['output'][0]['shape'][1]) - 1
-            return_batch = self._create_batch_tts(x_feats_list, y_feats_list,
+            return_batch = self._create_batch_tts(x_feats_dict, y_feats_dict,
                                                   eos)
         else:
             raise NotImplementedError
 
         if self.preprocessing is not None:
-            # Apply pre-processing only for the first item, now
-            xs = return_batch[0]
-            xs = self.preprocessing(xs)
-            return (xs,) + return_batch[1:]
-        else:
-            return return_batch
+            # Apply pre-processing only for input1 feature, now
+            if 'input1' in return_batch:
+                return_batch['input1'] = \
+                    self.preprocessing(return_batch['input1'])
 
-    def _create_batch_asr(self, x_feats_list, y_feats_list):
+        return tuple(return_batch.values())
+
+    def _create_batch_asr(self, x_feats_dict, y_feats_dict):
+        """
+
+        :param OrderedDict x_feats_dict:
+        :param OrderedDict y_feats_dict:
+        :return:
+        :rtype: OrderedDict
+        """
         # Create a list from the first item
-        xs = [x_list[0] for x_list in x_feats_list]
+        xs = list(x_feats_dict.values())[0]
 
         # Assuming the names are common in the mini-batch
         if self.load_output:
-            ys = [y_list[0] for y_list in y_feats_list]
+            ys = list(y_feats_dict.values())[0]
             assert len(xs) == len(ys), (len(xs), len(ys))
 
             # get index of non-zero length samples
@@ -291,16 +284,27 @@ class LoadInputsAndTargets(object):
 
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
+        x_name = list(x_feats_dict.keys())[0]
         if self.load_output:
             ys = [ys[i] for i in nonzero_sorted_idx]
-            return_batch = (xs, ys)
+            y_name = list(y_feats_dict.keys())[0]
+
+            return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
         else:
-            return_batch = (xs,)
+            return_batch = OrderedDict([(x_name, xs)])
         return return_batch
 
-    def _create_batch_tts(self, x_feats_list, y_feats_list, eos):
+    def _create_batch_tts(self, x_feats_dict, y_feats_dict, eos):
+        """
+
+        :param OrderedDict x_feats_dict:
+        :param OrderedDict y_feats_dict:
+        :param int eos:
+        :return:
+        :rtype: OrderedDict
+        """
         # Use the output values as the input feats for tts mode
-        xs = [y_list[0] for y_list in y_feats_list]
+        xs = list(y_feats_dict.values())[0]
         # get index of non-zero length samples
         nonzero_idx = filter(lambda i: len(xs[i]) > 0, range(len(xs)))
         # sort in input lengths
@@ -311,29 +315,45 @@ class LoadInputsAndTargets(object):
         xs = [np.append(x, eos) for x in xs]
 
         if self.load_input:
-            ys = [y_list[0] for y_list in x_feats_list]
+            ys = list(x_feats_dict.values())[0]
             assert len(xs) == len(ys), (len(xs), len(ys))
             ys = [ys[i] for i in nonzero_sorted_idx]
 
             spembs = None
             spcs = None
+            spembs_name = 'spembs_none'
+            spcs_name = 'spcs_none'
 
             if self.use_second_target:
-                spcs = [x_list[1] for x_list in x_feats_list]
+                spcs = list(x_feats_dict.values())[1]
                 spcs = [spcs[i] for i in nonzero_sorted_idx]
+                spcs_name = list(x_feats_dict.keys())[1]
 
             if self.use_speaker_embedding:
-                spembs = [x_list[1] for x_list in x_feats_list]
+                spembs = list(x_feats_dict.values())[1]
                 spembs = [spembs[i] for i in nonzero_sorted_idx]
-            return_batch = (xs, ys, spembs, spcs)
+                spembs_name = list(x_feats_dict.keys())[1]
 
+            x_name = list(y_feats_dict.keys())[0]
+            y_name = list(x_feats_dict.keys())[0]
+
+            return_batch = OrderedDict([(x_name, xs),
+                                        (y_name, ys),
+                                        (spembs_name, spembs),
+                                        (spcs_name, spcs)])
         elif self.use_speaker_embedding:
-            spembs = [x_list[1] for x_list in x_feats_list]
+            spembs = list(x_feats_dict.values())[1]
             spembs = [spembs[i] for i in nonzero_sorted_idx]
-            return_batch = (xs, spembs)
 
+            x_name = list(y_feats_dict.keys())[0]
+            spembs_name = list(x_feats_dict.keys())[1]
+
+            return_batch = OrderedDict([(x_name, xs),
+                                        (spembs_name, spembs)])
         else:
-            return_batch = (xs,)
+            x_name = list(y_feats_dict.keys())[0]
+
+            return_batch = OrderedDict([(x_name, xs)])
         return return_batch
 
     def _get_from_loader(self, file_path, loader_type):
@@ -373,9 +393,9 @@ class LoadInputsAndTargets(object):
             #    {"input": [{"feat": "some/path.npy",
             #                "filetype": "npy"},
             return np.load(file_path)
-        elif loader_type == 'ark':
+        elif loader_type == 'mat':
             #    {"input": [{"feat": "some/path.ark:123",
-            #                "filetype": "ark"}]},
+            #                "filetype": "mat"}]},
             return kaldi_io_py.read_mat(file_path)
         elif loader_type == 'vec':
             #    {"input": [{"feat": "some/path.ark:123",
