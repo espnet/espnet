@@ -15,10 +15,11 @@ import tempfile
 import chainer
 
 from chainer import training
+from chainer.training import extension
+
 from chainer.serializers.npz import DictionarySerializer
 from chainer.serializers.npz import NpzDeserializer
 
-from chainer.training import extension
 
 # io related
 import kaldi_io_py
