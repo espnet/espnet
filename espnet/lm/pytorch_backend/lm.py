@@ -38,6 +38,11 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
+
 REPORT_INTERVAL = 100
 
 
@@ -307,20 +312,7 @@ def train(args):
     # display torch version
     logging.info('torch version = ' + torch.__version__)
 
-    # seed setting
-    nseed = args.seed
-    torch.manual_seed(nseed)
-    logging.info('torch seed = ' + str(nseed))
-
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # use deterministic computation or not
-    if args.debugmode < 1:
-        torch.backends.cudnn.deterministic = False
-        logging.info('torch cudnn deterministic is disabled')
-    else:
-        torch.backends.cudnn.deterministic = True
+    set_deterministic_pytorch(args)
 
     # check cuda and cudnn availability
     if not torch.cuda.is_available():
@@ -403,6 +395,10 @@ def train(args):
         trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
                                                                               patients=args.patience,
                                                                               max_trigger=(args.epochs, 'epoch'))
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer))
+
     trainer.run()
 
     # compute perplexity for test set

@@ -48,6 +48,11 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 import matplotlib
 import numpy as np
 
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
+
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
@@ -196,22 +201,7 @@ def train(args):
 
     :param Namespace args: The program arguments
     """
-    # seed setting
-    torch.manual_seed(args.seed)
-
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # remove type check
-    if args.debugmode < 2:
-        chainer.config.type_check = False
-        logging.info('torch type check is disabled')
-    # use deterministic computation or not
-    if args.debugmode < 1:
-        torch.backends.cudnn.deterministic = False
-        logging.info('torch cudnn deterministic is disabled')
-    else:
-        torch.backends.cudnn.deterministic = True
+    set_deterministic_pytorch(args)
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -338,9 +328,12 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=device), trigger=(1, 'epoch'))
+            converter=converter, device=device)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -404,6 +397,9 @@ def train(args):
                                                                               patients=args.patience,
                                                                               max_trigger=(args.epochs, 'epoch'))
 
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
     # Run the training
     trainer.run()
 
@@ -413,9 +409,7 @@ def recog(args):
 
     :param Namespace args: The program arguments
     """
-    # seed setting
-    torch.manual_seed(args.seed)
-
+    set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
