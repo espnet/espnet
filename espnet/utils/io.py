@@ -1,8 +1,8 @@
+from collections import OrderedDict
 import copy
 import io
 import json
 import logging
-from collections import OrderedDict
 
 import h5py
 import kaldi_io_py
