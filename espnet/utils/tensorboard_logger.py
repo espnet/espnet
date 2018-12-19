@@ -26,9 +26,6 @@ class TensorboardLogger(Extension):
                 continue
             if k is not None and v is not None:
                 self._logger.add_scalar(k, v, trainer.updater.iteration)
-        print("Epoch : "+str(trainer.updater.get_iterator('main').epoch))
         if self._att_reporter is not None and trainer.updater.get_iterator('main').epoch > self._epoch:
             self._epoch = trainer.updater.get_iterator('main').epoch
-            print(self._att_reporter.get_figure())
-            print("Adding figure")
-            self._logger.add_figure("Attention weights", self._att_reporter.get_figure(), trainer.updater.iteration)
+            self._att_reporter.log_attentions(self._logger, trainer.updater.iteration)

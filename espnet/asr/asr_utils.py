@@ -183,16 +183,13 @@ class PlotAttentionReport(extension.Extension):
             att_w = self.get_attention_weight(idx, att_w)
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
-    def get_figure(self):
+    def log_attentions(self, logger, step):
         att_ws = self.get_attention_weights()
-        num_rows = len(att_ws)
-        num_cols = max([len(att_w) if len(att_w.shape==3) else 1 for att_w in att_ws])
-        print("Num rows : " + str(num_rows) + " ; " + str(num_cols))
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
-            plot = self.draw_attention_plot(att_w, num_rows, num_cols, idx + 1)
-            plot.show()
-        return plot.gcf()
+            plot = self.draw_attention_plot(att_w)
+            logger.add_figure("%s.ep.{.updater.epoch}" % (self.data[idx][0]), plot.gcf(), step)
+            plot.clf()
 
     def get_attention_weights(self):
         batch = self.converter([self.converter.transform(self.data)], self.device)
@@ -212,20 +209,15 @@ class PlotAttentionReport(extension.Extension):
             att_w = att_w[:dec_len, :enc_len]
         return att_w
 
-    def draw_attention_plot(self, att_w, num_rows=1, num_cols=1, idx=1):
+    def draw_attention_plot(self, att_w):
         import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
-                print("rows : " + str(num_rows) + " cols : " + str(num_cols) + " h : " + str(h) + " idx : " + str(
-                    idx) + " realidx : " + str((idx * num_rows) + h))
-                plt.subplot(num_rows, num_cols, (idx * num_rows) + h)
+                plt.subplot(1, len(att_w), h)
                 plt.imshow(aw, aspect="auto")
                 plt.xlabel("Encoder Index")
                 plt.ylabel("Decoder Index")
         else:
-            print("rows : " + str(num_rows) + " cols : " + str(num_cols) + " idx : " + str(
-                idx))
-            plt.subplot(num_rows, num_cols, idx)
             plt.imshow(att_w, aspect="auto")
             plt.xlabel("Encoder Index")
             plt.ylabel("Decoder Index")
