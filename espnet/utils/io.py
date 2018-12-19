@@ -254,7 +254,7 @@ class LoadInputsAndTargets(object):
         return tuple(return_batch.values())
 
     def _create_batch_asr(self, x_feats_dict, y_feats_dict):
-        """
+        """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
         :param OrderedDict y_feats_dict:
@@ -295,7 +295,7 @@ class LoadInputsAndTargets(object):
         return return_batch
 
     def _create_batch_tts(self, x_feats_dict, y_feats_dict, eos):
-        """
+        """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
         :param OrderedDict y_feats_dict:
