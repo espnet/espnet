@@ -4,7 +4,7 @@ from chainer.training.extension import Extension
 class TensorboardLogger(Extension):
     """A tensorboard logger extension"""
 
-    def __init__(self, logger, att_reporter=None, entries=None, epoch=0):
+    def __init__(self, logger, att_reporter=None, entries=None, epoch=1):
         """Init the extension
 
         :param SummaryWriter logger: The logger to use
