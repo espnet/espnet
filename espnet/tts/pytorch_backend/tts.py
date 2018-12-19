@@ -397,7 +397,7 @@ def decode(args):
         os.makedirs(outdir)
 
     load_inputs_and_targets = LoadInputsAndTargets(
-        mode='tts', load_input=False,
+        mode='tts', load_input=False, sort_in_input_length=False,
         use_speaker_embedding=train_args.use_speaker_embedding,
         preprocess_conf=train_args.preprocess_conf)
 
