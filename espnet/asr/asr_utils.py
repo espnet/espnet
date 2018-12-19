@@ -186,7 +186,7 @@ class PlotAttentionReport(extension.Extension):
     def get_figure(self):
         att_ws = self.get_attention_weights()
         num_rows = len(att_ws)
-        num_cols = max([len(att_w) for att_w in att_ws])
+        num_cols = max([len(att_w) if len(att_w.shape==3) else 1 for att_w in att_ws])
         print("Num rows : " + str(num_rows) + " ; " + str(num_cols))
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
