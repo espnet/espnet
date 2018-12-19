@@ -251,6 +251,7 @@ class LoadInputsAndTargets(object):
                 return_batch['input1'] = \
                     self.preprocessing(return_batch['input1'])
 
+        # Doesn't return the names now.
         return tuple(return_batch.values())
 
     def _create_batch_asr(self, x_feats_dict, y_feats_dict):
