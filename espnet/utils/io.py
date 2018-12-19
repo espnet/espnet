@@ -260,19 +260,10 @@ class LoadInputsAndTargets(object):
             raise NotImplementedError
 
         if self.preprocessing is not None:
-            if self.mode == 'asr':
-                # Apply pre-processing only for the first item, now
-                xs = return_batch[0]
-                xs = self.preprocessing(xs)
-                return (xs,) + return_batch[1:]
-
-            elif self.mode == 'tts':
-                xs = return_batch[1]
-                xs = self.preprocessing(xs)
-                return (return_batch[0], xs) + return_batch[2:]
-
-            else:
-                raise NotImplementedError
+            # Apply pre-processing only for the first item, now
+            xs = return_batch[0]
+            xs = self.preprocessing(xs)
+            return (xs,) + return_batch[1:]
         else:
             return return_batch
 
