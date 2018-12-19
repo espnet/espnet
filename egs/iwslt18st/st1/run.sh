@@ -46,7 +46,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=20
-patience=10
+patience=3
 
 # rnnlm related
 lm_weight=0.3
