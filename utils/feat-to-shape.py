@@ -54,7 +54,8 @@ def main():
         if ftype == 'scp':
             matrices = read_hdf5_scp(filepath)
         else:
-            matrices = h5py.File(filepath).items()
+            matrices = ((k, v.value)
+                        for k, v in h5py.File(filepath, 'r').items())
     else:
         raise NotImplementedError(
             'Not supporting: --filetype {}'.format(args.filetype))
