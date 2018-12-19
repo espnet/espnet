@@ -7,7 +7,6 @@ import copy
 import json
 import logging
 # matplotlib related
-import math
 import os
 import shutil
 import tempfile
@@ -190,7 +189,7 @@ class PlotAttentionReport(extension.Extension):
         num_cols = max([len(att_w) for att_w in att_ws])
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
-            plot = self.draw_attention_plot(att_w, num_rows, num_cols, idx+1)
+            plot = self.draw_attention_plot(att_w, num_rows, num_cols, idx + 1)
             plot.show()
         return plot.gcf()
 
@@ -216,7 +215,9 @@ class PlotAttentionReport(extension.Extension):
         import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
-                plt.subplot(num_rows, num_cols, (idx*num_rows)+h)
+                print("rows : " + str(num_rows) + " cols : " + str(num_cols) + " h : " + str(h) + " idx : " + str(
+                    idx) + " realidx : " + str((idx * num_rows) + h))
+                plt.subplot(num_rows, num_cols, (idx * num_rows) + h)
                 plt.imshow(aw, aspect="auto")
                 plt.xlabel("Encoder Index")
                 plt.ylabel("Decoder Index")
