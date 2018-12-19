@@ -13,16 +13,18 @@ import tempfile
 
 # chainer related
 import chainer
+
+from chainer import training
+from chainer.serializers.npz import DictionarySerializer
+from chainer.serializers.npz import NpzDeserializer
+from chainer.training import extension
+
 # io related
 import kaldi_io_py
 import matplotlib
 import numpy as np
 import torch
 
-from chainer import training
-from chainer.serializers.npz import DictionarySerializer
-from chainer.serializers.npz import NpzDeserializer
-from chainer.training import extension
 
 matplotlib.use('Agg')
 

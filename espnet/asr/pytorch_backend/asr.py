@@ -332,6 +332,8 @@ def train(args):
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=device)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
