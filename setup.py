@@ -26,7 +26,8 @@ requirements = {
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
         'editdistance==0.5.2',
-        'tensorboardX>=1.4'],
+        'tensorboardX>=1.4',
+        'pillow>=5.3.0'],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
         'pytest>=3.3.0',
