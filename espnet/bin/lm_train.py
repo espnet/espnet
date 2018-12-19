@@ -39,6 +39,7 @@ def main(args):
                         help='Resume the training from snapshot')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-label', type=str, required=True,
                         help='Filename of train label data')
