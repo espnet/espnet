@@ -183,12 +183,12 @@ class PlotAttentionReport(extension.Extension):
             att_w = self.get_attention_weight(idx, att_w)
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
-    def log_attentions(self, logger, step):
+    def log_attentions(self, logger, step, epoch):
         att_ws = self.get_attention_weights()
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
             plot = self.draw_attention_plot(att_w)
-            logger.add_figure("%s.ep.{.updater.epoch}" % (self.data[idx][0]), plot.gcf(), step)
+            logger.add_figure("%s.ep.%s" % (self.data[idx][0], epoch), plot.gcf(), step)
             plot.clf()
 
     def get_attention_weights(self):
