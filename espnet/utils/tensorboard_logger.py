@@ -28,4 +28,4 @@ class TensorboardLogger(Extension):
                 self._logger.add_scalar(k, v, trainer.updater.iteration)
         if self._att_reporter is not None and trainer.updater.get_iterator('main').epoch > self._epoch:
             self._epoch = trainer.updater.get_iterator('main').epoch
-            self._att_reporter.log_attentions(self._logger, trainer.updater.iteration, self._epoch)
+            self._att_reporter.log_attentions(self._logger, trainer.updater.iteration)

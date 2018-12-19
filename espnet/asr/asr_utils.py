@@ -18,6 +18,7 @@ import kaldi_io_py
 import matplotlib
 import numpy as np
 import torch
+
 from chainer import training
 from chainer.serializers.npz import DictionarySerializer
 from chainer.serializers.npz import NpzDeserializer
@@ -183,12 +184,12 @@ class PlotAttentionReport(extension.Extension):
             att_w = self.get_attention_weight(idx, att_w)
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
-    def log_attentions(self, logger, step, epoch):
+    def log_attentions(self, logger, step):
         att_ws = self.get_attention_weights()
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
             plot = self.draw_attention_plot(att_w)
-            logger.add_figure("%s.ep.%s" % (self.data[idx][0], epoch), plot.gcf(), step)
+            logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
             plot.clf()
 
     def get_attention_weights(self):
