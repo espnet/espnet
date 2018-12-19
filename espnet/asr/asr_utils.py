@@ -190,9 +190,10 @@ class PlotAttentionReport(extension.Extension):
         fig = plt.gcf()
         num_plots = len(att_ws)
         num_rows = math.ceil(num_plots / 4.0)
+        fig.subplots(num_rows, 4)
         for idx, att_w in enumerate(att_ws):
             att_w = self.get_attention_weight(idx, att_w)
-            fig.subplots(num_rows, 4, idx + 1)
+            plt.subplot(num_rows, 4, idx + 1)
             plot = self.get_attention_plot(att_w)
             plot.show()
         return fig
