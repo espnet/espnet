@@ -246,7 +246,7 @@ class LoadInputsAndTargets(object):
             raise NotImplementedError
 
         if self.preprocessing is not None:
-            # Apply pre-processing only for input1 feature, now
+            # Apply pre-processing only to input1 feature, now
             if 'input1' in return_batch:
                 return_batch['input1'] = \
                     self.preprocessing(return_batch['input1'])
@@ -264,7 +264,6 @@ class LoadInputsAndTargets(object):
         # Create a list from the first item
         xs = list(x_feats_dict.values())[0]
 
-        # Assuming the names are common in the mini-batch
         if self.load_output:
             ys = list(y_feats_dict.values())[0]
             assert len(xs) == len(ys), (len(xs), len(ys))
