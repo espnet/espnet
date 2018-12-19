@@ -14,7 +14,8 @@ d = {k: np.random.randn(100, 100).astype(np.float32)
      for k in ['A-utt1', 'A-utt2', 'B-utt1', 'B-utt2']}
 
 with open('${tmpdir}/feats.ark','wb') as f, h5py.File('${tmpdir}/feats.h5','w') as fh:
-    for k, v in d.items():
+    for k in sorted(d):
+        v = d[k]
         kaldi_io_py.write_mat(f, v, key=k)
         fh[k] = v
 EOF
