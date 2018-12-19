@@ -40,7 +40,6 @@ from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
-
 REPORT_INTERVAL = 100
 
 
@@ -329,6 +328,8 @@ def train(args):
             converter=CustomConverter(False, args.use_speaker_embedding),
             device=device, reverse=True)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     plot_keys = ['main/loss', 'validation/main/loss',

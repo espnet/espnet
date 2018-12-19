@@ -373,6 +373,8 @@ def train(args):
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=gpu_id)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
