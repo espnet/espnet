@@ -19,7 +19,6 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
-
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
@@ -297,6 +296,7 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
+    evaluator = CustomEvaluator(model, valid_iter, reporter, converter, device)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -305,7 +305,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(evaluator)
 
     # Save snapshot for each epoch
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))

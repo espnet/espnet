@@ -258,9 +258,9 @@ def show_token_counts(train, val, unk, n_vocab):
 
 
 def get_iterators(train, val, args, eos):
-    train_iter = ParallelSentenceIterator(train, args.batchsize,
+    train_iter = ParallelSentenceIterator(train, args.batch_size,
                                           max_length=args.maxlen, sos=eos, eos=eos)
-    val_iter = ParallelSentenceIterator(val, args.batchsize,
+    val_iter = ParallelSentenceIterator(val, args.batch_size,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
 
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
@@ -278,7 +278,7 @@ def test_perplexity(model, evaluator_class, args, unk, eos, device, load_func, r
     logging.info('#sentences in the test data = ' + str(len(test)))
     logging.info('#tokens in the test data = ' + str(n_test_tokens))
     logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs / n_test_tokens * 100))
-    test_iter = ParallelSentenceIterator(test, args.batchsize,
+    test_iter = ParallelSentenceIterator(test, args.batch_size,
                                          max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     if is_chainer:
         evaluator = evaluator_class(test_iter, model, device=device)
