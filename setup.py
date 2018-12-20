@@ -27,7 +27,8 @@ requirements = {
         'unidecode>=1.0.22',
         'editdistance==0.5.2',
         'h5py',
-         ],
+        'tensorboardX>=1.4',
+        'pillow>=5.3.0'],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
         'pytest>=3.3.0',

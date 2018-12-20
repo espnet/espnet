@@ -45,7 +45,10 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 import matplotlib
 import numpy as np
 
-from espnet.bin.bin_utils import set_deterministic_pytorch
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
 
 matplotlib.use('Agg')
 
@@ -325,9 +328,12 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=device), trigger=(1, 'epoch'))
+            converter=converter, device=device)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -387,6 +393,9 @@ def train(args):
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
     # Run the training
     trainer.run()
 
