@@ -10,7 +10,6 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
-import json
 import logging
 import numpy as np
 import six
@@ -26,24 +25,19 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from espnet.lm.lm_utils import compute_perplexity
-from espnet.lm.lm_utils import count_tokens
-from espnet.lm.lm_utils import MakeSymlinkToBestModel
-from espnet.lm.lm_utils import ParallelSentenceIterator
+from espnet.lm.lm_utils import get_iterators
+from espnet.lm.lm_utils import prepare_trainer
 from espnet.lm.lm_utils import read_tokens
+from espnet.lm.lm_utils import show_token_counts
+from espnet.lm.lm_utils import test_perplexity
+
 from espnet.nets.pytorch_backend.e2e_asr import to_device
 
-from espnet.asr.asr_utils import torch_load
-from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_save
-from espnet.asr.asr_utils import torch_snapshot
-
-from espnet.utils.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.train_utils import check_early_stop
+from espnet.utils.train_utils import write_conf
 
-REPORT_INTERVAL = 100
+from espnet.utils.train_th_utils import torch_resume
 
 
 # dummy module to use chainer's trainer
@@ -324,24 +318,10 @@ def train(args):
     # read tokens as a sequence of sentences
     train = read_tokens(args.train_label, args.char_list_dict)
     val = read_tokens(args.valid_label, args.char_list_dict)
-    # count tokens
-    n_train_tokens, n_train_oovs = count_tokens(train, unk)
-    n_val_tokens, n_val_oovs = count_tokens(val, unk)
-    logging.info('#vocab = ' + str(args.n_vocab))
-    logging.info('#sentences in the training data = ' + str(len(train)))
-    logging.info('#tokens in the training data = ' + str(n_train_tokens))
-    logging.info('oov rate in the training data = %.2f %%' % (n_train_oovs / n_train_tokens * 100))
-    logging.info('#sentences in the validation data = ' + str(len(val)))
-    logging.info('#tokens in the validation data = ' + str(n_val_tokens))
-    logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs / n_val_tokens * 100))
+    show_token_counts(train, val, unk, args.n_vocab)
 
     # Create the dataset iterators
-    train_iter = ParallelSentenceIterator(train, args.batchsize,
-                                          max_length=args.maxlen, sos=eos, eos=eos)
-    val_iter = ParallelSentenceIterator(val, args.batchsize,
-                                        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
+    train_iter, val_iter = get_iterators(train, val, args, eos)
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit)
     model = ClassifierWithState(rnn)
@@ -354,11 +334,7 @@ def train(args):
     else:
         gpu_id = -1
 
-    # Save model conf to json
-    model_conf = args.outdir + '/model.json'
-    with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps(vars(args), indent=4, sort_keys=True).encode('utf_8'))
+    write_conf(args)
 
     # Set up an optimizer
     if args.opt == 'sgd':
@@ -372,46 +348,11 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     updater = BPTTUpdater(train_iter, model, optimizer, gpu_id, gradclip=args.gradclip)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
-    trainer.extend(LMEvaluator(val_iter, model, reporter, device=gpu_id))
-    trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
-                                        trigger=(REPORT_INTERVAL, 'iteration')))
-    trainer.extend(extensions.PrintReport(
-        ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
-    ), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
-    # Save best models
-    trainer.extend(torch_snapshot(filename='snapshot.ep.{.updater.epoch}'))
-    trainer.extend(extensions.snapshot_object(
-        model, 'rnnlm.model.{.updater.epoch}', savefun=torch_save))
-    # T.Hori: MinValueTrigger should be used, but it fails when resuming
-    trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
-
-    if args.resume:
-        logging.info('resumed from %s' % args.resume)
-        torch_resume(args.resume, trainer)
-
-    if args.patience > 0:
-        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
-                                                                              patients=args.patience,
-                                                                              max_trigger=(args.epochs, 'epoch'))
-    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(log_dir=args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer))
+    evaluator = LMEvaluator(val_iter, model, reporter, device=gpu_id)
+    trainer = prepare_trainer(updater, evaluator, model, args, torch_resume)
 
     trainer.run()
+    check_early_stop(trainer, args.epochs)
 
     # compute perplexity for test set
-    if args.test_label:
-        logging.info('test the best model')
-        torch_load(args.outdir + '/rnnlm.model.best', model)
-        test = read_tokens(args.test_label, args.char_list_dict)
-        n_test_tokens, n_test_oovs = count_tokens(test, unk)
-        logging.info('#sentences in the test data = ' + str(len(test)))
-        logging.info('#tokens in the test data = ' + str(n_test_tokens))
-        logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs / n_test_tokens * 100))
-        test_iter = ParallelSentenceIterator(test, args.batchsize,
-                                             max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-        evaluator = LMEvaluator(test_iter, model, reporter, device=gpu_id)
-        result = evaluator()
-        logging.info('test perplexity: ' + str(np.exp(float(result['main/loss']))))
+    test_perplexity(model, LMEvaluator, args, unk, eos, gpu_id, chainer.serializers.load_npz, reporter)
