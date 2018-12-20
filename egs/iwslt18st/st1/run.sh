@@ -213,7 +213,7 @@ if [ ${stage} -le 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --epochs 60 \
-        --batchsize 256 \
+        --batch-size 256 \
         --dict ${dict}
 fi
 

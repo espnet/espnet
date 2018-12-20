@@ -346,7 +346,7 @@ def recog(args):
         js = json.load(f)['utts']
     new_js = {}
 
-    if args.batchsize == 0:
+    if args.batch_size == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
@@ -370,7 +370,7 @@ def recog(args):
         keys = [keys[i] for i in sorted_index]
 
         with torch.no_grad():
-            for names in grouper(args.batchsize, keys, None):
+            for names in grouper(args.batch_size, keys, None):
                 names = [name for name in names if name]
                 feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
                          for name in names]
