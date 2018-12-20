@@ -46,7 +46,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=10
-patience=10
+patience=3
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
@@ -56,7 +56,7 @@ lm_units=1000       # 650 for character LMs
 lm_opt=sgd          # adam for character LMs
 lm_batchsize=300    # 1024 for character LMs
 lm_epochs=20        # number of epochs
-lm_patience=10
+lm_patience=3
 lm_maxlen=40        # 150 for character LMs
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
