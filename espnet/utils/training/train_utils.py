@@ -8,12 +8,17 @@ from chainer.training import extension
 
 from tensorboardX import SummaryWriter
 
-from espnet.utils.tensorboard_logger import TensorboardLogger
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
 
 REPORT_INTERVAL = 100
 
 
 def check_early_stop(trainer, epochs):
+    """Checks if the training was stopped by an early stopping trigger and warns the user if it's the case
+
+    :param trainer: The trainer used for training
+    :param epochs: The maximum number of epochs
+    """
     end_epoch = trainer.updater.get_iterator('main').epoch
     if end_epoch < (epochs - 1):
         logging.warning("Hit early stop at epoch " + str(
@@ -21,12 +26,23 @@ def check_early_stop(trainer, epochs):
 
 
 def add_tensorboard(trainer, tensorboard_dir, attention_reporter=None):
+    """Adds the tensorboard extension
+
+    :param trainer: The trainer to add the extension to
+    :param tensorboard_dir: The tensorboard log directory
+    :param attention_reporter: The plot attention reporter
+    """
     if tensorboard_dir is not None and tensorboard_dir != "":
         writer = SummaryWriter(log_dir=tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, attention_reporter))
 
 
 def add_early_stop(trainer, args):
+    """Adds an early stop trigger
+
+    :param trainer: The trainer to add the trigger to
+    :param args: The program arguments
+    """
     if args.patience > 0:
         trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
                                                                               patients=args.patience,
@@ -34,14 +50,38 @@ def add_early_stop(trainer, args):
 
 
 def load_jsons(args):
-    with open(args.train_json, 'rb') as f:
-        train_json = json.load(f)['utts']
-    with open(args.valid_json, 'rb') as f:
-        valid_json = json.load(f)['utts']
+    """Loads training and validation utterances from the json files
+
+    :param args: the program arguments
+    :return: training json, validation json
+    """
+    train_json = load_json(args.train_json)
+    valid_json = load_json(args.valid_json)
     return train_json, valid_json
 
 
-def add_attention_report(trainer, model, args, valid_json, converter, device, reversePAR=False):
+def load_json(json_file):
+    """Loads the utterances data from a json file
+
+    :param json_file: The json filepath
+    :return: The json object
+    """
+    with open(json_file, 'rb') as f:
+        return json.load(f)['utts']
+
+
+def add_attention_report(trainer, model, args, valid_json, converter, device, reverse_par=False):
+    """Adds the attention reporter extension
+
+    :param trainer: The trainer to add the extension to
+    :param model: The model to train
+    :param args: The program arguments
+    :param valid_json: The validation json
+    :param converter: The batch converter
+    :param device: The device to use
+    :param reverse_par: If the input and output length should be reversed for the plot
+    :return: the plot attention reporter
+    """
     if args.num_save_attention > 0 and (not hasattr(args, 'mtlalpha') or args.mtlalpha != 1.0):
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
@@ -51,7 +91,7 @@ def add_attention_report(trainer, model, args, valid_json, converter, device, re
             att_vis_fn = model.calculate_all_attentions
         att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=device, reverse=reversePAR)
+            converter=converter, device=device, reverse=reverse_par)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
         att_reporter = None
@@ -186,6 +226,12 @@ def get_model_conf(model_path, conf_path=None):
 
 
 def write_conf(args, idim=None, odim=None):
+    """Writes a model configuration
+
+    :param args: the program arguments
+    :param idim: the feature input dimension
+    :param odim: the model output dimension
+    """
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
     model_conf = args.outdir + '/model.json'

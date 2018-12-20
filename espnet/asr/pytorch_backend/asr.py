@@ -5,7 +5,6 @@
 
 
 import copy
-import json
 import logging
 import math
 
@@ -22,17 +21,20 @@ import torch
 
 # espnet related
 from espnet.asr.asr_utils import add_results_to_json
+from espnet.asr.asr_utils import write_results
 from espnet.asr.asr_utils import get_dimensions
 from espnet.asr.asr_utils import load_inputs_and_targets
-from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import make_args_batchset
 from espnet.asr.asr_utils import prepare_trainer
+from espnet.asr.asr_utils import single_beam_search
 
-from espnet.utils.train_utils import get_model_conf
-from espnet.utils.train_utils import load_jsons
-from espnet.utils.train_utils import write_conf
+from espnet.utils.training.train_utils import get_model_conf
+from espnet.utils.training.train_utils import load_json
+from espnet.utils.training.train_utils import load_jsons
+from espnet.utils.training.train_utils import write_conf
 
-from espnet.utils.train_th_utils import torch_load
-from espnet.utils.train_th_utils import torch_snapshot
+from espnet.utils.pytorch_utils import torch_load
+from espnet.utils.pytorch_utils import torch_snapshot
 
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
@@ -49,9 +51,7 @@ import matplotlib
 import numpy as np
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
-from espnet.utils.train_utils import add_early_stop
-from espnet.utils.train_utils import add_tensorboard
-from espnet.utils.train_utils import check_early_stop
+from espnet.utils.training.train_utils import check_early_stop
 
 matplotlib.use('Agg')
 
@@ -251,12 +251,8 @@ def train(args):
     train_json, valid_json = load_jsons(args)
 
     # make minibatch list (variable length)
-    train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
-    valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+    train = make_args_batchset(train_json, args)
+    valid = make_args_batchset(valid_json, args)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
@@ -341,18 +337,11 @@ def recog(args):
         if rnnlm:
             rnnlm.cuda()
 
-    # read json data
-    with open(args.recog_json, 'rb') as f:
-        js = json.load(f)['utts']
+    js = load_json(args.recog_json)
     new_js = {}
 
     if args.batch_size == 0:
-        with torch.no_grad():
-            for idx, name in enumerate(js.keys(), 1):
-                logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-                feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
-                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+        new_js = single_beam_search(model, js, args, train_args, rnnlm)
     else:
         try:
             from itertools import zip_longest as zip_longest
@@ -379,6 +368,4 @@ def recog(args):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
 
-    # TODO(watanabe) fix character coding problems when saving it
-    with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+    write_results(new_js, args.result_label)

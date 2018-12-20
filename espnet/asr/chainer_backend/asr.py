@@ -6,7 +6,6 @@
 from __future__ import division
 
 import collections
-import json
 import logging
 import math
 import six
@@ -26,24 +25,23 @@ from chainer.training.updaters.multiprocess_parallel_updater import gather_param
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
 # espnet related
-from espnet.asr.asr_utils import add_results_to_json
+from espnet.asr.asr_utils import write_results
 from espnet.asr.asr_utils import get_dimensions
 from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import prepare_trainer
+from espnet.asr.asr_utils import single_beam_search
 
 from espnet.nets.chainer_backend.e2e_asr import E2E
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
-from espnet.utils.train_utils import check_early_stop
-from espnet.utils.train_utils import get_model_conf
-from espnet.utils.train_utils import load_jsons
-from espnet.utils.train_utils import write_conf
+from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import get_model_conf
+from espnet.utils.training.train_utils import load_json
+from espnet.utils.training.train_utils import load_jsons
+from espnet.utils.training.train_utils import write_conf
 
-from espnet.utils.train_ch_utils import chainer_load
-
-# for kaldi io
-import kaldi_io_py
+from espnet.utils.chainer_utils import chainer_load
 
 # rnnlm
 import espnet.lm.chainer_backend.extlm as extlm_chainer
@@ -373,19 +371,8 @@ def recog(args):
                 extlm_chainer.LookAheadWordLM(word_rnnlm.predictor,
                                               word_dict, char_dict))
 
-    # read json data
-    with open(args.recog_json, 'rb') as f:
-        js = json.load(f)['utts']
+    js = load_json(args.recog_json)
 
     # decode each utterance
-    new_js = {}
-    with chainer.no_backprop_mode():
-        for idx, name in enumerate(js.keys(), 1):
-            logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-            nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
-            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
-
-    # TODO(watanabe) fix character coding problems when saving it
-    with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+    new_js = single_beam_search(model, js, args, train_args, rnnlm)
+    write_results(new_js, args.result_label)

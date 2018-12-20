@@ -13,24 +13,38 @@ import chainer
 from chainer import training
 from chainer.training import extensions
 
+import torch
+
 # io related
 import kaldi_io_py
 
 import numpy as np
 
-from espnet.utils.train_th_utils import torch_load
-from espnet.utils.train_th_utils import torch_resume
-from espnet.utils.train_th_utils import torch_save
+from espnet.utils.pytorch_utils import torch_load
+from espnet.utils.pytorch_utils import torch_resume
+from espnet.utils.pytorch_utils import torch_save
 
-from espnet.utils.train_utils import REPORT_INTERVAL
-from espnet.utils.train_utils import add_early_stop
-from espnet.utils.train_utils import add_tensorboard
-from espnet.utils.train_utils import add_attention_report
+from espnet.utils.training.train_utils import REPORT_INTERVAL
+from espnet.utils.training.train_utils import add_early_stop
+from espnet.utils.training.train_utils import add_tensorboard
+from espnet.utils.training.train_utils import add_attention_report
 
 matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
+
+def make_args_batchset(data, args):
+    """Make batch set from json dictionary
+
+    :param data: dictionary loaded from data.json
+    :param args: the program arguments
+    :return: list of batches
+    """
+    return make_batchset(data, args.batch_size, args.maxlen_in, args.maxlen_out, args.num_batches,
+                         args.ngpu if args.ngpu > 1 else 1)
+
+
 def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, min_batch_size=1):
     """Make batch set from json dictionary
@@ -260,7 +274,14 @@ def add_results_to_json(js, nbest_hyps, char_list):
     return new_js
 
 
-def add_epsilon_decay(trainer, model, args, mtl_mode):
+def add_epsilon_decay(trainer, model, args):
+    """Adds the extension managing the epsilon decay
+
+    :param trainer: The trainer to add the extension to
+    :param model: The model to train
+    :param args: The program arguments
+    """
+    mtl_mode = get_mtl_mode(args.mtlalpha)
     load_fn = chainer.serializers.load_npz if args.backend == 'chainer' else torch_load
     if args.opt == 'adadelta':
         if args.criterion == 'acc' and mtl_mode is not 'ctc':
@@ -284,6 +305,13 @@ def add_epsilon_decay(trainer, model, args, mtl_mode):
 
 
 def add_snapshot(trainer, model, mtl_mode, savefun):
+    """Adds the model snapshot extension
+
+    :param trainer: The trainer to add the extension to
+    :param model: The model to save
+    :param mtl_mode: The mtl mode
+    :param savefun: The save function to use
+    """
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=savefun),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
     if mtl_mode is not 'ctc':
@@ -292,6 +320,10 @@ def add_snapshot(trainer, model, mtl_mode, savefun):
 
 
 def add_plot_report(trainer):
+    """Adds the plot report extension
+
+    :param trainer: The trainer to add the extension to
+    """
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
                                           'main/loss_ctc', 'validation/main/loss_ctc',
@@ -302,6 +334,11 @@ def add_plot_report(trainer):
 
 
 def get_dimensions(json_file):
+    """Returns the input and output dimensions given a json filepath
+
+    :param json_file: The json file containing the utterances data
+    :return: input dim, output dim
+    """
     with open(json_file, 'rb') as f:
         parsed_json = json.load(f)['utts']
     utts = list(parsed_json.keys())
@@ -313,6 +350,11 @@ def get_dimensions(json_file):
 
 
 def get_mtl_mode(mtlalpha):
+    """Returns the mtl mode given the mtlalpha value
+
+    :param float mtlalpha: the multitask learning mode coefficient
+    :return: a string representing the mtlmode
+    """
     # specify attention, CTC, hybrid mode
     if mtlalpha == 1.0:
         mtl_mode = 'ctc'
@@ -326,16 +368,25 @@ def get_mtl_mode(mtlalpha):
     return mtl_mode
 
 
+def _get_trainer_lambda(trainer, is_pytorch):
+    return trainer.updater.get_optimizer('main').param_groups[0][
+        'eps'] if is_pytorch else trainer.updater.get_optimizer('main').eps
+
+
 def add_progress_report(trainer, args):
+    """Adds the logging and progress report extensions
+
+    :param trainer: The trainer to add the extensions to
+    :param args: The program arguments
+    """
     is_pytorch = args.backend == 'pytorch'
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
-        func = lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"] if is_pytorch else \
-            lambda trainer: trainer.updater.get_optimizer('main').eps
-        trainer.extend(extensions.observe_value('eps', func), trigger=(REPORT_INTERVAL, 'iteration'))
+        trainer.extend(extensions.observe_value('eps', lambda trainer: _get_trainer_lambda(trainer, is_pytorch)),
+                       trigger=(REPORT_INTERVAL, 'iteration'))
         report_keys.append('eps')
     if is_pytorch:
         if args.report_cer:
@@ -349,6 +400,17 @@ def add_progress_report(trainer, args):
 
 
 def prepare_trainer(updater, evaluator, converter, model, valid_json, args, device):
+    """Instantiates and adds common extensions to the trainer
+
+    :param updater: The training updater
+    :param evaluator: The training evaluator
+    :param converter: The batch converter
+    :param model: The model to train
+    :param valid_json: The validation json
+    :param args: The program arguments
+    :param device: The device to use
+    :return: the trainer
+    """
     is_chainer = args.backend == 'chainer'
     mtl_mode = get_mtl_mode(args.mtlalpha)
     savefun = chainer.serializers.save_npz if is_chainer else torch_save
@@ -364,9 +426,42 @@ def prepare_trainer(updater, evaluator, converter, model, valid_json, args, devi
     trainer.extend(evaluator)
     add_progress_report(trainer, args)
     add_plot_report(trainer)
-    add_epsilon_decay(trainer, model, args, mtl_mode)
+    add_epsilon_decay(trainer, model, args)
     add_snapshot(trainer, model, mtl_mode, savefun)
     att_reporter = add_attention_report(trainer, model, args, valid_json, converter, device)
     add_early_stop(trainer, args)
     add_tensorboard(trainer, args.tensorboard_dir, att_reporter)
     return trainer
+
+
+def single_beam_search(model, js, args, train_args, rnnlm):
+    """Executes single (no batch) beam search decoding
+
+    :param model: The model used for recognition
+    :param js: The input features as a json
+    :param args: The decoding arguments
+    :param train_args: The model training arguments
+    :param rnnlm: The RNNLM used for Shallow Fusion
+    :return: The json with the predictions
+    """
+    is_pytorch = args.backend == 'pytorch'
+    func = torch.no_grad if is_pytorch else chainer.no_backprop_mode
+    new_js = {}
+    with func():
+        for idx, name in enumerate(js.keys(), 1):
+            logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
+            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+            new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+    return new_js
+
+
+def write_results(js, result_label):
+    """Writes the json dictionary to a file
+
+    :param js: the json object
+    :param str result_label: the file to write to
+    """
+    # TODO(watanabe) fix character coding problems when saving it
+    with open(result_label, 'wb') as f:
+        f.write(json.dumps({'utts': js}, indent=4, sort_keys=True).encode('utf_8'))
