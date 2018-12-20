@@ -21,12 +21,12 @@ import torch
 
 # espnet related
 from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import write_results
 from espnet.asr.asr_utils import get_dimensions
 from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_args_batchset
 from espnet.asr.asr_utils import prepare_trainer
 from espnet.asr.asr_utils import single_beam_search
+from espnet.asr.asr_utils import write_results
 
 from espnet.utils.training.train_utils import get_model_conf
 from espnet.utils.training.train_utils import load_json
