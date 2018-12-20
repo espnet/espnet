@@ -311,7 +311,7 @@ def test_calculate_all_attentions(module, atype):
 
 def test_chainer_save_and_load():
     m = importlib.import_module('espnet.nets.chainer_backend.e2e_asr')
-    utils = importlib.import_module('espnet.asr.asr_utils')
+    utils = importlib.import_module('espnet.utils.chainer_utils')
     args = make_arg()
     model = m.E2E(40, 5, args)
     # initialize randomly
@@ -323,7 +323,7 @@ def test_chainer_save_and_load():
     # set constant value
     for p in model.params():
         p.data = np.zeros_like(p.data)
-    utils.chainer_load(tmppath, model)
+    utils.chainer_utils.chainer_load(tmppath, model)
     for p1, p2 in zip(p_saved, model.params()):
         np.testing.assert_array_equal(p1, p2.data)
     if os.path.exists(tmppath):
@@ -332,7 +332,7 @@ def test_chainer_save_and_load():
 
 def test_torch_save_and_load():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
-    utils = importlib.import_module('espnet.asr.asr_utils')
+    utils = importlib.import_module('espnet.utils.pytorch_utils')
     args = make_arg()
     model = m.E2E(40, 5, args)
     # initialize randomly

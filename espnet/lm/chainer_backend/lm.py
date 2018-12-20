@@ -35,10 +35,8 @@ from espnet.lm.lm_utils import test_perplexity
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
-from espnet.utils.train_utils import add_early_stop
-from espnet.utils.train_utils import add_tensorboard
-from espnet.utils.train_utils import check_early_stop
-from espnet.utils.train_utils import write_conf
+from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import write_conf
 
 REPORT_INTERVAL = 100
 

@@ -11,7 +11,6 @@ from __future__ import print_function
 
 import copy
 import logging
-import numpy as np
 import six
 
 import torch
@@ -34,10 +33,10 @@ from espnet.lm.lm_utils import test_perplexity
 from espnet.nets.pytorch_backend.e2e_asr import to_device
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
-from espnet.utils.train_utils import check_early_stop
-from espnet.utils.train_utils import write_conf
+from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import write_conf
 
-from espnet.utils.train_th_utils import torch_resume
+from espnet.utils.pytorch_utils import torch_resume
 
 
 # dummy module to use chainer's trainer

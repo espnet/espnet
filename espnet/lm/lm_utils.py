@@ -20,12 +20,12 @@ from chainer import training
 from chainer.training import extension
 from chainer.training import extensions
 
-from espnet.utils.train_utils import REPORT_INTERVAL
-from espnet.utils.train_utils import add_early_stop
-from espnet.utils.train_utils import add_tensorboard
+from espnet.utils.training.train_utils import REPORT_INTERVAL
+from espnet.utils.training.train_utils import add_early_stop
+from espnet.utils.training.train_utils import add_tensorboard
 
-from espnet.utils.train_th_utils import torch_save
-from espnet.utils.train_th_utils import torch_snapshot
+from espnet.utils.pytorch_utils import torch_save
+from espnet.utils.pytorch_utils import torch_snapshot
 
 
 def read_tokens(filename, label_dict):

@@ -26,17 +26,17 @@ from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
-from espnet.utils.train_utils import add_early_stop
-from espnet.utils.train_utils import add_tensorboard
-from espnet.utils.train_utils import check_early_stop
-from espnet.utils.train_utils import load_jsons
-from espnet.utils.train_utils import add_attention_report
-from espnet.utils.train_utils import get_model_conf
+from espnet.utils.training.train_utils import add_early_stop
+from espnet.utils.training.train_utils import add_tensorboard
+from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import load_jsons
+from espnet.utils.training.train_utils import add_attention_report
+from espnet.utils.training.train_utils import get_model_conf
 
-from espnet.utils.train_th_utils import torch_load
-from espnet.utils.train_th_utils import torch_resume
-from espnet.utils.train_th_utils import torch_save
-from espnet.utils.train_th_utils import torch_snapshot
+from espnet.utils.pytorch_utils import torch_load
+from espnet.utils.pytorch_utils import torch_resume
+from espnet.utils.pytorch_utils import torch_save
+from espnet.utils.pytorch_utils import torch_snapshot
 
 import matplotlib
 
