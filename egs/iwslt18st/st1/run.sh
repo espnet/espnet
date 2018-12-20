@@ -212,7 +212,7 @@ if [ ${stage} -le 3 ]; then
         --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-        --epoch 60 \
+        --epochs 60 \
         --batchsize 256 \
         --dict ${dict}
 fi

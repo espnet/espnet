@@ -3,30 +3,29 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import copy
 import json
 import logging
 # matplotlib related
-import os
-import shutil
-import tempfile
-
+import matplotlib
 # chainer related
 import chainer
 
 from chainer import training
-from chainer.training import extension
-
-from chainer.serializers.npz import DictionarySerializer
-from chainer.serializers.npz import NpzDeserializer
-
+from chainer.training import extensions
 
 # io related
 import kaldi_io_py
-import matplotlib
-import numpy as np
-import torch
 
+import numpy as np
+
+from espnet.utils.train_th_utils import torch_load
+from espnet.utils.train_th_utils import torch_resume
+from espnet.utils.train_th_utils import torch_save
+
+from espnet.utils.train_utils import REPORT_INTERVAL
+from espnet.utils.train_utils import add_early_stop
+from espnet.utils.train_utils import add_tensorboard
+from espnet.utils.train_utils import add_attention_report
 
 matplotlib.use('Agg')
 
@@ -159,82 +158,6 @@ class CompareValueTrigger(object):
         self._summary = chainer.reporter.DictSummary()
 
 
-class PlotAttentionReport(extension.Extension):
-    """Plot attention reporter
-
-    :param function att_vis_fn: function of attention visualization
-    :param list data: list json utt key items
-    :param str outdir: directory to save figures
-    :param CustomConverter converter: function to convert data
-    :param int | torch.device device: device
-    :param bool reverse: If True, input and output length are reversed
-    """
-
-    def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
-        self.att_vis_fn = att_vis_fn
-        self.data = copy.deepcopy(data)
-        self.outdir = outdir
-        self.converter = converter
-        self.device = device
-        self.reverse = reverse
-        if not os.path.exists(self.outdir):
-            os.makedirs(self.outdir)
-
-    def __call__(self, trainer):
-        att_ws = self.get_attention_weights()
-        for idx, att_w in enumerate(att_ws):
-            filename = "%s/%s.ep.{.updater.epoch}.png" % (
-                self.outdir, self.data[idx][0])
-            att_w = self.get_attention_weight(idx, att_w)
-            self._plot_and_save_attention(att_w, filename.format(trainer))
-
-    def log_attentions(self, logger, step):
-        att_ws = self.get_attention_weights()
-        for idx, att_w in enumerate(att_ws):
-            att_w = self.get_attention_weight(idx, att_w)
-            plot = self.draw_attention_plot(att_w)
-            logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
-            plot.clf()
-
-    def get_attention_weights(self):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
-        att_ws = self.att_vis_fn(*batch)
-        return att_ws
-
-    def get_attention_weight(self, idx, att_w):
-        if self.reverse:
-            dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
-            enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
-        else:
-            dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
-            enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
-        if len(att_w.shape) == 3:
-            att_w = att_w[:, :dec_len, :enc_len]
-        else:
-            att_w = att_w[:dec_len, :enc_len]
-        return att_w
-
-    def draw_attention_plot(self, att_w):
-        import matplotlib.pyplot as plt
-        if len(att_w.shape) == 3:
-            for h, aw in enumerate(att_w, 1):
-                plt.subplot(1, len(att_w), h)
-                plt.imshow(aw, aspect="auto")
-                plt.xlabel("Encoder Index")
-                plt.ylabel("Decoder Index")
-        else:
-            plt.imshow(att_w, aspect="auto")
-            plt.xlabel("Encoder Index")
-            plt.ylabel("Decoder Index")
-        plt.tight_layout()
-        return plt
-
-    def _plot_and_save_attention(self, att_w, filename):
-        plt = self.draw_attention_plot(att_w)
-        plt.savefig(filename)
-        plt.close()
-
-
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
     """Extension to restore snapshot"""
 
@@ -272,179 +195,6 @@ def _adadelta_eps_decay(trainer, eps_decay):
         for p in optimizer.param_groups:
             p["eps"] *= eps_decay
             logging.info('adadelta eps decayed to ' + str(p["eps"]))
-
-
-def torch_snapshot(savefun=torch.save,
-                   filename='snapshot.ep.{.updater.epoch}'):
-    """Returns a trainer extension to take snapshots of the trainer for pytorch."""
-
-    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
-    def torch_snapshot(trainer):
-        _torch_snapshot_object(trainer, trainer, filename.format(trainer), savefun)
-
-    return torch_snapshot
-
-
-def _torch_snapshot_object(trainer, target, filename, savefun):
-    # make snapshot_dict dictionary
-    s = DictionarySerializer()
-    s.save(trainer)
-    if hasattr(trainer.updater.model, "model"):
-        # (for TTS)
-        if hasattr(trainer.updater.model.model, "module"):
-            model_state_dict = trainer.updater.model.model.module.state_dict()
-        else:
-            model_state_dict = trainer.updater.model.model.state_dict()
-    else:
-        # (for ASR)
-        if hasattr(trainer.updater.model, "module"):
-            model_state_dict = trainer.updater.model.module.state_dict()
-        else:
-            model_state_dict = trainer.updater.model.state_dict()
-    snapshot_dict = {
-        "trainer": s.target,
-        "model": model_state_dict,
-        "optimizer": trainer.updater.get_optimizer('main').state_dict()
-    }
-
-    # save snapshot dictionary
-    fn = filename.format(trainer)
-    prefix = 'tmp' + fn
-    tmpdir = tempfile.mkdtemp(prefix=prefix, dir=trainer.out)
-    tmppath = os.path.join(tmpdir, fn)
-    try:
-        savefun(snapshot_dict, tmppath)
-        shutil.move(tmppath, os.path.join(trainer.out, fn))
-    finally:
-        shutil.rmtree(tmpdir)
-
-
-# * -------------------- general -------------------- *
-class AttributeDict(object):
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __getstate__(self):
-        return self.obj.items()
-
-    def __setstate__(self, items):
-        if not hasattr(self, 'obj'):
-            self.obj = {}
-        for key, val in items:
-            self.obj[key] = val
-
-    def __getattr__(self, name):
-        if name in self.obj:
-            return self.obj.get(name)
-        else:
-            return None
-
-    def __getitem__(self, name):
-        return self.obj[name]
-
-    def __len__(self):
-        return len(self.obj)
-
-    def fields(self):
-        return self.obj
-
-    def items(self):
-        return self.obj.items()
-
-    def keys(self):
-        return self.obj.keys()
-
-
-def get_model_conf(model_path, conf_path=None):
-    """Get model config information by reading a model config file (model.json)
-
-    :param str model_path: model path
-    :param str conf_path: optional model config path
-    """
-
-    if conf_path is None:
-        model_conf = os.path.dirname(model_path) + '/model.json'
-    else:
-        model_conf = conf_path
-    with open(model_conf, "rb") as f:
-        logging.info('reading a config file from ' + model_conf)
-        return json.load(f, object_hook=AttributeDict)
-
-
-def chainer_load(path, model):
-    """Function to load chainer model parameters
-
-    :param str path: model file or snapshot file to be loaded
-    :param chainer.Chain model: chainer model
-    """
-    if 'snapshot' in path:
-        chainer.serializers.load_npz(path, model, path='updater/model:main/')
-    else:
-        chainer.serializers.load_npz(path, model)
-
-
-def torch_save(path, model):
-    """Function to save torch model states
-
-    :param str path: file path to be saved
-    :param torch.nn.Module model: torch model
-    """
-    if hasattr(model, 'module'):
-        torch.save(model.module.state_dict(), path)
-    else:
-        torch.save(model.state_dict(), path)
-
-
-def torch_load(path, model):
-    """Function to load torch model states
-
-    :param str path: model file or snapshot file to be loaded
-    :param torch.nn.Module model: torch model
-    """
-    if 'snapshot' in path:
-        model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)['model']
-    else:
-        model_state_dict = torch.load(path, map_location=lambda storage, loc: storage)
-    if hasattr(model, 'module'):
-        model.module.load_state_dict(model_state_dict)
-    else:
-        model.load_state_dict(model_state_dict)
-
-    del model_state_dict
-
-
-def torch_resume(snapshot_path, trainer):
-    """Function to resume from snapshot for pytorch
-
-    :param str snapshot_path: snapshot file path
-    :param instance trainer: chainer trainer instance
-    """
-    # load snapshot
-    snapshot_dict = torch.load(snapshot_path, map_location=lambda storage, loc: storage)
-
-    # restore trainer states
-    d = NpzDeserializer(snapshot_dict['trainer'])
-    d.load(trainer)
-
-    # restore model states
-    if hasattr(trainer.updater.model, "model"):
-        # (for TTS model)
-        if hasattr(trainer.updater.model.model, "module"):
-            trainer.updater.model.model.module.load_state_dict(snapshot_dict['model'])
-        else:
-            trainer.updater.model.model.load_state_dict(snapshot_dict['model'])
-    else:
-        # (for ASR model)
-        if hasattr(trainer.updater.model, "module"):
-            trainer.updater.model.module.load_state_dict(snapshot_dict['model'])
-        else:
-            trainer.updater.model.load_state_dict(snapshot_dict['model'])
-
-    # retore optimizer states
-    trainer.updater.get_optimizer('main').load_state_dict(snapshot_dict['optimizer'])
-
-    # delete opened snapshot
-    del snapshot_dict
 
 
 # * ------------------ recognition related ------------------ *
@@ -508,3 +258,115 @@ def add_results_to_json(js, nbest_hyps, char_list):
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js
+
+
+def add_epsilon_decay(trainer, model, args, mtl_mode):
+    load_fn = chainer.serializers.load_npz if args.backend == 'chainer' else torch_load
+    if args.opt == 'adadelta':
+        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=load_fn),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+            trainer.extend(adadelta_eps_decay(args.eps_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+        elif args.criterion == 'loss':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=load_fn),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+            trainer.extend(adadelta_eps_decay(args.eps_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+
+
+def add_snapshot(trainer, model, mtl_mode, savefun):
+    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=savefun),
+                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    if mtl_mode is not 'ctc':
+        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=savefun),
+                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
+
+
+def add_plot_report(trainer):
+    # Make a plot for training and validation values
+    trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
+                                          'main/loss_ctc', 'validation/main/loss_ctc',
+                                          'main/loss_att', 'validation/main/loss_att'],
+                                         'epoch', file_name='loss.png'))
+    trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
+                                         'epoch', file_name='acc.png'))
+
+
+def get_dimensions(json_file):
+    with open(json_file, 'rb') as f:
+        parsed_json = json.load(f)['utts']
+    utts = list(parsed_json.keys())
+    idim = int(parsed_json[utts[0]]['input'][0]['shape'][1])
+    odim = int(parsed_json[utts[0]]['output'][0]['shape'][1])
+    logging.info('#input dims : ' + str(idim))
+    logging.info('#output dims: ' + str(odim))
+    return idim, odim
+
+
+def get_mtl_mode(mtlalpha):
+    # specify attention, CTC, hybrid mode
+    if mtlalpha == 1.0:
+        mtl_mode = 'ctc'
+        logging.info('Pure CTC mode')
+    elif mtlalpha == 0.0:
+        mtl_mode = 'att'
+        logging.info('Pure attention mode')
+    else:
+        mtl_mode = 'mtl'
+        logging.info('Multitask learning mode')
+    return mtl_mode
+
+
+def add_progress_report(trainer, args):
+    is_pytorch = args.backend == 'pytorch'
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
+                   'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
+                   'main/acc', 'validation/main/acc', 'elapsed_time']
+    if args.opt == 'adadelta':
+        func = lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"] if is_pytorch else \
+            lambda trainer: trainer.updater.get_optimizer('main').eps
+        trainer.extend(extensions.observe_value('eps', func), trigger=(REPORT_INTERVAL, 'iteration'))
+        report_keys.append('eps')
+    if is_pytorch:
+        if args.report_cer:
+            report_keys.append('validation/main/cer')
+        if args.report_wer:
+            report_keys.append('validation/main/wer')
+    trainer.extend(extensions.PrintReport(
+        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+
+
+def prepare_trainer(updater, evaluator, converter, model, valid_json, args, device):
+    is_chainer = args.backend == 'chainer'
+    mtl_mode = get_mtl_mode(args.mtlalpha)
+    savefun = chainer.serializers.save_npz if is_chainer else torch_save
+    resume_fun = chainer.serializers.load_npz if is_chainer else torch_resume
+
+    trainer = training.Trainer(
+        updater, (args.epochs, 'epoch'), out=args.outdir)
+
+    if args.resume:
+        logging.info('resumed from %s' % args.resume)
+        resume_fun(args.resume, trainer)
+
+    trainer.extend(evaluator)
+    add_progress_report(trainer, args)
+    add_plot_report(trainer)
+    add_epsilon_decay(trainer, model, args, mtl_mode)
+    add_snapshot(trainer, model, mtl_mode, savefun)
+    att_reporter = add_attention_report(trainer, model, args, valid_json, converter, device)
+    add_early_stop(trainer, args)
+    add_tensorboard(trainer, args.tensorboard_dir, att_reporter)
+    return trainer

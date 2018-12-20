@@ -228,7 +228,7 @@ if ${use_lm}; then
           --unit ${lm_units} \
           --opt ${lm_opt} \
           --batchsize ${lm_batchsize} \
-          --epoch ${lm_epochs} \
+          --epochs ${lm_epochs} \
           --patience ${lm_patience} \
           --maxlen ${lm_maxlen} \
           --dict ${dict}

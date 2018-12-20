@@ -9,7 +9,6 @@ import collections
 import json
 import logging
 import math
-import os
 import six
 
 # chainer related
@@ -27,18 +26,21 @@ from chainer.training.updaters.multiprocess_parallel_updater import gather_param
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
 # espnet related
-from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import chainer_load
-from espnet.asr.asr_utils import CompareValueTrigger
-from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import get_dimensions
 from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
-from espnet.asr.asr_utils import PlotAttentionReport
-from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import prepare_trainer
+
 from espnet.nets.chainer_backend.e2e_asr import E2E
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.train_utils import check_early_stop
+from espnet.utils.train_utils import get_model_conf
+from espnet.utils.train_utils import load_jsons
+from espnet.utils.train_utils import write_conf
+
+from espnet.utils.train_ch_utils import chainer_load
 
 # for kaldi io
 import kaldi_io_py
@@ -51,12 +53,7 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 import matplotlib
 import numpy as np
 
-from espnet.utils.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
 matplotlib.use('Agg')
-
-REPORT_INTERVAL = 100
 
 
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py
@@ -211,41 +208,17 @@ def train(args):
         logging.warning('cudnn is not available')
 
     # get input and output dimension info
-    with open(args.valid_json, 'rb') as f:
-        valid_json = json.load(f)['utts']
-    utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
-    logging.info('#input dims : ' + str(idim))
-    logging.info('#output dims: ' + str(odim))
+    idim, odim = get_dimensions(args.valid_json)
 
     # check attention type
     if args.atype not in ['noatt', 'dot', 'location']:
         raise NotImplementedError('chainer supports only noatt, dot, and location attention.')
 
-    # specify attention, CTC, hybrid mode
-    if args.mtlalpha == 1.0:
-        mtl_mode = 'ctc'
-        logging.info('Pure CTC mode')
-    elif args.mtlalpha == 0.0:
-        mtl_mode = 'att'
-        logging.info('Pure attention mode')
-    else:
-        mtl_mode = 'mtl'
-        logging.info('Multitask learning mode')
-
     # specify model architecture
     model = E2E(idim, odim, args)
 
     # write model config
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    model_conf = args.outdir + '/model.json'
-    with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
-    for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+    write_conf(args, idim, odim)
 
     # Set gpu
     ngpu = args.ngpu
@@ -275,11 +248,7 @@ def train(args):
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
-    # read json data
-    with open(args.train_json, 'rb') as f:
-        train_json = json.load(f)['utts']
-    with open(args.valid_json, 'rb') as f:
-        valid_json = json.load(f)['utts']
+    train_json, valid_json = load_jsons(args)
 
     # set up training iterator and updater
     converter = CustomConverter(model.subsample[0])
@@ -335,16 +304,7 @@ def train(args):
         # set up updater
         updater = CustomParallelUpdater(
             train_iters, optimizer, converter=converter, devices=devices)
-
-    # Set up a trainer
-    trainer = training.Trainer(
-        updater, (args.epochs, 'epoch'), out=args.outdir)
-
-    # Resume from a snapshot
-    if args.resume:
-        chainer.serializers.load_npz(args.resume, trainer)
-
-    # set up validation iterator
+        # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     if args.n_iter_processes > 0:
@@ -356,90 +316,14 @@ def train(args):
         valid_iter = chainer.iterators.SerialIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False)
+    evaluator = extensions.Evaluator(valid_iter, model, converter=converter, device=gpu_id)
 
-    # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(
-        valid_iter, model, converter=converter, device=gpu_id))
-
-    # Save attention weight each epoch
-    if args.num_save_attention > 0 and args.mtlalpha != 1.0:
-        data = sorted(list(valid_json.items())[:args.num_save_attention],
-                      key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        if hasattr(model, "module"):
-            att_vis_fn = model.module.calculate_all_attentions
-        else:
-            att_vis_fn = model.calculate_all_attentions
-        att_reporter = PlotAttentionReport(
-            att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=gpu_id)
-        trainer.extend(att_reporter, trigger=(1, 'epoch'))
-    else:
-        att_reporter = None
-
-    # Take a snapshot for each specified epoch
+    trainer = prepare_trainer(updater, evaluator, converter, model, valid_json, args, gpu_id)
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
-
-    # Make a plot for training and validation values
-    trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
-                                          'main/loss_ctc', 'validation/main/loss_ctc',
-                                          'main/loss_att', 'validation/main/loss_att'],
-                                         'epoch', file_name='loss.png'))
-    trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
-                                         'epoch', file_name='acc.png'))
-
-    # Save best models
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    if mtl_mode is not 'ctc':
-        trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
-                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
-
-    # epsilon decay in the optimizer
-    if args.opt == 'adadelta':
-        if args.criterion == 'acc' and mtl_mode is not 'ctc':
-            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
-                           trigger=CompareValueTrigger(
-                               'validation/main/acc',
-                               lambda best_value, current_value: best_value > current_value))
-            trainer.extend(adadelta_eps_decay(args.eps_decay),
-                           trigger=CompareValueTrigger(
-                               'validation/main/acc',
-                               lambda best_value, current_value: best_value > current_value))
-        elif args.criterion == 'loss':
-            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best'),
-                           trigger=CompareValueTrigger(
-                               'validation/main/loss',
-                               lambda best_value, current_value: best_value < current_value))
-            trainer.extend(adadelta_eps_decay(args.eps_decay),
-                           trigger=CompareValueTrigger(
-                               'validation/main/loss',
-                               lambda best_value, current_value: best_value < current_value))
-
-    # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
-    report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
-                   'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
-                   'main/acc', 'validation/main/acc', 'elapsed_time']
-    if args.opt == 'adadelta':
-        trainer.extend(extensions.observe_value(
-            'eps', lambda trainer: trainer.updater.get_optimizer('main').eps),
-            trigger=(REPORT_INTERVAL, 'iteration'))
-        report_keys.append('eps')
-    trainer.extend(extensions.PrintReport(
-        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
-
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
-
-    if args.patience > 0:
-        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
-                                                                              patients=args.patience,
-                                                                              max_trigger=(args.epochs, 'epoch'))
-    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(log_dir=args.tensorboard_dir)
-        trainer.extend(TensorboardLogger(writer, att_reporter))
 
     # Run the training
     trainer.run()
+    check_early_stop(trainer, args.epochs)
 
 
 def recog(args):

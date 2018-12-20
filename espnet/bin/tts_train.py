@@ -146,7 +146,7 @@ def main(args):
                         help='Number of maximum epochs')
     parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
                         help="Value to monitor to trigger an early stopping of the training")
-    parser.add_argument('--patience', default=0, type=int, nargs='?',
+    parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--grad-clip', default=1, type=float,
                         help='Gradient norm threshold to clip')
