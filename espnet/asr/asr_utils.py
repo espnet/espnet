@@ -5,8 +5,7 @@
 
 import json
 import logging
-# matplotlib related
-import matplotlib
+
 # chainer related
 import chainer
 
@@ -24,10 +23,13 @@ from espnet.utils.pytorch_utils import torch_load
 from espnet.utils.pytorch_utils import torch_resume
 from espnet.utils.pytorch_utils import torch_save
 
-from espnet.utils.training.train_utils import REPORT_INTERVAL
+from espnet.utils.training.train_utils import add_attention_report
 from espnet.utils.training.train_utils import add_early_stop
 from espnet.utils.training.train_utils import add_tensorboard
-from espnet.utils.training.train_utils import add_attention_report
+from espnet.utils.training.train_utils import REPORT_INTERVAL
+
+# matplotlib related
+import matplotlib
 
 matplotlib.use('Agg')
 

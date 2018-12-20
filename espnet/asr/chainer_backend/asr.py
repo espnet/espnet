@@ -25,12 +25,12 @@ from chainer.training.updaters.multiprocess_parallel_updater import gather_param
 from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
 
 # espnet related
-from espnet.asr.asr_utils import write_results
 from espnet.asr.asr_utils import get_dimensions
 from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import prepare_trainer
 from espnet.asr.asr_utils import single_beam_search
+from espnet.asr.asr_utils import write_results
 
 from espnet.nets.chainer_backend.e2e_asr import E2E
 
