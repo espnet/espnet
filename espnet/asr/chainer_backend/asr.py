@@ -38,7 +38,7 @@ from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
 from espnet.utils.io import LoadInputsAndTargets
 
-from espnet.bin.bin_utils import set_deterministic_chainer
+from espnet.utils.deterministic_utils import set_deterministic_chainer
 
 # rnnlm
 import espnet.lm.chainer_backend.extlm as extlm_chainer
@@ -47,6 +47,9 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 # numpy related
 import matplotlib
 import numpy as np
+
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
@@ -366,9 +369,12 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=gpu_id), trigger=(1, 'epoch'))
+            converter=converter, device=gpu_id)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
@@ -423,6 +429,10 @@ def train(args):
         report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
 
     # Run the training
     trainer.run()

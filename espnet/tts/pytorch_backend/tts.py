@@ -31,12 +31,14 @@ from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import make_batchset
 from espnet.utils.io import LoadInputsAndTargets
 
-from espnet.bin.bin_utils import set_deterministic_pytorch
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
 
 import matplotlib
 
-matplotlib.use('Agg')
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
 
+matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
 
@@ -324,12 +326,15 @@ def train(args):
             att_vis_fn = tacotron2.module.calculate_all_attentions
         else:
             att_vis_fn = tacotron2.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + '/att_ws',
             converter=CustomConverter(return_targets=False,
                                       use_speaker_embedding=args.use_speaker_embedding,
                                       preprocess_conf=args.preprocess_conf),
-            device=device, reverse=True), trigger=(1, 'epoch'))
+            device=device, reverse=True)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     plot_keys = ['main/loss', 'validation/main/loss',
@@ -357,6 +362,10 @@ def train(args):
     report_keys[0:0] = ['epoch', 'iteration', 'elapsed_time']
     trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
 
     # Run the training
     trainer.run()

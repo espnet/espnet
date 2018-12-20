@@ -212,41 +212,43 @@ fi
 
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
+    expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
-        expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
+        expname=${expname}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
-    expdir=${expdir}-${elayers}x${eunits}_dec${dlayers}x${dunits}
+    expname=${expname}-${elayers}x${eunits}_dec${dlayers}x${dunits}
     if [ ${prenet_layers} -gt 0 ];then
-        expdir=${expdir}_pre${prenet_layers}x${prenet_units}
+        expname=${expname}_pre${prenet_layers}x${prenet_units}
     fi
     if [ ${postnet_layers} -gt 0 ];then
-        expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
+        expname=${expname}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
     fi
-    expdir=${expdir}_${atype}${adim}-${aconv_filts}x${aconv_chans}
+    expname=${expname}_${atype}${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
-        expdir=${expdir}_cm
+        expname=${expname}_cm
     fi
     if ${use_batch_norm};then
-        expdir=${expdir}_bn
+        expname=${expname}_bn
     fi
     if ${use_residual};then
-        expdir=${expdir}_rs
+        expname=${expname}_rs
     fi
     if ${use_concate};then
-        expdir=${expdir}_cc
+        expname=${expname}_cc
     fi
     if ${use_masking};then
-        expdir=${expdir}_msk_pw${bce_pos_weight}
+        expname=${expname}_msk_pw${bce_pos_weight}
     fi
-    expdir=${expdir}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
+    expname=${expname}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
     if [ ! ${batch_sort_key} = "shuffle" ];then
-        expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
+        expname=${expname}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
     fi
-    expdir=${expdir}_sd${seed}
+    expname=${expname}_sd${seed}
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
+mkdir -p ${expdir}
 if [ ${stage} -le 4 ];then
     echo "stage 4: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
@@ -256,6 +258,7 @@ if [ ${stage} -le 4 ];then
            --backend ${backend} \
            --ngpu ${ngpu} \
            --outdir ${expdir}/results \
+           --tensorboard-dir tensorboard/${expname} \
            --verbose ${verbose} \
            --seed ${seed} \
            --resume ${resume} \

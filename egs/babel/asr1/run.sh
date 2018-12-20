@@ -100,7 +100,8 @@ train_dev=dev
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
 fi
-lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
+lmexpname=train_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${lmexpname}
 lm_train_set=data/local/train.txt
 lm_valid_set=data/local/dev.txt
 
@@ -217,6 +218,7 @@ if ${use_lm}; then
           --backend ${backend} \
           --verbose 1 \
           --outdir ${lmexpdir} \
+          --tensorboard-dir tensorboard/${lmexpname} \
           --train-label ${lm_train_set} \
           --valid-label ${lm_valid_set} \
           --resume ${lm_resume} \
@@ -231,13 +233,14 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
@@ -248,6 +251,7 @@ if [ ${stage} -le 3 ]; then
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
