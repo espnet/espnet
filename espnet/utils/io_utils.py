@@ -46,9 +46,8 @@ class PreProcessing(object):
         >>> xs = [np.random.randn(100, 80).astype(np.float32)
         ...       for _ in range(bs)]
         >>> processed_xs = preprocessing(xs)
-
     """
-    
+
     def __init__(self, **kwargs):
         if len(kwargs) == 0:
             self.conf = {'mode': 'sequential', 'process': []}
@@ -135,7 +134,6 @@ class LoadInputsAndTargets(object):
         of the input length
     :param: bool use_speaker_embedding: Used for tts mode only
     :param: bool use_second_target: Used for tts mode only
-
     """
 
     def __init__(self, mode='asr',
