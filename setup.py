@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import io
 import os
 from setuptools import find_packages
 from setuptools import setup
@@ -56,7 +57,8 @@ setup(name='espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',
       description='ESPnet: end-to-end speech processing toolkit',
-      long_description=open(os.path.join(dirname, 'README.md')).read(),
+      long_description=io.open(os.path.join(dirname, 'README.md'),
+                               encoding='utf-8').read(),
       license='Apache Software License',
       packages=find_packages(include=['espnet*']),
       # #448: "scripts" is inconvenient for developping because they are copied
