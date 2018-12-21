@@ -8,7 +8,7 @@ import kaldi_io_py
 import numpy as np
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import read_hdf5_scp
+from espnet.utils.cli_utils import read_rspecifier
 
 
 def main():
@@ -45,29 +45,6 @@ def main():
     else:
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
-
-    if ':' not in args.rspecifier:
-        raise RuntimeError('Give "rspecifier" such as "ark:some.ark: {}"'
-                           .format(args.rspecifier))
-    ftype, filepath = args.rspecifier.split(':', 1)
-    if ftype not in ['ark', 'scp']:
-        raise RuntimeError('The file type must be one of scp, ark: {}'
-                           .format(ftype))
-    if args.in_filetype == 'mat':
-        if ftype == 'scp':
-            matrices = kaldi_io_py.read_mat_scp(filepath)
-        else:
-            matrices = kaldi_io_py.read_mat_ark(filepath)
-
-    elif args.in_filetype == 'hdf5':
-        if ftype == 'scp':
-            matrices = read_hdf5_scp(filepath)
-        else:
-            matrices = ((k, v.value)
-                        for k, v in h5py.File(filepath, 'r').items())
-    else:
-        raise NotImplementedError(
-            'Not supporting: --filetype {}'.format(args.filetype))
 
     is_wspecifier = ':' in args.wspecifier_or_wxfilename
 
@@ -113,7 +90,8 @@ def main():
     square_sum_feats = {}
 
     idx = 0
-    for idx, (utt, matrix) in enumerate(matrices, 1):
+    for idx, (utt, matrix) in enumerate(read_rspecifier(args.rspecifier,
+                                                        args.in_filetype), 1):
         assert isinstance(matrix, np.ndarray), type(matrix)
         spk = utt2spk(utt)
 

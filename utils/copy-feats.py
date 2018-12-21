@@ -9,7 +9,7 @@ import h5py
 import kaldi_io_py
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import read_hdf5_scp
+from espnet.utils.cli_utils import read_rspecifier
 
 PY2 = sys.version_info[0] == 2
 
@@ -48,35 +48,7 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    if ':' not in args.rspecifier:
-        raise RuntimeError('Give "rspecifier" such as "ark:some.ark: {}"'
-                           .format(args.rspecifier))
-    ftype, filepath = args.rspecifier.split(':', 1)
-    if ftype not in ['ark', 'scp']:
-        raise RuntimeError('The file type must be one of scp, ark: {}'
-                           .format(ftype))
-    if args.in_filetype == 'mat':
-        if filepath == '-':
-            if PY2:
-                filepath = sys.stdin
-            else:
-                filepath = sys.stdin.buffer
-
-        if ftype == 'scp':
-            matrices = kaldi_io_py.read_mat_scp(filepath)
-        else:
-            matrices = kaldi_io_py.read_mat_ark(filepath)
-
-    elif args.in_filetype == 'hdf5':
-        if ftype == 'scp':
-            matrices = read_hdf5_scp(filepath)
-        else:
-            matrices = ((k, v.value)
-                        for k, v in h5py.File(filepath, 'r').items())
-
-    else:
-        raise NotImplementedError(
-            'Not supporting: --filetype {}'.format(args.filetype))
+    matrices = read_rspecifier(args.rspecifier, args.in_filetype)
 
     ftype, filepath = args.wspecifier.split(':', 1)
     if args.out_filetype == 'hdf5':
@@ -133,8 +105,7 @@ def main():
                 .format(args.compress, args.compression_method))
         if args.write_num_frames is not None:
             arkscp = arkscp.replace(
-                'copy-feats',
-                'copy-feats {}'.format(args.write_num_frames))
+                'copy-feats', 'copy-feats {}'.format(args.write_num_frames))
 
         with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
             for spk, mat in matrices:
