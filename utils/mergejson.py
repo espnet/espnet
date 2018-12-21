@@ -22,10 +22,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--input-jsons', type=str, nargs='+', action='append',
-                        help='Json files for the inputs')
+                        default=[[]], help='Json files for the inputs')
     parser.add_argument('--output-jsons', type=str, nargs='+', action='append',
-                        help='Json files for the outputs')
+                        default=[[]], help='Json files for the outputs')
     parser.add_argument('--jsons', type=str, nargs='+', action='append',
+                        default=[[]],
                         help='The json files except for the input and outputs')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
