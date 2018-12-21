@@ -1,5 +1,5 @@
-import sys
 from io import BytesIO
+import sys
 
 import h5py
 import kaldi_io_py

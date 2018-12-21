@@ -48,6 +48,7 @@ class PreProcessing(object):
         >>> processed_xs = preprocessing(xs)
 
     """
+    
     def __init__(self, **kwargs):
         if len(kwargs) == 0:
             self.conf = {'mode': 'sequential', 'process': []}
@@ -136,6 +137,7 @@ class LoadInputsAndTargets(object):
     :param: bool use_second_target: Used for tts mode only
 
     """
+
     def __init__(self, mode='asr',
                  preprocess_conf=None,
                  load_input=True,
