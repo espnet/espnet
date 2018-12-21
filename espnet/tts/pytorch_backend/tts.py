@@ -19,6 +19,12 @@ from chainer.training import extensions
 
 import kaldi_io_py
 
+from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import torch_resume
+from espnet.asr.asr_utils import torch_save
+from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
@@ -26,19 +32,11 @@ from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
-from espnet.utils.training.train_utils import add_attention_report
-from espnet.utils.training.train_utils import add_early_stop
-from espnet.utils.training.train_utils import add_tensorboard
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import get_model_conf
-from espnet.utils.training.train_utils import load_jsons
-
-from espnet.utils.pytorch_utils import torch_load
-from espnet.utils.pytorch_utils import torch_resume
-from espnet.utils.pytorch_utils import torch_save
-from espnet.utils.pytorch_utils import torch_snapshot
 
 import matplotlib
+
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
@@ -265,7 +263,11 @@ def train(args):
     # Setup a converter
     converter = CustomConverter(True, args.use_speaker_embedding, args.use_cbhg)
 
-    train_json, valid_json = load_jsons(args)
+    # read json data
+    with open(args.train_json, 'rb') as f:
+        train_json = json.load(f)['utts']
+    with open(args.valid_json, 'rb') as f:
+        valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
     train_batchset = make_batchset(train_json, args.batch_size,
@@ -296,7 +298,6 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
-    evaluator = CustomEvaluator(model, valid_iter, reporter, converter, device)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -305,7 +306,7 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(evaluator)
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
     # Save snapshot for each epoch
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
@@ -314,8 +315,21 @@ def train(args):
     trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
-    att_fig_converter = CustomConverter(False, args.use_speaker_embedding)
-    att_reporter = add_attention_report(trainer, tacotron2, args, valid_json, att_fig_converter, device, True)
+    # Save attention figure for each epoch
+    if args.num_save_attention > 0:
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
+                      key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
+        if hasattr(tacotron2, "module"):
+            att_vis_fn = tacotron2.module.calculate_all_attentions
+        else:
+            att_vis_fn = tacotron2.calculate_all_attentions
+        att_reporter = PlotAttentionReport(
+            att_vis_fn, data, args.outdir + '/att_ws',
+            converter=CustomConverter(False, args.use_speaker_embedding),
+            device=device, reverse=True)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     plot_keys = ['main/loss', 'validation/main/loss',
@@ -344,12 +358,16 @@ def train(args):
     trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
-    add_early_stop(trainer, args)
-    add_tensorboard(trainer, args.tensorboard_dir, att_reporter)
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
 
     # Run the training
     trainer.run()
-    check_early_stop(trainer, args.epochs)
 
 
 def decode(args):

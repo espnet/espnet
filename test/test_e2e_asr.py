@@ -311,7 +311,7 @@ def test_calculate_all_attentions(module, atype):
 
 def test_chainer_save_and_load():
     m = importlib.import_module('espnet.nets.chainer_backend.e2e_asr')
-    utils = importlib.import_module('espnet.utils.chainer_utils')
+    utils = importlib.import_module('espnet.asr.asr_utils')
     args = make_arg()
     model = m.E2E(40, 5, args)
     # initialize randomly
@@ -332,7 +332,7 @@ def test_chainer_save_and_load():
 
 def test_torch_save_and_load():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
-    utils = importlib.import_module('espnet.utils.pytorch_utils')
+    utils = importlib.import_module('espnet.asr.asr_utils')
     args = make_arg()
     model = m.E2E(40, 5, args)
     # initialize randomly

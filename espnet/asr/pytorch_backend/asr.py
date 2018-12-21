@@ -5,8 +5,10 @@
 
 
 import copy
+import json
 import logging
 import math
+import os
 
 # chainer related
 import chainer
@@ -20,22 +22,18 @@ from chainer.training import extensions
 import torch
 
 # espnet related
+from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import get_dimensions
+from espnet.asr.asr_utils import CompareValueTrigger
+from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import load_inputs_and_targets
-from espnet.asr.asr_utils import make_args_batchset
-from espnet.asr.asr_utils import prepare_trainer
-from espnet.asr.asr_utils import single_beam_search
-from espnet.asr.asr_utils import write_results
-
-from espnet.utils.training.train_utils import get_model_conf
-from espnet.utils.training.train_utils import load_json
-from espnet.utils.training.train_utils import load_jsons
-from espnet.utils.training.train_utils import write_conf
-
-from espnet.utils.pytorch_utils import torch_load
-from espnet.utils.pytorch_utils import torch_snapshot
-
+from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import torch_resume
+from espnet.asr.asr_utils import torch_save
+from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
@@ -50,10 +48,14 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 import matplotlib
 import numpy as np
 
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
-from espnet.utils.training.train_utils import check_early_stop
 
 matplotlib.use('Agg')
+
+REPORT_INTERVAL = 100
 
 
 class CustomEvaluator(extensions.Evaluator):
@@ -205,7 +207,25 @@ def train(args):
     if not torch.cuda.is_available():
         logging.warning('cuda is not available')
 
-    idim, odim = get_dimensions(args.valid_json)
+    # get input and output dimension info
+    with open(args.valid_json, 'rb') as f:
+        valid_json = json.load(f)['utts']
+    utts = list(valid_json.keys())
+    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
+    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    logging.info('#input dims : ' + str(idim))
+    logging.info('#output dims: ' + str(odim))
+
+    # specify attention, CTC, hybrid mode
+    if args.mtlalpha == 1.0:
+        mtl_mode = 'ctc'
+        logging.info('Pure CTC mode')
+    elif args.mtlalpha == 0.0:
+        mtl_mode = 'att'
+        logging.info('Pure attention mode')
+    else:
+        mtl_mode = 'mtl'
+        logging.info('Multitask learning mode')
 
     # specify model architecture
     model = E2E(idim, odim, args)
@@ -219,7 +239,14 @@ def train(args):
         model.rnnlm = rnnlm
 
     # write model config
-    write_conf(args, idim, odim)
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
+    model_conf = args.outdir + '/model.json'
+    with open(model_conf, 'wb') as f:
+        logging.info('writing a model config file to ' + model_conf)
+        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+    for key in sorted(vars(args).keys()):
+        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     reporter = model.reporter
 
@@ -248,11 +275,19 @@ def train(args):
     # Setup a converter
     converter = CustomConverter(model.subsample[0])
 
-    train_json, valid_json = load_jsons(args)
+    # read json data
+    with open(args.train_json, 'rb') as f:
+        train_json = json.load(f)['utts']
+    with open(args.valid_json, 'rb') as f:
+        valid_json = json.load(f)['utts']
 
     # make minibatch list (variable length)
-    train = make_args_batchset(train_json, args)
-    valid = make_args_batchset(valid_json, args)
+    train = make_batchset(train_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+    valid = make_batchset(valid_json, args.batch_size,
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
@@ -274,15 +309,99 @@ def train(args):
     # Set up a trainer
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
-    evaluator = CustomEvaluator(model, valid_iter, reporter, converter, device)
+    trainer = training.Trainer(
+        updater, (args.epochs, 'epoch'), out=args.outdir)
 
-    trainer = prepare_trainer(updater, evaluator, converter, model, valid_json, args, device)
+    # Resume from a snapshot
+    if args.resume:
+        logging.info('resumed from %s' % args.resume)
+        torch_resume(args.resume, trainer)
+
+    # Evaluate the model with the test dataset for each epoch
+    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+
+    # Save attention weight each epoch
+    if args.num_save_attention > 0 and args.mtlalpha != 1.0:
+        data = sorted(list(valid_json.items())[:args.num_save_attention],
+                      key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
+        if hasattr(model, "module"):
+            att_vis_fn = model.module.calculate_all_attentions
+        else:
+            att_vis_fn = model.calculate_all_attentions
+        att_reporter = PlotAttentionReport(
+            att_vis_fn, data, args.outdir + "/att_ws",
+            converter=converter, device=device)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
+
+    # Make a plot for training and validation values
+    trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
+                                          'main/loss_ctc', 'validation/main/loss_ctc',
+                                          'main/loss_att', 'validation/main/loss_att'],
+                                         'epoch', file_name='loss.png'))
+    trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
+                                         'epoch', file_name='acc.png'))
+
+    # Save best models
+    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    if mtl_mode is not 'ctc':
+        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+
+    # epsilon decay in the optimizer
+    if args.opt == 'adadelta':
+        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+            trainer.extend(adadelta_eps_decay(args.eps_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/acc',
+                               lambda best_value, current_value: best_value > current_value))
+        elif args.criterion == 'loss':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.loss.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+            trainer.extend(adadelta_eps_decay(args.eps_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/loss',
+                               lambda best_value, current_value: best_value < current_value))
+
+    # Write a log of evaluation statistics for each epoch
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
+                   'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
+                   'main/acc', 'validation/main/acc', 'elapsed_time']
+    if args.opt == 'adadelta':
+        trainer.extend(extensions.observe_value(
+            'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
+            trigger=(REPORT_INTERVAL, 'iteration'))
+        report_keys.append('eps')
+    if args.report_cer:
+        report_keys.append('validation/main/cer')
+    if args.report_wer:
+        report_keys.append('validation/main/wer')
+    trainer.extend(extensions.PrintReport(
+        report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
+
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
+
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
     # Run the training
     trainer.run()
-    check_early_stop(trainer, args.epochs)
 
 
 def recog(args):
@@ -337,11 +456,18 @@ def recog(args):
         if rnnlm:
             rnnlm.cuda()
 
-    js = load_json(args.recog_json)
+    # read json data
+    with open(args.recog_json, 'rb') as f:
+        js = json.load(f)['utts']
     new_js = {}
 
-    if args.batch_size == 0:
-        new_js = single_beam_search(model, js, args, train_args, rnnlm)
+    if args.batchsize == 0:
+        with torch.no_grad():
+            for idx, name in enumerate(js.keys(), 1):
+                logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
+                feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
         try:
             from itertools import zip_longest as zip_longest
@@ -359,7 +485,7 @@ def recog(args):
         keys = [keys[i] for i in sorted_index]
 
         with torch.no_grad():
-            for names in grouper(args.batch_size, keys, None):
+            for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
                 feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
                          for name in names]
@@ -368,4 +494,6 @@ def recog(args):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
 
-    write_results(new_js, args.result_label)
+    # TODO(watanabe) fix character coding problems when saving it
+    with open(args.result_label, 'wb') as f:
+        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))

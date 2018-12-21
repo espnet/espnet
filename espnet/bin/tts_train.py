@@ -3,21 +3,41 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+
+import argparse
+import logging
+import os
+import platform
+import random
+import subprocess
 import sys
 
 from distutils.util import strtobool
 
-from espnet.bin.bin_utils import check_cuda_visible_devices
-from espnet.bin.bin_utils import get_train_argparser
-from espnet.bin.bin_utils import set_logging_level
-from espnet.bin.bin_utils import set_seed
+import numpy as np
 
 
 def main(args):
-    parser = get_train_argparser('tts')
+    parser = argparse.ArgumentParser()
     # general configuration
+    parser.add_argument('--ngpu', default=0, type=int,
+                        help='Number of GPUs')
+    parser.add_argument('--backend', default='pytorch', type=str,
+                        choices=['chainer', 'pytorch'],
+                        help='Backend library')
+    parser.add_argument('--outdir', type=str, required=True,
+                        help='Output directory')
+    parser.add_argument('--debugmode', default=1, type=int,
+                        help='Debugmode')
+    parser.add_argument('--seed', default=1, type=int,
+                        help='Random seed')
+    parser.add_argument('--resume', '-r', default='', type=str, nargs='?',
+                        help='Resume the training from snapshot')
     parser.add_argument('--minibatches', '-N', type=int, default='-1',
                         help='Process only N minibatches (for debug)')
+    parser.add_argument('--verbose', '-V', default=0, type=int,
+                        help='Verbose option')
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-json', type=str, required=True,
                         help='Filename of training json')
@@ -107,6 +127,8 @@ def main(args):
     parser.add_argument('--batch_sort_key', default='shuffle', type=str,
                         choices=['shuffle', 'output', 'input'], nargs='?',
                         help='Batch sorting key')
+    parser.add_argument('--batch-size', '-b', default=32, type=int,
+                        help='Batch size')
     parser.add_argument('--maxlen-in', default=100, type=int, metavar='ML',
                         help='Batch size is reduced if the input sequence length > ML')
     parser.add_argument('--maxlen-out', default=200, type=int, metavar='ML',
@@ -120,15 +142,53 @@ def main(args):
                         help='Epsilon for optimizer')
     parser.add_argument('--weight-decay', default=1e-6, type=float,
                         help='Weight decay coefficient for optimizer')
+    parser.add_argument('--epochs', '-e', default=30, type=int,
+                        help='Number of maximum epochs')
+    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+                        help="Value to monitor to trigger an early stopping of the training")
+    parser.add_argument('--patience', default=0, type=int, nargs='?',
+                        help="Number of epochs to wait without improvement before stopping the training")
+    parser.add_argument('--grad-clip', default=1, type=float,
+                        help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=5, type=int,
                         help='Number of samples of attention to be saved')
     args = parser.parse_args(args)
 
-    set_logging_level(args.verbose)
+    # logging info
+    if args.verbose > 0:
+        logging.basicConfig(
+            level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    else:
+        logging.basicConfig(
+            level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        logging.warning('Skip DEBUG/INFO messages')
 
-    check_cuda_visible_devices(args.ngpu)
+    # check CUDA_VISIBLE_DEVICES
+    if args.ngpu > 0:
+        # python 2 case
+        if platform.python_version_tuple()[0] == '2':
+            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
+                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
+                logging.info('CLSP: use gpu' + cvd)
+                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+        # python 3 case
+        else:
+            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
+                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
+                logging.info('CLSP: use gpu' + cvd)
+                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
 
-    set_seed(args.seed)
+        cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
+        if cvd is None:
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
+        elif args.ngpu != len(cvd.split(",")):
+            logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
+            sys.exit(1)
+
+    # set random seed
+    logging.info('random seed = %d' % args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
     if args.backend == "pytorch":
         from espnet.tts.pytorch_backend.tts import train
