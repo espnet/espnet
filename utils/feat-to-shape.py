@@ -4,11 +4,8 @@ import argparse
 import logging
 import sys
 
-import h5py
-import kaldi_io_py
-
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import read_hdf5_scp
+from espnet.utils.cli_utils import read_rspecifier
 
 
 def main():
@@ -37,30 +34,7 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    if ':' not in args.rspecifier:
-        raise RuntimeError('Give "rspecifier" such as "ark:some.ark: {}"'
-                           .format(args.rspecifier))
-    ftype, filepath = args.rspecifier.split(':', 1)
-    if ftype not in ['ark', 'scp']:
-        raise RuntimeError('The file type must be one of scp, ark: {}'
-                           .format(ftype))
-    if args.filetype == 'mat':
-        if ftype == 'scp':
-            matrices = kaldi_io_py.read_mat_scp(filepath)
-        else:
-            matrices = kaldi_io_py.read_mat_ark(filepath)
-
-    elif args.filetype == 'hdf5':
-        if ftype == 'scp':
-            matrices = read_hdf5_scp(filepath)
-        else:
-            matrices = ((k, v.value)
-                        for k, v in h5py.File(filepath, 'r').items())
-    else:
-        raise NotImplementedError(
-            'Not supporting: --filetype {}'.format(args.filetype))
-
-    for utt, mat in matrices:
+    for utt, mat in read_rspecifier(args.rspecifier, args.filetype):
         args.out.write('{} {}\n'.format(utt, ','.join(map(str, mat.shape))))
 
 
