@@ -34,7 +34,6 @@ from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
-from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.e2e_asr import Loss
 
@@ -248,6 +247,7 @@ def train(args):
     elif args.ntype == 'transformer':
         from espnet.nets.e2e_asr_transformer import E2E
         e2e = E2E(idim, odim, args)
+        args.mtlalpha = 0
         unchained = False
     else:
         raise ValueError('Incorrect type of architecture')
@@ -287,7 +287,10 @@ def train(args):
     if args.opt == 'adadelta':
         optimizer = chainer.optimizers.AdaDelta(rho=args.rho, eps=args.eps)
     elif args.opt == 'adam':
-        optimizer = chainer.optimizers.Adam()
+        if args.ntype == 'transformer':
+            optimizer = chainer.optimizers.Adam(alpha=0, beta1=0.9, beta2=0.98, eps=1e-9)
+        else:
+            optimizer = chainer.optimizers.Adam(alpha=args.lr_init)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
@@ -375,14 +378,11 @@ def train(args):
 
     # Evaluate the model with the test dataset for each epoch
     if args.ntype == 'transformer':
-        from espnet.nets.e2e_asr_transformer import VaswaniRule
-        trainer.extend(
-            # VaswaniRule('alpha', d=args.unit, warmup_steps=4000, scale=1.),
-            # VaswaniRule('alpha', d=args.unit, warmup_steps=32000, scale=1.),
-            # VaswaniRule('alpha', d=args.unit, warmup_steps=4000, scale=0.5),
-            # VaswaniRule('alpha', d=args.unit, warmup_steps=16000, scale=1.),
-            VaswaniRule('alpha', d=args.eunits, warmup_steps=args.warmup_steps, init=args.lr_init),
-            trigger=(1, 'iteration'))
+        if args.opt == 'adam':
+            from espnet.nets.e2e_asr_transformer import VaswaniRule
+            trainer.extend(
+                VaswaniRule('alpha', d=args.adim, warmup_steps=args.warmup_steps,
+                            scale=args.lr_init), trigger=(1, 'iteration'))
         trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.Evaluator(
         valid_iter, model, converter=converter, device=gpu_id), trigger=(1, 'epoch'))
@@ -395,6 +395,10 @@ def train(args):
             att_vis_fn = model.module.predictor.calculate_all_attentions
         else:
             att_vis_fn = model.predictor.calculate_all_attentions
+        if args.ntype == 'transformer':
+            from espnet.nets.e2e_asr_transformer import PlotAttentionReport
+        else:
+            from espnet.asr.asr_utils import PlotAttentionReport
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=gpu_id), trigger=(1, 'epoch'))
@@ -448,6 +452,11 @@ def train(args):
             'eps', lambda trainer: trainer.updater.get_optimizer('main').eps),
             trigger=(REPORT_INTERVAL, 'iteration'))
         report_keys.append('eps')
+    elif args.opt == 'adam':
+        trainer.extend(extensions.observe_value(
+            'alpha', lambda trainer: trainer.updater.get_optimizer('main').alpha),
+            trigger=(REPORT_INTERVAL, 'iteration'))
+        report_keys.append('alpha')
     trainer.extend(extensions.PrintReport(
         report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
