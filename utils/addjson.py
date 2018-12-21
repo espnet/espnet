@@ -18,7 +18,8 @@ from distutils.util import strtobool
 is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
     parser.add_argument('-i', '--is-input', default=True, type=strtobool,

@@ -29,7 +29,8 @@ def spectrogram(x, fs, n_fft, n_shift,
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int,
                         help='Sampling frequency')
     parser.add_argument('--n_fft', type=int, default=1024,

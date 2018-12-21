@@ -21,7 +21,8 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str,
                         help='json file')
     parser.add_argument('--parts', '-p', type=int,

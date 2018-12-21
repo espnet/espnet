@@ -42,7 +42,8 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', iters=100):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int, default=22050,
                         help='Sampling frequency')
     parser.add_argument('--fmax', type=int, default=None, nargs='?',
