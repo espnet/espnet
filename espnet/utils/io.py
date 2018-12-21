@@ -48,7 +48,6 @@ class PreProcessing(object):
         >>> processed_xs = preprocessing(xs)
 
     """
-
     def __init__(self, **kwargs):
         if len(kwargs) == 0:
             self.conf = {'mode': 'sequential', 'process': []}
@@ -192,30 +191,15 @@ class LoadInputsAndTargets(object):
         x_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         y_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
 
-        keys = []
         if self.load_input:
-            keys.append('input')
-        if self.load_output:
-            keys.append('output')
-
-        for key in keys:
             for uttid, info in batch:
-                for idx, inp in enumerate(info[key]):
-
-                    if 'tokenid' in inp:
-                        # ======= Legacy format for output =======
-                        # {"output": [{"tokenid": "1 2 3 4"}])
-                        assert isinstance(inp['tokenid'], str), \
-                            type(inp['tokenid'])
-                        x = np.fromiter(map(int, inp['tokenid'].split()),
-                                        dtype=np.int64)
-                    elif 'filetype' not in inp:
+                for idx, inp in enumerate(info['input']):
+                    if 'filetype' not in inp:
                         # ======= Legacy format for input =======
                         # {"input": [{"feat": "some/path.ark:123"}]),
-
-                        # FIXME(kamo): Ad-hoc
                         if idx == 1 and self.mode == 'tts' \
                                 and self.use_speaker_embedding:
+                            # FIXME(kamo): Ad-hoc
                             x = kaldi_io_py.read_vec_flt(inp['feat'])
                         else:
                             x = kaldi_io_py.read_mat(inp['feat'])
@@ -229,26 +213,44 @@ class LoadInputsAndTargets(object):
                         x = self._get_from_loader(
                             file_path=inp['feat'], loader_type=inp['filetype'])
 
-                    if key == 'input':
-                        x_feats_dict.setdefault(inp['name'], []).append(x)
+                    x_feats_dict.setdefault(inp['name'], []).append(x)
 
-                    elif key == 'output':
-                        y_feats_dict.setdefault(inp['name'], []).append(x)
-
-                # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
-                if not self.load_input and \
-                        self.mode == 'tts' and self.use_speaker_embedding:
-                    for idx, inp in enumerate(info['input']):
-                        if idx != 1:
-                            x = None
+        # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
+        if not self.load_input and \
+                self.mode == 'tts' and self.use_speaker_embedding:
+            for uttid, info in batch:
+                for idx, inp in enumerate(info['input']):
+                    if idx != 1:
+                        x = None
+                    else:
+                        if 'filetype' not in inp:
+                            x = kaldi_io_py.read_vec_flt(inp['feat'])
                         else:
-                            if 'filetype' not in inp:
-                                x = kaldi_io_py.read_vec_flt(inp['feat'])
-                            else:
-                                x = self._get_from_loader(
-                                    file_path=inp['feat'],
-                                    loader_type=inp['filetype'])
-                        x_feats_dict.setdefault(inp['name'], []).append(x)
+                            x = self._get_from_loader(
+                                file_path=inp['feat'],
+                                loader_type=inp['filetype'])
+                    x_feats_dict.setdefault(inp['name'], []).append(x)
+
+        if self.load_output:
+            for uttid, info in batch:
+                for idx, inp in enumerate(info['output']):
+                    if 'tokenid' in inp:
+                        # ======= Legacy format for output =======
+                        # {"output": [{"tokenid": "1 2 3 4"}])
+                        assert isinstance(inp['tokenid'], str), \
+                            type(inp['tokenid'])
+                        x = np.fromiter(map(int, inp['tokenid'].split()),
+                                        dtype=np.int64)
+                    else:
+                        # ======= New format =======
+                        # {"input":
+                        #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
+                        #    "filetype": "hdf5",
+
+                        x = self._get_from_loader(
+                            file_path=inp['feat'], loader_type=inp['filetype'])
+
+                    y_feats_dict.setdefault(inp['name'], []).append(x)
 
         if self.mode == 'asr':
             return_batch = self._create_batch_asr(x_feats_dict, y_feats_dict)
