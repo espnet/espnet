@@ -39,6 +39,7 @@ from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.training.train_utils import check_early_stop
 
 # for kaldi io
 import kaldi_io_py
@@ -51,7 +52,7 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 import matplotlib
 import numpy as np
 
-from espnet.utils.tensorboard_logger import TensorboardLogger
+from utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
@@ -440,6 +441,7 @@ def train(args):
 
     # Run the training
     trainer.run()
+    check_early_stop(trainer, args.epochs)
 
 
 def recog(args):

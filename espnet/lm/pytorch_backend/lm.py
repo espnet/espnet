@@ -38,10 +38,11 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 
-from espnet.utils.tensorboard_logger import TensorboardLogger
+from utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.training.train_utils import check_early_stop
 
 REPORT_INTERVAL = 100
 
@@ -394,12 +395,13 @@ def train(args):
     if args.patience > 0:
         trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
                                                                               patients=args.patience,
-                                                                              max_trigger=(args.epochs, 'epoch'))
+                                                                              max_trigger=(args.epoch, 'epoch'))
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer))
 
     trainer.run()
+    check_early_stop(trainer, args.epoch)
 
     # compute perplexity for test set
     if args.test_label:

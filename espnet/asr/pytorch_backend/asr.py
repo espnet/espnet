@@ -48,10 +48,11 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 import matplotlib
 import numpy as np
 
-from espnet.utils.tensorboard_logger import TensorboardLogger
+from utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.training.train_utils import check_early_stop
 
 matplotlib.use('Agg')
 
@@ -402,6 +403,7 @@ def train(args):
         trainer.extend(TensorboardLogger(writer, att_reporter))
     # Run the training
     trainer.run()
+    check_early_stop(trainer, args.epochs)
 
 
 def recog(args):
