@@ -52,7 +52,7 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 import matplotlib
 import numpy as np
 
-from utils.training.tensorboard_logger import TensorboardLogger
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')

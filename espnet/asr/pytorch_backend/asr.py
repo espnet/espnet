@@ -48,7 +48,7 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 import matplotlib
 import numpy as np
 
-from utils.training.tensorboard_logger import TensorboardLogger
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch

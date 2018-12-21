@@ -38,7 +38,7 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 
-from utils.training.tensorboard_logger import TensorboardLogger
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
