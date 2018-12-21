@@ -19,7 +19,8 @@ is_python2 = sys.version_info[0] == 2
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--input-jsons', type=str, nargs='+', action='append',
                         help='Json files for the inputs')
     parser.add_argument('--output-jsons', type=str, nargs='+', action='append',

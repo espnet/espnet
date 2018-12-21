@@ -12,7 +12,8 @@ import json
 import logging
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str, help='json files')
     parser.add_argument('dict', type=str, help='dict')
     parser.add_argument('ref', type=str, help='ref')
