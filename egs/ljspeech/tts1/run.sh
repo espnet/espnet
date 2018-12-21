@@ -11,7 +11,6 @@ backend=pytorch
 stage=-1
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
-dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 0, get more log)
 N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 seed=1       # random seed number
@@ -260,7 +259,7 @@ if [ ${stage} -le 4 ];then
     echo "stage 4: Decoding"
     for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
-        cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
+        cp data/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
         ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
