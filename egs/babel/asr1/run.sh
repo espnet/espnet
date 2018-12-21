@@ -227,8 +227,8 @@ if ${use_lm}; then
           --layer ${lm_layers} \
           --unit ${lm_units} \
           --opt ${lm_opt} \
-          --batch-size ${lm_batchsize} \
-          --epochs ${lm_epochs} \
+          --batchsize ${lm_batchsize} \
+          --epoch ${lm_epochs} \
           --patience ${lm_patience} \
           --maxlen ${lm_maxlen} \
           --dict ${dict}

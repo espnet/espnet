@@ -10,6 +10,7 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
+import json
 import logging
 import numpy as np
 import six
@@ -26,17 +27,18 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from espnet.lm.lm_utils import get_iterators
-from espnet.lm.lm_utils import prepare_trainer
+from espnet.lm.lm_utils import compute_perplexity
+from espnet.lm.lm_utils import count_tokens
+from espnet.lm.lm_utils import MakeSymlinkToBestModel
+from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
-from espnet.lm.lm_utils import show_token_counts
-from espnet.lm.lm_utils import test_perplexity
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
+from espnet.utils.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
 from espnet.utils.deterministic_utils import set_deterministic_chainer
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import write_conf
 
 REPORT_INTERVAL = 100
 
@@ -271,11 +273,24 @@ def train(args):
     # read tokens as a sequence of sentences
     train = read_tokens(args.train_label, args.char_list_dict)
     val = read_tokens(args.valid_label, args.char_list_dict)
-    show_token_counts(train, val, unk, args.n_vocab)
+    # count tokens
+    n_train_tokens, n_train_oovs = count_tokens(train, unk)
+    n_val_tokens, n_val_oovs = count_tokens(val, unk)
+    logging.info('#vocab = ' + str(args.n_vocab))
+    logging.info('#sentences in the training data = ' + str(len(train)))
+    logging.info('#tokens in the training data = ' + str(n_train_tokens))
+    logging.info('oov rate in the training data = %.2f %%' % (n_train_oovs / n_train_tokens * 100))
+    logging.info('#sentences in the validation data = ' + str(len(val)))
+    logging.info('#tokens in the validation data = ' + str(n_val_tokens))
+    logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs / n_val_tokens * 100))
 
     # Create the dataset iterators
-    train_iter, val_iter = get_iterators(train, val, args, eos)
-
+    train_iter = ParallelSentenceIterator(train, args.batchsize,
+                                          max_length=args.maxlen, sos=eos, eos=eos)
+    val_iter = ParallelSentenceIterator(val, args.batchsize,
+                                        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
+    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
+    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit)
     model = ClassifierWithState(rnn)
@@ -289,7 +304,11 @@ def train(args):
     else:
         gpu_id = -1
 
-    write_conf(args)
+    # Save model conf to json
+    model_conf = args.outdir + '/model.json'
+    with open(model_conf, 'wb') as f:
+        logging.info('writing a model config file to ' + model_conf)
+        f.write(json.dumps(vars(args), indent=4, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
     if args.opt == 'sgd':
@@ -301,12 +320,46 @@ def train(args):
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
     updater = BPTTUpdater(train_iter, optimizer, gpu_id)
-    evaluator = LMEvaluator(val_iter, model, device=gpu_id)
-    trainer = prepare_trainer(updater, evaluator, model, args,
-                              chainer.serializers.load_npz)
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
+    trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
+    trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
+                                        trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.PrintReport(
+        ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
+    ), trigger=(REPORT_INTERVAL, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'))
+    trainer.extend(extensions.snapshot_object(
+        model, 'rnnlm.model.{.updater.epoch}'))
+    # MEMO(Hori): wants to use MinValueTrigger, but it seems to fail in resuming
+    trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
+
+    if args.resume:
+        logging.info('resumed from %s' % args.resume)
+        chainer.serializers.load_npz(args.resume, trainer)
+
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer))
 
     trainer.run()
-    check_early_stop(trainer, args.epochs)
 
     # compute perplexity for test set
-    test_perplexity(model, LMEvaluator, args, unk, eos, gpu_id, chainer.serializers.load_npz)
+    if args.test_label:
+        logging.info('test the best model')
+        chainer.serializers.load_npz(args.outdir + '/rnnlm.model.best', model)
+        test = read_tokens(args.test_label, args.char_list_dict)
+        n_test_tokens, n_test_oovs = count_tokens(test, unk)
+        logging.info('#sentences in the test data = ' + str(len(test)))
+        logging.info('#tokens in the test data = ' + str(n_test_tokens))
+        logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs / n_test_tokens * 100))
+        test_iter = ParallelSentenceIterator(test, args.batchsize,
+                                             max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
+        evaluator = LMEvaluator(test_iter, model, device=gpu_id)
+        with chainer.using_config('train', False):
+            result = evaluator()
+        logging.info('test perplexity: ' + str(np.exp(float(result['main/loss']))))

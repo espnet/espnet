@@ -9,23 +9,14 @@
 from __future__ import division
 from __future__ import print_function
 
+import chainer
 import logging
 import numpy as np
 import os
 import random
 import six
 
-import chainer
-from chainer import training
 from chainer.training import extension
-from chainer.training import extensions
-
-from espnet.utils.training.train_utils import add_early_stop
-from espnet.utils.training.train_utils import add_tensorboard
-from espnet.utils.training.train_utils import REPORT_INTERVAL
-
-from espnet.utils.pytorch_utils import torch_save
-from espnet.utils.pytorch_utils import torch_snapshot
 
 
 def read_tokens(filename, label_dict):
@@ -243,85 +234,3 @@ def make_lexical_tree(word_dict, subword_dict, word_unk):
                     succ[cid][1] = wid
                 succ = succ[cid][0]  # move to the child successors
     return root
-
-
-def show_token_counts(train, val, unk, n_vocab):
-    n_train_tokens, n_train_oovs = count_tokens(train, unk)
-    n_val_tokens, n_val_oovs = count_tokens(val, unk)
-    logging.info('#vocab = ' + str(n_vocab))
-    logging.info('#sentences in the training data = ' + str(len(train)))
-    logging.info('#tokens in the training data = ' + str(n_train_tokens))
-    logging.info('oov rate in the training data = %.2f %%' % (n_train_oovs / n_train_tokens * 100))
-    logging.info('#sentences in the validation data = ' + str(len(val)))
-    logging.info('#tokens in the validation data = ' + str(n_val_tokens))
-    logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs / n_val_tokens * 100))
-
-
-def get_iterators(train, val, args, eos):
-    train_iter = ParallelSentenceIterator(train, args.batch_size,
-                                          max_length=args.maxlen, sos=eos, eos=eos)
-    val_iter = ParallelSentenceIterator(val, args.batch_size,
-                                        max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-
-    logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epochs * len(train_iter.batch_indices)))
-    return train_iter, val_iter
-
-
-def test_perplexity(model, evaluator_class, args, unk, eos, device, load_func, reporter=None):
-    is_chainer = args.backend == "chainer"
-    if args.test_label:
-        logging.info('test the best model')
-    load_func(args.outdir + '/rnnlm.model.best', model)
-    test = read_tokens(args.test_label, args.char_list_dict)
-    n_test_tokens, n_test_oovs = count_tokens(test, unk)
-    logging.info('#sentences in the test data = ' + str(len(test)))
-    logging.info('#tokens in the test data = ' + str(n_test_tokens))
-    logging.info('oov rate in the test data = %.2f %%' % (n_test_oovs / n_test_tokens * 100))
-    test_iter = ParallelSentenceIterator(test, args.batch_size,
-                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
-    if is_chainer:
-        evaluator = evaluator_class(test_iter, model, device=device)
-        with chainer.using_config('train', False):
-            result = evaluator()
-    else:
-        evaluator = evaluator_class(test_iter, model, reporter, device=device)
-        result = evaluator()
-    logging.info('test perplexity: ' + str(np.exp(float(result['main/loss']))))
-
-
-def prepare_trainer(updater, evaluator, model, args, resume_func):
-    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
-    trainer.extend(evaluator)
-    add_progress_report(trainer)
-    add_snapshot(trainer, model, args.backend == 'chainer')
-    if args.resume:
-        logging.info('resumed from %s' % args.resume)
-        resume_func(args.resume, trainer)
-    add_early_stop(trainer, args)
-    add_tensorboard(trainer, args.tensorboard_dir)
-    return trainer
-
-
-def add_snapshot(trainer, model, is_chainer):
-    # Save best models
-    filename = 'snapshot.ep.{.updater.epoch}'
-    if is_chainer:
-        trainer.extend(extensions.snapshot(filename=filename))
-        savefun = chainer.serializers.save_npz
-    else:
-        trainer.extend(torch_snapshot(filename=filename))
-        savefun = torch_save
-    trainer.extend(extensions.snapshot_object(
-        model, 'rnnlm.model.{.updater.epoch}', savefun=savefun))
-    # T.Hori: MinValueTrigger should be used, but it fails when resuming
-    trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
-
-
-def add_progress_report(trainer):
-    trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
-                                        trigger=(REPORT_INTERVAL, 'iteration')))
-    trainer.extend(extensions.PrintReport(
-        ['epoch', 'iteration', 'perplexity', 'val_perplexity', 'elapsed_time']
-    ), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))

@@ -205,8 +205,8 @@ if [ ${stage} -le 3 ]; then
         --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-        --epochs 40 \
-        --batch-size 256 \
+        --epoch 40 \
+        --batchsize 256 \
         --dict ${dict}
 fi
 
@@ -281,7 +281,7 @@ if [ ${stage} -le 5 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --batch-size 0 \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \

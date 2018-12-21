@@ -230,8 +230,8 @@ if [ ${stage} -le 3 ]; then
         --layer ${lm_layers} \
         --unit ${lm_units} \
         --opt ${lm_opt} \
-        --batch-size ${lm_batchsize} \
-        --epochs ${lm_epochs} \
+        --batchsize ${lm_batchsize} \
+        --epoch ${lm_epochs} \
         --patience ${lm_patience} \
         --maxlen ${lm_maxlen} \
         --dict ${dict}
@@ -305,7 +305,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-	    --batch-size 0 \
+	    --batchsize 0 \
 	    --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \

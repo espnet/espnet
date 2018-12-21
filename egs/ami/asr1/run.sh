@@ -280,8 +280,8 @@ if [[ ${stage} -le 3 && ${use_lm} == true ]]; then
         --layer ${lm_layers} \
         --unit ${lm_units} \
         --opt ${lm_opt} \
-        --batch-size ${lm_batchsize} \
-        --epochs ${lm_epochs} \
+        --batchsize ${lm_batchsize} \
+        --epoch ${lm_epochs} \
         --patience ${lm_patience} \
         --maxlen ${lm_maxlen} \
         --dict ${lmdict}
