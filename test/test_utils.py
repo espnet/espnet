@@ -7,8 +7,8 @@ import kaldi_io_py
 import numpy as np
 import pytest
 
-from espnet.utils.io import LoadInputsAndTargets
-from espnet.utils.io import PreProcessing
+from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.io_utils import PreProcessing
 from espnet.utils.processings.add_deltas import add_deltas
 from espnet.utils.processings.cmvn import CMVN
 from espnet.utils.processings.spectrogram import logmelspectrogram

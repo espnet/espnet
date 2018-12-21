@@ -36,7 +36,7 @@ from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
-from espnet.utils.io import LoadInputsAndTargets
+from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 

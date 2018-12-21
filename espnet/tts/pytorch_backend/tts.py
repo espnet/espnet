@@ -29,7 +29,7 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import make_batchset
-from espnet.utils.io import LoadInputsAndTargets
+from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 

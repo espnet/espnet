@@ -35,7 +35,7 @@ from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.utils.io import LoadInputsAndTargets
+from espnet.utils.io_utils import LoadInputsAndTargets
 
 # rnnlm
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
