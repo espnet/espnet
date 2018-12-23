@@ -102,9 +102,10 @@ class CustomUpdater(training.StandardUpdater):
 class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     '''Custom parallel updater for chainer'''
 
-    def __init__(self, train_iters, optimizer, converter, devices):
+    def __init__(self, train_iters, optimizer, converter, devices, unchained=False):
         super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices)
+        self.unchained = unchained
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -124,7 +125,8 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
             self._master.cleargrads()
             loss.backward()
-            loss.unchain_backward()
+            if self.unchained:
+                loss.unchain_backward()
 
             # NCCL: reduce grads
             null_stream = cuda.Stream.null
@@ -353,7 +355,7 @@ def train(args):
 
         # set up updater
         updater = CustomParallelUpdater(
-            train_iters, optimizer, converter=converter, devices=devices)
+            train_iters, optimizer, converter=converter, devices=devices, unchained=unchained)
 
     # Set up a trainer
     trainer = training.Trainer(
