@@ -16,9 +16,6 @@ MAX_DECODER_OUTPUT = 5
 MIN_VALUE = float(np.finfo(np.float32).min)
 
 linear_init = chainer.initializers.LeCunUniform()
-one_init = chainer.initializers.One()
-identity_init = chainer.initializers.Identity()
-zero_init = chainer.initializers.Zero()
 
 
 def get_topk(xp, x, k=5, axis=1):
@@ -124,33 +121,34 @@ class MultiHeadAttention(chainer.Chain):
         assert n_units % h == 0
         with self.init_scope():
             self.W_q = L.Linear(n_units, n_units)
-            self.W_k = L.Linear(n_units, n_units)
-            self.W_v = L.Linear(n_units, n_units)
-            self.W_o = L.Linear(n_units, n_units)
+            self.W_k = L.Linear(n_units, n_units, initialW=linear_init)
+            self.W_v = L.Linear(n_units, n_units, initialW=linear_init)
+            self.W_o = L.Linear(n_units, n_units, initialW=linear_init)
         self.d_k = n_units // h
         self.h = h
         self.dropout = dropout
         self.attn = None
 
-    def __call__(self, q, k, v, mask):
+    def __call__(self, e_var, s_var=None, mask=None, batch=1):
         xp = self.xp
-        # x dims = batch, len, dims
-        batch = q.shape[0]
-
-        # batch, head, time1/2, d_k)
-        Q = self.W_q(q.reshape(batch * q.shape[1], -1)).reshape(batch, -1, self.h, self.d_k)
-        K = self.W_k(k.reshape(batch * k.shape[1], -1)).reshape(batch, -1, self.h, self.d_k)
-        V = self.W_v(v.reshape(batch * v.shape[1], -1)).reshape(batch, -1, self.h, self.d_k)
-
-        mask = xp.stack([mask] * self.h, axis=1)
+        if s_var is None:
+            # batch, head, time1/2, d_k)
+            Q = self.W_q(e_var).reshape(batch, -1, self.h, self.d_k)
+            K = self.W_k(e_var).reshape(batch, -1, self.h, self.d_k)
+            V = self.W_v(e_var).reshape(batch, -1, self.h, self.d_k)
+        else:
+            Q = self.W_q(e_var).reshape(batch, -1, self.h, self.d_k)
+            K = self.W_k(s_var).reshape(batch, -1, self.h, self.d_k)
+            V = self.W_v(s_var).reshape(batch, -1, self.h, self.d_k)
         scores = F.matmul(F.swapaxes(Q, 1, 2), K.transpose(0, 2, 3, 1)) / np.sqrt(self.d_k)
-        scores = F.where(mask, scores, xp.full(scores.shape, MIN_VALUE, 'f'))
+        if mask is not None:
+            mask = xp.stack([mask] * self.h, axis=1)
+            scores = F.where(mask, scores, xp.full(scores.shape, MIN_VALUE, 'f'))
         self.attn = F.softmax(scores, axis=-1)
-
         p_attn = F.dropout(self.attn, self.dropout)
         x = F.matmul(p_attn, F.swapaxes(V, 1, 2))
         x = F.swapaxes(x, 1, 2).reshape(-1, self.h * self.d_k)
-        return self.W_o(x).reshape(batch, -1, self.h * self.d_k)
+        return self.W_o(x)
 
 
 class FeedForwardLayer(chainer.Chain):
@@ -171,7 +169,7 @@ class FeedForwardLayer(chainer.Chain):
 
 
 class EncoderLayer(chainer.Chain):
-    def __init__(self, idim, n_units, h=8, dropout=0.1):
+    def __init__(self, n_units, h=8, dropout=0.1):
         super(EncoderLayer, self).__init__()
         with self.init_scope():
             self.self_attention = MultiHeadAttention(n_units, h, dropout=dropout)
@@ -181,16 +179,14 @@ class EncoderLayer(chainer.Chain):
         self.dropout = dropout
         self.n_units = n_units
 
-    def __call__(self, e, xx_mask):
-        batch = e.shape[0]
-        n_units = self.n_units
-        ne = self.ln_1(e.reshape(-1, n_units)).reshape(batch, -1, n_units)
-        sub = self.self_attention(ne, ne, ne, xx_mask)
-        e = e + F.dropout(sub, self.dropout)
+    def __call__(self, e, xx_mask, batch):
+        n_e = self.ln_1(e)
+        n_e = self.self_attention(n_e, mask=xx_mask, batch=batch)
+        e = e + F.dropout(n_e, self.dropout)
 
-        ne = self.ln_2(e.reshape(-1, n_units))
-        sub = self.feed_forward(ne).reshape(batch, -1, n_units)
-        e = e + F.dropout(sub, self.dropout)
+        n_e = self.ln_2(e)
+        n_e = self.feed_forward(n_e)
+        e = e + F.dropout(n_e, self.dropout)
         return e
 
 
@@ -205,40 +201,40 @@ class DecoderLayer(chainer.Chain):
             self.ln_2 = LayerNorm(n_units)
             self.ln_3 = LayerNorm(n_units)
         self.dropout = dropout
-        self.n_units = n_units
 
-    def __call__(self, e, s, xy_mask, yy_mask):
-        batch = e.shape[0]
-        n_units = self.n_units
-        ne = self.ln_1(e.reshape(-1, n_units)).reshape(batch, -1, n_units)
-        sub = self.self_attention(ne, ne, ne, yy_mask)
-        e = e + F.dropout(sub, self.dropout)
+    def __call__(self, e, s, xy_mask, yy_mask, batch):
+        n_e = self.ln_1(e)
+        n_e = self.self_attention(n_e, mask=yy_mask, batch=batch)
+        e = e + F.dropout(n_e, self.dropout)
 
-        ne = self.ln_2(e.reshape(-1, n_units)).reshape(batch, -1, n_units)
-        sub = self.source_attention(ne, s, s, xy_mask)
-        e = e + F.dropout(sub, self.dropout)
+        n_e = self.ln_2(e)
+        n_e = self.source_attention(n_e, s_var=s, mask=xy_mask, batch=batch)
+        e = e + F.dropout(n_e, self.dropout)
 
-        ne = self.ln_3(e.reshape(-1, n_units))
-        sub = self.feed_forward(ne).reshape(batch, -1, n_units)
-        e = e + F.dropout(sub, self.dropout)
+        n_e = self.ln_3(e)
+        n_e = self.feed_forward(n_e)
+        e = e + F.dropout(n_e, self.dropout)
         return e
 
 
 class Encoder(chainer.Chain):
-    def __init__(self, idim, n_layers, n_units, h=8, dropout=0.1):
+    def __init__(self, n_layers, n_units, h=8, dropout=0.1):
         super(Encoder, self).__init__()
         self.layer_names = []
         for i in range(n_layers):
             name = 'l{}'.format(i)
-            layer = EncoderLayer(idim, n_units, h, dropout)
+            layer = EncoderLayer(n_units, h, dropout)
             self.add_link(name, layer)
             self.layer_names.append(name)
+        self.n_layers = n_layers
 
     def __call__(self, e, x_mask):
-        mask = (x_mask[:, None, :] >= 0) * (x_mask[:, :, None] >= 0)
-        mask = self.xp.array(mask)
-        for i in range(len(self.layer_names)):
-            e = self['l{}'.format(i)](e, mask)
+        xx_mask = (x_mask[:, None, :] >= 0) * (x_mask[:, :, None] >= 0)
+        xx_mask = self.xp.array(xx_mask)
+        dims = e.shape
+        e = e.reshape(-1, dims[2])  # Single reshape along Encoder
+        for i in range(self.n_layers):
+            e = self['l{}'.format(i)](e, xx_mask, dims[0])
         return e
 
 
@@ -251,45 +247,54 @@ class Decoder(chainer.Chain):
             layer = DecoderLayer(n_units, h, dropout)
             self.add_link(name, layer)
             self.layer_names.append(name)
+        self.n_layers = n_layers
 
-    def __call__(self, e, source, xy_mask, yy_mask):
-        for i in range(len(self.layer_names)):
-            e = self['l{}'.format(i)](e, source, xy_mask, yy_mask)
-        return e
+    def __call__(self, e, yy_mask, source, xy_mask):
+        dims = e.shape
+        logging.info('decoder e shape:' + str(e.shape))
+        logging.info('decoder s shape:' + str(source.shape))
+        e = e.reshape(-1, dims[2])
+        for i in range(self.n_layers):
+            e = self['l{}'.format(i)](e, source, xy_mask, yy_mask, dims[0])
+        return e.reshape(dims)
 
 
 class E2E(chainer.Chain):
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
-        idim = int(np.ceil(np.ceil(idim / 2) / 2)) * args.adim
-        with self.init_scope():
-            self.conv1 = L.Convolution2D(1, args.adim, 3, stride=2, pad=1)
-            self.conv2 = L.Convolution2D(args.adim, args.adim, 3, stride=2, pad=1)
-            self.feat_reduce = L.Linear(idim, args.adim)
-            self.encoder = Encoder(idim, args.elayers, args.adim, args.aheads, args.dropout_rate)
-            self.decoder = Decoder(args.dlayers, args.adim, args.aheads, args.dropout_rate)
-            self.embed_y = L.EmbedID(odim, args.adim, ignore_label=-1,
-                                     initialW=linear_init)
-            self.output = L.Linear(args.adim, odim, initialW=linear_init)
-
+        dims = args.adim
+        channels = 64  # dims
+        idim = int(np.ceil(np.ceil(idim / 2) / 2)) * channels
         self.n_target_vocab = len(args.char_list)
         self.use_label_smoothing = False
         self.char_list = args.char_list
-        self.scale_emb = args.adim ** 0.5
+        self.scale_emb = dims ** 0.5
         self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = [0]
         self.dropout = args.dropout_rate
         self.verbose = args.verbose
 
+        with self.init_scope():
+            self.conv1 = L.Convolution2D(1, channels, 3, stride=2, pad=1,
+                                         initialW=linear_init)
+            self.conv2 = L.Convolution2D(channels, channels, 3, stride=2, pad=1,
+                                         initialW=linear_init)
+            self.feat_reduce = L.Linear(idim, dims,
+                                        initialW=linear_init)
+            self.encoder = Encoder(args.elayers, dims, args.aheads, args.dropout_rate)
+            self.decoder = Decoder(args.dlayers, dims, args.aheads, args.dropout_rate)
+            self.embed_y = L.EmbedID(odim, dims, ignore_label=-1,
+                                     initialW=linear_init)
+            self.output = L.Linear(dims, odim, initialW=linear_init)
+
         # activation function
         # self.act = F.leaky_relu
         self.act = F.relu
-
         if args.lsm_type:
             logging.info("Use label smoothing ")
             self.use_label_smoothing = True
-        self.initialize_position_encoding(args.adim)
+        self.initialize_position_encoding(dims)
 
     def initialize_position_encoding(self, n_units, length=1000):
         # Implementation described in the paper
@@ -428,7 +433,6 @@ class E2E(chainer.Chain):
                        'constant', constant_values=-1)
 
         ey_block = self.make_y_embedding(ys)
-
         yy_mask = self.make_attention_mask(ys, ys)
         yy_mask *= self.make_history_mask(ys)
 
@@ -438,30 +442,27 @@ class E2E(chainer.Chain):
         xs = F.expand_dims(xs, axis=1).data
         xs = self.act(self.conv1(xs))
         xs = self.act(self.conv2(xs))
-        x_blocks = self.feat_reduce(F.swapaxes(xs, 1, 2), n_batch_axes=2) * self.scale_emb
-        batch, length, _ = x_blocks.shape
-        x_blocks += xp.array(self.position_encoding_block[:length])
+        xs = self.feat_reduce(F.swapaxes(xs, 1, 2), n_batch_axes=2) * self.scale_emb
+        batch, length, dims = xs.shape
+        xs += xp.array(self.position_encoding_block[:length])
         x_mask = np.ones([batch, length])
         for j in range(batch):
             x_mask[j, ilens[j]:] = -1
 
-        # x_blocks: utt x frame // 4 x enc_dim
-        if hasattr(self, 'embed_pos'):
-            x_blocks = self.make_input_embedding(x_blocks, do_x=True)
-
-        z_blocks = self.encoder(x_blocks, x_mask)
+        # Dims along enconder and decoder: batchsize * length x dims
+        xs = self.encoder(xs, x_mask)
         xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
-        h_block = self.decoder(ey_block, z_blocks, xy_mask, yy_mask)
+        xs = self.decoder(ey_block, yy_mask, xs, xy_mask)
 
         if calculate_attentions:
-            return h_block
+            return xs
         if not predict:
-            loss_att, acc = self.output_and_loss(h_block, ys_out)
+            loss_att, acc = self.output_and_loss(xs, ys_out)
             loss_ctc = None
             return loss_ctc, loss_att, acc
         else:
             # Encode Targets with Sources (Decode without Output)
-            return self.output(h_block.reshape(batch * length, -1))
+            return self.output(xs)
 
     def recognize(self, x_block, recog_args, char_list, rnnlm=None):
         # def translate(self, x_block, max_length=50, beam=5):
