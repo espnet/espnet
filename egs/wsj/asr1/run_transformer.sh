@@ -24,6 +24,7 @@ do_delta=false
 # encoder related
 ntype=transformer
 etype=vggblstmp     # encoder architecture type
+weight_init=none
 elayers=6
 eunits=320
 eprojs=320
@@ -229,6 +230,7 @@ if [ ${stage} -le 3 ]; then
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
     fi
+    "
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --ngpu ${ngpu} \
@@ -246,6 +248,7 @@ if [ ${stage} -le 3 ]; then
         --epoch ${lm_epochs} \
         --maxlen ${lm_maxlen} \
         --dict ${lmdict}
+    "
 fi
 
 
@@ -255,7 +258,7 @@ if [ -z ${tag} ]; then
     else
         lr=${rho}
     fi
-    expdir=exp/${train_set}_${backend}_${ntype}_e${elayers}_d${dlayers}_attention${adim}_aheads${aheads}_dropout${dropout}_${opt}${lr}_warmup${warmup_steps}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/${train_set}_${backend}_${ntype}_winit${weight_init}_e${elayers}_d${dlayers}_attention${adim}_aheads${aheads}_dropout${dropout}_${opt}${lr}_warmup${warmup_steps}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -309,6 +312,7 @@ if [ ${stage} -le 4 ]; then
         --maxlen-out ${maxlen_out} \
         --rho ${rho} \
         --sampling-probability ${samp_prob} \
+        --weight-init ${weight_init} \
         --opt ${opt} \
         --epochs ${epochs}
 fi

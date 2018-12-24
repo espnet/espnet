@@ -15,8 +15,6 @@ CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 MIN_VALUE = float(np.finfo(np.float32).min)
 
-linear_init = chainer.initializers.LeCunUniform()
-
 
 def get_topk(xp, x, k=5, axis=1):
     ids_list = []
@@ -100,7 +98,7 @@ class LayerNorm(chainer.Chain):
     def __init__(self, dims, axis=-1):
         super(LayerNorm, self).__init__()
         with self.init_scope():
-            self.norm = L.LayerNormalization(dims)
+            self.norm = L.LayerNormalization(dims, eps=1e-12)
         self.axis = axis
         self.dims = dims
 
@@ -116,14 +114,14 @@ class MultiHeadAttention(chainer.Chain):
 
     """
 
-    def __init__(self, n_units, h=8, dropout=0.1):
+    def __init__(self, n_units, h=8, dropout=0.1, initialW=None):
         super(MultiHeadAttention, self).__init__()
         assert n_units % h == 0
         with self.init_scope():
-            self.W_q = L.Linear(n_units, n_units)
-            self.W_k = L.Linear(n_units, n_units, initialW=linear_init)
-            self.W_v = L.Linear(n_units, n_units, initialW=linear_init)
-            self.W_o = L.Linear(n_units, n_units, initialW=linear_init)
+            self.W_q = L.Linear(n_units, n_units, initialW=initialW)
+            self.W_k = L.Linear(n_units, n_units, initialW=initialW)
+            self.W_v = L.Linear(n_units, n_units, initialW=initialW)
+            self.W_o = L.Linear(n_units, n_units, initialW=initialW)
         self.d_k = n_units // h
         self.h = h
         self.dropout = dropout
@@ -152,14 +150,14 @@ class MultiHeadAttention(chainer.Chain):
 
 
 class FeedForwardLayer(chainer.Chain):
-    def __init__(self, n_units):
+    def __init__(self, n_units, initialW=None):
         super(FeedForwardLayer, self).__init__()
         n_inner_units = n_units * 4
         with self.init_scope():
             self.W_1 = L.Linear(n_units, n_inner_units,
-                                initialW=linear_init)
+                                initialW=initialW)
             self.W_2 = L.Linear(n_inner_units, n_units,
-                                initialW=linear_init)
+                                initialW=initialW)
             self.act = F.relu
             # self.act = F.leaky_relu
 
@@ -169,11 +167,13 @@ class FeedForwardLayer(chainer.Chain):
 
 
 class EncoderLayer(chainer.Chain):
-    def __init__(self, n_units, h=8, dropout=0.1):
+    def __init__(self, n_units, h=8, dropout=0.1, initialW=None):
         super(EncoderLayer, self).__init__()
         with self.init_scope():
-            self.self_attention = MultiHeadAttention(n_units, h, dropout=dropout)
-            self.feed_forward = FeedForwardLayer(n_units)
+            self.self_attention = MultiHeadAttention(n_units, h, dropout=dropout,
+                                                     initialW=initialW)
+            self.feed_forward = FeedForwardLayer(n_units,
+                                                 initialW=initialW)
             self.ln_1 = LayerNorm(n_units)
             self.ln_2 = LayerNorm(n_units)
         self.dropout = dropout
@@ -191,12 +191,15 @@ class EncoderLayer(chainer.Chain):
 
 
 class DecoderLayer(chainer.Chain):
-    def __init__(self, n_units, h=8, dropout=0.1):
+    def __init__(self, n_units, h=8, dropout=0.1, initialW=None):
         super(DecoderLayer, self).__init__()
         with self.init_scope():
-            self.self_attention = MultiHeadAttention(n_units, h, dropout=dropout)
-            self.source_attention = MultiHeadAttention(n_units, h, dropout=dropout)
-            self.feed_forward = FeedForwardLayer(n_units)
+            self.self_attention = MultiHeadAttention(n_units, h, dropout=dropout,
+                                                     initialW=initialW)
+            self.source_attention = MultiHeadAttention(n_units, h, dropout=dropout,
+                                                       initialW=initialW)
+            self.feed_forward = FeedForwardLayer(n_units,
+                                                 initialW=initialW)
             self.ln_1 = LayerNorm(n_units)
             self.ln_2 = LayerNorm(n_units)
             self.ln_3 = LayerNorm(n_units)
@@ -218,12 +221,12 @@ class DecoderLayer(chainer.Chain):
 
 
 class Encoder(chainer.Chain):
-    def __init__(self, n_layers, n_units, h=8, dropout=0.1):
+    def __init__(self, n_layers, n_units, h=8, dropout=0.1, initialW=None):
         super(Encoder, self).__init__()
         self.layer_names = []
         for i in range(n_layers):
             name = 'l{}'.format(i)
-            layer = EncoderLayer(n_units, h, dropout)
+            layer = EncoderLayer(n_units, h, dropout, initialW=initialW)
             self.add_link(name, layer)
             self.layer_names.append(name)
         self.n_layers = n_layers
@@ -239,20 +242,18 @@ class Encoder(chainer.Chain):
 
 
 class Decoder(chainer.Chain):
-    def __init__(self, n_layers, n_units, h=8, dropout=0.1):
+    def __init__(self, n_layers, n_units, h=8, dropout=0.1, initialW=None):
         super(Decoder, self).__init__()
         self.layer_names = []
         for i in range(n_layers):
             name = 'l{}'.format(i)
-            layer = DecoderLayer(n_units, h, dropout)
+            layer = DecoderLayer(n_units, h, dropout, initialW=initialW)
             self.add_link(name, layer)
             self.layer_names.append(name)
         self.n_layers = n_layers
 
     def __call__(self, e, yy_mask, source, xy_mask):
         dims = e.shape
-        logging.info('decoder e shape:' + str(e.shape))
-        logging.info('decoder s shape:' + str(source.shape))
         e = e.reshape(-1, dims[2])
         for i in range(self.n_layers):
             e = self['l{}'.format(i)](e, source, xy_mask, yy_mask, dims[0])
@@ -274,19 +275,21 @@ class E2E(chainer.Chain):
         self.subsample = [0]
         self.dropout = args.dropout_rate
         self.verbose = args.verbose
-
+        weight_init = self.get_init(args.weight_init)
         with self.init_scope():
             self.conv1 = L.Convolution2D(1, channels, 3, stride=2, pad=1,
-                                         initialW=linear_init)
+                                         initialW=weight_init)
             self.conv2 = L.Convolution2D(channels, channels, 3, stride=2, pad=1,
-                                         initialW=linear_init)
+                                         initialW=weight_init)
             self.feat_reduce = L.Linear(idim, dims,
-                                        initialW=linear_init)
-            self.encoder = Encoder(args.elayers, dims, args.aheads, args.dropout_rate)
-            self.decoder = Decoder(args.dlayers, dims, args.aheads, args.dropout_rate)
+                                        initialW=weight_init)
+            self.encoder = Encoder(args.elayers, dims, args.aheads, args.dropout_rate,
+                                   initialW=weight_init)
+            self.decoder = Decoder(args.dlayers, dims, args.aheads, args.dropout_rate,
+                                   initialW=weight_init)
             self.embed_y = L.EmbedID(odim, dims, ignore_label=-1,
-                                     initialW=linear_init)
-            self.output = L.Linear(dims, odim, initialW=linear_init)
+                                     initialW=weight_init)
+            self.output = L.Linear(dims, odim, initialW=weight_init)
 
         # activation function
         # self.act = F.leaky_relu
@@ -295,6 +298,29 @@ class E2E(chainer.Chain):
             logging.info("Use label smoothing ")
             self.use_label_smoothing = True
         self.initialize_position_encoding(dims)
+
+    def get_init(self, type_init):
+        if type_init == 'luniform':
+            logging.info('Using LeCunUniform as weight initializer')
+            return chainer.initializers.LeCunUniform()
+        elif type_init == 'lnormal':
+            logging.info('Using LeCunNormal as weight initializer')
+            return chainer.initializers.LeCunNormal()
+        elif type_init == 'guniform':
+            logging.info('Using GlorotUniform as weight initializer')
+            return chainer.initializers.GlorotUniform()
+        elif type_init == 'gnormal':
+            logging.info('Using GlorotNormal as weight initializer')
+            return chainer.initializers.GlorotNormal()
+        elif type_init == 'huniform':
+            logging.info('Using HeUniform as weight initializer')
+            return chainer.initializers.HeUniform()
+        elif type_init == 'hnormal':
+            logging.info('Using HeNormal as weight initializer')
+            return chainer.initializers.HeNormal()
+        else:
+            logging.info('Using Chainer default as weight initializer')
+            return None
 
     def initialize_position_encoding(self, n_units, length=1000):
         # Implementation described in the paper
@@ -326,10 +352,10 @@ class E2E(chainer.Chain):
 
     def make_y_embedding(self, block):
         batch, length = block.shape
-        with chainer.no_backprop_mode():
-            emb_block = self.embed_y(block) * self.scale_emb
-            emb_block += self.xp.array(self.position_encoding_block[:length])
-            emb_block = F.dropout(emb_block, self.dropout)
+        # with chainer.no_backprop_mode():
+        emb_block = self.embed_y(block) * self.scale_emb
+        emb_block += self.xp.array(self.position_encoding_block[:length])
+        emb_block = F.dropout(emb_block, self.dropout)
         return emb_block
 
     def make_attention_mask(self, source_block, target_block):
@@ -431,10 +457,9 @@ class E2E(chainer.Chain):
             xs = F.pad_sequence(xs, padding=-1)
             xs = F.pad(xs, ((0, 0), (0, 1), (0, 0)),
                        'constant', constant_values=-1)
-
-        ey_block = self.make_y_embedding(ys)
-        yy_mask = self.make_attention_mask(ys, ys)
-        yy_mask *= self.make_history_mask(ys)
+            ey_block = self.make_y_embedding(ys)
+            yy_mask = self.make_attention_mask(ys, ys)
+            yy_mask *= self.make_history_mask(ys)
 
         # Encode Sources
         # xs: utt x frame x dim
@@ -451,121 +476,61 @@ class E2E(chainer.Chain):
 
         # Dims along enconder and decoder: batchsize * length x dims
         xs = self.encoder(xs, x_mask)
+        if predict:
+            return xs, x_mask
         xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
         xs = self.decoder(ey_block, yy_mask, xs, xy_mask)
 
         if calculate_attentions:
             return xs
-        if not predict:
-            loss_att, acc = self.output_and_loss(xs, ys_out)
-            loss_ctc = None
-            return loss_ctc, loss_att, acc
-        else:
-            # Encode Targets with Sources (Decode without Output)
-            return self.output(xs)
+
+        loss_att, acc = self.output_and_loss(xs, ys_out)
+        loss_ctc = None
+        return loss_ctc, loss_att, acc
+
 
     def recognize(self, x_block, recog_args, char_list, rnnlm=None):
-        # def translate(self, x_block, max_length=50, beam=5):
-        # x = x[::self.subsample[0], :]
-        # ilen = self.xp.array(x.shape[0], dtype=np.int32)
-        # h = chainer.Variable(self.xp.array(x, dtype=np.float32))
-
-        # with chainer.no_backprop_mode(), chainer.using_config('train', False):
-        #    # 1. encoder
-        #    # make a utt list (1) to use the same interface for encoder
-        #    h, _ = self.enc([h], [ilen])
-
-        #    # calculate log P(z_t|X) for CTC scores
-        #    if recog_args.ctc_weight > 0.0:
-        #        lpz = self.ctc.log_softmax(h).data[0]
-        #    else:
-        #        lpz = None
-
-        #    # 2. decoder
-        #    # decode the first utterance
-        #    y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
-        beam = recog_args.beam_size
-
-        logging.info('input lengths: ' + str(x_block.shape[0]))
-
-        if recog_args.maxlenratio == 0:
-            maxlen = x_block.shape[0]
-        else:
-            # maxlen >= 1
-            maxlen = max(1, int(recog_args.maxlenratio * x_block.shape[0]))
-        x_block = self.xp.array(x_block, dtype=self.xp.float32)
-        minlen = int(recog_args.minlenratio * x_block.shape[0])
-        logging.info('max output length: ' + str(maxlen))
-        logging.info('min output length: ' + str(minlen))
-        ilens = [x_block.shape[0]]
-
-        x_block = F.expand_dims(x_block, axis=0)
-
-        if beam:
-            return self.recognize_beam(x_block, ilens, recog_args, maxlen, beam)
-
-        # Greedy search
-        ys = None
-        raise ValueError('Greedy Search is not implemented yet')
-
-        return ys
-
-    def recognize_beam(self, x_block, ilens, recog_args, maxlen, beam):
-        # TODO(nelson): Efficient inference by re-using result
-        # TODO(nelson): batch processing
+        '''E2E beam search
+        :param ndarray x: input acouctic feature (B, T, D) or (T, D)
+        :param namespace recog_args: argment namespace contraining options
+        :param list char_list: list of characters
+        :param torch.nn.Module rnnlm: language model module
+        :return: N-best decoding results
+        :rtype: list
+        '''
         xp = self.xp
-        with chainer.no_backprop_mode():
-            with chainer.using_config('train', False):
-                batch, x_length, _ = x_block.shape
-                assert batch == 1, 'Batch processing is not supported now.'
-                y_block = xp.full(
-                    (batch, 1), self.sos, dtype=xp.int32)
-                eos_flags = xp.zeros(
-                    (batch * beam, ), dtype=x_block.dtype)
-                sum_scores = xp.zeros(1, 'f')
-                result = [[self.sos]] * batch * beam
-                for i in range(maxlen):
-                    log_prob_tail = self(x_block, ilens, y_block,
-                                         predict=True)
-
-                    ys_list, ws_list = get_topk(xp,
-                                                log_prob_tail.data, beam, axis=1)
-
-                    ys_concat = xp.concatenate(ys_list, axis=0)
-                    sum_ws_list = [ws + sum_scores for ws in ws_list]
-                    sum_ws_concat = xp.concatenate(sum_ws_list, axis=0)
-
-                    # Get top-k from total candidates
-                    idx_list, sum_w_list = get_topk(xp,
-                                                    sum_ws_concat, beam, axis=0)
-                    idx_concat = xp.stack(idx_list, axis=0)
-                    ys = ys_concat[idx_concat]
-                    sum_scores = xp.stack(sum_w_list, axis=0)
-
-                    if i != 0:
-                        old_idx_list = (idx_concat % beam).tolist()
-                    else:
-                        old_idx_list = [0] * beam
-
-                    result = [result[idx] + [y]
-                              for idx, y in zip(old_idx_list, ys.tolist())]
-
-                    y_block = xp.array(result).astype('i')
-                    if x_block.shape[0] != y_block.shape[0]:
-                        x_block = xp.broadcast_to(
-                            x_block.data, (y_block.shape[0], x_block.shape[1], x_block.shape[2]))
-                        ilens = [x_block.shape[1] for j in range(y_block.shape[0])]
-                    eos_flags += (ys == 0)
-                    if xp.all(eos_flags):
+        with chainer.no_backprop_mode(), chainer.using_config('train', False):
+            ilens = [x_block.shape[1]]
+            xs, x_mask = self(x_block[None, :, :], ilens, None, predict=True)
+            logging.info('Encoder size: ' + str(xs.shape))
+            if recog_args.beam_size == 1:
+                logging.info('Use greedy search implementation')
+                ys = xp.full((1, 1), self.sos)
+                logging.info(ys)
+                score = xp.zeros(1)
+                maxlen = xs.shape[1] + 1
+                for step in range(maxlen):
+                    ey_block = self.make_y_embedding(ys)
+                    yy_mask = self.make_attention_mask(ys, ys)
+                    yy_mask *= self.make_history_mask(ys)
+                    xy_mask = self.make_attention_mask(ys, xp.array(x_mask))
+                    out = self.decoder(ey_block, yy_mask, xs, xy_mask)
+                    out = self.output(out, n_batch_axes=2)
+                    prob = F.log_softmax(out[:, -1], axis=-1)
+                    max_prob = prob.array.max(axis=1)
+                    next_id = F.argmax(prob, axis=1).array.astype(np.int64)
+                    score += max_prob
+                    if step == maxlen - 1:
+                        next_id[0] = self.eos
+                    ys = F.concat((ys, next_id[None, :]), axis=1).data
+                    if next_id[0] == self.eos:
                         break
+                y = [{"score": score, "yseq": ys[0].tolist()}]
+            else:
+                logging.info('Use beam search implementaiton')
 
-        outs = [[wi for wi in sent if wi not in [2, 0]] for sent in result]
-        out = [sent if sent else [0] for sent in outs][0]
 
-        hyp = {'score': 0.0,
-               'yseq': out}
-        outs = [hyp]
-        return outs
+        return y
 
     def calculate_all_attentions(self, xs, ilens, ys):
         '''E2E attention calculation

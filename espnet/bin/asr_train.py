@@ -164,6 +164,8 @@ def main():
                         help='Number of samples of attention to be saved')
     parser.add_argument('--lr-init', default=0.001, type=float,
                         help='Initial value of learning rate')
+    parser.add_argument('--weight-init', type=str,
+                        help='Weight initializer')
     parser.add_argument('--warmup-steps', default=128000, type=int,
                         help='optimizer warmup steps')
     args = parser.parse_args()
