@@ -399,7 +399,7 @@ class LoadInputsAndTargets(object):
                 #                "filetype": "hdf5",
                 loader = h5py.File(file_path, 'r')
                 self._loaders[file_path] = loader
-            return loader[key].value
+            return loader[key][...]
         elif loader_type == 'wav':
             raise NotImplementedError(
                 'Not supported: loader_type={}'.format(loader_type))
