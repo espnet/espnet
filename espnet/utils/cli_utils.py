@@ -66,7 +66,7 @@ def read_rspecifier(rspecifier, filetype='mat'):
                     if hdf5_file is None:
                         hdf5_file = h5py.File(path, 'r')
                         hdf5_dict[path] = hdf5_file
-                    yield key, hdf5_file[h5_key].value
+                    yield key, hdf5_file[h5_key][...]
 
         else:
             if filepath == '-':
@@ -76,7 +76,7 @@ def read_rspecifier(rspecifier, filetype='mat'):
                 else:
                     filepath = BytesIO(sys.stdin.buffer.read())
             for key, dataset in h5py.File(filepath, 'r').items():
-                yield key, dataset.value
+                yield key, dataset[...]
 
     else:
         raise NotImplementedError(
