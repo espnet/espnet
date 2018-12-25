@@ -14,4 +14,4 @@ for line in sys.stdin:
             continue
         for j in seg_txt(blks[i]):
             out_line += " " + j
-        print(out_line)
+    print(out_line)
