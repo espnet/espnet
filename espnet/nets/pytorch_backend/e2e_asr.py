@@ -251,7 +251,11 @@ class E2E(torch.nn.Module):
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
 
-        return self.loss, loss_ctc, loss_att, acc, cer, wer
+        # Note(kamo): In order to work with DataParallel, on pytorch==0.4,
+        # the return value must be torch.CudaTensor, or tuple/list/dict of it.
+        # Neither CPUTensor nor float/int value can be used
+        # because NCCL communicates between GPU devices.
+        return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
