@@ -488,9 +488,9 @@ class E2E(chainer.Chain):
         loss_ctc = None
         return loss_ctc, loss_att, acc
 
-
     def recognize(self, x_block, recog_args, char_list, rnnlm=None):
         '''E2E beam search
+
         :param ndarray x: input acouctic feature (B, T, D) or (T, D)
         :param namespace recog_args: argment namespace contraining options
         :param list char_list: list of characters
@@ -500,13 +500,12 @@ class E2E(chainer.Chain):
         '''
         xp = self.xp
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
-            ilens = [x_block.shape[1]]
+            ilens = [x_block.shape[0]]
             xs, x_mask = self(x_block[None, :, :], ilens, None, predict=True)
             logging.info('Encoder size: ' + str(xs.shape))
             if recog_args.beam_size == 1:
                 logging.info('Use greedy search implementation')
                 ys = xp.full((1, 1), self.sos)
-                logging.info(ys)
                 score = xp.zeros(1)
                 maxlen = xs.shape[1] + 1
                 for step in range(maxlen):
@@ -528,7 +527,6 @@ class E2E(chainer.Chain):
                 y = [{"score": score, "yseq": ys[0].tolist()}]
             else:
                 logging.info('Use beam search implementaiton')
-
 
         return y
 

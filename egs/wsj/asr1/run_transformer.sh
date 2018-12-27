@@ -319,7 +319,8 @@ fi
 
 if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
-    nj=1
+    nj=32
+    ngpu=0
 
     for rtask in ${recog_set}; do
     (
