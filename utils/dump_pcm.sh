@@ -44,7 +44,7 @@ fi
 pcmdir=$(perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' ${pcmdir} ${PWD})
 
 # use "name" as part of name of the archive.
-name=`basename ${data}`
+name=$(basename ${data})
 
 mkdir -p ${pcmdir}
 mkdir -p ${logdir}

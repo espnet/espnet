@@ -5,7 +5,6 @@
 
 # Begin configuration section.
 nj=4
-fs=22050
 n_fft=1024
 n_shift=512
 win_length=

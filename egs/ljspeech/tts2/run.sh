@@ -176,7 +176,6 @@ if [ ${stage} -le 3 ]; then
     for name in ${train_set} ${train_dev} ${eval_set}; do
         utils/copy_data_dir.sh data/${name} data/${name}_stft
         make_stft.sh --nj ${nj} --cmd "$train_cmd" \
-            --fs ${fs} \
             --n_fft ${n_fft} \
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
