@@ -24,15 +24,16 @@ class WPE(object):
     def __call__(self, xs):
         """Return enhanced
 
-        :param np.ndarray xs: (Channel, Time, Frequency)
+        :param np.ndarray xs: (Time, Channel, Frequency)
         :return: enhanced_xs
         :return type: np.ndarray
 
         """
-        xs = wpe(xs.transpose((2, 0, 1)),
+        # nara_wpe.wpe: (F, C, T)
+        xs = wpe(xs.transpose((2, 1, 0)),
                  taps=self.taps,
                  delay=self.delay,
                  iterations=self.iterations,
                  psd_context=self.psd_context,
                  statistics_mode=self.statistics_mode)
-        return xs.transpose(1, 2, 0)
+        return xs.transpose(2, 1, 0)
