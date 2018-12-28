@@ -9,7 +9,7 @@
 # general configuration
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -47,6 +47,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=20
+patience=3
 
 # decoding parameter
 beam_size=20
@@ -210,8 +211,9 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
-        --n_iter_processes 2 \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --patience ${patience}
+
 fi
 
 if [ ${stage} -le 4 ]; then

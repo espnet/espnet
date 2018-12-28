@@ -46,6 +46,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=10
+patience=3
 
 # rnnlm related
 lm_layers=1
@@ -53,6 +54,7 @@ lm_units=1024
 lm_opt=sgd        # or adam
 lm_batchsize=1024 # batch size in LM training
 lm_epochs=20      # if the data size is large, we can reduce this
+lm_patience=3
 lm_maxlen=40      # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
@@ -230,6 +232,7 @@ if [ ${stage} -le 3 ]; then
         --opt ${lm_opt} \
         --batchsize ${lm_batchsize} \
         --epoch ${lm_epochs} \
+        --patience ${lm_patience} \
         --maxlen ${lm_maxlen} \
         --dict ${dict}
 fi
@@ -278,7 +281,8 @@ if [ ${stage} -le 4 ]; then
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --patience ${patience}
 fi
 
 if [ ${stage} -le 5 ]; then

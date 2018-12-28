@@ -46,6 +46,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=20
+patience=3
 
 # rnnlm related
 lm_weight=0.3
@@ -260,7 +261,8 @@ if [ ${stage} -le 4 ]; then
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
         --eps-decay 1 \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --patience ${patience}
 fi
 
 if [ ${stage} -le 5 ]; then
