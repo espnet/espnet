@@ -7,7 +7,7 @@ setup() {
     # Create an ark for dummy feature
     python << EOF
 import h5py
-import kaldi_io_py
+import kaldiio
 import numpy as np
 
 d = {k: np.random.randn(100, 100).astype(np.float32)
@@ -16,7 +16,7 @@ d = {k: np.random.randn(100, 100).astype(np.float32)
 with open('${tmpdir}/feats.ark','wb') as f, h5py.File('${tmpdir}/feats.h5','w') as fh:
     for k in sorted(d):
         v = d[k]
-        kaldi_io_py.write_mat(f, v, key=k)
+        kaldiio.save_ark(f, {k: v})
         fh[k] = v
 EOF
 
@@ -41,9 +41,9 @@ teardown() {
     compute-cmvn-stats ark:${tmpdir}/feats.ark ${tmpdir}/valid.mat
     python << EOF
 import numpy as np
-import kaldi_io_py
-test = kaldi_io_py.read_mat('${tmpdir}/test.mat')
-valid = kaldi_io_py.read_mat('${tmpdir}/valid.mat')
+import kaldiio
+test = kaldiio.load_mat('${tmpdir}/test.mat')
+valid = kaldiio.load_mat('${tmpdir}/valid.mat')
 np.testing.assert_allclose(test, valid, rtol=1e-4)
 EOF
 }
@@ -58,9 +58,9 @@ EOF
     compute-cmvn-stats --spk2utt=ark:${tmpdir}/spk2utt ark:${tmpdir}/feats.ark ark:${tmpdir}/valid.ark
     python << EOF
 import numpy as np
-import kaldi_io_py
-test = dict(kaldi_io_py.read_mat_ark('${tmpdir}/test.ark'))
-valid = dict(kaldi_io_py.read_mat_ark('${tmpdir}/valid.ark'))
+import kaldiio
+test = dict(kaldiio.load_ark('${tmpdir}/test.ark'))
+valid = dict(kaldiio.load_ark('${tmpdir}/valid.ark'))
 for k in test:
     np.testing.assert_allclose(test[k], valid[k], rtol=1e-4)
 EOF
@@ -75,9 +75,9 @@ EOF
     compute-cmvn-stats ark:${tmpdir}/feats.ark ${tmpdir}/valid.mat
     python << EOF
 import numpy as np
-import kaldi_io_py
-test = kaldi_io_py.read_mat('${tmpdir}/test.mat')
-valid = kaldi_io_py.read_mat('${tmpdir}/valid.mat')
+import kaldiio
+test = kaldiio.load_mat('${tmpdir}/test.mat')
+valid = kaldiio.load_mat('${tmpdir}/valid.mat')
 np.testing.assert_allclose(test, valid, rtol=1e-4)
 EOF
 }

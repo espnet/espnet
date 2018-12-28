@@ -10,14 +10,13 @@ import math
 import os
 
 import chainer
+import kaldiio
 import numpy as np
 import torch
 
 from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
-
-import kaldi_io_py
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import PlotAttentionReport
@@ -410,9 +409,7 @@ def decode(args):
         use_speaker_embedding=train_args.use_speaker_embedding,
         preprocess_conf=train_args.preprocess_conf)
 
-    # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
-    arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
-    with torch.no_grad(), kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
+    with torch.no_grad(), kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
         for idx, utt_id in enumerate(js.keys()):
             batch = [(utt_id, js[utt_id])]
             data = load_inputs_and_targets(batch)
@@ -430,4 +427,4 @@ def decode(args):
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
-            kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
+            f[utt_id] = outs.cpu().numpy()

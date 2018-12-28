@@ -7,12 +7,12 @@ setup() {
     # Create an ark for dummy feature
     python << EOF
 import numpy as np
-import kaldi_io_py
+import kaldiio
 with open('${tmpdir}/feats.ark','wb') as f:
-    kaldi_io_py.write_mat(f, np.random.randn(1, 100).astype(np.float32), key='A-utt1')
-    kaldi_io_py.write_mat(f, np.random.randn(20, 100).astype(np.float32), key='A-utt2')
-    kaldi_io_py.write_mat(f, np.random.randn(100, 100).astype(np.float32), key='B-utt1')
-    kaldi_io_py.write_mat(f, np.random.randn(10, 100).astype(np.float32), key='B-utt2')
+    kaldiio.save_ark(f, {'A-utt1': np.random.randn(1, 100).astype(np.float32),
+                         'A-utt2': np.random.randn(20, 100).astype(np.float32),
+                         'B-utt1': np.random.randn(100, 100).astype(np.float32),
+                         'B-utt2': np.random.randn(10, 100).astype(np.float32)})
 EOF
 
 }

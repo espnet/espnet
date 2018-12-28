@@ -1,14 +1,16 @@
 #!/usr/bin/env python
-
 import argparse
+import io
+import json
 import logging
 
-import h5py
-import kaldi_io_py
+import kaldiio
 import numpy as np
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import read_rspecifier
+from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.io_utils import PreProcessing
 
 
 def main():
@@ -33,6 +35,8 @@ def main():
                         choices=['mat', 'hdf5', 'npy'],
                         help='Specify the file format for the wspecifier. '
                              '"mat" is the matrix format in kaldi')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     parser.add_argument('rspecifier', type=str,
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('wspecifier_or_wxfilename', type=str,
@@ -84,6 +88,14 @@ def main():
                             'Global CMVN mode, changing to npy')
             args.out_filetype = 'npy'
 
+    if args.preprocess_conf is not None:
+        with io.open(args.preprocess_conf, encoding='utf-8') as f:
+            conf = json.load(f)
+            assert isinstance(conf, dict), type(conf)
+            preprocessing = PreProcessing(**conf)
+    else:
+        preprocessing = None
+
     # Calculate stats for each speaker
     counts = {}
     sum_feats = {}
@@ -93,6 +105,9 @@ def main():
     for idx, (utt, matrix) in enumerate(read_rspecifier(args.rspecifier,
                                                         args.in_filetype), 1):
         assert isinstance(matrix, np.ndarray), type(matrix)
+        if preprocessing is not None:
+            matrix = preprocessing(matrix)
+
         spk = utt2spk(utt)
 
         # Init at the first seen of the spk
@@ -129,42 +144,10 @@ def main():
 
     # Per utterance or speaker CMVN
     if is_wspecifier:
-        ftype, filepath = args.wspecifier_or_wxfilename.split(':', 1)
-        if args.out_filetype == 'hdf5':
-            if ftype == 'ark,scp':
-                h5_file, scp_file = filepath.split(',')
-            elif ftype == 'scp,ark':
-                scp_file, h5_file = filepath.split(',')
-            elif ftype == 'ark':
-                h5_file = filepath
-                scp_file = None
-            else:
-                raise RuntimeError(
-                    'Give "wspecifier" such as "ark:some.ark: {}"')
-            if scp_file is not None:
-                fscp = open(scp_file, 'w')
-            else:
-                fscp = None
-
-            with h5py.File(h5_file, 'w') as f:
-                for spk, mat in cmvn_stats.items():
-                    f[spk] = mat
-                    if fscp is not None:
-                        fscp.write('{} {}:{}\n'.format(spk, h5_file, spk))
-            if fscp is not None:
-                fscp.close()
-
-        elif args.out_filetype == 'mat':
-            # Use an external command: "copy-feats"
-            # FIXME(kamo): copy-feats change the precision to float?
-            arkscp = 'ark:| copy-feats --print-args=false ark:- {}'.format(
-                args.wspecifier_or_wxfilename)
-            with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
-                for spk, mat in cmvn_stats.items():
-                    kaldi_io_py.write_mat(f, mat, spk)
-        else:
-            raise RuntimeError('Not supporting: --out-filetype {}'
-                               .format(args.out_filetype))
+        with FileWriterWrapper(args.wspecifier_or_wxfilename,
+                               filetype=args.out_filetype) as writer:
+            for spk, mat in cmvn_stats.items():
+                writer[spk] = mat
 
     # Global CMVN
     else:
@@ -173,7 +156,7 @@ def main():
             np.save(args.wspecifier_or_wxfilename, matrix)
         elif args.out_filetype == 'mat':
             # Kaldi supports only matrix or vector
-            kaldi_io_py.write_mat(args.wspecifier_or_wxfilename, matrix)
+            kaldiio.save_mat(args.wspecifier_or_wxfilename, matrix)
         else:
             raise RuntimeError('Not supporting: --out-filetype {}'
                                .format(args.out_filetype))

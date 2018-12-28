@@ -7,12 +7,11 @@ import argparse
 import logging
 import os
 
+import kaldiio
 import librosa
 import numpy as np
-
 from scipy.io.wavfile import write
 
-import kaldi_io_py
 
 EPS = 1e-10
 
@@ -63,8 +62,7 @@ def main():
                         help='Type of window')
     parser.add_argument('--iters', type=int, default=100,
                         help='Number of iterations in Grriffin Lim')
-    parser.add_argument('scp', type=str,
-                        help='Feat scp files')
+    parser.add_argument('rspecifier', type=str, help='Input feature')
     parser.add_argument('outdir', type=str,
                         help='Output directory')
     args = parser.parse_args()
@@ -74,36 +72,34 @@ def main():
         level=logging.INFO,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
-    # load scp
-    reader = kaldi_io_py.read_mat_scp(args.scp)
-
     # check directory
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
     # extract feature and then write as ark with scp format
-    for idx, (utt_id, lmspc) in enumerate(reader, 1):
-        if args.n_mels is not None:
-            spc = logmelspc_to_linearspc(
-                lmspc,
-                fs=args.fs,
-                n_mels=args.n_mels,
+    with kaldiio.ReadHelper(args.rspecifier) as reader:
+        for idx, (utt_id, lmspc) in enumerate(reader, 1):
+            if args.n_mels is not None:
+                spc = logmelspc_to_linearspc(
+                    lmspc,
+                    fs=args.fs,
+                    n_mels=args.n_mels,
+                    n_fft=args.n_fft,
+                    fmin=args.fmin,
+                    fmax=args.fmax)
+            else:
+                spc = lmspc
+            y = griffin_lim(
+                spc,
                 n_fft=args.n_fft,
-                fmin=args.fmin,
-                fmax=args.fmax)
-        else:
-            spc = lmspc
-        y = griffin_lim(
-            spc,
-            n_fft=args.n_fft,
-            n_shift=args.n_shift,
-            win_length=args.win_length,
-            window=args.window,
-            iters=args.iters)
-        logging.info("(%d) %s" % (idx, utt_id))
-        write(args.outdir + "/%s.wav" % utt_id,
-              args.fs,
-              (y * np.iinfo(np.int16).max).astype(np.int16))
+                n_shift=args.n_shift,
+                win_length=args.win_length,
+                window=args.window,
+                iters=args.iters)
+            logging.info("(%d) %s" % (idx, utt_id))
+            write(args.outdir + "/%s.wav" % utt_id,
+                  args.fs,
+                  (y * np.iinfo(np.int16).max).astype(np.int16))
 
 
 if __name__ == "__main__":

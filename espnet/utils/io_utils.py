@@ -5,7 +5,7 @@ import json
 import logging
 
 import h5py
-import kaldi_io_py
+import kaldiio
 import numpy as np
 
 from espnet.utils.processings.add_deltas import AddDeltas
@@ -13,20 +13,6 @@ from espnet.utils.processings.cmvn import CMVN
 from espnet.utils.processings.spectrogram import LogMelSpectrogram
 from espnet.utils.processings.spectrogram import Spectrogram
 from espnet.utils.processings.spectrogram import Stft
-
-
-def lazy_scp_reader(file_or_fd):
-    fd = kaldi_io_py.open_or_fd(file_or_fd)
-    key2mat = {}
-    for line in fd:
-        key, rxfile = line.decode().split(None, 1)
-        key2mat[key] = rxfile
-
-    def f(key):
-        rxfile = key2mat[key]
-        mat = kaldi_io_py.read_mat(rxfile)
-        return mat
-    return f
 
 
 class PreProcessing(object):
@@ -78,7 +64,7 @@ class PreProcessing(object):
                     self.functions[idx] = Spectrogram(**opts)
 
                 elif process['type'] == 'stft':
-                    # x: array[Channel, Time]
+                    # x: array[Time, Channel]
                     self.functions[idx] = Stft(**opts)
 
                 elif process['type'] == 'delta':
@@ -89,7 +75,7 @@ class PreProcessing(object):
 
                 elif process['type'] == 'wpe':
                     from espnet.utils.processings.wpe import WPE
-                    # x: array[Channel, Time, Freq]
+                    # x: array[Time, Channel, Freq]
                     self.functions[idx] = WPE(**opts)
                 else:
                     raise NotImplementedError(
@@ -98,9 +84,6 @@ class PreProcessing(object):
             raise NotImplementedError(
                 'Not supporting mode={}'.format(self.conf['mode']))
 
-    def register(self, key, func):
-        self.functions[key] = func
-
     def __call__(self, xs):
         """Return new mini-batch
 
@@ -108,6 +91,12 @@ class PreProcessing(object):
         :return: batch:
         :rtype: List[np.ndarray]
         """
+        if not isinstance(xs, (list, tuple)):
+            is_batch = False
+            xs = [xs]
+        else:
+            is_batch = True
+
         if self.conf.get('mode', 'sequential') == 'sequential':
             for idx in range(len(self.conf['process'])):
                 func = self.functions[idx]
@@ -117,10 +106,14 @@ class PreProcessing(object):
                     logging.fatal('Catch a exception from {}th func: {}'
                                   .format(idx, func))
                     raise
-            return xs
         else:
             raise NotImplementedError(
                 'Not supporting mode={}'.format(self.conf['mode']))
+
+        if is_batch:
+            return xs
+        else:
+            return xs[0]
 
 
 class LoadInputsAndTargets(object):
@@ -197,13 +190,7 @@ class LoadInputsAndTargets(object):
                     if 'filetype' not in inp:
                         # ======= Legacy format for input =======
                         # {"input": [{"feat": "some/path.ark:123"}]),
-                        if idx == 1 and self.mode == 'tts' \
-                                and self.use_speaker_embedding:
-                            # FIXME(kamo): Ad-hoc
-                            x = kaldi_io_py.read_vec_flt(inp['feat'])
-                        else:
-                            x = kaldi_io_py.read_mat(inp['feat'])
-
+                        x = kaldiio.load_mat(inp['feat'])
                     else:
                         # ======= New format =======
                         # {"input":
@@ -212,7 +199,6 @@ class LoadInputsAndTargets(object):
 
                         x = self._get_from_loader(
                             file_path=inp['feat'], loader_type=inp['filetype'])
-
                     x_feats_dict.setdefault(inp['name'], []).append(x)
 
         # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
@@ -224,7 +210,7 @@ class LoadInputsAndTargets(object):
                         x = None
                     else:
                         if 'filetype' not in inp:
-                            x = kaldi_io_py.read_vec_flt(inp['feat'])
+                            x = kaldiio.load_mat(inp['feat'])
                         else:
                             x = self._get_from_loader(
                                 file_path=inp['feat'],
@@ -393,12 +379,13 @@ class LoadInputsAndTargets(object):
         """
         if loader_type in ['hdf5', 'h5']:
             file_path, key = file_path.split(':', 1)
-            loader = self._loaders.get(file_path)
+            # loader = self._loaders.get(file_path)
+            loader = None
             if loader is None:
                 #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                 #                "filetype": "hdf5",
                 loader = h5py.File(file_path, 'r')
-                self._loaders[file_path] = loader
+                # self._loaders[file_path] = loader
             return loader[key][...]
         elif loader_type == 'wav':
             raise NotImplementedError(
@@ -419,18 +406,20 @@ class LoadInputsAndTargets(object):
         elif loader_type == 'mat':
             #    {"input": [{"feat": "some/path.ark:123",
             #                "filetype": "mat"}]},
-            return kaldi_io_py.read_mat(file_path)
+            return kaldiio.load_mat(file_path)
         elif loader_type == 'vec':
             #    {"input": [{"feat": "some/path.ark:123",
             #                "filetype": "vec"}]},
-            return kaldi_io_py.read_vec_flt(file_path)
+
+            # load_mat can load both matrix and vector
+            return kaldiio.load_mat(file_path)
         elif loader_type == 'scp':
             file_path, key = file_path.split(':', 1)
             loader = self._loaders.get(file_path)
             if loader is None:
                 #    {"input": [{"feat": "some/path.scp:F01_050C0101_PED_REAL",
                 #                "filetype": "scp",
-                loader = lazy_scp_reader(file_path)
+                loader = kaldiio.load_scp(file_path)
             return loader[key]
         else:
             raise NotImplementedError(

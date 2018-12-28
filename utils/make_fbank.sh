@@ -16,6 +16,7 @@ window=hann
 write_utt2num_frames=true
 cmd=run.pl
 compress=true
+normalize=16  # The bit-depth of the input wav files
 filetype=mat # mat or hdf5
 # End configuration section.
 
@@ -73,6 +74,18 @@ done
 
 utils/split_scp.pl ${scp} ${split_scps} || exit 1;
 
+if ${write_utt2num_frames}; then
+  write_num_frames_opt="--write-num-frames=ark,t:${logdir}/utt2num_frames.JOB"
+else
+  write_num_frames_opt=
+fi
+
+if [ "${filetype}" == hdf5 ];then
+    ext=h5
+else
+    ext=ark
+fi
+
 ${cmd} JOB=1:${nj} ${logdir}/make_fbank_${name}.JOB.log \
     compute-fbank-feats.py \
         --fs ${fs} \
@@ -83,11 +96,13 @@ ${cmd} JOB=1:${nj} ${logdir}/make_fbank_${name}.JOB.log \
         --win_length ${win_length} \
         --window ${window} \
         --n_mels ${n_mels} \
-        --write_utt2num_frames ${write_utt2num_frames} \
+        ${write_num_frames_opt} \
         --compress=${compress} \
         --filetype ${filetype} \
-        ${logdir}/wav.JOB.scp \
-        ${fbankdir}/raw_fbank_${name}.JOB
+        --normalize ${normalize} \
+        scp:${logdir}/wav.JOB.scp \
+        ark,scp:${fbankdir}/raw_fbank_${name}.JOB.${ext},${fbankdir}/raw_fbank_${name}.JOB.scp
+
 
 # concatenate the .scp files together.
 for n in $(seq ${nj}); do
@@ -96,9 +111,9 @@ done > ${data}/feats.scp || exit 1
 
 if ${write_utt2num_frames}; then
     for n in $(seq ${nj}); do
-        cat ${fbankdir}/utt2num_frames.${n} || exit 1;
+        cat ${logdir}/utt2num_frames.${n} || exit 1;
     done > ${data}/utt2num_frames || exit 1
-    rm ${fbankdir}/utt2num_frames.* 2>/dev/null
+    rm ${logdir}/utt2num_frames.* 2>/dev/null
 fi
 
 rm ${logdir}/wav.*.scp 2>/dev/null

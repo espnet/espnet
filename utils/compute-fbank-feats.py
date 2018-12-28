@@ -4,31 +4,15 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import codecs
-from distutils.util import strtobool
 import logging
-import os
+from distutils.util import strtobool
 
-import h5py
-import kaldi_io_py
-import librosa
-import numpy as np
-import soundfile as sf
+import kaldiio
+import numpy
 
 from espnet.utils.cli_utils import get_commandline_args
-
-EPS = 1e-10
-
-
-def logmelspectrogram(x, fs, n_mels, n_fft, n_shift,
-                      win_length, window='hann', fmin=None, fmax=None):
-    fmin = 0 if fmin is None else fmin
-    fmax = fs / 2 if fmax is None else fmax
-    mel_basis = librosa.filters.mel(fs, n_fft, n_mels, fmin, fmax)
-    spc = np.abs(librosa.stft(x, n_fft, n_shift, win_length, window=window))
-    lmspc = np.log10(np.maximum(EPS, np.dot(mel_basis, spc).T))
-
-    return lmspc
+from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.processings.spectrogram import logmelspectrogram
 
 
 def main():
@@ -51,8 +35,8 @@ def main():
     parser.add_argument('--window', type=str, default='hann',
                         choices=['hann', 'hamming'],
                         help='Type of window')
-    parser.add_argument('--write_utt2num_frames', type=strtobool, default=True,
-                        help='Whether to write utt2num file')
+    parser.add_argument('--write-num-frames', type=str,
+                        help='Specify wspecifer for utt2num_frames')
     parser.add_argument('--filetype', type=str, default='mat',
                         choices=['mat', 'hdf5'],
                         help='Specify the file format for output. '
@@ -63,10 +47,17 @@ def main():
                         help='Specify the method(if mat) or gzip-level(if hdf5)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
-    parser.add_argument('scp', type=str,
-                        help='WAV scp files')
-    parser.add_argument('out', type=str,
-                        help='Output file id')
+    parser.add_argument('--normalize', choices=[1, 16, 24, 32], type=int,
+                        default=None,
+                        help='Give the bit depth of the PCM, '
+                             'then normalizes data to scale in [-1,1]')
+    parser.add_argument('rspecifier', type=str, help='WAV scp file')
+    parser.add_argument(
+        '--segments', type=str,
+        help='segments-file format: each line is either'
+             '<segment-id> <recording-id> <start-time> <end-time>'
+             'e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5')
+    parser.add_argument('wspecifier', type=str, help='Write specifier')
     args = parser.parse_args()
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
@@ -76,91 +67,31 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    # load scp
-    with codecs.open(args.scp, 'r', encoding="utf-8") as f:
-        scp = [x.replace('\n', '').split() for x in f.readlines()]
-    if len(scp[0]) != 2:
-        utt_ids = [scp_[0] for scp_ in scp]
-        paths = [scp_[-2] for scp_ in scp]
-        scp = [[utt_id, path] for utt_id, path in zip(utt_ids, paths)]
+    with kaldiio.ReadHelper(args.rspecifier, wav=True,
+                            segments=args.segments) as reader, \
+            FileWriterWrapper(args.wspecifier,
+                              filetype=args.filetype,
+                              write_num_frames=args.write_num_frames,
+                              compress=args.compress,
+                              compression_method=args.compression_method
+                              ) as writer:
+        for utt_id, (rate, array) in reader:
+            assert rate == args.fs
+            array = array.astype(numpy.float32)
+            if args.normalize is not None and args.normalize != 1:
+                array = array / (1 << (args.normalize - 1))
 
-    # check directory
-    outdir = os.path.dirname(args.out)
-    if len(outdir) != 0 and not os.path.exists(outdir):
-        os.makedirs(outdir)
-
-    if args.filetype == 'mat':
-        # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
-        if args.write_utt2num_frames:
-            job_id = "." + args.out.split(".")[-1] if args.out.split(".")[-1].isdigit() else ""
-            arkscp = ('ark:| copy-feats --print-args=false --write-num-frames=ark,t:%s '
-                      'ark:- ark,scp:%s.ark,%s.scp') % (
-                          os.path.dirname(args.out) + "/utt2num_frames" + job_id, args.out, args.out)
-        else:
-            arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
-        if args.compress:
-            arkscp = arkscp.replace(
-                'copy-feats',
-                'copy-feats --compress={} --compression-method={}'
-                .format(args.compress, args.compression_method))
-
-        # extract feature and then write as ark with scp format
-        with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
-            for idx, (utt_id, path) in enumerate(scp, 1):
-                x, fs = sf.read(path)
-                assert fs == args.fs
-                lmspc = logmelspectrogram(
-                    x=x,
-                    fs=args.fs,
-                    n_mels=args.n_mels,
-                    n_fft=args.n_fft,
-                    n_shift=args.n_shift,
-                    win_length=args.win_length,
-                    window=args.window,
-                    fmin=args.fmin,
-                    fmax=args.fmax)
-                logging.info("(%d/%d) %s" % (idx, len(scp), utt_id))
-                kaldi_io_py.write_mat(f, lmspc, utt_id)
-    elif args.filetype == 'hdf5':
-        if args.write_utt2num_frames:
-            job_id = "." + args.out.split(".")[-1] \
-                if args.out.split(".")[-1].isdigit() else ""
-            utt2num_frames = open(
-                os.path.dirname(args.out) + "/utt2num_frames" + job_id, 'w')
-        else:
-            utt2num_frames = None
-
-        with h5py.File(args.out + '.h5', 'w') as f, \
-                open(args.out + '.scp', 'w') as fscp:
-            for idx, (utt_id, path) in enumerate(scp, 1):
-                x, fs = sf.read(path)
-                assert fs == args.fs
-                lmspc = logmelspectrogram(
-                    x=x,
-                    fs=args.fs,
-                    n_mels=args.n_mels,
-                    n_fft=args.n_fft,
-                    n_shift=args.n_shift,
-                    win_length=args.win_length,
-                    window=args.window,
-                    fmin=args.fmin,
-                    fmax=args.fmax)
-
-                if args.compress:
-                    kwargs = dict(compression='gzip',
-                                  compression_opts=args.compression_method)
-                else:
-                    kwargs = {}
-                f.create_dataset(utt_id, data=lmspc, **kwargs)
-                fscp.write('{} {}.h5:{}\n'.format(utt_id, args.out, utt_id))
-                if utt2num_frames is not None:
-                    utt2num_frames.write('{} {}\n'.format(utt_id, len(lmspc)))
-
-        if utt2num_frames is not None:
-            utt2num_frames.close()
-    else:
-        raise NotImplementedError(
-            'Not supporting: --filetype {}'.format(args.filetype))
+            lmspc = logmelspectrogram(
+                x=array,
+                fs=args.fs,
+                n_mels=args.n_mels,
+                n_fft=args.n_fft,
+                n_shift=args.n_shift,
+                win_length=args.win_length,
+                window=args.window,
+                fmin=args.fmin,
+                fmax=args.fmax)
+            writer[utt_id] = lmspc
 
 
 if __name__ == "__main__":
