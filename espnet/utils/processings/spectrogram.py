@@ -103,26 +103,27 @@ class Stft(object):
                         center=self.center,
                         pad_mode=self.pad_mode))
 
-    def __call__(self, xs):
-        if xs[0].ndim == 1:
+    def __call__(self, x):
+        # x: [Time, Channel]
+        if x.ndim == 1:
             single_channel = True
-            xs = [x[None] for x in xs]
+            x = x[:, None]
+            channel = 1
         else:
             single_channel = False
+            channel = x.shape[1]
 
         # FIXME(kamo): librosa.stft can't use multi-channel?
-        xs = [[librosa.stft(x=x[i],
-                            n_fft=self.n_fft,
-                            hop_length=self.n_shift,
-                            win_length=self.win_length,
-                            window=self.window,
-                            center=self.center,
-                            pad_mode=self.pad_mode).T
-               for i in range(x.shape[0])] for x in xs]
+        x = np.stack([librosa.stft(
+            x=x[:, ch],
+            n_fft=self.n_fft,
+            hop_length=self.n_shift,
+            win_length=self.win_length,
+            window=self.window,
+            center=self.center,
+            pad_mode=self.pad_mode).T
+            for ch in range(channel)], axis=1)
         if single_channel:
             # x: array[Time, Freq]
-            xs = [x[0] for x in xs]
-        else:
-            # x: array[Channel, Time, Freq]
-            xs = [np.stack(x) for x in xs]
-        return xs
+            x = x[:, 0]
+        return x
