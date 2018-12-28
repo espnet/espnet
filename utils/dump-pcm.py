@@ -6,8 +6,8 @@ import logging
 import kaldiio
 import numpy
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def main():
