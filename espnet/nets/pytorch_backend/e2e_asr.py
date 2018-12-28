@@ -255,16 +255,10 @@ class E2E(torch.nn.Module):
         # the return value must be torch.CudaTensor, or tuple/list/dict of it.
         # Neither CPUTensor nor float/int value can be used
         # because NCCL communicates between GPU devices.
-        if self.loss.is_cuda:
-            loss_ctc = loss_ctc.cuda()
-            loss_att = loss_att.cuda()
-            acc = torch.tensor([acc], device='cuda')
-            cer = torch.tensor([cer], device='cuda')
-            wer = torch.tensor([wer], device='cuda')
-        else:
-            acc = torch.tensor([acc])
-            cer = torch.tensor([cer])
-            wer = torch.tensor([wer])
+        device = next(self.parameters()).device
+        acc = torch.tensor([acc], device=device)
+        cer = torch.tensor([cer], device=device)
+        wer = torch.tensor([wer], device=device)
         return self.loss, loss_ctc, loss_att, acc, cer, wer
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
