@@ -71,6 +71,7 @@ weight_decay=0.0
 dropout=0.5
 zoneout=0.1
 epochs=200
+patience=3
 # decoding related
 model=model.loss.best
 threshold=0.5    # threshold to stop the generation
@@ -297,7 +298,8 @@ if [ ${stage} -le 4 ];then
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
-           --epochs ${epochs}
+           --epochs ${epochs} \
+           --patience ${patience}
 fi
 
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
