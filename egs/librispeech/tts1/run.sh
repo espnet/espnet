@@ -63,7 +63,7 @@ weight_decay=0.0
 dropout=0.5
 zoneout=0.1
 epochs=30
-patience=3
+patience=5
 # decoding related
 model=model.loss.best
 threshold=0.5    # threshold to stop the generation
