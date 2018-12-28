@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 import importlib
-import subprocess
 
 import h5py
-import kaldi_io_py
+import kaldiio
 import numpy as np
-import pytest
 
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.io_utils import PreProcessing
@@ -14,7 +12,7 @@ from espnet.utils.processings.cmvn import CMVN
 from espnet.utils.processings.spectrogram import logmelspectrogram
 
 
-def make_dummy_json(n_utts=10, ilen_range=[100, 300], olen_range=[10, 300]):
+def make_dummy_json(n_utts=10, ilen_range=(100, 300), olen_range=(10, 300)):
     idim = 83
     odim = 52
     ilens = np.random.randint(ilen_range[0], ilen_range[1], n_utts)
@@ -40,18 +38,22 @@ def test_make_batchset():
         utils = importlib.import_module(module)
 
         # check w/o adaptive batch size
-        batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10, min_batch_size=1)
+        batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
+                                       min_batch_size=1)
         assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
         print([len(batch) for batch in batchset])
-        batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10, min_batch_size=10)
+        batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
+                                       min_batch_size=10)
         assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
         print([len(batch) for batch in batchset])
 
         # check w/ adaptive batch size
-        batchset = utils.make_batchset(dummy_json, 24, 256, 64, min_batch_size=10)
+        batchset = utils.make_batchset(dummy_json, 24, 256, 64,
+                                       min_batch_size=10)
         assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
         print([len(batch) for batch in batchset])
-        batchset = utils.make_batchset(dummy_json, 24, 256, 64, min_batch_size=10)
+        batchset = utils.make_batchset(dummy_json, 24, 256, 64,
+                                       min_batch_size=10)
         assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
 
 
@@ -75,7 +77,7 @@ def test_preprocessing(tmpdir):
     stats[1, :80] = (samples ** 2).sum(axis=0)
     stats[0, -1] = 100.
     stats[1, -1] = 0.
-    kaldi_io_py.write_mat(cmvn_ark, stats)
+    kaldiio.save_mat(cmvn_ark, stats)
 
     bs = 1
     xs = [np.random.randn(1000).astype(np.float32) for _ in range(bs)]
@@ -99,23 +101,19 @@ def test_preprocessing(tmpdir):
 
 
 def test_load_inputs_and_targets_legacy_format(tmpdir):
-    # (shutil.which doesn't exist in Python2)
-    if subprocess.call(['which', 'copy-feats']) != 0:
-        pytest.skip('You don\'t have copy-feats')
     # batch = [("F01_050C0101_PED_REAL",
     #          {"input": [{"feat": "some/path.ark:123"}],
     #           "output": [{"tokenid": "1 2 3 4"}],
     ark = str(tmpdir.join('test.ark'))
     scp = str(tmpdir.join('test.scp'))
-    wspec = 'ark:| copy-feats ark:- ark,scp:{},{}'.format(ark, scp)
 
     desire_xs = []
     desire_ys = []
-    with kaldi_io_py.open_or_fd(wspec, 'wb') as f:
+    with kaldiio.WriteHelper('ark,scp:{},{}'.format(ark, scp)) as f:
         for i in range(10):
             x = np.random.random((100, 100)).astype(np.float32)
             uttid = 'uttid{}'.format(i)
-            kaldi_io_py.write_mat(f, x, key=uttid)
+            f[uttid] = x
             desire_xs.append(x)
             desire_ys.append(np.array([1, 2, 3, 4]))
 

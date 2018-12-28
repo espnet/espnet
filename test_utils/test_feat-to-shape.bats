@@ -7,7 +7,7 @@ setup() {
     # Create an ark for dummy feature
     python << EOF
 import h5py
-import kaldi_io_py
+import kaldiio
 import numpy as np
 
 d = {'A-utt1': np.random.randn(1, 100).astype(np.float32),
@@ -18,7 +18,7 @@ d = {'A-utt1': np.random.randn(1, 100).astype(np.float32),
 with open('${tmpdir}/feats.ark','wb') as f, h5py.File('${tmpdir}/feats.h5','w') as fh:
     for k in sorted(d):
         v = d[k]
-        kaldi_io_py.write_mat(f, v, key=k)
+        kaldiio.save_ark(f, {k: v})
         fh[k] = v
 EOF
 

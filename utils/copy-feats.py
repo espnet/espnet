@@ -1,17 +1,11 @@
 #!/usr/bin/env python
-
 import argparse
 from distutils.util import strtobool
 import logging
-import sys
 
-import h5py
-import kaldi_io_py
-
+from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import read_rspecifier
-
-PY2 = sys.version_info[0] == 2
 
 
 def main():
@@ -48,71 +42,14 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    matrices = read_rspecifier(args.rspecifier, args.in_filetype)
-
-    ftype, filepath = args.wspecifier.split(':', 1)
-    if args.out_filetype == 'hdf5':
-        if ftype == 'ark,scp':
-            h5_file, scp_file = filepath.split(',')
-        elif ftype == 'scp,ark':
-            scp_file, h5_file = filepath.split(',')
-        elif ftype == 'ark':
-            h5_file = filepath
-            scp_file = None
-        else:
-            raise RuntimeError(
-                'Give "wspecifier" such as "ark:some.ark: {}"')
-        if scp_file is not None:
-            fscp = open(scp_file, 'w')
-        else:
-            fscp = None
-        if args.write_num_frames is not None:
-            nframes_type, nframes_file = args.write_num_frames.split(':')
-            if nframes_type != 'ark,t':
-                raise NotImplementedError(
-                    'Only supporting --write-num-frames=ark,t:foo.txt :'
-                    '{}'.format(nframes_type))
-            fnframes = open(nframes_file, 'w')
-        else:
-            fnframes = None
-
-        with h5py.File(h5_file, 'w') as f:
-            for utt, mat in matrices:
-                if args.compress:
-                    kwargs = dict(compression='gzip',
-                                  compression_opts=args.compression_method)
-                else:
-                    kwargs = {}
-                f.create_dataset(utt, data=mat, **kwargs)
-                if fscp is not None:
-                    fscp.write('{} {}:{}\n'.format(utt, h5_file, utt))
-                if fnframes is not None:
-                    fnframes.write('{} {}\n'.format(utt, len(mat)))
-        if fscp is not None:
-            fscp.close()
-        if fnframes is not None:
-            fnframes.close()
-
-    elif args.out_filetype == 'mat':
-        # Use an external command: "copy-feats"
-        # FIXME(kamo): copy-feats change the precision to float?
-        arkscp = 'ark:| copy-feats --print-args=false ark:- {}'.format(
-            args.wspecifier)
-        if args.compress:
-            arkscp = arkscp.replace(
-                'copy-feats',
-                'copy-feats --compress={} --compression-method={}'
-                .format(args.compress, args.compression_method))
-        if args.write_num_frames is not None:
-            arkscp = arkscp.replace(
-                'copy-feats', 'copy-feats {}'.format(args.write_num_frames))
-
-        with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
-            for spk, mat in matrices:
-                kaldi_io_py.write_mat(f, mat, spk)
-    else:
-        raise RuntimeError('Not supporting: --out-filetype {}'
-                           .format(args.out_filetype))
+    with FileWriterWrapper(
+            args.wspecifier,
+            filetype=args.filetype,
+            write_num_frames=args.write_num_frames,
+            compress=args.compress,
+            compression_method=args.compression_method) as writer:
+        for utt, mat in read_rspecifier(args.rspecifier, args.in_filetype):
+            writer[utt] = mat
 
 
 if __name__ == "__main__":
