@@ -31,12 +31,15 @@ from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
 
-from espnet.bin.bin_utils import set_deterministic_pytorch
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.training.train_utils import check_early_stop
 
 import matplotlib
 
-matplotlib.use('Agg')
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
 
+matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
 
@@ -321,10 +324,13 @@ def train(args):
             att_vis_fn = tacotron2.module.calculate_all_attentions
         else:
             att_vis_fn = tacotron2.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + '/att_ws',
             converter=CustomConverter(False, args.use_speaker_embedding),
-            device=device, reverse=True), trigger=(1, 'epoch'))
+            device=device, reverse=True)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     plot_keys = ['main/loss', 'validation/main/loss',
@@ -353,8 +359,17 @@ def train(args):
     trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
+
     # Run the training
     trainer.run()
+    check_early_stop(trainer, args.epochs)
 
 
 def decode(args):
