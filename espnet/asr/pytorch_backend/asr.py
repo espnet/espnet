@@ -139,7 +139,7 @@ class CustomUpdater(training.StandardUpdater):
 
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
-        loss = self.model(*x)
+        loss = self.model(*x)[0]
         if self.ngpu > 1:
             loss = loss.sum() / self.ngpu
         loss.backward()  # Backprop
