@@ -272,7 +272,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=model.subsample[0],
+    converter = CustomConverter(subsampling_factor=subsampling_factor,
                                 preprocess_conf=args.preprocess_conf)
 
     # read json data
