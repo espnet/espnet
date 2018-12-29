@@ -92,6 +92,7 @@ set -o pipefail
 
 train_set=train_nodev
 train_dev=train_dev
+eval_set="test"
 
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"
@@ -120,9 +121,9 @@ if [ ${stage} -le 0 ]; then
     done
 fi
 
-
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
+feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
 if [ ${stage} -le 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -144,6 +145,7 @@ if [ ${stage} -le 1 ]; then
 
     # make a dev set
     utils/subset_data_dir.sh --last data/train 500 data/deveval
+    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
     utils/subset_data_dir.sh --first data/deveval 250 data/${train_dev}
     n=$(( $(wc -l < data/train/wav.scp) - 500 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
@@ -156,6 +158,8 @@ if [ ${stage} -le 1 ]; then
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
@@ -174,6 +178,8 @@ if [ ${stage} -le 2 ]; then
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --feat ${feat_ev_dir}/feats.scp \
+         data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
 
@@ -264,13 +270,14 @@ if [ ${stage} -le 3 ];then
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
-           --epochs ${epochs}
+           --epochs ${epochs} \
+           --patience ${patience}
 fi
 
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
 if [ ${stage} -le 4 ];then
     echo "stage 4: Decoding"
-    for sets in ${train_dev};do
+    for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
@@ -295,7 +302,7 @@ fi
 
 if [ ${stage} -le 5 ];then
     echo "stage 5: Synthesis"
-    for sets in ${train_dev};do
+    for sets in ${train_dev} ${eval_set};do
         [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
