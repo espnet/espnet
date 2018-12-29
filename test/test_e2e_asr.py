@@ -379,5 +379,5 @@ def test_torch_multi_gpu_trainable():
     model = torch.nn.DataParallel(model, device_ids)
     batch = prepare_inputs("pytorch", is_cuda=True)
     model.cuda()
-    loss = 1. / ngpu * model(*batch)
+    loss = 1. / ngpu * model(*batch)[0]
     loss.backward(loss.new_ones(ngpu))  # trainable
