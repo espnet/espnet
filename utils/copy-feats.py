@@ -44,7 +44,7 @@ def main():
 
     with FileWriterWrapper(
             args.wspecifier,
-            filetype=args.filetype,
+            filetype=args.out_filetype,
             write_num_frames=args.write_num_frames,
             compress=args.compress,
             compression_method=args.compression_method) as writer:
