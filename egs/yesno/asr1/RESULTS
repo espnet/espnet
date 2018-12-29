@@ -1,0 +1,8 @@
+#!/bin/bash
+grep -e Avg -e SPKR -m 2 exp/train*/decode_*/result.txt
+
+exit 0
+
+
+exp/train_nodev_pytorch_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs30_mli800_mlo150/decode_test_yesno_beam5_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5/result.txt:|          SPKR             |          # Snt  # Wrd           |          Corr     Sub      Del     Ins      Err   S.Err           |
+exp/train_nodev_pytorch_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs30_mli800_mlo150/decode_test_yesno_beam5_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5/result.txt:|          Sum/Avg          |            30     835           |          36.3    53.3     10.4    24.7     88.4   100.0
