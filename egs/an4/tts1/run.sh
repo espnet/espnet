@@ -71,7 +71,6 @@ maxlenratio=10.0 # maximum length of generated samples = input length * maxlenra
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
-
 # data
 datadir=./downloads
 an4_root=${datadir}/an4
@@ -81,9 +80,6 @@ data_url=http://www.speech.cs.cmu.edu/databases/an4/
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -180,7 +176,6 @@ if [ ${stage} -le 2 ]; then
     data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
-
 
 if [ -z ${tag} ];then
     expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
