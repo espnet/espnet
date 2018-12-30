@@ -34,7 +34,14 @@ class PreProcessing(object):
         >>> processed_xs = preprocessing(xs)
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, conf=None, **kwargs):
+        if conf is not None:
+            with io.open(conf, encoding='utf-8') as f:
+                conf = json.load(f)
+                assert isinstance(conf, dict), type(conf)
+            conf.update(kwargs)
+            kwargs = conf
+
         if len(kwargs) == 0:
             self.conf = {'mode': 'sequential', 'process': []}
         else:
@@ -72,6 +79,9 @@ class PreProcessing(object):
 
                 elif process['type'] == 'cmvn':
                     self.functions[idx] = CMVN(**opts)
+
+                elif process['type'] == 'utterance_cmvn':
+                    self.functions[idx] = UtteranceCMVN(**opts)
 
                 elif process['type'] == 'wpe':
                     from espnet.utils.processings.wpe import WPE
@@ -142,10 +152,7 @@ class LoadInputsAndTargets(object):
             raise ValueError(
                 'Only asr or tts are allowed: mode={}'.format(mode))
         if preprocess_conf is not None:
-            with io.open(preprocess_conf, encoding='utf-8') as f:
-                conf = json.load(f)
-                assert isinstance(conf, dict), type(conf)
-                self.preprocessing = PreProcessing(**conf)
+            self.preprocessing = PreProcessing(preprocess_conf)
             logging.warning(
                 '[Experimental feature] Some pre-processings will be done '
                 'for the mini-batch creation using {}'
