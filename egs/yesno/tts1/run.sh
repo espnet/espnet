@@ -1,5 +1,8 @@
 #!/bin/bash
 
+. ./path.sh
+. ./cmd.sh
+
 # general configuration
 backend=pytorch
 stage=-1
@@ -69,9 +72,9 @@ griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-. ./path.sh
-. ./cmd.sh
 
+# Set bash to 'debug' mode, it will exit on :
+# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -euo pipefail
 
 fbankdir=fbank
@@ -96,7 +99,6 @@ if [ ${stage} -le 0 ]; then
     echo "stage 0: Data preparation"
     local/prepare_data.sh waves_yesno
 fi
-
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
@@ -157,7 +159,6 @@ if [ ${stage} -le 2 ]; then
     data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
-
 
 if [ -z ${tag} ];then
     expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
