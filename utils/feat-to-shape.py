@@ -6,6 +6,7 @@ import sys
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import read_rspecifier
+from espnet.utils.io_utils import PreProcessing
 
 
 def main():
@@ -34,7 +35,14 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
+    if args.preprocess_conf is not None:
+        preprocessing = PreProcessing(args.preprocess_conf)
+        logging.info('Apply preprocessing: {}'.format(preprocessing))
+    else:
+        preprocessing = None
+
     for utt, mat in read_rspecifier(args.rspecifier, args.filetype):
+        mat = preprocessing(mat)
         args.out.write('{} {}\n'.format(utt, ','.join(map(str, mat.shape))))
 
 

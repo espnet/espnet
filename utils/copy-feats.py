@@ -6,6 +6,7 @@ import logging
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import read_rspecifier
+from espnet.utils.io_utils import PreProcessing
 
 
 def main():
@@ -28,6 +29,8 @@ def main():
                         help='Save in compressed format')
     parser.add_argument('--compression-method', type=int, default=2,
                         help='Specify the method(if mat) or gzip-level(if hdf5)')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     parser.add_argument('rspecifier', type=str,
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('wspecifier', type=str,
@@ -42,6 +45,12 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
+    if args.preprocess_conf is not None:
+        preprocessing = PreProcessing(args.preprocess_conf)
+        logging.info('Apply preprocessing: {}'.format(preprocessing))
+    else:
+        preprocessing = None
+
     with FileWriterWrapper(
             args.wspecifier,
             filetype=args.out_filetype,
@@ -49,6 +58,7 @@ def main():
             compress=args.compress,
             compression_method=args.compression_method) as writer:
         for utt, mat in read_rspecifier(args.rspecifier, args.in_filetype):
+            mat = preprocessing(mat)
             writer[utt] = mat
 
 

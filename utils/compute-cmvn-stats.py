@@ -89,10 +89,8 @@ def main():
             args.out_filetype = 'npy'
 
     if args.preprocess_conf is not None:
-        with io.open(args.preprocess_conf, encoding='utf-8') as f:
-            conf = json.load(f)
-            assert isinstance(conf, dict), type(conf)
-            preprocessing = PreProcessing(**conf)
+        preprocessing = PreProcessing(args.preprocess_conf)
+        logging.info('Apply preprocessing: {}'.format(preprocessing))
     else:
         preprocessing = None
 
