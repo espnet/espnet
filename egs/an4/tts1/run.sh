@@ -128,20 +128,22 @@ if [ ${stage} -le 1 ]; then
 
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-        --fs ${fs} \
-        --fmax "${fmax}" \
-        --fmin "${fmin}" \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        --win_length "${win_length}" \
-        --n_mels ${n_mels} \
-        data/train \
-        exp/make_fbank/train \
-        ${fbankdir}
+    for x in train test;do
+        make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            data/${x} \
+            exp/make_fbank/${x} \
+            ${fbankdir}
+    done
 
     # make a dev set
-    utils/subset_data_dir.sh --first data/deveval 100 data/${train_dev}
+    utils/subset_data_dir.sh --first data/train 100 data/${train_dev}
     n=$(( $(wc -l < data/train/wav.scp) - 100 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
