@@ -24,7 +24,7 @@ CTC_LOSS_THRESHOLD = 10000
 
 
 class E2E(chainer.Chain):
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, flag_return=True):
         super(E2E, self).__init__()
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
@@ -70,8 +70,9 @@ class E2E(chainer.Chain):
 
         self.acc = None
         self.loss = None
+        self.flag_return = flag_return
 
-    def __call__(self, xs, ilens, ys):
+    def __call__(self, xs, ilens, ys, _old=False):
         """E2E forward
 
         :param xs:
@@ -113,8 +114,10 @@ class E2E(chainer.Chain):
             reporter.report({'loss': self.loss}, self)
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
-
-        return self.loss, loss_ctc, loss_att, acc
+        if self.flag_return:
+            return self.loss, loss_ctc, loss_att, acc
+        else:
+            return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E greedy/beam search
