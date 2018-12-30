@@ -18,6 +18,8 @@ def main():
                         choices=['mat', 'hdf5'],
                         help='Specify the file format for the rspecifier. '
                              '"mat" is the matrix format in kaldi')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     parser.add_argument('rspecifier', type=str,
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('out', nargs='?', type=argparse.FileType('w'),
