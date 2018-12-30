@@ -8,10 +8,11 @@ import numpy as np
 class CMVN(object):
     def __init__(self, stats, norm_means=True, norm_vars=False,
                  filetype='mat', utt2spk=None, spk2utt=None,
-                 std_floor=1.0e-20):
+                 reverse=False, std_floor=1.0e-20):
         self.stats_file = stats
         self.norm_means = norm_means
         self.norm_vars = norm_vars
+        self.reverse = reverse
 
         # Use for global CMVN
         if filetype == 'mat':
@@ -69,11 +70,13 @@ class CMVN(object):
 
     def __repr__(self):
         return ('{name}(stats_file={stats_file}, '
-                'norm_means={norm_means}, norm_vars={norm_vars})'
+                'norm_means={norm_means}, norm_vars={norm_vars}, '
+                'reverse={reverse})'
                 .format(name=self.__class__.__name__,
                         stats_file=self.stats_file,
                         norm_means=self.norm_means,
-                        norm_vars=self.norm_vars))
+                        norm_vars=self.norm_vars,
+                        reverse=self.reverse))
 
     def __call__(self, x, uttid=None):
         if self.utt2spk is not None:
@@ -81,8 +84,43 @@ class CMVN(object):
         else:
             spk = uttid
 
+        if not self.reverse:
+            if self.norm_means:
+                np.add(x, self.bias[spk], x, dtype=x.dtype)
+            if self.norm_vars:
+                np.multiply(x, self.scale[spk], x, dtype=x.dtype)
+
+        else:
+            if self.norm_means:
+                np.subtract(x, self.bias[spk], x, dtype=x.dtype)
+            if self.norm_vars:
+                np.divide(x, self.scale[spk], x, dtype=x.dtype)
+
+        return x
+
+
+class UtteranceCMVN(object):
+    def __init__(self, norm_means=True, norm_vars=False, std_floor=1.0e-20):
+        self.norm_means = norm_means
+        self.norm_vars = norm_vars
+        self.std_floor = std_floor
+
+    def __repr__(self):
+        return ('{name}(norm_means={norm_means}, norm_vars={norm_vars}, '
+                .format(name=self.__class__.__name__,
+                        norm_means=self.norm_means, norm_vars=self.norm_vars))
+
+    def __call__(self, x, uttid=None):
+        # x: [Time, Dim]
+        square_sums = (x ** 2).sum(axis=0)
+        mean = x.mean(axis=0)
+
         if self.norm_means:
-            np.add(x, self.bias[spk], x, dtype=x.dtype)
+            np.subtract(x, mean, x, dtype=x.dtype)
+
         if self.norm_vars:
-            np.multiply(x, self.scale[spk], x, dtype=x.dtype)
+            var = square_sums / x.shape[0] - mean ** 2
+            std = np.maximum(np.sqrt(var), self.std_floor)
+            np.divide(x, std, x, dtype=x.dtype)
+
         return x
