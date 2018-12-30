@@ -145,10 +145,8 @@ if [ ${stage} -le 1 ]; then
         ${fbankdir}
 
     # make a dev set
-    utils/subset_data_dir.sh --last data/train 500 data/deveval
-    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 250 data/${train_dev}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --first data/deveval 100 data/${train_dev}
+    n=$(( $(wc -l < data/train/wav.scp) - 100 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
     # compute global CMVN
