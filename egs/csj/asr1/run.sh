@@ -25,14 +25,14 @@ do_delta=false
 etype=vggblstm # encoder architecture type
 elayers=4
 eunits=1024
-eprojs=320
+eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
 dunits=1024
 # attention related
 atype=location
-adim=320
+adim=1024
 awin=5
 aheads=4
 aconv_chans=10
@@ -47,6 +47,7 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+dropout=0.2
 opt=adadelta
 epochs=15
 patience=3
@@ -92,7 +93,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodup
+train_set_ori=train_nodup
+train_set=train_nodup_sp
 train_dev=train_dev
 recog_set="eval1 eval2 eval3"
 
@@ -116,24 +118,34 @@ if [ ${stage} -le 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    fbankdir=fbank
-    #for x in train; do
-    x=train
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/${x} exp/make_fbank/${x} ${fbankdir}
-
-    for x in eval1 eval2 eval3; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 4000 data/${train_dev} # 6hr 31min
     n=$(($(wc -l < data/train/segments) - 4000))
     utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
 
-    # make a training set
-    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set} # 233hr 36min
+    # remove duplicated utterances
+    utils/data/remove_dup_utts.sh 300 data/train_nodev data/${train_set_ori} # 233hr 36min
+
+    # speed purturbation
+    utils/perturb_data_dir_speed.sh 0.9 data/${train_set_ori} data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/${train_set_ori} data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/${train_set_ori} data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+
+    # feature extraction
+    fbankdir=fbank
+    for x in ${train_set} ${train_dev}; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
+        utils/validate_data_dir.sh data/${x}
+    done
+    for x in eval1 eval2 eval3; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
+    done
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -168,7 +180,7 @@ if [ ${stage} -le 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 data/${train_set_ori}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -196,7 +208,7 @@ if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train
     mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " \
+    text2token.py -s 1 -n 1 data/${train_set_ori}/text | cut -f 2- -d" " \
         > ${lmdatadir}/train.txt
     text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d" " \
         > ${lmdatadir}/valid.txt
@@ -228,7 +240,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_adim${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_adim${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_drop${dropout}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -273,6 +285,7 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
+        --dropout-rate ${dropout} \
         --opt ${opt} \
         --epochs ${epochs} \
         --patience ${patience}
@@ -299,6 +312,7 @@ if [ ${stage} -le 5 ]; then
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
