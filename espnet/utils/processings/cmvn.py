@@ -14,20 +14,23 @@ class CMVN(object):
         self.norm_vars = norm_vars
         self.reverse = reverse
 
-        # Use for global CMVN
-        if filetype == 'mat':
-            stats_dict = {None: kaldiio.load_mat(stats)}
-        # Use for global CMVN
-        elif filetype == 'npy':
-            stats_dict = {None: np.load(stats)}
-        # Use for speaker CMVN
-        elif filetype == 'ark':
-            stats_dict = dict(kaldiio.load_ark(stats))
-        # Use for speaker CMVN
-        elif filetype == 'hdf5':
-            stats_dict = h5py.File(stats)
+        if isinstance(stats, dict):
+            stats_dict = dict(stats)
         else:
-            raise ValueError('Not supporting filetype={}'.format(filetype))
+            # Use for global CMVN
+            if filetype == 'mat':
+                stats_dict = {None: kaldiio.load_mat(stats)}
+            # Use for global CMVN
+            elif filetype == 'npy':
+                stats_dict = {None: np.load(stats)}
+            # Use for speaker CMVN
+            elif filetype == 'ark':
+                stats_dict = dict(kaldiio.load_ark(stats))
+            # Use for speaker CMVN
+            elif filetype == 'hdf5':
+                stats_dict = h5py.File(stats)
+            else:
+                raise ValueError('Not supporting filetype={}'.format(filetype))
 
         if utt2spk is not None:
             self.utt2spk = {}
@@ -86,15 +89,15 @@ class CMVN(object):
 
         if not self.reverse:
             if self.norm_means:
-                np.add(x, self.bias[spk], x, dtype=x.dtype)
+                x = np.add(x, self.bias[spk])
             if self.norm_vars:
-                np.multiply(x, self.scale[spk], x, dtype=x.dtype)
+                x = np.multiply(x, self.scale[spk])
 
         else:
             if self.norm_means:
-                np.subtract(x, self.bias[spk], x, dtype=x.dtype)
+                x = np.subtract(x, self.bias[spk])
             if self.norm_vars:
-                np.divide(x, self.scale[spk], x, dtype=x.dtype)
+                x = np.divide(x, self.scale[spk])
 
         return x
 
@@ -116,11 +119,11 @@ class UtteranceCMVN(object):
         mean = x.mean(axis=0)
 
         if self.norm_means:
-            np.subtract(x, mean, x, dtype=x.dtype)
+            x = np.subtract(x, mean)
 
         if self.norm_vars:
             var = square_sums / x.shape[0] - mean ** 2
             std = np.maximum(np.sqrt(var), self.std_floor)
-            np.divide(x, std, x, dtype=x.dtype)
+            x = np.divide(x, std)
 
         return x
