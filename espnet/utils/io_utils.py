@@ -410,14 +410,9 @@ class LoadInputsAndTargets(object):
             #    {"input": [{"feat": "some/path.npy",
             #                "filetype": "npy"},
             return np.load(file_path)
-        elif loader_type == 'mat':
+        elif loader_type == ['mat', 'vec']:
             #    {"input": [{"feat": "some/path.ark:123",
             #                "filetype": "mat"}]},
-            return kaldiio.load_mat(file_path)
-        elif loader_type == 'vec':
-            #    {"input": [{"feat": "some/path.ark:123",
-            #                "filetype": "vec"}]},
-
             # load_mat can load both matrix and vector
             return kaldiio.load_mat(file_path)
         elif loader_type == 'scp':
