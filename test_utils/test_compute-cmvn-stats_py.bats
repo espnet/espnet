@@ -44,7 +44,7 @@ import numpy as np
 import kaldiio
 test = kaldiio.load_mat('${tmpdir}/test.mat')
 valid = kaldiio.load_mat('${tmpdir}/valid.mat')
-np.testing.assert_allclose(test, valid, rtol=1e-4)
+np.testing.assert_allclose(test, valid, rtol=1e-3)
 EOF
 }
 
@@ -62,7 +62,7 @@ import kaldiio
 test = dict(kaldiio.load_ark('${tmpdir}/test.ark'))
 valid = dict(kaldiio.load_ark('${tmpdir}/valid.ark'))
 for k in test:
-    np.testing.assert_allclose(test[k], valid[k], rtol=1e-4)
+    np.testing.assert_allclose(test[k], valid[k], rtol=1e-3)
 EOF
 }
 
@@ -78,7 +78,7 @@ import numpy as np
 import kaldiio
 test = kaldiio.load_mat('${tmpdir}/test.mat')
 valid = kaldiio.load_mat('${tmpdir}/valid.mat')
-np.testing.assert_allclose(test, valid, rtol=1e-4)
+np.testing.assert_allclose(test, valid, rtol=1e-3)
 EOF
 }
 
