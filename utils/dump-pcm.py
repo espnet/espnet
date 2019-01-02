@@ -45,7 +45,7 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    with kaldiio.ReadHelper(args.rspecifier, wav=True,
+    with kaldiio.ReadHelper(args.rspecifier,
                             segments=args.segments) as reader, \
             FileWriterWrapper(args.wspecifier,
                               filetype=args.filetype,
