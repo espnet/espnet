@@ -95,7 +95,7 @@ if [ -f ${data}/segments ]; then
             --filetype ${filetype} \
             --normalize ${normalize} \
             --segment=${logdir}/segments.JOB scp:${scp} \
-            ark,scp:${fbankdir}/raw_stft_${name}.JOB.${ext},${fbankdir}/raw_stft_${name}.JOB.scp
+            ark,scp:${stftdir}/raw_stft_${name}.JOB.${ext},${stftdir}/raw_stft_${name}.JOB.scp
 
 else
     echo "$0: [info]: no segments file exists: assuming pcm.scp indexed by utterance."

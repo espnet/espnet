@@ -10,6 +10,7 @@ import numpy as np
 
 from espnet.utils.processings.add_deltas import AddDeltas
 from espnet.utils.processings.cmvn import CMVN
+from espnet.utils.processings.cmvn import UtteranceCMVN
 from espnet.utils.processings.spectrogram import LogMelSpectrogram
 from espnet.utils.processings.spectrogram import Spectrogram
 from espnet.utils.processings.spectrogram import Stft
