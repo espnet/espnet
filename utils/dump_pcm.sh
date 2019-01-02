@@ -87,7 +87,6 @@ if [ -f ${data}/segments ]; then
   done
 
   utils/split_scp.pl ${data}/segments ${split_segments}
-  rm ${logdir}/.error 2>/dev/null
 
   ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log \
       dump-pcm.py --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
@@ -95,17 +94,18 @@ if [ -f ${data}/segments ]; then
       ark,scp:${pcmdir}/raw_pcm_${name}.JOB.${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
 
 else
+
   echo "$0: [info]: no segments file exists: assuming pcm.scp indexed by utterance."
   split_scps=""
   for n in $(seq ${nj}); do
-    split_scps="${split_scps} ${logdir}/pcm.${n}.scp"
+    split_scps="${split_scps} ${logdir}/wav.${n}.scp"
   done
 
   utils/split_scp.pl ${scp} ${split_scps}
 
   ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log \
       dump-pcm.py --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
-      ${write_num_frames_opt} scp:${logdir}/pcm.JOB.scp \
+      ${write_num_frames_opt} scp:${logdir}/wav.JOB.scp \
       ark,scp:${pcmdir}/raw_pcm_${name}.JOB.${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
 
 fi
@@ -123,7 +123,7 @@ if ${write_utt2num_frames}; then
   rm ${logdir}/utt2num_frames.*
 fi
 
-rm ${logdir}/pcm.*.scp ${logdir}/segments.* 2>/dev/null
+rm ${logdir}/wav.*.scp ${logdir}/segments.* 2>/dev/null
 
 # Write the filetype, this will be used for data2json.sh
 echo ${filetype} > ${data}/filetype
