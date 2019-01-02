@@ -40,7 +40,7 @@ def main():
     parser.add_argument('rspecifier', type=str,
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('wspecifier_or_wxfilename', type=str,
-                        help='Output file id. e.g. ark:some.ark or some.ark')
+                        help='Write specifier. e.g. ark:some.ark')
     args = parser.parse_args()
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
