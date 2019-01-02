@@ -44,7 +44,8 @@ def main():
         preprocessing = None
 
     for utt, mat in read_rspecifier(args.rspecifier, args.filetype):
-        mat = preprocessing(mat)
+        if preprocessing is not None:
+            mat = preprocessing(mat)
         args.out.write('{} {}\n'.format(utt, ','.join(map(str, mat.shape))))
 
 

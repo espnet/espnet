@@ -34,7 +34,7 @@ def main():
     parser.add_argument('rspecifier', type=str,
                         help='Read specifier for feats. e.g. ark:some.ark')
     parser.add_argument('wspecifier', type=str,
-                        help='Output file id. e.g. ark:some.ark or some.ark')
+                        help='Write specifier. e.g. ark:some.ark')
     args = parser.parse_args()
 
     # logging info
@@ -58,7 +58,8 @@ def main():
             compress=args.compress,
             compression_method=args.compression_method) as writer:
         for utt, mat in read_rspecifier(args.rspecifier, args.in_filetype):
-            mat = preprocessing(mat)
+            if preprocessing is not None:
+                mat = preprocessing(mat)
             writer[utt] = mat
 
 
