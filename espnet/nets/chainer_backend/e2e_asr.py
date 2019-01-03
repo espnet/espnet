@@ -72,7 +72,7 @@ class E2E(chainer.Chain):
         self.loss = None
         self.flag_return = flag_return
 
-    def __call__(self, xs, ilens, ys, _old=False):
+    def __call__(self, xs, ilens, ys):
         """E2E forward
 
         :param xs:
