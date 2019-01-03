@@ -147,9 +147,9 @@ if [ ${stage} -le 1 ]; then
     done
 
     echo "combine real and simulation data"
-    utils/combine_data.sh data-fbank/tr05_multi_noisy data-fbank/tr05_simu_noisy data-fbank/tr05_real_noisy
-    utils/combine_data.sh data-fbank/tr05_multi_noisy_si284 data-fbank/tr05_multi_noisy data-fbank/train_si284
-    utils/combine_data.sh data-fbank/${train_dev} data-fbank/dt05_simu_isolated_1ch_track data-fbank/dt05_real_isolated_1ch_track
+    utils/combine_data.sh --extra_files utt2num_frames data-fbank/tr05_multi_noisy data-fbank/tr05_simu_noisy data-fbank/tr05_real_noisy
+    utils/combine_data.sh --extra_files utt2num_frames data-fbank/tr05_multi_noisy_si284 data-fbank/tr05_multi_noisy data-fbank/train_si284
+    utils/combine_data.sh --extra_files utt2num_frames data-fbank/${train_dev} data-fbank/dt05_simu_isolated_1ch_track data-fbank/dt05_real_isolated_1ch_track
 
     # compute global CMVN
     compute-cmvn-stats scp:data-fbank/${train_set}/feats.scp data-fbank/${train_set}/cmvn.ark
