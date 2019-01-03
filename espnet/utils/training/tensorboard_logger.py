@@ -27,6 +27,10 @@ class TensorboardLogger(Extension):
             if (self._entries is not None) and (k not in self._entries):
                 continue
             if k is not None and v is not None:
+                if 'cupy' in str(type(v)):
+                    v = v.get()
+                if 'cupy' in str(type(k)):
+                    k = k.get()
                 self._logger.add_scalar(k, v, trainer.updater.iteration)
         if self._att_reporter is not None and trainer.updater.get_iterator('main').epoch > self._epoch:
             self._epoch = trainer.updater.get_iterator('main').epoch

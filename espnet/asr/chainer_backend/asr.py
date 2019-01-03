@@ -91,7 +91,7 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(*x)[0]
+        loss = optimizer.target(*x)
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
@@ -126,7 +126,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             batch = self.get_iterator('main').next()
             x = self.converter(batch, self._devices[0])
 
-            loss = self._master(*x)[0]
+            loss = self._master(*x)
 
             self._master.cleargrads()
             loss.backward()
@@ -236,7 +236,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model = E2E(idim, odim, args, flag_return=False)
 
     # write model config
     if not os.path.exists(args.outdir):
