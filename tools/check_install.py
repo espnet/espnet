@@ -8,17 +8,17 @@ import importlib
 import logging
 import sys
 
-# you should add the libraries which are not included in setup.py
+# you should add the libraries which are not included in requirements.txt
 MANUALLY_INSTALLED_LIBRARIES = [
-    ('espnet', None),
-    ('kaldi_io_py', None),
     ('matplotlib', None),
-    ('torch', "0.4.1"),
-    ('chainer', "5.0.0"),
-    ('cupy', "5.0.0"),
     ('chainer_ctc', None),
     ('warpctc_pytorch', "0.1.1")
 ]
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--requirements', '-r', default='./requirements.txt', type=str,
+                    help='requirements.txt')
+args = parser.parse_args()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,10 +26,28 @@ logging.basicConfig(
 
 logging.info("python version = " + sys.version)
 
+# load requirements
+with open(args.requirements, 'r') as f:
+    lines = f.readlines()
+
+# parse requirements
 library_list = []
+for line in lines:
+    line = line.replace('\n', '')
+    if '==' in line:
+        name, version = line.split('==')
+    elif '>=' in line:
+        name, _ = line.split('>=')
+        version = None
+    else:
+        name = line
+        version = None
+    library_list.append((name, version))
+
+# add some library manually
 library_list.extend(MANUALLY_INSTALLED_LIBRARIES)
 
-# check library availableness
+# chech library availableness
 logging.info("library availableness check start.")
 logging.info("# libraries to be checked = %d" % len(library_list))
 is_correct_installed_list = []
@@ -39,7 +57,7 @@ for idx, (name, version) in enumerate(library_list):
         logging.info("--> %s is installed." % name)
         is_correct_installed_list.append(True)
     except ImportError:
-        logging.warning("--> %s is not installed." % name)
+        logging.warn("--> %s is not installed." % name)
         is_correct_installed_list.append(False)
 logging.info("library availableness check done.")
 logging.info("%d / %d libraries are correctly installed." % (
@@ -67,7 +85,7 @@ else:
                     logging.info("--> maybe it is better to reinstall the latest version.")
                     is_correct_version_list.append(False)
             except AssertionError:
-                logging.warning("--> %s version is not matched (%s==%s)." % (name, lib.__version__, version))
+                logging.warn("--> %s version is not matched (%s==%s)." % (lib.__version__, version))
                 is_correct_version_list.append(False)
     logging.info("library version check done.")
     logging.info("%d / %d libraries are correct version." % (
@@ -85,32 +103,32 @@ else:
         assert torch.cuda.is_available()
         logging.info("--> cuda is available in torch.")
     except AssertionError:
-        logging.warning("--> it seems that cuda is not available in torch.")
+        logging.warn("--> it seems that cuda is not available in torch.")
     try:
         assert torch.backends.cudnn.is_available()
         logging.info("--> cudnn is available in torch.")
     except AssertionError:
-        logging.warning("--> it seems that cudnn is not available in torch.")
+        logging.warn("--> it seems that cudnn is not available in torch.")
     try:
         assert chainer.backends.cuda.available
         logging.info("--> cuda is available in chainer.")
     except AssertionError:
-        logging.warning("--> it seems that cuda is not available in chainer.")
+        logging.warn("--> it seems that cuda is not available in chainer.")
     try:
         assert chainer.backends.cuda.cudnn_enabled
         logging.info("--> cudnn is available in chainer.")
     except AssertionError:
-        logging.warning("--> it seems that cudnn is not available in chainer.")
+        logging.warn("--> it seems that cudnn is not available in chainer.")
     try:
         from cupy.cuda import nccl  # NOQA
         logging.info("--> nccl is installed.")
     except ImportError:
-        logging.warning("--> it seems that nccl is not installed. multi-gpu is not enabled.")
-        logging.warning("--> if you want to use multi-gpu, please install it and then re-setup.")
+        logging.warn("--> it seems that nccl is not installed. multi-gpu is not enabled.")
+        logging.warn("--> if you want to use multi-gpu, please install it and then re-setup.")
     try:
         assert torch.cuda.device_count() > 1
         logging.info("--> multi-gpu is available (#gpus = %d)." % torch.cuda.device_count())
     except AssertionError:
-        logging.warning("--> it seems that only single gpu is available.")
-        logging.warning('--> maybe your machine has only one gpu.')
+        logging.warn("--> it seems that only single gpu is available.")
+        logging.warn('--> maybe your machine has only one gpu.')
     logging.info("cuda availableness check done.")

@@ -29,17 +29,13 @@ install:
         pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
     else
         cd tools;
-        make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv;
+        make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} conda;
         export PATH=`pwd`/venv/bin:$PATH;
-        conda update -y conda;
-        conda install -y pytorch-cpu=${TH_VERSION} -c pytorch;
+        conda install pytorch-cpu=${TH_VERSION} -c pytorch;
         cd -;
     fi
   - pip install -U pip wheel
-  # install espnet
-  - pip install -e .
-  - pip install -e .[test]
-  - pip install -e .[doc]
+  - pip install -r ./tools/test_requirements.txt
   # install matplotlib
   - pip install matplotlib
   # install warp-ctc (use @jnishi patched version)
@@ -47,14 +43,11 @@ install:
   - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
   - pip install cffi
   - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
-  # install kaldi_io_py
-  - cd tools
-  - git clone https://github.com/vesis84/kaldi-io-for-python.git
-  - cd kaldi-io-for-python
-  - ln -s kaldi_io.py kaldi_io_py.py
-  - cp ../setup_kaldi-io-for-python.py setup.py
-  - pip install .
-  - cd ../..
+  # install chainer
+  - grep -v cupy tools/requirements.txt | pip install -r /dev/stdin
+  - cd tools && make kaldi-io-for-python && cd -
+  # install doc deps
+  - pip install -r doc/requirements.txt
   # install chainer_ctc
   - pip install cython
   - git clone https://github.com/jheymann85/chainer_ctc.git
@@ -65,12 +58,11 @@ install:
 
 script:
   # TODO test coding style?
-  - flake8 espnet test utils
-  - autopep8 -r espnet test utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
+  - flake8 src test
+  - autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
   - pytest
   - travis-sphinx build --source=doc --nowarn
-  - bash -c 'find egs -name "run.sh" -printf "%p" -execdir shellcheck -x -e SC1091 {} \; ; cd ${TRAVIS_BUILD_DIR}/utils ; shellcheck -x -e SC1091 *.sh'
 
 sudo: false
 

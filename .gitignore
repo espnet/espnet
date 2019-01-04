@@ -4,12 +4,8 @@
 .\#*
 *DS_Store
 slurm-*.out
-.eggs/
-.pytest_cache/
-espnet.egg-info/
 
 doc/_build
-.idea
 
 # recipe related
 egs/*/*/data*
@@ -24,6 +20,7 @@ egs/*/*/enhan
 egs/*/*/wav*
 
 # tools related
+src/utils/kaldi_io_py.py
 tools/kaldi
 tools/kaldi-io-for-python/
 tools/kaldi_github/
@@ -38,7 +35,5 @@ tools/chainer_ctc*
 tools/warp-ctc*
 tools/sentencepiece/*
 tools/moses
-tools/*.done
 
-.idea/
-.hypothesis/
+.pytest_cache

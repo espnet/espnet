@@ -3,87 +3,66 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done nkf.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done sentencepiece.done moses nara_wpe
+all: virtualenv chainer_patch kaldi nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
 
-all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done kaldi-io-for-python.done
+all_python: virtualenv chainer_patch warp-ctc chainer_ctc
+
+kaldi-io-for-python:
+	git clone https://github.com/vesis84/kaldi-io-for-python.git
+	cd ../src/utils; ln -s ../../tools/kaldi-io-for-python/kaldi_io.py kaldi_io_py.py
 
 ifneq ($(strip $(KALDI)),)
-kaldi.done:
+kaldi:
 	ln -s $(KALDI) kaldi
-	touch kaldi.done
 else
-kaldi.done:
-	test -d kaldi || git clone https://github.com/kaldi-asr/kaldi.git
-	cd kaldi/tools; $(MAKE) all
-	cd kaldi/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
-	touch kaldi.done
+kaldi:
+	git clone https://github.com/kaldi-asr/kaldi.git kaldi_github; cd kaldi_github/tools; $(MAKE) all
+	cd kaldi_github/src; ./configure --shared --use-cuda=no; $(MAKE) depend; $(MAKE) all
+	ln -nfs kaldi_github kaldi
 endif
 
-venv:
+# for some reason, including matplotlib in requirements.txt causes errors, and
+# matplotlib should be separately pip installed
+virtualenv: requirements.txt
 	test -d venv || virtualenv -p $(PYTHON) venv
-
-espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
-	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==5.0.0 torch==0.4.1 matplotlib
-	touch espnet.done
+	. venv/bin/activate; pip install -r requirements.txt
+	. venv/bin/activate; pip install matplotlib
 
-kaldi-io-for-python.done: venv
-	rm -rf kaldi-io-for-python
-	git clone https://github.com/vesis84/kaldi-io-for-python.git
-	cd kaldi-io-for-python; ln -s kaldi_io.py kaldi_io_py.py; cp ../setup_kaldi-io-for-python.py setup.py
-	. venv/bin/activate; cd kaldi-io-for-python; pip install .
-	touch kaldi-io-for-python.done
-
-chainer_patch.done: espnet.done
+chainer_patch: virtualenv
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
 	. venv/bin/activate; patch $(FILENAME) < prefetch.patch
-	touch chainer_patch.done
 
-nkf.done:
-	rm -rf nkf
+nkf:
 	mkdir -p nkf
 	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
-	touch nkf.done
 
-warp-ctc.done: espnet.done
-	rm -rf warp-ctc
+warp-ctc: virtualenv
 	git clone https://github.com/jnishi/warp-ctc.git
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
-	touch warp-ctc.done
 
-chainer_ctc.done: espnet.done
-	rm -rf chainer_ctc
+chainer_ctc: virtualenv
 	git clone https://github.com/jheymann85/chainer_ctc.git
 	. venv/bin/activate; pip install cython
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
 	. venv/bin/activate; cd chainer_ctc && pip install .
-	touch chainer_ctc.done
 
-sentencepiece.done:
-	rm -rf sentencepiece
+sentencepiece:
 	git clone https://github.com/google/sentencepiece.git
 	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
-	touch sentencepiece.done
 
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
-nara_wpe: venv
-	. venv/bin/activate; pip install git+https://github.com/fgnt/nara_wpe.git
-	. venv/bin/activate; pip install soundfile
-
 clean:
-	rm -fr kaldi venv nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
+	rm -fr kaldi_github kaldi kaldi_python venv nkf kaldi-io-for-python ../src/utils/kaldi_io_py.py warp-ctc chainer_ctc sentencepiece moses
 	rm -f miniconda.sh
-	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -fr venv warp-ctc chainer_ctc kaldi-io-for-python
+	rm -fr venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-	rm -rf chainer_patch.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done
 	find . -iname "*.pyc" -delete

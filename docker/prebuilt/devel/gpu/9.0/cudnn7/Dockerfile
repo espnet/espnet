@@ -64,7 +64,7 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 ## FROM CUDA 9.0 CUDNN 7
 
-ENV CUDNN_VERSION 7.3.1.20
+ENV CUDNN_VERSION 7.2.1.38
 LABEL com.nvidia.cudnn.version="${CUDNN_VERSION}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
