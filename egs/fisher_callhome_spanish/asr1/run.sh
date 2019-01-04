@@ -53,7 +53,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=8
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
