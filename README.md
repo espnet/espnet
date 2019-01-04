@@ -33,7 +33,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.1+
-- Chainer 4.3.1
+- Chainer 5.0.0
 
 ## Installation
 
@@ -250,8 +250,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | CSJ eval3 | 5.9 | N/A  |
 | HKUST train_dev | 28.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
-| Librispeech dev_clean  | N/A | 4.5 |
-| Librispeech test_clean | N/A | 4.6 |
+| Librispeech dev_clean  | N/A | 4.2 |
+| Librispeech test_clean | N/A | 4.2 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 

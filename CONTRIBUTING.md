@@ -5,7 +5,7 @@ If you are interested in contributing to ESPnet, your contributions will fall in
 1. You want to propose a new Feature and implement it
    post about your intended feature, and we shall discuss the design and implementation.
    Once we agree that the plan looks good, go ahead and implement it.
-        
+
 2. You want to implement a feature or bug-fix for an outstanding issue
    Look at the outstanding issues here: https://github.com/espnet/espnet/issues
    Pick an issue and comment on the task that you want to work on this feature
@@ -27,7 +27,8 @@ TBD
 
 ESPnet's testing is located under `test/`.  You can install additional packages for testing as follows:
 ``` console
-$ pip install -r tools/test_requirements.txt
+$ cd <espnet_root>
+$ pip install -e ".[test]"
 ```
 
 Then you can run the entire test suite with
@@ -40,8 +41,8 @@ To create new test file. write functions named like `def test_yyy(...)` in files
 
 We also recommend you to follow our coding style that can be checked as
 ``` console
-$ flake8 src test
-$ autopep8 -r src test --exclude src/utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
+$ flake8 espnet test
+$ autopep8 -r espnet test --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
 $ test ! -s check_autopep8
 ```
 
