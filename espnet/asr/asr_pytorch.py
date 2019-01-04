@@ -698,14 +698,14 @@ def recog(args):
         NUM_ENCODER_STATES = None
         #target_phns = ["a", "i", "o", "6",]# "u", "@", "E",]
         target_phns = phn_units
-        #target_langs = ["102", "103", "104", "105", "106", "204", "206", "207"]
+        target_langs = ["QEJLLB", "QUBPBS", "QUFLLB", "QVSTBL", "QVWTBL", "QWHLLB"]
         encoder_states = defaultdict(list)
         uttids = defaultdict(list)
         for uttname in js.keys():
             lang = uttid2lang(uttname)
             uttids[lang].append(uttname)
-        #for lang in target_langs:
-        for lang in uttids.keys():
+        #for lang in uttids.keys():
+        for lang in target_langs:
             write_enc_states(lang, target_phns,
                              js, uttids, per_frame_phns, e2e, train_args,
                              enc_states_dir,

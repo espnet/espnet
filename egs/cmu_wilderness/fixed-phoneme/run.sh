@@ -86,7 +86,7 @@ adapt_no_phoneme=""
 adapt_subset=""
 
 extract_encoder_states=""
-per_frame_ali="/export/b14/mwiesner/JSALT_07_25_2018/espnet/tools/kaldi_github/egs/bible_wild/s5_99langs/data/dev/text.perframe.phn"
+per_frame_ali="/export/b13/oadams/espnet-merge3/egs/cmu_wilderness/fixed-phoneme/dev.perframe.phn"
 
 . ./utils/parse_options.sh || exit 1;
 
@@ -172,7 +172,7 @@ if [ ${stage} -le 1 ]; then
         if [[ ! -e ${feat_tr_dir}/feats.scp ]]; then
             if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
             utils/create_split_dir.pl \
-                /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_train}/delta${do_delta}/storage \
+                /export/b{10,15,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_train}/delta${do_delta}/storage \
                 ${feat_tr_dir}/storage
             fi
             dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -182,7 +182,7 @@ if [ ${stage} -le 1 ]; then
         if [[ ! -e ${feat_dt_dir}/feats.scp ]]; then
             if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
             utils/create_split_dir.pl \
-                /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_dev}/delta${do_delta}/storage \
+                /export/b{10,15,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${adapt_langs_dev}/delta${do_delta}/storage \
                 ${feat_dt_dir}/storage
             fi
             dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
@@ -206,7 +206,7 @@ if [ ${stage} -le 1 ]; then
             # dump features for training
             if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
             utils/create_split_dir.pl \
-                /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_set}/delta${do_delta}/storage \
+                /export/b{10,15,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_set}/delta${do_delta}/storage \
                 ${feat_tr_dir}/storage
             fi
             dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
@@ -216,7 +216,7 @@ if [ ${stage} -le 1 ]; then
         if [[ ! -e ${feat_dt_dir}/feats.scp ]]; then
             if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
             utils/create_split_dir.pl \
-                /export/b{10,11,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
+                /export/b{10,15,12,13}/${USER}/espnet-data/egs/cmu_wilderness/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
                 ${feat_dt_dir}/storage
             fi
             dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
