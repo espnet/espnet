@@ -15,6 +15,7 @@ doc/_build
 egs/*/*/data*
 egs/*/*/db
 egs/*/*/downloads
+egs/*/*/tensorboard
 egs/*/*/dump
 egs/*/*/exp
 egs/*/*/fbank
