@@ -5,9 +5,9 @@ import logging
 import kaldiio
 import numpy as np
 
+from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.io_utils import Preprocessing
 
 

@@ -5,11 +5,11 @@ import h5py
 import kaldiio
 import numpy as np
 
+from espnet.transform.add_deltas import add_deltas
+from espnet.transform.cmvn import CMVN
+from espnet.transform.spectrogram import logmelspectrogram
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.io_utils import Preprocessing
-from espnet.transform import add_deltas
-from espnet.transform import CMVN
-from espnet.transform.spectrogram import logmelspectrogram
 
 
 def make_dummy_json(n_utts=10, ilen_range=(100, 300), olen_range=(10, 300)):

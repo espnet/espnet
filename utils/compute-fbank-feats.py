@@ -10,9 +10,9 @@ import logging
 import kaldiio
 import numpy
 
+from espnet.transform.spectrogram import logmelspectrogram
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.transform.spectrogram import logmelspectrogram
 
 
 def main():
