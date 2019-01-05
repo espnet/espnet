@@ -119,6 +119,14 @@ class Preprocessing(object):
 class LoadInputsAndTargets(object):
     """Create a mini-batch from a list of dicts
 
+    >>> batch = [('utt1',
+    ...           dict(input=[dict(feat='some.ark:123',
+    ...                            shape=[100, 80])],
+    ...                output=[dict(tokenid='1 2 3 4',
+    ...                             shape=[4, 31])]]))
+    >>> l = LoadInputsAndTargets()
+    >>> feat, target = l(batch)
+
     :param: str mode: Specify the task mode, "asr" or "tts"
     :param: str preproces_conf: The path of a json file for pre-processing
     :param: bool load_input: If False, not to load the input data
@@ -177,6 +185,7 @@ class LoadInputsAndTargets(object):
         :rtype: list of float ndarray
         :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
         :rtype: list of int ndarray
+
         """
         x_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         y_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
@@ -239,7 +248,8 @@ class LoadInputsAndTargets(object):
             return_batch = self._create_batch_asr(x_feats_dict, y_feats_dict)
 
         elif self.mode == 'tts':
-            eos = int(batch[0][1]['output'][0]['shape'][1]) - 1
+            uttid, info = batch[0]
+            eos = int(info['output'][0]['shape'][1]) - 1
             return_batch = self._create_batch_tts(x_feats_dict, y_feats_dict,
                                                   eos)
         else:
