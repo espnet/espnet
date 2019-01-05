@@ -12,7 +12,7 @@ import numpy
 
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.processings.spectrogram import spectrogram
+from espnet.transform.spectrogram import spectrogram
 
 
 def main():
