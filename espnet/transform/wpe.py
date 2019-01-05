@@ -26,7 +26,7 @@ class WPE(object):
 
         :param np.ndarray xs: (Time, Channel, Frequency)
         :return: enhanced_xs
-        :return type: np.ndarray
+        :rtype: np.ndarray
 
         """
         # nara_wpe.wpe: (F, C, T)
