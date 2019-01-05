@@ -44,7 +44,7 @@ def main():
         preprocessing = None
 
     for utt, mat in FileReaderWrapper(args.rspecifier, args.filetype):
-        if args.in_filetype == 'flac.hdf5':
+        if args.filetype == 'flac.hdf5':
             mat, rate = mat
         if preprocessing is not None:
             mat = preprocessing(mat)
