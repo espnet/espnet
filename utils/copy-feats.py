@@ -16,7 +16,7 @@ def main():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--in-filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5'],
+                        choices=['mat', 'hdf5', 'flac.hdf5'],
                         help='Specify the file format for the rspecifier. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--out-filetype', type=str, default='mat',
@@ -58,6 +58,8 @@ def main():
             compress=args.compress,
             compression_method=args.compression_method) as writer:
         for utt, mat in FileReaderWrapper(args.rspecifier, args.in_filetype):
+            if args.in_filetype == 'flac.hdf5':
+                mat, rate = mat
             if preprocessing is not None:
                 mat = preprocessing(mat)
             writer[utt] = mat

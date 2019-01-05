@@ -7,6 +7,7 @@ import logging
 import h5py
 import kaldiio
 import numpy as np
+import soundfile
 
 from espnet.transform.add_deltas import AddDeltas
 from espnet.transform.cmvn import CMVN
@@ -385,7 +386,7 @@ class LoadInputsAndTargets(object):
         :return:
         :rtype: np.ndarray
         """
-        if loader_type in ['hdf5', 'h5']:
+        if loader_type == 'hdf5':
             file_path, key = file_path.split(':', 1)
             # loader = self._loaders.get(file_path)
             loader = None
@@ -393,11 +394,24 @@ class LoadInputsAndTargets(object):
                 #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                 #                "filetype": "hdf5",
                 loader = h5py.File(file_path, 'r')
-                # self._loaders[file_path] = loader
+                self._loaders[file_path] = loader
             return loader[key][...]
-        elif loader_type == 'wav':
-            raise NotImplementedError(
-                'Not supported: loader_type={}'.format(loader_type))
+        elif loader_type == 'flac.hdf5':
+            file_path, key = file_path.split(':', 1)
+            # loader = self._loaders.get(file_path)
+            loader = None
+            if loader is None:
+                #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
+                #                "filetype": "flac.h5",
+                loader = SoundHDF5File(file_path, 'r',
+                                       format='flac', dtype='int16')
+                self._loaders[file_path] = loader
+            array, rate = loader[key]
+            return array
+        elif loader_type == 'soundfile':
+            # Assume PCM16
+            array, rate = soundfile.read(file_path, dtype='int16')
+            return array
         elif loader_type == 'npz':
             file_path, key = file_path.split(':', 1)
             loader = self._loaders.get(file_path)
@@ -427,3 +441,63 @@ class LoadInputsAndTargets(object):
         else:
             raise NotImplementedError(
                 'Not supported: loader_type={}'.format(loader_type))
+
+
+class SoundHDF5File(object):
+    """Dump sound files to a HDF5 file
+
+    >>> f = SoundHDF5File('a.flac.h5', mode='a', format='flac')
+    >>> array = np.random.randint(0, 100, 100, dtype=np.int16)
+    >>> f['id'] = (array, 16000)
+    >>> array, rate = f['id']
+
+    """
+    def __init__(self, filepath, mode='r', format='flac', dtype='int16',
+                 **kwargs):
+        self.file = h5py.File(filepath, mode, **kwargs)
+        self.format = format
+        self.dtype = dtype
+
+    def create_dataset(self, name, shape=None, data=None, **kwds):
+        f = io.BytesIO()
+        array, rate = data
+        assert array.dtype == np.dtype(self.dtype), array.dtype
+        soundfile.write(f, array, rate, format=self.format)
+        self.file.create_dataset(name, shape=shape,
+                                 data=np.void(f.getvalue()), **kwds)
+
+    def __setitem__(self, name, data):
+        self.create_dataset(name, data=data)
+
+    def __getitem__(self, key):
+        data = self.file[key][...]
+        f = io.BytesIO(data.tobytes())
+        array, rate = soundfile.read(f, format=self.format, dtype=self.dtype)
+        return array, rate
+
+    def keys(self):
+        return self.file.keys()
+
+    def values(self):
+        return self.file.values()
+
+    def items(self):
+        return self.file.items()
+
+    def __iter__(self):
+        return iter(self.file)
+
+    def __contains__(self, item):
+        return item in self.file
+
+    def __len__(self, item):
+        return len(self.file)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
+
+    def close(self):
+        self.file.close()

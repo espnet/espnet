@@ -16,7 +16,7 @@ def main():
     parser.add_argument('--write-num-frames', type=str,
                         help='Specify wspecifer for utt2num_frames')
     parser.add_argument('--filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5'],
+                        choices=['mat', 'hdf5', 'flac.hdf5'],
                         help='Specify the file format for output. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--compress', type=strtobool, default=False,
@@ -54,8 +54,6 @@ def main():
                               compression_method=args.compression_method
                               ) as writer:
         for utt_id, (rate, array) in reader:
-            # rate is not saved
-
             if array.ndim == 1:
                 # shape = (Time, 1)
                 array = array[:, None]
@@ -69,7 +67,10 @@ def main():
                 array = array / (1 << (args.normalize - 1))
 
             # shape = (Time, Channel)
-            writer[utt_id] = array
+            if args.filetype == 'flac.hdf5':
+                writer[utt_id] = (array, rate)
+            else:
+                writer[utt_id] = array
 
 
 if __name__ == "__main__":

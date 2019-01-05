@@ -5,6 +5,7 @@ import sys
 import h5py
 import kaldiio
 
+from espnet.utils.io_utils import SoundHDF5File
 
 PY2 = sys.version_info[0] == 2
 
@@ -48,13 +49,13 @@ class FileReaderWrapper(object):
                     self.keys.add(key)
                     yield key, array
 
-        elif self.filetype == 'hdf5':
+        elif self.filetype in ['hdf5', 'flac.hdf5']:
             if ':' not in self.rspecifier:
                 raise ValueError('Give "rspecifier" such as "ark:some.ark: {}"'
                                  .format(self.rspecifier))
             ark_or_scp, filepath = self.rspecifier.split(':', 1)
             if ark_or_scp not in ['ark', 'scp']:
-                raise ValueError('The scp, ark: {}'.format(ark_or_scp))
+                raise ValueError('Must be scp or ark: {}'.format(ark_or_scp))
 
             if ark_or_scp == 'scp':
                 hdf5_dict = {}
@@ -65,14 +66,18 @@ class FileReaderWrapper(object):
 
                         if ':' not in value:
                             raise RuntimeError(
-                                'scp file for hdf5 should have such format: '
+                                'scp file for hdf5 should be like: '
                                 '"uttid filepath.h5:key": {}({})'
                                 .format(line, filepath))
                         path, h5_key = value.split(':', 1)
 
                         hdf5_file = hdf5_dict.get(path)
                         if hdf5_file is None:
-                            hdf5_file = h5py.File(path, 'r')
+                            if self.filetype == 'flac.hdf5':
+                                hdf5_file = SoundHDF5File(path, 'r',
+                                                          format='flac')
+                            else:
+                                hdf5_file = h5py.File(path, 'r')
                             hdf5_dict[path] = hdf5_file
                         yield key, hdf5_file[h5_key][...]
 
@@ -162,13 +167,13 @@ class FileWriterWrapper(object):
 
         if self.filetype == 'mat':
             self.writer[key] = value
-        elif self.filetype == 'hdf5':
+        elif self.filetype in ['hdf5', 'flac.hdf5']:
             self.writer.create_dataset(key, data=value, **self.kwargs)
         else:
             raise NotImplementedError
 
         if self.writer_scp is not None:
-            if self.filetype == 'hdf5':
+            if self.filetype in ['hdf5', 'flac.hdf5']:
                 self.writer_scp.write(
                     '{} {}:{}\n'.format(key, self.filename, key))
             else:
