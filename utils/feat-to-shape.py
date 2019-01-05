@@ -4,8 +4,8 @@ import argparse
 import logging
 import sys
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import FileReaderWrapper
+from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.io_utils import Preprocessing
 
 

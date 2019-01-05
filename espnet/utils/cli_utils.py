@@ -23,16 +23,17 @@ def get_commandline_args():
 
 
 class FileReaderWrapper(object):
+    """Yield a pair of the uttid and ndarray
+
+    >>> for u, array in FileReaderWrapper('ark:feats.ark', filetype='mat'):
+    ...     array
+
+    :param str rspecifier:
+    :param str filetype: "mat" is kaldi-martix, "hdf5": HDF5
+    :rtype: Generator[Tuple[str, np.ndarray], None, None]
+    """
+
     def __init__(self, rspecifier, filetype='mat'):
-        """Yield a pair of the uttid and ndarray
-
-        >>> for u, array in FileReaderWrapper('ark:feats.ark', filetype='mat'):
-        ...     array
-
-        :param str rspecifier:
-        :param str filetype: "mat" is kaldi-martix, "hdf5": HDF5
-        :rtype: Generator[Tuple[str, np.ndarray], None, None]
-        """
         self.rspecifier = rspecifier
         self.filetype = filetype
         self.keys = []
@@ -87,7 +88,8 @@ class FileReaderWrapper(object):
                     yield key, dataset[...]
 
         else:
-            raise ValueError('Not supporting: filetype={}'.format(filetype))
+            raise ValueError(
+                'Not supporting: filetype={}'.format(self.filetype))
 
 
 class FileWriterWrapper(object):
@@ -103,6 +105,7 @@ class FileWriterWrapper(object):
     :param int compression_method: Specify compression level
 
     """
+
     def __init__(self, wspecifier, filetype='mat',
                  write_num_frames=None, compress=False, compression_method=2):
         self.writer_scp = None
