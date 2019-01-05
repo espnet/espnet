@@ -411,7 +411,7 @@ class LoadInputsAndTargets(object):
             #    {"input": [{"feat": "some/path.npy",
             #                "filetype": "npy"},
             return np.load(file_path)
-        elif loader_type == ['mat', 'vec']:
+        elif loader_type in ['mat', 'vec']:
             #    {"input": [{"feat": "some/path.ark:123",
             #                "filetype": "mat"}]},
             # load_mat can load both matrix and vector
