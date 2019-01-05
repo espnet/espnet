@@ -6,7 +6,7 @@ import logging
 import kaldiio
 import numpy
 
-from espnet.transform import CMVN
+from espnet.transform.cmvn import CMVN
 from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
