@@ -8,7 +8,7 @@ import numpy
 
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import read_rspecifier
+from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.transform import CMVN
 
 
@@ -72,8 +72,8 @@ def main():
         if args.stats_filetype == 'npy':
             stats_filetype = 'hdf5'
 
-        stats_dict = dict(read_rspecifier(args.stats_rspecifier_or_rxfilename,
-                                          stats_filetype))
+        stats_dict = dict(FileReaderWrapper(args.stats_rspecifier_or_rxfilename,
+                                            stats_filetype))
     else:
         is_rspcifier = False
         if args.stats_filetype == 'mat':
@@ -95,7 +95,7 @@ def main():
             write_num_frames=args.write_num_frames,
             compress=args.compress,
             compression_method=args.compression_method) as writer:
-        for utt, mat in read_rspecifier(args.rspecifier, args.in_filetype):
+        for utt, mat in FileReaderWrapper(args.rspecifier, args.in_filetype):
             mat = cmvn(mat, utt if is_rspcifier else None)
             writer[utt] = mat
 
