@@ -6,7 +6,7 @@ import logging
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_utils import read_rspecifier
-from espnet.utils.io_utils import PreProcessing
+from espnet.utils.io_utils import Preprocessing
 
 
 def main():
@@ -46,7 +46,7 @@ def main():
     logging.info(get_commandline_args())
 
     if args.preprocess_conf is not None:
-        preprocessing = PreProcessing(args.preprocess_conf)
+        preprocessing = Preprocessing(args.preprocess_conf)
         logging.info('Apply preprocessing: {}'.format(preprocessing))
     else:
         preprocessing = None
