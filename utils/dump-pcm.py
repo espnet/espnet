@@ -10,6 +10,42 @@ from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
 
 
+def wav_generator(rspecifier, segments=None):
+    """Generates wav-array from multiple wav-rspecifier
+
+    :param List[str] rspecifier:
+    :param str segments:
+
+    """
+
+    readers = [kaldiio.ReadHelper(r, segments=segments) for r in rspecifier]
+    for vs in zip(*readers):
+        utts = [utt_id for utt_id, _ in vs]
+        if not all(utts[i] == utts[0] for i in range(len(vs))):
+            raise RuntimeError(
+                'The all keys must be common among wav-rspecifiers: {}'
+                .format(rspecifier))
+        rates = [rate for utt_id, (rate, array) in vs]
+        if not all(rates[i] == rates[0] for i in range(len(vs))):
+            raise RuntimeError(
+                'The all sampling-rage must be common '
+                'among wav-rspecifiers: {}'.format(rspecifier))
+
+        arrays = []
+        for utt_id, (rate, array) in vs:
+            if array.ndim == 1:
+                # shape = (Time, 1)
+                array = array[:, None]
+            arrays.append(array)
+
+        utt_id = utts[0]
+        rate = rates[0]
+
+        # [Time, Channel]
+        array = numpy.concatenate(arrays, axis=1)
+        yield utt_id, (rate, array)
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -29,7 +65,7 @@ def main():
                         default=None,
                         help='Give the bit depth of the PCM, '
                              'then normalizes data to scale in [-1,1]')
-    parser.add_argument('rspecifier', type=str, help='WAV scp file')
+    parser.add_argument('rspecifier', type=str, nargs='+', help='WAV scp file')
     parser.add_argument(
         '--segments', type=str,
         help='segments-file format: each line is either'
@@ -45,19 +81,14 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    with kaldiio.ReadHelper(args.rspecifier,
-                            segments=args.segments) as reader, \
-            FileWriterWrapper(args.wspecifier,
-                              filetype=args.filetype,
-                              write_num_frames=args.write_num_frames,
-                              compress=args.compress,
-                              compression_method=args.compression_method
-                              ) as writer:
-        for utt_id, (rate, array) in reader:
-            if array.ndim == 1:
-                # shape = (Time, 1)
-                array = array[:, None]
-
+    with FileWriterWrapper(args.wspecifier,
+                           filetype=args.filetype,
+                           write_num_frames=args.write_num_frames,
+                           compress=args.compress,
+                           compression_method=args.compression_method
+                           ) as writer:
+        for utt_id, (rate, array) in wav_generator(args.rspecifier,
+                                                   args.segments):
             if args.filetype == 'mat':
                 # Kaldi-matrix doesn't support integer
                 array = array.astype(numpy.float32)
