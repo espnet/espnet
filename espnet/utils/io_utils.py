@@ -67,7 +67,7 @@ class Preprocessing(object):
             # Deep-copy to avoid sharing of mutable objects
             self.conf = copy.deepcopy(kwargs)
 
-        self.functions = {}
+        self.functions = OrderedDict()
         if self.conf.get('mode', 'sequential') == 'sequential':
             for idx, process in enumerate(self.conf['process']):
                 assert isinstance(process, dict), type(process)
@@ -376,8 +376,7 @@ class LoadInputsAndTargets(object):
         """
         if loader_type == 'hdf5':
             file_path, key = file_path.split(':', 1)
-            # loader = self._loaders.get(file_path)
-            loader = None
+            loader = self._loaders.get(file_path)
             if loader is None:
                 #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                 #                "filetype": "hdf5",
@@ -386,11 +385,10 @@ class LoadInputsAndTargets(object):
             return loader[key][...]
         elif loader_type == 'flac.hdf5':
             file_path, key = file_path.split(':', 1)
-            # loader = self._loaders.get(file_path)
-            loader = None
+            loader = self._loaders.get(file_path)
             if loader is None:
                 #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                #                "filetype": "flac.h5",
+                #                "filetype": "flac.hdf5",
                 loader = SoundHDF5File(file_path, 'r',
                                        format='flac', dtype='int16')
                 self._loaders[file_path] = loader
