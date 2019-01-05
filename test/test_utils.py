@@ -6,7 +6,7 @@ import kaldiio
 import numpy as np
 
 from espnet.utils.io_utils import LoadInputsAndTargets
-from espnet.utils.io_utils import PreProcessing
+from espnet.utils.io_utils import Preprocessing
 from espnet.transform import add_deltas
 from espnet.transform import CMVN
 from espnet.transform.spectrogram import logmelspectrogram
@@ -81,7 +81,7 @@ def test_preprocessing(tmpdir):
 
     bs = 1
     xs = [np.random.randn(1000).astype(np.float32) for _ in range(bs)]
-    preprocessing = PreProcessing(**kwargs)
+    preprocessing = Preprocessing(**kwargs)
     processed_xs = preprocessing(xs)
 
     for idx, x in enumerate(xs):

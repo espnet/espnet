@@ -8,15 +8,15 @@ import h5py
 import kaldiio
 import numpy as np
 
-from espnet.transform import AddDeltas
-from espnet.transform import CMVN
-from espnet.transform import UtteranceCMVN
+from espnet.transform.add_deltas import AddDeltas
+from espnet.transform.cmvn import CMVN
+from espnet.transform.cmvn import UtteranceCMVN
 from espnet.transform.spectrogram import LogMelSpectrogram
 from espnet.transform.spectrogram import Spectrogram
 from espnet.transform.spectrogram import Stft
 
 
-class PreProcessing(object):
+class Preprocessing(object):
     """Apply some functions to the mini-batch
 
     Examples:
@@ -28,7 +28,7 @@ class PreProcessing(object):
         ...                        "norm_vars": True},
         ...                       {"type": "delta", "window": 2, "order": 2}],
         ...           "mode": "sequential"}
-        >>> preprocessing = PreProcessing(**kwargs)
+        >>> preprocessing = Preprocessing(**kwargs)
         >>> bs = 10
         >>> xs = [np.random.randn(100, 80).astype(np.float32)
         ...       for _ in range(bs)]
@@ -153,7 +153,7 @@ class LoadInputsAndTargets(object):
             raise ValueError(
                 'Only asr or tts are allowed: mode={}'.format(mode))
         if preprocess_conf is not None:
-            self.preprocessing = PreProcessing(preprocess_conf)
+            self.preprocessing = Preprocessing(preprocess_conf)
             logging.warning(
                 '[Experimental feature] Some pre-transform will be done '
                 'for the mini-batch creation using {}'
