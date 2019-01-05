@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import copy
+import importlib
 import io
 import json
 import logging
@@ -9,12 +10,28 @@ import kaldiio
 import numpy as np
 import soundfile
 
-from espnet.transform.add_deltas import AddDeltas
-from espnet.transform.cmvn import CMVN
-from espnet.transform.cmvn import UtteranceCMVN
-from espnet.transform.spectrogram import LogMelSpectrogram
-from espnet.transform.spectrogram import Spectrogram
-from espnet.transform.spectrogram import Stft
+
+def dynamic_import(import_path):
+    alias = dict(
+        delta='espnet.transform.add_deltas:AddDeltas',
+        cmvn='espnet.transform.cmvn:CMVN',
+        utterance_cmvn='espnet.transform.cmvn:UtteranceCMVN',
+        fbank='espnet.transform.spectrogram:LogMelSpectrogram',
+        spectrogram='espnet.transform.spectrogram:Spectrogram',
+        stft='espnet.transform.spectrogram:Stft',
+        wpe='espnet.transform.wpe:WPE')
+
+    if import_path not in alias and ':' not in import_path:
+        raise ValueError(
+            'import_path should be one of {} or '
+            'include ":", e.g. "espnet.transform.add_deltas:AddDeltas" : '
+            '{}'.format(set(alias), import_path))
+    if ':' not in import_path:
+        import_path = alias[import_path]
+
+    module_name, objname = import_path.split(':')
+    m = importlib.import_module(module_name)
+    return getattr(m, objname)
 
 
 class Preprocessing(object):
@@ -49,52 +66,23 @@ class Preprocessing(object):
         else:
             # Deep-copy to avoid sharing of mutable objects
             self.conf = copy.deepcopy(kwargs)
-        self.cache = {}
+
         self.functions = {}
-        self._config()
+        if self.conf.get('mode', 'sequential') == 'sequential':
+            for idx, process in enumerate(self.conf['process']):
+                assert isinstance(process, dict), type(process)
+                opts = dict(process)
+                process_type = opts.pop('type')
+                class_obj = dynamic_import(process_type)
+                self.functions[idx] = class_obj(**opts)
+        else:
+            raise NotImplementedError(
+                'Not supporting mode={}'.format(self.conf['mode']))
 
     def __repr__(self):
         rep = '\n' + '\n'.join(
             '    {}: {}'.format(k, v) for k, v in self.functions.items())
         return '{}({})'.format(self.__class__.__name__, rep)
-
-    def _config(self):
-        if self.conf.get('mode', 'sequential') == 'sequential':
-            for idx, process in enumerate(self.conf['process']):
-                assert isinstance(process, dict), type(process)
-                opts = dict(process)
-                opts.pop('type')
-                if process['type'] == 'fbank':
-                    # x: array[Time]
-                    self.functions[idx] = LogMelSpectrogram(**opts)
-
-                elif process['type'] == 'spectrogram':
-                    # x: array[Time]
-                    self.functions[idx] = Spectrogram(**opts)
-
-                elif process['type'] == 'stft':
-                    # x: array[Time, Channel]
-                    self.functions[idx] = Stft(**opts)
-
-                elif process['type'] == 'delta':
-                    self.functions[idx] = AddDeltas(**opts)
-
-                elif process['type'] == 'cmvn':
-                    self.functions[idx] = CMVN(**opts)
-
-                elif process['type'] == 'utterance_cmvn':
-                    self.functions[idx] = UtteranceCMVN(**opts)
-
-                elif process['type'] == 'wpe':
-                    from espnet.transform.wpe import WPE
-                    # x: array[Time, Channel, Freq]
-                    self.functions[idx] = WPE(**opts)
-                else:
-                    raise NotImplementedError(
-                        'Not supporting: type={}'.format(process['type']))
-        else:
-            raise NotImplementedError(
-                'Not supporting mode={}'.format(self.conf['mode']))
 
     def __call__(self, xs):
         """Return new mini-batch
@@ -444,7 +432,7 @@ class LoadInputsAndTargets(object):
 
 
 class SoundHDF5File(object):
-    """Dump sound files to a HDF5 file
+    """Collecting sound files to a HDF5 file
 
     >>> f = SoundHDF5File('a.flac.h5', mode='a', format='flac')
     >>> array = np.random.randint(0, 100, 100, dtype=np.int16)
