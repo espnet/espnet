@@ -5,7 +5,7 @@ import logging
 import sys
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import read_rspecifier
+from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.io_utils import Preprocessing
 
 
@@ -43,7 +43,7 @@ def main():
     else:
         preprocessing = None
 
-    for utt, mat in read_rspecifier(args.rspecifier, args.filetype):
+    for utt, mat in FileReaderWrapper(args.rspecifier, args.filetype):
         if preprocessing is not None:
             mat = preprocessing(mat)
         args.out.write('{} {}\n'.format(utt, ','.join(map(str, mat.shape))))

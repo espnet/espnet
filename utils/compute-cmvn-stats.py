@@ -7,7 +7,7 @@ import numpy as np
 
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import read_rspecifier
+from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.io_utils import Preprocessing
 
 
@@ -98,8 +98,8 @@ def main():
     square_sum_feats = {}
 
     idx = 0
-    for idx, (utt, matrix) in enumerate(read_rspecifier(args.rspecifier,
-                                                        args.in_filetype), 1):
+    for idx, (utt, matrix) in enumerate(FileReaderWrapper(args.rspecifier,
+                                                          args.in_filetype), 1):
         assert isinstance(matrix, np.ndarray), type(matrix)
         if preprocessing is not None:
             matrix = preprocessing(matrix)

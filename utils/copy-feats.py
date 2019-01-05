@@ -5,7 +5,7 @@ import logging
 
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import read_rspecifier
+from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.io_utils import Preprocessing
 
 
@@ -57,7 +57,7 @@ def main():
             write_num_frames=args.write_num_frames,
             compress=args.compress,
             compression_method=args.compression_method) as writer:
-        for utt, mat in read_rspecifier(args.rspecifier, args.in_filetype):
+        for utt, mat in FileReaderWrapper(args.rspecifier, args.in_filetype):
             if preprocessing is not None:
                 mat = preprocessing(mat)
             writer[utt] = mat
