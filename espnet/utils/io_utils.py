@@ -8,12 +8,12 @@ import h5py
 import kaldiio
 import numpy as np
 
-from espnet.utils.processings.add_deltas import AddDeltas
-from espnet.utils.processings.cmvn import CMVN
-from espnet.utils.processings.cmvn import UtteranceCMVN
-from espnet.utils.processings.spectrogram import LogMelSpectrogram
-from espnet.utils.processings.spectrogram import Spectrogram
-from espnet.utils.processings.spectrogram import Stft
+from espnet.transform import AddDeltas
+from espnet.transform import CMVN
+from espnet.transform import UtteranceCMVN
+from espnet.transform.spectrogram import LogMelSpectrogram
+from espnet.transform.spectrogram import Spectrogram
+from espnet.transform.spectrogram import Stft
 
 
 class PreProcessing(object):
@@ -85,7 +85,7 @@ class PreProcessing(object):
                     self.functions[idx] = UtteranceCMVN(**opts)
 
                 elif process['type'] == 'wpe':
-                    from espnet.utils.processings.wpe import WPE
+                    from espnet.transform.wpe import WPE
                     # x: array[Time, Channel, Freq]
                     self.functions[idx] = WPE(**opts)
                 else:
@@ -155,7 +155,7 @@ class LoadInputsAndTargets(object):
         if preprocess_conf is not None:
             self.preprocessing = PreProcessing(preprocess_conf)
             logging.warning(
-                '[Experimental feature] Some pre-processings will be done '
+                '[Experimental feature] Some pre-transform will be done '
                 'for the mini-batch creation using {}'
                 .format(self.preprocessing))
         else:
