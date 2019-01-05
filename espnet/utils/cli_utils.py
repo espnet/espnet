@@ -36,7 +36,7 @@ class FileReaderWrapper(object):
     def __init__(self, rspecifier, filetype='mat'):
         self.rspecifier = rspecifier
         self.filetype = filetype
-        self.keys = []
+        self.keys = set()
 
     def __contains__(self, item):
         return item in self.keys
@@ -45,7 +45,7 @@ class FileReaderWrapper(object):
         if self.filetype == 'mat':
             with kaldiio.ReadHelper(self.rspecifier) as reader:
                 for key, array in reader:
-                    self.keys.append(key)
+                    self.keys.add(key)
                     yield key, array
 
         elif self.filetype == 'hdf5':
@@ -61,7 +61,7 @@ class FileReaderWrapper(object):
                 with io.open(filepath, 'r', encoding='utf-8') as f:
                     for line in f:
                         key, value = line.rstrip().split(None, 1)
-                        self.keys.append(key)
+                        self.keys.add(key)
 
                         if ':' not in value:
                             raise RuntimeError(
@@ -84,7 +84,7 @@ class FileReaderWrapper(object):
                     else:
                         filepath = BytesIO(sys.stdin.buffer.read())
                 for key, dataset in h5py.File(filepath, 'r').items():
-                    self.keys.append(key)
+                    self.keys.add(key)
                     yield key, dataset[...]
 
         else:
@@ -112,7 +112,7 @@ class FileWriterWrapper(object):
         self.filename = None
         self.filetype = filetype
         self.kwargs = {}
-        self.keys = []
+        self.keys = set()
 
         if filetype == 'mat':
             if compress:
@@ -158,7 +158,7 @@ class FileWriterWrapper(object):
             self.writer_nframe = None
 
     def __setitem__(self, key, value):
-        self.keys.append(key)
+        self.keys.add(key)
 
         if self.filetype == 'mat':
             self.writer[key] = value
