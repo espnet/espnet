@@ -452,6 +452,7 @@ class SoundHDF5File(object):
     >>> array, rate = f['id']
 
     """
+
     def __init__(self, filepath, mode='r', format='flac', dtype='int16',
                  **kwargs):
         self.file = h5py.File(filepath, mode, **kwargs)
