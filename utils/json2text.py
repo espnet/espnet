@@ -10,6 +10,9 @@ import codecs
 import json
 import logging
 
+from espnet.utils.cli_utils import get_commandline_args
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -20,7 +23,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # logging info
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
+    logging.basicConfig(level=logging.INFO, format=logfmt)
+    logging.info(get_commandline_args())
 
     logging.info("reading %s", args.json)
     with codecs.open(args.json, 'r', encoding="utf-8") as f:
