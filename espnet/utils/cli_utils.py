@@ -73,9 +73,8 @@ class FileReaderWrapper(object):
 
                         hdf5_file = hdf5_dict.get(path)
                         if hdf5_file is None:
-                            if self.filetype == 'flac.hdf5':
-                                hdf5_file = SoundHDF5File(path, 'r',
-                                                          format='flac')
+                            if self.filetype == 'sound.hdf5':
+                                hdf5_file = SoundHDF5File(path, 'r')
                             else:
                                 hdf5_file = h5py.File(path, 'r')
                             hdf5_dict[path] = hdf5_file
@@ -126,7 +125,7 @@ class FileWriterWrapper(object):
             else:
                 self.writer = kaldiio.WriteHelper(wspecifier)
 
-        elif filetype == 'hdf5':
+        elif filetype in ['hdf5', 'sound.hdf5']:
             # ark,scp:out.ark,out.scp -> {'ark': 'out.ark', 'scp': 'out.scp'}
             ark_scp, filepath = wspecifier.split(':', 1)
             if ark_scp not in ['ark', 'scp,ark', 'ark,scp']:
@@ -167,13 +166,13 @@ class FileWriterWrapper(object):
 
         if self.filetype == 'mat':
             self.writer[key] = value
-        elif self.filetype in ['hdf5', 'flac.hdf5']:
+        elif self.filetype in ['hdf5', 'sound.hdf5']:
             self.writer.create_dataset(key, data=value, **self.kwargs)
         else:
             raise NotImplementedError
 
         if self.writer_scp is not None:
-            if self.filetype in ['hdf5', 'flac.hdf5']:
+            if self.filetype in ['hdf5', 'sound.hdf5']:
                 self.writer_scp.write(
                     '{} {}:{}\n'.format(key, self.filename, key))
             else:

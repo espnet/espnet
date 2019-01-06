@@ -4,6 +4,7 @@ import importlib
 import io
 import json
 import logging
+import os
 
 import h5py
 import kaldiio
@@ -393,14 +394,13 @@ class LoadInputsAndTargets(object):
                 loader = h5py.File(file_path, 'r')
                 self._loaders[file_path] = loader
             return loader[key][...]
-        elif loader_type == 'flac.hdf5':
+        elif loader_type == 'sound.hdf5':
             file_path, key = file_path.split(':', 1)
             loader = self._loaders.get(file_path)
             if loader is None:
                 #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                 #                "filetype": "flac.hdf5",
-                loader = SoundHDF5File(file_path, 'r',
-                                       format='flac', dtype='int16')
+                loader = SoundHDF5File(file_path, 'r', dtype='int16')
                 self._loaders[file_path] = loader
             array, rate = loader[key]
             return array
@@ -442,16 +442,20 @@ class LoadInputsAndTargets(object):
 class SoundHDF5File(object):
     """Collecting sound files to a HDF5 file
 
-    >>> f = SoundHDF5File('a.flac.h5', mode='a', format='flac')
+    >>> f = SoundHDF5File('a.flac.h5', mode='a')
     >>> array = np.random.randint(0, 100, 100, dtype=np.int16)
     >>> f['id'] = (array, 16000)
     >>> array, rate = f['id']
 
     """
 
-    def __init__(self, filepath, mode='r', format='flac', dtype='int16',
+    def __init__(self, filepath, mode='r', format=None, dtype='int16',
                  **kwargs):
         self.file = h5py.File(filepath, mode, **kwargs)
+        if format is None:
+            # filepath = a.flac.h5 -> format = flac
+            second_ext = os.path.splitext(os.path.splitext(filepath)[0])[1]
+            format = second_ext[1:]
         self.format = format
         self.dtype = dtype
 
