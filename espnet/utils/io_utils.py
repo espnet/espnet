@@ -449,15 +449,25 @@ class SoundHDF5File(object):
 
     """
 
-    def __init__(self, filepath, mode='r', format=None, dtype='int16',
+    def __init__(self, filepath, mode='r+', format=None, dtype='int16',
                  **kwargs):
+        self.filepath = filepath
+        self.mode = mode
+        self.dtype = dtype
+
         self.file = h5py.File(filepath, mode, **kwargs)
         if format is None:
             # filepath = a.flac.h5 -> format = flac
             second_ext = os.path.splitext(os.path.splitext(filepath)[0])[1]
             format = second_ext[1:]
+            if format.upper() not in soundfile.available_formats():
+                # If not found, flac is selected
+                format = 'flac'
         self.format = format
-        self.dtype = dtype
+
+    def __repr__(self):
+        return '<SoundHDF5 file "{}" (mode {}, format {}, type {})>'\
+            .format(self.filepath, self.mode, self.format, self.dtype)
 
     def create_dataset(self, name, shape=None, data=None, **kwds):
         f = io.BytesIO()
