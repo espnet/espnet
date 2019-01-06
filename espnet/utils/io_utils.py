@@ -122,8 +122,11 @@ class LoadInputsAndTargets(object):
 
     >>> batch = [('utt1',
     ...           dict(input=[dict(feat='some.ark:123',
+    ...                            filetype='mat',
+    ...                            name='input1',
     ...                            shape=[100, 80])],
     ...                output=[dict(tokenid='1 2 3 4',
+    ...                             name='target1',
     ...                             shape=[4, 31])]]))
     >>> l = LoadInputsAndTargets()
     >>> feat, target = l(batch)
@@ -194,18 +197,12 @@ class LoadInputsAndTargets(object):
         if self.load_input:
             for uttid, info in batch:
                 for idx, inp in enumerate(info['input']):
-                    if 'filetype' not in inp:
-                        # ======= Legacy format for input =======
-                        # {"input": [{"feat": "some/path.ark:123"}]),
-                        x = kaldiio.load_mat(inp['feat'])
-                    else:
-                        # ======= New format =======
-                        # {"input":
-                        #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                        #    "filetype": "hdf5",
-
-                        x = self._get_from_loader(
-                            file_path=inp['feat'], loader_type=inp['filetype'])
+                    # {"input":
+                    #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
+                    #    "filetype": "hdf5",
+                    x = self._get_from_loader(
+                        filepath=inp['feat'],
+                        filetype=inp.get('filetype', 'mat'))
                     x_feats_dict.setdefault(inp['name'], []).append(x)
 
         # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
@@ -216,12 +213,9 @@ class LoadInputsAndTargets(object):
                     if idx != 1:
                         x = None
                     else:
-                        if 'filetype' not in inp:
-                            x = kaldiio.load_mat(inp['feat'])
-                        else:
-                            x = self._get_from_loader(
-                                file_path=inp['feat'],
-                                loader_type=inp['filetype'])
+                        x = self._get_from_loader(
+                            filepath=inp['feat'],
+                            filetype=inp.get('filetype', 'mat'))
                     x_feats_dict.setdefault(inp['name'], []).append(x)
 
         if self.load_output:
@@ -239,9 +233,9 @@ class LoadInputsAndTargets(object):
                         # {"input":
                         #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                         #    "filetype": "hdf5",
-
                         x = self._get_from_loader(
-                            file_path=inp['feat'], loader_type=inp['filetype'])
+                            filepath=inp['feat'],
+                            filetype=inp.get('filetype', 'mat'))
 
                     y_feats_dict.setdefault(inp['name'], []).append(x)
 
@@ -374,7 +368,7 @@ class LoadInputsAndTargets(object):
             return_batch = OrderedDict([(x_name, xs)])
         return return_batch
 
-    def _get_from_loader(self, file_path, loader_type):
+    def _get_from_loader(self, filepath, filetype):
         """Return ndarray
 
         In order to make the fds to be opened only at the first referring,
@@ -385,58 +379,58 @@ class LoadInputsAndTargets(object):
         :return:
         :rtype: np.ndarray
         """
-        if loader_type == 'hdf5':
-            file_path, key = file_path.split(':', 1)
-            loader = self._loaders.get(file_path)
+        if filetype == 'hdf5':
+            filepath, key = filepath.split(':', 1)
+            loader = self._loaders.get(filepath)
             if loader is None:
                 #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                 #                "filetype": "hdf5",
-                loader = h5py.File(file_path, 'r')
-                self._loaders[file_path] = loader
+                loader = h5py.File(filepath, 'r')
+                self._loaders[filepath] = loader
             return loader[key][...]
-        elif loader_type == 'sound.hdf5':
-            file_path, key = file_path.split(':', 1)
-            loader = self._loaders.get(file_path)
+        elif filetype == 'sound.hdf5':
+            filepath, key = filepath.split(':', 1)
+            loader = self._loaders.get(filepath)
             if loader is None:
                 #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                #                "filetype": "flac.hdf5",
-                loader = SoundHDF5File(file_path, 'r', dtype='int16')
-                self._loaders[file_path] = loader
+                #                "filetype": "sound.hdf5",
+                loader = SoundHDF5File(filepath, 'r', dtype='int16')
+                self._loaders[filepath] = loader
             array, rate = loader[key]
             return array
-        elif loader_type == 'soundfile':
+        elif filetype == 'soundfile':
             # Assume PCM16
-            array, rate = soundfile.read(file_path, dtype='int16')
+            array, rate = soundfile.read(filepath, dtype='int16')
             return array
-        elif loader_type == 'npz':
-            file_path, key = file_path.split(':', 1)
-            loader = self._loaders.get(file_path)
+        elif filetype == 'npz':
+            filepath, key = filepath.split(':', 1)
+            loader = self._loaders.get(filepath)
             if loader is None:
                 #    {"input": [{"feat": "some/path.npz:F01_050C0101_PED_REAL",
                 #                "filetype": "npz",
-                loader = np.load(file_path)
-                self._loaders[file_path] = loader
+                loader = np.load(filepath)
+                self._loaders[filepath] = loader
             return loader[key]
-        elif loader_type == 'npy':
+        elif filetype == 'npy':
             #    {"input": [{"feat": "some/path.npy",
             #                "filetype": "npy"},
-            return np.load(file_path)
-        elif loader_type in ['mat', 'vec']:
+            return np.load(filepath)
+        elif filetype in ['mat', 'vec']:
             #    {"input": [{"feat": "some/path.ark:123",
             #                "filetype": "mat"}]},
             # load_mat can load both matrix and vector
-            return kaldiio.load_mat(file_path)
-        elif loader_type == 'scp':
-            file_path, key = file_path.split(':', 1)
-            loader = self._loaders.get(file_path)
+            return kaldiio.load_mat(filepath)
+        elif filetype == 'scp':
+            filepath, key = filepath.split(':', 1)
+            loader = self._loaders.get(filepath)
             if loader is None:
                 #    {"input": [{"feat": "some/path.scp:F01_050C0101_PED_REAL",
                 #                "filetype": "scp",
-                loader = kaldiio.load_scp(file_path)
+                loader = kaldiio.load_scp(filepath)
             return loader[key]
         else:
             raise NotImplementedError(
-                'Not supported: loader_type={}'.format(loader_type))
+                'Not supported: loader_type={}'.format(filetype))
 
 
 class SoundHDF5File(object):
