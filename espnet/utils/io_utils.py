@@ -490,10 +490,12 @@ class SoundHDF5File(object):
         return self.file.keys()
 
     def values(self):
-        return self.file.values()
+        for k in self.file:
+            yield self[k]
 
     def items(self):
-        return self.file.items()
+        for k in self.file:
+            yield k, self[k]
 
     def __iter__(self):
         return iter(self.file)
