@@ -52,7 +52,7 @@ def main():
     parser.add_argument('--write-num-frames', type=str,
                         help='Specify wspecifer for utt2num_frames')
     parser.add_argument('--filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5', 'flac.hdf5'],
+                        choices=['mat', 'hdf5', 'sound.hdf5'],
                         help='Specify the file format for output. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--compress', type=strtobool, default=False,
@@ -98,7 +98,7 @@ def main():
                 array = array / (1 << (args.normalize - 1))
 
             # shape = (Time, Channel)
-            if args.filetype == 'flac.hdf5':
+            if args.filetype == 'sound.hdf5':
                 writer[utt_id] = (array, rate)
             else:
                 writer[utt_id] = array

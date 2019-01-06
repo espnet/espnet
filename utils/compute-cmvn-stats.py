@@ -26,7 +26,7 @@ def main():
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--in-filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5', 'flac.hdf5'],
+                        choices=['mat', 'hdf5', 'sound.hdf5'],
                         help='Specify the file format for the rspecifier. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--out-filetype', type=str, default='mat',
@@ -100,7 +100,7 @@ def main():
     idx = 0
     for idx, (utt, matrix) in enumerate(FileReaderWrapper(
             args.rspecifier, args.in_filetype), 1):
-        if args.in_filetype == 'flac.hdf5':
+        if args.in_filetype == 'sound.hdf5':
             matrix, rate = matrix
         assert isinstance(matrix, np.ndarray), type(matrix)
         if preprocessing is not None:
