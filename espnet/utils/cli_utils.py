@@ -49,7 +49,7 @@ class FileReaderWrapper(object):
                     self.keys.add(key)
                     yield key, array
 
-        elif self.filetype in ['hdf5', 'flac.hdf5']:
+        elif self.filetype in ['hdf5', 'sound.hdf5']:
             if ':' not in self.rspecifier:
                 raise ValueError('Give "rspecifier" such as "ark:some.ark: {}"'
                                  .format(self.rspecifier))
@@ -78,7 +78,10 @@ class FileReaderWrapper(object):
                             else:
                                 hdf5_file = h5py.File(path, 'r')
                             hdf5_dict[path] = hdf5_file
-                        yield key, hdf5_file[h5_key][...]
+                        if self.filetype == 'sound.hdf5':
+                            yield key, hdf5_file[h5_key]
+                        else:
+                            yield key, hdf5_file[h5_key][...]
 
             else:
                 if filepath == '-':
@@ -113,6 +116,7 @@ class FileWriterWrapper(object):
     def __init__(self, wspecifier, filetype='mat',
                  write_num_frames=None, compress=False, compression_method=2):
         self.writer_scp = None
+        # Used for writing scp
         self.filename = None
         self.filetype = filetype
         self.kwargs = {}
@@ -137,7 +141,11 @@ class FileWriterWrapper(object):
                 raise ValueError(
                     'Mismatch: {} and {}'.format(ark_scp, filepath))
             spec_dict = dict(zip(ark_scps, filepaths))
-            self.writer = h5py.File(spec_dict['ark'])
+            if filetype == 'sound.hdf5':
+                self.writer = SoundHDF5File(spec_dict['ark'], 'w')
+            else:
+                self.writer = h5py.File(spec_dict['ark'], 'w')
+            self.filename = spec_dict['ark']
             if 'scp' in spec_dict:
                 self.writer_scp = io.open(
                     spec_dict['scp'], 'w', encoding='utf-8')
