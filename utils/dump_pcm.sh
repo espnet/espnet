@@ -75,6 +75,9 @@ fi
 
 if [ "${filetype}" == hdf5 ];then
     ext=h5
+elif [ "${filetype}" == sound.hdf5 ];then
+    # Specify flac
+    ext=flac.h5
 else
     ext=ark
 fi
@@ -123,7 +126,7 @@ if ${write_utt2num_frames}; then
   rm ${logdir}/utt2num_frames.*
 fi
 
-rm ${logdir}/wav.*.scp ${logdir}/segments.* 2>/dev/null
+rm -f ${logdir}/wav.*.scp ${logdir}/segments.* 2>/dev/null
 
 # Write the filetype, this will be used for data2json.sh
 echo ${filetype} > ${data}/filetype
