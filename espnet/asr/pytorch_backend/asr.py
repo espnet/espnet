@@ -138,12 +138,10 @@ class CustomUpdater(training.StandardUpdater):
 
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
+        loss = self.model(*x)[0]
         if self.ngpu > 1:
-            loss = 1. / self.ngpu * (self.model(*x)[0])
-            loss.backward(loss.new_ones(self.ngpu))  # Backprop
-        else:
-            loss = self.model(*x)[0]
-            loss.backward()  # Backprop
+            loss = loss.sum() / self.ngpu
+        loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -245,7 +243,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(model.subsample[0])
+    converter = CustomConverter(subsampling_factor=model.subsample[0])
 
     train_json, valid_json = load_jsons(args)
 
