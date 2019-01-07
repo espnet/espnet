@@ -37,9 +37,9 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
-from espnet.asr.iterators import ShufflingEnabler
-from espnet.asr.iterators import ToggleableShufflingMultiprocessIterator
-from espnet.asr.iterators import ToggleableShufflingSerialIterator
+from espnet.utils.training.iterators import ShufflingEnabler
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 
 # for kaldi io
 import kaldi_io_py
@@ -51,6 +51,12 @@ import espnet.lm.pytorch_backend.lm as lm_pytorch
 # matplotlib related
 import matplotlib
 import numpy as np
+
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
+
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.training.train_utils import check_early_stop
 
 matplotlib.use('Agg')
 
@@ -138,12 +144,10 @@ class CustomUpdater(training.StandardUpdater):
 
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
+        loss = self.model(*x)[0]
         if self.ngpu > 1:
-            loss = 1. / self.ngpu * (self.model(*x)[0])
-            loss.backward(loss.new_ones(self.ngpu))  # Backprop
-        else:
-            loss = self.model(*x)[0]
-            loss.backward()  # Backprop
+            loss = loss.sum() / self.ngpu
+        loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm_(
@@ -200,22 +204,7 @@ def train(args):
 
     :param Namespace args: The program arguments
     """
-    # seed setting
-    torch.manual_seed(args.seed)
-
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # remove type check
-    if args.debugmode < 2:
-        chainer.config.type_check = False
-        logging.info('torch type check is disabled')
-    # use deterministic computation or not
-    if args.debugmode < 1:
-        torch.backends.cudnn.deterministic = False
-        logging.info('torch cudnn deterministic is disabled')
-    else:
-        torch.backends.cudnn.deterministic = True
+    set_deterministic_pytorch(args)
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -243,6 +232,7 @@ def train(args):
 
     # specify model architecture
     model = E2E(idim, odim, args)
+    subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -287,7 +277,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(model.subsample[0])
+    converter = CustomConverter(subsampling_factor=subsampling_factor)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -346,9 +336,12 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=device), trigger=(1, 'epoch'))
+            converter=converter, device=device)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
@@ -407,9 +400,17 @@ def train(args):
         report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
 
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
     # Run the training
     trainer.run()
+    check_early_stop(trainer, args.epochs)
 
 
 def recog(args):
@@ -417,9 +418,7 @@ def recog(args):
 
     :param Namespace args: The program arguments
     """
-    # seed setting
-    torch.manual_seed(args.seed)
-
+    set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
