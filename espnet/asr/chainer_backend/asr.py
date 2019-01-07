@@ -49,10 +49,7 @@ import espnet.lm.chainer_backend.extlm as extlm_chainer
 import espnet.lm.chainer_backend.lm as lm_chainer
 
 # numpy related
-import matplotlib
 import numpy as np
-
-matplotlib.use('Agg')
 
 
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py

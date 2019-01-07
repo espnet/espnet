@@ -130,6 +130,7 @@ def add_plot_report(trainer, values):
 def prepare_asr_tts_trainer(updater, evaluator, converter, model, valid_json, args, plot_keys, device, mtl_mode=None,
                             reverse_par=False):
     """Prepares a common trainer for asr and tts
+
     :param updater: The training updater
     :param evaluator: The training evaluator
     :param converter: The batch converter

@@ -194,6 +194,7 @@ def add_progress_report(trainer, keys):
 
 def prepare_trainer(updater, evaluator, converter, model, valid_json, args, device):
     """Prepares a tts trainer with common extensions
+
     :param updater: The training updater
     :param evaluator: The training evaluator
     :param converter: The batch converter

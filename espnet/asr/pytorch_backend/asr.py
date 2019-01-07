@@ -9,8 +9,6 @@ import logging
 import math
 
 # chainer related
-import chainer
-
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -47,14 +45,10 @@ import kaldi_io_py
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 
-# matplotlib related
-import matplotlib
 import numpy as np
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
-
-matplotlib.use('Agg')
 
 
 class CustomEvaluator(extensions.Evaluator):
