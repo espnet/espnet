@@ -42,6 +42,7 @@ from espnet.utils.training.train_utils import load_jsons
 from espnet.utils.training.train_utils import write_conf
 
 from espnet.utils.chainer_utils import chainer_load
+from espnet.utils.chainer_utils import warn_if_no_cuda
 
 # rnnlm
 import espnet.lm.chainer_backend.extlm as extlm_chainer
@@ -199,11 +200,7 @@ def train(args):
 
     set_deterministic_chainer(args)
 
-    # check cuda and cudnn availability
-    if not chainer.cuda.available:
-        logging.warning('cuda is not available')
-    if not chainer.cuda.cudnn_enabled:
-        logging.warning('cudnn is not available')
+    warn_if_no_cuda()
 
     # get input and output dimension info
     idim, odim = get_dimensions(args.valid_json)

@@ -20,12 +20,8 @@ import kaldi_io_py
 import numpy as np
 
 from espnet.utils.pytorch_utils import torch_load
-from espnet.utils.pytorch_utils import torch_resume
-from espnet.utils.pytorch_utils import torch_save
 
-from espnet.utils.training.train_utils import add_attention_report
-from espnet.utils.training.train_utils import add_early_stop
-from espnet.utils.training.train_utils import add_tensorboard
+from espnet.utils.training.train_utils import prepare_asr_tts_trainer
 from espnet.utils.training.train_utils import REPORT_INTERVAL
 
 # matplotlib related
@@ -276,6 +272,7 @@ def add_results_to_json(js, nbest_hyps, char_list):
     return new_js
 
 
+# Training related
 def add_epsilon_decay(trainer, model, args):
     """Adds the extension managing the epsilon decay
 
@@ -306,33 +303,16 @@ def add_epsilon_decay(trainer, model, args):
                                lambda best_value, current_value: best_value < current_value))
 
 
-def add_snapshot(trainer, model, mtl_mode, savefun):
-    """Adds the model snapshot extension
-
-    :param trainer: The trainer to add the extension to
-    :param model: The model to save
-    :param mtl_mode: The mtl mode
-    :param savefun: The save function to use
-    """
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=savefun),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    if mtl_mode is not 'ctc':
-        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=savefun),
-                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
-
-
-def add_plot_report(trainer):
+def get_plot_keys():
     """Adds the plot report extension
 
     :param trainer: The trainer to add the extension to
     """
-    # Make a plot for training and validation values
-    trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss',
-                                          'main/loss_ctc', 'validation/main/loss_ctc',
-                                          'main/loss_att', 'validation/main/loss_att'],
-                                         'epoch', file_name='loss.png'))
-    trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
-                                         'epoch', file_name='acc.png'))
+    to_report = [("loss", ['main/loss', 'validation/main/loss',
+                           'main/loss_ctc', 'validation/main/loss_ctc',
+                           'main/loss_att', 'validation/main/loss_att']),
+                 ("acc", ['main/acc', 'validation/main/acc'])]
+    return to_report
 
 
 def get_dimensions(json_file):
@@ -370,7 +350,7 @@ def get_mtl_mode(mtlalpha):
     return mtl_mode
 
 
-def _get_trainer_lambda(trainer, is_pytorch):
+def get_trainer_eps(trainer, is_pytorch):
     return trainer.updater.get_optimizer('main').param_groups[0][
         'eps'] if is_pytorch else trainer.updater.get_optimizer('main').eps
 
@@ -387,7 +367,7 @@ def add_progress_report(trainer, args):
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
-        trainer.extend(extensions.observe_value('eps', lambda trainer: _get_trainer_lambda(trainer, is_pytorch)),
+        trainer.extend(extensions.observe_value('eps', lambda trainer: get_trainer_eps(trainer, is_pytorch)),
                        trigger=(REPORT_INTERVAL, 'iteration'))
         report_keys.append('eps')
     if is_pytorch:
@@ -413,26 +393,13 @@ def prepare_trainer(updater, evaluator, converter, model, valid_json, args, devi
     :param device: The device to use
     :return: the trainer
     """
-    is_chainer = args.backend == 'chainer'
     mtl_mode = get_mtl_mode(args.mtlalpha)
-    savefun = chainer.serializers.save_npz if is_chainer else torch_save
-    resume_fun = chainer.serializers.load_npz if is_chainer else torch_resume
-
-    trainer = training.Trainer(
-        updater, (args.epochs, 'epoch'), out=args.outdir)
-
-    if args.resume:
-        logging.info('resumed from %s' % args.resume)
-        resume_fun(args.resume, trainer)
-
-    trainer.extend(evaluator)
+    plot_keys = get_plot_keys()
+    trainer = prepare_asr_tts_trainer(updater, evaluator, converter, model, valid_json, args, device, plot_keys,
+                                      mtl_mode)
     add_progress_report(trainer, args)
-    add_plot_report(trainer)
     add_epsilon_decay(trainer, model, args)
-    add_snapshot(trainer, model, mtl_mode, savefun)
-    att_reporter = add_attention_report(trainer, model, args, valid_json, converter, device)
-    add_early_stop(trainer, args)
-    add_tensorboard(trainer, args.tensorboard_dir, att_reporter)
+
     return trainer
 
 

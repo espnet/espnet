@@ -4,11 +4,16 @@ import logging
 import os
 
 import chainer
+from chainer import training
 from chainer.training import extension
+from chainer.training import extensions
 
 from tensorboardX import SummaryWriter
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
+
+from espnet.utils.pytorch_utils import torch_resume
+from espnet.utils.pytorch_utils import torch_save
 
 REPORT_INTERVAL = 100
 
@@ -70,6 +75,21 @@ def load_json(json_file):
         return json.load(f)['utts']
 
 
+def add_snapshot(trainer, model, savefun, mtl_mode=None):
+    """Adds the model snapshot extension
+
+    :param trainer: The trainer to add the extension to
+    :param model: The model to save
+    :param mtl_mode: The mtl mode
+    :param savefun: The save function to use
+    """
+    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=savefun),
+                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+    if mtl_mode is not None and mtl_mode is not 'ctc':
+        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=savefun),
+                       trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
+
+
 def add_attention_report(trainer, model, args, valid_json, converter, device, reverse_par=False):
     """Adds the attention reporter extension
 
@@ -96,6 +116,50 @@ def add_attention_report(trainer, model, args, valid_json, converter, device, re
     else:
         att_reporter = None
     return att_reporter
+
+
+def add_plot_report(trainer, values):
+    """Adds the plot report extension
+
+    :param trainer: The trainer to add the extension to
+    """
+    for tup in values:
+        trainer.extend(extensions.PlotReport(tup[1], 'epoch', file_name=tup[0] + '.png'))
+
+
+def prepare_asr_tts_trainer(updater, evaluator, converter, model, valid_json, args, plot_keys, device, mtl_mode=None,
+                            reverse_par=False):
+    """Prepares a common trainer for asr and tts
+    :param updater: The training updater
+    :param evaluator: The training evaluator
+    :param converter: The batch converter
+    :param model: The model
+    :param valid_json: The validation json
+    :param args: The program arguments
+    :param plot_keys: The keys to report for plotting
+    :param device: The device to use
+    :param mtl_mode: The mtl mode
+    :param reverse_par: Whether to reverse the axis for the attention report
+    :return: The trainer with common extensions
+    """
+    is_chainer = args.backend == 'chainer'
+    savefun = chainer.serializers.save_npz if is_chainer else torch_save
+    resume_fun = chainer.serializers.load_npz if is_chainer else torch_resume
+
+    trainer = training.Trainer(
+        updater, (args.epochs, 'epoch'), out=args.outdir)
+
+    if args.resume:
+        logging.info('resumed from %s' % args.resume)
+        resume_fun(args.resume, trainer)
+
+    trainer.extend(evaluator)
+    add_snapshot(trainer, model, savefun, mtl_mode)
+    add_early_stop(trainer, args)
+    add_plot_report(trainer, plot_keys)
+    att_reporter = add_attention_report(trainer, model, args, valid_json, converter, device, reverse_par=reverse_par)
+    add_tensorboard(trainer, args.tensorboard_dir, att_reporter)
+    return trainer
 
 
 class PlotAttentionReport(extension.Extension):

@@ -37,6 +37,7 @@ from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import write_conf
 
 from espnet.utils.pytorch_utils import torch_resume
+from espnet.utils.pytorch_utils import warn_if_no_cuda
 
 
 # dummy module to use chainer's trainer
@@ -307,9 +308,7 @@ def train(args):
 
     set_deterministic_pytorch(args)
 
-    # check cuda and cudnn availability
-    if not torch.cuda.is_available():
-        logging.warning('cuda is not available')
+    warn_if_no_cuda()
 
     # get special label ids
     unk = args.char_list_dict['<unk>']

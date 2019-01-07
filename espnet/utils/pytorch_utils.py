@@ -1,9 +1,12 @@
+import logging
 import os
 import shutil
 import tempfile
 
 import torch
 
+import chainer
+from chainer.datasets import TransformDataset
 from chainer.serializers.npz import DictionarySerializer
 from chainer.serializers.npz import NpzDeserializer
 from chainer.training import extension
@@ -116,3 +119,37 @@ def _torch_snapshot_object(trainer, filename, savefun):
         shutil.move(tmppath, os.path.join(trainer.out, fn))
     finally:
         shutil.rmtree(tmpdir)
+
+
+def warn_if_no_cuda():
+    """Emits a warning if cuda is not available"""
+    if not torch.cuda.is_available():
+        logging.warning('cuda is not available')
+
+
+def get_iterators(train, valid, converter, n_iter_processes):
+    """Returns a training and validation iterator
+    :param train: The training data
+    :param valid: The validation data
+    :param converter: The batch converter
+    :param int n_iter_processes: The number of iterating processes
+    :return: (train_iter, valid_iter)
+    """
+    # hack to make batchsize argument as 1
+    # actual batchsize is included in a list
+    if n_iter_processes > 0:
+        train_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(train, converter.transform),
+            batch_size=1, n_processes=n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+        valid_iter = chainer.iterators.MultiprocessIterator(
+            TransformDataset(valid, converter.transform),
+            batch_size=1, repeat=False, shuffle=False,
+            n_processes=n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+    else:
+        train_iter = chainer.iterators.SerialIterator(
+            TransformDataset(train, converter.transform),
+            batch_size=1)
+        valid_iter = chainer.iterators.SerialIterator(
+            TransformDataset(valid, converter.transform),
+            batch_size=1, repeat=False, shuffle=False)
+    return train_iter, valid_iter

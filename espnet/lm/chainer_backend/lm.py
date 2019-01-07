@@ -38,6 +38,8 @@ from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import write_conf
 
+from espnet.utils.chainer_utils import warn_if_no_cuda
+
 REPORT_INTERVAL = 100
 
 
@@ -259,11 +261,7 @@ def train(args):
 
     set_deterministic_chainer(args)
 
-    # check cuda and cudnn availability
-    if not chainer.cuda.available:
-        logging.warning('cuda is not available')
-    if not chainer.cuda.cudnn_enabled:
-        logging.warning('cudnn is not available')
+    warn_if_no_cuda()
 
     # get special label ids
     unk = args.char_list_dict['<unk>']

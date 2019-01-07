@@ -1,4 +1,5 @@
 import chainer
+import logging
 
 
 def chainer_load(path, model):
@@ -11,3 +12,11 @@ def chainer_load(path, model):
         chainer.serializers.load_npz(path, model, path='updater/model:main/')
     else:
         chainer.serializers.load_npz(path, model)
+
+
+def warn_if_no_cuda():
+    # check cuda and cudnn availability
+    if not chainer.cuda.available:
+        logging.warning('cuda is not available')
+    if not chainer.cuda.cudnn_enabled:
+        logging.warning('cudnn is not available')

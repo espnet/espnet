@@ -13,7 +13,6 @@ import chainer
 import numpy as np
 import torch
 
-from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
 
@@ -22,27 +21,21 @@ import kaldi_io_py
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
+
+from espnet.tts.tts_utils import get_dimensions
 from espnet.tts.tts_utils import load_inputs_and_targets
-from espnet.tts.tts_utils import make_batchset
+from espnet.tts.tts_utils import make_args_batchset
+from espnet.tts.tts_utils import prepare_trainer
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
-from espnet.utils.training.train_utils import add_attention_report
-from espnet.utils.training.train_utils import add_early_stop
-from espnet.utils.training.train_utils import add_tensorboard
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import get_model_conf
 from espnet.utils.training.train_utils import load_jsons
+from espnet.utils.training.train_utils import write_conf
 
+from espnet.utils.pytorch_utils import get_iterators
 from espnet.utils.pytorch_utils import torch_load
-from espnet.utils.pytorch_utils import torch_resume
-from espnet.utils.pytorch_utils import torch_save
-from espnet.utils.pytorch_utils import torch_snapshot
-
-import matplotlib
-
-matplotlib.use('Agg')
-
-REPORT_INTERVAL = 100
+from espnet.utils.pytorch_utils import warn_if_no_cuda
 
 
 class CustomEvaluator(extensions.Evaluator):
@@ -203,36 +196,11 @@ def train(args):
     """
     set_deterministic_pytorch(args)
 
-    # check cuda availability
-    if not torch.cuda.is_available():
-        logging.warning('cuda is not available')
+    warn_if_no_cuda()
 
-    # get input and output dimension info
-    with open(args.valid_json, 'rb') as f:
-        valid_json = json.load(f)['utts']
-    utts = list(valid_json.keys())
+    idim, odim = get_dimensions(args)
 
-    # reverse input and output dimension
-    idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
-    odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    if args.use_cbhg:
-        args.spc_dim = int(valid_json[utts[0]]['input'][1]['shape'][1])
-    if args.use_speaker_embedding:
-        args.spk_embed_dim = int(valid_json[utts[0]]['input'][1]['shape'][0])
-    else:
-        args.spk_embed_dim = None
-    logging.info('#input dims : ' + str(idim))
-    logging.info('#output dims: ' + str(odim))
-
-    # write model config
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    model_conf = args.outdir + '/model.json'
-    with open(model_conf, 'wb') as f:
-        logging.info('writing a model config file to' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
-    for key in sorted(vars(args).keys()):
-        logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+    write_conf(args)
 
     # specify model architecture
     tacotron2 = Tacotron2(idim, odim, args)
@@ -268,84 +236,16 @@ def train(args):
     train_json, valid_json = load_jsons(args)
 
     # make minibatch list (variable length)
-    train_batchset = make_batchset(train_json, args.batch_size,
-                                   args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1)
-    valid_batchset = make_batchset(valid_json, args.batch_size,
-                                   args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1)
-    # hack to make batchsize argument as 1
-    # actual bathsize is included in a list
-    if args.n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(train_batchset, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(valid_batchset, converter.transform),
-            batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-    else:
-        train_iter = chainer.iterators.SerialIterator(
-            TransformDataset(train_batchset, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
-            TransformDataset(valid_batchset, converter.transform),
-            batch_size=1, repeat=False, shuffle=False)
+    train_batchset = make_args_batchset(train_json, args)
+    valid_batchset = make_args_batchset(valid_json, args)
+
+    train_iter, valid_iter = get_iterators(train_batchset, valid_batchset, converter, args.n_iter_processes)
 
     # Set up a trainer
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
     evaluator = CustomEvaluator(model, valid_iter, reporter, converter, device)
-    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
-
-    # Resume from a snapshot
-    if args.resume:
-        logging.info('resumed from %s' % args.resume)
-        torch_resume(args.resume, trainer)
-
-    # Evaluate the model with the test dataset for each epoch
-    trainer.extend(evaluator)
-
-    # Save snapshot for each epoch
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
-
-    # Save best models
-    trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-
     att_fig_converter = CustomConverter(False, args.use_speaker_embedding)
-    att_reporter = add_attention_report(trainer, tacotron2, args, valid_json, att_fig_converter, device, True)
-
-    # Make a plot for training and validation values
-    plot_keys = ['main/loss', 'validation/main/loss',
-                 'main/l1_loss', 'validation/main/l1_loss',
-                 'main/mse_loss', 'validation/main/mse_loss',
-                 'main/bce_loss', 'validation/main/bce_loss']
-    trainer.extend(extensions.PlotReport(['main/l1_loss', 'validation/main/l1_loss'],
-                                         'epoch', file_name='l1_loss.png'))
-    trainer.extend(extensions.PlotReport(['main/mse_loss', 'validation/main/mse_loss'],
-                                         'epoch', file_name='mse_loss.png'))
-    trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
-                                         'epoch', file_name='bce_loss.png'))
-    if args.use_cbhg:
-        plot_keys += ['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss',
-                      'main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss']
-        trainer.extend(extensions.PlotReport(['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss'],
-                                             'epoch', file_name='cbhg_l1_loss.png'))
-        trainer.extend(extensions.PlotReport(['main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss'],
-                                             'epoch', file_name='cbhg_mse_loss.png'))
-    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='loss.png'))
-
-    # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
-    report_keys = plot_keys[:]
-    report_keys[0:0] = ['epoch', 'iteration', 'elapsed_time']
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
-
-    add_early_stop(trainer, args)
-    add_tensorboard(trainer, args.tensorboard_dir, att_reporter)
+    trainer = prepare_trainer(updater, evaluator, att_fig_converter, model, valid_json, args, device)
 
     # Run the training
     trainer.run()

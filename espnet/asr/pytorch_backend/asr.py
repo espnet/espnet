@@ -11,7 +11,6 @@ import math
 # chainer related
 import chainer
 
-from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -33,8 +32,10 @@ from espnet.utils.training.train_utils import load_json
 from espnet.utils.training.train_utils import load_jsons
 from espnet.utils.training.train_utils import write_conf
 
+from espnet.utils.pytorch_utils import get_iterators
 from espnet.utils.pytorch_utils import torch_load
 from espnet.utils.pytorch_utils import torch_snapshot
+from espnet.utils.pytorch_utils import warn_if_no_cuda
 
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
@@ -201,9 +202,7 @@ def train(args):
     """
     set_deterministic_pytorch(args)
 
-    # check cuda availability
-    if not torch.cuda.is_available():
-        logging.warning('cuda is not available')
+    warn_if_no_cuda()
 
     idim, odim = get_dimensions(args.valid_json)
 
@@ -253,23 +252,8 @@ def train(args):
     # make minibatch list (variable length)
     train = make_args_batchset(train_json, args)
     valid = make_args_batchset(valid_json, args)
-    # hack to make batchsize argument as 1
-    # actual bathsize is included in a list
-    if args.n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(train, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(valid, converter.transform),
-            batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-    else:
-        train_iter = chainer.iterators.SerialIterator(
-            TransformDataset(train, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
-            TransformDataset(valid, converter.transform),
-            batch_size=1, repeat=False, shuffle=False)
+
+    train_iter, valid_iter = get_iterators(train, valid, converter, args.n_iter_processes)
 
     # Set up a trainer
     updater = CustomUpdater(

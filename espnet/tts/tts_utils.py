@@ -2,13 +2,25 @@
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
+import json
 import logging
 import random
 
 import numpy as np
 
 import kaldi_io_py
+
+from chainer.training import extensions
+
+from espnet.utils.training.train_utils import prepare_asr_tts_trainer
+from espnet.utils.training.train_utils import REPORT_INTERVAL
+
+from espnet.utils.pytorch_utils import torch_snapshot
+
+
+def make_args_batchset(data, args):
+    return make_batchset(data, args.batch_size, args.maxlen_in, args.maxlen_out, args.minibatches, args.batch_sort_key,
+                         min_batch_size=args.ngpu if args.ngpu > 1 else 1)
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
@@ -133,3 +145,70 @@ def load_inputs_and_targets(batch, use_speaker_embedding=False, use_second_targe
         spembs = None
 
     return xs, ys, spembs, spcs
+
+
+def get_dimensions(args):
+    # get input and output dimension info
+    with open(args.valid_json, 'rb') as f:
+        valid_json = json.load(f)['utts']
+    utts = list(valid_json.keys())
+
+    # reverse input and output dimension
+    idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
+    if args.use_cbhg:
+        args.spc_dim = int(valid_json[utts[0]]['input'][1]['shape'][1])
+    if args.use_speaker_embedding:
+        args.spk_embed_dim = int(valid_json[utts[0]]['input'][1]['shape'][0])
+    else:
+        args.spk_embed_dim = None
+    logging.info('#input dims : ' + str(idim))
+    logging.info('#output dims: ' + str(odim))
+    return idim, odim
+
+
+def get_plot_report_keys(use_cbhg):
+    to_report = [("l1_loss", ['main/l1_loss', 'validation/main/l1_loss']),
+                 ("mse_loss", ['main/mse_loss', 'validation/main/mse_loss']),
+                 ("bce_loss", ['main/bce_loss', 'validation/main/bce_loss'])]
+    # Make a plot for training and validation values
+    plot_keys = ['main/loss', 'validation/main/loss',
+                 'main/l1_loss', 'validation/main/l1_loss',
+                 'main/mse_loss', 'validation/main/mse_loss',
+                 'main/bce_loss', 'validation/main/bce_loss']
+    if use_cbhg:
+        plot_keys += ['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss',
+                      'main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss']
+        to_report.append(("cbhg_l1_loss", ['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss']))
+        to_report.append(("cbhg_mse_loss", ['main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss']))
+    to_report.append(("loss", plot_keys))
+    return plot_keys
+
+
+def add_progress_report(trainer, keys):
+    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    keys[0:0] = ['epoch', 'iteration', 'elapsed_time']
+    trainer.extend(extensions.PrintReport(keys), trigger=(REPORT_INTERVAL, 'iteration'))
+    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+
+
+def prepare_trainer(updater, evaluator, converter, model, valid_json, args, device):
+    """Prepares a tts trainer with common extensions
+    :param updater: The training updater
+    :param evaluator: The training evaluator
+    :param converter: The batch converter
+    :param model: The model
+    :param valid_json: The validation json
+    :param args: The program arguments
+    :param device: The device to use
+    :return: The trainer
+    """
+    plot_keys = get_plot_report_keys(args.use_cbhg)
+    trainer = prepare_asr_tts_trainer(updater, evaluator, converter, model, valid_json, args, device, plot_keys,
+                                      reverse_par=True)
+    add_progress_report(trainer, plot_keys[:])
+
+    # Save snapshot for each epoch
+    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+
+    return trainer
