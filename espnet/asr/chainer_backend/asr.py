@@ -38,9 +38,12 @@ from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
 
-from espnet.asr.iterators import ShufflingEnabler
-from espnet.asr.iterators import ToggleableShufflingMultiprocessIterator
-from espnet.asr.iterators import ToggleableShufflingSerialIterator
+from espnet.utils.training.iterators import ShufflingEnabler
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+
+from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.training.train_utils import check_early_stop
 
 # for kaldi io
 import kaldi_io_py
@@ -52,6 +55,9 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 # numpy related
 import matplotlib
 import numpy as np
+
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
@@ -89,7 +95,7 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(*x)[0]
+        loss = optimizer.target(*x)
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
@@ -124,7 +130,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             batch = self.get_iterator('main').next()
             x = self.converter(batch, self._devices[0])
 
-            loss = self._master(*x)[0]
+            loss = self._master(*x)
 
             self._master.cleargrads()
             loss.backward()
@@ -201,23 +207,7 @@ def train(args):
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
-    # seed setting (chainer seed may not need it)
-    os.environ['CHAINER_SEED'] = str(args.seed)
-    logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
-
-    # debug mode setting
-    # 0 would be fastest, but 1 seems to be reasonable
-    # by considering reproducability
-    # remove type check
-    if args.debugmode < 2:
-        chainer.config.type_check = False
-        logging.info('chainer type check is disabled')
-    # use deterministic computation or not
-    if args.debugmode < 1:
-        chainer.config.cudnn_deterministic = False
-        logging.info('chainer cudnn deterministic is disabled')
-    else:
-        chainer.config.cudnn_deterministic = True
+    set_deterministic_chainer(args)
 
     # check cuda and cudnn availability
     if not chainer.cuda.available:
@@ -250,7 +240,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model = E2E(idim, odim, args, flag_return=False)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -388,9 +378,12 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=gpu_id), trigger=(1, 'epoch'))
+            converter=converter, device=gpu_id)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
@@ -446,8 +439,17 @@ def train(args):
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
+
     # Run the training
     trainer.run()
+    check_early_stop(trainer, args.epochs)
 
 
 def recog(args):
@@ -458,9 +460,7 @@ def recog(args):
     # display chainer version
     logging.info('chainer version = ' + chainer.__version__)
 
-    # seed setting (chainer seed may not need it)
-    os.environ["CHAINER_SEED"] = str(args.seed)
-    logging.info('chainer seed = ' + os.environ['CHAINER_SEED'])
+    set_deterministic_chainer(args)
 
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)

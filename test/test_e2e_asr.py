@@ -370,14 +370,30 @@ def test_gpu_trainable(module):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
-def test_torch_multi_gpu_trainable():
-    m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
+@pytest.mark.parametrize("module", ["espnet.nets.chainer_backend.e2e_asr", "espnet.nets.pytorch_backend.e2e_asr"])
+def test_multi_gpu_trainable(module):
+    m = importlib.import_module(module)
     ngpu = 2
     device_ids = list(range(ngpu))
     args = make_arg()
     model = m.E2E(40, 5, args)
-    model = torch.nn.DataParallel(model, device_ids)
-    batch = prepare_inputs("pytorch", is_cuda=True)
-    model.cuda()
-    loss = 1. / ngpu * model(*batch)
-    loss.backward(loss.new_ones(ngpu))  # trainable
+    if "pytorch" in module:
+        model = torch.nn.DataParallel(model, device_ids)
+        batch = prepare_inputs("pytorch", is_cuda=True)
+        model.cuda()
+        loss = 1. / ngpu * model(*batch)[0]
+        loss.backward(loss.new_ones(ngpu))  # trainable
+    else:
+        import copy
+        import cupy
+        losses = []
+        for device in device_ids:
+            with cupy.cuda.Device(device):
+                batch = prepare_inputs("chainer", is_cuda=True)
+                _model = copy.deepcopy(model)  # Transcribed from training.updaters.ParallelUpdater
+                _model.to_gpu()
+                loss = 1. / ngpu * _model(*batch)[0]
+                losses.append(loss)
+
+        for loss in losses:
+            loss.backward()  # trainable
