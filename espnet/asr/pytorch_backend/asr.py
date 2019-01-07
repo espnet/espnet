@@ -32,7 +32,6 @@ from espnet.utils.training.train_utils import write_conf
 
 from espnet.utils.pytorch_utils import get_iterators
 from espnet.utils.pytorch_utils import torch_load
-from espnet.utils.pytorch_utils import torch_snapshot
 from espnet.utils.pytorch_utils import warn_if_no_cuda
 
 from espnet.nets.pytorch_backend.e2e_asr import E2E

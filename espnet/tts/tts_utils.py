@@ -15,8 +15,6 @@ from chainer.training import extensions
 from espnet.utils.training.train_utils import prepare_asr_tts_trainer
 from espnet.utils.training.train_utils import REPORT_INTERVAL
 
-from espnet.utils.pytorch_utils import torch_snapshot
-
 
 def make_args_batchset(data, args):
     return make_batchset(data, args.batch_size, args.maxlen_in, args.maxlen_out, args.minibatches, args.batch_sort_key,
