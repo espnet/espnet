@@ -209,7 +209,4 @@ def prepare_trainer(updater, evaluator, converter, model, valid_json, args, devi
                                       reverse_par=True)
     add_progress_report(trainer, plot_keys[:])
 
-    # Save snapshot for each epoch
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
-
     return trainer

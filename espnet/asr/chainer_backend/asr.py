@@ -311,7 +311,6 @@ def train(args):
     evaluator = extensions.Evaluator(valid_iter, model, converter=converter, device=gpu_id)
 
     trainer = prepare_trainer(updater, evaluator, converter, model, valid_json, args, gpu_id)
-    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
 
     # Run the training
     trainer.run()

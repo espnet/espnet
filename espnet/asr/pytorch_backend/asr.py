@@ -254,8 +254,6 @@ def train(args):
 
     trainer = prepare_trainer(updater, evaluator, converter, model, valid_json, args, device)
 
-    # save snapshot which contains model and optimizer states
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)

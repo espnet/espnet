@@ -14,6 +14,7 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 
 from espnet.utils.pytorch_utils import torch_resume
 from espnet.utils.pytorch_utils import torch_save
+from espnet.utils.pytorch_utils import torch_snapshot
 
 REPORT_INTERVAL = 100
 
@@ -155,6 +156,9 @@ def prepare_asr_tts_trainer(updater, evaluator, converter, model, valid_json, ar
         resume_fun(args.resume, trainer)
 
     trainer.extend(evaluator)
+    trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'),
+                   trigger=(1, 'epoch')) if is_chainer else \
+        trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
     add_snapshot(trainer, model, savefun, mtl_mode)
     add_early_stop(trainer, args)
     add_plot_report(trainer, plot_keys)
