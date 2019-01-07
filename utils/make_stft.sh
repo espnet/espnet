@@ -132,7 +132,7 @@ if ${write_utt2num_frames}; then
     rm ${logdir}/utt2num_frames.* 2>/dev/null
 fi
 
-rm ${logdir}/wav.*.scp ${logdir}/segments.* 2>/dev/null
+rm -f ${logdir}/wav.*.scp ${logdir}/segments.* 2>/dev/null
 
 # Write the filetype, this will be used for data2json.sh
 echo ${filetype} > ${data}/filetype
