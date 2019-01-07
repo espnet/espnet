@@ -268,7 +268,51 @@ def get_iterators(train, val, args, eos):
     return train_iter, val_iter
 
 
-def test_perplexity(model, evaluator_class, args, unk, eos, device, load_func, reporter=None):
+def get_special_tokens(char_list_dict):
+    # get special label ids
+    unk = char_list_dict['<unk>']
+    eos = char_list_dict['<eos>']
+
+    return unk, eos
+
+
+def read_tokens_and_get_iterators(args):
+    unk, eos = get_special_tokens(args.char_list_dict)
+    # read tokens as a sequence of sentences
+    train = read_tokens(args.train_label, args.char_list_dict)
+    val = read_tokens(args.valid_label, args.char_list_dict)
+    show_token_counts(train, val, unk, args.n_vocab)
+
+    # Create the dataset iterators
+    train_iter, val_iter = get_iterators(train, val, args, eos)
+    return train_iter, val_iter
+
+
+def check_and_get_gpuid(model, ngpu, is_chainer):
+    """Checks that at most one gpu is used and return the gpu id to use
+
+    :param model: The model to train
+    :param ngpu: The number of gpu to use
+    :param is_chainer: If the backend is chainer
+    :return: the id of the gpu to use
+    """
+    if ngpu > 1:
+        logging.warning("currently, multi-gpu is not supported. use single gpu.")
+    if ngpu > 0:
+        # Make the specified GPU current
+        gpu_id = 0
+        if is_chainer:
+            chainer.cuda.get_device_from_id(gpu_id).use()
+            model.to_gpu()
+        else:
+            model.cuda(gpu_id)
+    else:
+        gpu_id = -1
+    return gpu_id
+
+
+def test_perplexity(model, evaluator_class, args, device, load_func, reporter=None):
+    unk, eos = get_special_tokens(args.char_list_dict)
     is_chainer = args.backend == "chainer"
     if args.test_label:
         logging.info('test the best model')

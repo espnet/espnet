@@ -24,10 +24,9 @@ from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
-from espnet.lm.lm_utils import get_iterators
+from espnet.lm.lm_utils import check_and_get_gpuid
 from espnet.lm.lm_utils import prepare_trainer
-from espnet.lm.lm_utils import read_tokens
-from espnet.lm.lm_utils import show_token_counts
+from espnet.lm.lm_utils import read_tokens_and_get_iterators
 from espnet.lm.lm_utils import test_perplexity
 
 from espnet.nets.pytorch_backend.e2e_asr import to_device
@@ -310,27 +309,12 @@ def train(args):
 
     warn_if_no_cuda()
 
-    # get special label ids
-    unk = args.char_list_dict['<unk>']
-    eos = args.char_list_dict['<eos>']
-    # read tokens as a sequence of sentences
-    train = read_tokens(args.train_label, args.char_list_dict)
-    val = read_tokens(args.valid_label, args.char_list_dict)
-    show_token_counts(train, val, unk, args.n_vocab)
+    train_iter, val_iter = read_tokens_and_get_iterators(args)
 
-    # Create the dataset iterators
-    train_iter, val_iter = get_iterators(train, val, args, eos)
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit)
     model = ClassifierWithState(rnn)
-    if args.ngpu > 1:
-        logging.warning("currently, multi-gpu is not supported. use single gpu.")
-    if args.ngpu > 0:
-        # Make the specified GPU current
-        gpu_id = 0
-        model.cuda(gpu_id)
-    else:
-        gpu_id = -1
+    gpu_id = check_and_get_gpuid(model, args.ngpu, is_chainer=False)
 
     write_conf(args)
 
@@ -353,4 +337,4 @@ def train(args):
     check_early_stop(trainer, args.epochs)
 
     # compute perplexity for test set
-    test_perplexity(model, LMEvaluator, args, unk, eos, gpu_id, chainer.serializers.load_npz, reporter)
+    test_perplexity(model, LMEvaluator, args, gpu_id, chainer.serializers.load_npz, reporter)
