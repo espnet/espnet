@@ -466,7 +466,6 @@ class SoundHDF5File(object):
     def create_dataset(self, name, shape=None, data=None, **kwds):
         f = io.BytesIO()
         array, rate = data
-        assert array.dtype == np.dtype(self.dtype), array.dtype
         soundfile.write(f, array, rate, format=self.format)
         self.file.create_dataset(name, shape=shape,
                                  data=np.void(f.getvalue()), **kwds)
@@ -477,7 +476,7 @@ class SoundHDF5File(object):
     def __getitem__(self, key):
         data = self.file[key][...]
         f = io.BytesIO(data.tobytes())
-        array, rate = soundfile.read(f, format=self.format, dtype=self.dtype)
+        array, rate = soundfile.read(f, dtype=self.dtype)
         return array, rate
 
     def keys(self):
