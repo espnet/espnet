@@ -1,15 +1,13 @@
 #!/usr/bin/env python
-import importlib
-
 import h5py
 import kaldiio
 import numpy as np
+import pytest
 
-from espnet.transform.add_deltas import add_deltas
-from espnet.transform.cmvn import CMVN
-from espnet.transform.spectrogram import logmelspectrogram
+import espnet.asr.asr_utils
+import espnet.tts.tts_utils
 from espnet.utils.io_utils import LoadInputsAndTargets
-from espnet.transform.transformation import Transformation
+from espnet.utils.io_utils import SoundHDF5File
 
 
 def make_dummy_json(n_utts=10, ilen_range=(100, 300), olen_range=(10, 300)):
@@ -32,72 +30,27 @@ def make_dummy_json(n_utts=10, ilen_range=(100, 300), olen_range=(10, 300)):
     return dummy_json
 
 
-def test_make_batchset():
+@pytest.mark.parametrize('utils', [espnet.asr.asr_utils, espnet.tts.tts_utils])
+def test_make_batchset(utils):
     dummy_json = make_dummy_json(128, [128, 512], [16, 128])
-    for module in ["espnet.asr.asr_utils", "espnet.tts.tts_utils"]:
-        utils = importlib.import_module(module)
+    # check w/o adaptive batch size
+    batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
+                                   min_batch_size=1)
+    assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
+    print([len(batch) for batch in batchset])
+    batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
+                                   min_batch_size=10)
+    assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
+    print([len(batch) for batch in batchset])
 
-        # check w/o adaptive batch size
-        batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
-                                       min_batch_size=1)
-        assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
-        print([len(batch) for batch in batchset])
-        batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
-                                       min_batch_size=10)
-        assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
-        print([len(batch) for batch in batchset])
-
-        # check w/ adaptive batch size
-        batchset = utils.make_batchset(dummy_json, 24, 256, 64,
-                                       min_batch_size=10)
-        assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
-        print([len(batch) for batch in batchset])
-        batchset = utils.make_batchset(dummy_json, 24, 256, 64,
-                                       min_batch_size=10)
-        assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
-
-
-def test_preprocessing(tmpdir):
-    cmvn_ark = str(tmpdir.join('cmvn.ark'))
-    kwargs = {"process": [{"type": "fbank",
-                           "n_mels": 80,
-                           "fs": 16000,
-                           "n_fft": 1024,
-                           "n_shift": 512},
-                          {"type": "cmvn",
-                           "stats": cmvn_ark,
-                           "norm_vars": True},
-                          {"type": "delta", "window": 2, "order": 2}],
-              "mode": "sequential"}
-
-    # Creates cmvn_ark
-    samples = np.random.randn(100, 80)
-    stats = np.empty((2, 81), dtype=np.float32)
-    stats[0, :80] = samples.sum(axis=0)
-    stats[1, :80] = (samples ** 2).sum(axis=0)
-    stats[0, -1] = 100.
-    stats[1, -1] = 0.
-    kaldiio.save_mat(cmvn_ark, stats)
-
-    bs = 1
-    xs = [np.random.randn(1000).astype(np.float32) for _ in range(bs)]
-    preprocessing = Transformation(**kwargs)
-    processed_xs = preprocessing(xs)
-
-    for idx, x in enumerate(xs):
-        opt = dict(kwargs['process'][0])
-        opt.pop('type')
-        x = logmelspectrogram(x, **opt)
-
-        opt = dict(kwargs['process'][1])
-        opt.pop('type')
-        x = CMVN(**opt)(x)
-
-        opt = dict(kwargs['process'][2])
-        opt.pop('type')
-        x = add_deltas(x, **opt)
-
-        np.testing.assert_allclose(processed_xs[idx], x)
+    # check w/ adaptive batch size
+    batchset = utils.make_batchset(dummy_json, 24, 256, 64,
+                                   min_batch_size=10)
+    assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
+    print([len(batch) for batch in batchset])
+    batchset = utils.make_batchset(dummy_json, 24, 256, 64,
+                                   min_batch_size=10)
+    assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
 
 
 def test_load_inputs_and_targets_legacy_format(tmpdir):
@@ -167,3 +120,21 @@ def test_load_inputs_and_targets_new_format(tmpdir):
         np.testing.assert_array_equal(x, xd)
     for y, yd in zip(ys, desire_ys):
         np.testing.assert_array_equal(y, yd)
+
+
+@pytest.mark.parametrize('fmt', ['flac', 'wav'])
+def test_sound_hdf5_file(tmpdir, fmt):
+    valid = {'a': np.random.randint(-100, 100, 25, dtype=np.int16),
+             'b': np.random.randint(-1000, 1000, 100, dtype=np.int16)}
+
+    # Note: Specify the file format by extension
+    p = tmpdir.join('test.{}.h5'.format(fmt)).strpath
+    f = SoundHDF5File(p, 'a')
+
+    for k, v in valid.items():
+        f[k] = (v, 8000)
+
+    for k, v in valid.items():
+        t, r = f[k]
+        assert r == 8000
+        np.testing.assert_array_equal(t, v)
