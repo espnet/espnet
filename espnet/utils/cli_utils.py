@@ -198,7 +198,7 @@ class FileWriterWrapper(object):
                 raise ValueError('Must include ":", write_num_frames={}'
                                  .format(write_num_frames))
 
-            nframes_type, nframes_file = write_num_frames.split(':')
+            nframes_type, nframes_file = write_num_frames.split(':', 1)
             if nframes_type != 'ark,t':
                 raise ValueError(
                     'Only supporting text mode. '
