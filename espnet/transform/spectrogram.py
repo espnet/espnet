@@ -107,6 +107,7 @@ class Stft(object):
         # x: [Time, Channel]
         if x.ndim == 1:
             single_channel = True
+            # x: [Time] -> [Time, Channel]
             x = x[:, None]
             channel = 1
         else:
@@ -114,6 +115,7 @@ class Stft(object):
             channel = x.shape[1]
 
         # FIXME(kamo): librosa.stft can't use multi-channel?
+        # x: [Time, Channel, Freq]
         x = np.stack([librosa.stft(
             x=x[:, ch],
             n_fft=self.n_fft,
@@ -124,6 +126,6 @@ class Stft(object):
             pad_mode=self.pad_mode).T
             for ch in range(channel)], axis=1)
         if single_channel:
-            # x: array[Time, Freq]
+            # x: [Time, Channel, Freq] -> [Time, Freq]
             x = x[:, 0]
         return x
