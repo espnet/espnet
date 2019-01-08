@@ -3,10 +3,10 @@ import argparse
 from distutils.util import strtobool
 import logging
 
+from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.transform.transformation import Transformation
 
 
 def main():
