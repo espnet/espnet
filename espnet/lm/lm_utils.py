@@ -222,9 +222,7 @@ class MakeSymlinkToBestModel(extension.Extension):
 # TODO(Hori): currently it only works with character-word level LM.
 #             need to consider any types of subwords-to-word mapping.
 def make_lexical_tree(word_dict, subword_dict, word_unk):
-    """Make a lexical tree to compute word-level probabilities
-
-    """
+    """Make a lexical tree to compute word-level probabilities"""
     # node [dict(subword_id -> node), word_id, word_set[start-1, end]]
     root = [{}, -1, None]
     for w, wid in word_dict.items():
@@ -245,7 +243,14 @@ def make_lexical_tree(word_dict, subword_dict, word_unk):
     return root
 
 
-def show_token_counts(train, val, unk, n_vocab):
+def log_data_statistics(train, val, unk, n_vocab):
+    """Logs stats about the training and validation data
+
+    :param train: The training data
+    :param val: The validation data
+    :param unk: The unknown token
+    :param n_vocab: The number of tokens in the vocabulary
+    """
     n_train_tokens, n_train_oovs = count_tokens(train, unk)
     n_val_tokens, n_val_oovs = count_tokens(val, unk)
     logging.info('#vocab = ' + str(n_vocab))
@@ -258,6 +263,14 @@ def show_token_counts(train, val, unk, n_vocab):
 
 
 def get_iterators(train, val, args, eos):
+    """Returns a train and validation iterators
+
+    :param train: The training data
+    :param val: The validation data
+    :param args: The program arguments
+    :param eos: The end of sentence token
+    :return: (train_iter, val_iter)
+    """
     train_iter = ParallelSentenceIterator(train, args.batch_size,
                                           max_length=args.maxlen, sos=eos, eos=eos)
     val_iter = ParallelSentenceIterator(val, args.batch_size,
@@ -269,6 +282,11 @@ def get_iterators(train, val, args, eos):
 
 
 def get_special_tokens(char_list_dict):
+    """Returns the special tokens
+
+    :param char_list_dict: The dictionary of characters
+    :return: (unk, eos)
+    """
     # get special label ids
     unk = char_list_dict['<unk>']
     eos = char_list_dict['<eos>']
@@ -277,11 +295,16 @@ def get_special_tokens(char_list_dict):
 
 
 def read_tokens_and_get_iterators(args):
+    """Reads the validation and training data and returns the training and validation iterators
+
+    :param args: The program arguments
+    :return: (train_iter, val_iter)
+    """
     unk, eos = get_special_tokens(args.char_list_dict)
     # read tokens as a sequence of sentences
     train = read_tokens(args.train_label, args.char_list_dict)
     val = read_tokens(args.valid_label, args.char_list_dict)
-    show_token_counts(train, val, unk, args.n_vocab)
+    log_data_statistics(train, val, unk, args.n_vocab)
 
     # Create the dataset iterators
     train_iter, val_iter = get_iterators(train, val, args, eos)
@@ -312,6 +335,15 @@ def check_and_get_gpuid(model, ngpu, is_chainer):
 
 
 def test_perplexity(model, evaluator_class, args, device, load_func, reporter=None):
+    """Tests the model on a test set
+
+    :param model: The model to test
+    :param evaluator_class: The class of the evaluator object
+    :param args: The program arguments
+    :param device: The device to use
+    :param load_func: The function to load the model
+    :param reporter: The reporter for the logs
+    """
     unk, eos = get_special_tokens(args.char_list_dict)
     is_chainer = args.backend == "chainer"
     if args.test_label:
@@ -335,6 +367,15 @@ def test_perplexity(model, evaluator_class, args, device, load_func, reporter=No
 
 
 def prepare_trainer(updater, evaluator, model, args, resume_func):
+    """Prepare a LM trainer
+
+    :param updater: The training updater
+    :param evaluator: The training evaluator
+    :param model: The model to train
+    :param args: The program arguments
+    :param resume_func: The function to use to resume training
+    :return: The trainer with common extensions
+    """
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
     trainer.extend(evaluator)
     add_progress_report(trainer)
@@ -348,6 +389,12 @@ def prepare_trainer(updater, evaluator, model, args, resume_func):
 
 
 def add_snapshot(trainer, model, is_chainer):
+    """Adds the snapshot extension to the trainer
+
+    :param trainer: The trainer
+    :param model: The model being trained
+    :param is_chainer: If the backend is chainer
+    """
     # Save best models
     filename = 'snapshot.ep.{.updater.epoch}'
     if is_chainer:
@@ -363,6 +410,10 @@ def add_snapshot(trainer, model, is_chainer):
 
 
 def add_progress_report(trainer):
+    """Adds various logging and progress extensions
+
+    :param trainer: The trainer to add the extensions to
+    """
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
                                         trigger=(REPORT_INTERVAL, 'iteration')))
     trainer.extend(extensions.PrintReport(

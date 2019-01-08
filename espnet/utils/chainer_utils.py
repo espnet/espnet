@@ -15,6 +15,7 @@ def chainer_load(path, model):
 
 
 def warn_if_no_cuda():
+    """Emits a warning if cuda and/or cudnn are not available"""
     # check cuda and cudnn availability
     if not chainer.cuda.available:
         logging.warning('cuda is not available')

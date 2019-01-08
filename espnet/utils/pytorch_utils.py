@@ -128,7 +128,7 @@ def warn_if_no_cuda():
 
 
 def get_iterators(train, valid, converter, n_iter_processes):
-    """Returns a training and validation iterator
+    """Returns training and validation iterators
 
     :param train: The training data
     :param valid: The validation data

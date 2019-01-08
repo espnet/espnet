@@ -200,7 +200,7 @@ def train(args):
 
     idim, odim = get_dimensions(args)
 
-    write_conf(args)
+    write_conf(args, idim, odim)
 
     # specify model architecture
     tacotron2 = Tacotron2(idim, odim, args)

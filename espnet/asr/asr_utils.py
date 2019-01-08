@@ -24,19 +24,14 @@ from espnet.utils.pytorch_utils import torch_load
 from espnet.utils.training.train_utils import prepare_asr_tts_trainer
 from espnet.utils.training.train_utils import REPORT_INTERVAL
 
-# matplotlib related
-import matplotlib
-
-matplotlib.use('Agg')
-
 
 # * -------------------- training iterator related -------------------- *
 
 def make_args_batchset(data, args):
     """Make batch set from json dictionary
 
-    :param data: dictionary loaded from data.json
-    :param args: the program arguments
+    :param dict data: dictionary loaded from data.json
+    :param Namespace args: the program arguments
     :return: list of batches
     """
     return make_batchset(data, args.batch_size, args.maxlen_in, args.maxlen_out, args.num_batches,
@@ -278,7 +273,7 @@ def add_epsilon_decay(trainer, model, args):
 
     :param trainer: The trainer to add the extension to
     :param model: The model to train
-    :param args: The program arguments
+    :param Namespace args: The program arguments
     """
     mtl_mode = get_mtl_mode(args.mtlalpha)
     load_fn = chainer.serializers.load_npz if args.backend == 'chainer' else torch_load
@@ -351,6 +346,12 @@ def get_mtl_mode(mtlalpha):
 
 
 def get_trainer_eps(trainer, is_pytorch):
+    """Returns the epsilon value
+
+    :param trainer: the trainer
+    :param is_pytorch: If the backend is pytorch
+    :return: the epsilon value
+    """
     return trainer.updater.get_optimizer('main').param_groups[0][
         'eps'] if is_pytorch else trainer.updater.get_optimizer('main').eps
 
