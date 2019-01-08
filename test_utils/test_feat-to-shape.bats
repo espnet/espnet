@@ -32,7 +32,6 @@ EOF
 }
 
 teardown() {
-    utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
     rm -rf $tmpdir
 }
 
