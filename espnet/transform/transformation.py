@@ -76,7 +76,7 @@ class TransformConfig(object):
             self.status.update(**kwargs)
 
     def get(self, key, default=None):
-        return self.status.get(key, default=default)
+        return self.status.get(key, default)
 
 
 global_transform_config = TransformConfig(thread_local=False)
