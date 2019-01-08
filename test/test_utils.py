@@ -9,7 +9,7 @@ from espnet.transform.add_deltas import add_deltas
 from espnet.transform.cmvn import CMVN
 from espnet.transform.spectrogram import logmelspectrogram
 from espnet.utils.io_utils import LoadInputsAndTargets
-from espnet.utils.io_utils import Preprocessing
+from espnet.transform.transformation import Transformation
 
 
 def make_dummy_json(n_utts=10, ilen_range=(100, 300), olen_range=(10, 300)):
@@ -81,7 +81,7 @@ def test_preprocessing(tmpdir):
 
     bs = 1
     xs = [np.random.randn(1000).astype(np.float32) for _ in range(bs)]
-    preprocessing = Preprocessing(**kwargs)
+    preprocessing = Transformation(**kwargs)
     processed_xs = preprocessing(xs)
 
     for idx, x in enumerate(xs):

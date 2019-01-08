@@ -6,7 +6,7 @@ import sys
 
 from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.io_utils import Preprocessing
+from espnet.transform.transformation import Transformation
 
 
 def main():
@@ -38,7 +38,7 @@ def main():
     logging.info(get_commandline_args())
 
     if args.preprocess_conf is not None:
-        preprocessing = Preprocessing(args.preprocess_conf)
+        preprocessing = Transformation(args.preprocess_conf)
         logging.info('Apply preprocessing: {}'.format(preprocessing))
     else:
         preprocessing = None
