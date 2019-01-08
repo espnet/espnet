@@ -21,7 +21,7 @@ def wav_generator(rspecifier, segments=None):
     readers = [kaldiio.ReadHelper(r, segments=segments) for r in rspecifier]
     for vs in zip(*readers):
         utts = [utt_id for utt_id, _ in vs]
-        if not all(utts[i] == utts[0] for i in range(len(vs))):
+        if not all(u == utts[0] for u in utts):
             raise RuntimeError(
                 'The all keys must be common among wav-rspecifiers: {}'
                 .format(rspecifier))
