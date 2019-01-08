@@ -24,14 +24,24 @@ def get_commandline_args():
 
 
 class FileReaderWrapper(object):
-    """Yield a pair of the uttid and ndarray
+    """Read uttid and array in kaldi style
 
-    >>> for u, array in FileReaderWrapper('ark:feats.ark', filetype='mat'):
-    ...     array
-
-    :param str rspecifier:
+    :param str rspecifier: Give as "ark:feats.ark" or "scp:feats.scp"
     :param str filetype: "mat" is kaldi-martix, "hdf5": HDF5
     :rtype: Generator[Tuple[str, np.ndarray], None, None]
+
+    Read from kaldi-matrix ark file:
+
+    >>> for u, array in FileReaderWrapper('ark:feats.ark', 'mat'):
+    ...     array
+
+    Read from HDF5 file:
+
+    >>> for u, array in FileReaderWrapper('ark:feats.h5', 'hdf5'):
+    ...     array
+
+    This might be a bit confusing as "ark" is used for HDF5 to imitate kaldi.
+
     """
 
     def __init__(self, rspecifier, filetype='mat'):
@@ -78,6 +88,7 @@ class FileReaderWrapper(object):
                             else:
                                 hdf5_file = h5py.File(path, 'r')
                             hdf5_dict[path] = hdf5_file
+
                         if self.filetype == 'sound.hdf5':
                             yield key, hdf5_file[h5_key]
                         else:
@@ -90,26 +101,55 @@ class FileReaderWrapper(object):
                         filepath = BytesIO(sys.stdin.read())
                     else:
                         filepath = BytesIO(sys.stdin.buffer.read())
-                for key, dataset in h5py.File(filepath, 'r').items():
-                    self.keys.add(key)
-                    yield key, dataset[...]
-
+                if self.filetype == 'sound.hdf5':
+                    for key, dataset in h5py.File(filepath, 'r').items():
+                        self.keys.add(key)
+                        yield key, dataset[...]
+                else:
+                    for key, (r, a) in SoundHDF5File(filepath, 'r').items():
+                        self.keys.add(key)
+                        yield key, (r, a)
         else:
             raise ValueError(
                 'Not supporting: filetype={}'.format(self.filetype))
 
 
 class FileWriterWrapper(object):
-    """Write matrices in matrix-ark of hdf5 with scp file
-
-    >>> with FileWriterWrapper('ark,scp:out.ark,out.scp') as f:
-    >>>     f['uttid'] = array
+    """Write matrices in kaldi style
 
     :param str wspecifier:
     :param str filetype: "mat" is kaldi-martix, "hdf5": HDF5
     :param str write_num_frames: e.g. 'ark,t:num_frames.txt'
     :param bool compress: Compress or not
     :param int compression_method: Specify compression level
+
+    Write in kaldi-matrix-ark with "kaldi-scp" file:
+
+    >>> with FileWriterWrapper('ark,scp:out.ark,out.scp') as f:
+    >>>     f['uttid'] = array
+
+    This "scp" has the following format:
+
+        uttidA out.ark:1234
+        uttidB out.ark:2222
+
+    where, 1234 and 2222 points the strating byte address of the matrix.
+    (For detail, see official documentation of Kaldi)
+
+    Write in HDF5 with "scp" file:
+
+    >>> with FileWriterWrapper('ark,scp:out.h5,out.scp', 'hdf5') as f:
+    >>>     f['uttid'] = array
+
+    This "scp" file is created as:
+
+        uttidA out.h5:uttidA
+        uttidB out.h5:uttidB
+
+    HDF5 can be, unlike "kaldi-ark", accessed to any keys,
+    so originally "scp" is not required for random-reading.
+    Nevertheless we create "scp" for HDF5 because it is useful
+    for some use-case. e.g. Concatenation, Splitting.
 
     """
 
