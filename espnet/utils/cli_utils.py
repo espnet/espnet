@@ -102,13 +102,13 @@ class FileReaderWrapper(object):
                     else:
                         filepath = BytesIO(sys.stdin.buffer.read())
                 if self.filetype == 'sound.hdf5':
-                    for key, dataset in h5py.File(filepath, 'r').items():
-                        self.keys.add(key)
-                        yield key, dataset[...]
-                else:
                     for key, (r, a) in SoundHDF5File(filepath, 'r').items():
                         self.keys.add(key)
                         yield key, (r, a)
+                else:
+                    for key, dataset in h5py.File(filepath, 'r').items():
+                        self.keys.add(key)
+                        yield key, dataset[...]
         else:
             raise ValueError(
                 'Not supporting: filetype={}'.format(self.filetype))
