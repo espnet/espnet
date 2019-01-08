@@ -287,8 +287,8 @@ class LoadInputsAndTargets(object):
 
         if len(nonzero_sorted_idx) != len(xs):
             logging.warning(
-                'Target sequences include empty tokenid (batch %d -> %d).' % (
-                    len(xs), len(nonzero_sorted_idx)))
+                'Target sequences include empty tokenid (batch {} -> {}).'
+                .format(len(xs), len(nonzero_sorted_idx)))
 
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
