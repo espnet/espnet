@@ -413,7 +413,8 @@ def decode(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='tts', load_input=False, sort_in_input_length=False,
         use_speaker_embedding=train_args.use_speaker_embedding,
-        preprocess_conf=train_args.preprocess_conf)
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None else args.preprocess_conf)
 
     with torch.no_grad(), kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
         for idx, utt_id in enumerate(js.keys()):
