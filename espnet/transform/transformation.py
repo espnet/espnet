@@ -1,5 +1,5 @@
-import contextlib
 from collections import OrderedDict
+import contextlib
 import copy
 import importlib
 import io
@@ -17,8 +17,7 @@ def dynamic_import(import_path):
         spectrogram='espnet.transform.spectrogram:Spectrogram',
         stft='espnet.transform.spectrogram:Stft',
         wpe='espnet.transform.wpe:WPE',
-        channel_selector='espnet.transform.channel_selector:ChannelSelector',
-        )
+        channel_selector='espnet.transform.channel_selector:ChannelSelector')
 
     if import_path not in alias and ':' not in import_path:
         raise ValueError(
@@ -50,7 +49,7 @@ class TransformConfig(object):
 
     def __repr__(self):
         rep = ', '.join('{}={}'.format(k, v) for k, v in self.items())
-        return '{}({})'.format(self.__class__.__name__,  rep)
+        return '{}({})'.format(self.__class__.__name__, rep)
 
     def __setitem__(self, key, value):
         self.status[key] = value

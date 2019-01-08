@@ -59,4 +59,3 @@ def test_using_transform_config():
         assert f(x) == 0
     with using_transform_config({'train': False}):
         assert f(x) == 1
-

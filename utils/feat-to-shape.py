@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-
 import argparse
 import logging
 import sys
 
+from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.transform.transformation import Transformation
 
 
 def main():
