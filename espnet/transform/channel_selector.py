@@ -30,10 +30,16 @@ class ChannelSelector(object):
                         axis=self.axis))
 
     def __call__(self, x):
-        # x: [Time, Channel] by default
-        assert x.ndim > self.axis, x.shape
+        # Assuming x: [Time, Channel] by default
 
-        if transform_config.get('train', True):
+        if x.ndim <= self.axis:
+            # If the dimension is insufficient, then unsqueeze
+            # (e.g [Time] -> [Time, 1])
+            ind = tuple(slice(None) if i < x.ndim else None
+                        for i in range(self.axis + 1))
+            x = x[ind]
+
+        if transform_config['train']:
             channel = self.train_channel
         else:
             channel = self.eval_channel
