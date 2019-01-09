@@ -268,8 +268,8 @@ class LoadInputsAndTargets(object):
         In order to make the fds to be opened only at the first referring,
         the loader are stored in self._loaders
 
-        :param: str file_path:
-        :param: str loader_type:
+        :param: str filepath:
+        :param: str filetype:
         :return:
         :rtype: np.ndarray
         """
@@ -335,6 +335,12 @@ class SoundHDF5File(object):
     >>> f['id'] = (array, 16000)
     >>> array, rate = f['id']
 
+
+    :param: str filepath:
+    :param: str mode:
+    :param: str format: The type used when saving wav. flac, nist, htk, etc.
+    :param: str dtype:
+
     """
 
     def __init__(self, filepath, mode='r+', format=None, dtype='int16',
@@ -351,6 +357,8 @@ class SoundHDF5File(object):
             if format.upper() not in soundfile.available_formats():
                 # If not found, flac is selected
                 format = 'flac'
+
+        # This format affects only saving
         self.format = format
 
     def __repr__(self):
