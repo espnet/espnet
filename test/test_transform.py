@@ -7,8 +7,8 @@ from espnet.transform.add_deltas import add_deltas
 from espnet.transform.cmvn import CMVN
 from espnet.transform.spectrogram import logmelspectrogram
 from espnet.transform.transformation import global_transform_config
-from espnet.transform.transformation import Transformation
 from espnet.transform.transformation import transform_config
+from espnet.transform.transformation import Transformation
 from espnet.transform.transformation import using_transform_config
 
 
