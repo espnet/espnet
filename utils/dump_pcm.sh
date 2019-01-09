@@ -22,6 +22,7 @@ if [ $# -lt 1 ] || [ $# -gt 3 ]; then
    echo "  --nj <nj>                                        # number of parallel jobs"
    echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
    echo "  --write-utt2num-frames <true|false>     # If true, write utt2num_frames file."
+   echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
    exit 1;
 fi
 
