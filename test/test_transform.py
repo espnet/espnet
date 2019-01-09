@@ -2,10 +2,10 @@ import kaldiio
 import numpy as np
 
 from espnet.transform.add_deltas import add_deltas
-from espnet.transform.channel_selector import ChannelSelector
 from espnet.transform.cmvn import CMVN
 from espnet.transform.spectrogram import logmelspectrogram
 from espnet.transform.transformation import Transformation
+from espnet.transform.transformation import transform_config
 from espnet.transform.transformation import using_transform_config
 
 
@@ -53,9 +53,10 @@ def test_preprocessing(tmpdir):
 
 
 def test_using_transform_config():
-    x = np.array([[0, 1]])
-    f = ChannelSelector(train_channel=0, eval_channel=1)
-    with using_transform_config({'train': True}):
-        assert f(x) == 0
-    with using_transform_config({'train': False}):
-        assert f(x) == 1
+    transform_config['aa'] = False
+    with using_transform_config({'aa': True}):
+        assert transform_config['aa'] is True
+    assert transform_config['aa'] is False
+    with using_transform_config({'bb': True}):
+        assert transform_config['bb'] is True
+    assert 'bb' not in transform_config
