@@ -13,15 +13,18 @@ class CTC(torch.nn.Module):
     :param int odim: dimension of outputs
     :param int eprojs: number of encoder projection units
     :param float dropout_rate: dropout rate (0.0 ~ 1.0)
+    :param float dropout_rate: dropout rate (0.0 ~ 1.0)
+    :param bool reduce: reduce the CTC loss into a scalar
     """
 
-    def __init__(self, odim, eprojs, dropout_rate):
+    def __init__(self, odim, eprojs, dropout_rate, reduce=True):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.loss_fn = warp_ctc.CTCLoss(size_average=True)
+        self.loss_fn = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
         self.ignore_id = -1
+        self.reduce = reduce
 
     def forward(self, hs_pad, hlens, ys_pad):
         """CTC forward
@@ -54,7 +57,8 @@ class CTC(torch.nn.Module):
         # expected shape of seqLength x batchSize x alphabet_size
         ys_hat = ys_hat.transpose(0, 1)
         self.loss = to_device(self, self.loss_fn(ys_hat, ys_true, hlens, olens))
-        logging.info('ctc loss:' + str(float(self.loss)))
+        if self.reduce:
+            logging.info('ctc loss:' + str(float(self.loss)))
 
         return self.loss
 
@@ -68,11 +72,12 @@ class CTC(torch.nn.Module):
         return F.log_softmax(self.ctc_lo(hs_pad), dim=2)
 
 
-def ctc_for(args, odim):
+def ctc_for(args, odim, reduce=True):
     """Returns the CTC module for the given args and output dimension
 
     :param Namespace args: the program args
     :param int odim : The output dimension
+    :param bool reduce : return the CTC loss in a scalar
     :return: the corresponding CTC module
     """
-    return CTC(odim, args.eprojs, args.dropout_rate)
+    return CTC(odim, args.eprojs, args.dropout_rate, reduce)

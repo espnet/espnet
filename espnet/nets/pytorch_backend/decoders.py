@@ -75,12 +75,13 @@ class Decoder(torch.nn.Module):
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
 
-    def forward(self, hs_pad, hlens, ys_pad):
+    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param int strm_idx: stream index for attention ModuleList when args.spa (speaker parallel attention) is True
         :return: attention loss value
         :rtype: torch.Tensor
         :return: accuracy
@@ -88,6 +89,7 @@ class Decoder(torch.nn.Module):
         """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+        att_idx = min(strm_idx, len(self.att)-1)
 
         # hlen should be list of integer
         hlens = list(map(int, hlens))
@@ -118,14 +120,14 @@ class Decoder(torch.nn.Module):
             z_list.append(self.zero_state(hs_pad))
         att_w = None
         z_all = []
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # pre-computation of embedding
         eys = self.embed(ys_in_pad)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs_pad, hlens, z_list[0], att_w)
+            att_c, att_w = self.att[att_idx](hs_pad, hlens, z_list[0], att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
@@ -176,18 +178,20 @@ class Decoder(torch.nn.Module):
 
         return self.loss, acc
 
-    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
+    def recognize_beam(self, h, lpz, recog_args, char_list, strm_idx=0, rnnlm=None):
         """beam search implementation
 
         :param torch.Tensor h: encoder hidden state (T, eprojs)
         :param torch.Tensor lpz: ctc log softmax output (T, odim)
         :param Namespace recog_args: argument Namespace containing options
         :param char_list: list of character strings
+        :param int strm_idx: stream index for speaker parallel attention in multi-speaker case
         :param torch.nn.Module rnnlm: language module
         :return: N-best decoding results
         :rtype: list of dicts
         """
         logging.info('input lengths: ' + str(h.size(0)))
+        att_idx = min(strm_idx, len(self.att)-1)
         # initialization
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
@@ -195,7 +199,7 @@ class Decoder(torch.nn.Module):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
         a = None
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # search parms
         beam = recog_args.beam_size
@@ -242,7 +246,7 @@ class Decoder(torch.nn.Module):
                 vy[0] = hyp['yseq'][i]
                 ey = self.embed(vy)  # utt list (1) x zdim
                 ey.unsqueeze(0)
-                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
+                att_c, att_w = self.att[att_idx](h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
                 z_list[0], c_list[0] = self.decoder[0](ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
                 for l in six.moves.range(1, self.dlayers):
@@ -356,9 +360,10 @@ class Decoder(torch.nn.Module):
         # remove sos
         return nbest_hyps
 
-    def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
+    def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, strm_idx=0, rnnlm=None,
                              normalize_score=True):
         logging.info('input lengths: ' + str(h.size(1)))
+        att_idx = min(strm_idx, len(self.att)-1)
         h = mask_by_length(h, hlens, 0.0)
 
         # search params
@@ -394,7 +399,7 @@ class Decoder(torch.nn.Module):
         a_prev = None
         rnnlm_prev = None
 
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         yseq = [[self.sos] for _ in six.moves.range(n_bb)]
         accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
@@ -418,7 +423,7 @@ class Decoder(torch.nn.Module):
 
             vy = to_device(self, torch.LongTensor(get_last_yseq(yseq)))
             ey = self.embed(vy)
-            att_c, att_w = self.att(exp_h, exp_hlens, z_prev[0], a_prev)
+            att_c, att_w = self.att[att_idx](exp_h, exp_hlens, z_prev[0], a_prev)
             ey = torch.cat((ey, att_c), dim=1)
 
             # attention decoder
@@ -537,12 +542,13 @@ class Decoder(torch.nn.Module):
 
         return nbest_hyps
 
-    def calculate_all_attentions(self, hs_pad, hlen, ys_pad):
+    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0):
         """Calculate all of attentions
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param int strm_idx: stream index for parallel speaker attention in multi-speaker case
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
@@ -550,6 +556,7 @@ class Decoder(torch.nn.Module):
         """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+        att_idx = min(strm_idx, len(self.att)-1)
 
         # hlen should be list of integer
         hlen = list(map(int, hlen))
@@ -577,14 +584,14 @@ class Decoder(torch.nn.Module):
             z_list.append(self.zero_state(hs_pad))
         att_w = None
         att_ws = []
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # pre-computation of embedding
         eys = self.embed(ys_in_pad)  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs_pad, hlen, z_list[0], att_w)
+            att_c, att_w = self.att[att_idx](hs_pad, hlen, z_list[0], att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
