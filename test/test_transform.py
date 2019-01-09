@@ -1,9 +1,12 @@
+import threading
+
 import kaldiio
 import numpy as np
 
 from espnet.transform.add_deltas import add_deltas
 from espnet.transform.cmvn import CMVN
 from espnet.transform.spectrogram import logmelspectrogram
+from espnet.transform.transformation import global_transform_config
 from espnet.transform.transformation import Transformation
 from espnet.transform.transformation import transform_config
 from espnet.transform.transformation import using_transform_config
@@ -53,6 +56,9 @@ def test_preprocessing(tmpdir):
 
 
 def test_using_transform_config():
+    # These test could affect globally
+    transform_config.reset()
+
     transform_config['aa'] = False
     with using_transform_config({'aa': True}):
         assert transform_config['aa'] is True
@@ -60,3 +66,33 @@ def test_using_transform_config():
     with using_transform_config({'bb': True}):
         assert transform_config['bb'] is True
     assert 'bb' not in transform_config
+
+
+def test_transform_config_priority():
+    transform_config.reset()
+
+    global_transform_config['aa'] = 3
+    assert transform_config['aa'] == 3
+
+    transform_config['aa'] = 2
+    assert transform_config['aa'] == 2
+
+
+def test_transform_config_is_thread_local():
+    transform_config.reset()
+
+    def set_transform_config():
+        transform_config['aa'] = 2
+
+    def set_global_transform_config():
+        global_transform_config['aa'] = 3
+
+    transform_config['aa'] = 1
+
+    t = threading.Thread(target=set_transform_config)
+    t.start()
+    assert transform_config['aa'] == 1
+
+    t = threading.Thread(target=set_global_transform_config)
+    t.start()
+    assert global_transform_config['aa'] == 3
