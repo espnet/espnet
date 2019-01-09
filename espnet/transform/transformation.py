@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from collections import Mapping
 import contextlib
 import copy
 import importlib
@@ -34,6 +35,7 @@ def dynamic_import(import_path):
 
 class TransformConfig(object):
     def __init__(self, config=None, thread_local=True):
+        self.thread_local = thread_local
         if config is not None:
             if not isinstance(config, TransformConfig):
                 raise TypeError('Must be {}, but got {}'
@@ -43,9 +45,17 @@ class TransformConfig(object):
             self.parent = {}
 
         if thread_local:
-            self.status = threading.local().__dict__
+            self.status = threading.local()
         else:
             self.status = {}
+
+    def reset(self):
+        if self.thread_local:
+            d = self.status.__dict__
+        else:
+            d = self.status
+        for k in list(d):
+            del d[k]
 
     def __repr__(self):
         rep = '\n'.join('{}={}'.format(k, v) for k, v in self.items())
@@ -55,11 +65,20 @@ class TransformConfig(object):
         return key in set(self)
 
     def __setitem__(self, key, value):
-        self.status[key] = value
+        if self.thread_local:
+            d = self.status.__dict__
+        else:
+            d = self.status
+        d[key] = value
 
     def __getitem__(self, key):
-        if key in self.status:
-            return self.status[key]
+        if self.thread_local:
+            d = self.status.__dict__
+        else:
+            d = self.status
+
+        if key in d:
+            return d[key]
         elif key in self.parent:
             return self.parent[key]
         else:
@@ -67,23 +86,58 @@ class TransformConfig(object):
                            .format(key, self))
 
     def __delitem__(self, key):
-        del self.status[key]
+        if self.thread_local:
+            d = self.status.__dict__
+        else:
+            d = self.status
+
+        del d[key]
 
     def __iter__(self):
-        return iter(sorted(set(self.parent) | set(self.status)))
+        if self.thread_local:
+            return iter(sorted(set(self.parent) | set(self.status.__dict__)))
+        else:
+            return iter(sorted(set(self.parent) | set(self.status)))
+
+    def keys(self):
+        return iter(self)
+
+    def values(self):
+        for k in self:
+            yield self[k]
 
     def items(self):
         for k in self:
             yield k, self[k]
 
-    def update(self, d=None, **kwargs):
-        if d is not None:
-            self.status.update(d, **kwargs)
+    def update(self, v=None, **kwargs):
+        if self.thread_local:
+            d = self.status.__dict__
         else:
-            self.status.update(**kwargs)
+            d = self.status
+
+        if v is not None:
+            d.update(v, **kwargs)
+        else:
+            d.update(**kwargs)
 
     def get(self, key, default=None):
-        return self.status.get(key, default)
+        if self.thread_local:
+            d = self.status.__dict__
+        else:
+            d = self.status
+
+        return d.get(key, self.parent.get(key, default))
+
+    def setdefault(self, key, default=None):
+        if key in self.parent:
+            return self.parent[key]
+        if self.thread_local:
+            d = self.status.__dict__
+        else:
+            d = self.status
+
+        return d.setdefault(key, default)
 
 
 global_transform_config = TransformConfig(thread_local=False)
