@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from collections import Mapping
 import contextlib
 import copy
 import importlib
