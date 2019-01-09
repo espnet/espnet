@@ -25,7 +25,7 @@ class Spectrogram(object):
                         window=self.window))
 
     def __call__(self, x):
-        return spectrogram(x,
+        return spectrogram(x.astype(np.float32),
                            n_fft=self.n_fft, n_shift=self.n_shift,
                            win_length=self.win_length,
                            window=self.window)
@@ -73,7 +73,7 @@ class LogMelSpectrogram(object):
 
     def __call__(self, x):
         return logmelspectrogram(
-            x,
+            x.astype(np.float32),
             fs=self.fs,
             n_mels=self.n_mels,
             n_fft=self.n_fft, n_shift=self.n_shift,
