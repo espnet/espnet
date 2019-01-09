@@ -27,6 +27,7 @@ if [ $# -lt 1 ] || [ $# -gt 3 ]; then
    echo "Options: "
    echo "  --nj <nj>                                        # number of parallel jobs"
    echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
+   echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
    exit 1;
 fi
 
@@ -55,7 +56,7 @@ mkdir -p ${logdir} || exit 1;
 
 if [ -f ${data}/feats.scp ]; then
   mkdir -p ${data}/.backup
-  echo "$0: moving $data/feats.scp to $data/.backup"
+  echo "$0: moving ${data}/feats.scp to ${data}/.backup"
   mv ${data}/feats.scp ${data}/.backup
 fi
 
@@ -101,7 +102,7 @@ else
     echo "$0: [info]: no segments file exists: assuming pcm.scp indexed by utterance."
     split_scps=""
     for n in $(seq ${nj}); do
-        split_scps="$split_scps $logdir/wav.$n.scp"
+        split_scps="${split_scps} ${logdir}/wav.${n}.scp"
     done
 
     utils/split_scp.pl ${scp} ${split_scps} || exit 1;

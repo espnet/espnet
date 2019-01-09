@@ -31,6 +31,7 @@ if [ $# -lt 1 ] || [ $# -gt 3 ]; then
    echo "Options: "
    echo "  --nj <nj>                                        # number of parallel jobs"
    echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
+   echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
    exit 1;
 fi
 
@@ -69,7 +70,7 @@ utils/validate_data_dir.sh --no-text --no-feats ${data} || exit 1;
 
 split_scps=""
 for n in $(seq ${nj}); do
-    split_scps="$split_scps $logdir/wav.$n.scp"
+    split_scps="${split_scps} ${logdir}/wav.${n}.scp"
 done
 
 utils/split_scp.pl ${scp} ${split_scps} || exit 1;
