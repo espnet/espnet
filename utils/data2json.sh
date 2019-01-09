@@ -6,6 +6,8 @@
 echo "$0 $*" >&2 # Print the command line for logging
 . ./path.sh
 
+nj=1
+cmd=run.pl
 nlsyms=""
 lang=""
 feat="" # feat.scp
@@ -13,11 +15,23 @@ oov="<unk>"
 bpecode=""
 verbose=0
 filetype=""
+preprocess_conf=""
+out="" # If omitted, write in stdout
 
 . utils/parse_options.sh
 
 if [ $# != 2 ]; then
     echo "Usage: $0 <data-dir> <dict>";
+    echo "e.g. $0 data/train data/lang_1char/train_units.txt"
+    echo "Options: "
+    echo "  --nj <nj>                                        # number of parallel jobs"
+    echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
+    echo "  --feat <feat-scp>                                # feat.scp"
+    echo "  --oov <oov-word>                                 # Default: <unk>"
+    echo "  --out <outputfile>                               # If omitted, write in stdout"
+    echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
+    echo "  --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp"
+    echo "  --verbose <num>                                  # Default: 0"
     exit 1;
 fi
 
@@ -28,27 +42,24 @@ dic=$2
 tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
 trap 'rm -rf ${tmpdir}' EXIT
 
-rm -f ${tmpdir}/*/*.scp
-
-
 # 1. Create scp files for inputs
 #   These are not necessary for decoding mode, and make it as an option
 mkdir -p ${tmpdir}/input
 if [ -n "${feat}" ]; then
     cat ${feat} > ${tmpdir}/input/feat.scp
 
-    # Dump in the "new" style JSON format
+    # Dump in the "legacy" style JSON format
     if [ -n "${filetype}" ]; then
-        feat-to-shape.py --verbose ${verbose} --filetype $filetype \
-            scp:${feat} ${tmpdir}/input/shape.scp
         awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
             > ${tmpdir}/input/filetype.scp
-
-    # Dump in the "legacy" style JSON format
     else
-        feat-to-shape.py --verbose ${verbose} scp:${feat} ${tmpdir}/input/shape.scp
+        filetype=mat
     fi
 
+    feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
+        --filetype ${filetype} \
+        --preprocess-conf ${preprocess_conf} \
+        --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
 fi
 
 
@@ -90,9 +101,14 @@ for intype in 'input' 'output' 'other'; do
 done
 
 # 5. Merge JSON files into one and output to stdout
+if [ -n "${out}" ]; then
+    out_opt="-O ${out}"
+else
+    out_opt=""
+fi
 mergejson.py --verbose ${verbose} \
     --input-jsons ${tmpdir}/input/*.json \
     --output-jsons ${tmpdir}/output/*.json \
-    --jsons ${tmpdir}/other/*.json
+    --jsons ${tmpdir}/other/*.json ${out_opt}
 
 rm -fr ${tmpdir}
