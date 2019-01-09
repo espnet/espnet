@@ -21,17 +21,19 @@ out="" # If omitted, write in stdout
 . utils/parse_options.sh
 
 if [ $# != 2 ]; then
-    echo "Usage: $0 <data-dir> <dict>";
-    echo "e.g. $0 data/train data/lang_1char/train_units.txt"
-    echo "Options: "
-    echo "  --nj <nj>                                        # number of parallel jobs"
-    echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
-    echo "  --feat <feat-scp>                                # feat.scp"
-    echo "  --oov <oov-word>                                 # Default: <unk>"
-    echo "  --out <outputfile>                               # If omitted, write in stdout"
-    echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
-    echo "  --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp"
-    echo "  --verbose <num>                                  # Default: 0"
+    cat << EOF 1>&2
+Usage: $0 <data-dir> <dict>
+e.g. $0 data/train data/lang_1char/train_units.txt
+Options:
+  --nj <nj>                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
+  --feat <feat-scp>                                # feat.scp
+  --oov <oov-word>                                 # Default: <unk>
+  --out <outputfile>                               # If omitted, write in stdout
+  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
+  --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp
+  --verbose <num>                                  # Default: 0
+EOF
     exit 1;
 fi
 

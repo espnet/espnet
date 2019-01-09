@@ -8,19 +8,21 @@ filetype=""
 preprocess_conf=""
 # End configuration section.
 
-echo "$0 $*"  # Print the command line for logging
+echo "$0 $*" 1>&2 # Print the command line for logging
 
 . parse_options.sh || exit 1;
 
 if [ $# -lt 2 ] || [ $# -gt 3 ]; then
-   echo "Usage: $0 [options] <input-scp> <output-scp> [<log-dir>]";
-   echo "e.g.: $0 data/train/feats.scp data/train/shape.scp data/train/log "
-   echo "Options: "
-   echo "  --nj <nj>                                        # number of parallel jobs"
-   echo "  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs."
-   echo "  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file"
-   echo "  --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp"
-   echo "  --verbose <num>                                  # Default: 0"
+   cat << EOF 1>&2
+Usage: $0 [options] <input-scp> <output-scp> [<log-dir>]
+e.g.: $0 data/train/feats.scp data/train/shape.scp data/train/log
+Options:
+  --nj <nj>                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
+  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
+  --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp
+  --verbose <num>                                  # Default: 0
+EOF
    exit 1;
 fi
 
