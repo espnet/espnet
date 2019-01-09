@@ -48,15 +48,23 @@ class TransformConfig(object):
             self.status = {}
 
     def __repr__(self):
-        rep = ', '.join('{}={}'.format(k, v) for k, v in self.items())
-        return '{}({})'.format(self.__class__.__name__, rep)
+        rep = '\n'.join('{}={}'.format(k, v) for k, v in self.items())
+        return self.__class__.__name__ + ':\n' + rep
+
+    def __contains__(self, key):
+        return key in set(self)
 
     def __setitem__(self, key, value):
         self.status[key] = value
 
     def __getitem__(self, key):
-        # Priority order: self > parent
-        return self.status.get(key, self.parent[key])
+        if key in self.status:
+            return self.status[key]
+        elif key in self.parent:
+            return self.parent[key]
+        else:
+            raise KeyError('{} is not found in transform_config:\n{}'
+                           .format(key, self))
 
     def __delitem__(self, key):
         del self.status[key]
@@ -79,6 +87,7 @@ class TransformConfig(object):
 
 
 global_transform_config = TransformConfig(thread_local=False)
+# FIXME(kamo): train should be False or not?
 global_transform_config.update(train=True)
 transform_config = TransformConfig(global_transform_config,
                                    thread_local=True)
@@ -91,13 +100,17 @@ def using_transform_config(d, config=transform_config):
 
     old = {}
     for key, value in d.items():
-        old[key] = config.get(key)
+        if key in config:
+            old[key] = config[key]
         config[key] = value
     try:
         yield config
     finally:
-        for key, value in old.items():
-            config[key] = value
+        for key in d:
+            if key in old:
+                config[key] = old[key]
+            else:
+                del config[key]
 
 
 class Transformation(object):
