@@ -87,9 +87,12 @@ class LoadInputsAndTargets(object):
         """
         x_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         y_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
+        uttid_list = []  # List[str]
 
-        if self.load_input:
-            for uttid, info in batch:
+        for uttid, info in batch:
+            uttid_list.append(uttid)
+
+            if self.load_input:
                 for idx, inp in enumerate(info['input']):
                     # {"input":
                     #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
@@ -99,10 +102,8 @@ class LoadInputsAndTargets(object):
                         filetype=inp.get('filetype', 'mat'))
                     x_feats_dict.setdefault(inp['name'], []).append(x)
 
-        # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
-        if not self.load_input and \
-                self.mode == 'tts' and self.use_speaker_embedding:
-            for uttid, info in batch:
+            # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
+            elif self.mode == 'tts' and self.use_speaker_embedding:
                 for idx, inp in enumerate(info['input']):
                     if idx != 1:
                         x = None
@@ -112,8 +113,7 @@ class LoadInputsAndTargets(object):
                             filetype=inp.get('filetype', 'mat'))
                     x_feats_dict.setdefault(inp['name'], []).append(x)
 
-        if self.load_output:
-            for uttid, info in batch:
+            if self.load_output:
                 for idx, inp in enumerate(info['output']):
                     if 'tokenid' in inp:
                         # ======= Legacy format for output =======
@@ -134,13 +134,14 @@ class LoadInputsAndTargets(object):
                     y_feats_dict.setdefault(inp['name'], []).append(x)
 
         if self.mode == 'asr':
-            return_batch = self._create_batch_asr(x_feats_dict, y_feats_dict)
+            return_batch, uttid_list = self._create_batch_asr(
+                x_feats_dict, y_feats_dict, uttid_list)
 
         elif self.mode == 'tts':
-            uttid, info = batch[0]
+            _, info = batch[0]
             eos = int(info['output'][0]['shape'][1]) - 1
-            return_batch = self._create_batch_tts(x_feats_dict, y_feats_dict,
-                                                  eos)
+            return_batch, uttid_list = self._create_batch_tts(
+                x_feats_dict, y_feats_dict, uttid_list, eos)
         else:
             raise NotImplementedError
 
@@ -148,18 +149,19 @@ class LoadInputsAndTargets(object):
             # Apply pre-processing only to input1 feature, now
             if 'input1' in return_batch:
                 return_batch['input1'] = \
-                    self.preprocessing(return_batch['input1'])
+                    self.preprocessing(return_batch['input1'],
+                                       uttid_list)
 
         # Doesn't return the names now.
         return tuple(return_batch.values())
 
-    def _create_batch_asr(self, x_feats_dict, y_feats_dict):
+    def _create_batch_asr(self, x_feats_dict, y_feats_dict, uttid_list):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
         :param OrderedDict y_feats_dict:
-        :return:
-        :rtype: OrderedDict
+        :return: batch, uttid_list
+        :rtype: Tuple[OrderedDict, List[str]]
         """
         # Create a list from the first item
         xs = list(x_feats_dict.values())[0]
@@ -186,6 +188,8 @@ class LoadInputsAndTargets(object):
 
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
+        uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
+
         x_name = list(x_feats_dict.keys())[0]
         if self.load_output:
             ys = [ys[i] for i in nonzero_sorted_idx]
@@ -194,16 +198,16 @@ class LoadInputsAndTargets(object):
             return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
         else:
             return_batch = OrderedDict([(x_name, xs)])
-        return return_batch
+        return return_batch, uttid_list
 
-    def _create_batch_tts(self, x_feats_dict, y_feats_dict, eos):
+    def _create_batch_tts(self, x_feats_dict, y_feats_dict, uttid_list, eos):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
         :param OrderedDict y_feats_dict:
         :param int eos:
-        :return:
-        :rtype: OrderedDict
+        :return: batch, uttid_list
+        :rtype: Tuple[OrderedDict, List[str]]
         """
         # Use the output values as the input feats for tts mode
         xs = list(y_feats_dict.values())[0]
@@ -217,6 +221,7 @@ class LoadInputsAndTargets(object):
             nonzero_sorted_idx = nonzero_idx
         # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
+        uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
         # Added eos into input sequence
         xs = [np.append(x, eos) for x in xs]
 
@@ -260,7 +265,7 @@ class LoadInputsAndTargets(object):
             x_name = list(y_feats_dict.keys())[0]
 
             return_batch = OrderedDict([(x_name, xs)])
-        return return_batch
+        return return_batch, uttid_list
 
     def _get_from_loader(self, filepath, filetype):
         """Return ndarray
