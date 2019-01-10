@@ -58,7 +58,7 @@ def main():
     parser.add_argument('--write-num-frames', type=str,
                         help='Specify wspecifer for utt2num_frames')
     parser.add_argument('--filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5', 'sound.hdf5'],
+                        choices=['mat', 'hdf5', 'sound.hdf5', 'sound'],
                         help='Specify the file format for output. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--compress', type=strtobool, default=False,

@@ -1,11 +1,12 @@
 import io
-import numpy
 from collections import Sequence
 from io import BytesIO
 import sys
 
 import h5py
 import kaldiio
+import numpy
+import soundfile
 
 from espnet.utils.io_utils import SoundHDF5File
 
@@ -26,8 +27,8 @@ def get_commandline_args():
 
 
 def assert_scipy_wav_style(value):
-    assert (isinstance(value, Sequence) and len(value) == 2
-            and isinstance(value[0], int) and
+    assert (isinstance(value, Sequence) and len(value) == 2 and
+            isinstance(value[0], int) and
             isinstance(value[1], numpy.ndarray)), \
         'Must be Tuple[int, numpy.ndarray], but got {}'.format(
             type(value) if not isinstance(value, Sequence)
@@ -70,6 +71,25 @@ class FileReaderWrapper(object):
                 for key, array in reader:
                     self.keys.add(key)
                     yield key, array
+
+        elif self.filetype == 'sound':
+            if ':' not in self.rspecifier:
+                raise ValueError('Give "rspecifier" such as "scp:some.scp: {}"'
+                                 .format(self.rspecifier))
+            ark_or_scp, filepath = self.rspecifier.split(':', 1)
+            if ark_or_scp != 'scp':
+                raise ValueError('Only supporting "scp" for sound file: {}'
+                                 .format(ark_or_scp))
+            with io.open(filepath, 'r', encoding='utf-8') as f:
+                for line in f:
+                    key, sound_file_path = line.rstrip().split(None, 1)
+                    self.keys.add(key)
+                    # Assume PCM16
+                    array, rate = soundfile.read(sound_file_path,
+                                                 dtype='int16')
+                    # Change Tuple[ndarray, int] -> Tuple[int, ndarray]
+                    # (soundfile style -> scipy style)
+                    yield key, (rate, array)
 
         elif self.filetype in ['hdf5', 'sound.hdf5']:
             if ':' not in self.rspecifier:
