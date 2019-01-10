@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+from collections import Sequence
 import logging
 import sys
 
@@ -43,8 +44,9 @@ def main():
         preprocessing = None
 
     for utt, mat in FileReaderWrapper(args.rspecifier, args.filetype):
-        if args.filetype == 'sound.hdf5':
-            mat, rate = mat
+        if isinstance(mat, Sequence):
+            # If data is sound file, then got as Tuple[int, ndarray]
+            rate, mat = mat
         if preprocessing is not None:
             mat = preprocessing(mat)
         args.out.write('{} {}\n'.format(utt, ','.join(map(str, mat.shape))))
