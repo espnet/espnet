@@ -18,16 +18,16 @@ d = {'A-utt1': np.random.randn(1, 100).astype(np.float32),
      'B-utt1': np.random.randn(10, 32).astype(np.float32),
      'B-utt2': np.random.randn(10, 10).astype(np.float32)}
 
-with open('${tmpdir}/feats.ark','wb') as f, h5py.File('${tmpdir}/feats.h5','w') as fh:
+with open('${tmpdir}/feats.ark','wb') as f, h5py.File('${tmpdir}/feats.h5','w') as fh, \
+        open('${tmpdir}/wav.scp','w') as fw:
     for k in sorted(d):
         v = d[k]
         kaldiio.save_ark(f, {k: v})
         fh[k] = v
 
-with open('${tmpdir}/wav.scp','w') as f:
-    for k, v in d.items():
-        f.write('{k} ${tmpdir}/{k}.wav\n'.format(k=k))
+        fw.write('{k} ${tmpdir}/{k}.wav\n'.format(k=k))
         W.write('${tmpdir}/{k}.wav'.format(k=k), 8000, v.astype(np.int16))
+
 EOF
 
 
