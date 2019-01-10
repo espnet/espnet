@@ -42,7 +42,7 @@ set -euo pipefail
 dir=$1
 dic=$2
 tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
-trap 'rm -rf ${tmpdir}' EXIT
+# trap 'rm -rf ${tmpdir}' EXIT
 
 # 1. Create scp files for inputs
 #   These are not necessary for decoding mode, and make it as an option
@@ -54,13 +54,11 @@ if [ -n "${feat}" ]; then
     if [ -n "${filetype}" ]; then
         awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
             > ${tmpdir}/input/filetype.scp
-    else
-        filetype=mat
     fi
 
     feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
-        --filetype ${filetype} \
-        --preprocess-conf ${preprocess_conf} \
+        --filetype "${filetype}" \
+        --preprocess-conf "${preprocess_conf}" \
         --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
 fi
 
