@@ -113,6 +113,7 @@ class Stft(object):
         else:
             single_channel = False
             channel = x.shape[1]
+        x = x.astype(np.float32)
 
         # FIXME(kamo): librosa.stft can't use multi-channel?
         # x: [Time, Channel, Freq]
