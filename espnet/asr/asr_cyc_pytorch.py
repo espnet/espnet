@@ -113,6 +113,7 @@ class CustomUpdater(training.StandardUpdater):
         self.tts2asr_model = tts2asr_model
         self.asr_model = asr_model
         self.tts_model = tts_model
+        self.model = asr_model
         self.grad_clip_threshold = grad_clip_threshold
         self.asr_converter = asr_converter
         self.tts_converter = tts_converter
@@ -156,28 +157,36 @@ class CustomUpdater(training.StandardUpdater):
                 self.asr_model.train()
                 x = self.asr_converter(batch, self.device)
                 logging.info("entering model=asr")
-                loss = 1. / self.ngpu * model(*x)
+                self.model = model
+                loss = 1. / self.ngpu * self.model(*x)
             elif utt_type == 'asr' and n == 1:  # tts with MSE loss
                 self.asr_model.eval()
                 self.tts_model.train()
                 xs, ilens, ys, labels, olens, spembs, spcs = self.tts_converter(batch, self.device)
                 logging.warn("entering model=tts")
-                loss = 1. / self.ngpu * model(xs, ilens, ys, labels, olens=olens)
+                self.model = model
+                loss = 1. / self.ngpu * self.model(xs, ilens, ys, labels, olens=olens)
             elif utt_type == 'asr2tts':  # asr with tts loss
                 self.asr_model.train()
                 x = self.asr_converter(batch, self.device)
                 logging.info("entering model=asr2tts")
-                loss = 1. / self.ngpu * model(*x)
+                self.model = model
+                loss = self.model(*x)
             else:
                 # utt_type==2  tts with asr loss
                 self.asr_model.train()
                 self.tts_model.train()
                 xs, ilens, ys, labels, olens, spembs, spcs = self.tts_converter(batch, self.device)
                 logging.info("entering model=tts2asr")
-                loss = 1. / self.ngpu * model(xs, ilens)
+                self.model = model
+                loss = 1. / self.ngpu * self.model(xs, ilens)
 
             optimizer.zero_grad()  # Clear the parameter gradients
-            loss.backward()  # Backprop
+            if self.ngpu > 1:
+                #loss.backward(loss.new_ones(self.ngpu))  # Backprop
+                loss.sum().backward()
+            else:
+                loss.backward()
             loss.detach()  # Truncate the graph
             if utt_type == 2:
                 if self.freeze_asr:
@@ -186,7 +195,7 @@ class CustomUpdater(training.StandardUpdater):
                     self.tts_model.zero_grad()
             # compute the gradient norm to check if it is normal or not
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(), self.grad_clip_threshold)
+                self.model.parameters(), self.grad_clip_threshold)
             logging.info('grad norm={}'.format(grad_norm))
             if math.isnan(grad_norm):
                 logging.warning('grad norm is nan. Do not update model.')
@@ -285,7 +294,7 @@ def train(args):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch.load(args.rnnlm, rnnlm)
+        torch_load(args.rnnlm, rnnlm)
         e2e.rnnlm = rnnlm
     else:
         rnnlm = None
@@ -446,6 +455,7 @@ def train(args):
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
     if mtl_mode is not 'ctc':
         trainer.extend(extensions.snapshot_object(asr2tts_model, 'model.acc.best', savefun=torch_save),
+        trainer.extend(extensions.snapshot_object(asr_model, 'model.acc.asr.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states

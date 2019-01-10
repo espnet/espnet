@@ -142,7 +142,9 @@ if [ ${stage} -le 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
     fbankdir=fbank
-    local/make_symlink_dir.sh --tmp-root $scratch/egs/librispeech/asr1/$fbankdir $fbankdir
+    if [[ $(hostname -f) == *.fit.vutbr.cz ]]; then
+        local/make_symlink_dir.sh --tmp-root $scratch/egs/librispeech/asr1/$fbankdir $fbankdir # for BUT
+    fi
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in dev_clean test_clean train_clean_100 train_clean_360; do
         #if [ ! -d ${fbankdir} ]; then
@@ -168,7 +170,7 @@ if [ ${stage} -le 1 ]; then
     utils/create_split_dir.pl \
         /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
-    else:
+    elif [[ $(hostname -f) == *.fit.vutbr.cz ]]; then
         local/make_symlink_dir.sh --tmp-root $scratch/egs/librispeech/asr1/dump/${train_set}/delta${do_delta}/storage \
             ${feat_tr_dir}/storage
     fi
@@ -177,7 +179,7 @@ if [ ${stage} -le 1 ]; then
     utils/create_split_dir.pl \
         /export/b{14,15,16,17}/${USER}/espnet-data/egs/librispeech/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
-    else:
+    elif [[ $(hostname -f) == *.fit.vutbr.cz ]]; then
         local/make_symlink_dir.sh --tmp-root $scratch/egs/librispeech/asr1/dump/${train_set}/delta${do_delta}/storage \
             ${feat_tr_dir}/storage
     fi
