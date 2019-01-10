@@ -26,9 +26,9 @@ def get_commandline_args():
 
 
 def assert_scipy_wav_style(value):
-    assert (isinstance(value, Sequence) and len(value) == 2
-            and isinstance(value[0], int)
-            and isinstance(value[1], numpy.ndarray)), \
+    assert (isinstance(value, Sequence) and len(value) == 2 and
+            isinstance(value[0], int) and
+            isinstance(value[1], numpy.ndarray)), \
         'Must be Tuple[int, numpy.ndarray], but got {}'.format(
             type(value) if not isinstance(value, Sequence)
             else '{}[{}]'.format(type(value),
