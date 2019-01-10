@@ -1,6 +1,5 @@
-import io
 from collections import Sequence
-from io import BytesIO
+import io
 import sys
 
 import h5py
@@ -27,9 +26,9 @@ def get_commandline_args():
 
 
 def assert_scipy_wav_style(value):
-    assert (isinstance(value, Sequence) and len(value) == 2 and
-            isinstance(value[0], int) and
-            isinstance(value[1], numpy.ndarray)), \
+    assert (isinstance(value, Sequence) and len(value) == 2
+            and isinstance(value[0], int)
+            and isinstance(value[1], numpy.ndarray)), \
         'Must be Tuple[int, numpy.ndarray], but got {}'.format(
             type(value) if not isinstance(value, Sequence)
             else '{}[{}]'.format(type(value),
@@ -133,9 +132,9 @@ class FileReaderWrapper(object):
                 if filepath == '-':
                     # Required h5py>=2.9
                     if PY2:
-                        filepath = BytesIO(sys.stdin.read())
+                        filepath = io.BytesIO(sys.stdin.read())
                     else:
-                        filepath = BytesIO(sys.stdin.buffer.read())
+                        filepath = io.BytesIO(sys.stdin.buffer.read())
                 if self.filetype == 'sound.hdf5':
                     for key, (r, a) in SoundHDF5File(filepath, 'r').items():
                         self.keys.add(key)
