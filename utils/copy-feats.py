@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+from collections import Sequence
 from distutils.util import strtobool
 import logging
 
@@ -58,8 +59,9 @@ def main():
             compress=args.compress,
             compression_method=args.compression_method) as writer:
         for utt, mat in FileReaderWrapper(args.rspecifier, args.in_filetype):
-            if args.in_filetype == 'sound.hdf5':
-                mat, rate = mat
+            if isinstance(mat, Sequence):
+                # If data is sound file, then got as Tuple[int, ndarray]
+                rate, mat = mat
             if preprocessing is not None:
                 mat = preprocessing(mat)
             writer[utt] = mat

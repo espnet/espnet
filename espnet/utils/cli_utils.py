@@ -1,4 +1,6 @@
 import io
+import numpy
+from collections import Sequence
 from io import BytesIO
 import sys
 
@@ -21,6 +23,16 @@ def get_commandline_args():
             for arg in sys.argv]
 
     return sys.executable + ' ' + ' '.join(argv)
+
+
+def assert_scipy_wav_style(value):
+    assert (isinstance(value, Sequence) and len(value) == 2
+            and isinstance(value[0], int) and
+            isinstance(value[1], numpy.ndarray)), \
+        'Must be Tuple[int, numpy.ndarray], but got {}'.format(
+            type(value) if not isinstance(value, Sequence)
+            else '{}[{}]'.format(type(value),
+                                 ', '.join(str(type(v)) for v in value)))
 
 
 class FileReaderWrapper(object):
@@ -90,7 +102,10 @@ class FileReaderWrapper(object):
                             hdf5_dict[path] = hdf5_file
 
                         if self.filetype == 'sound.hdf5':
-                            yield key, hdf5_file[h5_key]
+                            # Change Tuple[ndarray, int] -> Tuple[int, ndarray]
+                            # (soundfile style -> scipy style)
+                            array, rate = hdf5_file[h5_key]
+                            yield key, (rate, array)
                         else:
                             yield key, hdf5_file[h5_key][...]
 
@@ -214,7 +229,13 @@ class FileWriterWrapper(object):
 
         if self.filetype == 'mat':
             self.writer[key] = value
-        elif self.filetype in ['hdf5', 'sound.hdf5']:
+        elif self.filetype == 'hdf5':
+            self.writer.create_dataset(key, data=value, **self.kwargs)
+        elif self.filetype == 'sound.hdf5':
+            assert_scipy_wav_style(value)
+            # Change Tuple[int, ndarray] -> Tuple[ndarray, int]
+            # (scipy style -> soundfile style)
+            value = (value[1], value[0])
             self.writer.create_dataset(key, data=value, **self.kwargs)
         else:
             raise NotImplementedError

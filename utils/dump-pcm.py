@@ -20,6 +20,12 @@ def wav_generator(rspecifier, segments=None):
 
     readers = [kaldiio.ReadHelper(r, segments=segments) for r in rspecifier]
     for vs in zip(*readers):
+        for (_, v), r in zip(vs, rspecifier):
+            # kaldiio.load_mat can handle both wavfile and kaldi-matrix,
+            # and if it is wavfile, returns (rate, ndarray), else ndarray
+            if not isinstance(v, tuple):
+                raise RuntimeError('"{}" is an invalid wav file.'.format(r))
+
         utts = [utt_id for utt_id, _ in vs]
         if not all(u == utts[0] for u in utts):
             raise RuntimeError(
@@ -99,7 +105,8 @@ def main():
 
             # shape = (Time, Channel)
             if args.filetype == 'sound.hdf5':
-                writer[utt_id] = (array, rate)
+                # Write Tuple[int, numpy.ndarray] (scipy style)
+                writer[utt_id] = (rate, array)
             else:
                 writer[utt_id] = array
 

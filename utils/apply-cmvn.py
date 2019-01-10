@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+from collections import Sequence
 from distutils.util import strtobool
 import logging
 
@@ -71,9 +72,11 @@ def main():
         is_rspcifier = True
         if args.stats_filetype == 'npy':
             stats_filetype = 'hdf5'
+        else:
+            stats_filetype = args.stats_filetype
 
-        stats_dict = dict(FileReaderWrapper(args.stats_rspecifier_or_rxfilename,
-                                            stats_filetype))
+        stats_dict = dict(FileReaderWrapper(
+            args.stats_rspecifier_or_rxfilename, stats_filetype))
     else:
         is_rspcifier = False
         if args.stats_filetype == 'mat':
@@ -96,8 +99,9 @@ def main():
             compress=args.compress,
             compression_method=args.compression_method) as writer:
         for utt, mat in FileReaderWrapper(args.rspecifier, args.in_filetype):
-            if args.in_filetype == 'sound.hdf5':
-                mat, rate = mat
+            if isinstance(mat, Sequence):
+                # If data is sound file, then got as Tuple[int, ndarray]
+                rate, mat = mat
             mat = cmvn(mat, utt if is_rspcifier else None)
             writer[utt] = mat
 
