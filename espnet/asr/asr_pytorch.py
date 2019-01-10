@@ -10,6 +10,7 @@ import json
 import logging
 import math
 import os
+import subprocess
 
 # chainer related
 import chainer
@@ -697,8 +698,10 @@ def recog(args):
 
         NUM_ENCODER_STATES = None
         #target_phns = ["a", "i", "o", "6",]# "u", "@", "E",]
-        target_phns = phn_units
-        target_langs = ["QEJLLB", "QUBPBS", "QUFLLB", "QVSTBL", "QVWTBL", "QWHLLB"]
+        #target_phns = phn_units
+        target_phns = ["A", "i"]
+        #target_langs = ["QEJLLB", "QUBPBS", "QUFLLB", "QVSTBL", "QVWTBL", "QWHLLB"]
+        target_langs = ["QEJLLB", "RUSS76", "NOGIBT"]
         encoder_states = defaultdict(list)
         uttids = defaultdict(list)
         for uttname in js.keys():
@@ -784,6 +787,41 @@ def recog(args):
         f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True, ensure_ascii=False).encode('utf_8'))
 
 
+def trim_wav_sox(in_path, out_path, start_time, end_time):
+    """ Crops the wav file at in_fn so that the audio between start_time and
+    end_time is output to out_fn. Measured in milliseconds.
+    """
+
+    if out_path.is_file():
+        logger.info("Output path %s already exists, not trimming file", out_path)
+        return
+
+    #start_time_secs = millisecs_to_secs(start_time)
+    #end_time_secs = millisecs_to_secs(end_time)
+    start_time_secs = start_time
+    end_time_secs = end_time
+    args = [config.SOX_PATH, str(in_path), str(out_path),
+            "trim", str(start_time_secs), "=" + str(end_time_secs)]
+    logging.info("Cropping file %s, from start time %d (seconds) to end time %d (seconds), outputting to %s",
+                in_path, start_time_secs, end_time_secs, out_path)
+    subprocess.call(args, check=True)
+
+def extract_wav(uttid, lang, phn, start, dur, phn_index, enc_states_dir, pad=0.0):
+    """ Extract relevant part of the wav. """
+
+    in_path = ("/export/b15/oadams/datasets-CMU_Wilderness/" + lang +
+               "/aligned/wav/" + uttid + ".wav")
+    out_wav_dir = os.path.join(enc_states_dir, "wav")
+    if not os.path.isdir(out_wav_dir):
+        os.makedirs(out_wav_dir)
+    out_path = os.path.join(out_wav_dir,
+                            "lang-{}_phn-{}_pad{}_{}.wav".format(lang, phn,
+                            pad, phn_index))
+    logging.info("Extracting wav to {}".format(out_path))
+    args = ["sox", str(in_path), str(out_path),
+            "trim", str(start-pad), str(dur+2*pad)]
+    subprocess.check_output(args, stderr=subprocess.STDOUT)
+
 def write_enc_states(lang, tgt_phns,
                      js, uttids, per_frame_phns, e2e, train_args,
                      enc_states_dir,
@@ -807,7 +845,6 @@ def write_enc_states(lang, tgt_phns,
             logging.info("len(per_frame_phns): {}".format(
                          len(per_frame_phns[uttid])))
 
-            i = 0
             phn_tuples = per_frame_phns[uttid]
 
             # Get duration of the utterance
@@ -827,37 +864,66 @@ def write_enc_states(lang, tgt_phns,
                     # states by scaling by the duration of the utterance
                     h_i = int((phn_mid/utt_dur)*h.shape[1])
                     logging.info("h_i is {}".format(h_i))
+                    len_enc_states = len(encoder_states[phn])
                     if num_encoder_states:
-                        if len(encoder_states[phn]) < num_encoder_states:
+                        if len_enc_states < num_encoder_states:
                             encoder_states[phn].append(h[0,h_i,:].detach().numpy())
+                            extract_wav(uttid, lang, phn, start, dur,
+                                        len_enc_states, enc_states_dir)
+                            extract_wav(uttid, lang, phn, start, dur,
+                                        len_enc_states, enc_states_dir,
+                                        pad=0.05)
+                            extract_wav(uttid, lang, phn, start, dur,
+                                        len_enc_states, enc_states_dir,
+                                        pad=0.1)
+                            extract_wav(uttid, lang, phn, start, dur,
+                                        len_enc_states, enc_states_dir,
+                                        pad=0.2)
+                            extract_wav(uttid, lang, phn, start, dur,
+                                        len_enc_states, enc_states_dir,
+                                        pad=0.4)
                     else:
                         encoder_states[phn].append(h[0,h_i,:].detach().numpy())
+                        extract_wav(uttid, lang, phn, start, dur,
+                                    len_enc_states, enc_states_dir)
+                        extract_wav(uttid, lang, phn, start, dur,
+                                    len_enc_states, enc_states_dir,
+                                    pad=0.05)
+                        extract_wav(uttid, lang, phn, start, dur,
+                                    len_enc_states, enc_states_dir,
+                                    pad=0.1)
+                        extract_wav(uttid, lang, phn, start, dur,
+                                    len_enc_states, enc_states_dir,
+                                    pad=0.2)
+                        extract_wav(uttid, lang, phn, start, dur,
+                                    len_enc_states, enc_states_dir,
+                                    pad=0.4)
 
-            done = True
+        done = True
+        for tgt in encoder_states:
+            logging.info("len(encoder_states[{}]): {}".format(
+                         tgt, len(encoder_states[tgt])))
+            if num_encoder_states:
+                if len(encoder_states[tgt]) != num_encoder_states:
+                    done = False
+            # If num_encoder_states is set to None, then done=True, then we just keep
+            # writing our matrix out for each utter.
+        if done:
             for tgt in encoder_states:
-                logging.info("len(encoder_states[{}]): {}".format(
-                             tgt, len(encoder_states[tgt])))
-                if num_encoder_states:
-                    if len(encoder_states[tgt]) != num_encoder_states:
-                        done = False
-                # If num_encoder_states is set to None, then done=True, then we just keep
-                # writing our matrix out for each utter.
-            if done:
-                for tgt in encoder_states:
-                    #encoder_states[tgt] = np.array(encoder_states[tgt]).T
-                    logging.info("writing encoder_states/{}_alpha{}beta{}_predict-lang-{}-{}_phn-{}_num{}_encoder_states.npy".format(lang,
-                    train_args.mtlalpha, train_args.phoneme_objective_weight,
-                    train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
-                    tgt, num_encoder_states))
-                    #np.save("dev_encoder_states/{}_alpha{}beta{}_predict-lang-{}-{}_phn-{}_num{}_encoder_states".format(lang,
-                    #train_args.mtlalpha, train_args.phoneme_objective_weight,
-                    #train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
-                    #tgt, num_encoder_states), np.array(encoder_states[tgt]))
+                #encoder_states[tgt] = np.array(encoder_states[tgt]).T
+                logging.info("writing encoder_states/{}_alpha{}beta{}_predict-lang-{}-{}_phn-{}_num{}_encoder_states.npy".format(lang,
+                train_args.mtlalpha, train_args.phoneme_objective_weight,
+                train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
+                tgt, num_encoder_states))
+                #np.save("dev_encoder_states/{}_alpha{}beta{}_predict-lang-{}-{}_phn-{}_num{}_encoder_states".format(lang,
+                #train_args.mtlalpha, train_args.phoneme_objective_weight,
+                #train_args.predict_lang, train_args.predict_lang_alpha_scheduler,
+                #tgt, num_encoder_states), np.array(encoder_states[tgt]))
+                npy_path = os.path.join(
+                        enc_states_dir, "lang-{}_phn-{}".format(lang, tgt))
+                if request_vgg:
                     npy_path = os.path.join(
-                            enc_states_dir, "lang-{}_phn-{}".format(lang, tgt))
-                    if request_vgg:
-                        npy_path = os.path.join(
-                                enc_states_dir, "lang-{}_phn-{}-vgg".format(lang, tgt))
-                    np.save(npy_path, np.array(encoder_states[tgt]))
-                if num_encoder_states:
-                    return
+                            enc_states_dir, "lang-{}_phn-{}-vgg".format(lang, tgt))
+                np.save(npy_path, np.array(encoder_states[tgt]))
+            if num_encoder_states:
+                return
