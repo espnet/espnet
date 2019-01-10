@@ -88,7 +88,7 @@ class NoiseInjection(object):
 
     def __init__(self, utt2noise, utt2snr, filetype='list'):
         self.utt2noise_file = utt2noise
-        self.utt2snr_file= utt2snr
+        self.utt2snr_file = utt2snr
         self.filetype = filetype
 
         self.utt2snr = {}

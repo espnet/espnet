@@ -1,5 +1,5 @@
-from collections import Sequence
 from collections import OrderedDict
+from collections import Sequence
 import contextlib
 import copy
 import importlib
