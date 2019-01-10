@@ -1,3 +1,4 @@
+from collections import Sequence
 from collections import OrderedDict
 import contextlib
 import copy
@@ -94,9 +95,10 @@ class TransformConfig(object):
 
     def __iter__(self):
         if self.thread_local:
-            return iter(sorted(set(self.parent) | set(self.status.__dict__)))
+            d = self.status.__dict__
         else:
-            return iter(sorted(set(self.parent) | set(self.status)))
+            d = self.status
+        return iter(sorted(set(self.parent) | set(d)))
 
     def keys(self):
         return iter(self)
@@ -216,24 +218,32 @@ class Transformation(object):
             '    {}: {}'.format(k, v) for k, v in self.functions.items())
         return '{}({})'.format(self.__class__.__name__, rep)
 
-    def __call__(self, xs):
+    def __call__(self, xs, uttid_list=None):
         """Return new mini-batch
 
-        :param List[np.ndarray] xs:
+        :param Union[Sequence[np.ndarray], np.ndarray] xs:
+        :param Union[Sequence[str], str] uttid_list:
         :return: batch:
         :rtype: List[np.ndarray]
         """
-        if not isinstance(xs, (list, tuple)):
+        if not isinstance(xs, Sequence):
             is_batch = False
             xs = [xs]
         else:
             is_batch = True
+        if isinstance(uttid_list, str):
+            uttid_list = [uttid_list for _ in range(len(xs))]
 
         if self.conf.get('mode', 'sequential') == 'sequential':
             for idx in range(len(self.conf['process'])):
                 func = self.functions[idx]
                 try:
-                    xs = [func(x) for x in xs]
+                    if uttid_list is not None and \
+                            hasattr(func, 'accept_uttid') and \
+                            getattr(func, 'accept_uttid') is True:
+                        xs = [func(x, u) for x, u in zip(xs, uttid_list)]
+                    else:
+                        xs = [func(x) for x in xs]
                 except Exception:
                     logging.fatal('Catch a exception from {}th func: {}'
                                   .format(idx, func))
