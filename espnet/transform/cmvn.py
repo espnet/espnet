@@ -6,6 +6,9 @@ import numpy as np
 
 
 class CMVN(object):
+    # The marker used by "Transformation"
+    accept_uttid = False
+
     def __init__(self, stats, norm_means=True, norm_vars=False,
                  filetype='mat', utt2spk=None, spk2utt=None,
                  reverse=False, std_floor=1.0e-20):
@@ -25,9 +28,11 @@ class CMVN(object):
                 stats_dict = {None: np.load(stats)}
             # Use for speaker CMVN
             elif filetype == 'ark':
+                self.accept_uttid = True
                 stats_dict = dict(kaldiio.load_ark(stats))
             # Use for speaker CMVN
             elif filetype == 'hdf5':
+                self.accept_uttid = True
                 stats_dict = h5py.File(stats)
             else:
                 raise ValueError('Not supporting filetype={}'.format(filetype))
