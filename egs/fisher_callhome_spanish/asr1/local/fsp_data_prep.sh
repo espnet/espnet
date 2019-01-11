@@ -13,7 +13,6 @@
 # scp file using e.g. scripts/filter_scp.pl)
 
 stage=0
-stop_stage=100
 
 export LC_ALL=C
 

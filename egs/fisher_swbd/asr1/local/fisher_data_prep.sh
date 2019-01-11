@@ -4,7 +4,6 @@
 # Apache 2.0.
 
 stage=0
-stop_stage=100
 
 . utils/parse_options.sh
 
