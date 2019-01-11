@@ -27,6 +27,8 @@ def main(args):
                         help='Output filename')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # task related
     parser.add_argument('--json', type=str, required=True,
                         help='Filename of train label data (json)')

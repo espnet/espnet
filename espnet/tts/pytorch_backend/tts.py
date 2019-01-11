@@ -10,14 +10,13 @@ import math
 import os
 
 import chainer
+import kaldiio
 import numpy as np
 import torch
 
 from chainer.datasets import TransformDataset
 from chainer import training
 from chainer.training import extensions
-
-import kaldi_io_py
 
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import PlotAttentionReport
@@ -28,8 +27,8 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
-from espnet.tts.tts_utils import load_inputs_and_targets
 from espnet.tts.tts_utils import make_batchset
+from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
@@ -144,20 +143,20 @@ class CustomConverter(object):
     def __init__(self,
                  return_targets=True,
                  use_speaker_embedding=False,
-                 use_second_target=False):
+                 use_second_target=False,
+                 preprocess_conf=None):
         self.return_targets = return_targets
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
+        self.load_inputs_and_targets = LoadInputsAndTargets(
+            mode='tts',
+            use_speaker_embedding=use_speaker_embedding,
+            use_second_target=use_second_target,
+            preprocess_conf=preprocess_conf)
 
     def transform(self, item):
         # load batch
-        xs, ys, spembs, spcs = load_inputs_and_targets(
-            item, self.use_speaker_embedding, self.use_second_target)
-
-        # added eos into input sequence
-        eos = int(item[0][1]['output'][0]['shape'][1]) - 1
-        xs = [np.append(x, eos) for x in xs]
-
+        xs, ys, spembs, spcs = self.load_inputs_and_targets(item)
         return xs, ys, spembs, spcs
 
     def __call__(self, batch, device):
@@ -262,7 +261,10 @@ def train(args):
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(True, args.use_speaker_embedding, args.use_cbhg)
+    converter = CustomConverter(return_targets=True,
+                                use_speaker_embedding=args.use_speaker_embedding,
+                                use_second_target=args.use_cbhg,
+                                preprocess_conf=args.preprocess_conf)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -326,7 +328,9 @@ def train(args):
             att_vis_fn = tacotron2.calculate_all_attentions
         att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + '/att_ws',
-            converter=CustomConverter(False, args.use_speaker_embedding),
+            converter=CustomConverter(return_targets=False,
+                                      use_speaker_embedding=args.use_speaker_embedding,
+                                      preprocess_conf=args.preprocess_conf),
             device=device, reverse=True)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
@@ -387,7 +391,6 @@ def decode(args):
 
     # define model
     tacotron2 = Tacotron2(idim, odim, train_args)
-    eos = str(tacotron2.idim - 1)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
@@ -407,20 +410,23 @@ def decode(args):
     if len(outdir) != 0 and not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
-    arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
-    with torch.no_grad(), kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
-        for idx, utt_id in enumerate(js.keys()):
-            x = js[utt_id]['output'][0]['tokenid'].split() + [eos]
-            x = np.fromiter(map(int, x), dtype=np.int64)
-            x = torch.LongTensor(x).to(device)
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='tts', load_input=False, sort_in_input_length=False,
+        use_speaker_embedding=train_args.use_speaker_embedding,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None else args.preprocess_conf)
 
-            # get speaker embedding
+    with torch.no_grad(), kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+        for idx, utt_id in enumerate(js.keys()):
+            batch = [(utt_id, js[utt_id])]
+            data = load_inputs_and_targets(batch)
             if train_args.use_speaker_embedding:
-                spemb = kaldi_io_py.read_vec_flt(js[utt_id]['input'][1]['feat'])
+                spemb = data[1][0]
                 spemb = torch.FloatTensor(spemb).to(device)
             else:
                 spemb = None
+            x = data[0][0]
+            x = torch.LongTensor(x).to(device)
 
             # decode and write
             outs, _, _ = tacotron2.inference(x, args, spemb)
@@ -428,4 +434,4 @@ def decode(args):
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
                 idx + 1, len(js.keys()), utt_id, x.size(0), outs.size(0)))
-            kaldi_io_py.write_mat(f, outs.cpu().numpy(), utt_id)
+            f[utt_id] = outs.cpu().numpy()

@@ -27,8 +27,11 @@ requirements = {
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
         'editdistance==0.5.2',
+        'h5py>=2.9.0',
         'tensorboardX>=1.4',
-        'pillow>=5.3.0'],
+        'pillow>=5.3.0',
+        'nara_wpe'
+    ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
         'pytest>=3.3.0',

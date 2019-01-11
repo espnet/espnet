@@ -9,10 +9,11 @@ import os
 
 import librosa
 import numpy as np
-
 from scipy.io.wavfile import write
 
-import kaldi_io_py
+from espnet.utils.cli_utils import FileReaderWrapper
+from espnet.utils.cli_utils import get_commandline_args
+
 
 EPS = 1e-10
 
@@ -42,7 +43,8 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window='hann', iters=100):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--fs', type=int, default=22050,
                         help='Sampling frequency')
     parser.add_argument('--fmax', type=int, default=None, nargs='?',
@@ -62,8 +64,11 @@ def main():
                         help='Type of window')
     parser.add_argument('--iters', type=int, default=100,
                         help='Number of iterations in Grriffin Lim')
-    parser.add_argument('scp', type=str,
-                        help='Feat scp files')
+    parser.add_argument('--filetype', type=str, default='mat',
+                        choices=['mat', 'hdf5'],
+                        help='Specify the file format for the rspecifier. '
+                             '"mat" is the matrix format in kaldi')
+    parser.add_argument('rspecifier', type=str, help='Input feature')
     parser.add_argument('outdir', type=str,
                         help='Output directory')
     args = parser.parse_args()
@@ -72,16 +77,15 @@ def main():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
-
-    # load scp
-    reader = kaldi_io_py.read_mat_scp(args.scp)
+    logging.info(get_commandline_args())
 
     # check directory
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
 
     # extract feature and then write as ark with scp format
-    for idx, (utt_id, lmspc) in enumerate(reader, 1):
+    for idx, (utt_id, lmspc) in enumerate(
+            FileReaderWrapper(args.rspecifier, args.filetype), 1):
         if args.n_mels is not None:
             spc = logmelspc_to_linearspc(
                 lmspc,
