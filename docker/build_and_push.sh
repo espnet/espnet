@@ -2,8 +2,7 @@
 
 this_path=`pwd`
 stage=0
-stop_stage=100
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ ${stage} -le 0 ]; then
     echo "Build docker containers"
     # build runtime and gpu based containers
     docker build -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
@@ -32,7 +31,7 @@ tags="runtime
     gpu-cuda9.1-cudnn7
     gpu-cuda9.2-cudnn7"
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 1 ]; then
     for tag in ${tags};do
         echo "docker push espnet/espnet:${tag}"
         ( docker push espnet/espnet:${tag} )|| exit 1
