@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
@@ -15,10 +15,14 @@ import sys
 
 from distutils.util import strtobool
 
+from espnet.utils.cli_utils import get_commandline_args
+
 is_python2 = sys.version_info[0] == 2
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
     parser.add_argument('-i', '--is-input', default=True, type=strtobool,
@@ -28,12 +32,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # logging info
+    logfmt = '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s'
     if args.verbose > 0:
         logging.basicConfig(
-            level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+            level=logging.INFO, format=logfmt)
     else:
         logging.basicConfig(
-            level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+            level=logging.WARN, format=logfmt)
+    logging.info(get_commandline_args())
 
     # make intersection set for utterance keys
     js = []
@@ -119,7 +125,7 @@ if __name__ == '__main__':
                                'utt2spk': orgdic['utt2spk']}
 
     # ensure "ensure_ascii=False", which is a bug
-    jsonstring = json.dumps(
-        {'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': '))
+    jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False,
+                            sort_keys=True, separators=(',', ': '))
     sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     print(jsonstring)

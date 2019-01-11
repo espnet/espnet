@@ -12,7 +12,8 @@ import sys
 is_python2 = sys.version_info[0] == 2
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--output', '-o', default='', type=str,
                         help='output a vocabulary file')
     parser.add_argument('--cutoff', '-c', default=0, type=int,

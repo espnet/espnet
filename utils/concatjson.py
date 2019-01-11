@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -13,21 +13,27 @@ import json
 import logging
 import sys
 
+from espnet.utils.cli_utils import get_commandline_args
+
 is_python2 = sys.version_info[0] == 2
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
     args = parser.parse_args()
 
     # logging info
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    logfmt = '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s'
+    logging.basicConfig(level=logging.INFO, format=logfmt)
+    logging.info(get_commandline_args())
 
     # make intersection set for utterance keys
     js = {}
     for x in args.jsons:
-        with open(x, 'r') as f:
+        with codecs.open(x, encoding="utf-8") as f:
             j = json.load(f)
         ks = j['utts'].keys()
         logging.debug(x + ': has ' + str(len(ks)) + ' utterances')
@@ -35,6 +41,7 @@ if __name__ == '__main__':
     logging.info('new json has ' + str(len(js.keys())) + ' utterances')
 
     # ensure "ensure_ascii=False", which is a bug
-    jsonstring = json.dumps({'utts': js}, indent=4, sort_keys=True, ensure_ascii=False, separators=(',', ': '))
+    jsonstring = json.dumps({'utts': js}, indent=4, sort_keys=True,
+                            ensure_ascii=False, separators=(',', ': '))
     sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     print(jsonstring)
