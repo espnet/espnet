@@ -11,7 +11,6 @@ import sys
 # you should add the libraries which are not included in setup.py
 MANUALLY_INSTALLED_LIBRARIES = [
     ('espnet', None),
-    ('kaldi_io_py', None),
     ('matplotlib', None),
     ('torch', "0.4.1"),
     ('chainer', "5.0.0"),
