@@ -297,7 +297,7 @@ class LoadInputsAndTargets(object):
                 self._loaders[filepath] = loader
             array, rate = loader[key]
             return array
-        elif filetype == 'soundfile':
+        elif filetype == 'sound':
             # Assume PCM16
             array, rate = soundfile.read(filepath, dtype='int16')
             return array
