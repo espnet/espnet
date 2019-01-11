@@ -59,16 +59,11 @@ class FileReaderWrapper(object):
     def __init__(self, rspecifier, filetype='mat'):
         self.rspecifier = rspecifier
         self.filetype = filetype
-        self.keys = set()
-
-    def __contains__(self, item):
-        return item in self.keys
 
     def __iter__(self):
         if self.filetype == 'mat':
             with kaldiio.ReadHelper(self.rspecifier) as reader:
                 for key, array in reader:
-                    self.keys.add(key)
                     yield key, array
 
         elif self.filetype == 'sound':
@@ -82,7 +77,6 @@ class FileReaderWrapper(object):
             with io.open(filepath, 'r', encoding='utf-8') as f:
                 for line in f:
                     key, sound_file_path = line.rstrip().split(None, 1)
-                    self.keys.add(key)
                     # Assume PCM16
                     array, rate = soundfile.read(sound_file_path,
                                                  dtype='int16')
@@ -103,7 +97,6 @@ class FileReaderWrapper(object):
                 with io.open(filepath, 'r', encoding='utf-8') as f:
                     for line in f:
                         key, value = line.rstrip().split(None, 1)
-                        self.keys.add(key)
 
                         if ':' not in value:
                             raise RuntimeError(
@@ -137,11 +130,9 @@ class FileReaderWrapper(object):
                         filepath = io.BytesIO(sys.stdin.buffer.read())
                 if self.filetype == 'sound.hdf5':
                     for key, (r, a) in SoundHDF5File(filepath, 'r').items():
-                        self.keys.add(key)
                         yield key, (r, a)
                 else:
                     for key, dataset in h5py.File(filepath, 'r').items():
-                        self.keys.add(key)
                         yield key, dataset[...]
         else:
             raise ValueError(
@@ -194,7 +185,6 @@ class FileWriterWrapper(object):
         self.filename = None
         self.filetype = filetype
         self.kwargs = {}
-        self.keys = set()
 
         if filetype == 'mat':
             if compress:
@@ -244,7 +234,6 @@ class FileWriterWrapper(object):
             self.writer_nframe = None
 
     def __setitem__(self, key, value):
-        self.keys.add(key)
 
         if self.filetype == 'mat':
             self.writer[key] = value
@@ -274,9 +263,6 @@ class FileWriterWrapper(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-
-    def __contains__(self, item):
-        return item in self.keys
 
     def close(self):
         try:
