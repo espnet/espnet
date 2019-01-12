@@ -118,8 +118,6 @@ class LoadInputsAndTargets(object):
                     if 'tokenid' in inp:
                         # ======= Legacy format for output =======
                         # {"output": [{"tokenid": "1 2 3 4"}])
-                        assert isinstance(inp['tokenid'], str), \
-                            type(inp['tokenid'])
                         x = np.fromiter(map(int, inp['tokenid'].split()),
                                         dtype=np.int64)
                     else:
