@@ -67,7 +67,7 @@ ${cmd} JOB=1:${nj} ${logdir}/griffin_lim_${name}.JOB.log \
         --n_shift ${n_shift} \
         --n_mels ${n_mels} \
         --iters ${iters} \
-        ${logdir}/feats.JOB.scp \
+        scp:${logdir}/feats.JOB.scp \
         ${wavdir}
 
 rm ${logdir}/feats.*.scp 2>/dev/null
