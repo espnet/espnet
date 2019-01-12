@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # Apache 2.0
 from __future__ import print_function
@@ -11,8 +11,10 @@ import sys
 is_python2 = sys.version_info[0] == 2
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--exclude', '-v', dest='exclude', action='store_true', help='exclude filter words')
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--exclude', '-v', dest='exclude', action='store_true',
+                        help='exclude filter words')
     parser.add_argument('filt', type=str, help='filter list')
     parser.add_argument('infile', type=str, help='input file')
     args = parser.parse_args()
