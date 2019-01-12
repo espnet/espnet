@@ -18,8 +18,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../espnet/nets'))
 
+sys.path.insert(0, os.path.abspath('../espnet/nets'))
 
 # -- General configuration ------------------------------------------------
 
@@ -45,20 +45,22 @@ source_suffix = ['.rst', '.md']
 from recommonmark.parser import CommonMarkParser
 
 source_parsers = {
-        '.md': CommonMarkParser,
-        }
+    '.md': CommonMarkParser,
+}
 
 # AutoStructify setting ref: https://qiita.com/pashango2/items/d1b379b699af85b529ce
 from recommonmark.transform import AutoStructify
 
 github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
 
+
 def setup(app):
     app.add_config_value('recommonmark_config', {
         'url_resolver': lambda url: github_doc_root + url,
         'auto_toc_tree_section': 'Contents',
-        }, True)
+    }, True)
     app.add_transform(AutoStructify)
+
 
 # The master toctree document.
 master_doc = 'index'
@@ -95,7 +97,6 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
-
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -104,6 +105,7 @@ todo_include_todos = False
 
 # html_theme = 'nature'
 import sphinx_rtd_theme
+
 html_theme = 'sphinx_rtd_theme'
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
@@ -130,12 +132,10 @@ html_sidebars = {
     ]
 }
 
-
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'ESPnetdoc'
-
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -165,7 +165,6 @@ latex_documents = [
      u'Shinji Watanabe', 'manual'),
 ]
 
-
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
@@ -174,7 +173,6 @@ man_pages = [
     (master_doc, 'espnet', u'ESPnet Documentation',
      [author], 1)
 ]
-
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -186,6 +184,3 @@ texinfo_documents = [
      author, 'ESPnet', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-

@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
 elayers=6
@@ -49,6 +49,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=15
+patience=3
 
 # rnnlm related
 lm_layers=2
@@ -56,6 +57,7 @@ lm_units=650
 lm_opt=sgd        # or adam
 lm_batchsize=256  # batch size in LM training
 lm_epochs=20      # if the data size is large, we can reduce this
+lm_patience=3
 lm_maxlen=150     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
@@ -107,38 +109,33 @@ if [ ${stage} -le 0 ]; then
 			      ${audio_dir}/train ${json_dir}/train data/train_${mictype}
     done
     #eval#for dset in dev eval; do
-    for dset in dev; do
-	for mictype in worn; do
-	    local/prepare_data.sh --mictype ${mictype} \
-				  ${audio_dir}/${dset} ${json_dir}/${dset} \
-				  data/${dset}_${mictype}
-	done
-    done
+    dset=dev
+    mictype=worn
+    local/prepare_data.sh --mictype ${mictype} \
+		  ${audio_dir}/${dset} ${json_dir}/${dset} \
+		  data/${dset}_${mictype}
     enhandir=enhan
     #eval#for dset in dev eval; do
-    for dset in dev; do
-	for mictype in u01 u02 u03 u04 u05 u06; do
-	    local/run_beamformit.sh --cmd "$train_cmd" \
-				    ${audio_dir}/${dset} \
-				    ${enhandir}/${dset}_${enhancement}_${mictype} \
-				    ${mictype} &
-	done
+    dset=dev
+    for mictype in u01 u02 u03 u04 u05 u06; do
+	local/run_beamformit.sh --cmd "$train_cmd" \
+			    ${audio_dir}/${dset} \
+			    ${enhandir}/${dset}_${enhancement}_${mictype} \
+			    ${mictype} &
     done
     wait
     #eval#for dset in dev eval; do
-    for dset in dev; do
-	local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
-			      ${json_dir}/${dset} data/${dset}_${enhancement}_ref
-    done
+    dset=dev
+    local/prepare_data.sh --mictype ref "$PWD/${enhandir}/${dset}_${enhancement}_u0*" \
+			  ${json_dir}/${dset} data/${dset}_${enhancement}_ref
 
     # only use left channel for worn mic recognition
     # you can use both left and right channels for training
     #eval#for dset in train dev eval; do
-    for dset in dev; do
-	utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
-	grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
-	utils/fix_data_dir.sh data/${dset}_worn
-    done
+    dset=dev
+    utils/copy_data_dir.sh data/${dset}_worn data/${dset}_worn_stereo
+    grep "\.L-" data/${dset}_worn_stereo/text > data/${dset}_worn/text
+    utils/fix_data_dir.sh data/${dset}_worn
 
     # combine mix array and worn mics
     # randomly extract first 100k utterances from all mics
@@ -199,14 +196,14 @@ if [ ${stage} -le 2 ]; then
         /export/b{14,15,16,17}/${USER}/espnet-data/egs/chime5/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_recog_dir}
     done
 
@@ -227,7 +224,8 @@ fi
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
 fi
-lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
+lmexpname=train_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ]; then
@@ -248,6 +246,7 @@ if [ ${stage} -le 3 ]; then
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
@@ -256,21 +255,23 @@ if [ ${stage} -le 3 ]; then
         --opt ${lm_opt} \
         --batchsize ${lm_batchsize} \
         --epoch ${lm_epochs} \
+        --patience ${lm_patience} \
         --maxlen ${lm_maxlen} \
         --dict ${dict}
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
-        expdir=${expdir}_lsm${lsm_type}${lsm_weight}
+        expname=${expname}_lsm${lsm_type}${lsm_weight}
     fi
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
@@ -281,6 +282,7 @@ if [ ${stage} -le 4 ]; then
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -307,7 +309,8 @@ if [ ${stage} -le 4 ]; then
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --patience ${patience}
 fi
 
 if [ ${stage} -le 5 ]; then

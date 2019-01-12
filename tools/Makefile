@@ -3,9 +3,9 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done nkf.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done sentencepiece.done moses nara_wpe
+all: venv chainer_patch.done kaldi.done nkf.done warp-ctc.done chainer_ctc.done sentencepiece.done kaldiio moses
 
-all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done kaldi-io-for-python.done
+all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -28,12 +28,8 @@ espnet.done: venv
 	. venv/bin/activate; pip install cupy==5.0.0 torch==0.4.1 matplotlib
 	touch espnet.done
 
-kaldi-io-for-python.done: venv
-	rm -rf kaldi-io-for-python
-	git clone https://github.com/vesis84/kaldi-io-for-python.git
-	cd kaldi-io-for-python; ln -s kaldi_io.py kaldi_io_py.py; cp ../setup_kaldi-io-for-python.py setup.py
-	. venv/bin/activate; cd kaldi-io-for-python; pip install .
-	touch kaldi-io-for-python.done
+kaldiio: venv
+	. venv/bin/activate; pip install git+https://github.com/nttcslab-sp/kaldiio.git
 
 chainer_patch.done: espnet.done
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
@@ -72,12 +68,8 @@ sentencepiece.done:
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
-nara_wpe: venv
-	. venv/bin/activate; pip install git+https://github.com/fgnt/nara_wpe.git
-	. venv/bin/activate; pip install soundfile
-
 clean:
-	rm -fr kaldi venv nkf kaldi-io-for-python warp-ctc chainer_ctc sentencepiece moses
+	rm -fr kaldi venv nkf warp-ctc chainer_ctc sentencepiece moses
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
@@ -85,5 +77,5 @@ clean:
 clean_python:
 	rm -fr venv warp-ctc chainer_ctc kaldi-io-for-python
 	rm -f miniconda.sh
-	rm -rf chainer_patch.done kaldi-io-for-python.done warp-ctc.done chainer_ctc.done
+	rm -rf chainer_patch.done warp-ctc.done chainer_ctc.done
 	find . -iname "*.pyc" -delete

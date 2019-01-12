@@ -23,7 +23,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp     # encoder architecture type
 elayers=8
@@ -49,6 +49,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=15
+patience=3
 
 # decoding parameter
 beam_size=20
@@ -97,9 +98,9 @@ if [ ${stage} -le 0 ]; then
     utils/copy_data_dir.sh --utt-suffix -${lang_code} ../../csj/asr1/data/eval3 data/et_${lang_code}_3
     # 1) change wide to narrow chars
     # 2) lower to upper chars
-    for x in data/*_${lang_code}*; do
+    for x in data/*_"${lang_code}"*; do
         utils/copy_data_dir.sh ${x} ${x}_org
-        cat ${x}_org/text | nkf -Z |\
+        < ${x}_org/text nkf -Z |\
             awk '{for(i=2;i<=NF;++i){$i = toupper($i)} print}' > ${x}/text
         rm -fr ${x}_org
     done
@@ -139,13 +140,13 @@ if [ ${stage} -le 1 ]; then
         /export/b{14,15,16,17}/${USER}/espnet-data/egs/li10/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 80 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
@@ -182,13 +183,14 @@ if [ ${stage} -le 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
@@ -198,6 +200,7 @@ if [ ${stage} -le 3 ]; then
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -222,7 +225,8 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --patience ${patience}
 fi
 
 if [ ${stage} -le 4 ]; then

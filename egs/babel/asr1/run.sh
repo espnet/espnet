@@ -20,7 +20,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=blstmp # encoder architecture type
 elayers=6
@@ -54,6 +54,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=15
+patience=3
 
 # rnnlm related
 use_lm=false
@@ -62,6 +63,7 @@ lm_units=650
 lm_opt=sgd        # or adam
 lm_batchsize=256  # batch size in LM training
 lm_epochs=20      # if the data size is large, we can reduce this
+lm_patience=3
 lm_maxlen=100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
@@ -100,7 +102,8 @@ train_dev=dev
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
 fi
-lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
+lmexpname=train_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${lmexpname}
 lm_train_set=data/local/train.txt
 lm_valid_set=data/local/dev.txt
 
@@ -110,7 +113,7 @@ for l in ${recog}; do
 done
 recog_set=${recog_set%% }
 
-if [ $stage -le 0 ]; then
+if [ ${stage} -le 0 ]; then
   echo "stage 0: Setting up individual languages"
   ./local/setup_languages.sh --langs "${langs}" --recog "${recog}"
   for x in ${train_set} ${train_dev} ${recog_set}; do
@@ -120,7 +123,7 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ $stage -le 1 ]; then
+if [ ${stage} -le 1 ]; then
   echo "stage 1: Feature extraction"
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
@@ -134,7 +137,7 @@ if [ $stage -le 1 ]; then
   compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
   ./utils/fix_data_dir.sh data/${train_set}
 
-  exp_name=`basename $PWD`
+  exp_name=$(basename $PWD)
   # dump features for training
   if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
   utils/create_split_dir.pl \
@@ -146,13 +149,13 @@ if [ $stage -le 1 ]; then
       /export/b{10,11,12,13}/${USER}/espnet-data/egs/babel/${exp_name}/dump/${train_dev}/delta${do_delta}/storage \
       ${feat_dt_dir}/storage
   fi
-  dump.sh --cmd "$train_cmd" --nj 20 --do_delta $do_delta \
+  dump.sh --cmd "$train_cmd" --nj 20 --do_delta ${do_delta} \
       data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-  dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+  dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
       data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
   for rtask in ${recog_set}; do
       feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-      dump.sh --cmd "$train_cmd" --nj 10 --do_delta $do_delta \
+      dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
   done
@@ -190,7 +193,7 @@ if [ ${stage} -le 2 ]; then
 fi
 
 
-if $use_lm; then
+if ${use_lm}; then
   lm_train_set=data/local/train.txt
   lm_valid_set=data/local/dev.txt
 
@@ -217,6 +220,7 @@ if $use_lm; then
           --backend ${backend} \
           --verbose 1 \
           --outdir ${lmexpdir} \
+          --tensorboard-dir tensorboard/${lmexpname} \
           --train-label ${lm_train_set} \
           --valid-label ${lm_valid_set} \
           --resume ${lm_resume} \
@@ -225,19 +229,21 @@ if $use_lm; then
           --opt ${lm_opt} \
           --batchsize ${lm_batchsize} \
           --epoch ${lm_epochs} \
+          --patience ${lm_patience} \
           --maxlen ${lm_maxlen} \
           --dict ${dict}
 fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ]; then
@@ -248,6 +254,7 @@ if [ ${stage} -le 3 ]; then
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -278,7 +285,8 @@ if [ ${stage} -le 3 ]; then
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --patience ${patience}
 fi
 
 
@@ -287,14 +295,14 @@ if [ ${stage} -le 4 ]; then
     nj=32
 
     extra_opts=""
-    if $use_lm; then
+    if ${use_lm}; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
     fi
 
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-        if $use_lm; then
+        if ${use_lm}; then
             decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}

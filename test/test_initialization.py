@@ -48,11 +48,11 @@ def test_lecun_init_torch():
     torch.manual_seed(nseed)
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
-    import espnet.nets.e2e_asr_th as m
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
-    b = model.predictor.ctc.ctc_lo.bias.data.numpy()
+    import espnet.nets.pytorch_backend.e2e_asr as m
+    model = m.E2E(40, 5, args)
+    b = model.ctc.ctc_lo.bias.data.numpy()
     assert numpy.all(b == 0.0)
-    w = model.predictor.ctc.ctc_lo.weight.data.numpy()
+    w = model.ctc.ctc_lo.weight.data.numpy()
     numpy.testing.assert_allclose(w.mean(), 0.0, 1e-2, 1e-2)
     numpy.testing.assert_allclose(w.var(), 1.0 / w.shape[1], 1e-2, 1e-2)
 
@@ -62,9 +62,9 @@ def test_lecun_init_torch():
         if "embed" in name:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
             numpy.testing.assert_allclose(data.var(), 1.0, 5e-2, 5e-2)
-        elif "predictor.dec.decoder.0.bias_ih" in name:
+        elif "dec.decoder.0.bias_ih" in name:
             assert data.sum() == data.size // 4
-        elif "predictor.dec.decoder.1.bias_ih" in name:
+        elif "dec.decoder.1.bias_ih" in name:
             assert data.sum() == data.size // 4
         elif data.ndim == 1:
             assert numpy.all(data == 0.0)
@@ -79,11 +79,11 @@ def test_lecun_init_chainer():
     random.seed(nseed)
     numpy.random.seed(nseed)
     os.environ["CHAINER_SEED"] = str(nseed)
-    import espnet.nets.e2e_asr as m
-    model = m.Loss(m.E2E(40, 5, args), 0.5)
-    b = model.predictor.ctc.ctc_lo.b.data
+    import espnet.nets.chainer_backend.e2e_asr as m
+    model = m.E2E(40, 5, args)
+    b = model.ctc.ctc_lo.b.data
     assert numpy.all(b == 0.0)
-    w = model.predictor.ctc.ctc_lo.W.data
+    w = model.ctc.ctc_lo.W.data
     numpy.testing.assert_allclose(w.mean(), 0.0, 1e-2, 1e-2)
     numpy.testing.assert_allclose(w.var(), 1.0 / w.shape[1], 1e-2, 1e-2)
 
