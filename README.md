@@ -160,6 +160,13 @@ this epoch [#####.............................................] 10.84%
    0.71428 iters/sec. Estimated time to finish: 2 days, 16:23:34.613215.
 ```
 
+In addition, [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. You can therefore easily compare several experiments by using
+```
+tensorboard --logdir tensorboard
+```
+and connecting to the given address (default : localhost:6006). This will provide the following information:
+![2018-12-18_19h49_48](https://user-images.githubusercontent.com/14289171/50175839-2491e280-02fe-11e9-8dfc-de303804034d.png)
+
 ### Use of GPU
 
 If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
@@ -187,6 +194,7 @@ is required before setup.
 When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
 Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
 To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
+
 
 ### Docker Container
 
@@ -245,13 +253,13 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | WSJ dev93 | 3.2 | 7.0 |
 | WSJ eval92| 2.1 | 4.7 |
-| CSJ eval1 | 7.3 | N/A  |
-| CSJ eval2 | 5.3 | N/A  |
-| CSJ eval3 | 5.9 | N/A  |
+| CSJ eval1 | 6.6 | N/A  |
+| CSJ eval2 | 4.8 | N/A  |
+| CSJ eval3 | 5.3 | N/A  |
 | HKUST train_dev | 28.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
-| Librispeech dev_clean  | N/A | 4.2 |
-| Librispeech test_clean | N/A | 4.2 |
+| Librispeech dev_clean  | N/A | 4.0 |
+| Librispeech test_clean | N/A | 4.0 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
