@@ -16,7 +16,7 @@
 # e.g. "echo JOB" is changed to "echo 3" for the 3rd job and "echo 8" for 8th job.
 # Note that the number must start with a positive number, so you can't use "JOB=0:10" for example.
 #
-# run.pl, queue.pl, slurm.pl, and ssh.pl have unified interface, not depeding its backend.
+# run.pl, queue.pl, slurm.pl, and ssh.pl have unified interface, not depending on its backend.
 # These options are mapping to specific options for each backend and
 # it is configured by "conf/queue.conf" and "conf/slurm.conf" by default.
 # If jobs failed, your configuration might be wrong for your environment.
@@ -57,7 +57,7 @@ elif [ "${backend}" = slurm ]; then
     # You must change "-p cpu" and "-p gpu" for the "partion" for your environment.
     # To know the "partion" names, type "sinfo".
     # You can use "--gpu * " by defualt for slurm and it is interpreted as "--gres gpu:*"
-    # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}.
+    # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
 
     export train_cmd="slurm.pl"
     export cuda_cmd="slurm.pl"
@@ -75,7 +75,8 @@ elif [ "${backend}" = ssh ]; then
     export cuda_cmd="ssh.pl"
     export decode_cmd="ssh.pl"
 
-# JHU setting
+# This is an example of specifying several unique options in the JHU CLSP cluster setup.
+# Users can modify/add their own command options according to their cluster environments.
 elif [ "${backend}" = jhu ]; then
 
     export train_cmd="queue.pl --mem 2G"
@@ -83,6 +84,6 @@ elif [ "${backend}" = jhu ]; then
     export decode_cmd="queue.pl --mem 4G"
 
 else
-    echo "Error: Unknown backend=${backend}" 1>&2
+    echo "$0: Error: Unknown backend=${backend}" 1>&2
     return 1
 fi
