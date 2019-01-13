@@ -57,7 +57,7 @@ def main():
             mat = preprocessing(mat)
             shape_str = ','.join(map(str, mat.shape))
         else:
-            if len(mat) == 2 and isinstance(mat, tuple):
+            if len(mat) == 2 and isinstance(mat[1], tuple):
                 # If data is sound file, Tuple[int, Tuple[int, ...]]
                 rate, mat = mat
             shape_str = ','.join(map(str, mat))
