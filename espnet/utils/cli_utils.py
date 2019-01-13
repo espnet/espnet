@@ -126,6 +126,10 @@ class FileReaderWrapper(object):
                         else:
                             yield key, hdf5_file[h5_key][()]
 
+                # Closing all files
+                for k in hdf5_dict:
+                    hdf5_dict[k].close()
+
             else:
                 if filepath == '-':
                     # Required h5py>=2.9
