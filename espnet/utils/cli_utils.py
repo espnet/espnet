@@ -1,4 +1,3 @@
-from collections import Sequence
 import io
 import sys
 
@@ -10,6 +9,12 @@ import soundfile
 from espnet.utils.io_utils import SoundHDF5File
 
 PY2 = sys.version_info[0] == 2
+
+if PY2:
+    from collections import Sequence
+else:
+    # The ABCs from 'collections' will stop working in 3.8
+    from collections.abc import Sequence
 
 
 def get_commandline_args():
