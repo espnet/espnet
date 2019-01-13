@@ -50,14 +50,16 @@ def main():
     # This make sense only with filetype="hdf5".
     for utt, mat in FileReaderWrapper(args.rspecifier, args.filetype,
                                       return_shape=preprocessing is None):
-        if is_scipy_wav_style(mat):
-            # If data is sound file, then got as Tuple[int, ndarray]
-            rate, mat = mat
-
         if preprocessing is not None:
+            if is_scipy_wav_style(mat):
+                # If data is sound file, then got as Tuple[int, ndarray]
+                rate, mat = mat
             mat = preprocessing(mat)
             shape_str = ','.join(map(str, mat.shape))
         else:
+            if len(mat) == 2 and isinstance(mat, tuple):
+                # If data is sound file, Tuple[int, Tuple[int, ...]]
+                rate, mat = mat
             shape_str = ','.join(map(str, mat))
         args.out.write('{} {}\n'.format(utt, shape_str))
 
