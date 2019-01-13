@@ -6,7 +6,7 @@ import sys
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import is_scipy_wav_stype
+from espnet.utils.cli_utils import is_scipy_wav_style
 
 PY2 = sys.version_info[0] == 2
 
@@ -50,7 +50,7 @@ def main():
     # This make sense only with filetype="hdf5".
     for utt, mat in FileReaderWrapper(args.rspecifier, args.filetype,
                                       return_shape=preprocessing is None):
-        if is_scipy_wav_stype(mat):
+        if is_scipy_wav_style(mat):
             # If data is sound file, then got as Tuple[int, ndarray]
             rate, mat = mat
 
