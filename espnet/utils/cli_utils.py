@@ -119,7 +119,7 @@ class FileReaderWrapper(object):
                             array, rate = hdf5_file[h5_key]
                             yield key, (rate, array)
                         else:
-                            yield key, hdf5_file[h5_key][...]
+                            yield key, hdf5_file[h5_key][()]
 
             else:
                 if filepath == '-':
@@ -132,8 +132,9 @@ class FileReaderWrapper(object):
                     for key, (r, a) in SoundHDF5File(filepath, 'r').items():
                         yield key, (r, a)
                 else:
-                    for key, dataset in h5py.File(filepath, 'r').items():
-                        yield key, dataset[...]
+                    with h5py.File(filepath, 'r') as f:
+                        for key in f:
+                            yield key, f[key][()]
         else:
             raise ValueError(
                 'Not supporting: filetype={}'.format(self.filetype))
