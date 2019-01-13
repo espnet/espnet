@@ -10,7 +10,7 @@ from espnet.transform.cmvn import CMVN
 from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import is_scipy_wav_stype
+from espnet.utils.cli_utils import is_scipy_wav_style
 
 
 def main():
@@ -99,7 +99,7 @@ def main():
             compress=args.compress,
             compression_method=args.compression_method) as writer:
         for utt, mat in FileReaderWrapper(args.rspecifier, args.in_filetype):
-            if is_scipy_wav_stype(mat):
+            if is_scipy_wav_style(mat):
                 # If data is sound file, then got as Tuple[int, ndarray]
                 rate, mat = mat
             mat = cmvn(mat, utt if is_rspcifier else None)

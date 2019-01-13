@@ -30,7 +30,7 @@ def get_commandline_args():
     return sys.executable + ' ' + ' '.join(argv)
 
 
-def is_scipy_wav_stype(value):
+def is_scipy_wav_style(value):
     # If Tuple[int, numpy.ndarray] or not
     return (isinstance(value, Sequence) and len(value) == 2 and
             isinstance(value[0], int) and
@@ -38,7 +38,7 @@ def is_scipy_wav_stype(value):
 
 
 def assert_scipy_wav_style(value):
-    assert is_scipy_wav_stype(value), \
+    assert is_scipy_wav_style(value), \
         'Must be Tuple[int, numpy.ndarray], but got {}'.format(
             type(value) if not isinstance(value, Sequence)
             else '{}[{}]'.format(type(value),
