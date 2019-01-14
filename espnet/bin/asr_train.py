@@ -98,6 +98,8 @@ def main(args):
                         help='Label smoothing weight')
     parser.add_argument('--sampling-probability', default=0.0, type=float,
                         help='Ratio of predicted labels fed back to decoder')
+    parser.add_argument('--rnnlm', default=None, type=str, nargs='?', help='RNNLM to use for ColdFusion')
+    parser.add_argument('--cfunits', default=256, type=int, nargs='?', help='Number of hidden units for ColdFusion')
     # recognition options to compute CER/WER
     parser.add_argument('--report-cer', default=False, action='store_true',
                         help='Compute CER on development set')

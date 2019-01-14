@@ -381,4 +381,4 @@ class Decoder(chainer.Chain):
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
-                   args.lsm_weight, args.sampling_probability)
+                   args.lsm_weight, args.sampling_probability, args.rnnlm, args.cfunits)
