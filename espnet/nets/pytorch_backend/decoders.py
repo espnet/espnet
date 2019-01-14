@@ -14,6 +14,8 @@ from espnet.nets.e2e_asr_common import end_detect
 
 from espnet.nets.pytorch_backend.attentions import att_to_numpy
 
+from espnet.nets.pytorch_backend.coldfusion import ColdFusionLayer
+
 from espnet.nets.pytorch_backend.nets_utils import append_ids
 from espnet.nets.pytorch_backend.nets_utils import get_last_yseq
 from espnet.nets.pytorch_backend.nets_utils import index_select_list
@@ -44,7 +46,7 @@ class Decoder(torch.nn.Module):
     """
 
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0, rnnlm=None, cfunits=256):
         super(Decoder, self).__init__()
         self.dunits = dunits
         self.dlayers = dlayers
@@ -55,6 +57,11 @@ class Decoder(torch.nn.Module):
             self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
         self.ignore_id = -1
         self.output = torch.nn.Linear(dunits, odim)
+        self.rnnlm = rnnlm
+        if self.rnnlm is not None:
+            self.cf = ColdFusionLayer(dunits, odim, cfunits)
+        else:
+            self.cf = None
 
         self.loss = None
         self.att = att
@@ -122,14 +129,18 @@ class Decoder(torch.nn.Module):
 
         # pre-computation of embedding
         eys = self.embed(ys_in_pad)  # utt x olen x zdim
-
+        lm_state = None
+        y_all = []
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs_pad, hlens, z_list[0], att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
-                z_out = self.output(z_all[-1])
-                z_out = np.argmax(z_out.detach(), axis=1)
+                if self.cf is not None:
+                    z_out = to_device(self, torch.argmax(y_all[-1].cpu(), dim=1))
+                else:
+                    z_out = self.output(z_all[-1])
+                    z_out = np.argmax(z_out.detach(), axis=1)
                 z_out = self.embed(z_out.cuda())
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
@@ -139,10 +150,19 @@ class Decoder(torch.nn.Module):
                 z_list[l], c_list[l] = self.decoder[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             z_all.append(z_list[-1])
+            if self.cf is not None:
+                lm_state, local_lm_scores = self.rnnlm.predict(
+                    x=to_device(self,
+                                torch.argmax(self.output(z_list[-1]).cpu(), dim=1)),
+                    state=lm_state)
+                y_all.append(self.cf(z_list[-1], local_lm_scores))
 
-        z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
+        if self.coldfusion:
+            y_all = torch.stack(y_all, dim=1).view(batch * olength, self.odim)
+        else:
+            z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
+            y_all = self.output(z_all)
         # compute loss
-        y_all = self.output(z_all)
         self.loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
                                     ignore_index=self.ignore_id,
                                     size_average=True)
@@ -216,7 +236,7 @@ class Decoder(torch.nn.Module):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        if rnnlm:
+        if rnnlm is not None:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list,
                    'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
         else:
@@ -250,12 +270,20 @@ class Decoder(torch.nn.Module):
                         z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
 
                 # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1)
-                if rnnlm:
-                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
-                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                if self.cf is not None:
+                    if rnnlm is not None:
+                        rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
+                        local_att_scores = F.log_softmax(self.cf(z_list[-1], local_lm_scores), dim=1)
+                        local_scores = local_att_scores
+                    else:
+                        raise ValueError("ColdFusion is used but no RNNLM is provided")
                 else:
-                    local_scores = local_att_scores
+                    local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1)
+                    if rnnlm is not None:
+                        rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
+                        local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                    else:
+                        local_scores = local_att_scores
 
                 if lpz is not None:
                     local_best_scores, local_best_ids = torch.topk(
@@ -265,7 +293,7 @@ class Decoder(torch.nn.Module):
                     local_scores = \
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
                         + ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
-                    if rnnlm:
+                    if rnnlm is not None and self.cf is None:
                         local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
                     local_best_scores, joint_best_ids = torch.topk(local_scores, beam, dim=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
@@ -282,7 +310,7 @@ class Decoder(torch.nn.Module):
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                     new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
-                    if rnnlm:
+                    if rnnlm is not None:
                         new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
                         new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
@@ -314,7 +342,7 @@ class Decoder(torch.nn.Module):
                     # also add penalty
                     if len(hyp['yseq']) > minlen:
                         hyp['score'] += (i + 1) * penalty
-                        if rnnlm:  # Word LM needs to add final <eos> score
+                        if rnnlm is not None and self.cf is None:  # Word LM needs to add final <eos> score
                             hyp['score'] += recog_args.lm_weight * rnnlm.final(
                                 hyp['rnnlm_prev'])
                         ended_hyps.append(hyp)
@@ -486,7 +514,7 @@ class Decoder(torch.nn.Module):
             z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
-            if rnnlm:
+            if rnnlm is not None:
                 rnnlm_prev = index_select_lm_state(rnnlm_state, 0, vidx)
             if lpz is not None:
                 ctc_vidx = to_device(self, torch.LongTensor(accum_padded_odim_ids))

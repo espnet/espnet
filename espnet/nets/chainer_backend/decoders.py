@@ -11,6 +11,7 @@ import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
 from argparse import Namespace
 
+from espnet.nets.chainer_backend.coldfusion import ColdFusionLayer
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
 
@@ -20,7 +21,8 @@ MAX_DECODER_OUTPUT = 5
 
 class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0, rnnlm=None,
+                 cfunits=256):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(odim, dunits)
@@ -28,7 +30,11 @@ class Decoder(chainer.Chain):
             for l in six.moves.range(1, dlayers):
                 setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
             self.output = L.Linear(dunits, odim)
-
+            self.rnnlm = rnnlm
+            if self.rnnlm is not None:
+                self.cf = ColdFusionLayer(dunits, odim, cfunits)
+            else:
+                self.cf = None
         self.loss = None
         self.att = att
         self.dlayers = dlayers
@@ -42,6 +48,7 @@ class Decoder(chainer.Chain):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
         self.sampling_probability = sampling_probability
+        self.odim = odim
 
     def __call__(self, hs, ys):
         """Decoder forward
@@ -82,13 +89,18 @@ class Decoder(chainer.Chain):
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
         eys = F.separate(eys, axis=1)
 
+        y_all = []
+        lm_state = None
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
-                z_out = self.output(z_all[-1])
-                z_out = F.argmax(F.log_softmax(z_out), axis=1)
+                if self.cf is not None:
+                    z_out = F.argmax(y_all[-1], axis=1)
+                else:
+                    z_out = self.output(z_all[-1])
+                    z_out = F.argmax(F.log_softmax(z_out), axis=1)
                 z_out = self.embed(z_out)
                 ey = F.hstack((z_out, att_c))  # utt x (zdim + hdim)
             else:
@@ -97,11 +109,17 @@ class Decoder(chainer.Chain):
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
             z_all.append(z_list[-1])
+            if self.cf is not None:
+                lm_state, probs = self.rnnlm.predict(x=F.argmax(self.output(z_list[-1]), axis=1), state=lm_state)
+                y_all.append(self.cf(z_list[-1], probs))
 
-        z_all = F.reshape(F.stack(z_all, axis=1),
-                          (batch * olength, self.dunits))
+        if not self.cf:
+            z_all = F.reshape(F.stack(z_all, axis=1), (batch * olength, self.dunits))
+            y_all = self.output(z_all)
+        else:
+            y_all = F.reshape(F.stack(y_all, axis=1), (batch * olength, self.odim))
+
         # compute loss
-        y_all = self.output(z_all)
         self.loss = F.softmax_cross_entropy(y_all, F.flatten(pad_ys_out))
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
@@ -169,7 +187,7 @@ class Decoder(chainer.Chain):
         logging.info('min output length: ' + str(minlen))
 
         # initialize hypothesis
-        if rnnlm:
+        if rnnlm is not None:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a, 'rnnlm_prev': None}
         else:
             hyp = {'score': 0.0, 'yseq': [y], 'c_prev': c_list, 'z_prev': z_list, 'a_prev': a}
@@ -199,12 +217,20 @@ class Decoder(chainer.Chain):
                         hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
 
                 # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(self.output(z_list[-1])).data
-                if rnnlm:
-                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], hyp['yseq'][i])
-                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                if self.cf is not None:
+                    if rnnlm is not None:
+                        rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], hyp['yseq'][i])
+                        local_att_scores = F.log_softmax(self.cf(z_list[-1], local_lm_scores)).data
+                        local_scores = local_att_scores
+                    else:
+                        raise ValueError("ColdFusion is used but no RNNLM is provided")
                 else:
-                    local_scores = local_att_scores
+                    local_att_scores = F.log_softmax(self.output(z_list[-1])).data
+                    if rnnlm is not None:
+                        rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], hyp['yseq'][i])
+                        local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                    else:
+                        local_scores = local_att_scores
 
                 if lpz is not None:
                     local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:ctc_beam]
@@ -212,7 +238,7 @@ class Decoder(chainer.Chain):
                     local_scores = \
                         (1.0 - ctc_weight) * local_att_scores[:, local_best_ids] \
                         + ctc_weight * (ctc_scores - hyp['ctc_score_prev'])
-                    if rnnlm:
+                    if rnnlm is not None and self.cf is None:
                         local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
                     joint_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
                     local_best_scores = local_scores[:, joint_best_ids]
@@ -264,7 +290,7 @@ class Decoder(chainer.Chain):
                     # also add penalty
                     if len(hyp['yseq']) > minlen:
                         hyp['score'] += (i + 1) * penalty
-                        if rnnlm:  # Word LM needs to add final <eos> score
+                        if rnnlm is not None and self.cf is None:  # Word LM needs to add final <eos> score
                             hyp['score'] += recog_args.lm_weight * rnnlm.final(
                                 hyp['rnnlm_prev'])
                         ended_hyps.append(hyp)
