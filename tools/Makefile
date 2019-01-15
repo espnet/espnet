@@ -24,6 +24,8 @@ venv:
 
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
+	# TODO(kan-bayashi): remove in future (currently needed for nara_wpe)
+	. venv/bin/activate; pip install numpy
 	. venv/bin/activate; pip install -e ..
 	. venv/bin/activate; pip install cupy==5.0.0 torch==0.4.1 matplotlib
 	touch espnet.done
