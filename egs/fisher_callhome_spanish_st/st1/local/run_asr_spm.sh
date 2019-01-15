@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstm     # encoder architecture type
 elayers=5
@@ -42,7 +42,7 @@ mtlalpha=0.5
 samp_prob=0
 lsm_type=unigram
 lsm_weight=0.1
-dropout=0.3
+drop=0.3
 
 # minibatch related
 batchsize=20
@@ -52,6 +52,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=15
+patience=3
 
 lm_layers=2
 lm_units=650
@@ -263,13 +264,14 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${dropout}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
@@ -279,6 +281,7 @@ if [ ${stage} -le 4 ]; then
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -305,7 +308,7 @@ if [ ${stage} -le 4 ]; then
         --sampling-probability ${samp_prob} \
         --lsm-type ${lsm_type} \
         --lsm-weight ${lsm_weight} \
-        --dropout-rate ${dropout} \
+        --dropout-rate ${drop} \
         --opt ${opt} \
         --epochs ${epochs}
 fi

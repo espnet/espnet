@@ -19,7 +19,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network archtecture
+# network architecture
 # encoder related
 etype=vggblstm     # encoder architecture type
 elayers=5
@@ -37,12 +37,13 @@ adim=1024
 samp_prob=0.2
 lsm_type=unigram
 lsm_weight=0.1
-dropout=0.3
+drop=0.3
 weight_decay=0.000001
 
 # transfer learning ralated
 asr_model=
 mt_model=
+# NOTE: reserve here for the future usage
 
 # minibatch related
 batchsize=15
@@ -52,6 +53,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 # optimization related
 opt=adadelta
 epochs=25
+patience=3
 
 # decoding parameter
 beam_size=20
@@ -88,9 +90,6 @@ set -o pipefail
 train_set=train.en
 train_dev=dev.en
 recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
-
-recog_set="fisher_dev.en fisher_dev2.en fisher_test.en"
-# recog_set="callhome_devtest.en callhome_evltest.en"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -229,19 +228,20 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${dropout}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
     if [ ! -z ${asr_model} ]; then
-      expdir=${expdir}_asrtrans
+      expname=${expname}_asrtrans
     fi
     if [ ! -z ${mt_model} ]; then
-      expdir=${expdir}_mttrans
+      expname=${expname}_mttrans
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
@@ -251,6 +251,7 @@ if [ ${stage} -le 4 ]; then
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -275,9 +276,10 @@ if [ ${stage} -le 4 ]; then
         --sampling-probability ${samp_prob} \
         --lsm-type ${lsm_type} \
         --lsm-weight ${lsm_weight} \
-        --dropout-rate ${dropout} \
+        --dropout-rate ${drop} \
         --opt ${opt} \
         --epochs ${epochs} \
+        --patience ${patience} \
         --weight-decay ${weight_decay} \
         --asr-model ${asr_model} \
         --mt-model ${mt_model}
@@ -299,19 +301,19 @@ if [ ${stage} -le 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        # ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-        #     asr_recog.py \
-        #     --ngpu ${ngpu} \
-        #     --backend ${backend} \
-        #     --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
-        #     --result-label ${expdir}/${decode_dir}/data.JOB.json \
-        #     --model ${expdir}/results/${recog_model} \
-        #     --beam-size ${beam_size} \
-        #     --penalty ${penalty} \
-        #     --maxlenratio ${maxlenratio} \
-        #     --minlenratio ${minlenratio} \
-        #     &
-        # wait
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            asr_recog.py \
+            --ngpu ${ngpu} \
+            --backend ${backend} \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/${recog_model} \
+            --beam-size ${beam_size} \
+            --penalty ${penalty} \
+            --maxlenratio ${maxlenratio} \
+            --minlenratio ${minlenratio} \
+            &
+        wait
 
         # Fisher has 4 references per utterance
         if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
