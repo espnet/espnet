@@ -27,6 +27,7 @@ while(<STDIN>) {
   s/laughter//g;
   s/background noise//g;
   s/background speech//g;
+
   # fisher_train
   s/i\/he/i/g;
   s/i\/she/i/g;
@@ -50,6 +51,7 @@ while(<STDIN>) {
   s/\<colorcito does not exist as a word so I have no ideea what he means about that\>//g;
   s/\<foreign//g;
   s/foreign\>//g;
+
   # fisher_dev
   s/her\/his/her/g;
   s/o\//o/g;
@@ -60,6 +62,7 @@ while(<STDIN>) {
   s/\<weird phrase\>//g;
   s/\<this makes no sense\>//g;
   s/Salvador\>/Salvador/g;
+
   # fisher_dev2
   s/A\/C//g;
   s/She\/he/She/g;
@@ -72,6 +75,7 @@ while(<STDIN>) {
   s/\<metaphoric meaning\>//g;
   s/\<missing text \? \>//g;
   s/\<broken phrase but I tried to guess what would it mean if it was complete\>//g;
+
   # fisher_test
   s/she\/he/she/g;
   s/her\/him/her/g;
@@ -87,8 +91,10 @@ while(<STDIN>) {
   s/\<this phrase barely even made sense\>//g;
   s/\<very poorly written phrase but I think this is what was supposed to mean\>//g;
   s/what\)\)/what/g;
+
   # callhome_train
   s/-*-//g;
+
   # callhome_devtest
   s/He\/she/He/g;
   s/he\/she/he/g;
@@ -96,6 +102,7 @@ while(<STDIN>) {
   s/his\/her/his/g;
   s/him\/her/him/g;
   s/right'$/right?/;
+
   # callhome_evltest
   s/so\//so/g;
 
