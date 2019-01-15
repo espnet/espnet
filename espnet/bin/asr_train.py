@@ -166,6 +166,11 @@ def main(args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    # transfer learning related
+    parser.add_argument('--asr-model', default=False, nargs='?',
+                        help='Pre-trained ASR model')
+    parser.add_argument('--mt-model', default=False, nargs='?',
+                        help='Pre-trained MT model')
     args = parser.parse_args(args)
 
     # logging info
