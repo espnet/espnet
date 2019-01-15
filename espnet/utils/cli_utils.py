@@ -251,7 +251,7 @@ class FileWriterWrapper(object):
         if self.writer_scp is not None:
             if self.filetype in ['hdf5', 'sound.hdf5']:
                 self.writer_scp.write(
-                    u'%s %s:%s\n' % (key, self.filename, key))
+                    u'{} {}:{}\n'.format(key, self.filename, key))
             else:
                 raise NotImplementedError
 
