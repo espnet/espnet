@@ -74,24 +74,18 @@ if [ ! -z ${bpemodel} ]; then
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/src.trn | sed -e "s/▁/ /g" > ${dir}/src.wrd.trn
     if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref1.trn | sed -e "s/▁/ /g" >> ${dir}/ref.wrd.trn
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref2.trn | sed -e "s/▁/ /g" >> ${dir}/ref.wrd.trn
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref3.trn | sed -e "s/▁/ /g" >> ${dir}/ref.wrd.trn
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" >> ${dir}/hyp.wrd.trn
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" >> ${dir}/hyp.wrd.trn
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" >> ${dir}/hyp.wrd.trn
+        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref1.trn | sed -e "s/▁/ /g" > ${dir}/ref1.wrd.trn
+        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref2.trn | sed -e "s/▁/ /g" > ${dir}/ref2.wrd.trn
+        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref3.trn | sed -e "s/▁/ /g" > ${dir}/ref3.wrd.trn
     fi
 else
     sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
     sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
     sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/src.trn > ${dir}/src.wrd.trn
     if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref1.trn >> ${dir}/ref.wrd.trn
-        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref2.trn >> ${dir}/ref.wrd.trn
-        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref3.trn >> ${dir}/ref.wrd.trn
-        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn >> ${dir}/hyp.wrd.trn
-        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn >> ${dir}/hyp.wrd.trn
-        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn >> ${dir}/hyp.wrd.trn
+        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref1.trn >> ${dir}/ref1.wrd.trn
+        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref2.trn >> ${dir}/ref2.wrd.trn
+        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref3.trn >> ${dir}/ref3.wrd.trn
     fi
 fi
 
@@ -99,9 +93,18 @@ fi
 detokenizer.perl -l en < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
 detokenizer.perl -l en < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
 detokenizer.perl -l en < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
+if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
+    detokenizer.perl -l en < ${dir}/ref1.wrd.trn > ${dir}/ref1.wrd.trn.detok
+    detokenizer.perl -l en < ${dir}/ref2.wrd.trn > ${dir}/ref2.wrd.trn.detok
+    detokenizer.perl -l en < ${dir}/ref3.wrd.trn > ${dir}/ref3.wrd.trn.detok
+fi
 
 ### case-insensitive
-multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.txt
+if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.txt
+else
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.txt
+fi
 echo "write a case-insensitive BLEU result in ${dir}/result.txt"
 cat ${dir}/result.txt
 

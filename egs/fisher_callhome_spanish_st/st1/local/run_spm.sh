@@ -40,6 +40,10 @@ lsm_weight=0.1
 dropout=0.3
 weight_decay=0.000001
 
+# transfer learning ralated
+asr_model=
+mt_model=
+
 # minibatch related
 batchsize=25
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
@@ -88,6 +92,8 @@ set -o pipefail
 train_set=train.en
 train_dev=dev.en
 recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
+
+recog_set="fisher_dev.en fisher_dev2.en fisher_test.en"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -233,6 +239,12 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
+    if [ ! -z ${asr_model} ]; then
+      expdir=${expdir}_asrtrans
+    fi
+    if [ ! -z ${mt_model} ]; then
+      expdir=${expdir}_mttrans
+    fi
 else
     expdir=exp/${train_set}_${backend}_${tag}
 fi
@@ -272,7 +284,9 @@ if [ ${stage} -le 4 ]; then
         --dropout-rate ${dropout} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --weight-decay ${weight_decay}
+        --weight-decay ${weight_decay} \
+        --asr-model ${asr_model} \
+        --mt-model ${mt_model}
 fi
 
 if [ ${stage} -le 5 ]; then
@@ -291,19 +305,19 @@ if [ ${stage} -le 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_recog.py \
-            --ngpu ${ngpu} \
-            --backend ${backend} \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
-            --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model} \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            &
-        wait
+        # ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+        #     asr_recog.py \
+        #     --ngpu ${ngpu} \
+        #     --backend ${backend} \
+        #     --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+        #     --result-label ${expdir}/${decode_dir}/data.JOB.json \
+        #     --model ${expdir}/results/${recog_model} \
+        #     --beam-size ${beam_size} \
+        #     --penalty ${penalty} \
+        #     --maxlenratio ${maxlenratio} \
+        #     --minlenratio ${minlenratio} \
+        #     &
+        # wait
 
         # Fisher has 4 references per utterance
         if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
