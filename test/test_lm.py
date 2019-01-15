@@ -1,8 +1,8 @@
 import chainer
 import torch
 
-import espnet.lm.lm_chainer as lm_chainer
-import espnet.lm.lm_pytorch as lm_pytorch
+import espnet.lm.chainer_backend.lm as lm_chainer
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 
 def transfer_lstm(ch_lstm, th_lstm):
@@ -47,7 +47,7 @@ def test_lm():
     # numpy.testing.assert_equal(rnnlm_ch.predictor.lo.W.data, rnnlm_th.predictor.lo.weight.data.numpy())
 
     # test prediction equality
-    x = torch.from_numpy(numpy.random.randint(n_vocab, size=(batchsize))).long()
+    x = torch.from_numpy(numpy.random.randint(n_vocab, size=batchsize)).long()
     with torch.no_grad(), chainer.no_backprop_mode(), chainer.using_config('train', False):
         rnnlm_th.predictor.eval()
         state_th, y_th = rnnlm_th.predictor(None, x.long())

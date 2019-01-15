@@ -23,7 +23,7 @@ espnet.done: venv
 	conda install python=$(PYTHON_VERSION)
 	conda info -a
 	. venv/bin/activate && conda install -y pytorch -c pytorch
+	. venv/bin/activate && conda install -y hp5y matplotlib
 	. venv/bin/activate && pip install -e ..
 	. venv/bin/activate && pip install cupy==4.3.0
-	. venv/bin/activate && conda install -y matplotlib
 	touch espnet.done

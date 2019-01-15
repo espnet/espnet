@@ -15,7 +15,7 @@ import sys
 import numpy as np
 
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -39,12 +39,13 @@ def main():
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
-    # network archtecture
+    # network architecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
@@ -138,6 +139,8 @@ def main():
                         help='Batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n_iter_processes', default=0, type=int,
                         help='Number of processes of iterator')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam'],
@@ -154,12 +157,16 @@ def main():
     parser.add_argument('--threshold', default=1e-4, type=float,
                         help='Threshold to stop iteration')
     parser.add_argument('--epochs', '-e', default=30, type=int,
-                        help='Number of maximum epochs')
+                        help='Maximum number of epochs')
+    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+                        help="Value to monitor to trigger an early stopping of the training")
+    parser.add_argument('--patience', default=3, type=int, nargs='?',
+                        help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--grad-clip', default=5, type=float,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose > 0:
@@ -186,7 +193,7 @@ def main():
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -214,14 +221,14 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from espnet.asr.asr_chainer import train
+        from espnet.asr.chainer_backend.asr import train
         train(args)
     elif args.backend == "pytorch":
-        from espnet.asr.asr_pytorch import train
+        from espnet.asr.pytorch_backend.asr import train
         train(args)
     else:
-        raise ValueError("chainer and pytorch are only supported.")
+        raise ValueError("Only chainer and pytorch are supported.")
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
