@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import io
 import os
 from setuptools import find_packages
 from setuptools import setup
@@ -25,18 +26,24 @@ requirements = {
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
         'unidecode>=1.0.22',
-        'editdistance==0.5.2'],
+        'editdistance==0.5.2',
+        'h5py>=2.9.0',
+        'tensorboardX>=1.4',
+        'pillow>=5.3.0',
+        'nara_wpe'
+    ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
         'pytest>=3.3.0',
         'pytest-pythonpath>=0.7.1',
         'hacking>=1.1.0',
         'mock>=2.0.0',
-        'autopep8>=1.3.3'],
+        'autopep8>=1.3.3',
+        'jsondiff'],
     'doc': [
         'Sphinx==1.7.4',
         'sphinx-rtd-theme>=0.2.4',
-        'commonmark==0.5.4',
+        'commonmark==0.8.1',
         'recommonmark>=0.4.0',
         'travis-sphinx>=2.0.1']}
 install_requires = requirements['install']
@@ -52,7 +59,8 @@ setup(name='espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',
       description='ESPnet: end-to-end speech processing toolkit',
-      long_description=open(os.path.join(dirname, 'README.md')).read(),
+      long_description=io.open(os.path.join(dirname, 'README.md'),
+                               encoding='utf-8').read(),
       license='Apache Software License',
       packages=find_packages(include=['espnet*']),
       # #448: "scripts" is inconvenient for developping because they are copied

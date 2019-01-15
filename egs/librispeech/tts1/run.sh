@@ -6,7 +6,7 @@
 . ./path.sh
 . ./cmd.sh
 
-# genearl configuration
+# general configuration
 backend=pytorch
 stage=-1
 ngpu=1       # number of gpu in training
@@ -63,6 +63,7 @@ weight_decay=0.0
 dropout=0.5
 zoneout=0.1
 epochs=30
+patience=5
 # decoding related
 model=model.loss.best
 threshold=0.5    # threshold to stop the generation
@@ -105,7 +106,7 @@ if [ ${stage} -le 0 ]; then
     echo "stage 0: Data preparation"
     for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
         # use underscore-separated names in data directories.
-        local/data_prep.sh ${datadir}/LibriSpeech/${part} data/$(echo ${part} | sed s/-/_/g)
+        local/data_prep.sh ${datadir}/LibriSpeech/${part} data/${part//-/_}
     done
 fi
 
@@ -183,7 +184,7 @@ if [ ${stage} -le 3 ]; then
             --write-utt2num-frames true \
             --mfcc-config conf/mfcc.conf \
             --nj ${nj} --cmd "$train_cmd" \
-            data/${name}_mfcc exp/make_mfcc $mfccdir
+            data/${name}_mfcc exp/make_mfcc ${mfccdir}
         utils/fix_data_dir.sh data/${name}_mfcc
         sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
             data/${name}_mfcc exp/make_vad ${vaddir}
@@ -191,7 +192,7 @@ if [ ${stage} -le 3 ]; then
     done
     # Check pretrained model existence
     nnet_dir=exp/xvector_nnet_1a
-    if [ ! -e $nnet_dir ];then
+    if [ ! -e ${nnet_dir} ];then
         echo "X-vector model does not exist. Download pre-trained model."
         wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
         tar xvf 0008_sitw_v2_1a.tar.gz
@@ -201,8 +202,8 @@ if [ ${stage} -le 3 ]; then
     # Extract x-vector
     for name in ${train_set} ${train_dev} ${eval_set}; do
         sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
-            $nnet_dir data/${name}_mfcc \
-            $nnet_dir/xvectors_${name}
+            ${nnet_dir} data/${name}_mfcc \
+            ${nnet_dir}/xvectors_${name}
     done
     # Update json
     for name in ${train_set} ${train_dev} ${eval_set}; do
@@ -212,41 +213,43 @@ fi
 
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
+    expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
-        expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
+        expname=${expname}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
-    expdir=${expdir}-${elayers}x${eunits}_dec${dlayers}x${dunits}
+    expname=${expname}-${elayers}x${eunits}_dec${dlayers}x${dunits}
     if [ ${prenet_layers} -gt 0 ];then
-        expdir=${expdir}_pre${prenet_layers}x${prenet_units}
+        expname=${expname}_pre${prenet_layers}x${prenet_units}
     fi
     if [ ${postnet_layers} -gt 0 ];then
-        expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
+        expname=${expname}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
     fi
-    expdir=${expdir}_${atype}${adim}-${aconv_filts}x${aconv_chans}
+    expname=${expname}_${atype}${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
-        expdir=${expdir}_cm
+        expname=${expname}_cm
     fi
     if ${use_batch_norm};then
-        expdir=${expdir}_bn
+        expname=${expname}_bn
     fi
     if ${use_residual};then
-        expdir=${expdir}_rs
+        expname=${expname}_rs
     fi
     if ${use_concate};then
-        expdir=${expdir}_cc
+        expname=${expname}_cc
     fi
     if ${use_masking};then
-        expdir=${expdir}_msk_pw${bce_pos_weight}
+        expname=${expname}_msk_pw${bce_pos_weight}
     fi
-    expdir=${expdir}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
+    expname=${expname}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
     if [ ! ${batch_sort_key} = "shuffle" ];then
-        expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
+        expname=${expname}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
     fi
-    expdir=${expdir}_sd${seed}
+    expname=${expname}_sd${seed}
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
+mkdir -p ${expdir}
 if [ ${stage} -le 4 ];then
     echo "stage 4: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
@@ -256,6 +259,7 @@ if [ ${stage} -le 4 ];then
            --backend ${backend} \
            --ngpu ${ngpu} \
            --outdir ${expdir}/results \
+           --tensorboard-dir tensorboard/${expname} \
            --verbose ${verbose} \
            --seed ${seed} \
            --resume ${resume} \
@@ -295,7 +299,8 @@ if [ ${stage} -le 4 ];then
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
-           --epochs ${epochs}
+           --epochs ${epochs} \
+           --patience ${patience}
 fi
 
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
@@ -306,7 +311,7 @@ if [ ${stage} -le 5 ];then
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
@@ -318,7 +323,7 @@ if [ ${stage} -le 5 ];then
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
         # concatenate scp files
-        for n in $(seq $nj); do
+        for n in $(seq ${nj}); do
             cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
     done
