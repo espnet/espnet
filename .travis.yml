@@ -30,7 +30,9 @@ install:
     else
         cd tools;
         make -f conda.mk PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv;
-        export PATH=`pwd`/venv/bin:$PATH;
+        source venv/etc/profile.d/conda.sh;
+        conda config --set always_yes yes --set changeps1 no;
+        conda activate;
         conda update -y conda;
         conda install -y pytorch-cpu=${TH_VERSION} -c pytorch;
         cd -;
