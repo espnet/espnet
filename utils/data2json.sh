@@ -62,7 +62,6 @@ if [ -n "${feat}" ]; then
         --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
 fi
 
-
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
 if [ -n "${bpecode}" ]; then
@@ -74,7 +73,7 @@ elif [ -n "${nlsyms}" ]; then
 else
     text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/output/token.scp
 fi
-${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
+cat ${tmpdir}/output/token.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
 # +2 comes from CTC blank and EOS
 vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
