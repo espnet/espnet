@@ -160,7 +160,7 @@ this epoch [#####.............................................] 10.84%
    0.71428 iters/sec. Estimated time to finish: 2 days, 16:23:34.613215.
 ```
 
-In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install tensorboard with `pip install tensorflow; pip install tensorboard`, you can easily compare several experiments by using
+In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
 ```
 tensorboard --logdir tensorboard
 ```
