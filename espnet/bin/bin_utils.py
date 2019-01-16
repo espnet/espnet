@@ -131,3 +131,12 @@ def set_seed(seed):
     logging.info('random seed = %d' % seed)
     random.seed(seed)
     numpy.random.seed(seed)
+
+
+def check_and_prepare_env(args, max_gpu=None):
+    set_logging_level(args.verbose)
+    check_cuda_visible_devices(args.ngpu, max_gpu)
+    set_seed(args.seed)
+
+    # display PYTHONPATH
+    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))

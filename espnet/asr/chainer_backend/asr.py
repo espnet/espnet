@@ -26,13 +26,14 @@ from chainer.training.updaters.multiprocess_parallel_updater import scatter_grad
 
 # espnet related
 from espnet.asr.asr_utils import get_dimensions
-from espnet.asr.asr_utils import load_inputs_and_targets
+
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import prepare_trainer
 from espnet.asr.asr_utils import single_beam_search
 from espnet.asr.asr_utils import write_results
 
 from espnet.nets.chainer_backend.e2e_asr import E2E
+from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.train_utils import check_early_stop
@@ -158,11 +159,13 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, preprocess_conf=None):
         self.subsampling_factor = subsampling_factor
+        self.load_inputs_and_targets = LoadInputsAndTargets(
+            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
 
     def transform(self, item):
-        return load_inputs_and_targets(item)
+        return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         # set device
@@ -243,7 +246,8 @@ def train(args):
     train_json, valid_json = load_jsons(args)
 
     # set up training iterator and updater
-    converter = CustomConverter(model.subsample[0])
+    converter = CustomConverter(subsampling_factor=model.subsample[0],
+                                preprocess_conf=args.preprocess_conf)
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -366,6 +370,11 @@ def recog(args):
 
     js = load_json(args.recog_json)
 
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='asr', load_output=False, sort_in_input_length=False,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None else args.preprocess_conf)
+
     # decode each utterance
-    new_js = single_beam_search(model, js, args, train_args, rnnlm)
+    new_js = single_beam_search(model, js, args, train_args, rnnlm, load_inputs_and_targets)
     write_results(new_js, args.result_label)

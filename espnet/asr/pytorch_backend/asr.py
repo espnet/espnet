@@ -19,7 +19,6 @@ import torch
 # espnet related
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import get_dimensions
-from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_args_batchset
 from espnet.asr.asr_utils import prepare_trainer
 from espnet.asr.asr_utils import single_beam_search
@@ -36,9 +35,8 @@ from espnet.utils.pytorch_utils import warn_if_no_cuda
 
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-
-# for kaldi io
-import kaldi_io_py
+from espnet.transform.transformation import using_transform_config
+from espnet.utils.io_utils import LoadInputsAndTargets
 
 # rnnlm
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
@@ -152,12 +150,14 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, preprocess_conf=None):
         self.subsampling_factor = subsampling_factor
+        self.load_inputs_and_targets = LoadInputsAndTargets(
+            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
         self.ignore_id = -1
 
     def transform(self, item):
-        return load_inputs_and_targets(item)
+        return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         """Transforms a batch and send it to a device
@@ -235,8 +235,10 @@ def train(args):
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
+    subsampling_factor = model.subsample[0]
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=model.subsample[0])
+    converter = CustomConverter(subsampling_factor=subsampling_factor,
+                                preprocess_conf=args.preprocess_conf)
 
     train_json, valid_json = load_jsons(args)
 
@@ -312,9 +314,13 @@ def recog(args):
 
     js = load_json(args.recog_json)
     new_js = {}
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='asr', load_output=False, sort_in_input_length=False,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None else args.preprocess_conf)
 
     if args.batch_size == 0:
-        new_js = single_beam_search(model, js, args, train_args, rnnlm)
+        new_js = single_beam_search(model, js, args, train_args, rnnlm, load_inputs_and_targets)
     else:
         try:
             from itertools import zip_longest as zip_longest
@@ -334,8 +340,9 @@ def recog(args):
         with torch.no_grad():
             for names in grouper(args.batch_size, keys, None):
                 names = [name for name in names if name]
-                feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-                         for name in names]
+                batch = [(name, js[name]) for name in names]
+                with using_transform_config({'train': True}):
+                    feats = load_inputs_and_targets(batch)[0]
                 nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]

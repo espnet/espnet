@@ -13,6 +13,7 @@ import logging
 import os
 import sys
 
+from espnet.bin.bin_utils import check_and_prepare_env
 from espnet.bin.bin_utils import check_cuda_visible_devices
 from espnet.bin.bin_utils import get_train_argparser
 from espnet.bin.bin_utils import set_logging_level
@@ -43,14 +44,7 @@ def main(args):
                         help='Batch size is reduced if the input sequence > ML')
     args = parser.parse_args(args)
 
-    set_logging_level(args.verbose)
-
-    check_cuda_visible_devices(args.ngpu)
-
-    # display PYTHONPATH
-    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
-
-    set_seed(args.seed)
+    check_and_prepare_env(args, 1)
 
     # load dictionary
     with open(args.dict, 'rb') as f:

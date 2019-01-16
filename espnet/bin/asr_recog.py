@@ -8,10 +8,8 @@ import logging
 import os
 import sys
 
-from espnet.bin.bin_utils import check_cuda_visible_devices
+from espnet.bin.bin_utils import check_and_prepare_env
 from espnet.bin.bin_utils import get_recog_argparser
-from espnet.bin.bin_utils import set_logging_level
-from espnet.bin.bin_utils import set_seed
 
 
 def main(args):
@@ -23,6 +21,8 @@ def main(args):
                         help='Random seed')
     parser.add_argument('--batch-size', default=1, type=int,
                         help='Batch size for beam search (0: means no batch processing)')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # task related
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')
@@ -52,15 +52,8 @@ def main(args):
                         help='RNNLM weight.')
     args = parser.parse_args(args)
 
-    set_logging_level(args.verbose)
-
     # TODO(mn5k): support of multiple GPUs
-    check_cuda_visible_devices(args.ngpu, 1)
-
-    # display PYTHONPATH
-    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
-
-    set_seed(args.seed)
+    check_and_prepare_env(args, 1)
 
     # recog
     logging.info('backend = ' + args.backend)

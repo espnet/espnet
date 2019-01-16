@@ -15,12 +15,10 @@ from chainer.training import extensions
 import torch
 
 # io related
-import kaldi_io_py
-
 import numpy as np
 
+from espnet.transform.transformation import using_transform_config
 from espnet.utils.pytorch_utils import torch_load
-
 from espnet.utils.training.train_utils import prepare_asr_tts_trainer
 from espnet.utils.training.train_utils import REPORT_INTERVAL
 
@@ -42,13 +40,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, min_batch_size=1):
     """Make batch set from json dictionary
 
-    :param dict data: dictionary loaded from data.json
+    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
     :param int batch_size: batch size
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: mininum batch size (for multi-gpu)
-    :return: list of batches
+    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
     """
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
@@ -63,8 +61,9 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     minibatches = []
     start = 0
     while True:
-        ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
-        olen = int(sorted_data[start][1]['output'][0]['shape'][0])
+        _, info = sorted_data[start]
+        ilen = int(info['input'][0]['shape'][0])
+        olen = int(info['output'][0]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
@@ -77,7 +76,8 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         # check each batch is more than minimum batchsize
         if len(minibatch) < min_batch_size:
             mod = min_batch_size - len(minibatch) % min_batch_size
-            additional_minibatch = [sorted_data[i] for i in np.random.randint(0, start, mod)]
+            additional_minibatch = [sorted_data[i]
+                                    for i in np.random.randint(0, start, mod)]
             minibatch.extend(additional_minibatch)
         minibatches.append(minibatch)
 
@@ -90,38 +90,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         minibatches = minibatches[:num_batches]
     logging.info('# minibatches: ' + str(len(minibatches)))
 
+    # such like: [('uttid1',
+    #              {'input': [{'shape': ...}],
+    #               'output': [{'shape': ...}]}),
+    #             ...]
     return minibatches
 
 
-def load_inputs_and_targets(batch):
-    """Function to load inputs and targets from list of dicts
-
-    :param list batch: list of dict which is subset of loaded data.json
-    :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :rtype: list of float ndarray
-    :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
-    :rtype: list of int ndarray
-    """
-    # load acoustic features and target sequence of token ids
-    xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-    ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
-
-    # get index of non-zero length samples
-    nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
-    # sort in input lengths
-    nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
-    if len(nonzero_sorted_idx) != len(xs):
-        logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-            len(xs), len(nonzero_sorted_idx)))
-
-    # remove zero-length samples
-    xs = [xs[i] for i in nonzero_sorted_idx]
-    ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
-
-    return xs, ys
-
-
-# * -------------------- chainer extension related -------------------- *
 class CompareValueTrigger(object):
     """Trigger invoked when key value getting bigger or lower than before
 
@@ -404,7 +379,7 @@ def prepare_trainer(updater, evaluator, converter, model, valid_json, args, devi
     return trainer
 
 
-def single_beam_search(model, js, args, train_args, rnnlm):
+def single_beam_search(model, js, args, train_args, rnnlm, load_inputs_and_targets):
     """Executes single (no batch) beam search decoding
 
     :param model: The model used for recognition
@@ -414,13 +389,19 @@ def single_beam_search(model, js, args, train_args, rnnlm):
     :param rnnlm: The RNNLM used for Shallow Fusion
     :return: The json with the predictions
     """
+    #TODO move load_inputs_and_targets here
     is_pytorch = args.backend == 'pytorch'
     func = torch.no_grad if is_pytorch else chainer.no_backprop_mode
     new_js = {}
     with func():
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            batch = [(name, js[name])]
+            if is_pytorch:
+                with using_transform_config({'train': True}):
+                    feat = load_inputs_and_targets(batch)[0][0]
+            else:
+                feat = load_inputs_and_targets(batch)[0][0]
             nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     return new_js

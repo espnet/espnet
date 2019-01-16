@@ -7,10 +7,8 @@ import logging
 import os
 import sys
 
-from espnet.bin.bin_utils import check_cuda_visible_devices
+from espnet.bin.bin_utils import check_and_prepare_env
 from espnet.bin.bin_utils import get_recog_argparser
-from espnet.bin.bin_utils import set_logging_level
-from espnet.bin.bin_utils import set_seed
 
 
 def main(args):
@@ -18,6 +16,8 @@ def main(args):
     # general configuration
     parser.add_argument('--out', type=str, required=True,
                         help='Output filename')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # task related
     parser.add_argument('--json', type=str, required=True,
                         help='Filename of train label data (json)')
@@ -26,14 +26,7 @@ def main(args):
                         help='Threshold value in decoding')
     args = parser.parse_args(args)
 
-    set_logging_level(args.verbose)
-
-    check_cuda_visible_devices(args.ngpu)
-
-    set_seed(args.seed)
-
-    # display PYTHONPATH
-    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
+    check_and_prepare_env(args)
 
     # extract
     logging.info('backend = ' + args.backend)
