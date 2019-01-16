@@ -1,4 +1,4 @@
-# ==================================== About run.pl, queue.pl, slurm.pl, and ssh.pl ====================================
+# ====== About run.pl, queue.pl, slurm.pl, and ssh.pl ======
 # Usage: <cmd>.pl [options] JOB=1:<nj> <log> <command...>
 # e.g.
 #   run.pl --mem 4G JOB=1:10 echo.JOB.log echo JOB
@@ -11,9 +11,9 @@
 #   --gpu <ngpu>: Specify the number of GPU devices.
 #   --config: Change the configuration file from default.
 #
-# "JOB=1:10" is used for "array jobs" and it can controls the number of parallel jobs.
+# "JOB=1:10" is used for "array jobs" and it can control the number of parallel jobs.
 # The left string of "=", i.e. "JOB", is replaced by <N>(Nth job) in the command and the log file name,
-# e.g. "echo JOB" is changed to "echo 3" for the 3rd job and "echo 8" for 8th job.
+# e.g. "echo JOB" is changed to "echo 3" for the 3rd job and "echo 8" for 8th job respectively.
 # Note that the number must start with a positive number, so you can't use "JOB=0:10" for example.
 #
 # run.pl, queue.pl, slurm.pl, and ssh.pl have unified interface, not depending on its backend.
@@ -24,14 +24,14 @@
 #
 # The official documentaion for run.pl, queue.pl, slurm.pl, and ssh.pl:
 #   "Parallelization in Kaldi": http://kaldi-asr.org/doc/queue.html
-# ======================================================================================================================
+# =========================================================~
 
 
 # Select the backend used by run.sh from "local", "sge", "slurm", or "ssh"
-backend='local'
+cmd_backend='local'
 
 # Local machine, without any Job scheduling system
-if [ "${backend}" = local ]; then
+if [ "${cmd_backend}" = local ]; then
 
     # The other usage
     export train_cmd="run.pl"
@@ -41,7 +41,7 @@ if [ "${backend}" = local ]; then
     export decode_cmd="run.pl"
 
 # "qsub" (SGE, Torque, PBS, etc.)
-elif [ "${backend}" = sge ]; then
+elif [ "${cmd_backend}" = sge ]; then
     # The default setting is written in conf/queue.conf.
     # You must change "-q g.q" for the "queue" for your environment.
     # To know the "queue" names, type "qhost -q"
@@ -52,7 +52,7 @@ elif [ "${backend}" = sge ]; then
     export decode_cmd="queue.pl"
 
 # "sbatch" (Slurm)
-elif [ "${backend}" = slurm ]; then
+elif [ "${cmd_backend}" = slurm ]; then
     # The default setting is written in conf/slurm.conf.
     # You must change "-p cpu" and "-p gpu" for the "partion" for your environment.
     # To know the "partion" names, type "sinfo".
@@ -63,7 +63,7 @@ elif [ "${backend}" = slurm ]; then
     export cuda_cmd="slurm.pl"
     export decode_cmd="slurm.pl"
 
-elif [ "${backend}" = ssh ]; then
+elif [ "${cmd_backend}" = ssh ]; then
     # You have to create ".queue/machines" to specify the host to execute jobs.
     # e.g. .queue/machines
     #   host1
@@ -77,13 +77,13 @@ elif [ "${backend}" = ssh ]; then
 
 # This is an example of specifying several unique options in the JHU CLSP cluster setup.
 # Users can modify/add their own command options according to their cluster environments.
-elif [ "${backend}" = jhu ]; then
+elif [ "${cmd_backend}" = jhu ]; then
 
     export train_cmd="queue.pl --mem 2G"
     export cuda_cmd="queue.pl --mem 2G --gpu 1 --config conf/gpu.conf"
     export decode_cmd="queue.pl --mem 4G"
 
 else
-    echo "$0: Error: Unknown backend=${backend}" 1>&2
+    echo "$0: Error: Unknown cmd_backend=${cmd_backend}" 1>&2
     return 1
 fi
