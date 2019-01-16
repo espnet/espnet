@@ -42,7 +42,8 @@ mtlalpha=0.5
 samp_prob=0
 lsm_type=unigram
 lsm_weight=0.1
-drop=0.3
+drop_enc=0.3
+drop_dec=0.3
 
 # minibatch related
 batchsize=20
@@ -264,7 +265,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -308,7 +309,8 @@ if [ ${stage} -le 4 ]; then
         --sampling-probability ${samp_prob} \
         --lsm-type ${lsm_type} \
         --lsm-weight ${lsm_weight} \
-        --dropout-rate ${drop} \
+        --dropout-rate ${drop_enc} \
+        --dropout-rate-decoder ${drop_dec} \
         --opt ${opt} \
         --epochs ${epochs}
 fi
@@ -333,6 +335,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model} \

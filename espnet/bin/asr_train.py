@@ -130,7 +130,9 @@ def main(args):
                         help='Blank symbol')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
-                        help='Dropout rate')
+                        help='Dropout rate for the encoder')
+    parser.add_argument('--dropout-rate-decoder', default=0.0, type=float,
+                        help='Dropout rate for the decoder')
     # minibatch related
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')

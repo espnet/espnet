@@ -37,7 +37,8 @@ adim=1024
 samp_prob=0.2
 lsm_type=unigram
 lsm_weight=0.1
-drop=0.3
+drop_enc=0.3
+drop_dec=0.3
 weight_decay=0.000001
 
 # transfer learning ralated
@@ -114,29 +115,32 @@ if [ ${stage} -le 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
-        # upsample audio from 8k to 16k to make a recipe consistent with others
-        sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
-
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
+    # for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
+    #     # upsample audio from 8k to 16k to make a recipe consistent with others
+    #     sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+    #
+    #     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+    #         data/${x} exp/make_fbank/${x} ${fbankdir}
+    # done
 
     # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/fisher_train data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/fisher_train data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/fisher_train data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/train_sp data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train_sp exp/make_fbank/train_sp ${fbankdir}
+    # utils/perturb_data_dir_speed.sh 0.9 data/fisher_train data/temp1
+    # utils/perturb_data_dir_speed.sh 1.0 data/fisher_train data/temp2
+    # utils/perturb_data_dir_speed.sh 1.1 data/fisher_train data/temp3
+    # utils/combine_data.sh --extra-files utt2uniq data/train_sp data/temp1 data/temp2 data/temp3
+    # rm -r data/temp1 data/temp2 data/temp3
+    # steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+    #     data/train_sp exp/make_fbank/train_sp ${fbankdir}
     for lang in es en; do
         cat data/fisher_train/utt2spk | awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.${lang} >data/train_sp/text.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >data/train_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >data/train_sp/text.tc.${lang}
         cat data/fisher_train/utt2spk | awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.${lang} >>data/train_sp/text.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
         cat data/fisher_train/utt2spk | awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.${lang} >>data/train_sp/text.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
     done
 
     # Divide into Es and En
@@ -245,7 +249,7 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -293,7 +297,8 @@ if [ ${stage} -le 4 ]; then
         --sampling-probability ${samp_prob} \
         --lsm-type ${lsm_type} \
         --lsm-weight ${lsm_weight} \
-        --dropout-rate ${drop} \
+        --dropout-rate ${drop_enc} \
+        --dropout-rate-decoder ${drop_dec} \
         --opt ${opt} \
         --epochs ${epochs} \
         --patience ${patience} \
@@ -322,6 +327,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model} \

@@ -37,7 +37,8 @@ adim=1024
 samp_prob=0.2
 lsm_type=unigram
 lsm_weight=0.1
-drop=0.3
+drop_enc=0.3
+drop_dec=0.3
 weight_decay=0.000001
 
 # transfer learning ralated
@@ -235,7 +236,7 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -283,7 +284,8 @@ if [ ${stage} -le 4 ]; then
         --sampling-probability ${samp_prob} \
         --lsm-type ${lsm_type} \
         --lsm-weight ${lsm_weight} \
-        --dropout-rate ${drop} \
+        --dropout-rate ${drop_enc} \
+        --dropout-rate-decoder ${drop_dec} \
         --opt ${opt} \
         --epochs ${epochs} \
         --patience ${patience} \
@@ -312,6 +314,7 @@ if [ ${stage} -le 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model} \
