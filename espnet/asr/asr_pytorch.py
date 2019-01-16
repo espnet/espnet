@@ -709,11 +709,12 @@ def recog(args):
             uttids[lang].append(uttname)
         #for lang in uttids.keys():
         for lang in target_langs:
-            write_enc_states(lang, target_phns,
-                             js, uttids, per_frame_phns, e2e, train_args,
-                             enc_states_dir,
-                             num_encoder_states=NUM_ENCODER_STATES,
-                             request_vgg=args.request_vgg)
+            #write_enc_states(lang, target_phns,
+            #                 js, uttids, per_frame_phns, e2e, train_args,
+            #                 enc_states_dir,
+            #                 num_encoder_states=NUM_ENCODER_STATES,
+            #                 request_vgg=args.request_vgg)
+            extract_phn_contexts(lang, target_phns, uttids, per_frame_phns, enc_states_dir)
 
         return
 
@@ -821,6 +822,22 @@ def extract_wav(uttid, lang, phn, start, dur, phn_index, enc_states_dir, pad=0.0
     args = ["sox", str(in_path), str(out_path),
             "trim", str(start-pad), str(dur+2*pad)]
     subprocess.check_output(args, stderr=subprocess.STDOUT)
+
+def extract_phn_contexts(lang, tgt_phns, uttids, per_frame_phns, enc_states_dir):
+    contexts = defaultdict(list)
+    for uttid in uttids[lang]:
+        if uttid in per_frame_phns:
+            phn_tuples = per_frame_phns[uttid]
+            for i in range(len(phn_tuples)):
+                start, dur, phn = phn_tuple
+                if phn in tgt_phns:
+                    contexts[phn].append([phn for _, _, phn in phn_tuples[i-1:i+2]])
+    for tgt in contexts:
+        context_path = os.path.join(
+                enc_states_dir, "lang-{}_phn-{}_contexts.txt".format(lang, tgt))
+        with open(context_path) as f:
+            for context in contexts[tgt]:
+                f.write(" ".join(context))
 
 def write_enc_states(lang, tgt_phns,
                      js, uttids, per_frame_phns, e2e, train_args,
