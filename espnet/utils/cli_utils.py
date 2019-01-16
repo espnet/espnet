@@ -251,12 +251,12 @@ class FileWriterWrapper(object):
         if self.writer_scp is not None:
             if self.filetype in ['hdf5', 'sound.hdf5']:
                 self.writer_scp.write(
-                    '{} {}:{}\n'.format(key, self.filename, key).decode('utf-8'))
+                    u'{} {}:{}\n'.format(key, self.filename, key))
             else:
                 raise NotImplementedError
 
         if self.writer_nframe is not None:
-            self.writer_nframe.write('{} {}\n'.format(key, len(value)).decode('utf-8'))
+            self.writer_nframe.write(u'{} {}\n'.format(key, len(value)))
 
     def __enter__(self):
         return self
