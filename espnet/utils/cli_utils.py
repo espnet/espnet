@@ -1,4 +1,3 @@
-from collections import Sequence
 import io
 import sys
 
@@ -10,6 +9,12 @@ import soundfile
 from espnet.utils.io_utils import SoundHDF5File
 
 PY2 = sys.version_info[0] == 2
+
+if PY2:
+    from collections import Sequence
+else:
+    # The ABCs from 'collections' will stop working in 3.8
+    from collections.abc import Sequence
 
 
 def get_commandline_args():
@@ -25,10 +30,15 @@ def get_commandline_args():
     return sys.executable + ' ' + ' '.join(argv)
 
 
-def assert_scipy_wav_style(value):
-    assert (isinstance(value, Sequence) and len(value) == 2 and
+def is_scipy_wav_style(value):
+    # If Tuple[int, numpy.ndarray] or not
+    return (isinstance(value, Sequence) and len(value) == 2 and
             isinstance(value[0], int) and
-            isinstance(value[1], numpy.ndarray)), \
+            isinstance(value[1], numpy.ndarray))
+
+
+def assert_scipy_wav_style(value):
+    assert is_scipy_wav_style(value), \
         'Must be Tuple[int, numpy.ndarray], but got {}'.format(
             type(value) if not isinstance(value, Sequence)
             else '{}[{}]'.format(type(value),
@@ -40,6 +50,8 @@ class FileReaderWrapper(object):
 
     :param str rspecifier: Give as "ark:feats.ark" or "scp:feats.scp"
     :param str filetype: "mat" is kaldi-martix, "hdf5": HDF5
+    :param bool return_shape: Return the shape of the matrix,
+        instead of the matrix. This can reduce IO cost for HDF5.
     :rtype: Generator[Tuple[str, np.ndarray], None, None]
 
     Read from kaldi-matrix ark file:
@@ -56,14 +68,17 @@ class FileReaderWrapper(object):
 
     """
 
-    def __init__(self, rspecifier, filetype='mat'):
+    def __init__(self, rspecifier, filetype='mat', return_shape=False):
         self.rspecifier = rspecifier
         self.filetype = filetype
+        self.return_shape = return_shape
 
     def __iter__(self):
         if self.filetype == 'mat':
             with kaldiio.ReadHelper(self.rspecifier) as reader:
                 for key, array in reader:
+                    if self.return_shape:
+                        array = array.shape
                     yield key, array
 
         elif self.filetype == 'sound':
@@ -82,6 +97,9 @@ class FileReaderWrapper(object):
                                                  dtype='int16')
                     # Change Tuple[ndarray, int] -> Tuple[int, ndarray]
                     # (soundfile style -> scipy style)
+
+                    if self.return_shape:
+                        array = array.shape
                     yield key, (rate, array)
 
         elif self.filetype in ['hdf5', 'sound.hdf5']:
@@ -117,9 +135,19 @@ class FileReaderWrapper(object):
                             # Change Tuple[ndarray, int] -> Tuple[int, ndarray]
                             # (soundfile style -> scipy style)
                             array, rate = hdf5_file[h5_key]
+
+                            if self.return_shape:
+                                array = array.shape
                             yield key, (rate, array)
                         else:
-                            yield key, hdf5_file[h5_key][...]
+                            if self.return_shape:
+                                yield key, hdf5_file[h5_key].shape
+                            else:
+                                yield key, hdf5_file[h5_key][()]
+
+                # Closing all files
+                for k in hdf5_dict:
+                    hdf5_dict[k].close()
 
             else:
                 if filepath == '-':
@@ -130,10 +158,16 @@ class FileReaderWrapper(object):
                         filepath = io.BytesIO(sys.stdin.buffer.read())
                 if self.filetype == 'sound.hdf5':
                     for key, (r, a) in SoundHDF5File(filepath, 'r').items():
+                        if self.return_shape:
+                            a = a.shape
                         yield key, (r, a)
                 else:
-                    for key, dataset in h5py.File(filepath, 'r').items():
-                        yield key, dataset[...]
+                    with h5py.File(filepath, 'r') as f:
+                        for key in f:
+                            if self.return_shape:
+                                yield key, f[key].shape
+                            else:
+                                yield key, f[key][()]
         else:
             raise ValueError(
                 'Not supporting: filetype={}'.format(self.filetype))
