@@ -124,6 +124,7 @@ def main(args):
     parser.add_argument('--bce_pos_weight', default=20.0, type=float,
                         help='Positive sample weight in BCE calculation (only for use_masking=True)')
     # minibatch related
+    parser.add_argument('--sortagrad', default=True, type=strtobool, nargs='?', help="Use sortagrad for first epoch")
     parser.add_argument('--batch_sort_key', default='shuffle', type=str,
                         choices=['shuffle', 'output', 'input'], nargs='?',
                         help='Batch sorting key')
@@ -135,6 +136,8 @@ def main(args):
                         help='Batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n_iter_processes', default=0, type=int,
                         help='Number of processes of iterator')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate for optimizer')

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -27,7 +27,8 @@ def exist_or_not(i, match_pos):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--nchar', '-n', default=1, type=int,
                         help='number of characters to split, i.e., \
                         aabb -> a a b b with -n 1 and aa bb with -n 2')

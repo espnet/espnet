@@ -11,6 +11,7 @@ from __future__ import print_function
 
 import argparse
 import logging
+
 import numpy as np
 import os
 import platform
@@ -18,6 +19,7 @@ import random
 import subprocess
 import sys
 
+from distutils.util import strtobool
 
 def main(args):
     parser = argparse.ArgumentParser()
@@ -51,6 +53,7 @@ def main(args):
     parser.add_argument('--opt', default='sgd', type=str,
                         choices=['sgd', 'adam'],
                         help='Optimizer')
+    parser.add_argument('--sortagrad', default=True, type=strtobool, nargs='?', help="Use sortagrad for first epoch")
     parser.add_argument('--batchsize', '-b', type=int, default=300,
                         help='Number of examples in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,

@@ -4,32 +4,20 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import logging
-import os
-
-import codecs
-import librosa
-import numpy as np
-import soundfile as sf
-
-import kaldi_io_py
-
 from distutils.util import strtobool
+import logging
 
-EPS = 1e-10
+import kaldiio
+import numpy
 
-
-def spectrogram(x, fs, n_fft, n_shift,
-                win_length, window='hann'):
-    spc = np.abs(librosa.stft(x, n_fft, n_shift, win_length, window=window)).T
-
-    return spc
+from espnet.transform.spectrogram import spectrogram
+from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--fs', type=int,
-                        help='Sampling frequency')
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--n_fft', type=int, default=1024,
                         help='FFT length in point')
     parser.add_argument('--n_shift', type=int, default=512,
@@ -39,54 +27,57 @@ def main():
     parser.add_argument('--window', type=str, default='hann',
                         choices=['hann', 'hamming'],
                         help='Type of window')
-    parser.add_argument('--write_utt2num_frames', type=strtobool, default=True,
-                        help='Whether to write utt2num file')
-    parser.add_argument('scp', type=str,
-                        help='WAV scp files')
-    parser.add_argument('out', type=str,
-                        help='Output file id')
+    parser.add_argument('--write-num-frames', type=str,
+                        help='Specify wspecifer for utt2num_frames')
+    parser.add_argument('--filetype', type=str, default='mat',
+                        choices=['mat', 'hdf5'],
+                        help='Specify the file format. '
+                             '"mat" is the matrix format in kaldi')
+    parser.add_argument('--compress', type=strtobool, default=False,
+                        help='Save in compressed format')
+    parser.add_argument('--compression-method', type=int, default=2,
+                        help='Specify the method(if mat) or gzip-level(if hdf5)')
+    parser.add_argument('--verbose', '-V', default=0, type=int,
+                        help='Verbose option')
+    parser.add_argument('--normalize', choices=[1, 16, 24, 32], type=int,
+                        default=None,
+                        help='Give the bit depth of the PCM, '
+                             'then normalizes data to scale in [-1,1]')
+    parser.add_argument('rspecifier', type=str, help='WAV scp file')
+    parser.add_argument(
+        '--segments', type=str,
+        help='segments-file format: each line is either'
+             '<segment-id> <recording-id> <start-time> <end-time>'
+             'e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5')
+    parser.add_argument('wspecifier', type=str, help='Write specifier')
     args = parser.parse_args()
 
-    # logging info
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
-
-    # load scp
-    with codecs.open(args.scp, 'r', encoding="utf-8") as f:
-        scp = [x.replace('\n', '').split() for x in f.readlines()]
-    if len(scp[0]) != 2:
-        utt_ids = [scp_[0] for scp_ in scp]
-        paths = [scp_[-2] for scp_ in scp]
-        scp = [[utt_id, path] for utt_id, path in zip(utt_ids, paths)]
-
-    # check directory
-    outdir = os.path.dirname(args.out)
-    if len(outdir) != 0 and not os.path.exists(outdir):
-        os.makedirs(outdir)
-
-    # write to ark and scp file (see https://github.com/vesis84/kaldi-io-for-python)
-    if args.write_utt2num_frames:
-        job_id = "." + args.out.split(".")[-1] if args.out.split(".")[-1].isdigit() else ""
-        arkscp = 'ark:| copy-feats --print-args=false --write-num-frames=ark,t:%s ark:- ark,scp:%s.ark,%s.scp' % (
-            os.path.dirname(args.out) + "/utt2num_frames" + job_id, args.out, args.out)
+    logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
+    if args.verbose > 0:
+        logging.basicConfig(level=logging.INFO, format=logfmt)
     else:
-        arkscp = 'ark:| copy-feats --print-args=false ark:- ark,scp:%s.ark,%s.scp' % (args.out, args.out)
+        logging.basicConfig(level=logging.WARN, format=logfmt)
+    logging.info(get_commandline_args())
 
-    # extract feature and then write as ark with scp format
-    with kaldi_io_py.open_or_fd(arkscp, 'wb') as f:
-        for idx, (utt_id, path) in enumerate(scp, 1):
-            x, fs = sf.read(path)
-            assert fs == args.fs
+    with kaldiio.ReadHelper(args.rspecifier,
+                            segments=args.segments) as reader, \
+            FileWriterWrapper(args.wspecifier,
+                              filetype=args.filetype,
+                              write_num_frames=args.write_num_frames,
+                              compress=args.compress,
+                              compression_method=args.compression_method
+                              ) as writer:
+        for utt_id, (_, array) in reader:
+            array = array.astype(numpy.float32)
+            if args.normalize is not None and args.normalize != 1:
+                array = array / (1 << (args.normalize - 1))
             spc = spectrogram(
-                x=x,
-                fs=args.fs,
+                x=array,
                 n_fft=args.n_fft,
                 n_shift=args.n_shift,
                 win_length=args.win_length,
                 window=args.window)
-            logging.info("(%d/%d) %s" % (idx, len(scp), utt_id))
-            kaldi_io_py.write_mat(f, spc, utt_id)
+            writer[utt_id] = spc
 
 
 if __name__ == "__main__":

@@ -338,7 +338,7 @@ def train(args):
 
     # Create the dataset iterators
     train_iter = ParallelSentenceIterator(train, args.batchsize,
-                                          max_length=args.maxlen, sos=eos, eos=eos)
+                                          max_length=args.maxlen, sos=eos, eos=eos, shuffle=not args.sortagrad)
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
