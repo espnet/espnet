@@ -168,11 +168,11 @@ class Encoder(chainer.Chain):
                 self.enc = chainer.Sequential(BLSTM(idim, len(expanded_layers), expanded_layers[0], eprojs, dropout))
                 logging.info('BLSTM without projection for encoder')
             elif etype == 'blstmp':
-                self.enc = chainer.Sequential(BLSTMP(idim, elayers, eprojs, subsample, dropout))
+                self.enc = chainer.Sequential(BLSTMP(idim, expanded_layers, eprojs, subsample, dropout))
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
                 self.enc = chainer.Sequential(VGG2L(in_channel),
-                                              BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers,
+                                              BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), expanded_layers,
                                                      eprojs,
                                                      subsample, dropout))
                 logging.info('Use CNN-VGG + BLSTMP for encoder')

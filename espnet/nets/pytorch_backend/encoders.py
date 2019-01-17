@@ -176,11 +176,11 @@ class Encoder(torch.nn.Module):
             self.enc = torch.nn.ModuleList([BLSTM(idim, len(expanded_elayers), expanded_elayers[0], eprojs, dropout)])
             logging.info('BLSTM without projection for encoder')
         elif etype == 'blstmp':
-            self.enc = torch.nn.ModuleList([BLSTMP(idim, elayers, eprojs, subsample, dropout)])
+            self.enc = torch.nn.ModuleList([BLSTMP(idim, expanded_elayers, eprojs, subsample, dropout)])
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
             self.enc = torch.nn.ModuleList([VGG2L(in_channel),
-                                            BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eprojs,
+                                            BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), expanded_elayers, eprojs,
                                                    subsample, dropout)])
             logging.info('Use CNN-VGG + BLSTMP for encoder')
         elif etype == 'vggblstm':
