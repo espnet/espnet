@@ -74,7 +74,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
        randomly shuffled.
     """
 
-    def __init__(self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True):
+    def __init__(self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True, shuffle=True):
         self.dataset = dataset
         self.batch_size = batch_size  # batch size
         # Number of completed sweeps over the dataset. In this case, it is
@@ -99,8 +99,9 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
                     be = min(be, bs + max(batch_size // (sent_length // max_length + 1), 1))
                 self.batch_indices.append(np.array(indices[bs:be]))
                 bs = be
-            # shuffle batches
-            random.shuffle(self.batch_indices)
+            if shuffle:
+                # shuffle batches
+                random.shuffle(self.batch_indices)
         else:
             self.batch_indices = [np.array([i]) for i in six.moves.range(length)]
 
@@ -136,6 +137,9 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
             self.epoch = epoch
 
         return batch
+
+    def start_shuffling(self):
+        random.shuffle(self.batch_indices)
 
     @property
     def epoch_detail(self):

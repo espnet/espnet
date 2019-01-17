@@ -32,11 +32,11 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
+from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
@@ -44,9 +44,6 @@ from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.train_utils import check_early_stop
-
-# for kaldi io
-import kaldi_io_py
 
 # rnnlm
 import espnet.lm.chainer_backend.extlm as extlm_chainer
@@ -170,11 +167,13 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, preprocess_conf=None):
         self.subsampling_factor = subsampling_factor
+        self.load_inputs_and_targets = LoadInputsAndTargets(
+            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
 
     def transform(self, item):
-        return load_inputs_and_targets(item)
+        return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         # set device
@@ -287,7 +286,8 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
-    converter = CustomConverter(model.subsample[0])
+    converter = CustomConverter(subsampling_factor=model.subsample[0],
+                                preprocess_conf=args.preprocess_conf)
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -347,7 +347,8 @@ def train(args):
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
-    trainer.extend(ShufflingEnabler(train_iters), trigger=(1, 'epoch'))
+    if args.sortagrad:
+        trainer.extend(ShufflingEnabler(train_iters), trigger=(1, 'epoch'))
 
     # Resume from a snapshot
     if args.resume:
@@ -503,12 +504,18 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
 
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='asr', load_output=False, sort_in_input_length=False,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None else args.preprocess_conf)
+
     # decode each utterance
     new_js = {}
     with chainer.no_backprop_mode():
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            batch = [(name, js[name])]
+            feat = load_inputs_and_targets(batch)[0][0]
             nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 

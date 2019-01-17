@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
+    [ ! -z $LC_ALL ] && export LC_ALL="en_US.UTF-8"
+
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
     tmpdir=$(mktemp -d testXXXXXX)
     cat << EOF > $tmpdir/input.json
@@ -9,7 +11,7 @@ setup() {
         "uttid1": {
             "input": [
                 {
-                    "feat": "aaa.ark:123", 
+                    "feat": "aaa.ark:123",
                     "text": "あ い"
                 }
             ]
@@ -17,7 +19,7 @@ setup() {
         "uttid2": {
             "input": [
                 {
-                    "feat": "aaa.ark:456", 
+                    "feat": "aaa.ark:456",
                     "text": "か き"
                 }
             ]
@@ -25,7 +27,7 @@ setup() {
         "uttid3": {
             "input": [
                 {
-                    "feat": "aaa.ark:789", 
+                    "feat": "aaa.ark:789",
                     "text": "さ し"
                 }
             ]
@@ -33,7 +35,7 @@ setup() {
         "uttid4": {
             "input": [
                 {
-                    "feat": "aaa.ark:111111", 
+                    "feat": "aaa.ark:111111",
                     "text": "た ち"
                 }
             ]
@@ -41,7 +43,7 @@ setup() {
         "uttid5": {
             "input": [
                 {
-                    "feat": "aaa.ark:22222", 
+                    "feat": "aaa.ark:22222",
                     "text": "な に"
                 }
             ]
@@ -80,7 +82,7 @@ cat << EOF > $tmpdir/valid1
     }
 }
 EOF
- 
+
 cat << EOF > $tmpdir/valid2
 {
     "utts": {
@@ -110,8 +112,8 @@ teardown() {
     rm -rf $tmpdir
 }
 
-@test "" {
-    python $utils/splitjson.py -p 2 $tmpdir/input.json 
+@test "splitjson.py" {
+    python $utils/splitjson.py -p 2 $tmpdir/input.json
     jsondiff $tmpdir/split2utt/input.1.json $tmpdir/valid1
     jsondiff $tmpdir/split2utt/input.2.json $tmpdir/valid2
 }
