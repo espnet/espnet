@@ -22,7 +22,7 @@ do_delta=false
 # network architecture
 # encoder related
 etype=blstmp # encoder architecture type
-elayers=6
+elayers=6x320
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
@@ -213,7 +213,6 @@ if [ ${stage} -le 3 ]; then
         --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
-        --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
         --dlayers ${dlayers} \

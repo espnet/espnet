@@ -22,8 +22,7 @@ do_delta=false
 # network architecture
 # encoder related
 etype=vggblstm     # encoder architecture type
-elayers=5
-eunits=1024
+elayers=5x1024
 eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
@@ -269,7 +268,6 @@ if [ ${stage} -le 4 ]; then
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json \
         --etype ${etype} \
         --elayers ${elayers} \
-        --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
         --dlayers ${dlayers} \

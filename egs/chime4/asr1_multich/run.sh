@@ -21,8 +21,7 @@ do_delta=false
 # network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
-elayers=3
-eunits=1024
+elayers=3x1024
 eprojs=1024
 subsample=1_1_1 # skip every n frame from input to nth layers
 # decoder related
@@ -280,7 +279,6 @@ if [ ${stage} -le 4 ]; then
         --preprocess-conf ${expdir}/preprocess.conf \
         --etype ${etype} \
         --elayers ${elayers} \
-        --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
         --dlayers ${dlayers} \

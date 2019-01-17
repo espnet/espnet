@@ -22,8 +22,7 @@ do_delta=false
 # network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
-elayers=4
-eunits=320
+elayers=4x320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
@@ -192,7 +191,6 @@ if [ ${stage} -le 3 ]; then
         --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
-        --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
         --dlayers ${dlayers} \
