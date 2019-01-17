@@ -50,10 +50,8 @@ def main(args):
     parser.add_argument('--etype', default='blstmp', type=str,
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
                         help='Type of encoder network architecture')
-    parser.add_argument('--elayers', default=4, type=int,
-                        help='Number of encoder layers')
-    parser.add_argument('--eunits', '-u', default=300, type=int,
-                        help='Number of encoder hidden units')
+    parser.add_argument('--elayers', default='4x300', type=str,
+                        help='Encoder layers')
     parser.add_argument('--eprojs', default=320, type=int,
                         help='Number of encoder projection units')
     parser.add_argument('--subsample', default=1, type=str,

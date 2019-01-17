@@ -79,4 +79,27 @@ def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     idim = idim / in_channel
     idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
     idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
-    return int(idim) * out_channel  # numer of channels
+    return int(idim) * out_channel  # number of channels
+
+
+def expand_elayers(elayers, etype):
+    """Expands the elayers representation and return the corrected etype if necessary
+
+    :param list[str] elayers: The layers configuration
+    :param str etype: The chosen etype
+    :rtype: tuple[list[int],str]
+    :return: (expanded layers, new_etype)
+    """
+    expanded_elayers = []
+    for layers in elayers:
+        layer = layers.split("x")
+        if len(layer) > 1:
+            expanded_elayers.extend(int(layer[0]) * [int(layer[1])])
+        else:
+            expanded_elayers.append(int(layer[0]))
+
+    all_same = len(set(expanded_elayers)) == 1
+    if not etype.endswith('p') and not all_same:
+        etype = etype + 'p'
+        logging.warning("Adding every-layer projection to encoder due to different encoder layers sizes")
+    return expanded_elayers, etype

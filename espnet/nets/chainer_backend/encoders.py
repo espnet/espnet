@@ -10,26 +10,26 @@ import numpy as np
 from chainer import cuda
 
 from espnet.nets.chainer_backend.nets_utils import _subsamplex
+from espnet.nets.e2e_asr_common import expand_elayers
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 
 
 # TODO(watanabe) explanation of BLSTMP
 class BLSTMP(chainer.Chain):
-    def __init__(self, idim, elayers, cdim, hdim, subsample, dropout):
+    def __init__(self, idim, elayers, hdim, subsample, dropout):
         super(BLSTMP, self).__init__()
         with self.init_scope():
-            for i in six.moves.range(elayers):
+            for i in six.moves.range(len(elayers)):
                 if i == 0:
                     inputdim = idim
                 else:
                     inputdim = hdim
                 setattr(self, "bilstm%d" % i, L.NStepBiLSTM(
-                    1, inputdim, cdim, dropout))
+                    1, inputdim, elayers[i], dropout))
                 # bottleneck layer to merge
-                setattr(self, "bt%d" % i, L.Linear(2 * cdim, hdim))
+                setattr(self, "bt%d" % i, L.Linear(2 * elayers[i], hdim))
 
         self.elayers = elayers
-        self.cdim = cdim
         self.subsample = subsample
 
     def __call__(self, xs, ilens):
@@ -152,8 +152,7 @@ class Encoder(chainer.Chain):
 
     :param str etype: type of encoder network
     :param int idim: number of dimensions of encoder network
-    :param int elayers: number of layers of encoder network
-    :param int eunits: number of lstm units of encoder network
+    :param list[str] elayers: layers configuration
     :param int eprojs: number of projection units of encoder network
     :param np.ndarray subsample: subsampling number e.g. 1_2_2_2_1
     :param float dropout: dropout rate
@@ -161,25 +160,26 @@ class Encoder(chainer.Chain):
 
     """
 
-    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
+    def __init__(self, etype, idim, elayers, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
+        expanded_layers, etype = expand_elayers(elayers, etype)
         with self.init_scope():
             if etype == 'blstm':
-                self.enc = chainer.Sequential(BLSTM(idim, elayers, eunits, eprojs, dropout))
+                self.enc = chainer.Sequential(BLSTM(idim, len(expanded_layers), expanded_layers[0], eprojs, dropout))
                 logging.info('BLSTM without projection for encoder')
             elif etype == 'blstmp':
-                self.enc = chainer.Sequential(BLSTMP(idim, elayers, eunits, eprojs, subsample, dropout))
+                self.enc = chainer.Sequential(BLSTMP(idim, elayers, eprojs, subsample, dropout))
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
                 self.enc = chainer.Sequential(VGG2L(in_channel),
-                                              BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
+                                              BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers,
                                                      eprojs,
                                                      subsample, dropout))
                 logging.info('Use CNN-VGG + BLSTMP for encoder')
             elif etype == 'vggblstm':
                 self.enc = chainer.Sequential(VGG2L(in_channel),
-                                              BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                    eprojs,
+                                              BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), len(expanded_layers),
+                                                    expanded_layers[0], eprojs,
                                                     dropout))
                 logging.info('Use CNN-VGG + BLSTM for encoder')
             else:
@@ -200,4 +200,4 @@ class Encoder(chainer.Chain):
 
 
 def encoder_for(args, idim, subsample):
-    return Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs, subsample, args.dropout_rate)
+    return Encoder(args.etype, idim, args.elayers, args.eprojs, subsample, args.dropout_rate)
