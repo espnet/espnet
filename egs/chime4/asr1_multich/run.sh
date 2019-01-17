@@ -43,7 +43,7 @@ maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
-sortagrad=True
+sortagrad=true
 opt=adadelta
 epochs=10
 patience=3

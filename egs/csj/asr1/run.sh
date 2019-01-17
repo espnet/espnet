@@ -48,7 +48,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 dropout=0.2
-sortagrad=True
+sortagrad=true
 opt=adadelta
 epochs=8
 patience=3
