@@ -276,6 +276,8 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
+    if args.sortagrad:
+        args.batch_sort_key = "input"
     # make minibatch list (variable length)
     train_batchset = make_batchset(train_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
