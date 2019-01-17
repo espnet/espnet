@@ -19,10 +19,16 @@ def main(args):
     parser.add_argument('--backend', default='pytorch', type=str,
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
+    parser.add_argument('--debugmode', default=1, type=int,
+                        help='Debugmode')
+    parser.add_argument('--seed', default=1, type=int,
+                        help='Random seed')
     parser.add_argument('--out', type=str, required=True,
                         help='Output filename')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # task related
     parser.add_argument('--json', type=str, required=True,
                         help='Filename of train label data (json)')

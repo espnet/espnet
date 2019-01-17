@@ -39,6 +39,7 @@ def main(args):
                         help='Resume the training from snapshot')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-label', type=str, required=True,
                         help='Filename of train label data')
@@ -54,6 +55,10 @@ def main(args):
                         help='Number of examples in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
+    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+                        help="Value to monitor to trigger an early stopping of the training")
+    parser.add_argument('--patience', default=3, type=int, nargs='?',
+                        help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],

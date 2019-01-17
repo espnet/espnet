@@ -18,12 +18,11 @@ venv: miniconda.sh
 	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
 
 espnet.done: venv
-	conda config --set always_yes yes --set changeps1 no
-	conda update conda
-	conda install python=$(PYTHON_VERSION)
+	. venv/bin/activate && conda update -y conda
+	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
 	conda info -a
 	. venv/bin/activate && conda install -y pytorch -c pytorch
+	. venv/bin/activate && conda install -y hp5y matplotlib
 	. venv/bin/activate && pip install -e ..
 	. venv/bin/activate && pip install cupy==4.3.0
-	. venv/bin/activate && conda install -y matplotlib
 	touch espnet.done

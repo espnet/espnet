@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -17,8 +17,12 @@ import sys
 
 import numpy as np
 
+from espnet.utils.cli_utils import get_commandline_args
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str,
                         help='json file')
     parser.add_argument('--parts', '-p', type=int,
@@ -28,6 +32,7 @@ if __name__ == '__main__':
     # logging info
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    logging.info(get_commandline_args())
 
     # check directory
     filename = os.path.basename(args.json).split('.')[0]

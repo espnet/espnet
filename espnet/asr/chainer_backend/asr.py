@@ -32,16 +32,14 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
+from espnet.utils.io_utils import LoadInputsAndTargets
 
-from espnet.bin.bin_utils import set_deterministic_chainer
-
-# for kaldi io
-import kaldi_io_py
+from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.training.train_utils import check_early_stop
 
 # rnnlm
 import espnet.lm.chainer_backend.extlm as extlm_chainer
@@ -50,6 +48,9 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 # numpy related
 import matplotlib
 import numpy as np
+
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
+from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
@@ -87,7 +88,7 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(*x)[0]
+        loss = optimizer.target(*x)
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
@@ -122,7 +123,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             batch = self.get_iterator('main').next()
             x = self.converter(batch, self._devices[0])
 
-            loss = self._master(*x)[0]
+            loss = self._master(*x)
 
             self._master.cleargrads()
             loss.backward()
@@ -162,11 +163,13 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, preprocess_conf=None):
         self.subsampling_factor = subsampling_factor
+        self.load_inputs_and_targets = LoadInputsAndTargets(
+            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
 
     def transform(self, item):
-        return load_inputs_and_targets(item)
+        return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         # set device
@@ -232,7 +235,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model = E2E(idim, odim, args, flag_return=False)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -279,7 +282,8 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
-    converter = CustomConverter(model.subsample[0])
+    converter = CustomConverter(subsampling_factor=model.subsample[0],
+                                preprocess_conf=args.preprocess_conf)
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -366,9 +370,12 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        trainer.extend(PlotAttentionReport(
+        att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=gpu_id), trigger=(1, 'epoch'))
+            converter=converter, device=gpu_id)
+        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+    else:
+        att_reporter = None
 
     # Take a snapshot for each specified epoch
     trainer.extend(extensions.snapshot(filename='snapshot.ep.{.updater.epoch}'), trigger=(1, 'epoch'))
@@ -424,8 +431,17 @@ def train(args):
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
+    if args.patience > 0:
+        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
+                                                                              patients=args.patience,
+                                                                              max_trigger=(args.epochs, 'epoch'))
+    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        trainer.extend(TensorboardLogger(writer, att_reporter))
+
     # Run the training
     trainer.run()
+    check_early_stop(trainer, args.epochs)
 
 
 def recog(args):
@@ -479,12 +495,18 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
 
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='asr', load_output=False, sort_in_input_length=False,
+        preprocess_conf=train_args.preprocess_conf
+        if args.preprocess_conf is None else args.preprocess_conf)
+
     # decode each utterance
     new_js = {}
     with chainer.no_backprop_mode():
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-            feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
+            batch = [(name, js[name])]
+            feat = load_inputs_and_targets(batch)[0][0]
             nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
