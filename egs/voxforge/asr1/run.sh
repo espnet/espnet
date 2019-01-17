@@ -43,6 +43,7 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=True
 opt=adadelta
 epochs=15
 patience=3
@@ -205,6 +206,7 @@ if [ ${stage} -le 3 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
+        --sortagrad ${sortagrad} \
         --sampling-probability ${samp_prob} \
         --epochs ${epochs} \
         --patience ${patience}

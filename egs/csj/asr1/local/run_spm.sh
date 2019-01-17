@@ -47,12 +47,14 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=True
 opt=adadelta
 epochs=15
 patience=3
 
 # rnnlm related
 lm_weight=0.3
+lm_sortagrad=true
 
 # decoding parameter
 beam_size=20
@@ -206,6 +208,7 @@ if [ ${stage} -le 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --epoch 40 \
+        --sortagrad ${lm_sortagrad} \
         --batchsize 256 \
         --dict ${dict}
 fi
@@ -256,6 +259,7 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
+        --sortagrad ${sortagrad} \
         --epochs ${epochs} \
         --patience ${patience}
 fi
