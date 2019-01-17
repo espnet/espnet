@@ -61,6 +61,7 @@ cbhg_highway_units=128
 cbhg_gru_units=256
 # minibatch related
 batchsize=32
+sortagrad=true
 batch_sort_key=shuffle # shuffle or input or output
 maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
 maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
@@ -293,6 +294,7 @@ if [ ${stage} -le 4 ];then
            --zoneout ${zoneout} \
            --reduction_factor ${reduction_factor} \
            --weight-decay ${weight_decay} \
+           --sortagrad ${sortagrad} \
            --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
