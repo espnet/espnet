@@ -162,7 +162,7 @@ class Encoder(torch.nn.Module):
 
     :param str etype: type of encoder network
     :param int idim: number of dimensions of encoder network
-    :param list[str] elayers: number of layers of encoder network
+    :param str elayers: number of layers of encoder network
     :param int eprojs: number of projection units of encoder network
     :param np.ndarray subsample: list of subsampling numbers
     :param float dropout: dropout rate

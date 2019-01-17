@@ -84,19 +84,22 @@ def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
 
 def expand_elayers(elayers, etype):
     """Expands the elayers representation and return the corrected etype if necessary
+    The elayers string is formatted as a sequence of "count"x"units" or simply "units", separated by commas
+    Examples : 6x300 ; 3x500,2x700 ; 300,300,300,300,300 ; 3x500,300,500 ; ...
 
-    :param list[str] elayers: The layers configuration
+    :param str elayers: The layers configuration
     :param str etype: The chosen etype
     :rtype: tuple[list[int],str]
     :return: (expanded layers, new_etype)
     """
     expanded_elayers = []
-    for layers in elayers:
-        layer = layers.split("x")
-        if len(layer) > 1:
-            expanded_elayers.extend(int(layer[0]) * [int(layer[1])])
+    layers_group = elayers.split(",")
+    for layers in layers_group:
+        layer_tuple = layers.strip().split("x")
+        if len(layer_tuple) > 1:
+            expanded_elayers.extend(int(layer_tuple[0]) * [int(layer_tuple[1])])
         else:
-            expanded_elayers.append(int(layer[0]))
+            expanded_elayers.append(int(layer_tuple[0]))
 
     all_same = len(set(expanded_elayers)) == 1
     if not etype.endswith('p') and not all_same:

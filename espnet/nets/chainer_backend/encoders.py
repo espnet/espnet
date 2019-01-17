@@ -152,7 +152,7 @@ class Encoder(chainer.Chain):
 
     :param str etype: type of encoder network
     :param int idim: number of dimensions of encoder network
-    :param list[str] elayers: layers configuration
+    :param str elayers: layers configuration
     :param int eprojs: number of projection units of encoder network
     :param np.ndarray subsample: subsampling number e.g. 1_2_2_2_1
     :param float dropout: dropout rate
