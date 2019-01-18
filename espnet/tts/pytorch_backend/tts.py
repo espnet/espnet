@@ -379,7 +379,7 @@ def train(args):
         trainer.extend(TensorboardLogger(writer, att_reporter))
 
     if args.sortagrad:
-        trainer.extend(ShufflingEnabler(list(train_iter)), trigger=(1, 'epoch'))
+        trainer.extend(ShufflingEnabler([train_iter]), trigger=(1, 'epoch'))
 
     # Run the training
     trainer.run()
