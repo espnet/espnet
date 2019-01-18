@@ -16,10 +16,9 @@ import pytest
 
 def make_arg(**kwargs):
     defaults = dict(
-        elayers=4,
+        elayers="4x100",
         subsample="1_2_2_1_1",
         etype="blstmp",
-        eunits=100,
         eprojs=100,
         dlayers=1,
         dunits=300,

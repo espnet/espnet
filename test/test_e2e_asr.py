@@ -132,7 +132,7 @@ def test_model_trainable_and_decodable(module, etype, atype):
         ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', '4x100'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '4x100'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '100_200_300'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '100,200,300'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '2x100,3x200'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200'),
     ]

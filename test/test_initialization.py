@@ -13,10 +13,9 @@ import random
 
 
 args = argparse.Namespace(
-    elayers=4,
+    elayers="4x320",
     subsample="1_2_2_1_1",
     etype="vggblstmp",
-    eunits=320,
     eprojs=320,
     dlayers=2,
     dunits=300,
