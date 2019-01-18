@@ -20,10 +20,9 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
 def make_arg(**kwargs):
     defaults = dict(
-        elayers=4,
+        elayers="4x100",
         subsample="1_2_2_1_1",
         etype="vggblstm",
-        eunits=100,
         eprojs=100,
         dlayers=1,
         dunits=300,
@@ -108,6 +107,38 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 )
 def test_model_trainable_and_decodable(module, etype, atype):
     args = make_arg(etype=etype, atype=atype)
+    if "pytorch" in module:
+        batch = prepare_inputs("pytorch")
+    else:
+        batch = prepare_inputs("chainer")
+
+    m = importlib.import_module(module)
+    model = m.E2E(40, 5, args)
+    attn_loss = model(*batch)[0]
+    attn_loss.backward()  # trainable
+
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(100, 40)
+        model.recognize(in_data, args, args.char_list)  # decodable
+
+
+@pytest.mark.parametrize(
+    "module, etype, elayers", [
+        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstmp', '4x100'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstm', '4x100'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', '4x100'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'blstm', '4x100'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', '4x100'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', '4x100'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '4x100'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '100_200_300'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '2x100,3x200'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200'),
+    ]
+)
+def test_custom_encoder(module, etype, elayers):
+    args = make_arg(etype=etype, elayers=elayers)
     if "pytorch" in module:
         batch = prepare_inputs("pytorch")
     else:
