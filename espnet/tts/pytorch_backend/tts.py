@@ -282,11 +282,11 @@ def train(args):
     train_batchset = make_batchset(train_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
                                    args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=not args.sortagrad)
     valid_batchset = make_batchset(valid_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
                                    args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=not args.sortagrad)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
