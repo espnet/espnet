@@ -138,7 +138,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
 
         return batch
 
-    def start_shuffling(self):
+    def start_shuffle(self):
         random.shuffle(self.batch_indices)
 
     @property
