@@ -313,15 +313,18 @@ def train(args):
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False)
 
+    logging.info("Iterators set")
     # Set up a trainer
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
+    logging.info("Before shufflingenabler")
     if args.sortagrad:
-        trainer.extend(ShufflingEnabler(list(train_iter)), trigger=(1, 'epoch'))
+        trainer.extend(ShufflingEnabler([train_iter]), trigger=(1, 'epoch'))
 
+    logging.info("ShufflingEnabler set")
     # Resume from a snapshot
     if args.resume:
         logging.info('resumed from %s' % args.resume)
