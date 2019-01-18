@@ -133,6 +133,7 @@ def main(args):
     parser.add_argument('--dropout-rate', default=0.0, type=float,
                         help='Dropout rate')
     # minibatch related
+    parser.add_argument('--sortagrad', default=False, type=strtobool, nargs='?', help="Use sortagrad for first epoch")
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
     parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
@@ -166,7 +167,6 @@ def main(args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
-    parser.add_argument('--sortagrad', default=True, type=strtobool, nargs='?', help="Use Sortagrad")
     args = parser.parse_args(args)
 
     # logging info
