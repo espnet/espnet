@@ -828,16 +828,40 @@ def extract_phn_contexts(lang, tgt_phns, uttids, per_frame_phns, enc_states_dir)
     for uttid in uttids[lang]:
         if uttid in per_frame_phns:
             phn_tuples = per_frame_phns[uttid]
-            for i in range(len(phn_tuples)):
-                start, dur, phn = phn_tuple
-                if phn in tgt_phns:
-                    contexts[phn].append([phn for _, _, phn in phn_tuples[i-1:i+2]])
+            phns = [phn for _, _, phn in phn_tuples]
+            for i in range(len(phns)):
+                if phns[i] in tgt_phns:
+                    num_sos_blanks = 0
+                    num_eos_blanks = 0
+                    start_i = i - 4
+                    end_i = i + 5
+                    if i < 4:
+                        num_sos_blanks = 4 - i
+                        start_i = 0
+                    if len(phns) - i - 1 < 4:
+                        num_eos_blanks = 4 - (len(phns) - i - 1)
+                        end_i = len(phns)
+                    contexts[phns[i]].append(
+                        num_sos_blanks*["<sos>"] +
+                        phns[start_i:end_i] +
+                        num_eos_blanks*["<eos>"])
+                    if num_sos_blanks > 0 or num_eos_blanks > 0:
+                        logging.info("---------------------------------------------")
+                        logging.info("phns: {}".format(phns))
+                        logging.info("context: {}".format(
+                            num_sos_blanks*["<sos>"] +
+                            phns[start_i:end_i] +
+                            num_eos_blanks*["<eos>"]))
+                        logging.info("i: {}".format(i))
+                        logging.info("phn: {}".format(phns[i]))
+
     for tgt in contexts:
         context_path = os.path.join(
                 enc_states_dir, "lang-{}_phn-{}_contexts.txt".format(lang, tgt))
-        with open(context_path) as f:
+        with open(context_path, "w") as f:
             for context in contexts[tgt]:
                 f.write(" ".join(context))
+                f.write("\n")
 
 def write_enc_states(lang, tgt_phns,
                      js, uttids, per_frame_phns, e2e, train_args,
