@@ -10,7 +10,7 @@ import numpy as np
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, batch_sort_key='shuffle', min_batch_size=1):
+                  num_batches=0, batch_sort_key='shuffle', min_batch_size=1, shortest_first=False):
     """Make batch set from json dictionary
 
     :param dict data: dictionary loaded from data.json
@@ -31,13 +31,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         # sort it by input lengths (long to short)
         # NOTE: input and output are reversed due to the use of same json as asr
         sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['output'][0]['shape'][0]), reverse=True)
+            data[1]['output'][0]['shape'][0]), reverse=not shortest_first)
     elif batch_sort_key == 'output':
         logging.info('use batch sorted by output length and adaptive batch size.')
         # sort it by output lengths (long to short)
         # NOTE: input and output are reversed due to the use of same json as asr
         sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['input'][0]['shape'][0]), reverse=True)
+            data[1]['input'][0]['shape'][0]), reverse=not shortest_first)
     else:
         raise ValueError('batch_sort_key should be selected from None, input, and output.')
     logging.info('# utts: ' + str(len(sorted_data)))
