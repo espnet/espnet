@@ -67,13 +67,12 @@ script:
   - flake8 espnet test utils
   - autopep8 -r espnet test utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
+  - find egs -name "run.sh" -printf "%p" -execdir bash -c 'for n; do shellcheck -x -e SC1091 -e SC2086 "$n" || exit 1; done' bash {} +
+  - bash -c 'cd ${TRAVIS_BUILD_DIR}/utils && for x in *.sh; do shellcheck -x -e SC1091 -e SC2086 "$x"; done'
   - pytest
   - bats test_utils
   - travis-sphinx build --source=doc --nowarn
-  # TODO always returns 0
-  - find egs -name "run.sh" -printf "%p" -exec bash -c 'for n; do shellcheck -x -e SC1091 -e SC2086 "$n" || exit 1; done' bash {} +
-  - shellcheck -x -e SC1091 -e SC2086 ${TRAVIS_BUILD_DIR}/utils/*.sh'
-
+  
 sudo: false
 
 
