@@ -133,6 +133,7 @@ class Tacotron2Loss(torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         # calcuate outputs
         if self.use_cbhg:
             cbhg_outs, after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
