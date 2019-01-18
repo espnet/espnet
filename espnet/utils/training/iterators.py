@@ -2,6 +2,7 @@ import numpy as np
 
 from chainer.iterators import MultiprocessIterator
 from chainer.iterators import SerialIterator
+from chainer.iterators import ShuffleOrderSampler
 from chainer.training.extension import Extension
 
 
@@ -44,7 +45,8 @@ class ToggleableShufflingSerialIterator(SerialIterator):
     def start_shuffle(self):
         """Starts shuffling (or reshuffles) the batches"""
         self._shuffle = True
-        self._order = np.random.permutation(len(self.dataset))
+        self._order_sampler = ShuffleOrderSampler()
+        self._order = self.order_sampler(np.arange(len(self.dataset)), 0)
 
 
 class ToggleableShufflingMultiprocessIterator(MultiprocessIterator):
@@ -67,5 +69,6 @@ class ToggleableShufflingMultiprocessIterator(MultiprocessIterator):
     def start_shuffle(self):
         """Starts shuffling (or reshuffles) the batches"""
         self.shuffle = True
-        self._order = np.random.permutation(len(self.dataset))
+        self._order_sampler = ShuffleOrderSampler()
+        self._order = self.order_sampler(np.arange(len(self.dataset)), 0)
         self._set_prefetch_state()
