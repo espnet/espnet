@@ -41,7 +41,7 @@ class BLSTMP(chainer.Chain):
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
 
-        for layer in six.moves.range(self.elayers):
+        for layer in six.moves.range(len(self.elayers)):
             hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             # TODO(watanabe) replace subsample and FC layer with CNN

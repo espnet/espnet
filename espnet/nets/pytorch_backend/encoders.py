@@ -48,7 +48,7 @@ class BLSTMP(torch.nn.Module):
         :rtype: torch.Tensor
         """
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        for layer in six.moves.range(self.elayers):
+        for layer in six.moves.range(len(self.elayers)):
             xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
             bilstm = getattr(self, 'bilstm' + str(layer))
             bilstm.flatten_parameters()
