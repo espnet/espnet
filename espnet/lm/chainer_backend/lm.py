@@ -39,6 +39,7 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 
 REPORT_INTERVAL = 100
@@ -334,6 +335,9 @@ def train(args):
         model, 'rnnlm.model.{.updater.epoch}'))
     # MEMO(Hori): wants to use MinValueTrigger, but it seems to fail in resuming
     trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
+
+    if args.sortagrad:
+        trainer.extend(ShufflingEnabler([train_iter]))
 
     if args.resume:
         logging.info('resumed from %s' % args.resume)

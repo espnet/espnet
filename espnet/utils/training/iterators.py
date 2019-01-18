@@ -13,8 +13,7 @@ class ShufflingEnabler(Extension):
     def __init__(self, iterators):
         """Inits the ShufflingEnabler
 
-        :param list[ToggleableShufflingSerialIterator|ToggleableShufflingMultiprocessIterator] iterators: The iterators
-         to enable shuffling on
+        :param list[Iterator] iterators: The iterators to enable shuffling on
         """
         self.set = False
         self.iterators = iterators
