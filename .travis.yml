@@ -70,7 +70,9 @@ script:
   - pytest
   - bats test_utils
   - travis-sphinx build --source=doc --nowarn
-  - bash -c 'find egs -name "run.sh" -printf "%p" -execdir shellcheck -x -e SC1091 -e SC2086 {} \; ; cd ${TRAVIS_BUILD_DIR}/utils ; shellcheck -x -e SC1091 -e SC2086 *.sh'
+  # TODO always returns 0
+  - find egs -name "run.sh" -printf "%p" -exec bash -c 'for n; do shellcheck -x -e SC1091 -e SC2086 "$n" || exit 1; done' bash {} +
+  - shellcheck -x -e SC1091 -e SC2086 ${TRAVIS_BUILD_DIR}/utils/*.sh'
 
 sudo: false
 
