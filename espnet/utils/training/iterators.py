@@ -49,7 +49,7 @@ class ToggleableShufflingSerialIterator(SerialIterator):
         if int(chainer._version.__version__[0]) <= 4:
             self._order = np.random.permutation(len(self.dataset))
         else:
-            self._order_sampler = ShuffleOrderSampler()
+            self.order_sampler = ShuffleOrderSampler()
             self._order = self.order_sampler(np.arange(len(self.dataset)), 0)
 
 
@@ -76,6 +76,6 @@ class ToggleableShufflingMultiprocessIterator(MultiprocessIterator):
         if int(chainer._version.__version__[0]) <= 4:
             self._order = np.random.permutation(len(self.dataset))
         else:
-            self._order_sampler = ShuffleOrderSampler()
+            self.order_sampler = ShuffleOrderSampler()
             self._order = self.order_sampler(np.arange(len(self.dataset)), 0)
         self._set_prefetch_state()
