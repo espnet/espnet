@@ -84,6 +84,7 @@ def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
 
 def expand_elayers(elayers, etype):
     """Expands the elayers representation and return the corrected etype if necessary
+
     The elayers string is formatted as a sequence of "count"x"units" or simply "units", separated by commas
     Examples : 6x300 ; 3x500,2x700 ; 300,300,300,300,300 ; 3x500,300,500 ; ...
 
