@@ -186,7 +186,7 @@ class RNNLM(nn.Module):
         return torch.zeros(batchsize, self.n_units).float()
 
     def forward(self, state, x):
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(len(x)))
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str([len(s) for s in x]))
         if state is None:
             c = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
             h = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
