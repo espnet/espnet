@@ -47,7 +47,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 drop=0.2
 
 # optimization related
-sortagrad=true
+sortagrad=false
 opt=adadelta
 epochs=10
 patience=3
@@ -56,7 +56,7 @@ patience=3
 lm_layers=1
 lm_units=1024
 lm_opt=sgd        # or adam
-lm_sortagrad=true
+lm_sortagrad=false
 lm_batchsize=1024 # batch size in LM training
 lm_epochs=20      # if the data size is large, we can reduce this
 lm_patience=3

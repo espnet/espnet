@@ -124,7 +124,7 @@ def main(args):
     parser.add_argument('--bce_pos_weight', default=20.0, type=float,
                         help='Positive sample weight in BCE calculation (only for use_masking=True)')
     # minibatch related
-    parser.add_argument('--sortagrad', default=True, type=strtobool, nargs='?', help="Use sortagrad for first epoch")
+    parser.add_argument('--sortagrad', default=False, type=strtobool, nargs='?', help="Use sortagrad for first epoch")
     parser.add_argument('--batch_sort_key', default='shuffle', type=str,
                         choices=['shuffle', 'output', 'input'], nargs='?',
                         help='Batch sorting key')
