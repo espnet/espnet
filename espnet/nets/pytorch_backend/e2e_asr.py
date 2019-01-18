@@ -19,6 +19,7 @@ import torch
 
 from chainer import reporter
 
+from espnet.nets.e2e_asr_common import expand_elayers
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 from espnet.nets.pytorch_backend.attentions import att_for
@@ -70,10 +71,11 @@ class E2E(torch.nn.Module):
 
         # subsample info
         # +1 means input (+1) and layers outputs (args.elayer)
-        subsample = np.ones(args.elayers + 1, dtype=np.int)
-        if args.etype == 'blstmp':
+        elayers, etype = expand_elayers(args.elayers, args.etype)
+        subsample = np.ones(len(elayers) + 1, dtype=np.int)
+        if etype == 'blstmp':
             ss = args.subsample.split("_")
-            for j in range(min(args.elayers + 1, len(ss))):
+            for j in range(min(len(elayers) + 1, len(ss))):
                 subsample[j] = int(ss[j])
         else:
             logging.warning(

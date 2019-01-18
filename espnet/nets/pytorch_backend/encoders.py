@@ -171,7 +171,7 @@ class Encoder(torch.nn.Module):
 
     def __init__(self, etype, idim, elayers, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
-        expanded_elayers, etype = expand_elayers(elayers, etype)
+        expanded_elayers, etype = expand_elayers(elayers, etype, warn=True)
         if etype == 'blstm':
             self.enc = torch.nn.ModuleList([BLSTM(idim, len(expanded_elayers), expanded_elayers[0], eprojs, dropout)])
             logging.info('BLSTM without projection for encoder')

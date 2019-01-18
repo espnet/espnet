@@ -162,7 +162,7 @@ class Encoder(chainer.Chain):
 
     def __init__(self, etype, idim, elayers, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
-        expanded_layers, etype = expand_elayers(elayers, etype)
+        expanded_layers, etype = expand_elayers(elayers, etype, warn=True)
         with self.init_scope():
             if etype == 'blstm':
                 self.enc = chainer.Sequential(BLSTM(idim, len(expanded_layers), expanded_layers[0], eprojs, dropout))

@@ -82,7 +82,7 @@ def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     return int(idim) * out_channel  # number of channels
 
 
-def expand_elayers(elayers, etype):
+def expand_elayers(elayers, etype, warn=False):
     """Expands the elayers representation and return the corrected etype if necessary
 
     The elayers string is formatted as a sequence of "count"x"units" or simply "units", separated by commas
@@ -105,5 +105,6 @@ def expand_elayers(elayers, etype):
     all_same = len(set(expanded_elayers)) == 1
     if not etype.endswith('p') and not all_same:
         etype = etype + 'p'
-        logging.warning("Adding every-layer projection to encoder due to different encoder layers sizes")
+        if warn:
+            logging.warning("Adding every-layer projection to encoder due to different encoder layers sizes")
     return expanded_elayers, etype
