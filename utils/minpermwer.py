@@ -5,7 +5,10 @@
 #           2018 Xuankai Chang (Shanghai Jiao Tong University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from __future__ import unicode_literals
+
 import argparse
+import codecs
 import json
 import logging
 import numpy as np
@@ -65,7 +68,7 @@ if __name__ == '__main__':
 
     perm = sum(keys, [])
 
-    with open(args.json, 'r') as f:
+    with codecs.open(args.json, 'r', encoding="utf-8") as f:
         j = json.load(f)
 
     old_dic = j['utts']
@@ -86,8 +89,8 @@ if __name__ == '__main__':
         min_idx, min_v = min(enumerate(error_rate), key=lambda x: x[1])
         dic = {}
         for k in keys[min_idx]:
-            dic[unicode(k, 'utf-8')] = in_dic[k]
-        dic[unicode('Scores', 'utf-8')] = unicode('(#C #S #D #I) ' + ' '.join(map(str, perm_score[min_idx])), 'utf-8')
+            dic[k] = in_dic[k]
+        dic['Scores'] = '(#C #S #D #I) ' + ' '.join(map(str, perm_score[min_idx]))
         new_dic[id] = dic
 
     score = np.zeros((len(new_dic.keys()), 4))
@@ -96,9 +99,11 @@ if __name__ == '__main__':
         tmp_score = map(int, pat.findall(new_dic[key]['Scores']))  # [c,s,d,i]
         score[idx] = tmp_score
     score_sum = np.sum(score, axis=0, dtype=int)
+
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
+
     print("Total Scores: (#C #S #D #I) " + ' '.join(map(str, list(score_sum))))
     print("Error Rate:   {:0.2f}".format(100 * sum(score_sum[1:4]) / float(sum(score_sum[0:3]))))
     print("Total Utts: ", str(len(new_dic.keys())))
 
-    jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8')
-    print(jsonstring)
+    print(json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': ')))
