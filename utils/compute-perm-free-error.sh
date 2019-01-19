@@ -8,7 +8,7 @@ num_spkrs=2
 wrd=
 # End configuration section.
 
-echo "$0 $@"  # Print the command line for logging
+echo "$0 $*"  # Print the command line for logging
 
 if [ -f path.sh ]; then . ./path.sh; fi
 . parse_options.sh || exit 1;
@@ -21,22 +21,24 @@ if [ $# != 4 ]; then
     exit 1;
 fi
 
-r1h1=$1
-r1h2=$2
-r2h1=$3
-r2h2=$4
-dir=`dirname $r1h1`
-tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
-rm -rf ${tmpdir}/*.json
+if [ $num_spkrs -eq 2 ]; then
+    r1h1=$1
+    r1h2=$2
+    r2h1=$3
+    r2h2=$4
+    dir=$(dirname ${r1h1})
+    tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
+    rm -rf ${tmpdir}/*.json
 
-# convert all the results to json
-for f in $r1h1 $r1h2 $r2h1 $r2h2; do
-    k=`basename $f .txt`
-    cat $f | result2json.py --key $k > ${tmpdir}/${k}.json
-done
+    # convert all the results to json
+    for f in ${r1h1} ${r1h2} ${r2h1} ${r2h2}; do
+        k=$(basename ${f} .txt)
+        result2json.py --key ${k} < ${f} > ${tmpdir}/${k}.json
+    done
 
-mergeresultjson.py ${tmpdir}/*.json > ${tmpdir}/all_result${wrd:+.wrd}.json
-# compute the WER and select the best permutation
-minpermwer.py ${tmpdir}/all_result${wrd:+.wrd}.json
+    mergeresultjson.py ${tmpdir}/*.json > ${tmpdir}/all_result${wrd:+.wrd}.json
+    # compute the WER and select the best permutation
+    minpermwer.py ${tmpdir}/all_result${wrd:+.wrd}.json
 
-rm -r $tmpdir
+    rm -r $tmpdir
+fi

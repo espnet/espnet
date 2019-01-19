@@ -178,7 +178,7 @@ def test_loss_and_ctc_grad(etype):
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
-    th_ench = th_model.att.pre_compute_enc_h.detach().numpy()
+    th_ench = th_model.att[0].pre_compute_enc_h.detach().numpy()
     np.testing.assert_equal(ch_ench == 0.0, th_ench == 0.0)
 
     # test loss with constant weights (1.0) and bias (0.0) except for foget-bias (1.0)
@@ -227,7 +227,7 @@ def test_mtl_loss(etype):
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
-    th_ench = th_model.att.pre_compute_enc_h.detach().numpy()
+    th_ench = th_model.att[0].pre_compute_enc_h.detach().numpy()
     np.testing.assert_equal(ch_ench == 0.0, th_ench == 0.0)
 
     # test loss with constant weights (1.0) and bias (0.0) except for foget-bias (1.0)
@@ -305,7 +305,10 @@ def test_calculate_all_attentions(module, atype):
         batch = prepare_inputs("chainer")
     model = m.E2E(40, 5, args)
     with chainer.no_backprop_mode():
-        att_ws = model.calculate_all_attentions(*batch)
+        if "pytorch" in module:
+            att_ws = model.calculate_all_attentions(*batch)[0]
+        else:
+            att_ws = model.calculate_all_attentions(*batch)
         print(att_ws.shape)
 
 

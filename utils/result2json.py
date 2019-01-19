@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
         if re_id.match(x):
             if tmp_id:
-                ret[tmp_id.encode('utf_8')] = {key:tmp_ret}
+                ret[tmp_id.encode('utf_8')] = {key: tmp_ret}
                 tmp_ret = {}
             tmp_id = x_split[1]
         for p in re_patterns.keys():
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         line = sys.stdin.readline()
 
     if tmp_ret != {}:
-        ret[tmp_id.encode('utf_8')] = {key:tmp_ret}
+        ret[tmp_id.encode('utf_8')] = {key: tmp_ret}
 
     all_l = {'utts': ret}
     # ensure "ensure_ascii=False", which is a bug

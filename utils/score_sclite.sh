@@ -62,24 +62,24 @@ if [ $num_spkrs -eq 1 ]; then
       echo "write a WER result in ${dir}/result.wrd.txt"
       grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.txt
   fi
-elif [ $num_spkrs -eq 2 ]; then
+elif [ ${num_spkrs} -eq 2 ]; then
   ref_trns=""
   hyp_trns=""
-  for i in `seq 1 1 ${num_spkrs}`; do
-      ref_trns=$ref_trns"${dir}/ref${i}.trn "
-      hyp_trns=$hyp_trns"${dir}/hyp${i}.trn "
+  for i in $(seq ${num_spkrs}); do
+      ref_trns=${ref_trns}"${dir}/ref${i}.trn "
+      hyp_trns=${hyp_trns}"${dir}/hyp${i}.trn "
   done
   json2trn.py ${dir}/data.json ${dic} --num-spkrs ${num_spkrs} --refs ${ref_trns} --hyps ${hyp_trns}
 
-  for n in `seq 1 1 ${num_spkrs}`; do
-      if $remove_blank; then
+  for n in $(seq ${num_spkrs}); do
+      if ${remove_blank}; then
           sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp${n}.trn
       fi
       if [ ! -z ${nlsyms} ]; then
           cp ${dir}/ref${n}.trn ${dir}/ref${n}.trn.org
           cp ${dir}/hyp${n}.trn ${dir}/hyp${n}.trn.org
-          filt.py -v $nlsyms ${dir}/ref${n}.trn.org > ${dir}/ref${n}.trn
-          filt.py -v $nlsyms ${dir}/hyp${n}.trn.org > ${dir}/hyp${n}.trn
+          filt.py -v ${nlsyms} ${dir}/ref${n}.trn.org > ${dir}/ref${n}.trn
+          filt.py -v ${nlsyms} ${dir}/hyp${n}.trn.org > ${dir}/hyp${n}.trn
       fi
       if [ ! -z ${filter} ]; then
           sed -i.bak3 -f ${filter} ${dir}/hyp${n}.trn
@@ -87,9 +87,9 @@ elif [ $num_spkrs -eq 2 ]; then
       fi
   done
 
-  for (( i=0; i<$[num_spkrs * num_spkrs]; i++ )); do
-      ind_r=`expr $i / ${num_spkrs} + 1`
-      ind_h=`expr $i % ${num_spkrs} + 1`
+  for (( i=0; i<$((num_spkrs * num_spkrs)); i++ )); do
+      ind_r=$((i / num_spkrs + 1))
+      ind_h=$((i % num_spkrs + 1))
       sclite -r ${dir}/ref${ind_r}.trn trn -h ${dir}/hyp${ind_h}.trn trn -i rm -o all stdout > ${dir}/result_r${ind_r}h${ind_h}.txt
   done
 
@@ -99,7 +99,7 @@ elif [ $num_spkrs -eq 2 ]; then
   sed -n '2,4p' ${dir}/min_perm_result.json
 
   if ${wer}; then
-      for n in `seq 1 1 $num_spkrs`; do
+      for n in $(seq ${num_spkrs}); do
           if [ ! -z $bpe ]; then
               spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref${n}.trn | sed -e "s/▁/ /g" > ${dir}/ref${n}.wrd.trn
               spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp${n}.trn | sed -e "s/▁/ /g" > ${dir}/hyp${n}.wrd.trn
@@ -108,9 +108,9 @@ elif [ $num_spkrs -eq 2 ]; then
               sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp${n}.trn > ${dir}/hyp${n}.wrd.trn
           fi
       done
-      for (( i=0; i<$[num_spkrs * num_spkrs]; i++ )); do
-          ind_r=`expr $i / $num_spkrs + 1`
-          ind_h=`expr $i % $num_spkrs + 1`
+      for (( i=0; i<$((num_spkrs * num_spkrs)); i++ )); do
+          ind_r=$((i / num_spkrs + 1))
+          ind_h=$((i % num_spkrs + 1))
           sclite -r ${dir}/ref${ind_r}.wrd.trn trn -h ${dir}/hyp${ind_h}.wrd.trn trn -i rm -o all stdout > ${dir}/result_r${ind_r}h${ind_h}.wrd.txt
       done
 
