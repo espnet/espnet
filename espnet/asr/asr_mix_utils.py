@@ -95,7 +95,7 @@ def load_inputs_and_targets(batch):
     # load acoustic features and target sequence of token ids
     xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
     ys_sd = []
-    num_spkrs = len(b[1]['output'])
+    num_spkrs = len(batch[0][1]['output'])
     for ns in range(num_spkrs):
         ys_sd.append([b[1]['output'][ns]['tokenid'].split() for b in batch])
 
