@@ -1,4 +1,5 @@
 PYTHON := /usr/bin/python2.7
+TH_VERSION := 0.4.1
 KALDI =
 
 .PHONY: all clean
@@ -27,7 +28,7 @@ espnet.done: venv
 	# TODO(kan-bayashi): remove in future (currently needed for nara_wpe)
 	. venv/bin/activate; pip install numpy
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==5.0.0 torch==0.4.1 matplotlib
+	. venv/bin/activate; pip install cupy==5.0.0 torch==$(TH_VERSION) matplotlib
 	touch espnet.done
 
 kaldiio: venv
@@ -45,6 +46,9 @@ nkf.done:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 	touch nkf.done
 
+
+# If pytorch<1.0, uses warp-ctc
+ifeq ($(shell python -c 'import torch as t;print(t.__version__[0] == "0")'),True)
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
 	git clone https://github.com/jnishi/warp-ctc.git
@@ -52,6 +56,11 @@ warp-ctc.done: espnet.done
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 	touch warp-ctc.done
+# elif pytorch>=1.0, uses torch.nn.CTCLoss instead of warp-ctc
+else
+warp-ctc.done: espnet.done
+	:
+endif
 
 chainer_ctc.done: espnet.done
 	rm -rf chainer_ctc

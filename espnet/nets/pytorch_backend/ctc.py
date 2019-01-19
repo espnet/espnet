@@ -1,8 +1,9 @@
+from distutils.version import LooseVersion
 import logging
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-import warpctc_pytorch as warp_ctc
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
@@ -20,8 +21,23 @@ class CTC(torch.nn.Module):
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.loss_fn = warp_ctc.CTCLoss(size_average=True)
+
+        if LooseVersion(torch.__version__) < LooseVersion('1.0'):
+            import warpctc_pytorch as warp_ctc
+            self.ctc_loss = warp_ctc.CTCLoss(size_average=True)
+        else:
+            self.ctc_loss = torch.nn.CTCLoss(reduction='sum')
+
         self.ignore_id = -1
+
+    def loss_fn(self, th_pred, th_target, th_ilen, th_olen):
+        if LooseVersion(torch.__version__) < LooseVersion('1.0'):
+            return self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
+        else:
+            th_pred = th_pred.log_softmax(2)
+            loss = self.loss_fn(th_pred, th_target, th_ilen, th_olen)
+            loss = loss / th_pred.size(1)
+            return loss
 
     def forward(self, hs_pad, hlens, ys_pad):
         """CTC forward
