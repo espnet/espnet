@@ -5,7 +5,6 @@
 #           2018 Xuankai Chang (Shanghai Jiao Tong University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import json
 import argparse
 import codecs
 import json
@@ -52,7 +51,7 @@ if __name__ == '__main__':
             else:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][ns][0]['rec_tokenid'].split()]
             hyp_file.write(" ".join(seq).replace('<eos>', '')),
-            hyp_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x +")\n")
+            hyp_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
             # ref
             if args.num_spkrs == 1:
@@ -60,7 +59,7 @@ if __name__ == '__main__':
             else:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][ns][0]['tokenid'].split()]
             ref_file.write(" ".join(seq).replace('<eos>', '')),
-            ref_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x +")\n")
+            ref_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
         hyp_file.close()
         ref_file.close()

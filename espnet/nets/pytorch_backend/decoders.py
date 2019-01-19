@@ -89,7 +89,7 @@ class Decoder(torch.nn.Module):
         """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
-        att_idx = min(strm_idx, len(self.att)-1)
+        att_idx = min(strm_idx, len(self.att) - 1)
 
         # hlen should be list of integer
         hlens = list(map(int, hlens))
@@ -191,7 +191,7 @@ class Decoder(torch.nn.Module):
         :rtype: list of dicts
         """
         logging.info('input lengths: ' + str(h.size(0)))
-        att_idx = min(strm_idx, len(self.att)-1)
+        att_idx = min(strm_idx, len(self.att) - 1)
         # initialization
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
@@ -363,7 +363,7 @@ class Decoder(torch.nn.Module):
     def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, strm_idx=0, rnnlm=None,
                              normalize_score=True):
         logging.info('input lengths: ' + str(h.size(1)))
-        att_idx = min(strm_idx, len(self.att)-1)
+        att_idx = min(strm_idx, len(self.att) - 1)
         h = mask_by_length(h, hlens, 0.0)
 
         # search params
@@ -556,7 +556,7 @@ class Decoder(torch.nn.Module):
         """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
-        att_idx = min(strm_idx, len(self.att)-1)
+        att_idx = min(strm_idx, len(self.att) - 1)
 
         # hlen should be list of integer
         hlen = list(map(int, hlen))
