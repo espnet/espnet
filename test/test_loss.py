@@ -16,8 +16,7 @@ from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
 @pytest.mark.parametrize('in_length,out_length',
                          [([11, 17, 15], [4, 2, 3]),
-                          ([4], [1]),
-                          ([30, 18, 10, 8], [10, 9, 6, 1])])
+                          ([4], [1])])
 def test_ctc_loss(in_length, out_length):
     pytest.importorskip("torch")
     if LooseVersion(torch.__version__) < LooseVersion('1.0'):
