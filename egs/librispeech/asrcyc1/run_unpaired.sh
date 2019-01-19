@@ -54,8 +54,19 @@ tts_model_conf=exp/train_100_taco2_h8_states_enc512-3x5x512-1x512_dec2x1024_pre2
 tts_model=exp/train_100_taco2_h8_states_enc512-3x5x512-1x512_dec2x1024_pre2x256_post5x5x512_tanh_att128-15x32_cm_bn_cc_msk_pw1.0_do0.5_zo0.1_lr1e-3_ep1e-6_wd0.0_bs50_sort_by_input_mli150_mlo400/results/model.loss.best
 
 # rnnlm related
+use_wordlm=false
 use_rnnlm=false
 lm_weight=0.2
+lm_vocabsize=65000  # effective only for word LMs
+lm_layers=1         # 2 for character LMs
+lm_units=1000       # 650 for character LMs
+lm_opt=sgd          # adam for character LMs
+lm_batchsize=300    # 1024 for character LMs
+lm_epochs=20        # number of epochs
+lm_maxlen=40        # 150 for character LMs
+lm_resume=          # specify a snapshot file to resume LM training
+lmtag=              # tag for managing LMs
+
 
 # decoding parameter
 beam_size=20
@@ -238,17 +249,40 @@ if [ ${stage} -le 2 ]; then
     done
 fi
 
-# You can skip this and remove --rnnlm option in the recognition (stage 5)
-lmexpdir=exp/train_rnnlm_2layer_bs256_icassp2019
+# It takes about one day. If you just want to do end-to-end ASR without LM,
+# you can skip this and remove --rnnlm option in the recognition (stage 5)
+if [ -z ${lmtag} ]; then
+    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+    if [ $use_wordlm = true ]; then
+        lmtag=${lmtag}_word${lm_vocabsize}
+    fi
+fi
+lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
 mkdir -p ${lmexpdir}
-if [ ${stage} -le 3 ]; then
+
+if [ ${stage} -le 4 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train_icassp2019
-    mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 data/${train_dev}/text | cut -f 2- -d" " | perl -pe 's/\n/ <eos> /g' \
-        > ${lmdatadir}/valid.txt
+    
+    if [ $use_wordlm = true ]; then
+        lmdatadir=data/local/wordlm_train
+        lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
+        mkdir -p ${lmdatadir}
+        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train.txt
+        cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+        cat data/${train_test}/text | cut -f 2- -d" " > ${lmdatadir}/test.txt
+        text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+    else
+        lmdatadir=data/local/lm_train
+        lmdict=$dict
+        mkdir -p ${lmdatadir}
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/train.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/test_clean/text \
+                | cut -f 2- -d" " > ${lmdatadir}/test.txt
+    fi
+
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -261,10 +295,17 @@ if [ ${stage} -le 3 ]; then
         --outdir ${lmexpdir} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-        --epoch 60 \
-        --batchsize 256 \
-        --dict ${dict}
+        --test-label ${lmdatadir}/test.txt \
+        --resume ${lm_resume} \
+        --layer ${lm_layers} \
+        --unit ${lm_units} \
+        --opt ${lm_opt} \
+        --batchsize ${lm_batchsize} \
+        --epoch ${lm_epochs} \
+        --maxlen ${lm_maxlen} \
+        --dict ${lmdict}
 fi
+
 
 if [ -z ${tag} ]; then
     expdir=exp/${train_set}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_top${sample_topk}_s${sample_scaling}_ns${n_samples}
