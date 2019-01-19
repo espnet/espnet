@@ -430,8 +430,8 @@ class E2E(torch.nn.Module):
             # Permutation
             ys_pad_sd = ys_pad_sd.transpose(0, 1)  # (num_spkrs, B, Lmax)
             if self.num_spkrs <= 3:
-                loss_ctc = torch.stack([self.ctc(hpad_sd[i // self.num_spkrs], hlens,
-                                        ys_pad_sd[i % self.num_spkrs]) for i in range(self.num_spkrs ** 2)], 1)  # (B, num_spkrs^2)
+                loss_ctc = torch.stack([self.ctc(hpad_sd[i // self.num_spkrs], hlens, ys_pad_sd[i % self.num_spkrs])
+                                        for i in range(self.num_spkrs ** 2)], 1)  # (B, num_spkrs^2)
                 loss_ctc, min_perm = self.min_PIT_CTC_batch(loss_ctc)
             for i in range(ys_pad_sd.size(1)):  # B
                 ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
