@@ -9,6 +9,7 @@ from __future__ import division
 import argparse
 import logging
 import math
+import sys
 
 import editdistance
 
@@ -19,8 +20,8 @@ import torch
 
 from chainer import reporter
 
-from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
+from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
@@ -28,9 +29,9 @@ from espnet.nets.pytorch_backend.decoders import decoder_for
 from espnet.nets.pytorch_backend.encoders import BLSTMP
 from espnet.nets.pytorch_backend.encoders import VGG2L
 
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -175,24 +176,25 @@ class E2E(torch.nn.Module):
     def min_PIT_process(self, loss):
         '''E2E min_PIT_process
 
-        :param list|1-D torch.Tensor loss: list of losses for each sample [h1r1,h1r2,h2r1,h2r2], or [h1r1,h1r2,h1r3,h2r1,h2r2,h2r3,h3r1,h3r2,h3r3]
+        :param list|1-D torch.Tensor loss: list of losses for each sample [h1r1,h1r2,h2r1,h2r2],
+            or [h1r1,h1r2,h1r3,h2r1,h2r2,h2r3,h3r1,h3r2,h3r3]
         :return: min_loss
         :rtype: torch.Tensor
         :return: permutation
         :rtype: torch.Tensor
         '''
         if self.num_spkrs == 2:
-            perm_choices = [[0,1],[1,0]]
-            score_perms = torch.cat([loss[0]+loss[3],
-                                     loss[1]+loss[2]]) / self.num_spkrs
+            perm_choices = [[0, 1], [1, 0]]
+            score_perms = torch.cat([loss[0] + loss[3],
+                                     loss[1] + loss[2]]) / self.num_spkrs
         elif self.num_spkrs == 3:
-            perm_choices = [[0,1,2],[0,2,1],[1,2,0],[1,0,2],[2,0,1],[2,1,0]]
-            score_perms = torch.cat([loss[0]+loss[4]+loss[8],
-                                     loss[0]+loss[5]+loss[7],
-                                     loss[1]+loss[5]+loss[6],
-                                     loss[1]+loss[3]+loss[8],
-                                     loss[2]+loss[3]+loss[7],
-                                     loss[2]+loss[4]+loss[6]]) / self.num_spkrs
+            perm_choices = [[0, 1, 2], [0, 2, 1], [1, 2, 0], [1, 0, 2], [2, 0, 1], [2, 1, 0]]
+            score_perms = torch.cat([loss[0] + loss[4] + loss[8],
+                                     loss[0] + loss[5] + loss[7],
+                                     loss[1] + loss[5] + loss[6],
+                                     loss[1] + loss[3] + loss[8],
+                                     loss[2] + loss[3] + loss[7],
+                                     loss[2] + loss[4] + loss[6]]) / self.num_spkrs
         else:
             raise Exception("NotImplementedError")
 
@@ -211,14 +213,14 @@ class E2E(torch.nn.Module):
         :rtype: torch.Tensor
         '''
         if self.num_spkrs == 1:
-            return losses[:,0], to_device(self,torch.zeros(losses.size(0), dtype=torch.long, requires_grad=True))
+            return losses[:, 0], to_device(self, torch.zeros(losses.size(0), dtype=torch.long, requires_grad=True))
         else:
             bs = losses.size(0)
             loss_perm = to_device(self, torch.zeros(bs, dtype=losses.dtype, requires_grad=True))
             permutation = torch.zeros(bs, self.num_spkrs, requires_grad=False)
             for i in range(bs):
                 loss_perm[i], permutation[i] = self.min_PIT_process(losses[i])
-            return torch.mean(to_device(self,loss_perm)), to_device(self,permutation.long())
+            return torch.mean(to_device(self, loss_perm)), to_device(self, permutation.long())
 
     def forward(self, xs_pad, ilens, ys_pad_sd):
         """E2E forward
@@ -237,12 +239,12 @@ class E2E(torch.nn.Module):
         hs_pad_sd, hlens = self.enc(xs_pad, ilens)
 
         # 2. CTC loss
-        ys_pad_sd = ys_pad_sd.transpose(0, 1) # (num_spkrs, B, Lmax)
+        ys_pad_sd = ys_pad_sd.transpose(0, 1)  # (num_spkrs, B, Lmax)
         if self.mtlalpha == 0:
             loss_ctc, min_perm = None, None
         elif self.num_spkrs <= 3:
-            loss_ctc_perm = torch.stack([self.ctc(hs_pad_sd[i // self.num_spkrs], hlens,
-                                 ys_pad_sd[i %  self.num_spkrs]) for i in range(self.num_spkrs ** 2)], dim=1) # (B, num_spkrs^2)
+            loss_ctc_perm = torch.stack([self.ctc(hs_pad_sd[i // self.num_spkrs], hlens, ys_pad_sd[i % self.num_spkrs])
+                                         for i in range(self.num_spkrs ** 2)], dim=1)  # (B, num_spkrs^2)
             loss_ctc, min_perm = self.min_PIT_CTC_batch(loss_ctc_perm)
             logging.info('ctc loss:' + str(float(loss_ctc)))
 
@@ -251,11 +253,11 @@ class E2E(torch.nn.Module):
             loss_att = None
             acc = None
         else:
-            for i in range(ys_pad_sd.size(1)): # B
-                ys_pad_sd[:,i] = ys_pad_sd[min_perm[i], i]
+            for i in range(ys_pad_sd.size(1)):  # B
+                ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
             rslt = [self.dec(hs_pad_sd[i], hlens, ys_pad_sd[i], i) for i in range(self.num_spkrs)]
             loss_att = sum([r[0] for r in rslt]) / float(len(rslt))
-            acc      = sum([r[1] for r in rslt]) / float(len(rslt))
+            acc = sum([r[1] for r in rslt]) / float(len(rslt))
         self.acc = acc
 
         # 5. compute cer/wer
@@ -270,15 +272,17 @@ class E2E(torch.nn.Module):
 
             wers, cers = [], []
             nbest_hyps_sd = [self.dec.recognize_beam_batch(hs_pad_sd[i], torch.tensor(hlens), lpz_sd[i],
-                                                       self.recog_args, self.char_list,
-                                                       self.rnnlm) for i in range(self.num_spkrs)]
+                                                           self.recog_args, self.char_list, self.rnnlm)
+                             for i in range(self.num_spkrs)]
             # remove <sos> and <eos>
             y_hats_sd = [[nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps_sd[i]] for i in range(self.num_spkrs)]
-            for i in range(len(y_hats[0])):
-                hyp_words = []; hyp_chars = []
-                ref_wrods = []; ref_chars = []
+            for i in range(len(y_hats_sd[0])):
+                hyp_words = []
+                hyp_chars = []
+                ref_words = []
+                ref_chars = []
                 for ns in range(self.num_spkrs):
-                    y_hat  = y_hats_sd[ns][i]
+                    y_hat = y_hats_sd[ns][i]
                     y_true = ys_pad_sd[ns][i]
 
                     seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
@@ -292,9 +296,10 @@ class E2E(torch.nn.Module):
                     hyp_chars.append(seq_hat_text.replace(' ', ''))
                     ref_chars.append(seq_true_text.replace(' ', ''))
 
-
-                tmp_wers = [editdistance.eval(hyp_words[ns//self.num_spkrs], ref_words[ns%self.num_spkrs]) for ns in range(self.num_spkrs)] # h1r1,h1r2,h2r1,h2r2
-                tmp_cers = [editdistance.eval(hyp_chars[ns//self.num_spkrs], ref_chars[ns%self.num_spkrs]) for ns in range(self.num_spkrs)] # h1r1,h1r2,h2r1,h2r2
+                tmp_wers = [editdistance.eval(hyp_words[ns // self.num_spkrs], ref_words[ns % self.num_spkrs])
+                            for ns in range(self.num_spkrs)]  # h1r1,h1r2,h2r1,h2r2
+                tmp_cers = [editdistance.eval(hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs])
+                            for ns in range(self.num_spkrs)]  # h1r1,h1r2,h2r1,h2r2
 
                 wers.append(self.min_PIT_process(tmp_wers) / len(sum(ref_words, [])))
                 cers.append(self.min_PIT_process(tmp_cers) / len(sum(ref_words, [])))
@@ -330,6 +335,7 @@ class E2E(torch.nn.Module):
         acc = torch.tensor([acc], device=device)
         cer = torch.tensor([cer], device=device)
         wer = torch.tensor([wer], device=device)
+
         return self.loss, loss_ctc, loss_att, acc, cer, wer
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
@@ -357,13 +363,14 @@ class E2E(torch.nn.Module):
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz_sd = [self.ctc.log_softmax(h)[0] for h in h_sd]
+            lpz_sd = [self.ctc.log_softmax(i)[0] for i in h_sd]
         else:
             lpz_sd = None
 
         # 2. decoder
         # decode the first utterance
-        y = [self.dec.recognize_beam(h_sd[i][0], lpz_sd[i], recog_args, char_list, i, rnnlm) for i in range(self.num_spkrs)]
+        y = [self.dec.recognize_beam(h_sd[i][0], lpz_sd[i], recog_args, char_list, i, rnnlm)
+             for i in range(self.num_spkrs)]
 
         if prev:
             self.train()
@@ -398,7 +405,8 @@ class E2E(torch.nn.Module):
             lpz_sd = None
 
         # 2. decoder
-        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list, i, rnnlm) for i in range(self.num_spkrs)]
+        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list, i, rnnlm)
+             for i in range(self.num_spkrs)]
 
         if prev:
             self.train()
@@ -420,16 +428,17 @@ class E2E(torch.nn.Module):
             hpad_sd, hlens = self.enc(xs_pad, ilens)
 
             # Permutation
-            ys_pad_sd = ys_pad_sd.transpose(0, 1) # (num_spkrs, B, Lmax)
+            ys_pad_sd = ys_pad_sd.transpose(0, 1)  # (num_spkrs, B, Lmax)
             if self.num_spkrs <= 3:
                 loss_ctc = torch.stack([self.ctc(hpad_sd[i // self.num_spkrs], hlens,
-                                     ys_pad_sd[i %  self.num_spkrs]) for i in range(self.num_spkrs ** 2)], 1) # (B, num_spkrs^2)
+                                        ys_pad_sd[i % self.num_spkrs]) for i in range(self.num_spkrs ** 2)], 1)  # (B, num_spkrs^2)
                 loss_ctc, min_perm = self.min_PIT_CTC_batch(loss_ctc)
-            for i in range(ys_pad_sd.size(1)): # B
-                ys_pad_sd[:,i] = ys_pad_sd[min_perm[i], i]
+            for i in range(ys_pad_sd.size(1)):  # B
+                ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
 
             # decoder
-            att_ws_sd = [self.dec.calculate_all_attentions(hpad_sd[i], hlens, ys_pad_sd[i], i) for i in range(self.num_spkrs)]
+            att_ws_sd = [self.dec.calculate_all_attentions(hpad_sd[i], hlens, ys_pad_sd[i], i)
+                         for i in range(self.num_spkrs)]
 
         return att_ws_sd
 
@@ -449,12 +458,17 @@ class Encoder(torch.nn.Module):
     :param int num_spkrs: number of number of speakers
     """
 
-    def __init__(self, etype, idim, elayers_sd, elayers_rec, eunits, eprojs, subsample, dropout, num_spkrs=2, in_channel=1):
+    def __init__(self, etype, idim, elayers_sd, elayers_rec, eunits, eprojs,
+                 subsample, dropout, num_spkrs=2, in_channel=1):
         super(Encoder, self).__init__()
         if etype == 'vggblstmp':
             self.enc_mix = torch.nn.ModuleList([VGG2L(in_channel)])
-            self.enc_sd  = torch.nn.ModuleList([torch.nn.ModuleList([BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), elayers_sd, eunits, eprojs, subsample[:elayers_sd+1], dropout)]) for i in range(num_spkrs)])
-            self.enc_rec = torch.nn.ModuleList([BLSTMP(eprojs, elayers_rec, eunits, eprojs, subsample[elayers_sd:], dropout)])
+            self.enc_sd = torch.nn.ModuleList([torch.nn.ModuleList([BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel),
+                                                                           elayers_sd, eunits, eprojs,
+                                                                           subsample[:elayers_sd + 1], dropout)])
+                                               for i in range(num_spkrs)])
+            self.enc_rec = torch.nn.ModuleList([BLSTMP(eprojs, elayers_rec, eunits, eprojs,
+                                                       subsample[elayers_sd:], dropout)])
             logging.info('Use CNN-VGG + BLSTMP for encoder')
         else:
             logging.error(
@@ -477,7 +491,7 @@ class Encoder(torch.nn.Module):
 
         # SD and Rec encoder
         xs_pad_sd = [xs_pad for i in range(self.num_spkrs)]
-        ilens_sd  = [ilens  for i in range(self.num_spkrs)]
+        ilens_sd = [ilens for i in range(self.num_spkrs)]
         for ns in range(self.num_spkrs):
             # Encoder_SD: speaker differentiate encoder
             for module in self.enc_sd[ns]:
@@ -493,4 +507,5 @@ class Encoder(torch.nn.Module):
 
 
 def encoder_for(args, idim, subsample):
-    return Encoder(args.etype, idim, args.elayers_sd, args.elayers_rec, args.eunits, args.eprojs, subsample, args.dropout_rate, args.num_spkrs)
+    return Encoder(args.etype, idim, args.elayers_sd, args.elayers_rec, args.eunits, args.eprojs, subsample,
+                   args.dropout_rate, args.num_spkrs)

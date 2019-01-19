@@ -4,31 +4,16 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import copy
-import json
 import logging
 # matplotlib related
 import os
-import shutil
-import tempfile
 
-# chainer related
-import chainer
-
-from chainer import training
 from chainer.training import extension
-
-from chainer.serializers.npz import DictionarySerializer
-from chainer.serializers.npz import NpzDeserializer
-
 
 # io related
 import kaldi_io_py
 import matplotlib
 import numpy as np
-import torch
-
-
-matplotlib.use('Agg')
 
 '''
 reuse modules in asr_utils:
@@ -37,6 +22,10 @@ reuse modules in asr_utils:
     get_model_conf, chainer_load, torch_save, torch_load, torch_resume
 '''
 from espnet.asr.asr_utils import parse_hypothesis
+
+
+matplotlib.use('Agg')
+
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out,
@@ -158,7 +147,7 @@ class PlotAttentionReport(extension.Extension):
         for ns, att_ws in enumerate(att_ws_sd):
             for idx, att_w in enumerate(att_ws):
                 filename = "%s/%s.ep.{.updater.epoch}.output%d.png" % (
-                    self.outdir, self.data[idx][0], ns+1)
+                    self.outdir, self.data[idx][0], ns + 1)
                 att_w = self.get_attention_weight(idx, att_w, ns)
                 self._plot_and_save_attention(att_w, filename.format(trainer))
 

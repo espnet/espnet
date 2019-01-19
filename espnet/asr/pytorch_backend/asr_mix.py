@@ -4,17 +4,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import copy
 import json
 import logging
-import math
 import os
 
 # chainer related
 import chainer
 
 from chainer.datasets import TransformDataset
-from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 
@@ -34,10 +31,10 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
-from espnet.nets.pytorch_backend.e2e_asr_mix import pad_list
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
+from espnet.nets.pytorch_backend.e2e_asr_mix import E2E
+from espnet.nets.pytorch_backend.e2e_asr_mix import pad_list
 
 # for kaldi io
 import kaldi_io_py
@@ -96,9 +93,9 @@ class CustomConverter(object):
         # perform padding and convert to tensor
         xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
         ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = pad_list([torch.from_numpy(y[0]).long() for y in ys] +
-                          [torch.from_numpy(y[1]).long() for y in ys], self.ignore_id).to(device)
-        ys_pad = ys_pad.view(2, -1, ys_pad.size(1)).transpose(0,1) # (num_spkrs, B, Tmax)
+        ys_pad = [torch.from_numpy(y[0]).long() for y in ys] + [torch.from_numpy(y[1]).long() for y in ys]
+        ys_pad = pad_list(ys_pad, self.ignore_id).to(device)
+        ys_pad = ys_pad.view(2, -1, ys_pad.size(1)).transpose(0, 1)  # (num_spkrs, B, Tmax)
 
         return xs_pad, ilens, ys_pad
 
