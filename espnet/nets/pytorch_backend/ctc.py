@@ -35,7 +35,7 @@ class CTC(torch.nn.Module):
             return self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
         else:
             th_pred = th_pred.log_softmax(2)
-            loss = self.loss_fn(th_pred, th_target, th_ilen, th_olen)
+            loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
             loss = loss / th_pred.size(1)
             return loss
 
