@@ -497,7 +497,7 @@ def recog(args):
             for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
-                with using_transform_config({'train': True}):
+                with using_transform_config({'train': False}):
                     feats = load_inputs_and_targets(batch)[0]
                 nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
