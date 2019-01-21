@@ -185,16 +185,16 @@ if [ ${stage} -le 2 ]; then
     done
 fi
 
-# It takes about one day. If you just want to do end-to-end ASR without LM,
-# you can skip this and remove --rnnlm option in the recognition (stage 5)
-if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
-    if [ $use_wordlm = true ]; then
-        lmtag=${lmtag}_word${lm_vocabsize}
-    fi
-fi
-lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
-mkdir -p ${lmexpdir}
+# # It takes about one day. If you just want to do end-to-end ASR without LM,
+# # you can skip this and remove --rnnlm option in the recognition (stage 5)
+# if [ -z ${lmtag} ]; then
+#     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+#     if [ $use_wordlm = true ]; then
+#         lmtag=${lmtag}_word${lm_vocabsize}
+#     fi
+# fi
+# lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
+# mkdir -p ${lmexpdir}
 
 # TODO(karita)
 # if [ ${stage} -le 3 ]; then
@@ -252,10 +252,7 @@ mkdir -p ${lmexpdir}
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/noam/ctc/${train_set}_${backend}_${ntype}_${input_layer}_e${elayers}_subsample${subsample}_unit${eunits}_d${dlayers}_unit${dunits}_aheads${aheads}_adim${adim}_mtlalpha${mtlalpha}_${opt}_clip${grad_clip}_sampprob${samp_prob}_ngpu${ngpu}_bs${batchsize}_lr${lr_init}_warmup${warmup_steps}_dropout${dropout}_attndropout${attn_dropout}_mli${maxlen_in}_mlo${maxlen_out}_ninit_${ninit}_epochs${epochs}_accum${accum_grad}_lennorm${len_norm}
-    if [ "${lsm_type}" != "" ]; then
-        expdir=${expdir}_lsm${lsm_type}${lsm_weight}
-    fi
+    expdir=exp/${train_set}_${backend}_${ntype}_${input_layer}_e${elayers}_subsample${subsample}_unit${eunits}_d${dlayers}_unit${dunits}_aheads${aheads}_adim${adim}_mtlalpha${mtlalpha}_${opt}_clip${grad_clip}_sampprob${samp_prob}_ngpu${ngpu}_bs${batchsize}_lr${lr_init}_warmup${warmup_steps}_dropout${dropout}_attndropout${attn_dropout}_mli${maxlen_in}_mlo${maxlen_out}_ninit_${ninit}_epochs${epochs}_accum${accum_grad}_lennorm${len_norm}
     if ${do_delta}; then
         expdir=${expdir}_delta
     fi
@@ -315,9 +312,10 @@ if [ ${stage} -le 5 ]; then
         average_checkpoints.py --snapshots ${expdir}/results/snapshot.ep.* --out ${expdir}/results/${recog_model} --num ${n_average}
     fi
 
+    # TODO(karita) CTC and LM joint decoding
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio} #_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
         if [ $use_wordlm = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else

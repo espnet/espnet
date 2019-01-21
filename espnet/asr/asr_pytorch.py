@@ -129,11 +129,6 @@ class CustomUpdater(training.StandardUpdater):
         grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
         logging.info('grad norm={}'.format(grad_norm))
-        if isinstance(self.model, torch.nn.DataParallel):
-            reporter = self.model.module.reporter
-        else:
-            reporter = self.model.reporter
-        reporter.new("grad_norm", grad_norm)
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
         elif self.count % self.accum_grad == 0:
