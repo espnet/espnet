@@ -626,8 +626,9 @@ def _plot_and_save_attention(att_w, filename):
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
     import os
-
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    d = os.path.dirname(filename)
+    if not os.path.exists(d):
+        os.makedirs(d)
     w, h = plt.figaspect(1.0 / len(att_w))
     fig = plt.Figure(figsize=(w * 2, h * 2))
     axes = fig.subplots(1, len(att_w))
