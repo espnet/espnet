@@ -408,8 +408,7 @@ def recog(args):
         from espnet.nets.e2e_asr_th import E2E
     elif train_args.ntype == 'transformer':
         from espnet.nets.e2e_asr_transformer_th import E2E
-        assert args.batchsize > 1, "transformer does not support batchsize > 1"
-        args.batchsize = 0
+        assert args.batchsize == 1, "transformer does not support batchsize > 1"
     else:
         raise ValueError('Incorrect type of architecture')
     e2e = E2E(idim, odim, train_args)
@@ -459,7 +458,7 @@ def recog(args):
         js = json.load(f)['utts']
     new_js = {}
 
-    if args.batchsize == 0:
+    if args.batchsize == 0 or train_args.ntype == "transformer":
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))

@@ -55,7 +55,7 @@ epochs=100
 lr_init=10.0
 warmup_steps=25000
 dropout=0.1
-attn_dropout=0.0
+attn_dropout=0.1
 accum_grad=2
 grad_clip=5
 
@@ -306,24 +306,23 @@ fi
 
 if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
-    nj=3
+    nj=16
 
-    if [ ! -e ${expdir}/results/${recog_model} ]; then
-        average_checkpoints.py --snapshots ${expdir}/results/snapshot.ep.* --out ${expdir}/results/${recog_model} --num ${n_average}
-    fi
+    average_checkpoints.py --snapshots ${expdir}/results/snapshot.ep.* --out ${expdir}/results/${recog_model} --num ${n_average}
 
     # TODO(karita) CTC and LM joint decoding
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio} #_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
-        if [ $use_wordlm = true ]; then
-            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
-        else
-            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
-        fi
-        if [ $lm_weight == 0 ]; then
-            recog_opts=""
-        fi
+        # if [ $use_wordlm = true ]; then
+        #     recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+        # else
+        #     recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        # fi
+        # if [ $lm_weight == 0 ]; then
+        #     recog_opts=""
+        # fi
+        recog_opts=""
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
