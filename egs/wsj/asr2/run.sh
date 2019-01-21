@@ -21,11 +21,10 @@ seed=1
 do_delta=false
 
 # network archtecture
-ninit=none
+ninit=pytorch
+ntype=transformer
 
 # encoder related
-ntype=transformer
-etype=vggblstmp     # encoder architecture type
 input_layer=conv2d
 elayers=6
 eunits=1024
@@ -60,7 +59,7 @@ attn_dropout=0.0
 accum_grad=2
 grad_clip=5
 
-# # rnnlm related
+# rnnlm related TODO(karita)
 # use_wordlm=true     # false means to train/use a character LM
 # lm_vocabsize=65000  # effective only for word LMs
 # lm_layers=1         # 2 for character LMs

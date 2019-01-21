@@ -79,13 +79,12 @@ def prepare():
 
 def test_transformer_mask():
     model, x, ilens, y, data = prepare()
-    # _, loss, _, _, _ = model(x, ilens, y)
-    # print(loss)
-    # assert not numpy.isnan(float(loss))
     yi, yo = model.add_sos_eos(y)
+    y_mask = model.target_mask(yi)
     y = model.decoder.embed(yi)
     y[0, 3:] = float("nan")
     a = model.decoder.decoders[0].self_attn
+    a(y, y, y, y_mask)
     assert not numpy.isnan(a.attn[0, :, :3, :3].detach().numpy()).any()
 
 
@@ -94,15 +93,15 @@ def test_transformer_synth():
 
     # test acc is almost 100%
     optim = torch.optim.Adam(model.parameters(), 0.01)
+    max_acc = 0
     for i in range(40):
         loss_ctc, loss_att, acc, cer, wer = model(x, ilens, y)
         optim.zero_grad()
         loss_att.backward()
         optim.step()
         print(loss_att, acc)
-        # attn_dict = model.calculate_all_attentions(x, ilens, y)
-        # T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test", "iter%d.png" % i)
-    assert acc > 0.8
+        max_acc = max(acc, max_acc)
+    assert max_acc > 0.8
 
     # test attention plot
     attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
