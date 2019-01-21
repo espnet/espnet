@@ -7,9 +7,9 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -20,60 +20,67 @@ seed=1
 # feature configuration
 do_delta=false
 
-# network architecture
+# network archtecture
+ninit=none
+
 # encoder related
+ntype=transformer
 etype=vggblstmp     # encoder architecture type
+input_layer=conv2d
 elayers=6
-eunits=320
+eunits=1024
 eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+subsample=0 # skip every n frame from input to nth layers
 # decoder related
-dlayers=1
-dunits=300
+dlayers=6
+dunits=1024
 # attention related
-atype=location
-adim=320
-awin=5
 aheads=4
-aconv_chans=10
-aconv_filts=100
+adim=256
 
 # hybrid CTC/attention
-mtlalpha=0.2
+mtlalpha=0.0
 
 # label smoothing
-lsm_type=unigram
-lsm_weight=0.05
+lsm_weight=0.1
 
 # minibatch related
-batchsize=30
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
+batchsize=16
+maxlen_in=512  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
-opt=adadelta
-epochs=15
+len_norm=True
+opt=noam
+epochs=100
+lr_init=10.0
+warmup_steps=25000
+dropout=0.1
+attn_dropout=0.0
+accum_grad=2
+grad_clip=5
 
-# rnnlm related
-use_wordlm=true     # false means to train/use a character LM
-lm_vocabsize=65000  # effective only for word LMs
-lm_layers=1         # 2 for character LMs
-lm_units=1000       # 650 for character LMs
-lm_opt=sgd          # adam for character LMs
-lm_batchsize=300    # 1024 for character LMs
-lm_epochs=20        # number of epochs
-lm_maxlen=40        # 150 for character LMs
-lm_resume=          # specify a snapshot file to resume LM training
-lmtag=              # tag for managing LMs
+# # rnnlm related
+# use_wordlm=true     # false means to train/use a character LM
+# lm_vocabsize=65000  # effective only for word LMs
+# lm_layers=1         # 2 for character LMs
+# lm_units=1000       # 650 for character LMs
+# lm_opt=sgd          # adam for character LMs
+# lm_batchsize=300    # 1024 for character LMs
+# lm_epochs=20        # number of epochs
+# lm_maxlen=40        # 150 for character LMs
+# lm_resume=          # specify a snapshot file to resume LM training
+# lmtag=              # tag for managing LMs
 
 # decoding parameter
-lm_weight=1.0
-beam_size=30
+lm_weight=0.0
+beam_size=1
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.3
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+ctc_weight=0.0
+n_average=10
+recog_model=model.avg.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # scheduled sampling option
 samp_prob=0.0
@@ -190,62 +197,63 @@ fi
 lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
 mkdir -p ${lmexpdir}
 
-if [ ${stage} -le 3 ]; then
-    echo "stage 3: LM Preparation"
+# TODO(karita)
+# if [ ${stage} -le 3 ]; then
+#     echo "stage 3: LM Preparation"
     
-    if [ $use_wordlm = true ]; then
-        lmdatadir=data/local/wordlm_train
-        lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
-        mkdir -p ${lmdatadir}
-        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
-        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-                | grep -v "<" | tr [a-z] [A-Z] > ${lmdatadir}/train_others.txt
-        cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
-        cat data/${train_test}/text | cut -f 2- -d" " > ${lmdatadir}/test.txt
-        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
-        text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
-    else
-        lmdatadir=data/local/lm_train
-        lmdict=$dict
-        mkdir -p ${lmdatadir}
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
-            | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
-        zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-            | grep -v "<" | tr [a-z] [A-Z] \
-            | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
-            | cut -f 2- -d" " > ${lmdatadir}/valid.txt
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
-                | cut -f 2- -d" " > ${lmdatadir}/test.txt
-        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
-    fi
+#     if [ $use_wordlm = true ]; then
+#         lmdatadir=data/local/wordlm_train
+#         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
+#         mkdir -p ${lmdatadir}
+#         cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
+#         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
+#                 | grep -v "<" | tr [a-z] [A-Z] > ${lmdatadir}/train_others.txt
+#         cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+#         cat data/${train_test}/text | cut -f 2- -d" " > ${lmdatadir}/test.txt
+#         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
+#         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+#     else
+#         lmdatadir=data/local/lm_train
+#         lmdict=$dict
+#         mkdir -p ${lmdatadir}
+#         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
+#             | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
+#         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
+#             | grep -v "<" | tr [a-z] [A-Z] \
+#             | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
+#         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
+#             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+#         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
+#                 | cut -f 2- -d" " > ${lmdatadir}/test.txt
+#         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
+#     fi
 
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-    fi
-    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
-        lm_train.py \
-        --ngpu ${ngpu} \
-        --backend ${backend} \
-        --verbose 1 \
-        --outdir ${lmexpdir} \
-        --train-label ${lmdatadir}/train.txt \
-        --valid-label ${lmdatadir}/valid.txt \
-        --test-label ${lmdatadir}/test.txt \
-        --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --maxlen ${lm_maxlen} \
-        --dict ${lmdict}
-fi
+#     # use only 1 gpu
+#     if [ ${ngpu} -gt 1 ]; then
+#         echo "LM training does not support multi-gpu. signle gpu will be used."
+#     fi
+#     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
+#         lm_train.py \
+#         --ngpu ${ngpu} \
+#         --backend ${backend} \
+#         --verbose 1 \
+#         --outdir ${lmexpdir} \
+#         --train-label ${lmdatadir}/train.txt \
+#         --valid-label ${lmdatadir}/valid.txt \
+#         --test-label ${lmdatadir}/test.txt \
+#         --resume ${lm_resume} \
+#         --layer ${lm_layers} \
+#         --unit ${lm_units} \
+#         --opt ${lm_opt} \
+#         --batchsize ${lm_batchsize} \
+#         --epoch ${lm_epochs} \
+#         --maxlen ${lm_maxlen} \
+#         --dict ${lmdict}
+# fi
 
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expdir=exp/noam/ctc/${train_set}_${backend}_${ntype}_${input_layer}_e${elayers}_subsample${subsample}_unit${eunits}_d${dlayers}_unit${dunits}_aheads${aheads}_adim${adim}_mtlalpha${mtlalpha}_${opt}_clip${grad_clip}_sampprob${samp_prob}_ngpu${ngpu}_bs${batchsize}_lr${lr_init}_warmup${warmup_steps}_dropout${dropout}_attndropout${attn_dropout}_mli${maxlen_in}_mlo${maxlen_out}_ninit_${ninit}_epochs${epochs}_accum${accum_grad}_lennorm${len_norm}
     if [ "${lsm_type}" != "" ]; then
         expdir=${expdir}_lsm${lsm_type}${lsm_weight}
     fi
@@ -255,14 +263,16 @@ if [ -z ${tag} ]; then
 else
     expdir=exp/${train_set}_${backend}_${tag}
 fi
+
 mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
-
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
+        --accum-grad ${accum_grad} \
         --ngpu ${ngpu} \
+        --ntype ${ntype} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
@@ -271,36 +281,40 @@ if [ ${stage} -le 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --seed ${seed} \
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
-        --eprojs ${eprojs} \
         --subsample ${subsample} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --awin ${awin} \
         --aheads ${aheads} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
+        --adim ${adim} \
         --mtlalpha ${mtlalpha} \
-        --lsm-type ${lsm_type} \
-        --lsm-weight ${lsm_weight} \
         --batch-size ${batchsize} \
+        --dropout-rate ${dropout} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --grad-clip ${grad_clip} \
+        --sampling-probability ${samp_prob} \
+        --epochs ${epochs} \
+        --transformer-lr ${lr_init} \
+        --transformer-warmup-steps ${warmup_steps} \
+        --transformer-input-layer ${input_layer} \
+        --transformer-attn-dropout-rate ${attn_dropout} \
+        --transformer-length-normalized-loss ${len_norm} \
+        --transformer-init ${ninit} \
+        --lsm-weight ${lsm_weight}
 fi
 
 if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=3
+
+    if [ ! -e ${expdir}/results/${recog_model} ]; then
+        average_checkpoints.py --snapshots ${expdir}/results/snapshot.ep.* --out ${expdir}/results/${recog_model} --num ${n_average}
+    fi
 
     for rtask in ${recog_set}; do
     (
@@ -344,4 +358,3 @@ if [ ${stage} -le 5 ]; then
     wait
     echo "Finished"
 fi
-
