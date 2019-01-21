@@ -22,7 +22,7 @@ espnet.done: venv
 	conda update conda
 	conda install python=$(PYTHON_VERSION)
 	conda info -a
-	. venv/bin/activate && conda install -y pytorch -c pytorch
+	. venv/bin/activate && conda install -y pytorch=0.4.1 -c pytorch
 	. venv/bin/activate && pip install -e ..
 	. venv/bin/activate && pip install cupy==4.3.0
 	. venv/bin/activate && conda install -y matplotlib

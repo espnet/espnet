@@ -28,13 +28,11 @@ from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import load_inputs_and_targets
 from espnet.asr.asr_utils import make_batchset
-from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.e2e_asr_th import E2E
 from espnet.nets.e2e_asr_th import Loss
 from espnet.nets.e2e_asr_th import pad_list
 
@@ -97,18 +95,21 @@ class CustomUpdater(training.StandardUpdater):
     '''Custom updater for pytorch'''
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu):
+                 optimizer, converter, device, ngpu, accum_grad):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.converter = converter
         self.device = device
         self.ngpu = ngpu
+        self.count = 0
+        self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
+        self.count += 1
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
@@ -117,10 +118,9 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        optimizer.zero_grad()  # Clear the parameter gradients
         if self.ngpu > 1:
-            loss = 1. / self.ngpu * self.model(*x)
-            loss.backward(loss.new_ones(self.ngpu))  # Backprop
+            loss = self.model(*x).mean() / self.accum_grad
+            loss.backward()  # Backprop
         else:
             loss = self.model(*x)
             loss.backward()  # Backprop
@@ -129,10 +129,16 @@ class CustomUpdater(training.StandardUpdater):
         grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
         logging.info('grad norm={}'.format(grad_norm))
+        if isinstance(self.model, torch.nn.DataParallel):
+            reporter = self.model.module.reporter
+        else:
+            reporter = self.model.reporter
+        reporter.new("grad_norm", grad_norm)
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
-        else:
+        elif self.count % self.accum_grad == 0:
             optimizer.step()
+            optimizer.zero_grad()  # Clear the parameter gradients
 
 
 class CustomConverter(object):
@@ -209,6 +215,13 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
+    logging.info('network type (ntype): ' + args.ntype)
+    if args.ntype == 'e2e':
+        from espnet.nets.e2e_asr_th import E2E
+    elif args.ntype == 'transformer':
+        from espnet.nets.e2e_asr_transformer_th import E2E
+    else:
+        raise ValueError('Incorrect type of architecture')
     e2e = E2E(idim, odim, args)
     model = Loss(e2e, args.mtlalpha)
 
@@ -249,6 +262,10 @@ def train(args):
             model.parameters(), rho=0.95, eps=args.eps)
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters())
+    elif args.opt == 'noam':
+        from espnet.nets.e2e_asr_transformer_th import get_std_opt
+        optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps,
+                                args.transformer_lr)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -290,7 +307,8 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
+        model, args.grad_clip, train_iter, optimizer, converter,
+        device, args.ngpu, args.accum_grad)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -310,6 +328,10 @@ def train(args):
             att_vis_fn = model.module.predictor.calculate_all_attentions
         else:
             att_vis_fn = model.predictor.calculate_all_attentions
+        if args.ntype == 'transformer':
+            from espnet.nets.e2e_asr_transformer_th import PlotAttentionReport
+        else:
+            from espnet.asr.asr_utils import PlotAttentionReport
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=device), trigger=(1, 'epoch'))
@@ -386,6 +408,15 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
+    logging.info('network type (ntype): ' + train_args.ntype)
+    if train_args.ntype == 'e2e':
+        from espnet.nets.e2e_asr_th import E2E
+    elif train_args.ntype == 'transformer':
+        from espnet.nets.e2e_asr_transformer_th import E2E
+        assert args.batchsize > 1, "transformer does not support batchsize > 1"
+        args.batchsize = 0
+    else:
+        raise ValueError('Incorrect type of architecture')
     e2e = E2E(idim, odim, train_args)
     model = Loss(e2e, train_args.mtlalpha)
     torch_load(args.model, model)

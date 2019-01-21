@@ -78,7 +78,7 @@ def make_inference_args(**kwargs):
 
 
 def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
-                   spk_embed_dim=None, spc_dim=None):
+                   spk_embed_dim=None, spc_dim=None, cuda=False):
     ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
     olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
     ilens = torch.LongTensor(ilens)
@@ -88,18 +88,25 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
     xs = pad_list([torch.from_numpy(x).long() for x in xs], 0)
     ys = pad_list([torch.from_numpy(y).float() for y in ys], 0)
     labels = ys.new_zeros(ys.size(0), ys.size(1))
+    if cuda:
+        xs = xs.cuda()
+        ys = ys.cuda()
+        labels = labels.cuda()
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
     if spk_embed_dim is not None:
         spembs = torch.from_numpy(np.random.randn(bs, spk_embed_dim)).float()
+        if cuda:
+            spembs = spembs.cuda()
     else:
         spembs = None
     if spc_dim is not None:
         spcs = [np.random.randn(l, spc_dim) for l in olens]
         spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0)
+        if cuda:
+            spcs = spcs.cuda()
     else:
         spcs = None
-
     return xs, ilens, ys, labels, olens, spembs, spcs
 
 
@@ -182,8 +189,7 @@ def test_tacotron2_gpu_trainable(model_dict):
     model_args = make_model_args(**model_dict)
     loss_args = make_loss_args()
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
-                           model_args['spk_embed_dim'], model_args['spc_dim'])
-    batch = (x.cuda() if x is not None else None for x in batch)
+                           model_args['spk_embed_dim'], model_args['spc_dim'], cuda=True)
 
     # define model
     tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
@@ -217,8 +223,7 @@ def test_tacotron2_multi_gpu_trainable(model_dict):
     model_args = make_model_args(**model_dict)
     loss_args = make_loss_args()
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
-                           model_args['spk_embed_dim'], model_args['spc_dim'])
-    batch = (x.cuda() if x is not None else None for x in batch)
+                           model_args['spk_embed_dim'], model_args['spc_dim'], cuda=True)
 
     # define model
     tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))

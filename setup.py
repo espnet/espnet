@@ -18,7 +18,8 @@ requirements = {
         'scipy',
         # Installation from anaconda is recommended for PyTorch
         # 'torch==0.4.1',
-        'chainer==5.0.0',
+        #  need to match to Makefile cupy==4.3.0
+        'chainer==4.3.0',
         # 'cupy==5.0.0',
         'python_speech_features>=0.6',
         'setuptools>=38.5.1',

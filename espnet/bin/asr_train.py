@@ -45,6 +45,9 @@ def main():
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network archtecture
+    parser.add_argument('--ntype', type=str, default='e2e',
+                        choices=['e2e', 'transformer'],
+                        help='network type')
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
@@ -140,8 +143,10 @@ def main():
                         help='Number of processes of iterator')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam'],
+                        choices=['adadelta', 'adam', 'noam'],
                         help='Optimizer')
+    parser.add_argument('--accum-grad', default=1, type=int,
+                        help='Number of gradient accumuration')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
@@ -157,6 +162,9 @@ def main():
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+
+    from espnet.nets.e2e_asr_transformer_th import add_transformer_arguments
+    add_transformer_arguments(parser)
     args = parser.parse_args()
 
     # logging info
