@@ -226,14 +226,10 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    logging.info('network type (ntype): ' + args.ntype)
-    if args.ntype == 'e2e':
-        from espnet.nets.pytorch_backend.e2e_asr import E2E
-    elif args.ntype == 'transformer':
-        from espnet.nets.pytorch_backend.e2e_transformer import E2E
-    else:
-        raise ValueError('Incorrect type of architecture')
-    model = E2E(idim, odim, args)
+    logging.info('import model module: ' + args.model_module)
+    from importlib import import_module
+    model_module = import_module(args.model_module)
+    model = model_module.E2E(idim, odim, args)
     subsampling_factor = model.subsample[0]
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -339,9 +335,10 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        if args.ntype == 'transformer':
-            from espnet.nets.pytorch_backend.e2e_transformer import PlotAttentionReport
-        else:
+        try:
+            PlotAttentionReport = model_module.PlotAttentionReport
+            logging.info('using custom PlotAttentionReport')
+        except AttributeError:
             from espnet.asr.asr_utils import PlotAttentionReport
         att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
@@ -431,14 +428,9 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    logging.info('network type (ntype): ' + train_args.ntype)
-    if train_args.ntype == 'e2e':
-        from espnet.nets.pytorch_backend.e2e_asr import E2E
-    elif train_args.ntype == 'transformer':
-        from espnet.nets.pytorch_backend.e2e_transformer import E2E
-    else:
-        raise ValueError('Incorrect type of architecture')
-    model = E2E(idim, odim, train_args)
+    from importlib import import_module
+    model_module = import_module(train_args.model_module)
+    model = model_module.E2E(idim, odim, train_args)
     torch_load(args.model, model)
     model.recog_args = args
 
@@ -489,7 +481,7 @@ def recog(args):
         preprocess_conf=train_args.preprocess_conf
         if args.preprocess_conf is None else args.preprocess_conf)
 
-    if args.batchsize == 0 or train_args.ntype == "transformer":
+    if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))

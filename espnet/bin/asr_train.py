@@ -46,9 +46,8 @@ def main(cmd_args):
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network archtecture
-    parser.add_argument('--ntype', type=str, default='e2e',
-                        choices=['e2e', 'transformer'],
-                        help='network type')
+    parser.add_argument('--model-module', type=str, default=None,
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr)')
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
@@ -170,9 +169,16 @@ def main(cmd_args):
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
 
-    from espnet.nets.pytorch_backend.e2e_transformer import add_transformer_arguments
-    add_transformer_arguments(parser)
+    args, _ = parser.parse_known_args(cmd_args)
+    from importlib import import_module
+    if args.model_module is not None:
+        model_module = import_module(args.model_module)
+        if hasattr(model_module, "add_arguments"):
+            model_module.add_arguments(parser)
     args = parser.parse_args(cmd_args)
+    if args.model_module is None:
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr"
+    logging.info("model module: " + args.model_module)
 
     # logging info
     if args.verbose > 0:

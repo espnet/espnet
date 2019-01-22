@@ -276,7 +276,6 @@ if [ ${stage} -le 4 ]; then
         asr_train.py \
         --accum-grad ${accum_grad} \
         --ngpu ${ngpu} \
-        --ntype ${ntype} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
@@ -304,6 +303,7 @@ if [ ${stage} -le 4 ]; then
         --sampling-probability ${samp_prob} \
         --epochs ${epochs} \
         --lsm-weight ${lsm_weight} \
+        --model-module "espnet.nets.${backend}_backend.e2e_transformer" \
         --transformer-lr ${lr_init} \
         --transformer-warmup-steps ${warmup_steps} \
         --transformer-input-layer ${input_layer} \
@@ -341,6 +341,7 @@ if [ ${stage} -le 5 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
+            --batchsize 0 \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \

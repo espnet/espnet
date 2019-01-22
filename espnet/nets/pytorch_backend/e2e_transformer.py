@@ -18,22 +18,24 @@ from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 
 
-def add_transformer_arguments(parser):
-    parser.add_argument("--transformer-init", type=str, default="pytorch",
-                        choices=["pytorch", "xavier_uniform", "xavier_normal",
-                                 "kaiming_uniform", "kaiming_normal"],
-                        help='how to initialize transformer parameters')
-    parser.add_argument("--transformer-input-layer", type=str, default="conv2d",
-                        choices=["conv2d", "linear", "embed"],
-                        help='transformer input layer type')
-    parser.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
-                        help='dropout in transformer attention. use --dropout-rate if None is set')
-    parser.add_argument('--transformer-lr', default=10.0, type=float,
-                        help='Initial value of learning rate')
-    parser.add_argument('--transformer-warmup-steps', default=25000, type=int,
-                        help='optimizer warmup steps')
-    parser.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
-                        help='normalize loss by length')
+def add_arguments(parser):
+    group = parser.add_argument_group("transformer model setting")
+    group.add_argument("--transformer-init", type=str, default="pytorch",
+                       choices=["pytorch", "xavier_uniform", "xavier_normal",
+                                "kaiming_uniform", "kaiming_normal"],
+                       help='how to initialize transformer parameters')
+    group.add_argument("--transformer-input-layer", type=str, default="conv2d",
+                       choices=["conv2d", "linear", "embed"],
+                       help='transformer input layer type')
+    group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
+                       help='dropout in transformer attention. use --dropout-rate if None is set')
+    group.add_argument('--transformer-lr', default=10.0, type=float,
+                       help='Initial value of learning rate')
+    group.add_argument('--transformer-warmup-steps', default=25000, type=int,
+                       help='optimizer warmup steps')
+    group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
+                       help='normalize loss by length')
+    return parser
 
 
 class NoamOpt(object):
