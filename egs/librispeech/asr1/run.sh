@@ -9,6 +9,7 @@
 # general configuration
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
+stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -104,14 +105,14 @@ train_set=train_960
 train_dev=dev
 recog_set="test_clean test_other dev_clean dev_other"
 
-if [ ${stage} -le -1 ]; then
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
         local/download_and_untar.sh ${datadir} ${data_url} ${part}
     done
 fi
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
@@ -123,7 +124,7 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
@@ -171,7 +172,7 @@ fi
 dict=data/lang_char/${train_set}_${bpemode}${nbpe}_units.txt
 bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_char/
@@ -202,7 +203,7 @@ lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
@@ -251,7 +252,7 @@ fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -289,7 +290,7 @@ if [ ${stage} -le 4 ]; then
         --patience ${patience}
 fi
 
-if [ ${stage} -le 5 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
