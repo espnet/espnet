@@ -6,7 +6,7 @@
 . ./path.sh
 . ./cmd.sh
 
-# genearl configuration
+# general configuration
 backend=pytorch
 stage=-1
 ngpu=1       # number of gpu in training
@@ -63,6 +63,7 @@ weight_decay=0.0
 dropout=0.5
 zoneout=0.1
 epochs=200
+patience=10
 # decoding related
 model=model.loss.best
 threshold=0.5    # threshold to stop the generation
@@ -86,7 +87,7 @@ set -o pipefail
 
 train_set=train_no_dev
 train_dev=train_dev
-eval_set=eval
+eval_set="eval"
 
 if [ ${stage} -le -1 ]; then
     echo "stage -1: Data Download"
@@ -164,41 +165,43 @@ fi
 
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
+    expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
-        expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
+        expname=${expname}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
-    expdir=${expdir}-${elayers}x${eunits}_dec${dlayers}x${dunits}
+    expname=${expname}-${elayers}x${eunits}_dec${dlayers}x${dunits}
     if [ ${prenet_layers} -gt 0 ];then
-        expdir=${expdir}_pre${prenet_layers}x${prenet_units}
+        expname=${expname}_pre${prenet_layers}x${prenet_units}
     fi
     if [ ${postnet_layers} -gt 0 ];then
-        expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
+        expname=${expname}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
     fi
-    expdir=${expdir}_${atype}${adim}-${aconv_filts}x${aconv_chans}
+    expname=${expname}_${atype}${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
-        expdir=${expdir}_cm
+        expname=${expname}_cm
     fi
     if ${use_batch_norm};then
-        expdir=${expdir}_bn
+        expname=${expname}_bn
     fi
     if ${use_residual};then
-        expdir=${expdir}_rs
+        expname=${expname}_rs
     fi
     if ${use_concate};then
-        expdir=${expdir}_cc
+        expname=${expname}_cc
     fi
     if ${use_masking};then
-        expdir=${expdir}_msk_pw${bce_pos_weight}
+        expname=${expname}_msk_pw${bce_pos_weight}
     fi
-    expdir=${expdir}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
+    expname=${expname}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
     if [ ! ${batch_sort_key} = "shuffle" ];then
-        expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
+        expname=${expname}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
     fi
-    expdir=${expdir}_sd${seed}
+    expname=${expname}_sd${seed}
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
+mkdir -p ${expdir}
 if [ ${stage} -le 3 ];then
     echo "stage 3: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
@@ -209,6 +212,7 @@ if [ ${stage} -le 3 ];then
            --ngpu ${ngpu} \
            --minibatches ${N} \
            --outdir ${expdir}/results \
+           --tensorboard-dir tensorboard/${expname} \
            --verbose ${verbose} \
            --seed ${seed} \
            --resume ${resume} \
@@ -247,7 +251,8 @@ if [ ${stage} -le 3 ];then
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
-           --epochs ${epochs}
+           --epochs ${epochs} \
+           --patience ${patience}
 fi
 
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
@@ -258,7 +263,7 @@ if [ ${stage} -le 4 ];then
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
@@ -270,7 +275,7 @@ if [ ${stage} -le 4 ];then
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
         # concatenate scp files
-        for n in $(seq $nj); do
+        for n in $(seq ${nj}); do
             cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
     done
