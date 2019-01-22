@@ -270,7 +270,7 @@ class LayerNorm(torch.nn.Module):
 
 
 class Conv2dSubsampling(torch.nn.Module):
-    def __init__(self, dim, dropout):
+    def __init__(self, idim, dim, dropout):
         super(Conv2dSubsampling, self).__init__()
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(1, dim, 3, 2),
@@ -279,7 +279,7 @@ class Conv2dSubsampling(torch.nn.Module):
             torch.nn.ReLU()
         )
         self.out = torch.nn.Sequential(
-            torch.nn.Linear(dim * (83 // 4), dim),
+            torch.nn.Linear(dim * (idim // 4), dim),
             PositionalEncoding(dim, dropout)
         )
 
@@ -303,7 +303,7 @@ class Encoder(torch.nn.Module):
                 PositionalEncoding(args.adim, args.dropout_rate)
             )
         elif args.transformer_input_layer == "conv2d":
-            self.input_layer = Conv2dSubsampling(args.adim, args.dropout_rate)
+            self.input_layer = Conv2dSubsampling(idim, args.adim, args.dropout_rate)
         elif args.transformer_input_layer == "embed":
             self.input_layer = torch.nn.Sequential(
                 torch.nn.Embedding(idim, args.adim),
@@ -413,12 +413,8 @@ class E2E(torch.nn.Module):
         self.reporter = Reporter()
 
         # self.lsm_weight = a
-        if args.lsm_weight > 0:
-            self.criterion = LabelSmoothing(self.odim, self.ignore_id, args.lsm_weight,
-                                            args.transformer_length_normalized_loss)
-        else:
-            self.criterion = nn.CrossEntropyLoss(ignore_index=self.ignore_id,
-                                                 size_average=True)
+        self.criterion = LabelSmoothing(self.odim, self.ignore_id, args.lsm_weight,
+                                        args.transformer_length_normalized_loss)
         # self.char_list = args.char_list
         # self.verbose = args.verbose
         self.reset_parameters(args)

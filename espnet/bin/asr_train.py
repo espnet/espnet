@@ -15,7 +15,7 @@ import sys
 import numpy as np
 
 
-def main(args):
+def main(cmd_args):
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -172,8 +172,7 @@ def main(args):
 
     from espnet.nets.pytorch_backend.e2e_transformer import add_transformer_arguments
     add_transformer_arguments(parser)
-
-    args = parser.parse_args(args)
+    args = parser.parse_args(cmd_args)
 
     # logging info
     if args.verbose > 0:
