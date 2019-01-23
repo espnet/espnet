@@ -17,6 +17,7 @@ import sys
 
 is_python2 = sys.version_info[0] == 2
 
+
 def convert_score(keys, dic):
     ret = {}
     pat = re.compile(r'\d+')
