@@ -217,7 +217,7 @@ def train(args):
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
                 len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch.load(args.rnnlm, rnnlm)
+        torch_load(args.rnnlm, rnnlm)
         e2e.rnnlm = rnnlm
 
     # write model config
@@ -384,13 +384,6 @@ def recog(args):
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
 
-    # load trained model parameters
-    logging.info('reading model parameters from ' + args.model)
-    e2e = E2E(idim, odim, train_args)
-    model = Loss(e2e, train_args.mtlalpha)
-    torch_load(args.model, model)
-    e2e.recog_args = args
-
     # read rnnlm
     if args.rnnlm:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -419,6 +412,16 @@ def recog(args):
             rnnlm = lm_pytorch.ClassifierWithState(
                 extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
                                               word_dict, char_dict))
+
+    # load trained model parameters
+    logging.info('reading model parameters from ' + args.model)
+    e2e = E2E(idim, odim, train_args)
+    model = Loss(e2e, train_args.mtlalpha)
+    if train_args.rnnlm is not None:
+        # set rnnlm. external rnnlm is used for recognition.
+        model.predictor.rnnlm = rnnlm
+    torch_load(args.model, model)
+    e2e.recog_args = args
 
     # gpu
     if args.ngpu == 1:
