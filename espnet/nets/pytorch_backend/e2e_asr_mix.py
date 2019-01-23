@@ -201,7 +201,7 @@ class E2E(torch.nn.Module):
         perm_loss, min_idx = torch.min(score_perms, 0)
         permutation = perm_choices[min_idx]
 
-        return perm_loss, torch.Tensor(permutation)
+        return perm_loss, permutation
 
     def min_PIT_CTC_batch(self, losses):
         '''E2E min_PIT_CTC_batch
@@ -216,11 +216,10 @@ class E2E(torch.nn.Module):
             return losses[:, 0], to_device(self, torch.zeros(losses.size(0), dtype=torch.long, requires_grad=True))
         else:
             bs = losses.size(0)
-            loss_perm = to_device(self, torch.zeros(bs, dtype=losses.dtype, requires_grad=True))
-            permutation = torch.zeros(bs, self.num_spkrs, requires_grad=False)
-            for i in range(bs):
-                loss_perm[i], permutation[i] = self.min_PIT_process(losses[i])
-            return torch.mean(to_device(self, loss_perm)), to_device(self, permutation.long())
+            ret = [self.min_PIT_process(losses[i]) for i in range(bs)]
+            loss_perm = torch.stack([r[0] for r in ret], dim=0)
+            permutation = torch.tensor([r[1] for r in ret]).long()
+            return torch.mean(to_device(self, loss_perm)), to_device(self, permutation)
 
     def forward(self, xs_pad, ilens, ys_pad_sd):
         """E2E forward
