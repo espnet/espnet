@@ -173,6 +173,7 @@ def main(cmd_args):
     from importlib import import_module
     if args.model_module is not None:
         model_module = import_module(args.model_module)
+        assert hasattr(model_module, "E2E")
         if hasattr(model_module, "add_arguments"):
             model_module.add_arguments(parser)
     args = parser.parse_args(cmd_args)

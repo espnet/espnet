@@ -580,12 +580,13 @@ class E2E(torch.nn.Module):
                     break
             y = [{"score": score, "yseq": ys[0].tolist()}]
         else:
+            # TODO(karita) maxlen minlen
             logging.info("use beam search implementation")
+
             # TODO(karita) batch decoding
             n_beam = recog_args.beam_size
-            enc_output = enc_output.expand(n_beam, *enc_output.shape)
-            ys = torch.full((n_beam, 1), self.sos, dtype=torch.int64)
-            score = torch.zeros(n_beam)
+            enc_output = enc_output
+            score = torch.zeros(1)
             if recog_args.maxlenratio == 0:
                 maxlen = feat.size(1) + 1
             else:
@@ -594,29 +595,57 @@ class E2E(torch.nn.Module):
             logging.info('max output length: ' + str(maxlen))
             logging.info('min output length: ' + str(minlen))
 
-            # TODO(karita) GPU decoding (it is almost done)
+            # TODO(karita) GPU decoding (I think it is almost ready)
             ended = torch.full((n_beam,), False, dtype=torch.uint8)
-            ys = torch.full((n_beam, maxlen + 1), self.eos, dtype=torch.int64)
-            ys[:, 0] = self.sos
+            ys = torch.full((1, 1), self.sos, dtype=torch.int64)
+            n_local_beam = n_beam
             for step in range(maxlen):
                 # forward
                 ys_mask = subsequent_mask(step + 1).unsqueeze(0)
+                if step == 1:
+                    enc_output = enc_output.expand(n_beam, *enc_output.shape)
                 out, _ = self.decoder(ys[:, :step + 1], ys_mask, enc_output, mask)
                 prob = torch.log_softmax(out[:, -1], dim=-1)  # (beam, token)
-                prob = prob.masked_fill(ended.unsqueeze(-1), MIN_VALUE)
+                if step > 0:
+                    prob = prob.masked_fill(ended.unsqueeze(-1), MIN_VALUE)
 
                 # prune
-                local_score, local_id = prob.topk(n_beam, dim=1)  # (beam, beam)
-                global_score = score.unsqueeze(-1) + local_score  # (beam, beam)
+                if n_local_beam == -1:
+                    n_local_beam = prob.size(1)
+                local_score, local_id = prob.topk(n_local_beam, dim=1)  # (1 or beam, local_beam)
+                if step > 0:
+                    local_score *= (~ended).float().unsqueeze(1)
+                global_score = score.unsqueeze(-1) + local_score  # (1 or beam, local_beam)
                 global_score, global_id = global_score.view(-1).topk(n_beam)  # (beam)
-                local_hyp = global_id % n_beam  # NOTE assume global_score is contiguous
-                prev_hyp = global_id // n_beam  # NOTE ditto
+                local_hyp = global_id % n_local_beam  # NOTE assume global_score is contiguous
+                if step > 0:
+                    prev_hyp = global_id // n_local_beam  # NOTE ditto
+                else:
+                    prev_hyp = torch.zeros(n_beam, dtype=torch.int64)
                 top_tokens = local_id[prev_hyp, local_hyp]  # (beam)
+                logging.info("global_id: " + str(global_id))
+                logging.info("prev_hyp:  " + str(prev_hyp))
+                logging.info("local_hyp: " + str(local_hyp))
+                logging.info("top-tokens: " + str(top_tokens))
 
                 # update stats
-                score += prob.masked_fill(ended.unsqueeze(-1), 0)[prev_hyp, top_tokens]
+                if step > 0:
+                    score_diff = prob.masked_fill(ended.unsqueeze(-1), 0)[prev_hyp, top_tokens]
+                else:
+                    score_diff = prob[0, top_tokens]
+                score = score + score_diff
                 score += (~ended).float() * recog_args.penalty
-                ys[:, step + 1] = top_tokens.masked_fill(ended, self.eos)
+                new_ys = torch.empty((n_beam, ys.size(1) + 1), dtype=torch.int64)
+                new_ys[:, :-1] = ys[prev_hyp]
+                new_ys[:, -1] = top_tokens.masked_fill(ended, self.eos) if step > 0 else top_tokens
+                ys = new_ys
+                ended = ended[prev_hyp]
+                if char_list is None:
+                    logging.info("beam: " + str(ys))
+                else:
+                    for i in range(n_beam):
+                        s = "".join((char_list[int(c)].replace("<space>", " ") for c in ys[i]))
+                        logging.info("beam {}: {}".format(i, s))
                 if step > minlen:
                     ended |= top_tokens == self.eos
                 if ended.all():
