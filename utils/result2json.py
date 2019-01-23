@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     line = sys.stdin.readline()
     while line:
-        x = unicode(line, 'utf_8').rstrip()
+        x = unicode(line, 'utf-8').rstrip()
         x_split = x.split()
 
         if re_id.match(x):
