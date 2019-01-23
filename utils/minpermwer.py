@@ -100,7 +100,7 @@ if __name__ == '__main__':
         score[idx] = tmp_score
     score_sum = np.sum(score, axis=0, dtype=int)
 
-    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 
     print("Total Scores: (#C #S #D #I) " + ' '.join(map(str, list(score_sum))))
     print("Error Rate:   {:0.2f}".format(100 * sum(score_sum[1:4]) / float(sum(score_sum[0:3]))))
