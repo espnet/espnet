@@ -254,7 +254,7 @@ class E2E(torch.nn.Module):
         else:
             for i in range(ys_pad_sd.size(1)):  # B
                 ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
-            rslt = [self.dec(hs_pad_sd[i], hlens, ys_pad_sd[i], i) for i in range(self.num_spkrs)]
+            rslt = [self.dec(hs_pad_sd[i], hlens, ys_pad_sd[i], strm_idx=i) for i in range(self.num_spkrs)]
             loss_att = sum([r[0] for r in rslt]) / float(len(rslt))
             acc = sum([r[1] for r in rslt]) / float(len(rslt))
         self.acc = acc
@@ -271,7 +271,7 @@ class E2E(torch.nn.Module):
 
             wers, cers = [], []
             nbest_hyps_sd = [self.dec.recognize_beam_batch(hs_pad_sd[i], torch.tensor(hlens), lpz_sd[i],
-                                                           self.recog_args, self.char_list, self.rnnlm)
+                                                           self.recog_args, self.char_list, self.rnnlm, strm_idx=i)
                              for i in range(self.num_spkrs)]
             # remove <sos> and <eos>
             y_hats_sd = [[nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps_sd[i]] for i in range(self.num_spkrs)]
@@ -368,7 +368,7 @@ class E2E(torch.nn.Module):
 
         # 2. decoder
         # decode the first utterance
-        y = [self.dec.recognize_beam(h_sd[i][0], lpz_sd[i], recog_args, char_list, i, rnnlm)
+        y = [self.dec.recognize_beam(h_sd[i][0], lpz_sd[i], recog_args, char_list, rnnlm, strm_idx=i)
              for i in range(self.num_spkrs)]
 
         if prev:
@@ -404,7 +404,7 @@ class E2E(torch.nn.Module):
             lpz_sd = None
 
         # 2. decoder
-        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list, i, rnnlm)
+        y = [self.dec.recognize_beam_batch(hpad_sd[i], hlens, lpz_sd[i], recog_args, char_list, rnnlm, strm_idx=i)
              for i in range(self.num_spkrs)]
 
         if prev:
@@ -436,7 +436,7 @@ class E2E(torch.nn.Module):
                 ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
 
             # decoder
-            att_ws_sd = [self.dec.calculate_all_attentions(hpad_sd[i], hlens, ys_pad_sd[i], i)
+            att_ws_sd = [self.dec.calculate_all_attentions(hpad_sd[i], hlens, ys_pad_sd[i], strm_idx=i)
                          for i in range(self.num_spkrs)]
 
         return att_ws_sd
