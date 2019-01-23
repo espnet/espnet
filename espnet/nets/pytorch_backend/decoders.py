@@ -600,7 +600,7 @@ class Decoder(torch.nn.Module):
             att_ws.append(att_w)
 
         # convert to numpy array with the shape (B, Lmax, Tmax)
-        att_ws = att_to_numpy(att_ws, self.att)
+        att_ws = att_to_numpy(att_ws, self.att[att_idx])
         return att_ws
 
 
