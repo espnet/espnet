@@ -178,15 +178,15 @@ class Decoder(torch.nn.Module):
 
         return self.loss, acc
 
-    def recognize_beam(self, h, lpz, recog_args, char_list, strm_idx=0, rnnlm=None):
+    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None, strm_idx=0):
         """beam search implementation
 
         :param torch.Tensor h: encoder hidden state (T, eprojs)
         :param torch.Tensor lpz: ctc log softmax output (T, odim)
         :param Namespace recog_args: argument Namespace containing options
         :param char_list: list of character strings
-        :param int strm_idx: stream index for speaker parallel attention in multi-speaker case
         :param torch.nn.Module rnnlm: language module
+        :param int strm_idx: stream index for speaker parallel attention in multi-speaker case
         :return: N-best decoding results
         :rtype: list of dicts
         """
@@ -360,8 +360,8 @@ class Decoder(torch.nn.Module):
         # remove sos
         return nbest_hyps
 
-    def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, strm_idx=0, rnnlm=None,
-                             normalize_score=True):
+    def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
+                             normalize_score=True, strm_idx=0):
         logging.info('input lengths: ' + str(h.size(1)))
         att_idx = min(strm_idx, len(self.att) - 1)
         h = mask_by_length(h, hlens, 0.0)
