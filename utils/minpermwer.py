@@ -4,7 +4,7 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #           2018 Xuankai Chang (Shanghai Jiao Tong University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
@@ -15,6 +15,7 @@ import numpy as np
 import re
 import sys
 
+is_python2 = sys.version_info[0] == 2
 
 def convert_score(keys, dic):
     ret = {}
@@ -100,7 +101,7 @@ if __name__ == '__main__':
         score[idx] = tmp_score
     score_sum = np.sum(score, axis=0, dtype=int)
 
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout if is_python2 else sys.stdout.buffer)
 
     print("Total Scores: (#C #S #D #I) " + ' '.join(map(str, list(score_sum))))
     print("Error Rate:   {:0.2f}".format(100 * sum(score_sum[1:4]) / float(sum(score_sum[0:3]))))
