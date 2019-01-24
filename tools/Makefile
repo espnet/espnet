@@ -1,6 +1,7 @@
 PYTHON := /usr/bin/python2.7
 TH_VERSION := 0.4.1
 KALDI =
+GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
@@ -36,7 +37,7 @@ kaldiio: venv
 
 chainer_patch.done: espnet.done
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
-	. venv/bin/activate; patch $(FILENAME) < prefetch.patch
+	patch $(FILENAME) < prefetch.patch
 	touch chainer_patch.done
 
 nkf.done:
@@ -46,21 +47,18 @@ nkf.done:
 	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
 	touch nkf.done
 
-
-# If pytorch<1.0, uses warp-ctc
-ifeq ($(shell python -c 'import torch as t;print(t.__version__[0] == "0")'),True)
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
 	git clone https://github.com/jnishi/warp-ctc.git
+    # Note(kamo): Requires gcc>=4.9 to build extensions with pytorch>=1.0
+	if python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; else
+        python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'";
+        cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0;
+    fi
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
 	. venv/bin/activate; pip install cffi
 	. venv/bin/activate; cd warp-ctc/pytorch_binding && python setup.py install # maybe need to: apt-get install python-dev
 	touch warp-ctc.done
-# elif pytorch>=1.0, uses torch.nn.CTCLoss instead of warp-ctc
-else
-warp-ctc.done: espnet.done
-	:
-endif
 
 chainer_ctc.done: espnet.done
 	rm -rf chainer_ctc
