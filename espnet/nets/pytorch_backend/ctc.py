@@ -24,7 +24,7 @@ class CTC(torch.nn.Module):
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
 
-        if not USE_TH_CTC:
+        if USE_WARP_CTC:
             import warpctc_pytorch as warp_ctc
             self.ctc_loss = warp_ctc.CTCLoss(size_average=True)
         else:
