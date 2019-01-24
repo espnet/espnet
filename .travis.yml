@@ -48,8 +48,8 @@ install:
   - pip install matplotlib
   # install warp-ctc (use @jnishi patched version)
   - git clone https://github.com/jnishi/warp-ctc.git
-  - if [[ ${TH_VERSION} != 0.4.1 ]]; then
-      cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0;
+  - if [[ "${TH_VERSION}" != 0.4.1 ]]; then
+      cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0; cd ..;
     fi
   - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
   - pip install cffi
