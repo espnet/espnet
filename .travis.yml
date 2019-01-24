@@ -47,12 +47,13 @@ install:
   # install matplotlib
   - pip install matplotlib
   # install warp-ctc (use @jnishi patched version)
-  - if [[ ${TH_VERSION} == 0.4.1 ]]; then
-      git clone https://github.com/jnishi/warp-ctc.git;
-      cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..;
-      pip install cffi;
-      cd pytorch_binding && python setup.py install && cd ../..;
+  - git clone https://github.com/jnishi/warp-ctc.git
+  - if [[ ${TH_VERSION} != 0.4.1 ]]; then
+      cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0;
     fi
+  - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
+  - pip install cffi
+  - cd pytorch_binding && python setup.py install && cd ../..
   # install kaldiio
   - pip install git+https://github.com/nttcslab-sp/kaldiio.git
   # install chainer_ctc
