@@ -34,11 +34,11 @@ def make_dummy_json(n_utts=10, ilen_range=(100, 300), olen_range=(10, 300)):
 def test_make_batchset(utils):
     dummy_json = make_dummy_json(128, [128, 512], [16, 128])
     # check w/o adaptive batch size
-    batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
+    batchset = utils.make_batchset(dummy_json, 24, 2 ** 10, 2 ** 10,
                                    min_batch_size=1)
     assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
     print([len(batch) for batch in batchset])
-    batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
+    batchset = utils.make_batchset(dummy_json, 24, 2 ** 10, 2 ** 10,
                                    min_batch_size=10)
     assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
     print([len(batch) for batch in batchset])
@@ -138,3 +138,81 @@ def test_sound_hdf5_file(tmpdir, fmt):
         t, r = f[k]
         assert r == 8000
         np.testing.assert_array_equal(t, v)
+
+
+def test_expand_elayers_etype():
+    from espnet.nets.e2e_asr_common import expand_elayers
+    blstms = ["vggblstm", "blstm"]
+    blstmps = ["vggblstmp", "blstmp"]
+    for etype in blstms:
+        assert expand_elayers("4x100", etype)[1] == etype
+        assert expand_elayers("3x100,100,100", etype)[1] == etype
+        assert expand_elayers("3x100,100-0.2", etype)[1] == etype + 'p'
+        assert expand_elayers("3x100_512", etype)[1] == etype
+        assert expand_elayers("100,100,100", etype)[1] == etype
+        assert expand_elayers("100-0.1,100-0.4,100", etype)[1] == etype + 'p'
+        assert expand_elayers("100_521,100_524", etype)[1] == etype + 'p'
+        assert expand_elayers("200,100,500", etype)[1] == etype + 'p'
+    for etype in blstmps:
+        assert expand_elayers("4x100", etype)[1] == etype
+        assert expand_elayers("3x100,100,100", etype)[1] == etype
+        assert expand_elayers("3x100,100-0.2", etype)[1] == etype
+        assert expand_elayers("3x100_512", etype)[1] == etype
+        assert expand_elayers("100,100,100", etype)[1] == etype
+        assert expand_elayers("100-0.1,100-0.4,100", etype)[1] == etype
+        assert expand_elayers("100_521,100_524", etype)[1] == etype
+        assert expand_elayers("200,100,500", etype)[1] == etype
+
+
+def test_expand_elayers_base():
+    from espnet.nets.e2e_asr_common import expand_elayers
+    t = "blstm"
+    for count in ["", "1x", "3x"]:
+        for first in ["100", "300"]:
+            for second in ["", ",200", "3x200"]:
+                l = count + first + second
+                res = expand_elayers(l, t)
+                num_layers = len(res)
+                if count == "3x":
+                    if second == "200":
+                        assert num_layers == 4
+                        assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
+                                       (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0)]
+                    elif second == "3x200":
+                        assert num_layers == 6
+                        assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
+                                       (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
+                                       (200, 0.0, 200, 0.0)]
+                    else:
+                        assert num_layers == 3
+                        assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
+                                       (int(first), 0.0, int(first), 0.0)]
+                else:
+                    if second == "200":
+                        assert num_layers == 2
+                        assert res == [(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0)]
+                    elif second == "3x200":
+                        assert num_layers == 4
+                        assert res == [(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
+                                       (200, 0.0, 200, 0.0)]
+                    else:
+                        assert num_layers == 1
+                        assert res == [(int(first), 0.0, int(first), 0.0)]
+
+
+def test_expand_elayers_proj():
+    from espnet.nets.e2e_asr_common import expand_elayers
+    assert expand_elayers("300,300_200", "blstm") == ([(300, 0.0, 300, 0.0), (300, 0.0, 200, 0.0)], "blstmp")
+    assert expand_elayers("3x300", "blstm") == (
+        [(300, 0.0, 300, 0.0), (300, 0.0, 300, 0.0), (300, 0.0, 300, 0.0)], "blstm")
+    assert expand_elayers("200_100,2x100_200,100", "blstm") == (
+        [(200, 0.0, 100, 0.0), (100, 0.0, 200, 0.0), (100, 0.0, 200, 0.0), (100, 0.0, 100, 0.0)], "blstmp")
+
+
+def test_expand_elayers_dropout():
+    from espnet.nets.e2e_asr_common import expand_elayers
+    assert expand_elayers("3x200-0.2", "blstm") == (
+    [(200, 0.2, 200, 0.0), (200, 0.2, 200, 0.0), (200, 0.2, 200, 0.0)], "blstm")
+    assert expand_elayers("200-0.2_100-0.3", "blstm") == ([(200, 0.2, 100, 0.3)], "blstm")
+    assert expand_elayers("200,100-0.3,100_200-0.4", "blstm") == (
+    [(200, 0.0, 200, 0.0), (100, 0.3, 100, 0.0), (100, 0.0, 200, 0.4)], "blstmp")
