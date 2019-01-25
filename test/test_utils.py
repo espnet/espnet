@@ -169,16 +169,16 @@ def test_expand_elayers_base():
     t = "blstm"
     for count in ["", "1x", "3x"]:
         for first in ["100", "300"]:
-            for second in ["", ",200", "3x200"]:
-                l = count + first + second
-                res = expand_elayers(l, t)
+            for second in ["", ",200", ",3x200"]:
+                layers = count + first + second
+                res = expand_elayers(layers, t)
                 num_layers = len(res)
                 if count == "3x":
-                    if second == "200":
+                    if second == ",200":
                         assert num_layers == 4
                         assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
                                        (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0)]
-                    elif second == "3x200":
+                    elif second == ",3x200":
                         assert num_layers == 6
                         assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
                                        (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
@@ -188,10 +188,10 @@ def test_expand_elayers_base():
                         assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
                                        (int(first), 0.0, int(first), 0.0)]
                 else:
-                    if second == "200":
+                    if second == ",200":
                         assert num_layers == 2
                         assert res == [(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0)]
-                    elif second == "3x200":
+                    elif second == ",3x200":
                         assert num_layers == 4
                         assert res == [(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
                                        (200, 0.0, 200, 0.0)]
@@ -212,7 +212,7 @@ def test_expand_elayers_proj():
 def test_expand_elayers_dropout():
     from espnet.nets.e2e_asr_common import expand_elayers
     assert expand_elayers("3x200-0.2", "blstm") == (
-    [(200, 0.2, 200, 0.0), (200, 0.2, 200, 0.0), (200, 0.2, 200, 0.0)], "blstm")
+        [(200, 0.2, 200, 0.0), (200, 0.2, 200, 0.0), (200, 0.2, 200, 0.0)], "blstm")
     assert expand_elayers("200-0.2_100-0.3", "blstm") == ([(200, 0.2, 100, 0.3)], "blstm")
     assert expand_elayers("200,100-0.3,100_200-0.4", "blstm") == (
-    [(200, 0.0, 200, 0.0), (100, 0.3, 100, 0.0), (100, 0.0, 200, 0.4)], "blstmp")
+        [(200, 0.0, 200, 0.0), (100, 0.3, 100, 0.0), (100, 0.0, 200, 0.4)], "blstmp")

@@ -202,17 +202,18 @@ class NoAtt(chainer.Chain):
         return self.c, att_prev
 
 
-def att_for(args):
+def att_for(args, eprojs):
     """Returns an attention given the program arguments
 
     :param Namespace args: the arguments
+    :param int eprojs: Number of units for the encoder output layer
     :return: The corresponding attention module
     :rtype chainer.Chain
     """
     if args.atype == 'dot':
-        att = AttDot(args.eprojs, args.dunits, args.adim)
+        att = AttDot(eprojs, args.dunits, args.adim)
     elif args.atype == 'location':
-        att = AttLoc(args.eprojs, args.dunits,
+        att = AttLoc(eprojs, args.dunits,
                      args.adim, args.aconv_chans, args.aconv_filts)
     elif args.atype == 'noatt':
         att = NoAtt()

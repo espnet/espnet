@@ -107,7 +107,7 @@ class WarpCTC(chainer.Chain):
         return F.log_softmax(y_hat.reshape(-1, y_hat.shape[-1])).reshape(y_hat.shape)
 
 
-def ctc_for(args, odim):
+def ctc_for(args, eprojs, odim):
     """Return the CTC corresponding to the args
 
     :param Namespace args: The program arguments
@@ -118,8 +118,8 @@ def ctc_for(args, odim):
     ctc = None
     if ctc_type == 'chainer':
         logging.info("Using chainer CTC implementation")
-        ctc = CTC(odim, args.eprojs, args.dropout_rate)
+        ctc = CTC(odim, eprojs, args.ctc_dropout)
     elif ctc_type == 'warpctc':
         logging.info("Using warpctc CTC implementation")
-        ctc = WarpCTC(odim, args.eprojs, args.dropout_rate)
+        ctc = WarpCTC(odim, eprojs, args.ctc_dropout)
     return ctc

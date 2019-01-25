@@ -1,4 +1,5 @@
 import logging
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -68,11 +69,12 @@ class CTC(torch.nn.Module):
         return F.log_softmax(self.ctc_lo(hs_pad), dim=2)
 
 
-def ctc_for(args, odim):
+def ctc_for(args, eprojs, odim):
     """Returns the CTC module for the given args and output dimension
 
     :param Namespace args: the program args
+    :param int eprojs: Number of units for the encoder output layer
     :param int odim : The output dimension
     :return: the corresponding CTC module
     """
-    return CTC(odim, args.eprojs, args.dropout_rate)
+    return CTC(odim, eprojs, args.ctc_dropout)

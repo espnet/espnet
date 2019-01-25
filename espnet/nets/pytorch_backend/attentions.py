@@ -1374,10 +1374,11 @@ class AttForwardTA(torch.nn.Module):
         return c, w
 
 
-def att_for(args):
+def att_for(args, eprojs):
     """Instantiates an attention module given the program arguments
 
     :param Namespace args: The arguments
+    :param int eprojs: Number of units for the encoder output layer
     :rtype torch.nn.Module
     :return: The attention module
     """
@@ -1385,35 +1386,35 @@ def att_for(args):
     if args.atype == 'noatt':
         att = NoAtt()
     elif args.atype == 'dot':
-        att = AttDot(args.eprojs, args.dunits, args.adim)
+        att = AttDot(eprojs, args.dunits, args.adim)
     elif args.atype == 'add':
-        att = AttAdd(args.eprojs, args.dunits, args.adim)
+        att = AttAdd(eprojs, args.dunits, args.adim)
     elif args.atype == 'location':
-        att = AttLoc(args.eprojs, args.dunits,
+        att = AttLoc(eprojs, args.dunits,
                      args.adim, args.aconv_chans, args.aconv_filts)
     elif args.atype == 'location2d':
-        att = AttLoc2D(args.eprojs, args.dunits,
+        att = AttLoc2D(eprojs, args.dunits,
                        args.adim, args.awin, args.aconv_chans, args.aconv_filts)
     elif args.atype == 'location_recurrent':
-        att = AttLocRec(args.eprojs, args.dunits,
+        att = AttLocRec(eprojs, args.dunits,
                         args.adim, args.aconv_chans, args.aconv_filts)
     elif args.atype == 'coverage':
-        att = AttCov(args.eprojs, args.dunits, args.adim)
+        att = AttCov(eprojs, args.dunits, args.adim)
     elif args.atype == 'coverage_location':
-        att = AttCovLoc(args.eprojs, args.dunits, args.adim,
+        att = AttCovLoc(eprojs, args.dunits, args.adim,
                         args.aconv_chans, args.aconv_filts)
     elif args.atype == 'multi_head_dot':
-        att = AttMultiHeadDot(args.eprojs, args.dunits,
+        att = AttMultiHeadDot(eprojs, args.dunits,
                               args.aheads, args.adim, args.adim)
     elif args.atype == 'multi_head_add':
-        att = AttMultiHeadAdd(args.eprojs, args.dunits,
+        att = AttMultiHeadAdd(eprojs, args.dunits,
                               args.aheads, args.adim, args.adim)
     elif args.atype == 'multi_head_loc':
-        att = AttMultiHeadLoc(args.eprojs, args.dunits,
+        att = AttMultiHeadLoc(eprojs, args.dunits,
                               args.aheads, args.adim, args.adim,
                               args.aconv_chans, args.aconv_filts)
     elif args.atype == 'multi_head_multi_res_loc':
-        att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
+        att = AttMultiHeadMultiResLoc(eprojs, args.dunits,
                                       args.aheads, args.adim, args.adim,
                                       args.aconv_chans, args.aconv_filts)
     return att

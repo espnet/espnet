@@ -59,6 +59,7 @@ def main(args):
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['chainer', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
+    parser.add_argument('--ctc-dropout', default=0.0, type=float, nargs='?', help="Dropout value for CTC")
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',

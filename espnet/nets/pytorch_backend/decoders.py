@@ -597,6 +597,6 @@ class Decoder(torch.nn.Module):
         return att_ws
 
 
-def decoder_for(args, odim, sos, eos, att, labeldist):
-    return Decoder(args.eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
+def decoder_for(args, eprojs, odim, sos, eos, att, labeldist):
+    return Decoder(eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability)

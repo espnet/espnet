@@ -1,16 +1,14 @@
 import logging
 import random
-import six
+from argparse import Namespace
 
 import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
+import six
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
-
-from argparse import Namespace
-
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
 
@@ -353,6 +351,6 @@ class Decoder(chainer.Chain):
         return att_ws.data
 
 
-def decoder_for(args, odim, sos, eos, att, labeldist):
-    return Decoder(args.eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
+def decoder_for(args, eprojs, odim, sos, eos, att, labeldist):
+    return Decoder(eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability)

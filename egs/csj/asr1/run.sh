@@ -26,6 +26,8 @@ etype=vggblstm # encoder architecture type
 elayers=4x1024-0.2_1024
 
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+
+ctc_dropout=0.2
 # decoder related
 dlayers=1
 dunits=1024
@@ -268,6 +270,7 @@ if [ ${stage} -le 4 ]; then
         --etype ${etype} \
         --elayers ${elayers} \
         --subsample ${subsample} \
+        --ctc-dropout ${ctc_dropout} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
