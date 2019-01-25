@@ -51,8 +51,10 @@ warp-ctc.done: espnet.done
 	rm -rf warp-ctc
 	git clone https://github.com/jnishi/warp-ctc.git
 	# Note(kamo): Requires gcc>=4.9 to build extensions with pytorch>=1.0
-	if python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; else \
-        python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'"; \
+	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
+        . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'"; \
+	fi
+	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
         cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0; \
     fi
 	. venv/bin/activate; cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 ; true
