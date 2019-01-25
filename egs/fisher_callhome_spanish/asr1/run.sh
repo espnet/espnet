@@ -23,10 +23,9 @@ do_delta=false
 # network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
-elayers=3x1024_1024
+elayers=3x1024/0.2_1024
 
 subsample=1_1_1 # skip every n frame from input to nth layers
-edropout=0.2
 # decoder related
 dlayers=1
 dunits=1024
@@ -282,7 +281,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_edropout${edropout}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_edropout${edropout}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expname=${expname}_lsm${lsm_type}${lsm_weight}
     fi
@@ -315,9 +314,7 @@ if [ ${stage} -le 4 ]; then
         --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
-        --eprojs ${eprojs} \
         --subsample ${subsample} \
-        --dropout-rate ${edropout} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \

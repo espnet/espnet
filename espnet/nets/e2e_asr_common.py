@@ -97,13 +97,16 @@ def expand_elayers(elayers, etype, warn=False):
     """
     expanded_elayers = []
     layers_group = elayers.split(",")
+    # Split on layers
     for layers in layers_group:
         layer_proj = layers.strip().split("_")
         layer_tuple = layer_proj[0].strip().split("x")
+        # Check if count exists
         if len(layer_tuple) > 1:
             repetitions = int(layer_tuple[0])
             units_dropout = layer_tuple[1].strip().split("/")
             units = int(units_dropout[0])
+            # Check if layer dropout exists
             if len(units_dropout) > 1:
                 dropout = float(units_dropout[1])
             else:
@@ -112,22 +115,27 @@ def expand_elayers(elayers, etype, warn=False):
             repetitions = 1
             units = int(layer_tuple[0])
             dropout = 0.0
+        # Check if eprojs exists
         if len(layer_proj) > 1:
             proj_dropout = layer_proj[1].strip().split("/")
             proj = proj_dropout[0]
+            # Check if projection dropout exists
             if len(proj_dropout) > 1:
-                dropoutp = proj_dropout[1]
+                dropoutp = float(proj_dropout[1])
             else:
-                dropoutp = dropout
+                dropoutp = 0
         else:
             proj = units
-            dropoutp = dropout
+            dropoutp = 0
 
         expanded_elayers.extend(repetitions * [(units, dropout, proj, dropoutp)])
 
-    all_same = len(set([t[0:2] for t in expanded_elayers])) == 1
+    all_same = len(set(expanded_elayers)) == 1
+    # Simplify if all layers are the same
+    if all_same:
+        expanded_elayers = [len(expanded_elayers), expanded_elayers[0]]
     if not etype.endswith('p') and not all_same:
         etype = etype + 'p'
         if warn:
-            logging.warning("Adding every-layer projection to encoder due to different encoder layers sizes or dropout")
+            logging.warning("Adding every-layer projection to encoder due to different encoder layers")
     return expanded_elayers, etype

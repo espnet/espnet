@@ -51,9 +51,7 @@ def main(args):
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
                         help='Type of encoder network architecture')
     parser.add_argument('--elayers', default='4x300', type=str,
-                        help='Encoder layers')
-    parser.add_argument('--eprojs', default=320, type=int,
-                        help='Number of encoder projection units')
+                        help='Encoder layers configuration')
     parser.add_argument('--subsample', default=1, type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
@@ -125,9 +123,6 @@ def main(args):
                         help='Space symbol')
     parser.add_argument('--sym-blank', default='<blank>', type=str,
                         help='Blank symbol')
-    # model (parameter) related
-    parser.add_argument('--dropout-rate', default=0.0, type=float,
-                        help='Dropout rate')
     # minibatch related
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
