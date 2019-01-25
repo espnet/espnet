@@ -1,8 +1,8 @@
 import logging
-import six
 import sys
 
 import numpy as np
+import six
 import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
@@ -26,14 +26,14 @@ class BLSTMP(torch.nn.Module):
         super(BLSTMP, self).__init__()
         for layer in six.moves.range(len(elayers)):
             units = elayers[layer][0]
-            dropout = elayers[layer][1]
             projs = elayers[layer][2]
             if layer == 0:
                 inputdim = idim
             else:
                 inputdim = elayers[layer - 1][2]
-            setattr(self, "bilstm%d" % layer, torch.nn.LSTM(inputdim, units, dropout=dropout,
-                                                            num_layers=1, bidirectional=True, batch_first=True))
+            # Must do dropout explicitely https://github.com/espnet/espnet/issues/259
+            setattr(self, "bilstm%d" % layer,
+                    torch.nn.LSTM(inputdim, units, num_layers=1, bidirectional=True, batch_first=True))
             # bottleneck layer to merge
             setattr(self, "bt%d" % layer, torch.nn.Linear(2 * units, projs))
 
@@ -56,6 +56,9 @@ class BLSTMP(torch.nn.Module):
             ys, _ = bilstm(xs_pack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
+            dropout = self.elayers[layer][1]
+            if dropout >= 0:
+                ys_pad = F.dropout(ys_pad, dropout)
             sub = self.subsample[layer + 1]
             if sub > 1:
                 ys_pad = ys_pad[:, ::sub]

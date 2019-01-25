@@ -1,12 +1,11 @@
 import logging
-import six
 import sys
 
 import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-
+import six
 from chainer import cuda
 
 from espnet.nets.chainer_backend.nets_utils import _subsamplex
@@ -21,14 +20,13 @@ class BLSTMP(chainer.Chain):
         with self.init_scope():
             for layer in six.moves.range(len(elayers)):
                 units = elayers[layer][0]
-                dropout = elayers[layer][1]
                 projs = elayers[layer][2]
                 if layer == 0:
                     inputdim = idim
                 else:
                     inputdim = elayers[layer - 1][2]
                 setattr(self, "bilstm%d" % layer, L.NStepBiLSTM(
-                    1, inputdim, units, dropout))
+                    1, inputdim, units, 0))
                 # bottleneck layer to merge
                 setattr(self, "bt%d" % layer, L.Linear(2 * units, projs))
 
@@ -46,6 +44,9 @@ class BLSTMP(chainer.Chain):
 
         for layer in six.moves.range(len(self.elayers)):
             hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
+            dropout = self.elayers[layer][1]
+            if dropout >= 0:
+                ys = F.dropout(ys, dropout)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             # TODO(watanabe) replace subsample and FC layer with CNN
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
