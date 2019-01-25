@@ -174,23 +174,23 @@ def test_expand_elayers_base():
                 res = expand_elayers(layers, t)
                 if count == "3x":
                     if second == ",200":
-                        assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
-                                       (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), t + "p"]
+                        assert res == ([(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
+                                        (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0)], t + "p")
                     elif second == ",3x200":
-                        assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
-                                       (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
-                                       (200, 0.0, 200, 0.0), t + "p"]
+                        assert res == ([(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
+                                        (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
+                                        (200, 0.0, 200, 0.0)], t + "p")
                     else:
-                        assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
-                                       (int(first), 0.0, int(first), 0.0), t]
+                        assert res == ([(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
+                                        (int(first), 0.0, int(first), 0.0)], t)
                 else:
                     if second == ",200":
-                        assert res == [(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), t + "p"]
+                        assert res == ([(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0)], t + "p")
                     elif second == ",3x200":
-                        assert res == [(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
-                                       (200, 0.0, 200, 0.0), t + "p"]
+                        assert res == ([(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
+                                        (200, 0.0, 200, 0.0)], t + "p")
                     else:
-                        assert res == [(int(first), 0.0, int(first), 0.0), t]
+                        assert res == ([(int(first), 0.0, int(first), 0.0)], t)
 
 
 def test_expand_elayers_proj():
