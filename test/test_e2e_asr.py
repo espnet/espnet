@@ -128,26 +128,27 @@ def test_model_trainable_and_decodable(module, etype, atype):
         ('espnet.nets.chainer_backend.e2e_asr', 'vggblstm', '4x100'),
         ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', '4x100'),
         ('espnet.nets.chainer_backend.e2e_asr', 'blstm', '4x100'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', '4x100/0.2'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', '4x100-0.2'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', '4x100'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '4x100'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100/0.3'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100-0.3'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '100,200,300'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '2x100,3x200'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300/0.2,200'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200/0.6')
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300-0.2,200'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200-0.6')
     ]
 )
 def test_custom_encoder(module, etype, elayers):
     args = make_arg(etype=etype, elayers=elayers)
+
+    m = importlib.import_module(module)
+    model = m.E2E(40, 5, args)
+    enc = model.enc.enc2 if "vgg" in "etype" else model.enc.enc1
     if "pytorch" in module:
         batch = prepare_inputs("pytorch")
     else:
         batch = prepare_inputs("chainer")
-
-    m = importlib.import_module(module)
-    model = m.E2E(40, 5, args)
     attn_loss = model(*batch)[0]
     attn_loss.backward()  # trainable
 

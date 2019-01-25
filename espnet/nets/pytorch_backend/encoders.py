@@ -83,10 +83,11 @@ class BLSTM(torch.nn.Module):
 
     def __init__(self, idim, elayers):
         super(BLSTM, self).__init__()
+        num_layers = len(elayers)
         cdim = elayers[0][0]
         dropout = elayers[0][1]
         hdim = elayers[0][2]
-        self.nblstm = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
+        self.nblstm = torch.nn.LSTM(idim, cdim, num_layers, batch_first=True,
                                     dropout=dropout, bidirectional=True)
         self.l_last = torch.nn.Linear(cdim * 2, hdim)
         self.proj_dropout = elayers[0][3]
