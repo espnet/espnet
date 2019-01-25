@@ -19,9 +19,7 @@ class BLSTMP(torch.nn.Module):
 
     :param int idim: dimension of inputs
     :param list[tuple[int,float,int,float]] elayers: layers configuration
-    :param int hdim: number of projection units
     :param np.ndarray subsample: list of subsampling numbers
-    :param float dropout: dropout rate
     """
 
     def __init__(self, idim, elayers, subsample):
@@ -171,10 +169,8 @@ class Encoder(torch.nn.Module):
 
     :param str etype: type of encoder network
     :param int idim: number of dimensions of encoder network
-    :param str elayers: number of layers of encoder network
-    :param int eprojs: number of projection units of encoder network
+    :param str elayers: Encoder layers configuration
     :param np.ndarray subsample: list of subsampling numbers
-    :param float dropout: dropout rate
     :param int in_channel: number of input channels
     """
 
