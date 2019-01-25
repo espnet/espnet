@@ -123,7 +123,7 @@ def expand_elayers(elayers, etype, warn=False):
         # Check if eprojs exists
         if len(layer_proj) > 1:
             proj_dropout = layer_proj[1].strip().split("-")
-            proj = proj_dropout[0]
+            proj = int(proj_dropout[0])
             # Check if projection dropout exists
             if len(proj_dropout) > 1:
                 dropoutp = float(proj_dropout[1])
