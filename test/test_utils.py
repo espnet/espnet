@@ -175,28 +175,22 @@ def test_expand_elayers_base():
                 num_layers = len(res)
                 if count == "3x":
                     if second == ",200":
-                        assert num_layers == 4
                         assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
                                        (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0)]
                     elif second == ",3x200":
-                        assert num_layers == 6
                         assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
                                        (int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
                                        (200, 0.0, 200, 0.0)]
                     else:
-                        assert num_layers == 3
                         assert res == [(int(first), 0.0, int(first), 0.0), (int(first), 0.0, int(first), 0.0),
                                        (int(first), 0.0, int(first), 0.0)]
                 else:
                     if second == ",200":
-                        assert num_layers == 2
                         assert res == [(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0)]
                     elif second == ",3x200":
-                        assert num_layers == 4
                         assert res == [(int(first), 0.0, int(first), 0.0), (200, 0.0, 200, 0.0), (200, 0.0, 200, 0.0),
                                        (200, 0.0, 200, 0.0)]
                     else:
-                        assert num_layers == 1
                         assert res == [(int(first), 0.0, int(first), 0.0)]
 
 

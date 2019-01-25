@@ -40,7 +40,8 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=["a", "i", "u", "e", "o"],
         outdir=None,
-        ctc_type="chainer"
+        ctc_type="chainer",
+        ctc_dropout=0.0
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
