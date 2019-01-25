@@ -18,23 +18,26 @@ class BLSTMP(torch.nn.Module):
     """Bidirectional LSTM with projection layer module
 
     :param int idim: dimension of inputs
-    :param list[int] elayers: layers configuration
+    :param list[tuple[int,float,int,float]] elayers: layers configuration
     :param int hdim: number of projection units
     :param np.ndarray subsample: list of subsampling numbers
     :param float dropout: dropout rate
     """
 
-    def __init__(self, idim, elayers, hdim, subsample, dropout):
+    def __init__(self, idim, elayers, subsample):
         super(BLSTMP, self).__init__()
-        for i in six.moves.range(len(elayers)):
-            if i == 0:
+        for layer in six.moves.range(len(elayers)):
+            units = elayers[layer][0]
+            dropout = elayers[layer][1]
+            projs = elayers[layer][2]
+            if layer == 0:
                 inputdim = idim
             else:
-                inputdim = hdim
-            setattr(self, "bilstm%d" % i, torch.nn.LSTM(inputdim, elayers[i], dropout=dropout,
-                                                        num_layers=1, bidirectional=True, batch_first=True))
+                inputdim = elayers[layer - 1][2]
+            setattr(self, "bilstm%d" % layer, torch.nn.LSTM(inputdim, units, dropout=dropout,
+                                                            num_layers=1, bidirectional=True, batch_first=True))
             # bottleneck layer to merge
-            setattr(self, "bt%d" % i, torch.nn.Linear(2 * elayers[i], hdim))
+            setattr(self, "bt%d" % layer, torch.nn.Linear(2 * units, projs))
 
         self.elayers = elayers
         self.subsample = subsample
@@ -62,6 +65,9 @@ class BLSTMP(torch.nn.Module):
             # (sum _utt frame_utt) x dim
             projected = getattr(self, 'bt' + str(layer)
                                 )(ys_pad.contiguous().view(-1, ys_pad.size(2)))
+            proj_dropout = self.elayers[layer][3]
+            if proj_dropout >= 0:
+                projected = F.dropout(projected, proj_dropout)
             xs_pad = torch.tanh(projected.view(ys_pad.size(0), ys_pad.size(1), -1))
 
         return xs_pad, ilens  # x: utt list of frame x dim
@@ -71,17 +77,18 @@ class BLSTM(torch.nn.Module):
     """Bidirectional LSTM module
 
     :param int idim: dimension of inputs
-    :param int elayers: number of encoder layers
-    :param int cdim: number of lstm units (resulted in cdim * 2 due to bidirectional)
-    :param int hdim: number of final projection units
-    :param float dropout: dropout rate
+    :param list[tuple[int,float,int,float]] elayers: layers configuration
     """
 
-    def __init__(self, idim, elayers, cdim, hdim, dropout):
+    def __init__(self, idim, elayers):
         super(BLSTM, self).__init__()
+        cdim = elayers[0][0]
+        dropout = elayers[0][1]
+        hdim = elayers[0][2]
         self.nblstm = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
                                     dropout=dropout, bidirectional=True)
         self.l_last = torch.nn.Linear(cdim * 2, hdim)
+        self.proj_dropout = elayers[0][3]
 
     def forward(self, xs_pad, ilens):
         """BLSTM forward
@@ -100,6 +107,8 @@ class BLSTM(torch.nn.Module):
         # (sum _utt frame_utt) x dim
         projected = torch.tanh(self.l_last(
             ys_pad.contiguous().view(-1, ys_pad.size(2))))
+        if self.proj_dropout >= 0:
+            projected = F.dropout(projected, self.proj_dropout)
         xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
         return xs_pad, ilens  # x: utt list of frame x dim
 
@@ -169,26 +178,23 @@ class Encoder(torch.nn.Module):
     :param int in_channel: number of input channels
     """
 
-    def __init__(self, etype, idim, elayers, eprojs, subsample, dropout, in_channel=1):
+    def __init__(self, etype, idim, elayers, subsample, in_channel=1):
         super(Encoder, self).__init__()
         expanded_elayers, etype = expand_elayers(elayers, etype, warn=True)
         if etype == 'blstm':
-            self.enc = torch.nn.ModuleList([BLSTM(idim, len(expanded_elayers), expanded_elayers[0], eprojs, dropout)])
+            self.enc = torch.nn.ModuleList([BLSTM(idim, expanded_elayers)])
             logging.info('BLSTM without projection for encoder')
         elif etype == 'blstmp':
-            self.enc = torch.nn.ModuleList([BLSTMP(idim, expanded_elayers, eprojs, subsample, dropout)])
+            self.enc = torch.nn.ModuleList([BLSTMP(idim, expanded_elayers, subsample)])
             logging.info('BLSTM with every-layer projection for encoder')
         elif etype == 'vggblstmp':
             self.enc = torch.nn.ModuleList([VGG2L(in_channel),
                                             BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), expanded_elayers,
-                                                   eprojs,
-                                                   subsample, dropout)])
+                                                   subsample)])
             logging.info('Use CNN-VGG + BLSTMP for encoder')
         elif etype == 'vggblstm':
             self.enc = torch.nn.ModuleList([VGG2L(in_channel),
-                                            BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), len(expanded_elayers),
-                                                  expanded_elayers[0], eprojs,
-                                                  dropout)])
+                                            BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), expanded_elayers)])
             logging.info('Use CNN-VGG + BLSTM for encoder')
         else:
             logging.error(
@@ -213,4 +219,4 @@ class Encoder(torch.nn.Module):
 
 
 def encoder_for(args, idim, subsample):
-    return Encoder(args.etype, idim, args.elayers, args.eprojs, subsample, args.dropout_rate)
+    return Encoder(args.etype, idim, args.elayers, subsample)

@@ -23,8 +23,8 @@ do_delta=false
 # network architecture
 # encoder related
 etype=vggblstmp     # encoder architecture type
-elayers=3x1024
-eprojs=1024
+elayers=3x1024_1024
+
 subsample=1_1_1 # skip every n frame from input to nth layers
 edropout=0.2
 # decoder related

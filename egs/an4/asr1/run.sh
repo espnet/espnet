@@ -21,8 +21,8 @@ do_delta=false
 # network architecture
 # encoder related
 etype=blstmp     # encoder architecture type
-elayers=4x320
-eprojs=320
+elayers=4x320_320
+
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1

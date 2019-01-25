@@ -16,18 +16,21 @@ from espnet.nets.e2e_asr_common import get_vgg2l_odim
 
 # TODO(watanabe) explanation of BLSTMP
 class BLSTMP(chainer.Chain):
-    def __init__(self, idim, elayers, hdim, subsample, dropout):
+    def __init__(self, idim, elayers, subsample):
         super(BLSTMP, self).__init__()
         with self.init_scope():
-            for i in six.moves.range(len(elayers)):
-                if i == 0:
+            for layer in six.moves.range(len(elayers)):
+                units = elayers[layer][0]
+                dropout = elayers[layer][1]
+                projs = elayers[layer][2]
+                if layer == 0:
                     inputdim = idim
                 else:
-                    inputdim = hdim
-                setattr(self, "bilstm%d" % i, L.NStepBiLSTM(
-                    1, inputdim, elayers[i], dropout))
+                    inputdim = elayers[layer - 1][2]
+                setattr(self, "bilstm%d" % layer, L.NStepBiLSTM(
+                    1, inputdim, units, dropout))
                 # bottleneck layer to merge
-                setattr(self, "bt%d" % i, L.Linear(2 * elayers[i], hdim))
+                setattr(self, "bt%d" % layer, L.Linear(2 * units, projs))
 
         self.elayers = elayers
         self.subsample = subsample
@@ -48,6 +51,9 @@ class BLSTMP(chainer.Chain):
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
             # (sum _utt frame_utt) x dim
             ys = self['bt' + str(layer)](F.vstack(ys))
+            proj_dropout = self.elayers[layer][3]
+            if proj_dropout >= 0:
+                ys = F.dropout(ys, proj_dropout)
             xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
             del hy, cy
 
@@ -62,11 +68,15 @@ class BLSTMP(chainer.Chain):
 
 
 class BLSTM(chainer.Chain):
-    def __init__(self, idim, elayers, cdim, hdim, dropout):
+    def __init__(self, idim, elayers):
         super(BLSTM, self).__init__()
+        cdim = elayers[0][0]
+        dropout = elayers[0][1]
+        hdim = elayers[0][2]
         with self.init_scope():
-            self.nblstm = L.NStepBiLSTM(elayers, idim, cdim, dropout)
+            self.nblstm = L.NStepBiLSTM(len(elayers), idim, cdim, dropout)
             self.l_last = L.Linear(cdim * 2, hdim)
+        self.proj_dropout = elayers[0][3]
 
     def __call__(self, xs, ilens):
         """BLSTM forward
@@ -80,6 +90,8 @@ class BLSTM(chainer.Chain):
         ilens = cuda.to_cpu(ilens)
         hy, cy, ys = self.nblstm(None, None, xs)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
+        if self.proj_dropout >= 0:
+            ys = F.dropout(ys, self.proj_dropout)
         xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
         del hy, cy
 
@@ -160,27 +172,24 @@ class Encoder(chainer.Chain):
 
     """
 
-    def __init__(self, etype, idim, elayers, eprojs, subsample, dropout, in_channel=1):
+    def __init__(self, etype, idim, elayers, subsample, in_channel=1):
         super(Encoder, self).__init__()
         expanded_layers, etype = expand_elayers(elayers, etype, warn=True)
         with self.init_scope():
             if etype == 'blstm':
-                self.enc = chainer.Sequential(BLSTM(idim, len(expanded_layers), expanded_layers[0], eprojs, dropout))
+                self.enc = chainer.Sequential(BLSTM(idim, expanded_layers))
                 logging.info('BLSTM without projection for encoder')
             elif etype == 'blstmp':
-                self.enc = chainer.Sequential(BLSTMP(idim, expanded_layers, eprojs, subsample, dropout))
+                self.enc = chainer.Sequential(BLSTMP(idim, expanded_layers, subsample))
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
                 self.enc = chainer.Sequential(VGG2L(in_channel),
                                               BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), expanded_layers,
-                                                     eprojs,
-                                                     subsample, dropout))
+                                                     subsample))
                 logging.info('Use CNN-VGG + BLSTMP for encoder')
             elif etype == 'vggblstm':
                 self.enc = chainer.Sequential(VGG2L(in_channel),
-                                              BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), len(expanded_layers),
-                                                    expanded_layers[0], eprojs,
-                                                    dropout))
+                                              BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), expanded_layers))
                 logging.info('Use CNN-VGG + BLSTM for encoder')
             else:
                 logging.error(
@@ -200,4 +209,4 @@ class Encoder(chainer.Chain):
 
 
 def encoder_for(args, idim, subsample):
-    return Encoder(args.etype, idim, args.elayers, args.eprojs, subsample, args.dropout_rate)
+    return Encoder(args.etype, idim, args.elayers, subsample)
