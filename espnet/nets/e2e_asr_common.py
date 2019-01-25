@@ -113,8 +113,13 @@ def expand_elayers(elayers, etype, warn=False):
                 dropout = 0.0
         else:
             repetitions = 1
-            units = int(layer_tuple[0])
-            dropout = 0.0
+            units_dropout = layer_tuple[0].strip().split("-")
+            units = int(units_dropout[0])
+            # Check if layer dropout exists
+            if len(units_dropout) > 1:
+                dropout = float(units_dropout[1])
+            else:
+                dropout = 0.0
         # Check if eprojs exists
         if len(layer_proj) > 1:
             proj_dropout = layer_proj[1].strip().split("-")
@@ -123,10 +128,10 @@ def expand_elayers(elayers, etype, warn=False):
             if len(proj_dropout) > 1:
                 dropoutp = float(proj_dropout[1])
             else:
-                dropoutp = 0
+                dropoutp = 0.0
         else:
             proj = units
-            dropoutp = 0
+            dropoutp = 0.0
 
         expanded_elayers.extend(repetitions * [(units, dropout, proj, dropoutp)])
 
