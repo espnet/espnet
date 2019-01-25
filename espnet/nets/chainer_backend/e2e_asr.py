@@ -9,6 +9,7 @@ import math
 
 import chainer
 import numpy as np
+
 from chainer import reporter
 
 from espnet.nets.chainer_backend.attentions import att_for

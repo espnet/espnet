@@ -1,5 +1,6 @@
 import logging
 import random
+
 from argparse import Namespace
 
 import chainer

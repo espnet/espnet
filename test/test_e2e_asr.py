@@ -44,7 +44,8 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
-        ctc_type="chainer"
+        ctc_type="chainer",
+        ctc_dropout=0.0
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -142,7 +143,6 @@ def test_custom_encoder(module, etype, elayers):
 
     m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
-    enc = model.enc.enc2 if "vgg" in "etype" else model.enc.enc1
     if "pytorch" in module:
         batch = prepare_inputs("pytorch")
     else:
