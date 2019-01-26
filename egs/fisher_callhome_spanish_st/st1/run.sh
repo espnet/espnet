@@ -38,7 +38,7 @@ samp_prob=0.2
 lsm_type=unigram
 lsm_weight=0.1
 drop_enc=0.3
-drop_dec=0.3
+drop_dec=0.0
 weight_decay=0.000001
 
 # transfer learning ralated
@@ -123,7 +123,7 @@ if [ ${stage} -le 1 ]; then
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
-    # Divide into Es and En
+    # Divide into source and target languages
     for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         local/divide_lang.sh data/${x}
     done
@@ -189,12 +189,12 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d " " data/train*/text | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
+    cut -f 2- -d " " data/train.*/text | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
+    cat data/train.*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -325,7 +325,7 @@ if [ ${stage} -le 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --set ${rtask} ${expdir}/${decode_dir} ${dict}
 
     ) &
     done

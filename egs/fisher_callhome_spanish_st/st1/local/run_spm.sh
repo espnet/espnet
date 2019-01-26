@@ -38,7 +38,7 @@ samp_prob=0.2
 lsm_type=unigram
 lsm_weight=0.1
 drop_enc=0.3
-drop_dec=0.3
+drop_dec=0.0
 weight_decay=0.000001
 
 # transfer learning ralated
@@ -127,7 +127,7 @@ if [ ${stage} -le 1 ]; then
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
-    # Divide into Es and En
+    # Divide into source and target languages
     for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         local/divide_lang.sh data/${x}
     done
@@ -194,7 +194,7 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d " " data/train*/text | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
+    cut -f 2- -d " " data/train.*/text | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between source and target languages
@@ -332,7 +332,7 @@ if [ ${stage} -le 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --set ${rtask} --nlsyms ${nlsyms} --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --set ${rtask} --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
