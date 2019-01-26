@@ -127,15 +127,20 @@ def test_model_trainable_and_decodable(module, etype, atype):
         ('espnet.nets.chainer_backend.e2e_asr', 'vggblstm', '4x100,300'),
         ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', '4x100,100'),
         ('espnet.nets.chainer_backend.e2e_asr', 'blstm', '4x100,500-0.2_400-0.3'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', '4x100-0.2'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', '4x100'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '4x100,500-0.3'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100-0.3'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '100,200-0.2,300_200-0.7'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '2x100,3x200'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstmp', '4x100-0.3_200-0.2'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstm', '4x100-0.2'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'blstm', '4x100-0.2_200-0.4'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'blstm', '4x100_200-0.4'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'blstm', '2x100,300-0.2_400-0.5,200_100-0.7'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', '4x100_200'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', '4x100,300'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '4x100,100'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100,500-0.2_400-0.3'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', '4x100-0.3_200-0.2'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', '4x100-0.2'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100-0.2_200-0.4'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100_200-0.4'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300-0.2_400-0.5,200_100-0.7'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200-0.6')
     ]
 )
 def test_custom_encoder(module, etype, elayers):
