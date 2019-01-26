@@ -43,7 +43,8 @@ samp_prob=0
 lsm_type=unigram
 lsm_weight=0.1
 drop_enc=0.3
-drop_dec=0.3
+drop_dec=0.0
+weight_decay=0
 
 # minibatch related
 batchsize=20
@@ -106,7 +107,6 @@ train_set=train.es
 train_dev=dev.es
 recog_set="fisher_dev.es fisher_dev2.es fisher_test.es callhome_devtest.es callhome_evltest.es"
 
-
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
@@ -138,7 +138,7 @@ if [ ${stage} -le 1 ]; then
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
-    # Divide into Es and En
+    # Divide into source and target languages
     for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         local/divide_lang.sh data/${x}
     done
@@ -205,7 +205,7 @@ if [ ${stage} -le 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d " " data/train*/text | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
+    cut -f 2- -d " " data/train.*/text | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between source and target languages
@@ -265,7 +265,7 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -312,7 +312,9 @@ if [ ${stage} -le 4 ]; then
         --dropout-rate ${drop_enc} \
         --dropout-rate-decoder ${drop_dec} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --epochs ${epochs} \
+        --patience ${patience} \
+        --weight-decay ${weight_decay}
 fi
 
 if [ ${stage} -le 5 ]; then
