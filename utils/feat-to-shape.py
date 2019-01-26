@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import argparse
-from collections import Sequence
 import logging
 import sys
 
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileReaderWrapper
 from espnet.utils.cli_utils import get_commandline_args
+from espnet.utils.cli_utils import is_scipy_wav_style
+
+PY2 = sys.version_info[0] == 2
 
 
 def main():
@@ -43,13 +45,23 @@ def main():
     else:
         preprocessing = None
 
-    for utt, mat in FileReaderWrapper(args.rspecifier, args.filetype):
-        if isinstance(mat, Sequence):
-            # If data is sound file, then got as Tuple[int, ndarray]
-            rate, mat = mat
+    # There are no necessary for matrix without preprocessing,
+    # so change to FileReaderWrapper to return shape.
+    # This make sense only with filetype="hdf5".
+    for utt, mat in FileReaderWrapper(args.rspecifier, args.filetype,
+                                      return_shape=preprocessing is None):
         if preprocessing is not None:
-            mat = preprocessing(mat)
-        args.out.write('{} {}\n'.format(utt, ','.join(map(str, mat.shape))))
+            if is_scipy_wav_style(mat):
+                # If data is sound file, then got as Tuple[int, ndarray]
+                rate, mat = mat
+            mat = preprocessing(mat, uttid_list=utt)
+            shape_str = ','.join(map(str, mat.shape))
+        else:
+            if len(mat) == 2 and isinstance(mat[1], tuple):
+                # If data is sound file, Tuple[int, Tuple[int, ...]]
+                rate, mat = mat
+            shape_str = ','.join(map(str, mat))
+        args.out.write('{} {}\n'.format(utt, shape_str))
 
 
 if __name__ == "__main__":

@@ -1,12 +1,20 @@
 from collections import OrderedDict
-from collections import Sequence
 import contextlib
 import copy
 import importlib
 import io
 import json
 import logging
+import sys
 import threading
+
+PY2 = sys.version_info[0] == 2
+
+if PY2:
+    from collections import Sequence
+else:
+    # The ABCs from 'collections' will stop working in 3.8
+    from collections.abc import Sequence
 
 
 def dynamic_import(import_path):
