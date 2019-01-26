@@ -16,7 +16,7 @@ class CTC(torch.nn.Module):
     :param str ctc_type: builtin or warpctc
     """
 
-    def __init__(self, odim, eprojs, dropout_rate, ctc_type='builtin'):
+    def __init__(self, odim, eprojs, dropout_rate, ctc_type='warpctc'):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
