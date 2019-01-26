@@ -31,15 +31,21 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 dlayers=2
 dunits=1024
 # attention related
-atype="add"
+atype=add
 adim=1024
 
 # regualrization option
 samp_prob=0.2
 lsm_type=unigram
 lsm_weight=0.1
-dropout=0.3
+drop_enc=0.3
+drop_dec=0.3
 weight_decay=0.000001
+
+# transfer learning ralated
+asr_model=
+mt_model=
+# NOTE: reserve here for the future usage
 
 # minibatch related
 batchsize=15
@@ -116,7 +122,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
-    # Divide into En and De
+    # Divide into source and target languages
     for x in train dev2010 tst2010 tst2013 tst2014 tst2015; do
         local/divide_lang.sh data/${x}
     done
@@ -187,7 +193,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cat data/train_nodev.*/text | text2token.py -s 1 -n 1 --non-lang-syms ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
@@ -200,11 +206,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         local/data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
+fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
     if ${do_delta}; then
         expname=${expname}_delta
+    fi
+    if [ ! -z ${asr_model} ]; then
+      expname=${expname}_asrtrans
+    fi
+    if [ ! -z ${mt_model} ]; then
+      expname=${expname}_mttrans
     fi
 else
     expname=${train_set}_${backend}_${tag}
@@ -244,11 +257,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --sampling-probability ${samp_prob} \
         --lsm-type ${lsm_type} \
         --lsm-weight ${lsm_weight} \
-        --dropout-rate ${dropout} \
+        --dropout-rate ${drop_enc} \
+        --dropout-rate-decoder ${drop_dec} \
         --opt ${opt} \
         --epochs ${epochs} \
-        --patience ${patience}
-        --weight-decay ${weight_decay}
+        --patience ${patience} \
+        --weight-decay ${weight_decay} \
+        --asr-model ${asr_model} \
+        --mt-model ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -272,6 +288,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model} \
