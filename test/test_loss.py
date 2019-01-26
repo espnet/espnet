@@ -13,25 +13,26 @@ import torch
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
-USE_WARP_CTC = True
 
-
+@pytest.mark.parametrize('use_warpctc', [True, False])
 @pytest.mark.parametrize('in_length,out_length',
                          [([11, 17, 15], [4, 2, 3]),
                           ([4], [1])])
-def test_ctc_loss(in_length, out_length):
+def test_ctc_loss(in_length, out_length, use_warpctc):
     pytest.importorskip("torch")
-    # if LooseVersion(torch.__version__) < LooseVersion('1.0'):
-    if USE_WARP_CTC:
+    if use_warpctc:
         pytest.importorskip("warpctc_pytorch")
         import warpctc_pytorch
         torch_ctcloss = warpctc_pytorch.CTCLoss(size_average=True)
     else:
+        if LooseVersion(torch.__version__) < LooseVersion('1.0'):
+            pytest.skip("pytorch < 1.0 doesn't support CTCLoss")
         _ctcloss_sum = torch.nn.CTCLoss(reduction='sum')
 
         def torch_ctcloss(th_pred, th_target, th_ilen, th_olen):
             th_pred = th_pred.log_softmax(2)
             loss = _ctcloss_sum(th_pred, th_target, th_ilen, th_olen)
+            # Batch-size average
             loss = loss / th_pred.size(1)
             return loss
 
