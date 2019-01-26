@@ -131,10 +131,10 @@ def test_model_trainable_and_decodable(module, etype, atype):
         ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', '4x100'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '4x100,500-0.3'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100-0.3'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '100,200,300'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '100,200-0.2,300_200-0.7'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '2x100,3x200'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300-0.2,200'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300-0.2_400-0.5,200_100-0.7'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '2x100,300,200-0.6')
     ]
 )
@@ -242,7 +242,7 @@ def test_correct_blstm_init_custom_enc(module):
 
     args = make_arg(etype="blstm", elayers="2x300")
     model = m.E2E(40, 5, args)
-    enc = model.enc.enc1
+    enc = model.enc.enc._modules.values()[0] if backend == "pytorch" else model.enc.enc._layers[0]
     rnn = getattr(enc, "nblstm")
     fc = getattr(enc, "l_last")
     check_attr(rnn, n_layers_k, 2)
