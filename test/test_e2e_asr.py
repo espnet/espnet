@@ -47,7 +47,7 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
-        ctc_type="chainer"
+        ctc_type="builtin"
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
