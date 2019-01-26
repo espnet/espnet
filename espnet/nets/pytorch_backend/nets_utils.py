@@ -124,3 +124,17 @@ def index_select_lm_state(rnnlm_state, dim, vidx):
         for i in vidx:
             new_state.append(rnnlm_state[int(i)][:])
     return new_state
+
+
+class Nonlinear(torch.nn.Module):
+
+    def __init__(self, in_features, out_features, bias=True, dropout=0.0, activation_fn=torch.nn.ReLU):
+        super(Nonlinear, self).__init__()
+        self.layers = torch.nn.Sequential()
+        self.layers.add_module("fc", torch.nn.Linear(in_features, out_features, bias))
+        if dropout > 0:
+            self.layers.add_module("dropout", torch.nn.Dropout(dropout))
+        self.layers.add_module("activation", activation_fn())
+
+    def forward(self, x):
+        return self.layers(x)
