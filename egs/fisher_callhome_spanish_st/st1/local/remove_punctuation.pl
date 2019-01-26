@@ -9,8 +9,10 @@ binmode(STDOUT,":utf8");
 while(<STDIN>) {
   $_ = " $_ ";
 
-  # remove punctuation
+  # remove punctuation except apostrophe
+  s/'/apostrophe/g;
   s/[[:punct:]]//g;
+  s/apostrophe/'/g;
 
   # remove consecutive commas and spaces
   s/\s+/ /g;
