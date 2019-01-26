@@ -108,9 +108,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_sp.en
-train_dev=dev_sp.en
-recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
+train_set=train_sp.es
+train_dev=dev_sp.es
+recog_set="fisher_dev.es fisher_dev2.es fisher_test.es callhome_devtest.es callhome_evltest.es"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -262,9 +262,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_${train_set}
     mkdir -p ${lmdatadir}
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | grep sp1.0 | cut -f 2- -d " " \
+    cat data/${train_set}/text | grep sp1.0 | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " \
         > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text | grep sp1.0 | cut -f 2- -d " " \
+    cat data/${train_dev}/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " \
         > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then

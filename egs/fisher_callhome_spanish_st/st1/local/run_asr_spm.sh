@@ -104,9 +104,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_sp.en
-train_dev=dev_sp.en
-recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
+train_set=train_sp.es
+train_dev=dev_sp.es
+recog_set="fisher_dev.es fisher_dev2.es fisher_test.es callhome_devtest.es callhome_evltest.es"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -263,7 +263,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mkdir -p ${lmdatadir}
     cat data/${train_set}/text | grep sp1.0 | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
         > ${lmdatadir}/train.txt
-    cat data/${train_dev}/text | grep sp1.0 | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
+    cat data/${train_dev}/text | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
         > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
