@@ -106,7 +106,7 @@ set -o pipefail
 
 train_set=train_sp.en
 train_dev=dev_sp.en
-recog_set="fisher_dev_sp.en fisher_dev2_sp.en fisher_test_sp.en callhome_devtest_sp.en callhome_evltest_sp.en"
+recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -172,7 +172,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         # NOTE: do not use callhome_train for the training set
     done
 
-    for x in train dev; do
+    for x in train_sp dev_sp; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
         for lang in es en; do
@@ -228,7 +228,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d " " data/train_sp.*/text | grep sp1.0 | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
+    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between source and target languages
@@ -261,9 +261,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_${train_set}_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
-    cut -f 2- -d " " data/${train_set}/text | grep sp1.0 | spm_encode --model=${bpemodel}.model --output_format=piece \
+    cat data/${train_set}/text | grep sp1.0 | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
         > ${lmdatadir}/train.txt
-    cut -f 2- -d " " data/${train_dev}/text | grep sp1.0 | spm_encode --model=${bpemodel}.model --output_format=piece \
+    cat data/${train_dev}/text | grep sp1.0 | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
         > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
