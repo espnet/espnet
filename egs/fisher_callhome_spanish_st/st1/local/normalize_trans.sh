@@ -82,12 +82,16 @@ for set in fisher_train callhome_train callhome_devtest callhome_evltest; do
     cat data/local/fisher-callhome-corpus/corpus/ldc/$set.en > data/$set/en.org
     cat data/$set/en.org | normalize-punctuation.perl -l en | sed -e "s/¿//g"| local/normalize_punctuation.pl > data/$set/en.norm.tc
     lowercase.perl < data/$set/en.norm.tc > data/$set/en.norm.lc
+    cat data/$set/en.norm.lc | local/remove_punctuation.pl > data/$set/en.norm.lc.rm
     tokenizer.perl -a -l en < data/$set/en.norm.tc > data/$set/en.norm.tc.tok
     tokenizer.perl -a -l en < data/$set/en.norm.lc > data/$set/en.norm.lc.tok
+    tokenizer.perl -a -l en < data/$set/en.norm.lc.rm > data/$set/en.norm.lc.rm.tok
     paste -d " " <(awk '{print $1}' data/$set/text.tc.es) <(cat data/$set/en.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
       > data/$set/text.tc.en
     paste -d " " <(awk '{print $1}' data/$set/text.lc.es) <(cat data/$set/en.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
       > data/$set/text.lc.en
+    paste -d " " <(awk '{print $1}' data/$set/text.lc.rm.es) <(cat data/$set/en.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
+      > data/$set/text.lc.rm.en
 
     # save original and cleaned punctuation
     cat data/$set/en.org | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
@@ -101,12 +105,16 @@ for set in fisher_dev fisher_dev2 fisher_test; do
         cat data/local/fisher-callhome-corpus/corpus/ldc/$set.en.${no} > data/$set/en.${no}.org
         cat data/$set/en.${no}.org | normalize-punctuation.perl -l en | sed -e "s/¿//g"| local/normalize_punctuation.pl > data/$set/en.${no}.norm.tc
         lowercase.perl < data/$set/en.${no}.norm.tc > data/$set/en.${no}.norm.lc
+        cat data/$set/en.${no}.norm.lc | local/remove_punctuation.pl > data/$set/en.${no}.norm.lc.rm
         tokenizer.perl -a -l en < data/$set/en.${no}.norm.tc > data/$set/en.${no}.norm.tc.tok
         tokenizer.perl -a -l en < data/$set/en.${no}.norm.lc > data/$set/en.${no}.norm.lc.tok
+        tokenizer.perl -a -l en < data/$set/en.${no}.norm.lc.rm > data/$set/en.${no}.norm.lc.rm.tok
         paste -d " " <(awk '{print $1}' data/$set/text.tc.es) <(cat data/$set/en.${no}.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
           > data/$set/text.tc.en.${no}
         paste -d " " <(awk '{print $1}' data/$set/text.lc.es) <(cat data/$set/en.${no}.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
           > data/$set/text.lc.en.${no}
+        paste -d " " <(awk '{print $1}' data/$set/text.lc.rm.es) <(cat data/$set/en.${no}.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
+          > data/$set/text.lc.rm.en.${no}
     done
 
     # save original and cleaned punctuation
@@ -160,9 +168,13 @@ for set in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callho
     comm -12 data/$set/reclist.es data/$set/reclist.en > data/$set/reclist
     reduce_data_dir.sh data/$set.tmp data/$set/reclist data/$set
     if [ -f data/$set/text.tc.en ]; then
-        utils/fix_data_dir.sh --utt_extra_files "text.tc.es text.lc.es text.lc.rm.es text.tc.en text.lc.en" data/$set
+        utils/fix_data_dir.sh --utt_extra_files "text.tc.es text.lc.es text.lc.rm.es \
+                                                 text.tc.en text.lc.en text.lc.rm.en" data/$set
     else
-        utils/fix_data_dir.sh --utt_extra_files "text.tc.es text.lc.es text.lc.rm.es text.tc.en.0 text.tc.en.1 text.tc.en.2 text.tc.en.3 text.lc.es text.lc.en.0 text.lc.en.1 text.lc.en.2 text.lc.en.3" data/$set
+        utils/fix_data_dir.sh --utt_extra_files "text.tc.es text.lc.es text.lc.rm.es \
+                                                 text.tc.en.0 text.tc.en.1 text.tc.en.2 text.tc.en.3 \
+                                                 text.lc.en.0 text.lc.en.1 text.lc.en.2 text.lc.en.3 \
+                                                 text.lc.rm.en.0 text.lc.rm.en.1 text.lc.rm.en.2 text.lc.rm.en.3" data/$set
     fi
     rm -rf data/$set.tmp
 done
