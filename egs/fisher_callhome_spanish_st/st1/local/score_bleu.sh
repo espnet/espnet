@@ -90,20 +90,22 @@ else
 fi
 
 # detokenize
-detokenizer.perl -l en < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
-detokenizer.perl -l en < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
-detokenizer.perl -l en < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
+detokenizer.perl -l en < ${dir}/ref.wrd.trn | local/remove_punctuation.pl > ${dir}/ref.wrd.trn.detok
+detokenizer.perl -l en < ${dir}/hyp.wrd.trn | local/remove_punctuation.pl > ${dir}/hyp.wrd.trn.detok
+detokenizer.perl -l en < ${dir}/src.wrd.trn | local/remove_punctuation.pl > ${dir}/src.wrd.trn.detok
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-    detokenizer.perl -l en < ${dir}/ref1.wrd.trn > ${dir}/ref1.wrd.trn.detok
-    detokenizer.perl -l en < ${dir}/ref2.wrd.trn > ${dir}/ref2.wrd.trn.detok
-    detokenizer.perl -l en < ${dir}/ref3.wrd.trn > ${dir}/ref3.wrd.trn.detok
+    detokenizer.perl -l en < ${dir}/ref1.wrd.trn | local/remove_punctuation.pl > ${dir}/ref1.wrd.trn.detok
+    detokenizer.perl -l en < ${dir}/ref2.wrd.trn | local/remove_punctuation.pl > ${dir}/ref2.wrd.trn.detok
+    detokenizer.perl -l en < ${dir}/ref3.wrd.trn | local/remove_punctuation.pl > ${dir}/ref3.wrd.trn.detok
 fi
 
-### case-insensitive
+echo ${set} > ${dir}/result.txt
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.txt
+    # 4 references
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.txt
 else
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.txt
+    # 1 reference
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.txt
 fi
 echo "write a case-insensitive BLEU result in ${dir}/result.txt"
 cat ${dir}/result.txt
