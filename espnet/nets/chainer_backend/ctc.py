@@ -115,11 +115,13 @@ def ctc_for(args, odim):
     :return: The CTC module
     """
     ctc_type = vars(args).get("ctc_type", "builtin")
-    ctc = None
     if ctc_type == 'builtin':
         logging.info("Using chainer CTC implementation")
         ctc = CTC(odim, args.eprojs, args.dropout_rate)
     elif ctc_type == 'warpctc':
         logging.info("Using warpctc CTC implementation")
         ctc = WarpCTC(odim, args.eprojs, args.dropout_rate)
+    else:
+        raise ValueError('ctc_type must be "builtin" or "warpctc": {}'
+                         .format(ctc_type))
     return ctc
