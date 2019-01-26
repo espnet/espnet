@@ -61,8 +61,8 @@ def main(args):
                              'every y frame at 2nd layer etc.')
     # loss
     parser.add_argument('--ctc_type', default='warpctc', type=str,
-                        choices=['chainer', 'warpctc'],
-                        help='Type of CTC implementation to calculate loss.')
+                        choices=['builtin', 'warpctc'],
+                        help='Type of CTC implementation to calculate loss. ')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
