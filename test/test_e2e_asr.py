@@ -180,7 +180,7 @@ def test_correct_blstmp_init_custom_enc(module):
     args = make_arg(etype="blstmp", elayers="3x300-0.2_200-0.2,200_100,200-0.4")
     m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
-    enc = model.enc.enc1 if backend == "pytorch" else model.enc.enc._layers[0]
+    enc = model.enc.enc._modules.values()[0] if backend == "pytorch" else model.enc.enc._layers[0]
     rnn0 = getattr(enc, "blstm0")
     rnn1 = getattr(enc, "blstm1")
     rnn2 = getattr(enc, "blstm2")
@@ -231,7 +231,7 @@ def test_correct_blstm_init_custom_enc(module):
     m = importlib.import_module(module)
     args = make_arg(etype="blstm", elayers="3x300-0.2_200-0.3")
     model = m.E2E(40, 5, args)
-    enc = model.enc.enc1 if backend == "pytorch" else model.enc.enc._layers[0]
+    enc = model.enc.enc._modules.values()[0] if backend == "pytorch" else model.enc.enc._layers[0]
     rnn = getattr(enc, "nblstm")
     fc = getattr(enc, "l_last")
     check_attr(rnn, n_layers_k, 3)
