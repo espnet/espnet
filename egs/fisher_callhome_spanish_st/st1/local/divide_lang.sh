@@ -19,10 +19,11 @@ cp -rf data/$set data/$set.tmp
 cut -f 1 -d " " data/$set/feats.scp > data/$set/reclist
 reduce_data_dir.sh data/$set.tmp data/$set/reclist data/$set
 if [ -f data/$set/text.en ]; then
-    utils/fix_data_dir.sh --utt_extra_files "text.lc.es text.lc.en text.tc.es text.tc.en" data/$set
+    utils/fix_data_dir.sh --utt_extra_files "text.tc.es text.tc.en text.lc.es text.lc.en text.lc.rm.es text.lc.rm.en" data/$set
 else
-    utils/fix_data_dir.sh --utt_extra_files "text.lc.es text.lc.en.0 text.lc.en.1 text.lc.en.2 text.lc.en.3 \
-                                             text.tc.es text.tc.en.0 text.tc.en.1 text.tc.en.2 text.tc.en.3" data/$set
+    utils/fix_data_dir.sh --utt_extra_files "text.tc.es text.tc.en.0 text.tc.en.1 text.tc.en.2 text.tc.en.3 \
+                                             text.lc.es text.lc.en.0 text.lc.en.1 text.lc.en.2 text.lc.en.3 \
+                                             text.lc.rm.es text.lc.rm.en.0 text.lc.rm.en.1 text.lc.rm.en.2 text.lc.rm.en.3" data/$set
 fi
 rm -rf data/$set.tmp
 
