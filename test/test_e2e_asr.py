@@ -123,13 +123,13 @@ def test_model_trainable_and_decodable(module, etype, atype):
 
 @pytest.mark.parametrize(
     "module, etype, elayers", [
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstmp', '4x100'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstm', '4x100'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', '4x100'),
-        ('espnet.nets.chainer_backend.e2e_asr', 'blstm', '4x100'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstmp', '4x100_200'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'vggblstm', '4x100,300'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', '4x100,100'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'blstm', '4x100,500-0.2_400-0.3'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', '4x100-0.2'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstm', '4x100'),
-        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '4x100'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '4x100,500-0.3'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstm', '4x100-0.3'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '100,200,300'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', '2x100,3x200'),
@@ -181,11 +181,11 @@ def test_correct_blstmp_init_custom_enc(module):
     m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
     enc = model.enc.enc._modules.values()[0] if backend == "pytorch" else model.enc.enc._layers[0]
-    rnn0 = getattr(enc, "blstm0")
-    rnn1 = getattr(enc, "blstm1")
-    rnn2 = getattr(enc, "blstm2")
-    rnn3 = getattr(enc, "blstm3")
-    rnn4 = getattr(enc, "blstm4")
+    rnn0 = getattr(enc, "bilstm0")
+    rnn1 = getattr(enc, "bilstm1")
+    rnn2 = getattr(enc, "bilstm2")
+    rnn3 = getattr(enc, "bilstm3")
+    rnn4 = getattr(enc, "bilstm4")
     bt0 = getattr(enc, "bt0")
     bt1 = getattr(enc, "bt1")
     bt2 = getattr(enc, "bt2")
