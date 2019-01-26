@@ -46,7 +46,7 @@ class BLSTMP(chainer.Chain):
         for layer in six.moves.range(len(self.elayers)):
             hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
             dropout = self.elayers[layer][1]
-            if dropout >= 0:
+            if dropout > 0:
                 ys = F.dropout(ys, dropout)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             # TODO(watanabe) replace subsample and FC layer with CNN

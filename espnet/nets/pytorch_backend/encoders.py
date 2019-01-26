@@ -57,7 +57,7 @@ class BLSTMP(torch.nn.Module):
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
             dropout = self.elayers[layer][1]
-            if dropout >= 0:
+            if dropout > 0:
                 ys_pad = F.dropout(ys_pad, dropout)
             sub = self.subsample[layer + 1]
             if sub > 1:
