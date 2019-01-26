@@ -148,7 +148,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # make a dev set
     for lang in en de; do
         utils/subset_data_dir.sh --first data/train.${lang} 4000 data/dev.${lang}
-        n=$[`cat data/train.${lang}/segments | wc -l` - 4000]
+        n=$(($(wc -l < data/train.${lang}/segments) - 4000))
         utils/subset_data_dir.sh --last data/train.${lang} ${n} data/train_nodev.${lang}
     done
 
@@ -299,10 +299,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             &
         wait
 
-        if [ `echo ${rtask} | grep 'dev.de'` ]; then
+        if [ $(echo ${rtask} | grep 'dev.de') ]; then
           local/score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
         else
-          set=`echo ${rtask} | cut -f -1 -d "."`
+          set=$(echo ${rtask} | cut -f -1 -d ".")
           local/score_bleu_reseg.sh --lc ${lc} --remove_punctuation ${remove_punctuation} \
             --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${set}
         fi
