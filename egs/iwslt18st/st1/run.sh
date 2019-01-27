@@ -299,7 +299,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             &
         wait
 
-        if [ $(echo ${rtask} | grep 'dev.de') ]; then
+        if [ $(echo ${rtask} | grep "dev.de") ]; then
           local/score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
         else
           set=$(echo ${rtask} | cut -f -1 -d ".")
