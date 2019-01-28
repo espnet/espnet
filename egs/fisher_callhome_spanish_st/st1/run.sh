@@ -68,10 +68,13 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-datadir=/export/b08/inaguma/IWSLT
+sfisher_speech=/export/corpora/LDC/LDC2010S01
+sfisher_transcripts=/export/corpora/LDC/LDC2010T04
+split=local/splits/split_fisher
 
-# text normalization related
-lc=true
+callhome_speech=/export/corpora/LDC/LDC96S35
+callhome_transcripts=/export/corpora/LDC/LDC96T17
+split_callhome=local/splits/split_callhome
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -87,25 +90,23 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodev.de
-train_dev=dev.de
-recog_set="dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
-
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    echo "stage -1: Data Download"
-    for part in train dev2010 tst2010 tst2013 tst2014 tst2015; do
-        local/download_and_untar.sh ${datadir} ${part}
-    done
-fi
+train_set=train_sp.en
+train_dev=dev_sp.en
+recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep_train.sh ${datadir}
-    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
-        local/data_prep_eval.sh ${datadir} ${part}
-    done
+    local/fsp_data_prep.sh $sfisher_speech $sfisher_transcripts
+    local/callhome_data_prep.sh $callhome_speech $callhome_transcripts
+
+    # split data
+    local/create_splits.sh $split
+    local/callhome_create_splits.sh $split_callhome
+
+    # concatenate multiple utterances
+    local/normalize_trans.sh $sfisher_transcripts $callhome_transcripts
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -116,39 +117,65 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
+        # upsample audio from 8k to 16k to make a recipe consistent with others
+        sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
+    # speed-perturbed
+    utils/perturb_data_dir_speed.sh 0.9 data/fisher_train data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/fisher_train data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/fisher_train data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/train_sp data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/train_sp exp/make_fbank/train_sp ${fbankdir}
+    for lang in es en; do
+        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >data/train_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >data/train_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >data/train_sp/text.lc.rm.${lang}
+        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >>data/train_sp/text.lc.rm.${lang}
+        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >>data/train_sp/text.lc.rm.${lang}
+    done
+
     # Divide into source and target languages
-    for x in train dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in train_sp fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         local/divide_lang.sh data/${x}
     done
 
-    # remove utt having more than 3000 frames
-    # remove utt having more than 400 characters
-    for lang in en de; do
-        remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
+    for lang in es en; do
+        cp -rf data/fisher_dev.${lang} data/dev_sp.${lang}
+        # NOTE: do not use callhome_train for the training set
     done
 
-    # Match the number of utterances between source and target languages
-    # extract commocn lines
-    cut -f -1 -d " " data/train.en.tmp/segments > data/train.de.tmp/reclist1
-    cut -f -1 -d " " data/train.de.tmp/segments > data/train.de.tmp/reclist2
-    comm -12 data/train.de.tmp/reclist1 data/train.de.tmp/reclist2 > data/train.de.tmp/reclist
+    for x in train_sp dev_sp; do
+        # remove utt having more than 3000 frames
+        # remove utt having more than 400 characters
+        for lang in es en; do
+            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
+        done
 
-    for lang in en de; do
-        reduce_data_dir.sh data/train.${lang}.tmp data/train.de.tmp/reclist data/train.${lang}
-        utils/fix_data_dir.sh data/train.${lang}
-    done
-    rm -rf data/${x}.*.tmp
+        # Match the number of utterances between source and target languages
+        # extract commocn lines
+        cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.en.tmp/reclist1
+        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.en.tmp/reclist2
+        comm -12 data/${x}.en.tmp/reclist1 data/${x}.en.tmp/reclist2 > data/${x}.en.tmp/reclist
 
-    # make a dev set
-    for lang in en de; do
-        utils/subset_data_dir.sh --first data/train.${lang} 4000 data/dev.${lang}
-        n=$(($(wc -l < data/train.${lang}/segments) - 4000))
-        utils/subset_data_dir.sh --last data/train.${lang} ${n} data/train_nodev.${lang}
+        for lang in es en; do
+            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
+            utils/fix_data_dir.sh data/${x}.${lang}
+        done
+        rm -rf data/${x}.*.tmp
     done
 
     # compute global CMVN
@@ -157,12 +184,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18st/st1/dump/${train_set}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish_st/st1/dump/${train_set}/delta${do_delta}/storage \
           ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18st/st1/dump/${train_dev}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish_st/st1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
@@ -186,12 +213,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    cut -f 2- -d " " data/train_nodev.*/text | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
+    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train_nodev.*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
+    cat data/train_sp.*/text | grep sp1.0 | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -202,8 +229,24 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+    done
+
+    # update json (add source references)
+    for x in ${train_set} ${train_dev}; do
+        feat_dir=${dumpdir}/${x}/delta${do_delta}
+        data_dir=data/$(echo ${x} | cut -f -1 -d ".").es
+        local/update_json.sh --nlsyms ${nlsyms} ${feat_dir}/data.json ${data_dir} ${dict}
+    done
+
+    # Fisher has 4 references per utterance
+    for rtask in fisher_dev.en fisher_dev2.en fisher_test.en; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        for no in 1 2 3; do
+          local/data2json.sh --text data/${rtask}/text.${no} --feat ${feat_recog_dir}/feats.scp --nlsyms ${nlsyms} \
+              data/${rtask} ${dict} > ${feat_recog_dir}/data_${no}.json
+        done
     done
 fi
 
@@ -273,7 +316,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
-    # for rtask in ${train_dev} ${recog_set}; do
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
@@ -301,12 +343,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             &
         wait
 
-        if [ ${rtask} = "dev.de" ]; then
-          local/score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-        else
-          set=$(echo ${rtask} | cut -f -1 -d ".")
-          local/score_bleu_reseg.sh --lc ${lc} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${set}
+        # Fisher has 4 references per utterance
+        if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
+            for no in 1 2 3; do
+              cp ${feat_recog_dir}/data_${no}.json ${expdir}/${decode_dir}/data_ref${no}.json
+            done
         fi
+
+        local/score_bleu.sh --set ${rtask} ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
