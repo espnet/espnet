@@ -19,8 +19,6 @@ import random
 import subprocess
 import sys
 
-from distutils.util import strtobool
-
 
 def main(args):
     parser = argparse.ArgumentParser()
