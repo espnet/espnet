@@ -56,6 +56,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 opt=adadelta
 epochs=15
 patience=3
+eps_decay=0.01
 
 # decoding parameter
 beam_size=20
@@ -312,6 +313,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --patience ${patience} \
+        --eps-decay ${eps_decay} \
         --weight-decay ${weight_decay} \
         --asr-model ${asr_model} \
         --mt-model ${mt_model}
