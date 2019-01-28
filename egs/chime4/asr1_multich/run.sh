@@ -141,7 +141,7 @@ if [ ${stage} -le 1 ]; then
     # Note that data/tr05_multi_noisy_multich has multi-channel wav data, while data/train_si284 has 1ch only
     utils/combine_data.sh data/${train_set}_multich data/tr05_multi_noisy_multich data/train_si284
     for setname in ${train_set} ${recog_set}; do
-        dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" data/${setname}_multich
+        dump_pcm.sh --nj 32 --cmd "${train_cmd}" --filetype "sound.hdf5" data/${setname}_multich
     done
     utils/combine_data.sh data/${train_dev}_multich data/dt05_simu_isolated_6ch_track_multich data/dt05_real_isolated_6ch_track_multich
 

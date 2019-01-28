@@ -63,7 +63,7 @@ def main():
                 # If data is sound file, then got as Tuple[int, ndarray]
                 rate, mat = mat
             if preprocessing is not None:
-                mat = preprocessing(mat)
+                mat = preprocessing(mat, uttid_list=utt)
             writer[utt] = mat
 
 

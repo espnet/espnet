@@ -62,7 +62,6 @@ if [ -n "${feat}" ]; then
         --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
 fi
 
-
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
 if [ -n "${bpecode}" ]; then
