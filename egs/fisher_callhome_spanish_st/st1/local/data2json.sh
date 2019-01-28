@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+# NOTE: this is made for machine translation
 
 echo "$0 $*" >&2 # Print the command line for logging
 . ./path.sh
@@ -17,6 +19,8 @@ verbose=0
 filetype=""
 preprocess_conf=""
 out="" # If omitted, write in stdout
+
+text=""
 
 . utils/parse_options.sh
 
@@ -44,6 +48,10 @@ dic=$2
 tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
 trap 'rm -rf ${tmpdir}' EXIT
 
+if [ -z ${text} ]; then
+    text=${dir}/text
+fi
+
 # 1. Create scp files for inputs
 #   These are not necessary for decoding mode, and make it as an option
 mkdir -p ${tmpdir}/input
@@ -65,13 +73,13 @@ fi
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
 if [ -n "${bpecode}" ]; then
-    paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text \
+    paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} \
         | spm_encode --model=${bpecode} --output_format=piece) \
         > ${tmpdir}/output/token.scp
 elif [ -n "${nlsyms}" ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/output/token.scp
 else
-    text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 ${text} > ${tmpdir}/output/token.scp
 fi
 < ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
 # +2 comes from CTC blank and EOS
@@ -89,10 +97,9 @@ if [ -n "${lang}" ]; then
 fi
 cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
 
-
 # 4. Create JSON files from each scp files
 rm -f ${tmpdir}/*/*.json
-for intype in 'input' 'output' 'other'; do
+for intype in 'output' 'other'; do
     for x in "${tmpdir}/${intype}"/*.scp; do
         k=$(basename ${x} .scp)
         < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
@@ -105,7 +112,7 @@ if [ -n "${out}" ]; then
 else
     out_opt=""
 fi
-mergejson.py --verbose ${verbose} \
+local/mergejson.py --verbose ${verbose} \
     --input-jsons ${tmpdir}/input/*.json \
     --output-jsons ${tmpdir}/output/*.json \
     --jsons ${tmpdir}/other/*.json ${out_opt}

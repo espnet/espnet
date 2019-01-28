@@ -35,7 +35,7 @@ fi
 
 # output
 if [ ! -z ${bpecode} ]; then
-    paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} | spm_encode --model=${bpecode} --output_format=piece | cut -f 2- -d " ") > ${tmpdir}/token.scp
+    paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
 elif [ ! -z ${nlsyms} ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/token.scp
 else
@@ -50,10 +50,10 @@ awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/odim.scp
 
 # convert to json
 rm -f ${tmpdir}/*.json
-cat ${text} | scp2json.py --key text | sed -e "s/.en.talkid/.de.talkid/g" > ${tmpdir}/text.json
+cat ${text} | scp2json.py --key text > ${tmpdir}/text.json
 for x in ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
-    cat ${x} | scp2json.py --key ${k} | sed -e "s/.en.talkid/.de.talkid/g" > ${tmpdir}/${k}.json
+    cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
 done
 
 # add to json

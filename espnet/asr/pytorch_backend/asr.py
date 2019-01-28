@@ -264,9 +264,11 @@ def train(args):
     # Setup an optimizer
     if args.opt == 'adadelta':
         optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps)
+            model.parameters(), rho=0.95, eps=args.eps,
+            weight_decay=args.weight_decay)
     elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters())
+        optimizer = torch.optim.Adam(model.parameters(),
+                                     weight_decay=args.weight_decay)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
