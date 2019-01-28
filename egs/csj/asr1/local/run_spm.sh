@@ -48,14 +48,14 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
-sortagrad=false
+sortagrad=0
 opt=adadelta
 epochs=15
 patience=3
 
 # rnnlm related
 lm_weight=0.3
-lm_sortagrad=false
+lm_sortagrad=0
 
 # decoding parameter
 beam_size=20
