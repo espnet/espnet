@@ -277,24 +277,25 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
-    if args.sortagrad:
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
+    if use_sortagrad:
         args.batch_sort_key = "input"
     # make minibatch list (variable length)
     train_batchset = make_batchset(train_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
                                    args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=args.sortagrad)
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
     valid_batchset = make_batchset(valid_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
                                    args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=args.sortagrad)
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
         train_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(train_batchset, converter.transform),
             batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
-            shuffle=not args.sortagrad)
+            shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(valid_batchset, converter.transform),
             batch_size=1, repeat=False, shuffle=False,
@@ -302,7 +303,7 @@ def train(args):
     else:
         train_iter = ToggleableShufflingSerialIterator(
             TransformDataset(train_batchset, converter.transform),
-            batch_size=1, shuffle=not args.sortagrad)
+            batch_size=1, shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingSerialIterator(
             TransformDataset(valid_batchset, converter.transform),
             batch_size=1, repeat=False, shuffle=False)
@@ -379,8 +380,9 @@ def train(args):
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, att_reporter))
 
-    if args.sortagrad:
-        trainer.extend(ShufflingEnabler([train_iter]), trigger=(1, 'epoch'))
+    if use_sortagrad:
+        trainer.extend(ShufflingEnabler([train_iter]),
+                       trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
 
     # Run the training
     trainer.run()

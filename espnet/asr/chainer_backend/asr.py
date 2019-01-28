@@ -289,21 +289,22 @@ def train(args):
     # set up training iterator and updater
     converter = CustomConverter(subsampling_factor=model.subsample[0],
                                 preprocess_conf=args.preprocess_conf)
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
-                              args.maxlen_in, args.maxlen_out, args.minibatches, shortest_first=args.sortagrad)
+                              args.maxlen_in, args.maxlen_out, args.minibatches, shortest_first=use_sortagrad)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
             train_iters = list(ToggleableShufflingMultiprocessIterator(
                 TransformDataset(train, converter.transform),
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
-                shuffle=not args.sortagrad))
+                shuffle=not use_sortagrad))
         else:
             train_iters = list(ToggleableShufflingSerialIterator(
                 TransformDataset(train, converter.transform),
-                batch_size=1, shuffle=not args.sortagrad))
+                batch_size=1, shuffle=not use_sortagrad))
 
         # set up updater
         updater = CustomUpdater(
@@ -332,12 +333,12 @@ def train(args):
             train_iters = [ToggleableShufflingMultiprocessIterator(
                 TransformDataset(train_subsets[gid], converter.transform),
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
-                shuffle=not args.sortagrad)
+                shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
         else:
             train_iters = [ToggleableShufflingSerialIterator(
                 TransformDataset(train_subsets[gid], converter.transform),
-                batch_size=1, shuffle=not args.sortagrad)
+                batch_size=1, shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
 
         # set up updater
@@ -348,8 +349,9 @@ def train(args):
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
-    if args.sortagrad:
-        trainer.extend(ShufflingEnabler(train_iters), trigger=(1, 'epoch'))
+    if use_sortagrad:
+        trainer.extend(ShufflingEnabler(train_iters),
+                       trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
 
     # Resume from a snapshot
     if args.resume:
