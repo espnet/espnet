@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -39,7 +39,7 @@ samp_prob=0.2
 lsm_type=unigram
 lsm_weight=0.1
 drop_enc=0.3
-drop_dec=0.3
+drop_dec=0.0
 weight_decay=0.000001
 
 # transfer learning ralated
@@ -56,6 +56,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 opt=adadelta
 epochs=20
 patience=3
+eps_decay=0.01
 
 # decoding parameter
 beam_size=20
@@ -68,11 +69,9 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
 datadir=/export/b08/inaguma/IWSLT
-# datadir=~/corpus/iwslt18/data
 
 # text normalization related
 lc=true
-remove_punctuation=true
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -103,9 +102,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep_train.sh --lc ${lc} --remove_punctuation ${remove_punctuation} ${datadir}
+    local/data_prep_train.sh ${datadir}
     for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
-        local/data_prep_eval.sh --lc ${lc} --remove_punctuation ${remove_punctuation} ${datadir} ${part}
+        local/data_prep_eval.sh ${datadir} ${part}
     done
 fi
 
@@ -192,7 +191,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train_nodev.*/text | text2token.py -s 1 -n 1 --non-lang-syms ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
+    cat data/train_nodev.*/text | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -207,6 +206,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
+
+# NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
@@ -262,6 +263,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --patience ${patience} \
+        --eps-decay ${eps_decay} \
         --weight-decay ${weight_decay} \
         --asr-model ${asr_model} \
         --mt-model ${mt_model}
@@ -299,12 +301,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             &
         wait
 
-        if [ $(echo ${rtask} | grep "dev.de") ]; then
+        if [ ${rtask} = "dev.de" ]; then
           local/score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
         else
           set=$(echo ${rtask} | cut -f -1 -d ".")
-          local/score_bleu_reseg.sh --lc ${lc} --remove_punctuation ${remove_punctuation} \
-            --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${set}
+          local/score_bleu_reseg.sh --lc ${lc} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict} ${set}
         fi
 
     ) &
