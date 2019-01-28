@@ -113,13 +113,14 @@ while(<STDIN>) {
   s/\>/ /g;
   s/\[/ /g;
   s/\]/ /g;
+  s/\{/ /g;
+  s/\}/ /g;
   s/\\/ /g;
   s/\// /g;
   s/:/ /g;
   s/\;/ /g;
   s/~/ /g;
   s/=/ /g;
-  s/\}/ /g;
   s/\·/ /g;
   s/\¨/ /g;
   s/\*/ /g; # for callhome_train
