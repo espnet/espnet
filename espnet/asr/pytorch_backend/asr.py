@@ -289,10 +289,11 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=args.sortagrad)
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1)
@@ -302,7 +303,7 @@ def train(args):
         train_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(train, converter.transform),
             batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
-            shuffle=not args.sortagrad)
+            shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False,
@@ -310,7 +311,7 @@ def train(args):
     else:
         train_iter = ToggleableShufflingSerialIterator(
             TransformDataset(train, converter.transform),
-            batch_size=1, shuffle=not args.sortagrad)
+            batch_size=1, shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingSerialIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False)
@@ -321,8 +322,9 @@ def train(args):
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
-    if args.sortagrad:
-        trainer.extend(ShufflingEnabler([train_iter]), trigger=(1, 'epoch'))
+    if use_sortagrad:
+        trainer.extend(ShufflingEnabler([train_iter]),
+                       trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
 
     # Resume from a snapshot
     if args.resume:

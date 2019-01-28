@@ -337,9 +337,10 @@ def train(args):
     logging.info('#tokens in the validation data = ' + str(n_val_tokens))
     logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs / n_val_tokens * 100))
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # Create the dataset iterators
     train_iter = ParallelSentenceIterator(train, args.batchsize,
-                                          max_length=args.maxlen, sos=eos, eos=eos, shuffle=not args.sortagrad)
+                                          max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
@@ -389,8 +390,9 @@ def train(args):
     # T.Hori: MinValueTrigger should be used, but it fails when resuming
     trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
 
-    if args.sortagrad:
-        trainer.extend(ShufflingEnabler([train_iter]))
+    if use_sortagrad:
+        trainer.extend(ShufflingEnabler([train_iter]),
+                       trigger=(args.sortagrad if args.sortagrad != -1 else args.epoch, 'epoch'))
     if args.resume:
         logging.info('resumed from %s' % args.resume)
         torch_resume(args.resume, trainer)
