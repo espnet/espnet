@@ -54,7 +54,7 @@ bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy
 reduction_factor=2
 # minibatch related
 batchsize=32
-sortagrad=false
+sortagrad=0
 batch_sort_key=shuffle # shuffle or input or output
 maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
 maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
