@@ -59,10 +59,6 @@ epochs=20
 patience=3
 eps_decay=0.01
 
-# rnnlm related
-lm_weight=0.3
-lm_sortagrad=0
-
 # decoding parameter
 beam_size=20
 penalty=0.2
