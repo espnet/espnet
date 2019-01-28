@@ -1,12 +1,9 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2014  Gaurav Kumar.   Apache 2.0
 # Gets the unique speakers from the file created by fsp_make_trans.pl
 # Note that if a speaker appears multiple times, it is categorized as female
-
-import os
-import sys
 
 tmpFileLocation = 'data/local/tmp/callhome_spk2gendertmp'
 
