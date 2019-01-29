@@ -1,0 +1,1 @@
+../../st1/local/update_json.sh
