@@ -59,17 +59,6 @@ maxlenratio=10.0
 minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
-# Set this to somewhere where you want to put your data, or where
-# someone else has already put it.  You'll want to change this
-# if you're not on the CLSP grid.
-sfisher_speech=/export/corpora/LDC/LDC2010S01
-sfisher_transcripts=/export/corpora/LDC/LDC2010T04
-split=local/splits/split_fisher
-
-callhome_speech=/export/corpora/LDC/LDC96S35
-callhome_transcripts=/export/corpora/LDC/LDC96T17
-split_callhome=local/splits/split_callhome
-
 # bpemode (unigram or bpe)
 nbpe=1000
 bpemode=unigram
@@ -176,13 +165,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # update json (add source references)
     for x in ${train_set}; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
-        data_dir=data/`echo ${x} | cut -f -1 -d "."`.es
+        data_dir=data/$(echo ${x} | cut -f -1 -d ".").es
         local/update_json.sh --bpecode ${bpemodel}.model --filter_speed_perturbation true \
             ${feat_dir}/data_${bpemode}${nbpe}2char.json ${data_dir} ${dict_src}
     done
     for x in ${train_dev} ${recog_set}; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
-        data_dir=data/`echo ${x} | cut -f -1 -d "."`.es
+        data_dir=data/$(echo ${x} | cut -f -1 -d ".").es
         local/update_json.sh --bpecode ${bpemodel}.model \
             ${feat_dir}/data_${bpemode}${nbpe}2char.json ${data_dir} ${dict_src}
     done
