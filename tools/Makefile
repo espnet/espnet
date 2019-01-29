@@ -3,7 +3,7 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done nkf.done warp-ctc.done chainer_ctc.done sentencepiece.done kaldiio moses
+all: venv chainer_patch.done kaldi.done nkf.done warp-ctc.done chainer_ctc.done sentencepiece.done kaldiio moses nltk
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
@@ -67,6 +67,9 @@ sentencepiece.done:
 
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
+
+nltk:
+	. venv/bin/activate; pip install nltk
 
 clean:
 	rm -fr kaldi venv nkf warp-ctc chainer_ctc sentencepiece moses
