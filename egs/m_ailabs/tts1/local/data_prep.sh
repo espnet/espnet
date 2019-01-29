@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -59,8 +59,8 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "Successfully finished making spk2utt."
 
 jsons=$(find ${db}/${lang} -name "*_mls.json" -type f | grep ${spk} | grep -v "/._" | tr "\n" " ")
-python local/parse_text.py \
+local/parse_text.py \
     --jsons $(printf "%s" "${jsons[@]}") \
     --spk ${spk} \
-    | sort > ${data_dir}/text
+    ${data_dir}/text
 echo "Successfully finished making text."
