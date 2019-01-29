@@ -6,7 +6,7 @@
 db=$1
 lang=$2
 
-available_langs=("de_DE" "en_UK")
+available_langs=("de_DE" "en_UK" "it_IT" "es_ES")
 
 # check arguments
 if [ $# != 2 ];then
@@ -27,8 +27,8 @@ if [ ! -e ${db}/${lang} ];then
     mkdir -p ${db}
     cd ${db}
     wget http://www.caito.de/data/Training/stt_tts/${lang}.tgz
-    tar -vxf ./*.tgz
-    rm ./*.tgz
+    tar xvf ${lang}.tgz
+    rm ${lang}.tgz
     cd $cwd
     echo "Successfully finished download."
 else
