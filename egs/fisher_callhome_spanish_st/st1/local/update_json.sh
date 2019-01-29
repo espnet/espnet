@@ -9,7 +9,9 @@ nlsyms=""
 oov="<unk>"
 bpecode=""
 verbose=0
+
 text=""
+filter_speed_perturbation=false
 
 . utils/parse_options.sh
 set -e
@@ -50,7 +52,11 @@ awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/odim.scp
 
 # convert to json
 rm -f ${tmpdir}/*.json
-cat ${text} | scp2json.py --key text > ${tmpdir}/text.json
+if ${filter_speed_perturbation}; then
+    cat ${text} | grep sp1.0 | scp2json.py --key text > ${tmpdir}/text.json
+else
+    cat ${text} | scp2json.py --key text > ${tmpdir}/text.json
+fi
 for x in ${tmpdir}/*.scp; do
     k=`basename ${x} .scp`
     cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
