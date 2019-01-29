@@ -86,14 +86,6 @@ callhome_speech=/export/corpora/LDC/LDC96S35
 callhome_transcripts=/export/corpora/LDC/LDC96T17
 split_callhome=local/splits/split_callhome
 
-sfisher_speech=~/corpus/fisher_callhome_spanish/links/LDC2010S01
-sfisher_transcripts=~/corpus/fisher_callhome_spanish/links/LDC2010T04
-split=local/splits/split_fisher
-
-callhome_speech=~/corpus/fisher_callhome_spanish/links/LDC96S35
-callhome_transcripts=~/corpus/fisher_callhome_spanish/links/LDC96T17
-split_callhome=local/splits/split_callhome
-
 # exp tag
 tag="" # tag for managing experiments.
 

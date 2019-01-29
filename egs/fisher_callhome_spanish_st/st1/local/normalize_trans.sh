@@ -69,9 +69,9 @@ for set in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callho
       > data/$set/text.lc.rm.es
 
     # save original and cleaned punctuation
-    cat data/$set/es.joshua.org | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+    cat data/$set/es.joshua.org | text2token.py -s 0 -n 1 | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.es
-    cat data/$set/es.joshua.norm.tc | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+    cat data/$set/es.joshua.norm.tc | text2token.py -s 0 -n 1 | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.clean.es
 done
 
@@ -94,9 +94,9 @@ for set in fisher_train callhome_train callhome_devtest callhome_evltest; do
       > data/$set/text.lc.rm.en
 
     # save original and cleaned punctuation
-    cat data/$set/en.org | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+    cat data/$set/en.org | text2token.py -s 0 -n 1 | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.en
-    cat data/$set/en.norm.tc | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+    cat data/$set/en.norm.tc | text2token.py -s 0 -n 1 | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.clean.en
 done
 for set in fisher_dev fisher_dev2 fisher_test; do
@@ -118,9 +118,9 @@ for set in fisher_dev fisher_dev2 fisher_test; do
     done
 
     # save original and cleaned punctuation
-    cat data/$set/en.*.org | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+    cat data/$set/en.*.org | text2token.py -s 0 -n 1 | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.en
-    cat data/$set/en.*.norm.tc | text2token.py -s 0 -n 1 | cut -f 2- -d " " | tr " " "\n" \
+    cat data/$set/en.*.norm.tc | text2token.py -s 0 -n 1 | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/$set/punctuation.clean.en
 done
 
