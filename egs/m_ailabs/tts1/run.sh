@@ -53,7 +53,7 @@ use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
 reduction_factor=2
 # minibatch related
-batchsize=64
+batchsize=32
 batch_sort_key=shuffle # shuffle or input or output
 maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
 maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
@@ -74,7 +74,7 @@ griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # dataset configuration
 db_root=downloads
-lang=de_DE
+lang=de_DE  # en_UK, de_DE, es_ES, it_IT
 spk=angela
 
 # exp tag
@@ -102,6 +102,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
     local/data_prep.sh ${db_root} ${lang} ${spk} data/${lang}_${spk}
+    utils/fix_data_dir.sh data/${lang}_${spk}
     utils/validate_data_dir.sh --no-feats data/${lang}_${spk}
 fi
 
@@ -131,7 +132,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/subset_data_dir.sh --last data/${lang}_${spk} 500 data/${lang}_${spk}_tmp
     utils/subset_data_dir.sh --last data/${lang}_${spk}_tmp 250 data/${eval_set}
     utils/subset_data_dir.sh --first data/${lang}_${spk}_tmp 250 data/${train_dev}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
+    n=$(( $(wc -l < data/${lang}_${spk}/wav.scp) - 500 ))
     utils/subset_data_dir.sh --first data/${lang}_${spk} ${n} data/${train_set}
     rm -rf data/${lang}_${spk}_tmp
 
