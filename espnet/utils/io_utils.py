@@ -44,7 +44,7 @@ class LoadInputsAndTargets(object):
                  use_second_target=False
                  ):
         self._loaders = {}
-        if mode not in ['asr', 'tts']:
+        if mode not in ['asr', 'tts', 'mt']:
             raise ValueError(
                 'Only asr or tts are allowed: mode={}'.format(mode))
         if preprocess_conf is not None:
@@ -101,7 +101,6 @@ class LoadInputsAndTargets(object):
                         filepath=inp['feat'],
                         filetype=inp.get('filetype', 'mat'))
                     x_feats_dict.setdefault(inp['name'], []).append(x)
-
             # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
             elif self.mode == 'tts' and self.use_speaker_embedding:
                 for idx, inp in enumerate(info['input']):
@@ -112,6 +111,10 @@ class LoadInputsAndTargets(object):
                             filepath=inp['feat'],
                             filetype=inp.get('filetype', 'mat'))
                     x_feats_dict.setdefault(inp['name'], []).append(x)
+            elif self.mode == 'mt':
+                x = np.fromiter(map(int, info['output'][1]['tokenid'].split()),
+                                dtype=np.int64)
+                x_feats_dict.setdefault(info['output'][1]['name'], []).append(x)
 
             if self.load_output:
                 for idx, inp in enumerate(info['output']):
@@ -134,12 +137,14 @@ class LoadInputsAndTargets(object):
         if self.mode == 'asr':
             return_batch, uttid_list = self._create_batch_asr(
                 x_feats_dict, y_feats_dict, uttid_list)
-
         elif self.mode == 'tts':
             _, info = batch[0]
             eos = int(info['output'][0]['shape'][1]) - 1
             return_batch, uttid_list = self._create_batch_tts(
                 x_feats_dict, y_feats_dict, uttid_list, eos)
+        elif self.mode == 'mt':
+            return_batch, uttid_list = self._create_batch_mt(
+                x_feats_dict, y_feats_dict, uttid_list)
         else:
             raise NotImplementedError
 
@@ -154,6 +159,51 @@ class LoadInputsAndTargets(object):
         return tuple(return_batch.values())
 
     def _create_batch_asr(self, x_feats_dict, y_feats_dict, uttid_list):
+        """Create a OrderedDict for the mini-batch
+
+        :param OrderedDict x_feats_dict:
+        :param OrderedDict y_feats_dict:
+        :return: batch, uttid_list
+        :rtype: Tuple[OrderedDict, List[str]]
+        """
+        # Create a list from the first item
+        xs = list(x_feats_dict.values())[0]
+
+        if self.load_output:
+            ys = list(y_feats_dict.values())[0]
+            assert len(xs) == len(ys), (len(xs), len(ys))
+
+            # get index of non-zero length samples
+            nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(ys)))
+        else:
+            nonzero_idx = range(len(xs))
+
+        if self.sort_in_input_length:
+            # sort in input lengths
+            nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
+        else:
+            nonzero_sorted_idx = nonzero_idx
+
+        if len(nonzero_sorted_idx) != len(xs):
+            logging.warning(
+                'Target sequences include empty tokenid (batch {} -> {}).'
+                .format(len(xs), len(nonzero_sorted_idx)))
+
+        # remove zero-length samples
+        xs = [xs[i] for i in nonzero_sorted_idx]
+        uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
+
+        x_name = list(x_feats_dict.keys())[0]
+        if self.load_output:
+            ys = [ys[i] for i in nonzero_sorted_idx]
+            y_name = list(y_feats_dict.keys())[0]
+
+            return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
+        else:
+            return_batch = OrderedDict([(x_name, xs)])
+        return return_batch, uttid_list
+
+    def _create_batch_mt(self, x_feats_dict, y_feats_dict, uttid_list):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
