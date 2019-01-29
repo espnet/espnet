@@ -5,11 +5,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import codecs
 import json
-import sys
-
-
-IS_PY2 = sys.version_info[0] == 2
+import os
 
 
 def main():
@@ -18,18 +16,22 @@ def main():
                         help="*_mls.json filenames")
     parser.add_argument("--spk", type=str,
                         help="speaker tag")
+    parser.add_argument("out", type=str,
+                        help="output filename")
     args = parser.parse_args()
 
-    for filename in args.jsons:
-        with open(filename, "r") as f:
-            js = json.load(f)
-        for key in js.keys():
-            uid = args.spk + "_" + key[:-4]
-            text = js[key]["clean"].upper()
-            if IS_PY2:
-                print(u"%s %s".encode("utf-8") % (uid, text))
-            else:
-                print("%s %s" % (uid, text))
+    dirname = os.path.dirname(args.out)
+    if len(dirname) != 0 and not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    with codecs.open(args.out, "w", encoding="utf-8") as out:
+        for filename in sorted(args.jsons):
+            with codecs.open(filename, "r", encoding="utf-8") as f:
+                js = json.load(f)
+            for key in sorted(js.keys()):
+                uid = args.spk + "_" + key[:-4]
+                text = js[key]["clean"].upper()
+                out.write("%s %s\n" % (uid, text))
 
 
 if __name__ == "__main__":
