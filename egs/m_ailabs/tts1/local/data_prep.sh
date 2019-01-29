@@ -22,7 +22,7 @@ elif [ ${lang} = "en_UK" ];then
 elif [ ${lang} = "it_IT" ];then
     available_spks=("lisa" "riccardo")
 elif [ ${lang} = "es_ES" ];then
-    available_spks=("keren" "tux" "victor")
+    available_spks=("karen" "tux" "victor")
 else
     echo "${lang} is not supported."
 fi
