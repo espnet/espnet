@@ -19,6 +19,10 @@ if [ ${lang} = "de_DE" ];then
     available_spks=("angela" "rebecca" "ramona" "eva" "karlsson")
 elif [ ${lang} = "en_UK" ];then
     available_spks=("elizabeth")
+elif [ ${lang} = "it_IT" ];then
+    available_spks=("lisa" "riccardo")
+elif [ ${lang} = "es_ES" ];then
+    available_spks=("keren" "tux" "victor")
 else
     echo "${lang} is not supported."
 fi
