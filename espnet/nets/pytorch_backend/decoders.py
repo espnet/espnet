@@ -467,12 +467,21 @@ class Decoder(torch.nn.Module):
             for l in six.moves.range(1, self.dlayers):
                 z_list[l], c_list[l] = self.decoder[l](
                     self.dropout_dec[l - 1](z_list[l - 1]), (z_prev[l], c_prev[l]))
-            local_scores = att_weight * F.log_softmax(self.output(self.dropout_dec[-1](z_list[-1])), dim=1)
+            if self.cf is not None:
+                if rnnlm is not None:
+                    rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_prev, vy, n_bb)
+                    local_att_scores = F.log_softmax(self.cf(self.dropout_dec[-1](z_list[-1]), local_lm_scores),
+                                                     dim=1)
+                    local_scores = local_att_scores
+                else:
+                    raise ValueError("ColdFusion is used but no rnnlm is provided")
+            else:
+                local_scores = att_weight * F.log_softmax(self.output(self.dropout_dec[-1](z_list[-1])), dim=1)
 
-            # rnnlm
-            if rnnlm:
-                rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_prev, vy, n_bb)
-                local_scores = local_scores + recog_args.lm_weight * local_lm_scores
+                # rnnlm
+                if rnnlm is not None:
+                    rnnlm_state, local_lm_scores = rnnlm.buff_predict(rnnlm_prev, vy, n_bb)
+                    local_scores = local_scores + recog_args.lm_weight * local_lm_scores
             local_scores = local_scores.view(batch, n_bo)
 
             # ctc
