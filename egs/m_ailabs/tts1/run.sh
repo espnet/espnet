@@ -51,26 +51,26 @@ use_concate=true    # whether to concatenate encoder embedding with decoder lstm
 use_residual=false  # whether to use residual connection in encoder convolution
 use_masking=true    # whether to mask the padded part in loss calculation
 bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
-reduction_factor=2
+reduction_factor=1
 # minibatch related
 batchsize=32
-batch_sort_key=shuffle # shuffle or input or output
-maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
-maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
+batch_sort_key=output # shuffle or input or output
+maxlen_in=200     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
+maxlen_out=800    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
 # optimization related
-lr=1e-3
+lr=5e-4
 eps=1e-6
 weight_decay=0.0
 dropout=0.5
 zoneout=0.1
 epochs=200
-patience=10
+patience=20
 # decoding related
 model=model.loss.best
 threshold=0.5    # threshold to stop the generation
 maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
-griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+griffin_lim_iters=100  # the number of iterations of Griffin-Lim
 
 # dataset configuration
 db_root=downloads
