@@ -379,6 +379,6 @@ class Decoder(chainer.Chain):
         return att_ws.data
 
 
-def decoder_for(args, odim, sos, eos, att, labeldist):
+def decoder_for(args, odim, sos, eos, att, labeldist, rnnlm=None):
     return Decoder(args.eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
-                   args.lsm_weight, args.sampling_probability, args.rnnlm, args.cfunits)
+                   args.lsm_weight, args.sampling_probability, rnnlm, args.cfunits)

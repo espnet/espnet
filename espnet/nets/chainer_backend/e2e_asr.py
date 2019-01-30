@@ -24,7 +24,7 @@ CTC_LOSS_THRESHOLD = 10000
 
 
 class E2E(chainer.Chain):
-    def __init__(self, idim, odim, args, flag_return=True):
+    def __init__(self, idim, odim, args, flag_return=True, rnnlm=None):
         super(E2E, self).__init__()
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
@@ -66,7 +66,7 @@ class E2E(chainer.Chain):
             # attention
             self.att = att_for(args)
             # decoder
-            self.dec = decoder_for(args, odim, self.sos, self.eos, self.att, labeldist)
+            self.dec = decoder_for(args, odim, self.sos, self.eos, self.att, labeldist, rnnlm)
 
         self.acc = None
         self.loss = None

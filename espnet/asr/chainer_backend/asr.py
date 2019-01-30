@@ -32,6 +32,7 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import load_lm
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
@@ -41,10 +42,6 @@ from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.train_utils import check_early_stop
-
-# rnnlm
-import espnet.lm.chainer_backend.extlm as extlm_chainer
-import espnet.lm.chainer_backend.lm as lm_chainer
 
 # numpy related
 import matplotlib
@@ -236,7 +233,8 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model = E2E(idim, odim, args, flag_return=False)
+    rnnlm = load_lm(args, args)
+    model = E2E(idim, odim, args, flag_return=False, rnnlm=rnnlm)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -466,31 +464,7 @@ def recog(args):
     model = E2E(idim, odim, train_args)
     chainer_load(args.model, model)
 
-    # read rnnlm
-    if args.rnnlm:
-        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
-            len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        chainer_load(args.rnnlm, rnnlm)
-    else:
-        rnnlm = None
-
-    if args.word_rnnlm:
-        rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
-        word_dict = rnnlm_args.char_list_dict
-        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_chainer.ClassifierWithState(lm_chainer.RNNLM(
-            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
-        chainer_load(args.word_rnnlm, word_rnnlm)
-
-        if rnnlm is not None:
-            rnnlm = lm_chainer.ClassifierWithState(
-                extlm_chainer.MultiLevelLM(word_rnnlm.predictor,
-                                           rnnlm.predictor, word_dict, char_dict))
-        else:
-            rnnlm = lm_chainer.ClassifierWithState(
-                extlm_chainer.LookAheadWordLM(word_rnnlm.predictor,
-                                              word_dict, char_dict))
+    rnnlm = load_lm(args, train_args)
 
     # read json data
     with open(args.recog_json, 'rb') as f:

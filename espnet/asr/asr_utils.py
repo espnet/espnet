@@ -25,7 +25,6 @@ import matplotlib
 import numpy as np
 import torch
 
-
 matplotlib.use('Agg')
 
 
@@ -484,3 +483,68 @@ def add_results_to_json(js, nbest_hyps, char_list):
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js
+
+
+def load_lm(args, train_args):
+    """Loads a LM given arguments and train arguments
+
+    :param args: The arguments (e.g. recognize args)
+    :param train_args: the training arguments of the model
+    :return: The language model (or None in case of exception)
+    """
+    # read rnnlm
+    rnnlm = None
+    if args.backend == "pytorch":
+        is_pytorch = True
+        import espnet.lm.pytorch_backend.lm as lm
+        import espnet.lm.pytorch_backend.extlm as extlm
+    else:
+        is_pytorch = False
+        import espnet.lm.chainer_backend.lm as lm
+        import espnet.lm.chainer_backend.extlm as extlm
+    try:
+        if args.rnnlm is not None and args.rnnlm != "":
+            rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
+            rnnlm = lm.ClassifierWithState(
+                lm.RNNLM(
+                    len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+            if is_pytorch:
+                torch_load(args.rnnlm, rnnlm)
+                rnnlm.eval()
+                for param in rnnlm.parameters():
+                    param.requires_grad = False
+            else:
+                chainer_load(args.rnnlm, rnnlm)
+                # TODO(gtache) how to set requires_grad=False in chainer?
+
+        if args.word_rnnlm is not None and args.rnnlm != "":
+            rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
+            word_dict = rnnlm_args.char_list_dict
+            char_dict = {x: i for i, x in enumerate(train_args.char_list)}
+            word_rnnlm = lm.ClassifierWithState(lm.RNNLM(
+                len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
+            if is_pytorch:
+                torch_load(args.word_rnnlm, word_rnnlm)
+                word_rnnlm.eval()
+                for param in word_rnnlm.parameters():
+                    param.requires_grad = False
+            else:
+                chainer_load(args.word_rnnlm, word_rnnlm)
+                # TODO(gtache) same
+
+            if rnnlm is not None:
+                rnnlm = lm.ClassifierWithState(
+                    extlm.MultiLevelLM(word_rnnlm.predictor,
+                                       rnnlm.predictor, word_dict, char_dict))
+            else:
+                rnnlm = lm.ClassifierWithState(
+                    extlm.LookAheadWordLM(word_rnnlm.predictor,
+                                          word_dict, char_dict))
+            if is_pytorch:
+                for param in rnnlm.parameters():
+                    param.requires_grad = False
+                # TODO(gtache) same
+    except Exception as e:
+        logging.error("No rnnlm could be loaded : " + str(e))
+
+    return rnnlm

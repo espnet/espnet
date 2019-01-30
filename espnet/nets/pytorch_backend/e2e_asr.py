@@ -53,7 +53,7 @@ class E2E(torch.nn.Module):
     :param Namespace args: argument Namespace containing options
     """
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, rnnlm=None):
         super(E2E, self).__init__()
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
@@ -95,7 +95,7 @@ class E2E(torch.nn.Module):
         # attention
         self.att = att_for(args)
         # decoder
-        self.dec = decoder_for(args, odim, self.sos, self.eos, self.att, labeldist)
+        self.dec = decoder_for(args, odim, self.sos, self.eos, self.att, labeldist, rnnlm)
 
         # weight initialization
         self.init_like_chainer()
@@ -114,11 +114,11 @@ class E2E(torch.nn.Module):
         else:
             self.report_cer = False
             self.report_wer = False
-        self.rnnlm = None
 
         self.logzero = -10000000000.0
         self.loss = None
         self.acc = None
+        self.rnnlm = rnnlm
 
     def init_like_chainer(self):
         """Initialize weight like chainer

@@ -26,6 +26,7 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import load_lm
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
@@ -37,10 +38,6 @@ from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
-
-# rnnlm
-import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 # matplotlib related
 import matplotlib
@@ -226,17 +223,10 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
+    rnnlm = load_lm(args, args)
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model = E2E(idim, odim, args, rnnlm)
     subsampling_factor = model.subsample[0]
-
-    if args.rnnlm is not None:
-        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(
-                len(args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch.load(args.rnnlm, rnnlm)
-        model.rnnlm = rnnlm
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -423,34 +413,7 @@ def recog(args):
     torch_load(args.model, model)
     model.recog_args = args
 
-    # read rnnlm
-    if args.rnnlm:
-        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(
-                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch_load(args.rnnlm, rnnlm)
-        rnnlm.eval()
-    else:
-        rnnlm = None
-
-    if args.word_rnnlm:
-        rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
-        word_dict = rnnlm_args.char_list_dict
-        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
-            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
-        torch_load(args.word_rnnlm, word_rnnlm)
-        word_rnnlm.eval()
-
-        if rnnlm is not None:
-            rnnlm = lm_pytorch.ClassifierWithState(
-                extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
-                                           rnnlm.predictor, word_dict, char_dict))
-        else:
-            rnnlm = lm_pytorch.ClassifierWithState(
-                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
-                                              word_dict, char_dict))
+    rnnlm = load_lm(args, train_args)
 
     # gpu
     if args.ngpu == 1:
