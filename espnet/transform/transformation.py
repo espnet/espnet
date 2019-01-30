@@ -2,6 +2,7 @@ from collections import OrderedDict
 import contextlib
 import copy
 import importlib
+import inspect
 import io
 import json
 import logging
@@ -216,7 +217,14 @@ class Transformation(object):
                 opts = dict(process)
                 process_type = opts.pop('type')
                 class_obj = dynamic_import(process_type)
-                self.functions[idx] = class_obj(**opts)
+                try:
+                    self.functions[idx] = class_obj(**opts)
+                except TypeError:
+                    signa = inspect.signature(class_obj)
+                    logging.error('Expected signature: {}({})'
+                                  .format(class_obj.__name__, signa))
+                    raise
+
         else:
             raise NotImplementedError(
                 'Not supporting mode={}'.format(self.conf['mode']))
