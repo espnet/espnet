@@ -38,17 +38,17 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=25
+batchsize=10
 maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
-epochs=10
+epochs=1
 patience=3
 
 # rnnlm related
-use_wordlm=true     # false means to train/use a character LM
+use_wordlm=true # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
 lm_layers=1         # 2 for character LMs
 lm_units=1000       # 650 for character LMs
@@ -115,8 +115,8 @@ if [ ${stage} -le 0 ]; then
 fi
 
 if [ ${stage} -le 1 ]; then
-    ### Task dependent. You have to design training and dev sets by yourself.
-    ## But you can utilize Kaldi recipes in most cases
+    ## Task dependent. You have to design training and dev sets by yourself.
+    # But you can utilize Kaldi recipes in most cases
     echo "stage 1: Dump wav files into a HDF5 file"
 
     echo "combine real and simulation data"
@@ -124,8 +124,8 @@ if [ ${stage} -le 1 ]; then
     for setname in tr05_multi_noisy ${recog_set};do
         echo ${setname}
         mkdir -p data/${setname}_multich
-        <data/${setname}/utt2spk grep CH1 | sed -r 's/^(.*?).CH[0-9](_.*?) /\1\2 /g' >data/${setname}_multich/utt2spk
-        cp data/${setname}/text data/${setname}_multich/text
+        <data/${setname}/utt2spk sed -r 's/^(.*?).CH[0-9](_.*?) /\1\2 /g' | sort -u >data/${setname}_multich/utt2spk
+        <data/${setname}/text sed -r 's/^(.*?).CH[0-9](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
         <data/${setname}_multich/utt2spk utils/utt2spk_to_spk2utt.pl >data/${setname}_multich/spk2utt
 
         # 2th mic is omitted in default
@@ -137,16 +137,17 @@ if [ ${stage} -le 1 ]; then
     done
 
     # Note that data/tr05_multi_noisy_multich has multi-channel wav data, while data/train_si284 has 1ch only
-    utils/combine_data.sh data/${train_set}_multich data/tr05_multi_noisy_multich data/train_si284
-    for setname in ${train_set} ${recog_set}; do
+    dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" data/train_si284
+    for setname in tr05_multi_noisy ${recog_set}; do
         dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" data/${setname}_multich
     done
     utils/combine_data.sh data/${train_dev}_multich data/dt05_simu_isolated_6ch_track_multich data/dt05_real_isolated_6ch_track_multich
 
 fi
 
-train_set=${train_set}_multich
-train_dev=${train_dev}_multich
+train_set="${train_set}_multich"
+train_dev="${train_dev}_multich"
+# Rename recog_set: e.g. dt05_real_isolated_6ch_track -> dt05_real_isolated_6ch_track_multich
 recog_set="$(for setname in ${recog_set}; do echo -n "${setname}_multich "; done)"
 
 
@@ -183,19 +184,30 @@ if [ ${stage} -le 2 ]; then
     python << EOF > ${expdir}/preprocess.conf
 #!/usr/bin/env python
 import json
-cfg = dict(process=[dict(type='channel_selector', train_channel='random', eval_channel=0),
-                    dict(type='fbank', fs=16000, n_mels=80, n_fft=400, n_shift=160)])
+cfg = dict(process=[dict(type='stft', n_fft=400, n_shift=160)])
 jsonstr = json.dumps(cfg)
 print(jsonstr)
 EOF
 
     echo "make json files"
-    for setname in ${train_set} ${train_dev} ${recog_set}; do
+    for setname in tr05_multi_noisy_multich ${train_dev} ${recog_set}; do
         data2json.sh --cmd "${train_cmd}" --nj 30 \
+        --category "multichannel" \
         --preprocess-conf ${expdir}/preprocess.conf --filetype sound.hdf5 \
         --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
         --out data/${setname}/data.json data/${setname} ${dict}
     done
+
+    for setname in train_si284; do
+        data2json.sh --cmd "${train_cmd}" --nj 30 \
+        --category "singlechannel" \
+        --preprocess-conf ${expdir}/preprocess.conf --filetype sound.hdf5 \
+        --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
+        --out data/${setname}/data.json data/${setname} ${dict}
+    done
+
+    mkdir -p data/${train_set}
+    concatjson.py data/tr05_multi_noisy_multich/data.json data/train_si284/data.json > data/${train_set}/data.json
 fi
 
 # It takes a few days. If you just want to end-to-end ASR without LM,
@@ -237,17 +249,18 @@ if [ ${stage} -le 3 ]; then
     fi
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
-	echo "LM training does not support multi-gpu. single gpu will be used."
+    echo "LM training does not support multi-gpu. single gpu will be used."
     fi
+
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
-		lm_train.py \
-		--ngpu ${ngpu} \
-		--backend ${backend} \
-		--verbose 1 \
-		--outdir ${lmexpdir} \
-		--tensorboard-dir tensorboard/${lmexpname} \
-		--train-label ${lmdatadir}/train.txt \
-		--valid-label ${lmdatadir}/valid.txt \
+        lm_train.py \
+        --ngpu ${ngpu} \
+        --backend ${backend} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
+        --train-label ${lmdatadir}/train.txt \
+        --valid-label ${lmdatadir}/valid.txt \
                 --resume ${lm_resume} \
                 --layer ${lm_layers} \
                 --unit ${lm_units} \
@@ -256,15 +269,24 @@ if [ ${stage} -le 3 ]; then
                 --epoch ${lm_epochs} \
                 --patience ${lm_patience} \
                 --maxlen ${lm_maxlen} \
-		--dict ${lmdict}
+        --dict ${lmdict}
 fi
 
 
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
 
+    python << EOF > ${expdir}/preprocess.conf
+#!/usr/bin/env python
+import json
+cfg = dict(process=[dict(type='stft', n_fft=400, n_shift=160)])
+jsonstr = json.dumps(cfg)
+print(jsonstr)
+EOF
+
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
+        --use-dnn-frontends True \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
