@@ -27,6 +27,7 @@ def make_arg(**kwargs):
         eprojs=100,
         dlayers=1,
         dunits=300,
+        cfunits=-1,
         atype="location",
         aheads=4,
         awin=5,

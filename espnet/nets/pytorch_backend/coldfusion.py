@@ -9,8 +9,8 @@ class ColdFusionLayer(torch.nn.Module):
     """A Layer for Cold Fusion"""
 
     def __init__(self, decoder_size, vocab_size, hidden_size=256):
-        """
-        Inits the layer
+        """Inits the layer
+
         :param int decoder_size: The decoder output size
         :param int vocab_size: The vocabulary (output) size
         :param int hidden_size: The hidden size of this layer

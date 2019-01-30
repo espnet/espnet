@@ -496,12 +496,12 @@ def load_lm(args, train_args):
     rnnlm = None
     if args.backend == "pytorch":
         is_pytorch = True
-        import espnet.lm.pytorch_backend.lm as lm
         import espnet.lm.pytorch_backend.extlm as extlm
+        import espnet.lm.pytorch_backend.lm as lm
     else:
         is_pytorch = False
-        import espnet.lm.chainer_backend.lm as lm
         import espnet.lm.chainer_backend.extlm as extlm
+        import espnet.lm.chainer_backend.lm as lm
     try:
         if args.rnnlm is not None and args.rnnlm != "":
             rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)

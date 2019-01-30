@@ -20,6 +20,7 @@ args = argparse.Namespace(
     eprojs=320,
     dlayers=2,
     dunits=300,
+    cfunits=-1,
     atype="location",
     aconv_chans=10,
     aconv_filts=100,
