@@ -66,6 +66,9 @@ class BLSTMP(torch.nn.Module):
             # (sum _utt frame_utt) x dim
             projected = getattr(self, 'bt' + str(layer)
                                 )(ys_pad.contiguous().view(-1, ys_pad.size(2)))
+            proj_dropout = self.elayers[layer][3]
+            if proj_dropout > 0:
+                projected = F.dropout(projected, proj_dropout)
             xs_pad = torch.tanh(projected.view(ys_pad.size(0), ys_pad.size(1), -1))
             proj_dropout = self.elayers[layer][3]
             if proj_dropout > 0:
@@ -111,9 +114,10 @@ class BLSTM(torch.nn.Module):
         # (sum _utt frame_utt) x dim
         projected = torch.tanh(self.l_last(
             ys_pad.contiguous().view(-1, ys_pad.size(2))))
-        xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
         if self.proj_dropout > 0:
-            xs_pad = F.dropout(xs_pad, self.proj_dropout)
+            projected = F.dropout(projected, self.proj_dropout)
+        xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
+
         return xs_pad, ilens  # x: utt list of frame x dim
 
 

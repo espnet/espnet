@@ -55,9 +55,9 @@ class BLSTMP(chainer.Chain):
             # (sum _utt frame_utt) x dim
             ys = self['bt' + str(layer)](F.vstack(ys))
             proj_dropout = self.elayers[layer][3]
-            xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
             if proj_dropout > 0:
-                xs = F.dropout(xs, proj_dropout)
+                ys = F.dropout(ys, proj_dropout)
+            xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
             del hy, cy
 
         # final tanh operation
@@ -97,14 +97,13 @@ class BLSTM(chainer.Chain):
             for i in range(self.nblstm.n_layers):
                 ys[i] = F.dropout(ys[i], self.nblstm.dropout)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
-
+        if self.proj_dropout > 0:
+            ys = F.dropout(ys, self.proj_dropout)
         xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
         del hy, cy
 
         # final tanh operation
         xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), axis=0)
-        if self.proj_dropout > 0:
-            xs = F.dropout(xs, self.proj_dropout)
 
         # 1 utterance case, it becomes an array, so need to make a utt tuple
         if not isinstance(xs, tuple):
