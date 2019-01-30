@@ -48,7 +48,7 @@ class Decoder(torch.nn.Module):
     """
 
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0, rnnlm=None, cfunits=256,
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0, rnnlm=None, cfunits=-1,
                  dropout=0.0):
         super(Decoder, self).__init__()
         self.dunits = dunits
@@ -68,7 +68,7 @@ class Decoder(torch.nn.Module):
         self.ignore_id = -1
         self.output = torch.nn.Linear(dunits, odim)
         self.rnnlm = rnnlm
-        if self.rnnlm is not None:
+        if self.rnnlm is not None and cfunits > 0:
             self.cf = ColdFusionLayer(dunits, odim, cfunits)
         else:
             self.cf = None

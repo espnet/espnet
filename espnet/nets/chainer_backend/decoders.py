@@ -22,7 +22,7 @@ MAX_DECODER_OUTPUT = 5
 class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0, rnnlm=None,
-                 cfunits=256):
+                 cfunits=-1):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(odim, dunits)
@@ -31,7 +31,7 @@ class Decoder(chainer.Chain):
                 setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
             self.output = L.Linear(dunits, odim)
             self.rnnlm = rnnlm
-            if self.rnnlm is not None:
+            if self.rnnlm is not None and cfunits > 0:
                 self.cf = ColdFusionLayer(dunits, odim, cfunits)
             else:
                 self.cf = None
