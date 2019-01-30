@@ -21,8 +21,8 @@ from nltk.translate import bleu_score
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 from espnet.nets.pytorch_backend.attentions import att_for
-from espnet.nets.pytorch_backend.mt_decoders import decoder_for
 from espnet.nets.pytorch_backend.encoders import encoder_for
+from espnet.nets.pytorch_backend.mt_decoders import decoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device

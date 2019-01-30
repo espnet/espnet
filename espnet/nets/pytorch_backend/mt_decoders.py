@@ -465,7 +465,6 @@ class MTDecoder(torch.nn.Module):
             # global pruning
             accum_best_scores, accum_best_ids = torch.topk(vscores, beam, 1)
             accum_odim_ids = torch.fmod(accum_best_ids, self.odim).view(-1).data.cpu().tolist()
-            accum_padded_odim_ids = (torch.fmod(accum_best_ids, n_bo) + pad_bo).view(-1).data.cpu().tolist()
             accum_padded_beam_ids = (torch.div(accum_best_ids, self.odim) + pad_b).view(-1).data.cpu().tolist()
 
             y_prev = yseq[:][:]
@@ -585,5 +584,6 @@ class MTDecoder(torch.nn.Module):
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
-    return MTDecoder(args.eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
+    return MTDecoder(args.eprojs, odim, args.dlayers, args.dunits, sos, eos, att,
+                     args.verbose, args.char_list, labeldist,
                      args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder)
