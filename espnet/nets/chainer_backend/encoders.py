@@ -94,7 +94,7 @@ class BLSTM(chainer.Chain):
         ilens = cuda.to_cpu(ilens)
         hy, cy, ys = self.nblstm(None, None, xs)
         if self.nblstm.dropout > 0:
-            for i in range(self.nblstm.n_layers):
+            for i in range(len(ys)):
                 ys[i] = F.dropout(ys[i], self.nblstm.dropout)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
         if self.proj_dropout > 0:
