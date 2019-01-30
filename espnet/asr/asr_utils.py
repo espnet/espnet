@@ -515,7 +515,8 @@ def load_lm(args, train_args):
                     param.requires_grad = False
             else:
                 chainer_load(args.rnnlm, rnnlm)
-                # TODO(gtache) how to set requires_grad=False in chainer?
+                for param in rnnlm.params():
+                    param.set_creator(None)  # May work
 
         if args.word_rnnlm is not None and args.rnnlm != "":
             rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
@@ -530,7 +531,8 @@ def load_lm(args, train_args):
                     param.requires_grad = False
             else:
                 chainer_load(args.word_rnnlm, word_rnnlm)
-                # TODO(gtache) same
+                for param in rnnlm.params():
+                    param.set_creator(None)
 
             if rnnlm is not None:
                 rnnlm = lm.ClassifierWithState(
@@ -543,7 +545,9 @@ def load_lm(args, train_args):
             if is_pytorch:
                 for param in rnnlm.parameters():
                     param.requires_grad = False
-                # TODO(gtache) same
+            else:
+                for param in rnnlm.params():
+                    param.set_creator(None)
     except Exception as e:
         logging.error("No rnnlm could be loaded : " + str(e))
 
