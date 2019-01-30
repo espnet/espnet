@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 import logging
 import random
 import six
@@ -169,9 +170,13 @@ class Decoder(torch.nn.Module):
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
+        if LooseVersion(torch.__version__) < LooseVersion('1.0'):
+            reduction_str = 'elementwise_mean'
+        else:
+            reduction_str = 'mean'
         self.loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
                                     ignore_index=self.ignore_id,
-                                    size_average=True)
+                                    reduction=reduction_str)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = th_accuracy(y_all, ys_out_pad, ignore_label=self.ignore_id)
