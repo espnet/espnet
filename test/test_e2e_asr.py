@@ -93,6 +93,7 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
         ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', 'noatt', 'gru'),
         ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', 'dot', 'gru'),
         ('espnet.nets.chainer_backend.e2e_asr', 'blstmp', 'location', 'gru'),
+        ('espnet.nets.chainer_backend.e2e_asr', 'bgrup', 'location', 'gru'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'vggblstmp', 'location', 'gru'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', 'noatt', 'gru'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'blstmp', 'dot', 'gru'),
@@ -124,6 +125,7 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
         ('espnet.nets.pytorch_backend.e2e_asr', 'bgrup', 'multi_head_add', 'lstm'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'bgrup', 'multi_head_loc', 'lstm'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'bgrup', 'multi_head_multi_res_loc', 'lstm'),
+        ('espnet.nets.pytorch_backend.e2e_asr', 'bgrup', 'multi_head_multi_res_loc', 'gru'),
         ('espnet.nets.pytorch_backend.e2e_asr', 'bgru', 'location', 'lstm'),
     ]
 )
