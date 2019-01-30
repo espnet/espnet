@@ -80,7 +80,7 @@ done
 for set in fisher_train callhome_train callhome_devtest callhome_evltest; do
     # having one En reference
     cat data/local/fisher-callhome-corpus/corpus/ldc/$set.en > data/$set/en.org
-    cat data/$set/en.org | normalize-punctuation.perl -l en | sed -e "s/¿//g"| local/normalize_punctuation.pl > data/$set/en.norm.tc
+    cat data/$set/en.org | normalize-punctuation.perl -l en | sed -e "s/¿//g" | local/normalize_punctuation.pl > data/$set/en.norm.tc
     lowercase.perl < data/$set/en.norm.tc > data/$set/en.norm.lc
     cat data/$set/en.norm.lc | local/remove_punctuation.pl > data/$set/en.norm.lc.rm
     tokenizer.perl -a -l en < data/$set/en.norm.tc > data/$set/en.norm.tc.tok
