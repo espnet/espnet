@@ -2,6 +2,8 @@
 
 import torch
 
+import torch.nn.functional as F
+
 
 class ColdFusionLayer(torch.nn.Module):
     """A Layer for Cold Fusion"""
@@ -14,12 +16,9 @@ class ColdFusionLayer(torch.nn.Module):
         :param int hidden_size: The hidden size of this layer
         """
         super(ColdFusionLayer, self).__init__()
-        self.hidden_layer = ColdFusionLayer.NonlinearLayer(in_features=vocab_size, out_features=hidden_size, bias=False)
-        self.gating_layer = ColdFusionLayer.NonlinearLayer(in_features=hidden_size + decoder_size,
-                                                           out_features=hidden_size, bias=True,
-                                                           activation_fn=torch.nn.Sigmoid)
-        self.output_layer = ColdFusionLayer.NonlinearLayer(in_features=decoder_size + hidden_size,
-                                                           out_features=vocab_size, bias=True)
+        self.hidden_layer = torch.nn.Linear(in_features=vocab_size, out_features=hidden_size, bias=False)
+        self.gating_layer = torch.nn.Linear(in_features=hidden_size + decoder_size, out_features=hidden_size, bias=True)
+        self.output_layer = torch.nn.Linear(in_features=decoder_size + hidden_size, out_features=vocab_size, bias=True)
 
     def forward(self, decoder_output, lm_output):
         """Feedforward
@@ -31,23 +30,10 @@ class ColdFusionLayer(torch.nn.Module):
         lm_max, _ = torch.max(lm_output, dim=1, keepdim=True)
         lm_output = lm_output - lm_max
         h_lm = self.hidden_layer(lm_output)
+        h_lm = F.relu(h_lm)
         g = self.gating_layer(torch.cat([decoder_output, h_lm], dim=1))
+        g = F.sigmoid(g)
         s_cf = torch.cat([decoder_output, g * h_lm], dim=1)
         r_cf = self.output_layer(s_cf)
+        r_cf = F.relu(r_cf)
         return r_cf
-
-    @staticmethod
-    def NonlinearLayer(in_features, out_features, bias=True, activation_fn=torch.nn.ReLU):
-        """Linear layer followed by a non-linear activation function
-
-        :param int in_features: The input features
-        :param int out_features: The output features
-        :param bool bias: Whether to use bias or not
-        :param torch.nn.Module activation_fn: The activation function
-        :return: The corresponding Nonlinear layer
-        """
-        m = torch.nn.Linear(in_features, out_features, bias=bias)
-        m.weight.data.uniform_(-0.1, 0.1)
-        if bias:
-            m.bias.data.uniform_(-0.1, 0.1)
-        return torch.nn.Sequential(m, activation_fn())
