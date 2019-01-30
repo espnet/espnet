@@ -142,7 +142,7 @@ def test_coldfusion(module):
         import espnet.nets.chainer_backend.e2e_asr as m
 
     batch = prepare_inputs(module)
-    rnnlm = lm.ClassifierWithState(lm.RNNLM(5, 3, 512))
+    rnnlm = lm.ClassifierWithState(lm.RNNLM(5, 3, 10))
     model = m.E2E(40, 5, args, rnnlm=rnnlm)
     attn_loss = model(*batch)[0]
     attn_loss.backward()
