@@ -54,7 +54,7 @@ def main():
             if is_scipy_wav_style(mat):
                 # If data is sound file, then got as Tuple[int, ndarray]
                 rate, mat = mat
-            mat = preprocessing(mat)
+            mat = preprocessing(mat, uttid_list=utt)
             shape_str = ','.join(map(str, mat.shape))
         else:
             if len(mat) == 2 and isinstance(mat[1], tuple):
