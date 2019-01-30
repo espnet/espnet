@@ -16,6 +16,7 @@ bpecode=""
 verbose=0
 filetype=""
 preprocess_conf=""
+category=""
 out="" # If omitted, write in stdout
 
 . utils/parse_options.sh
@@ -88,7 +89,12 @@ mkdir -p ${tmpdir}/other
 if [ -n "${lang}" ]; then
     awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/other/lang.scp
 fi
-cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
+
+if [ -n "${category}" ]; then
+    awk -v category=${category} '{print $1 " " category}' ${dir}/text \
+        > ${tmpdir}/other/category.scp
+fi
+cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
 
 
 # 4. Create JSON files from each scp files
