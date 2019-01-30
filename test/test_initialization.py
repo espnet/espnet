@@ -27,7 +27,6 @@ args = argparse.Namespace(
     lsm_weight=0.0,
     sampling_probability=0.0,
     adim=320,
-    dropout_rate=0.0,
     dropout_rate_decoder=0.0,
     beam_size=3,
     penalty=0.5,
