@@ -374,7 +374,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             &
         wait
 
-        score_sclite.sh --nlsyms ${nlsyms} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        local/score_sclite.sh --nlsyms ${nlsyms} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
