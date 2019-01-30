@@ -188,9 +188,18 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+        if xs[0].dtype.kind == 'c':
+            # Relative importing because of using python3 syntax
+            from torch_complex.tensor import ComplexTensor
+            xs_pad = pad_list([ComplexTensor(x).float() for x in xs],
+                              0).to(device)
+        else:
+            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs],
+                              0).to(device)
+
         ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
+        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys],
+                          self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -210,8 +219,8 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    idim = int(valid_json[utts[0]]['input'][0]['shape'][-1])
+    odim = int(valid_json[utts[0]]['output'][0]['shape'][-1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 

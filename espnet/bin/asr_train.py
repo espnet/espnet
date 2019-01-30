@@ -164,6 +164,8 @@ def main(args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+
+    addtional_arguments_for_frontend(parser)
     args = parser.parse_args(args)
 
     # logging info
@@ -226,6 +228,74 @@ def main(args):
         train(args)
     else:
         raise ValueError("Only chainer and pytorch are supported.")
+
+
+def addtional_arguments_for_frontend(parser: argparse.ArgumentParser):
+    # FIXME(kamo): More smart way for configuration
+
+    parser.add_argument(
+        '--use-dnn-frontends', type=bool, default=False,
+        help='The flag to switch to use frontend system.')
+
+    # WPE options
+    parser.add_argument('--use-wpe', type=bool, default=False,
+                        help='')
+    parser.add_argument('--wtype', type=str, default='blstmp',
+                        help='')
+    parser.add_argument('--wlayers', type=int, default=2,
+                        help='')
+    parser.add_argument('--wunits', type=int, default=300,
+                        help='')
+    parser.add_argument('--wprojs', type=int, default=300,
+                        help='')
+    parser.add_argument('--wdropout-rate', type=float, default=0.0,
+                        help='')
+    parser.add_argument('--taps', type=int, default=5,
+                        help='')
+    parser.add_argument('--delay', type=int, default=3,
+                        help='')
+    parser.add_argument('--use-dnn-mask-for-wpe', type=bool, default=True,
+                        help='')
+
+    # Beamformer options
+    parser.add_argument('--use-beamformer', type=bool, default=True,
+                        help='')
+    parser.add_argument('--btype', type=str, default='blstmp',
+                        help='')
+    parser.add_argument('--blayers', type=int, default=2,
+                        help='')
+    parser.add_argument('--bunits', type=int, default=300,
+                        help='')
+    parser.add_argument('--bprojs', type=int, default=300,
+                        help='')
+    parser.add_argument('--badim', type=int, default=320,
+                        help='')
+    parser.add_argument('--ref-channel', type=int, default=None,
+                        help='')
+    parser.add_argument('--bdropout-rate', type=float, default=0.0,
+                        help='')
+
+    # Normalization
+    parser.add_argument('--stats-file', type=str, default=None,
+                        help='')
+    parser.add_argument('--apply-uttmvn', type=bool, default=True,
+                        help='')
+    parser.add_argument('--uttmvn-norm-means', type=bool, default=True,
+                        help='')
+    parser.add_argument('--uttmvn-norm-vars', type=bool, default=False,
+                        help='')
+
+    # window_length = nfft / fs = 25ms is default of Kaldi-Asr
+    parser.add_argument('--fs', type=int, default=16000,
+                        help='')
+    parser.add_argument('--n-fft', type=int, default=400,
+                        help='')
+    parser.add_argument('--n-mels', type=int, default=80,
+                        help='')
+    parser.add_argument('--fmin', type=float, default=0.,
+                        help='')
+    parser.add_argument('--fmax', type=float, default=None,
+                        help='')
 
 
 if __name__ == '__main__':

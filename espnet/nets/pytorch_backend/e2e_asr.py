@@ -88,6 +88,19 @@ class E2E(torch.nn.Module):
         else:
             labeldist = None
 
+        if args.use_dnn_frontends:
+            # Relative importing because of using python3 syntax
+            from espnet.nets.pytorch_backend.frontends.frontend \
+                import frontend_for
+            from espnet.nets.pytorch_backend.frontends.feature_transform \
+                import feature_transform_for
+
+            self.frontend = frontend_for(args, idim)
+            self.feature_transform = feature_transform_for(args)
+            idim = args.n_mels
+        else:
+            self.frontend = None
+
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
         # ctc
@@ -142,7 +155,7 @@ class E2E(torch.nn.Module):
                     n = data.size(1)
                     stdv = 1. / math.sqrt(n)
                     data.normal_(0, stdv)
-                elif data.dim() == 4:
+                elif data.dim() in (3, 4):
                     # conv weight
                     n = data.size(1)
                     for k in data.size()[2:]:
@@ -179,8 +192,15 @@ class E2E(torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
+        # 0. Frontend
+        if self.frontend is not None:
+            hs_pad, hlens = self.frontend(xs_pad, ilens)
+            hs_pad, hlens = self.feature_transform(hs_pad, hlens)
+        else:
+            hs_pad, hlens = xs_pad, ilens
+
         # 1. encoder
-        hs_pad, hlens = self.enc(xs_pad, ilens)
+        hs_pad, hlens = self.enc(hs_pad, hlens)
 
         # 2. CTC loss
         if self.mtlalpha == 0:
@@ -256,7 +276,6 @@ class E2E(torch.nn.Module):
         # Neither CPUTensor nor float/int value can be used
         # because NCCL communicates between GPU devices.
         device = next(self.parameters()).device
-
         acc = torch.tensor([acc], device=device) if acc is not None else None
         cer = torch.tensor([cer], device=device)
         wer = torch.tensor([wer], device=device)
