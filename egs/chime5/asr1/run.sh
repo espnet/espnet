@@ -30,6 +30,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
 dunits=300
+cfunits=-1
 # attention related
 atype=location
 aconv_chans=10
@@ -299,6 +300,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --subsample ${subsample} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
+        --cfunits ${cfunits} \
         --atype ${atype} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \

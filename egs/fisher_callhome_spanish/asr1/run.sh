@@ -32,6 +32,7 @@ edropout=0.2
 # decoder related
 dlayers=1
 dunits=1024
+cfunits=-1
 # attention related
 atype=location
 adim=320
@@ -323,6 +324,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dropout-rate ${edropout} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
+        --cfunits ${cfunits} \
         --atype ${atype} \
         --adim ${adim} \
         --awin ${awin} \
