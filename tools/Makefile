@@ -1,11 +1,11 @@
 PYTHON := /usr/bin/python2.7
-TH_VERSION := 0.4.1
+TH_VERSION := 1.0.0
 KALDI =
 GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done nkf.done warp-ctc.done chainer_ctc.done sentencepiece.done kaldiio moses
+all: venv chainer_patch.done kaldi.done nkf.done warp-ctc.done chainer_ctc.done sentencepiece.done kaldiio pytorch_complex moses
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
@@ -34,6 +34,10 @@ espnet.done: venv
 
 kaldiio: venv
 	. venv/bin/activate; pip install git+https://github.com/nttcslab-sp/kaldiio.git
+
+pytorch_complex: venv
+	# Require python>=3.6, pytorch>=1.0
+	. venv/bin/activate; pip install git+https://github.com/kamo-naoyuki/pytorch_complex
 
 chainer_patch.done: espnet.done
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
