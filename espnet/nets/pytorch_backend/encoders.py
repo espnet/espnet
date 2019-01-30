@@ -105,6 +105,46 @@ class BLSTM(torch.nn.Module):
         return xs_pad, ilens  # x: utt list of frame x dim
 
 
+class CNN(torch.nn.ModuleList):
+    def __init__(self, idim, elayers, cdim, hdim, residual=False):
+        super(CNN, self).__init__()
+        for i in range(elayers):
+            if i == 0:
+                inputdim = idim
+            else:
+                inputdim = hdim
+
+            block = torch.nn.ModuleDict(
+                dict(conv_k3=torch.nn.Conv1d(inputdim, cdim, 3, 1, 1),
+                     conv_k1=torch.nn.Conv1d(cdim, hdim, 1)))
+            self.append(block)
+
+        self.elayers = elayers
+        self.cdim = cdim
+        self.hdim = hdim
+        self.residual = residual
+
+    def forward(self, xpad, ilens):
+        logging.info(
+            '{} input lengths: {}'.format(self.__class__.__name__, str(ilens)))
+        # ypad: (B, T, D) -> (B, D, T)
+        xpad = xpad.transpose(-2, -1)
+
+        for ilayer, block in enumerate(self):
+            ypad = F.relu(block.conv_k3(xpad))
+            if self.residual and ilayer > 0:
+                ypad = ypad + xpad
+            xpad = F.relu(block.conv_k1(ypad))
+
+        # Zero padding
+        xpad.masked_fill(make_pad_mask(ilens, xpad, length_dim=-1), 0)
+
+        # xpad: (B, D, T) -> (B, T, D)
+        xpad = xpad.transpose(-2, -1)
+
+        return xpad, ilens
+
+
 class VGG2L(torch.nn.Module):
     """VGG-like module
 
