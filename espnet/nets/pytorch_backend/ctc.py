@@ -1,8 +1,8 @@
 import logging
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-import warpctc_pytorch as warp_ctc
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
@@ -13,15 +13,38 @@ class CTC(torch.nn.Module):
     :param int odim: dimension of outputs
     :param int eprojs: number of encoder projection units
     :param float dropout_rate: dropout rate (0.0 ~ 1.0)
+    :param str ctc_type: builtin or warpctc
     """
 
-    def __init__(self, odim, eprojs, dropout_rate):
+    def __init__(self, odim, eprojs, dropout_rate, ctc_type='warpctc'):
         super(CTC, self).__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.loss_fn = warp_ctc.CTCLoss(size_average=True)
+        self.ctc_type = ctc_type
+
+        if self.ctc_type == 'builtin':
+            self.ctc_loss = torch.nn.CTCLoss(reduction='sum')
+        elif self.ctc_type == 'warpctc':
+            import warpctc_pytorch as warp_ctc
+            self.ctc_loss = warp_ctc.CTCLoss(size_average=True)
+        else:
+            raise ValueError('ctc_type must be "builtin" or "warpctc": {}'
+                             .format(self.ctc_type))
+
         self.ignore_id = -1
+
+    def loss_fn(self, th_pred, th_target, th_ilen, th_olen):
+        if self.ctc_type == 'builtin':
+            th_pred = th_pred.log_softmax(2)
+            loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
+            # Batch-size average
+            loss = loss / th_pred.size(1)
+            return loss
+        elif self.ctc_type == 'warpctc':
+            return self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
+        else:
+            raise NotImplementedError
 
     def forward(self, hs_pad, hlens, ys_pad):
         """CTC forward
@@ -75,4 +98,5 @@ def ctc_for(args, odim):
     :param int odim : The output dimension
     :return: the corresponding CTC module
     """
-    return CTC(odim, args.eprojs, args.dropout_rate)
+    return CTC(odim, args.eprojs, args.dropout_rate,
+               ctc_type=vars(args).get('ctc_type', 'builtin'))

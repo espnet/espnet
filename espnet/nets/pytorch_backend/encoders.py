@@ -146,8 +146,11 @@ class VGG2L(torch.nn.Module):
         xs_pad = F.relu(self.conv2_1(xs_pad))
         xs_pad = F.relu(self.conv2_2(xs_pad))
         xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
-        ilens = np.array(
-            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64)
+        if torch.is_tensor(ilens):
+            ilens = ilens.cpu().numpy()
+        else:
+            ilens = np.array(ilens, dtype=np.float32)
+        ilens = np.array(np.ceil(ilens / 2), dtype=np.int64)
         ilens = np.array(
             np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64).tolist()
 
