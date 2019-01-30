@@ -338,7 +338,14 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         xpad = pad_list(hs, 0.0)
-        hpad, hlens = self.enc(xpad, ilens)
+        # 0. Frontend
+        if self.frontend is not None:
+            hpad, hlens = self.frontend(xpad, ilens)
+            hpad, hlens = self.feature_transform(hpad, hlens)
+        else:
+            hpad, hlens = xpad, ilens
+
+        hpad, hlens = self.enc(hpad, hlens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -365,10 +372,17 @@ class E2E(torch.nn.Module):
         :rtype: float ndarray
         """
         with torch.no_grad():
-            # encoder
-            hpad, hlens = self.enc(xs_pad, ilens)
+            # 0. Frontend
+            if self.frontend is not None:
+                hs_pad, hlens = self.frontend(xs_pad, ilens)
+                hs_pad, hlens = self.feature_transform(hs_pad, hlens)
+            else:
+                hs_pad, hlens = xs_pad, ilens
 
-            # decoder
+            # 1. Encoder
+            hpad, hlens = self.enc(hs_pad, hlens)
+
+            # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
 
         return att_ws
