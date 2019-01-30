@@ -168,7 +168,7 @@ class Decoder(torch.nn.Module):
                     state=lm_state)
                 y_all.append(self.cf(z_list[-1], local_lm_scores))
 
-        if self.coldfusion:
+        if self.cf is not None:
             y_all = torch.stack(y_all, dim=1).view(batch * olength, self.odim)
         else:
             z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
