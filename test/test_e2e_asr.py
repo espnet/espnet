@@ -45,8 +45,8 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
-        ctc_type="chainer",
-        ctc_dropout=0.0
+        ctc_dropout=0.0,
+        ctc_type="warpctc"
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -186,7 +186,7 @@ def test_correct_blstmp_init_custom_enc(module):
     args = make_arg(etype="blstmp", elayers="3x300-0.2_200-0.2,200_100,200-0.4")
     m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
-    enc = model.enc.enc._modules.values()[0] if backend == "pytorch" else model.enc.enc._layers[0]
+    enc = list(model.enc.enc._modules.values())[0] if backend == "pytorch" else model.enc.enc._layers[0]
     rnn0 = getattr(enc, "bilstm0")
     rnn1 = getattr(enc, "bilstm1")
     rnn2 = getattr(enc, "bilstm2")
@@ -237,7 +237,7 @@ def test_correct_blstm_init_custom_enc(module):
     m = importlib.import_module(module)
     args = make_arg(etype="blstm", elayers="3x300-0.2_200-0.3")
     model = m.E2E(40, 5, args)
-    enc = model.enc.enc._modules.values()[0] if backend == "pytorch" else model.enc.enc._layers[0]
+    enc = list(model.enc.enc._modules.values())[0] if backend == "pytorch" else model.enc.enc._layers[0]
     rnn = getattr(enc, "nblstm")
     fc = getattr(enc, "l_last")
     check_attr(rnn, n_layers_k, 3)
@@ -248,7 +248,7 @@ def test_correct_blstm_init_custom_enc(module):
 
     args = make_arg(etype="blstm", elayers="2x300")
     model = m.E2E(40, 5, args)
-    enc = model.enc.enc._modules.values()[0] if backend == "pytorch" else model.enc.enc._layers[0]
+    enc = list(model.enc.enc._modules.values())[0] if backend == "pytorch" else model.enc.enc._layers[0]
     rnn = getattr(enc, "nblstm")
     fc = getattr(enc, "l_last")
     check_attr(rnn, n_layers_k, 2)
@@ -285,7 +285,7 @@ def test_chainer_ctc_type():
         b_grad = model.ctc.ctc_lo.b.grad
         return ch_ctc.data, W_grad, b_grad
 
-    ref_loss, ref_W_grad, ref_b_grad = _propagate("chainer")
+    ref_loss, ref_W_grad, ref_b_grad = _propagate("builtin")
     loss, W_grad, b_grad = _propagate("warpctc")
     np.testing.assert_allclose(ref_loss, loss, rtol=1e-5)
     np.testing.assert_allclose(ref_W_grad, W_grad)

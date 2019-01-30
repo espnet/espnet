@@ -58,8 +58,8 @@ def main(args):
                              'every y frame at 2nd layer etc.')
     # loss
     parser.add_argument('--ctc_type', default='warpctc', type=str,
-                        choices=['chainer', 'warpctc'],
-                        help='Type of CTC implementation to calculate loss.')
+                        choices=['builtin', 'warpctc'],
+                        help='Type of CTC implementation to calculate loss. ')
     parser.add_argument('--ctc-dropout', default=0.0, type=float, nargs='?', help="Dropout value for CTC")
     # attention
     parser.add_argument('--atype', default='dot', type=str,

@@ -18,11 +18,13 @@ env:
   global:
     - CC=gcc-7
     - CXX=g++-7
-    - TH_VERSION=0.4.1
   matrix:
-    - USE_CONDA=false ESPNET_PYTHON_VERSION=2.7
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=2.7
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7
+    - USE_CONDA=false ESPNET_PYTHON_VERSION=2.7 TH_VERSION=0.4.1
+    - USE_CONDA=false ESPNET_PYTHON_VERSION=2.7 TH_VERSION=1.0.0
+    - USE_CONDA=true ESPNET_PYTHON_VERSION=2.7 TH_VERSION=0.4.1
+    - USE_CONDA=true ESPNET_PYTHON_VERSION=2.7 TH_VERSION=1.0.0
+    - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=0.4.1
+    - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.0
 
 install:
   - if [[ ${USE_CONDA} == false ]]; then
@@ -46,9 +48,12 @@ install:
   - pip install matplotlib
   # install warp-ctc (use @jnishi patched version)
   - git clone https://github.com/jnishi/warp-ctc.git
+  - if [[ "${TH_VERSION}" != 0.4.1 ]]; then
+      cd warp-ctc; git checkout -b pytorch-1.0.0 remotes/origin/pytorch-1.0.0; cd ..;
+    fi
   - cd warp-ctc && mkdir build && cd build && cmake .. && make -j4 && cd ..
   - pip install cffi
-  - cd pytorch_binding && python setup.py install && cd ../.. # maybe need to: apt-get install python-dev
+  - cd pytorch_binding && python setup.py install && cd ../..
   # install kaldiio
   - pip install git+https://github.com/nttcslab-sp/kaldiio.git
   # install chainer_ctc
