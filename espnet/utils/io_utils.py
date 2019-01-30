@@ -118,8 +118,6 @@ class LoadInputsAndTargets(object):
                     if 'tokenid' in inp:
                         # ======= Legacy format for output =======
                         # {"output": [{"tokenid": "1 2 3 4"}])
-                        assert isinstance(inp['tokenid'], str), \
-                            type(inp['tokenid'])
                         x = np.fromiter(map(int, inp['tokenid'].split()),
                                         dtype=np.int64)
                     else:
@@ -286,7 +284,7 @@ class LoadInputsAndTargets(object):
                 #                "filetype": "hdf5",
                 loader = h5py.File(filepath, 'r')
                 self._loaders[filepath] = loader
-            return loader[key][...]
+            return loader[key][()]
         elif filetype == 'sound.hdf5':
             filepath, key = filepath.split(':', 1)
             loader = self._loaders.get(filepath)
@@ -381,7 +379,7 @@ class SoundHDF5File(object):
         self.create_dataset(name, data=data)
 
     def __getitem__(self, key):
-        data = self.file[key][...]
+        data = self.file[key][()]
         f = io.BytesIO(data.tobytes())
         array, rate = soundfile.read(f, dtype=self.dtype)
         return array, rate

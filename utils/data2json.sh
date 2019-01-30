@@ -42,7 +42,7 @@ set -euo pipefail
 dir=$1
 dic=$2
 tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
-# trap 'rm -rf ${tmpdir}' EXIT
+trap 'rm -rf ${tmpdir}' EXIT
 
 # 1. Create scp files for inputs
 #   These are not necessary for decoding mode, and make it as an option
@@ -61,7 +61,6 @@ if [ -n "${feat}" ]; then
         --preprocess-conf "${preprocess_conf}" \
         --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
 fi
-
 
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
