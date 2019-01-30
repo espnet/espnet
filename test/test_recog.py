@@ -23,6 +23,7 @@ def make_arg(**kwargs):
         eprojs=100,
         dlayers=1,
         dunits=300,
+        cfunits=-1,
         atype="location",
         aconv_chans=10,
         aconv_filts=100,

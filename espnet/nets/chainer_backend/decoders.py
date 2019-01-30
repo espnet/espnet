@@ -113,7 +113,7 @@ class Decoder(chainer.Chain):
                 lm_state, probs = self.rnnlm.predict(x=F.argmax(self.output(z_list[-1]), axis=1), state=lm_state)
                 y_all.append(self.cf(z_list[-1], probs))
 
-        if self.cf is not None:
+        if self.cf is None:
             z_all = F.reshape(F.stack(z_all, axis=1), (batch * olength, self.dunits))
             y_all = self.output(z_all)
         else:
