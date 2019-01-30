@@ -125,6 +125,33 @@ def test_model_trainable_and_decodable(module, etype, atype):
         model.recognize(in_data, args, args.char_list)  # decodable
 
 
+@pytest.mark.parametrize(
+    "module", [
+        "pytorch",
+        "chainer"
+    ]
+)
+def test_coldfusion(module):
+    args = make_arg()
+    is_pytorch = "pytorch" == module
+    if is_pytorch:
+        import espnet.lm.pytorch_backend.lm as lm
+        import espnet.nets.pytorch_backend.e2e_asr as m
+    else:
+        import espnet.lm.chainer_backend.lm as lm
+        import espnet.nets.chainer_backend.e2e_asr as m
+
+    batch = prepare_inputs(module)
+    rnnlm = lm.ClassifierWithState(lm.RNNLM(5, 3, 512))
+    model = m.E2E(40, 5, args, rnnlm=rnnlm)
+    attn_loss = model(*batch)[0]
+    attn_loss.backward()
+
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(100, 40)
+        model.recognize(in_data, args, args.char_list, rnnlm=rnnlm)
+
+
 def init_torch_weight_const(m, val):
     for p in m.parameters():
         if p.dim() > 1:
