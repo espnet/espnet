@@ -9,6 +9,7 @@
 # general configuration
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
+stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -104,14 +105,14 @@ train_set=train_960
 train_dev=dev
 recog_set="test_clean test_other dev_clean dev_other"
 
-if [ ${stage} -le -1 ]; then
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
         local/download_and_untar.sh ${datadir} ${data_url} ${part}
     done
 fi
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
@@ -123,7 +124,7 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
@@ -171,22 +172,22 @@ fi
 dict=data/lang_char/${train_set}_${bpemode}${nbpe}_units.txt
 bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
     spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict} 
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
-	 data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
-    
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
+
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
@@ -202,7 +203,7 @@ lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
@@ -213,9 +214,9 @@ if [ ${stage} -le 3 ]; then
     cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
     # combine external text and transcriptions and shuffle them with seed 777
     zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
-	spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
+        spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
     cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
-							> ${lmdatadir}/valid.txt
+        > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -251,7 +252,7 @@ fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -275,7 +276,7 @@ if [ ${stage} -le 4 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
-	--adim ${adim} \
+        --adim ${adim} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
@@ -289,7 +290,7 @@ if [ ${stage} -le 4 ]; then
         --patience ${patience}
 fi
 
-if [ ${stage} -le 5 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
@@ -304,13 +305,13 @@ if [ ${stage} -le 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-	# set batchsize 0 to disable batch decoding
+        # set batchsize 0 to disable batch decoding
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-	    --batchsize 0 \
-	    --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --batchsize 0 \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
@@ -330,4 +331,3 @@ if [ ${stage} -le 5 ]; then
     wait
     echo "Finished"
 fi
-
