@@ -33,6 +33,7 @@ from espnet.asr.asr_utils import single_beam_search
 from espnet.asr.asr_utils import write_results
 
 from espnet.nets.chainer_backend.e2e_asr import E2E
+from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer

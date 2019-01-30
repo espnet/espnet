@@ -256,7 +256,8 @@ class E2E(torch.nn.Module):
         # Neither CPUTensor nor float/int value can be used
         # because NCCL communicates between GPU devices.
         device = next(self.parameters()).device
-        acc = torch.tensor([acc], device=device)
+
+        acc = torch.tensor([acc], device=device) if acc is not None else None
         cer = torch.tensor([cer], device=device)
         wer = torch.tensor([wer], device=device)
         return self.loss, loss_ctc, loss_att, acc, cer, wer

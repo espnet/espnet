@@ -29,6 +29,7 @@ args = argparse.Namespace(
     sampling_probability=0.0,
     adim=320,
     dropout_rate=0.0,
+    dropout_rate_decoder=0.0,
     beam_size=3,
     penalty=0.5,
     maxlenratio=1.0,
@@ -37,7 +38,8 @@ args = argparse.Namespace(
     verbose=True,
     char_list=[u"あ", u"い", u"う", u"え", u"お"],
     outdir=None,
-    seed=1
+    seed=1,
+    ctc_type='warpctc'
 )
 
 

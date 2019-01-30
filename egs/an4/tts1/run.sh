@@ -9,6 +9,7 @@
 # general configuration
 backend=pytorch
 stage=-1
+stop_stage=100
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -91,13 +92,13 @@ train_set=train_nodev
 train_dev=train_dev
 eval_set="test"
 
-if [ ${stage} -le -1 ]; then
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     mkdir -p ${datadir}
     local/download_and_untar.sh ${datadir} ${data_url}
 fi
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
@@ -121,7 +122,7 @@ fi
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
 feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
@@ -161,7 +162,7 @@ fi
 
 dict=data/lang_1char/${train_set}_units.txt
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
@@ -217,7 +218,7 @@ else
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-if [ ${stage} -le 3 ];then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
     echo "stage 3: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
@@ -271,7 +272,7 @@ if [ ${stage} -le 3 ];then
 fi
 
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
-if [ ${stage} -le 4 ];then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
     echo "stage 4: Decoding"
     for sets in ${train_dev} ${eval_set};do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
@@ -296,7 +297,7 @@ if [ ${stage} -le 4 ];then
     done
 fi
 
-if [ ${stage} -le 5 ];then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
     echo "stage 5: Synthesis"
     for sets in ${train_dev} ${eval_set};do
         [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}

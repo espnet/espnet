@@ -236,7 +236,8 @@ def add_results_to_json(js, nbest_hyps, char_list):
 
         # show 1-best result
         if n == 1:
-            logging.info('groundtruth: %s' % out_dic['text'])
+            if 'text' in out_dic.keys():
+                logging.info('groundtruth: %s' % out_dic['text'])
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js
@@ -398,7 +399,7 @@ def single_beam_search(model, js, args, train_args, rnnlm, load_inputs_and_targe
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             batch = [(name, js[name])]
             if is_pytorch:
-                with using_transform_config({'train': True}):
+                with using_transform_config({'train': False}):
                     feat = load_inputs_and_targets(batch)[0][0]
             else:
                 feat = load_inputs_and_targets(batch)[0][0]
