@@ -50,7 +50,7 @@ class LoadInputsAndTargets(object):
         if preprocess_conf is not None:
             self.preprocessing = Transformation(preprocess_conf)
             logging.warning(
-                '[Experimental feature] Some pre-transform will be done '
+                '[Experimental feature] Some preprocessing will be done '
                 'for the mini-batch creation using {}'
                 .format(self.preprocessing))
         else:
