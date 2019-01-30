@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import copy
+import itertools
 import json
 import logging
 # matplotlib related
@@ -30,8 +31,62 @@ matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
-def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, min_batch_size=1):
+def make_batchset(data, batch_size, max_length_in,
+                  max_length_out, num_batches=0, min_batch_size=1):
+    """Make batch set from json dictionary
+
+    if utts have "category" value,
+
+        >>> data = {'utt1': {'category': 'A', 'input': ...},
+        ...         'utt2': {'category': 'B', 'input': ...},
+        ...         'utt3': {'category': 'B', 'input': ...},
+        ...         'utt4': {'category': 'A', 'input': ...}}
+        >>> make_batchset(data, batchsize=2, ...)
+        [[('utt1', ...), ('utt4', ...)], [('utt2', ...), ('utt3': ...)]]
+
+    Note that if any utts doesn't have "category",
+    perform as same as "make_batchset_within_category"
+
+    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param int batch_size: batch size
+    :param int max_length_in: maximum length of input to decide adaptive batch size
+    :param int max_length_out: maximum length of output to decide adaptive batch size
+    :param int num_batches: # number of batches to use (for debug)
+    :param int min_batch_size: mininum batch size (for multi-gpu)
+    :return: List[List[Tuple[str, dict]]] list of batches
+    """
+
+    category2data  = {}  # Dict[str, dict]
+    for k, v in data.items():
+        category2data.setdefault(v.get('category'), {})[k] = v
+
+    batches_list = []  # List[List[List[Tuple[str, dict]]]]
+    for _, d in category2data.items():
+        # batch: List[List[Tuple[str, dict]]]
+        batches = make_batchset_within_category(
+            data=d,
+            batch_size=batch_size,
+            max_length_in=max_length_in,
+            max_length_out=max_length_out,
+            num_batches=num_batches,
+            min_batch_size=min_batch_size)
+        batches_list.append(batches)
+
+    if len(batches_list) == 1:
+        batches = batches_list[0]
+    else:
+        # Concat list. This way is faster than "sum(batch_list, [])"
+        batches = list(itertools.chain(*batches_list))
+
+    assert all(all(batch[0][1]['category'] == e[1]['category'] for e in batch)
+               for batch in batches)
+    # batch: List[List[Tuple[str, dict]]]
+    return batches
+
+
+def make_batchset_within_category(
+        data, batch_size, max_length_in, max_length_out,
+        num_batches=0, min_batch_size=1):
     """Make batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
@@ -40,8 +95,9 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: mininum batch size (for multi-gpu)
-    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
+    :return: List[List[Tuple[str, dict]]] list of batches
     """
+
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
         data[1]['input'][0]['shape'][0]), reverse=True)
@@ -84,10 +140,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         minibatches = minibatches[:num_batches]
     logging.info('# minibatches: ' + str(len(minibatches)))
 
-    # such like: [('uttid1',
-    #              {'input': [{'shape': ...}],
-    #               'output': [{'shape': ...}]}),
-    #             ...]
+    # batch: List[List[Tuple[str, dict]]]
     return minibatches
 
 
