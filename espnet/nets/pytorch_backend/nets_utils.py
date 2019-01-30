@@ -32,7 +32,7 @@ def pad_list(xs, pad_value):
     return pad
 
 
-def make_pad_mask(lengths):
+def make_pad_mask(lengths, xs=None, length_dim=-1):
     """Function to make mask tensor containing indices of padded part
 
     e.g.: lengths = [5, 3, 2]
@@ -41,9 +41,14 @@ def make_pad_mask(lengths):
                   [0, 0, 1, 1, 1]]
 
     :param list lengths: list of lengths (B)
+    :param torch.Tensor xs: Make the shape to be like.
+    :param int length_dim:
     :return: mask tensor containing indices of padded part (B, Tmax)
     :rtype: torch.Tensor
     """
+    if length_dim == 0:
+        raise ValueError('length_dim cannot be 0: {}'.format(length_dim))
+
     if not isinstance(lengths, list):
         lengths = lengths.tolist()
     bs = int(len(lengths))
@@ -51,7 +56,18 @@ def make_pad_mask(lengths):
     seq_range = torch.arange(0, maxlen, dtype=torch.int64)
     seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
     seq_length_expand = seq_range_expand.new(lengths).unsqueeze(-1)
-    return seq_range_expand >= seq_length_expand
+    mask = seq_range_expand >= seq_length_expand
+
+    if xs is not None:
+        assert xs.size(0) == bs, (xs.size(0), bs)
+
+        if length_dim < 0:
+            length_dim = xs.dim() + length_dim
+        # ind = (:, None, ..., None, :, , None, ..., None)
+        ind = tuple(slice(None) if i in (0, length_dim) else None
+                    for i in range(xs.dim()))
+        mask = mask[ind].expand_as(xs).to(xs.device)
+    return mask
 
 
 def mask_by_length(xs, length, fill=0):
