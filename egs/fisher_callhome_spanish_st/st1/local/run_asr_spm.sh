@@ -323,6 +323,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --cfunits ${cfunits} \
+        --rnnlm ${lmexpdir}/rnnlm.model.best \
         --atype ${atype} \
         --adim ${adim} \
         --aconv-chans ${aconv_chans} \
