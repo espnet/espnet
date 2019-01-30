@@ -118,7 +118,7 @@ class Stft(object):
         # FIXME(kamo): librosa.stft can't use multi-channel?
         # x: [Time, Channel, Freq]
         x = np.stack([librosa.stft(
-            x=x[:, ch],
+            x[:, ch],
             n_fft=self.n_fft,
             hop_length=self.n_shift,
             win_length=self.win_length,
