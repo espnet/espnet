@@ -47,7 +47,8 @@ class BLSTMP(chainer.Chain):
             hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
             dropout = self.elayers[layer][1]
             if dropout > 0:
-                ys = F.dropout(ys, dropout)
+                for i in range(len(ys)):
+                    ys[i] = F.dropout(ys[i], dropout)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             # TODO(watanabe) replace subsample and FC layer with CNN
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
@@ -93,7 +94,8 @@ class BLSTM(chainer.Chain):
         ilens = cuda.to_cpu(ilens)
         hy, cy, ys = self.nblstm(None, None, xs)
         if self.nblstm.dropout > 0:
-            ys = F.dropout(ys, self.nblstm.dropout)
+            for i in range(self.nblstm.n_layers):
+                ys[i] = F.dropout(ys[i], self.nblstm.dropout)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
 
         xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
