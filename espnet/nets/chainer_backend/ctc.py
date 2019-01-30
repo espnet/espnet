@@ -6,7 +6,6 @@ import chainer.links as L
 import numpy as np
 
 from chainer import cuda
-from chainer_ctc.warpctc import ctc as warp_ctc
 
 from espnet.nets.chainer_backend.nets_utils import linear_tensor
 
@@ -92,6 +91,7 @@ class WarpCTC(chainer.Chain):
         logging.info(self.__class__.__name__ + ' output lengths: ' + str(olens))
 
         # get ctc loss
+        from chainer_ctc.warpctc import ctc as warp_ctc
         self.loss = warp_ctc(y_hat, ilens, [cuda.to_cpu(l.data) for l in ys])[0]
         logging.info('ctc loss:' + str(self.loss.data))
 
@@ -114,12 +114,14 @@ def ctc_for(args, odim):
     :param int odim: The output dimension
     :return: The CTC module
     """
-    ctc_type = vars(args).get("ctc_type", "chainer")
-    ctc = None
-    if ctc_type == 'chainer':
+    ctc_type = vars(args).get("ctc_type", "builtin")
+    if ctc_type == 'builtin':
         logging.info("Using chainer CTC implementation")
         ctc = CTC(odim, args.eprojs, args.dropout_rate)
     elif ctc_type == 'warpctc':
         logging.info("Using warpctc CTC implementation")
         ctc = WarpCTC(odim, args.eprojs, args.dropout_rate)
+    else:
+        raise ValueError('ctc_type must be "builtin" or "warpctc": {}'
+                         .format(ctc_type))
     return ctc
