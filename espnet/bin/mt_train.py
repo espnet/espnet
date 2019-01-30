@@ -31,7 +31,8 @@ def main(args):
     parser.add_argument('--dict-tgt', required=True,
                         help='Dictionary for target language')
     parser.add_argument('--dict-src', default='', nargs='?',
-                        help='Dictionary for source language. Dictionanies are shared between soruce and target languages in default setting.')
+                        help='Dictionary for source language. \
+                        Dictionanies are shared between soruce and target languages in default setting.')
     parser.add_argument('--seed', default=1, type=int,
                         help='Random seed')
     parser.add_argument('--debugdir', type=str,
