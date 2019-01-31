@@ -1,6 +1,7 @@
 #!/usr/bin/env python
+# encoding: utf-8
 
-# Copyright 2018 Kyoto University (Hirofumi Inaguma)
+# Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
@@ -22,7 +23,7 @@ from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.encoders import encoder_for
-from espnet.nets.pytorch_backend.mt_decoders import decoder_for
+from espnet.nets.pytorch_backend.decoders import decoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -178,7 +179,7 @@ class E2E(torch.nn.Module):
         else:
             bleus = []
             setattr(self.recog_args, 'sos', False)
-            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens),
+            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), None,
                                                        self.recog_args, self.char_list,
                                                        self.rnnlm)
             # remove <sos> and <eos>
@@ -239,7 +240,7 @@ class E2E(torch.nn.Module):
 
         # 2. decoder
         # decode the first utterance
-        y = self.dec.recognize_beam(h[0], recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(h[0], None, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -265,7 +266,7 @@ class E2E(torch.nn.Module):
         hpad, hlens = self.enc(self.dropout_emb_src(self.embed_src(xpad)), ilens)
 
         # 2. decoder
-        y = self.dec.recognize_beam_batch(hpad, hlens, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam_batch(hpad, hlens, None, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()

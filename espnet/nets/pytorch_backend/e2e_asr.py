@@ -193,7 +193,7 @@ class E2E(torch.nn.Module):
             loss_att = None
             acc = None
         else:
-            loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
+            loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad)
         self.acc = acc
 
         # 5. compute cer/wer
