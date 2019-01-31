@@ -127,19 +127,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    # Trim silence part
+    # Trim silence parts at the begining and the end of audio
     if ${do_trimming}; then
-        ${train_cmd} exp/trim_silence/${org_set}.log \
-            local/trim_silence.py \
-                --fs ${fs} \
-                --win_length ${trim_win_length} \
-                --shift_length ${trim_shift_length} \
-                --threshold ${trim_threshold} \
-                --min_silence ${trim_min_silence} \
-                --normalize 16 \
-                scp:data/${org_set}/wav.scp \
-                data/${org_set}/segments
-        echo "Successfully trimed silence part."
+        local/trim_silence.sh --cmd "${train_cmd}" \
+            --fs ${fs} \
+            --win_length ${trim_win_length} \
+            --shift_length ${trim_shift_length} \
+            --threshold ${trim_threshold} \
+            --min_silence ${trim_min_silence} \
+            data/${org_set} \
+            exp/trim_silence/${org_set}
     fi
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
