@@ -29,7 +29,7 @@ class ColdFusionLayer(chainer.Chain):
         :param lm_output: The output of the language model
         :return: The output of this layer
         """
-        lm_max, _ = F.max(lm_output, axis=1, keepdims=True)
+        lm_max = F.max(lm_output, axis=1, keepdims=True)
         lm_output = lm_output - lm_max
         h_lm = F.relu(self.hidden_layer(lm_output))
         g = F.sigmoid(self.gating_layer(F.concat([decoder_output, h_lm], axis=1)))
