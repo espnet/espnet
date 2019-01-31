@@ -143,7 +143,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    ${do_trimming} && org_set=${org_set}_trim
     make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
         --fs ${fs} \
         --fmax "${fmax}" \
