@@ -3,6 +3,10 @@
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+use_lang_tag=false
+
+. utils/parse_options.sh || exit 1
+
 db=$1
 lang=$2
 spk=$3
@@ -10,7 +14,7 @@ data_dir=$4
 
 # check arguments
 if [ $# != 4 ];then
-    echo "Usage: $0 <download_dir> <lang> <spk> <data_dir>"
+    echo "Usage: $0 [options] <download_dir> <lang> <spk> <data_dir>"
     exit 1
 fi
 
@@ -59,8 +63,10 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "Successfully finished making spk2utt."
 
 jsons=$(find ${db}/${lang} -name "*_mls.json" -type f -follow | grep ${spk} | grep -v "/._" | tr "\n" " ")
+${use_lang_tag} && lang_tag=${lang} || lang_tag=""
 local/parse_text.py \
-    --jsons $(printf "%s" "${jsons[@]}") \
-    --spk ${spk} \
+    --lang_tag ${lang_tag} \
+    --spk_tag ${spk} \
+    $(printf "%s" "${jsons[@]}") \
     ${data_dir}/text
 echo "Successfully finished making text."
