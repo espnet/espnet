@@ -25,7 +25,6 @@ import matplotlib
 import numpy as np
 import torch
 
-
 matplotlib.use('Agg')
 
 
@@ -67,12 +66,16 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         bs = max(min_batch_size, int(batch_size / (1 + factor)))
         end = min(len(sorted_data), start + bs)
         minibatch = sorted_data[start:end]
+        if shortest_first:
+            minibatch.reverse()
 
         # check each batch is more than minimum batchsize
         if len(minibatch) < min_batch_size:
             mod = min_batch_size - len(minibatch) % min_batch_size
             additional_minibatch = [sorted_data[i]
                                     for i in np.random.randint(0, start, mod)]
+            if shortest_first:
+                additional_minibatch.reverse()
             minibatch.extend(additional_minibatch)
         minibatches.append(minibatch)
 
