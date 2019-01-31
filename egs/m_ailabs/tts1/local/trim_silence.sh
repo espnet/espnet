@@ -10,6 +10,7 @@ threshold=60
 min_silence=0.01
 normalize=16
 cmd=run.pl
+nj=32
 
 . utils/parse_options.sh || exit 1;
 
@@ -22,8 +23,15 @@ set -euo pipefail
 data=$1
 logdir=$2
 
+tmpdir=$(mktemp -d ${data}/tmp-XXXX)
+split_scps=""
+for n in $(seq ${nj}); do
+    split_scps="${split_scps} ${tmpdir}/wav.${n}.scp"
+done
+utils/split_scp.pl ${data}/wav.scp ${split_scps} || exit 1;
+
 # make segments file describing start and end time
-${cmd} ${logdir}.log \
+${cmd} JOB=1:${nj} ${logdir}.JOB.log \
     local/trim_silence.py \
         --fs ${fs} \
         --win_length ${win_length} \
@@ -31,8 +39,14 @@ ${cmd} ${logdir}.log \
         --threshold ${threshold} \
         --min_silence ${min_silence} \
         --normalize ${normalize} \
-        scp:${data}/wav.scp \
-        ${data}/segments
+        scp:${tmpdir}/wav.JOB.scp \
+        ${tmpdir}/segments.JOB
+
+# concatenate segments
+for n in $(seq ${nj}); do
+    cat ${tmpdir}/segments.${n} || exit 1;
+done > ${data}/segments || exit 1
+rm -rf ${tmpdir}
 
 # update utt2spk, spk2utt, and text
 [ ! -e ${data}/.backup ] &&  mkdir ${data}/.backup
