@@ -56,7 +56,7 @@ def get_mvdr_vector(psd_s: ComplexTensor,
     Returns:
         beamform_vector (ComplexTensor)r: (..., F, C)
     """
-    # numerator: (..., C, C) x (..., C, C) -> (..., C, C)
+    # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
     numerator = FC.einsum('...ec,...cd->...ed', [psd_n.inverse(), psd_s])
     # ws: (..., C, C) / (...,) -> (..., C, C)
     ws = numerator / FC.trace(numerator)[..., None, None]
@@ -86,7 +86,7 @@ def get_mvdr_vector2(psd_s: ComplexTensor,
         eigenvecs, dim=-1, index=index[..., None]).unsqueeze(-1)
 
     # numerator: (..., C_1, C_2) x (..., C_2) -> (..., C_1)
-    numerator = FC.einsum('...ec,..c->...e', [FC.inv(psd_n), pca_vector])
+    numerator = FC.einsum('...ec,...c->...e', [FC.inv(psd_n), pca_vector])
     # denominator: (..., C) x (..., F, C) -> (..., F)
     denominator = FC.einsum('...c,...dc->...d', [pca_vector.conj(), numerator])
     # h: (..., F, C) / (..., F) -> (..., F, C)

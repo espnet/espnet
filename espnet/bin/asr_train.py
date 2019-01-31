@@ -5,6 +5,7 @@
 
 
 import argparse
+from distutils.util import strtobool
 import logging
 import os
 import platform
@@ -233,13 +234,15 @@ def main(args):
 def addtional_arguments_for_frontend(parser: argparse.ArgumentParser):
     # FIXME(kamo): More smart way for configuration
 
+    def my_strtobool(x):
+        return bool(strtobool(x))
+
     parser.add_argument(
-        '--use-dnn-frontends', type=bool, default=False,
+        '--use-dnn-frontends', type=my_strtobool, default=False,
         help='The flag to switch to use frontend system.')
 
     # WPE options
-    parser.add_argument('--use-wpe', type=bool, default=False,
-                        help='')
+    parser.add_argument('--use-wpe', type=my_strtobool, default=False, help='')
     parser.add_argument('--wtype', type=str, default='blstmp',
                         help='')
     parser.add_argument('--wlayers', type=int, default=2,
@@ -254,12 +257,12 @@ def addtional_arguments_for_frontend(parser: argparse.ArgumentParser):
                         help='')
     parser.add_argument('--delay', type=int, default=3,
                         help='')
-    parser.add_argument('--use-dnn-mask-for-wpe', type=bool, default=True,
-                        help='')
+    parser.add_argument('--use-dnn-mask-for-wpe', type=my_strtobool,
+                        default=True, help='')
 
     # Beamformer options
-    parser.add_argument('--use-beamformer', type=bool, default=True,
-                        help='')
+    parser.add_argument('--use-beamformer', type=my_strtobool,
+                        default=True, help='')
     parser.add_argument('--btype', type=str, default='blstmp',
                         help='')
     parser.add_argument('--blayers', type=int, default=2,
@@ -278,11 +281,11 @@ def addtional_arguments_for_frontend(parser: argparse.ArgumentParser):
     # Normalization
     parser.add_argument('--stats-file', type=str, default=None,
                         help='')
-    parser.add_argument('--apply-uttmvn', type=bool, default=True,
+    parser.add_argument('--apply-uttmvn', type=my_strtobool, default=True,
                         help='')
-    parser.add_argument('--uttmvn-norm-means', type=bool, default=True,
-                        help='')
-    parser.add_argument('--uttmvn-norm-vars', type=bool, default=False,
+    parser.add_argument('--uttmvn-norm-means', type=my_strtobool,
+                        default=True, help='')
+    parser.add_argument('--uttmvn-norm-vars', type=my_strtobool, default=False,
                         help='')
 
     # window_length = nfft / fs = 25ms is default of Kaldi-Asr
