@@ -48,7 +48,7 @@ epochs=10
 patience=3
 
 # rnnlm related
-use_wordlm=true # false means to train/use a character LM
+use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
 lm_layers=1         # 2 for character LMs
 lm_units=1000       # 650 for character LMs
