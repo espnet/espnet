@@ -156,18 +156,21 @@ class RNNLM(nn.Module):
     :param int n_vocab: The size of the vocabulary
     :param int n_layers: The number of layers to create
     :param int n_units: The number of units per layer
+    :param str typ: The RNN type
     """
 
-    def __init__(self, n_vocab, n_layers, n_units):
+    def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
-        self.lstm = nn.ModuleList(
-            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)])
+        self.rnn = nn.ModuleList(
+            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)] if typ == "lstm" else [nn.GRUCell(n_units, n_units)
+                                                                                            for _ in range(n_layers)])
         self.dropout = nn.ModuleList(
             [nn.Dropout() for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
+        self.typ = typ
 
         # initialize parameters from uniform distribution
         for param in self.parameters():
@@ -178,18 +181,26 @@ class RNNLM(nn.Module):
 
     def forward(self, state, x):
         if state is None:
-            c = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
             h = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
-            state = {'c': c, 'h': h}
+            state = {'h': h}
+            if self.typ == "lstm":
+                c = [to_device(self, self.zero_state(x.size(0))) for n in six.moves.range(self.n_layers)]
+                state = {'c': c, 'h': h}
 
         h = [None] * self.n_layers
-        c = [None] * self.n_layers
         emb = self.embed(x)
-        h[0], c[0] = self.lstm[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
-        for n in six.moves.range(1, self.n_layers):
-            h[n], c[n] = self.lstm[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
+        if self.typ == "lstm":
+            c = [None] * self.n_layers
+            h[0], c[0] = self.rnn[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
+            for n in six.moves.range(1, self.n_layers):
+                h[n], c[n] = self.rnn[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
+            state = {'c': c, 'h': h}
+        else:
+            h[0] = self.rnn[0](self.dropout[0](emb), state['h'][0])
+            for n in six.moves.range(1, self.n_layers):
+                h[n] = self.rnn[n](self.dropout[n](h[n - 1]), state['h'][n])
+            state = {'h': h}
         y = self.lo(self.dropout[-1](h[-1]))
-        state = {'c': c, 'h': h}
         return state, y
 
 
@@ -312,7 +323,7 @@ def train(args):
     train_iter, val_iter = read_tokens_and_get_iterators(args)
 
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layer, args.unit)
+    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
     model = ClassifierWithState(rnn)
     gpu_id = check_and_get_gpuid(model, args.ngpu, is_chainer=False)
 

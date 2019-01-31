@@ -10,14 +10,10 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-import os
 import sys
 
 from espnet.bin.bin_utils import check_and_prepare_env
-from espnet.bin.bin_utils import check_cuda_visible_devices
 from espnet.bin.bin_utils import get_train_argparser
-from espnet.bin.bin_utils import set_logging_level
-from espnet.bin.bin_utils import set_seed
 
 
 def main(args):
@@ -36,6 +32,8 @@ def main(args):
     parser.add_argument('--opt', default='sgd', type=str,
                         choices=['sgd', 'adam'],
                         help='Optimizer')
+    parser.add_argument('--type', type=str, default="lstm", nargs='?', choices=['lstm', 'gru'],
+                        help="Which type of RNN to use")
     parser.add_argument('--layer', '-l', type=int, default=2,
                         help='Number of hidden layers')
     parser.add_argument('--unit', '-u', type=int, default=650,
