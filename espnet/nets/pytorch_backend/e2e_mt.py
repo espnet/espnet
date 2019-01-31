@@ -22,8 +22,8 @@ from nltk.translate import bleu_score
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 from espnet.nets.pytorch_backend.attentions import att_for
-from espnet.nets.pytorch_backend.encoders import encoder_for
 from espnet.nets.pytorch_backend.decoders import decoder_for
+from espnet.nets.pytorch_backend.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -92,7 +92,7 @@ class E2E(torch.nn.Module):
         # options for beam search
         if 'report_bleu' in vars(args) and args.report_bleu:
             recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
-                          'maxlenratio': args.maxlenratio,
+                          'ctc_weight': 0.0, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
                           'rnnlm': args.rnnlm, 'nbest': args.nbest,
                           'space': args.sym_space, 'blank': args.sym_blank}
