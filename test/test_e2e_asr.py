@@ -16,6 +16,7 @@ import pytest
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+from test.utils_test import make_dummy_json
 
 
 def make_arg(**kwargs):
@@ -49,7 +50,8 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
-        ctc_type="warpctc"
+        ctc_type="warpctc",
+        sortagrad=0
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -85,6 +87,34 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
         return xs_pad, ilens, ys_pad
     else:
         raise ValueError("Invalid mode")
+
+
+def convert_batch(batch, backend="pytorch", is_cuda=False):
+    assert len(batch) == 1
+    xs, ys = batch[0]
+    ilens = np.array([x.shape[0] for x in xs])
+
+    is_pytorch = backend == "pytorch"
+    if is_pytorch:
+        xs = pad_list([torch.from_numpy(x).float() for x in xs], 0)
+        ilens = torch.from_numpy(ilens).long()
+        ys = pad_list([torch.from_numpy(y).long() for y in ys], -1)
+
+        if is_cuda:
+            xs = xs.cuda()
+            ilens = ilens.cuda()
+            ys = ys.cuda()
+    else:
+        if is_cuda:
+            xp = importlib.import_module('cupy')
+            xs = [chainer.Variable(xp.array(x)) for x in xs]
+            ys = [chainer.Variable(xp.array(y)) for y in ys]
+            ilens = xp.array(ilens)
+        else:
+            xs = [chainer.Variable(x) for x in xs]
+            ys = [chainer.Variable(y) for y in ys]
+
+    return xs, ilens, ys
 
 
 @pytest.mark.parametrize(
@@ -144,6 +174,27 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 40)
         model.recognize(in_data, args, args.char_list)  # decodable
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch", "chainer"]
+)
+def test_sortagrad_trainable(module):
+    args = make_arg(sortagrad=1)
+    dummy_json = make_dummy_json(64, [1, 700], [1, 700], idim=40, odim=5)
+    from espnet.asr.asr_utils import make_batchset
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_asr as m
+    else:
+        import espnet.nets.chainer_backend.e2e_asr as m
+    batchset = make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, shortest_first=True)
+    model = m.E2E(40, 5, args)
+    for batch in batchset:
+        attn_loss = model(convert_batch(batch, module))[0]
+        attn_loss.backward()
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(100, 40)
+        model.recognize(in_data, args, args.char_list)
 
 
 def init_torch_weight_const(m, val):

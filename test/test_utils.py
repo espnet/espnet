@@ -8,26 +8,7 @@ import espnet.asr.asr_utils
 import espnet.tts.tts_utils
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.io_utils import SoundHDF5File
-
-
-def make_dummy_json(n_utts=10, ilen_range=(100, 300), olen_range=(10, 300)):
-    idim = 83
-    odim = 52
-    ilens = np.random.randint(ilen_range[0], ilen_range[1], n_utts)
-    olens = np.random.randint(olen_range[0], olen_range[1], n_utts)
-    dummy_json = {}
-    for idx in range(n_utts):
-        input = [{
-            "shape": [ilens[idx], idim]
-        }]
-        output = [{
-            "shape": [olens[idx], odim]
-        }]
-        dummy_json["utt_%d" % idx] = {
-            "input": input,
-            "output": output
-        }
-    return dummy_json
+from test.utils_test import make_dummy_json
 
 
 @pytest.mark.parametrize('utils', [espnet.asr.asr_utils, espnet.tts.tts_utils])
@@ -56,17 +37,19 @@ def test_make_batchset(utils):
 @pytest.mark.parametrize('utils', [espnet.asr.asr_utils, espnet.tts.tts_utils])
 def test_sortagrad(utils):
     dummy_json = make_dummy_json(512, [1, 700], [1, 700])
-    if "tts" in str(utils):
+    if 'tts' in str(utils):
         batchset = utils.make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, batch_sort_key="input", shortest_first=True)
+        key = 'output'
     else:
         batchset = utils.make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, shortest_first=True)
-    prev_start_ilen = batchset[0][0][1]['input'][0]['shape'][0]
+        key = 'input'
+    prev_start_ilen = batchset[0][0][1][key][0]['shape'][0]
     for batch in batchset:
-        cur_start_ilen = batch[0][1]['input'][0]['shape'][0]
+        cur_start_ilen = batch[0][1][key][0]['shape'][0]
         assert cur_start_ilen >= prev_start_ilen
         prev_ilen = prev_start_ilen
         for sample in batch[1:]:
-            cur_ilen = sample[1]['input'][0]['shape'][0]
+            cur_ilen = sample[1][key][0]['shape'][0]
             assert cur_ilen >= prev_ilen
             prev_ilen = cur_ilen
         prev_start_ilen = cur_start_ilen
