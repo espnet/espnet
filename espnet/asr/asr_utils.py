@@ -390,7 +390,7 @@ def single_beam_search(model, js, args, train_args, rnnlm, load_inputs_and_targe
     :param rnnlm: The RNNLM used for Shallow Fusion
     :return: The json with the predictions
     """
-    #TODO move load_inputs_and_targets here
+    # TODO(gtache) move load_inputs_and_targets here
     is_pytorch = args.backend == 'pytorch'
     func = torch.no_grad if is_pytorch else chainer.no_backprop_mode
     new_js = {}

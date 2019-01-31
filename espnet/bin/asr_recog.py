@@ -5,7 +5,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import logging
-import os
 import sys
 
 from espnet.bin.bin_utils import check_and_prepare_env
