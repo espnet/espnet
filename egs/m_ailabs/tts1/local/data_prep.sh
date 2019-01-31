@@ -48,7 +48,7 @@ text=${data_dir}/text
 [ -e ${utt2spk} ] && rm ${utt2spk}
 
 # make scp, utt2spk, and spk2utt
-find ${db} -name "*.wav" | grep ${spk} | sort | while read -r filename;do
+find ${db} -name "*.wav" -follow | grep ${spk} | sort | while read -r filename;do
     id="${spk}_$(basename ${filename} | sed -e "s/\.[^\.]*$//g")"
     echo "${id} ${filename}" >> ${scp}
     echo "${id} ${spk}" >> ${utt2spk}
@@ -58,7 +58,7 @@ echo "Successfully finished making wav.scp, utt2spk."
 utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "Successfully finished making spk2utt."
 
-jsons=$(find ${db}/${lang} -name "*_mls.json" -type f | grep ${spk} | grep -v "/._" | tr "\n" " ")
+jsons=$(find ${db}/${lang} -name "*_mls.json" -type f -follow | grep ${spk} | grep -v "/._" | tr "\n" " ")
 local/parse_text.py \
     --jsons $(printf "%s" "${jsons[@]}") \
     --spk ${spk} \
