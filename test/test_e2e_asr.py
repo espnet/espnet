@@ -190,7 +190,7 @@ def test_sortagrad_trainable(module):
     batchset = make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E(40, 5, args)
     for batch in batchset:
-        attn_loss = model(convert_batch(batch, module))[0]
+        attn_loss = model(*convert_batch(batch, module))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 40)
