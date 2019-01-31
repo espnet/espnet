@@ -32,14 +32,14 @@ ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
 ENV CUDA_HOME /usr/lib/nvidia
 
-## FROM CUDA 9.2 runtime
-
 # nvidia-container-runtime
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=9.2"
 
-ENV NCCL_VERSION 2.2.13
+## FROM CUDA 9.2 runtime
+
+ENV NCCL_VERSION 2.4.2
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         cuda-libraries-$CUDA_PKG_VERSION \
@@ -62,7 +62,7 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 ## FROM CUDA 9.2-CUDNN 7 devel
 
-ENV CUDNN_VERSION 7.2.1.38
+ENV CUDNN_VERSION 7.4.2.24
 LABEL com.nvidia.cudnn.version="${CUDNN_VERSION}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
