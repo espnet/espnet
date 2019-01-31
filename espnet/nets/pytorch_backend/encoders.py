@@ -116,8 +116,8 @@ class BRNN(torch.nn.Module):
         ys, _ = self.nbrnn(xs_pack)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
-        if self.nblstm.dropout > 0:
-            ys_pad = F.dropout(ys_pad, self.nblstm.dropout)
+        if self.nbrnn.dropout > 0:
+            ys_pad = F.dropout(ys_pad, self.nbrnn.dropout)
         # (sum _utt frame_utt) x dim
         projected = torch.tanh(self.l_last(
             ys_pad.contiguous().view(-1, ys_pad.size(2))))

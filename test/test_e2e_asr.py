@@ -184,12 +184,14 @@ def test_custom_encoder(module, etype, elayers):
 
 
 @pytest.mark.parametrize(
-    "module", [
-        "espnet.nets.pytorch_backend.e2e_asr",
-        "espnet.nets.chainer_backend.e2e_asr"
+    "module", "etype", [
+        ("espnet.nets.pytorch_backend.e2e_asr", "blstmp"),
+        ("espnet.nets.pytorch_backend.e2e_asr", "bgrup"),
+        ("espnet.nets.chainer_backend.e2e_asr", "blstmp"),
+        ("espnet.nets.chainer_backend.e2e_asr", "bgrup")
     ]
 )
-def test_correct_blstmp_init_custom_enc(module):
+def test_correct_blstmp_init_custom_enc(module, etype):
     n_layers_k = "n_layers"
     h_size_k = "hidden_size"
     drop_k = "dropout"
@@ -205,15 +207,15 @@ def test_correct_blstmp_init_custom_enc(module):
     def check_attr(obj, key, value):
         assert getattr(obj, attrs[backend][key]) == value if key in attrs[backend] else True
 
-    args = make_arg(etype="blstmp", elayers="3x300-0.2_200-0.2,200_100,200-0.4")
+    args = make_arg(etype=etype, elayers="3x300-0.2_200-0.2,200_100,200-0.4")
     m = importlib.import_module(module)
     model = m.E2E(40, 5, args)
     enc = list(model.enc.enc._modules.values())[0] if backend == "pytorch" else model.enc.enc._layers[0]
-    rnn0 = getattr(enc, "bilstm0")
-    rnn1 = getattr(enc, "bilstm1")
-    rnn2 = getattr(enc, "bilstm2")
-    rnn3 = getattr(enc, "bilstm3")
-    rnn4 = getattr(enc, "bilstm4")
+    rnn0 = getattr(enc, "birnn0")
+    rnn1 = getattr(enc, "birnn1")
+    rnn2 = getattr(enc, "birnn2")
+    rnn3 = getattr(enc, "birnn3")
+    rnn4 = getattr(enc, "birnn4")
     bt0 = getattr(enc, "bt0")
     bt1 = getattr(enc, "bt1")
     bt2 = getattr(enc, "bt2")
@@ -235,12 +237,14 @@ def test_correct_blstmp_init_custom_enc(module):
 
 
 @pytest.mark.parametrize(
-    "module", [
-        "espnet.nets.pytorch_backend.e2e_asr",
-        "espnet.nets.chainer_backend.e2e_asr"
+    "module", "etype", [
+        ("espnet.nets.pytorch_backend.e2e_asr", "blstm"),
+        ("espnet.nets.pytorch_backend.e2e_asr", "bgru"),
+        ("espnet.nets.chainer_backend.e2e_asr", "blstm"),
+        ("espnet.nets.chainer_backend.e2e_asr", "bgru")
     ]
 )
-def test_correct_blstm_init_custom_enc(module):
+def test_correct_brnn_init_custom_enc(module, etype):
     n_layers_k = "n_layers"
     h_size_k = "hidden_size"
     drop_k = "dropout"
@@ -257,10 +261,10 @@ def test_correct_blstm_init_custom_enc(module):
         assert getattr(obj, attrs[backend][key]) == value if key in attrs[backend] else True
 
     m = importlib.import_module(module)
-    args = make_arg(etype="blstm", elayers="3x300-0.2_200-0.3")
+    args = make_arg(etype=etype, elayers="3x300-0.2_200-0.3")
     model = m.E2E(40, 5, args)
     enc = list(model.enc.enc._modules.values())[0] if backend == "pytorch" else model.enc.enc._layers[0]
-    rnn = getattr(enc, "nblstm")
+    rnn = getattr(enc, "nbrnn")
     fc = getattr(enc, "l_last")
     check_attr(rnn, n_layers_k, 3)
     check_attr(rnn, h_size_k, 300)
@@ -271,7 +275,7 @@ def test_correct_blstm_init_custom_enc(module):
     args = make_arg(etype="blstm", elayers="2x300")
     model = m.E2E(40, 5, args)
     enc = list(model.enc.enc._modules.values())[0] if backend == "pytorch" else model.enc.enc._layers[0]
-    rnn = getattr(enc, "nblstm")
+    rnn = getattr(enc, "nbrnn")
     fc = getattr(enc, "l_last")
     check_attr(rnn, n_layers_k, 2)
     check_attr(rnn, h_size_k, 300)
