@@ -1,4 +1,4 @@
-PYTHON := /usr/bin/python2.7
+PYTHON := /usr/bin/python3.7
 TH_VERSION := 1.0.0  # 0.4.1 or 1.0.0
 KALDI =
 GCC_VERSION := $(shell gcc -dumpversion)

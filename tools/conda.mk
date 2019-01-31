@@ -1,4 +1,4 @@
-PYTHON_VERSION := 2.7
+PYTHON_VERSION := 3.7
 PATH := $(PWD)/venv/bin:$(PATH)
 
 include Makefile
