@@ -11,7 +11,7 @@ min_silence=0.01
 normalize=16
 cmd=run.pl
 
-. parse_options.sh || exit 1;
+. utils/parse_options.sh || exit 1;
 
 if [ ! $# -eq 2 ]; then
    echo "Usage: $0 [options] <data-dir> <log-dir>";
