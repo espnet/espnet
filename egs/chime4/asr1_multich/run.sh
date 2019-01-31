@@ -44,7 +44,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=1
+epochs=10
 patience=3
 
 # rnnlm related
@@ -115,8 +115,8 @@ if [ ${stage} -le 0 ]; then
 fi
 
 if [ ${stage} -le 1 ]; then
-    ## Task dependent. You have to design training and dev sets by yourself.
-    # But you can utilize Kaldi recipes in most cases
+    ### Task dependent. You have to design training and dev sets by yourself.
+    ## But you can utilize Kaldi recipes in most cases
     echo "stage 1: Dump wav files into a HDF5 file"
 
     echo "combine real and simulation data"
