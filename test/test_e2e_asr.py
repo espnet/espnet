@@ -154,7 +154,7 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
     ]
 )
 def test_coldfusion(module):
-    args = make_arg()
+    args = make_arg(cfunits=10)
     is_pytorch = "pytorch" == module
     if is_pytorch:
         import espnet.lm.pytorch_backend.lm as lm
