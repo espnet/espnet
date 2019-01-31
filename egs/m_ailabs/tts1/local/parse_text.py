@@ -12,10 +12,12 @@ import os
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--jsons", nargs="+", type=str,
-                        help="*_mls.json filenames")
-    parser.add_argument("--spk", type=str,
+    parser.add_argument("--lang_tag", type=str, default=None, nargs="?",
                         help="speaker tag")
+    parser.add_argument("--spk_tag", type=str,
+                        help="speaker tag")
+    parser.add_argument("jsons", nargs="+", type=str,
+                        help="*_mls.json filenames")
     parser.add_argument("out", type=str,
                         help="output filename")
     args = parser.parse_args()
@@ -29,9 +31,13 @@ def main():
             with codecs.open(filename, "r", encoding="utf-8") as f:
                 js = json.load(f)
             for key in sorted(js.keys()):
-                uid = args.spk + "_" + key[:-4]
+                uid = args.spk_tag + "_" + key[:-4]
                 text = js[key]["clean"].upper()
-                out.write("%s %s\n" % (uid, text))
+                if args.lang_tag is None:
+                    line = "%s %s\n" % (uid, text)
+                else:
+                    line = "%s <%s> %s\n" % (uid, args.lang_tag, text)
+                out.write(line)
 
 
 if __name__ == "__main__":
