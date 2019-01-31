@@ -49,7 +49,7 @@ class Decoder(torch.nn.Module):
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
-                 dropout=0.0):
+                 dropout=0.0, replace_sos=False):
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
@@ -87,6 +87,7 @@ class Decoder(torch.nn.Module):
         self.lsm_weight = lsm_weight
         self.sampling_probability = sampling_probability
         self.dropout = dropout
+        self.replace_sos = replace_sos  # for multilingual translation
 
         self.logzero = -10000000000.0
 
@@ -126,8 +127,12 @@ class Decoder(torch.nn.Module):
         # prepare input and output word sequences with sos/eos IDs
         eos = ys[0].new([self.eos])
         sos = ys[0].new([self.sos])
-        ys_in = [torch.cat([sos, y], dim=0) for y in ys]
-        ys_out = [torch.cat([y, eos], dim=0) for y in ys]
+        if self.replace_sos:
+            ys_in = ys[:]
+            ys_out = [torch.cat([y[1:], eos], dim=0) for y in ys]
+        else:
+            ys_in = [torch.cat([sos, y], dim=0) for y in ys]
+            ys_out = [torch.cat([y, eos], dim=0) for y in ys]
 
         # padding for ys with -1
         # pys: utt x olen
@@ -182,6 +187,9 @@ class Decoder(torch.nn.Module):
         acc = th_accuracy(y_all, ys_out_pad, ignore_label=self.ignore_id)
         logging.info('att loss:' + ''.join(str(self.loss.item()).split('\n')))
 
+        # compute perplexity
+        ppl = np.exp(self.loss.item() * np.mean([len(x) for x in ys_in]) / np.sum([len(x) for x in ys_in]))
+
         # show predicted character sequence for debug
         if self.verbose > 0 and self.char_list is not None:
             ys_hat = y_all.view(batch, olength, -1)
@@ -205,7 +213,7 @@ class Decoder(torch.nn.Module):
             loss_reg = - torch.sum((F.log_softmax(y_all, dim=1) * self.vlabeldist).view(-1), dim=0) / len(ys_in)
             self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
-        return self.loss, acc
+        return self.loss, acc, ppl
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
         """beam search implementation
@@ -234,7 +242,14 @@ class Decoder(torch.nn.Module):
         ctc_weight = recog_args.ctc_weight
 
         # preprate sos
-        y = self.sos
+        if recog_args.sos:
+            logging.info('sos index: ' + str(char_list.index(recog_args.sos)))
+            logging.info('sos mark: ' + recog_args.sos)
+            y = char_list.index(recog_args.sos)
+        else:
+            logging.info('sos index: ' + str(self.sos))
+            logging.info('sos mark: ' + char_list[self.sos])
+            y = self.sos
         vy = h.new_zeros(1).long()
 
         if recog_args.maxlenratio == 0:
@@ -425,7 +440,14 @@ class Decoder(torch.nn.Module):
 
         self.att.reset()  # reset pre-computation of h
 
-        yseq = [[self.sos] for _ in six.moves.range(n_bb)]
+        if recog_args.sos:
+            logging.info('sos index: ' + str(char_list.index(recog_args.sos)))
+            logging.info('sos mark: ' + recog_args.sos)
+            yseq = [[char_list.index(recog_args.sos)] for _ in six.moves.range(n_bb)]
+        else:
+            logging.info('sos index: ' + str(self.sos))
+            logging.info('sos mark: ' + char_list[self.sos])
+            yseq = [[self.sos] for _ in six.moves.range(n_bb)]
         accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
         stop_search = [False for _ in six.moves.range(batch)]
         nbest_hyps = [[] for _ in six.moves.range(batch)]
@@ -480,7 +502,7 @@ class Decoder(torch.nn.Module):
             local_scores = to_device(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
 
             # (or indexing)
-            # local_scores = to_cuda(self, torch.full((batch, beam, self.odim), self.logzero))
+            # local_scores = to_device(self, torch.full((batch, beam, self.odim), self.logzero))
             # _best_odims = local_best_odims
             # _best_score = local_best_scores
             # for si in six.moves.range(batch):
@@ -622,6 +644,7 @@ class Decoder(torch.nn.Module):
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
-    return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
-                   args.char_list, labeldist,
-                   args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder)
+    return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att,
+                   args.verbose, args.char_list, labeldist,
+                   args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
+                   args.replace_sos)
