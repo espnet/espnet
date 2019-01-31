@@ -34,11 +34,11 @@ def make_dummy_json(n_utts=10, ilen_range=(100, 300), olen_range=(10, 300)):
 def test_make_batchset(utils):
     dummy_json = make_dummy_json(128, [128, 512], [16, 128])
     # check w/o adaptive batch size
-    batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
+    batchset = utils.make_batchset(dummy_json, 24, 2 ** 10, 2 ** 10,
                                    min_batch_size=1)
     assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
     print([len(batch) for batch in batchset])
-    batchset = utils.make_batchset(dummy_json, 24, 2**10, 2**10,
+    batchset = utils.make_batchset(dummy_json, 24, 2 ** 10, 2 ** 10,
                                    min_batch_size=10)
     assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
     print([len(batch) for batch in batchset])
@@ -51,6 +51,25 @@ def test_make_batchset(utils):
     batchset = utils.make_batchset(dummy_json, 24, 256, 64,
                                    min_batch_size=10)
     assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
+
+
+@pytest.mark.parametrize('utils', [espnet.asr.asr_utils, espnet.tts.tts_utils])
+def test_sortagrad(utils):
+    dummy_json = make_dummy_json(512, [1, 700], [1, 700])
+    if "tts" in str(utils):
+        batchset = utils.make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, batch_sort_key="input", shortest_first=True)
+    else:
+        batchset = utils.make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, shortest_first=True)
+    prev_start_ilen = batchset[0][0][1]['input'][0]['shape'][0]
+    for batch in batchset:
+        cur_start_ilen = batch[0][1]['input'][0]['shape'][0]
+        assert cur_start_ilen >= prev_start_ilen  # Sorted from shortest to longest in batchset
+        prev_ilen = prev_start_ilen
+        for sample in batch[1:]:
+            cur_ilen = sample[1]['input'][0]['shape'][0]
+            assert cur_ilen <= prev_ilen  # Sorted from longest to shortest in batch (for RNN)
+            prev_ilen = cur_ilen
+        prev_start_ilen = cur_start_ilen
 
 
 def test_load_inputs_and_targets_legacy_format(tmpdir):
