@@ -47,7 +47,7 @@ postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
 # attention related
-atype=location
+atype=forward_ta
 adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
@@ -64,7 +64,7 @@ batch_sort_key=output # shuffle or input or output
 maxlen_in=200     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
 maxlen_out=800    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
 # optimization related
-lr=5e-4
+lr=1e-3
 eps=1e-6
 weight_decay=0.0
 dropout=0.5
@@ -80,8 +80,8 @@ griffin_lim_iters=100  # the number of iterations of Griffin-Lim
 
 # dataset configuration
 db_root=downloads
-lang=de_DE  # en_UK, de_DE, es_ES, it_IT
-spk=angela  # see local/data_prep.sh to check available speakers
+lang=it_IT  # en_UK, de_DE, es_ES, it_IT
+spk=riccardo  # see local/data_prep.sh to check available speakers
 
 # exp tag
 tag="" # tag for managing experiments.
