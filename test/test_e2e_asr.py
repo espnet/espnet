@@ -90,10 +90,10 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
 
 
 def convert_batch(batch, backend="pytorch", is_cuda=False):
-    assert len(batch) == 1
-    xs, ys = batch[0]
-    ilens = np.array([x.shape[0] for x in xs])
-
+    ilens = np.array([x[1]['input'][0]['shape'][0] for x in batch])
+    olens = np.array([x[1]['output'][0]['shape'][0] for x in batch])
+    xs = [np.random.randn(ilen, 40).astype(np.float32) for ilen in ilens]
+    ys = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens]
     is_pytorch = backend == "pytorch"
     if is_pytorch:
         xs = pad_list([torch.from_numpy(x).float() for x in xs], 0)
