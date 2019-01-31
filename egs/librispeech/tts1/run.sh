@@ -91,7 +91,7 @@ set -u
 set -o pipefail
 
 train_set=train_clean_460
-train_dev=dev
+dev_set=dev
 eval_set=test_clean
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
@@ -112,10 +112,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
+feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
 feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    ### Task dependent. You have to design training and dev sets by yourself.
+    ### Task dependent. You have to design training and dev name by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
@@ -135,12 +135,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     utils/combine_data.sh data/${train_set}_org data/train_clean_100 data/train_clean_360
-    utils/combine_data.sh data/${train_dev}_org data/dev_clean
+    utils/combine_data.sh data/${dev_set}_org data/dev_clean
 
     # remove utt having more than 3000 frames
     # remove utt having more than 400 characters
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_dev}_org data/${train_dev}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${dev_set}_org data/${dev_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -149,7 +149,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
@@ -169,7 +169,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
     data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
@@ -179,7 +179,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Make MFCCs and compute the energy-based VAD for each dataset
     mfccdir=mfcc
     vaddir=mfcc
-    for name in ${train_set} ${train_dev} ${eval_set}; do
+    for name in ${train_set} ${dev_set} ${eval_set}; do
         utils/copy_data_dir.sh data/${name} data/${name}_mfcc
         steps/make_mfcc.sh \
             --write-utt2num-frames true \
@@ -201,13 +201,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
     fi
     # Extract x-vector
-    for name in ${train_set} ${train_dev} ${eval_set}; do
+    for name in ${train_set} ${dev_set} ${eval_set}; do
         sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
             ${nnet_dir} data/${name}_mfcc \
             ${nnet_dir}/xvectors_${name}
     done
     # Update json
-    for name in ${train_set} ${train_dev} ${eval_set}; do
+    for name in ${train_set} ${dev_set} ${eval_set}; do
         local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
     done
 fi
@@ -307,36 +307,36 @@ fi
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
     echo "stage 5: Decoding"
-    for sets in ${train_dev} ${eval_set};do
-        [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
-        cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
-        splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
+    for name in ${dev_set} ${eval_set};do
+        [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
+        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
+        splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
-                --out ${outdir}/${sets}/feats.JOB \
-                --json ${outdir}/${sets}/split${nj}utt/data.JOB.json \
+                --out ${outdir}/${name}/feats.JOB \
+                --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
                 --threshold ${threshold} \
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
         # concatenate scp files
         for n in $(seq ${nj}); do
-            cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
-        done > ${outdir}/${sets}/feats.scp
+            cat "${outdir}/${name}/feats.$n.scp" || exit 1;
+        done > ${outdir}/${name}/feats.scp
     done
 fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ];then
     echo "stage 6: Synthesis"
-    for sets in ${train_dev} ${eval_set};do
-        [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
+    for name in ${dev_set} ${eval_set};do
+        [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
-            scp:${outdir}/${sets}/feats.scp \
-            ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
+            scp:${outdir}/${name}/feats.scp \
+            ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
         convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} \
             --fmax "${fmax}" \
@@ -345,8 +345,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ];then
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
             --n_mels ${n_mels} \
-            ${outdir}_denorm/${sets} \
-            ${outdir}_denorm/${sets}/log \
-            ${outdir}_denorm/${sets}/wav
+            ${outdir}_denorm/${name} \
+            ${outdir}_denorm/${name}/log \
+            ${outdir}_denorm/${name}/wav
     done
 fi
