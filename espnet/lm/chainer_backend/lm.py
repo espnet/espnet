@@ -145,31 +145,55 @@ class RNNLM(chainer.Chain):
     :param int n_vocab: The size of the vocabulary
     :param int n_layers: The number of layers to create
     :param int n_units: The number of units per layer
+    :param str type: The RNN type
     """
 
-    def __init__(self, n_vocab, n_layers, n_units):
+    def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(n_vocab, n_units)
-            self.lstm = chainer.ChainList(
-                *[L.StatelessLSTM(n_units, n_units) for _ in range(n_layers)])
+            self.rnn = chainer.ChainList(
+                *[L.StatelessLSTM(n_units, n_units) for _ in range(n_layers)]) if typ == "lstm" \
+                else chainer.ChainList(*[L.StatelessGRU(n_units, n_units) for _ in range(n_layers)])
             self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
             param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
         self.n_layers = n_layers
+        self.n_units = n_units
+        self.typ = typ
 
     def __call__(self, state, x):
         if state is None:
-            state = {'c': [None] * self.n_layers, 'h': [None] * self.n_layers}
+            if self.typ == "lstm":
+                state = {'c': [None] * self.n_layers, 'h': [None] * self.n_layers}
+            else:
+                state = {'h': [None] * self.n_layers}
+
         h = [None] * self.n_layers
-        c = [None] * self.n_layers
         emb = self.embed(x)
-        c[0], h[0] = self.lstm[0](state['c'][0], state['h'][0], F.dropout(emb))
-        for n in six.moves.range(1, self.n_layers):
-            c[n], h[n] = self.lstm[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
+        if self.typ == "lstm":
+            c = [None] * self.n_layers
+            c[0], h[0] = self.rnn[0](state['c'][0], state['h'][0], F.dropout(emb))
+            for n in six.moves.range(1, self.n_layers):
+                c[n], h[n] = self.rnn[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
+            state = {'c': c, 'h': h}
+        else:
+            if state['h'][0] is None:
+                xp = self.xp
+                with chainer.backends.cuda.get_device_from_id(self._device_id):
+                    state['h'][0] = chainer.Variable(
+                        xp.zeros((emb.shape[0], self.n_units), dtype=emb.dtype))
+            h[0] = self.rnn[0](state['h'][0], F.dropout(emb))
+            for n in six.moves.range(1, self.n_layers):
+                if state['h'][n] is None:
+                    xp = self.xp
+                    with chainer.backends.cuda.get_device_from_id(self._device_id):
+                        state['h'][n] = chainer.Variable(
+                            xp.zeros((h[n - 1].shape[0], self.n_units), dtype=h[n - 1].dtype))
+                h[n] = self.rnn[n](state['h'][n], F.dropout(h[n - 1]))
+            state = {'h': h}
         y = self.lo(F.dropout(h[-1]))
-        state = {'c': c, 'h': h}
         return state, y
 
 
@@ -296,7 +320,7 @@ def train(args):
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
     logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
-    rnn = RNNLM(args.n_vocab, args.layer, args.unit)
+    rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
     model = ClassifierWithState(rnn)
     if args.ngpu > 1:
         logging.warning("currently, multi-gpu is not supported. use single gpu.")
