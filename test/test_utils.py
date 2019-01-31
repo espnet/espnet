@@ -63,11 +63,11 @@ def test_sortagrad(utils):
     prev_start_ilen = batchset[0][0][1]['input'][0]['shape'][0]
     for batch in batchset:
         cur_start_ilen = batch[0][1]['input'][0]['shape'][0]
-        assert cur_start_ilen >= prev_start_ilen  # Sorted from shortest to longest in batchset
+        assert cur_start_ilen >= prev_start_ilen
         prev_ilen = prev_start_ilen
         for sample in batch[1:]:
             cur_ilen = sample[1]['input'][0]['shape'][0]
-            assert cur_ilen <= prev_ilen  # Sorted from longest to shortest in batch (for RNN)
+            assert cur_ilen >= prev_ilen
             prev_ilen = cur_ilen
         prev_start_ilen = cur_start_ilen
 
