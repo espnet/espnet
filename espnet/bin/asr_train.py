@@ -49,7 +49,7 @@ def main(args):
     # network architecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
+                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm', 'bgru', 'bgrup', 'vggbgrup', 'vggbgru'],
                         help='Type of encoder network architecture')
     parser.add_argument('--elayers', default=4, type=int,
                         help='Number of encoder layers')
@@ -62,8 +62,8 @@ def main(args):
                              'every y frame at 2nd layer etc.')
     # loss
     parser.add_argument('--ctc_type', default='warpctc', type=str,
-                        choices=['chainer', 'warpctc'],
-                        help='Type of CTC implementation to calculate loss.')
+                        choices=['builtin', 'warpctc'],
+                        help='Type of CTC implementation to calculate loss. ')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
@@ -85,7 +85,7 @@ def main(args):
                         (negative value indicates no location-aware attention)')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
-                        choices=['lstm'],
+                        choices=['lstm', 'gru'],
                         help='Type of decoder network architecture')
     parser.add_argument('--dlayers', default=1, type=int,
                         help='Number of decoder layers')
