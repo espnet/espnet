@@ -184,14 +184,14 @@ def test_custom_encoder(module, etype, elayers):
 
 
 @pytest.mark.parametrize(
-    "module", "etype", [
+    "module, etype", [
         ("espnet.nets.pytorch_backend.e2e_asr", "blstmp"),
         ("espnet.nets.pytorch_backend.e2e_asr", "bgrup"),
         ("espnet.nets.chainer_backend.e2e_asr", "blstmp"),
         ("espnet.nets.chainer_backend.e2e_asr", "bgrup")
     ]
 )
-def test_correct_blstmp_init_custom_enc(module, etype):
+def test_correct_brnnp_init_custom_enc(module, etype):
     n_layers_k = "n_layers"
     h_size_k = "hidden_size"
     drop_k = "dropout"
@@ -237,7 +237,7 @@ def test_correct_blstmp_init_custom_enc(module, etype):
 
 
 @pytest.mark.parametrize(
-    "module", "etype", [
+    "module, etype", [
         ("espnet.nets.pytorch_backend.e2e_asr", "blstm"),
         ("espnet.nets.pytorch_backend.e2e_asr", "bgru"),
         ("espnet.nets.chainer_backend.e2e_asr", "blstm"),
