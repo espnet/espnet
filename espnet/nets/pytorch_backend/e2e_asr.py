@@ -293,26 +293,38 @@ class E2E(torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        ilens = [x.shape[0]]
+
         # subsample frame
         x = x[::self.subsample[0], :]
-        ilen = [x.shape[0]]
-        h = to_device(self, torch.from_numpy(
-            np.array(x, dtype=np.float32)))
+        if x.dtype.kind == 'c':
+            # Relative importing because of using python3 syntax
+            from torch_complex.tensor import ComplexTensor
+            h = to_device(self, ComplexTensor(x).float())
+        else:
+            h = to_device(self, torch.from_numpy(x).float())
+        # make a utt list (1) to use the same interface for encoder
+        hs = h.contiguous().unsqueeze(0)
+
+        # 0. Frontend
+        if self.frontend is not None:
+            hs, hlens = self.frontend(hs, ilens)
+            hs, hlens = self.feature_transform(hs, hlens)
+        else:
+            hs, hlens = hs, ilens
 
         # 1. encoder
-        # make a utt list (1) to use the same interface for encoder
-        h = h.contiguous()
-        h, _ = self.enc(h.unsqueeze(0), ilen)
+        hs, _ = self.enc(hs, hlens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(h)[0]
+            lpz = self.ctc.log_softmax(hs)[0]
         else:
             lpz = None
 
         # 2. decoder
         # decode the first utterance
-        y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(hs[0], lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -330,31 +342,36 @@ class E2E(torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_device(self, torch.from_numpy(np.array(xx, dtype=np.float32)))
-              for xx in xs]
+        if xs[0].dtype.kind == 'c':
+            # Relative importing because of using python3 syntax
+            from torch_complex.tensor import ComplexTensor
+            xs = [to_device(self, ComplexTensor(xx).float()) for xx in xs]
+        else:
+            xs = [to_device(self, torch.from_numpy(xx).float()) for xx in xs]
+        xs_pad = pad_list(xs, 0.0)
 
-        # 1. encoder
-        xpad = pad_list(hs, 0.0)
         # 0. Frontend
         if self.frontend is not None:
-            hpad, hlens = self.frontend(xpad, ilens)
-            hpad, hlens = self.feature_transform(hpad, hlens)
+            hs_pad, hlens = self.frontend(xs_pad, ilens)
+            hs_pad, hlens = self.feature_transform(hs_pad, hlens)
         else:
-            hpad, hlens = xpad, ilens
+            hs_pad, hlens = hs_pad, ilens
 
-        hpad, hlens = self.enc(hpad, hlens)
+        # 1. encoder
+        hs_pad, hlens = self.enc(hs_pad, hlens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(hpad)
+            lpz = self.ctc.log_softmax(hs_pad)
         else:
             lpz = None
 
         # 2. decoder
-        y = self.dec.recognize_beam_batch(hpad, hlens, lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
