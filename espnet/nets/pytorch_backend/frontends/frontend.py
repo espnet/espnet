@@ -1,5 +1,6 @@
-from typing import Tuple
+from typing import Tuple, List, Union
 
+import numpy
 import torch
 import torch.nn as nn
 from torch_complex.tensor import ComplexTensor
@@ -67,11 +68,14 @@ class Frontend(nn.Module):
         else:
             self.beamformer = None
 
-    def forward(self, x: ComplexTensor, ilens: torch.LongTensor=None) \
+    def forward(self, x: ComplexTensor,
+                ilens: Union[torch.LongTensor, numpy.ndarray, List[int]]=None)\
             -> Tuple[ComplexTensor, torch.LongTensor]:
         # (B, T, F) or (B, T, C, F)
         if x.dim() not in (3, 4):
             raise ValueError(f'Input dim must be 3 or 4: {x.dim()}')
+        if not torch.is_tensor(ilens):
+            ilens = torch.from_numpy(numpy.asarray(ilens)).to(x.device)
 
         h = x
         # 1. WPE
