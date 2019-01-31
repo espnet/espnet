@@ -29,6 +29,7 @@ elif [ ${lang} = "es_ES" ];then
     available_spks=("karen" "tux" "victor")
 else
     echo "${lang} is not supported."
+    exit 1
 fi
 
 # check speaker
