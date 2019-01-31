@@ -19,16 +19,18 @@ MAX_DECODER_OUTPUT = 5
 
 
 class Decoder(chainer.Chain):
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
+    def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(odim, dunits)
-            self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
+            self.rnn0 = L.StatelessLSTM(dunits + eprojs, dunits) if dtype == "lstm" \
+                else L.StatelessGRU(dunits + eprojs, dunits)
             for l in six.moves.range(1, dlayers):
-                setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
+                setattr(self, 'rnn%d' % l,
+                        L.StatelessLSTM(dunits, dunits) if dtype == "lstm" else L.StatelessGRU(dunits, dunits))
             self.output = L.Linear(dunits, odim)
-
+        self.dtype = dtype
         self.loss = None
         self.att = att
         self.dlayers = dlayers
@@ -42,6 +44,27 @@ class Decoder(chainer.Chain):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
         self.sampling_probability = sampling_probability
+
+    def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
+        if self.dtype == "lstm":
+            c_list[0], z_list[0] = self.rnn0(c_prev[0], z_prev[0], ey)
+            for l in six.moves.range(1, self.dlayers):
+                c_list[l], z_list[l] = self['rnn%d' % l](c_prev[l], z_prev[l], z_list[l - 1])
+        else:
+            if z_prev[0] is None:
+                xp = self.xp
+                with chainer.backends.cuda.get_device_from_id(self._device_id):
+                    z_prev[0] = chainer.Variable(
+                        xp.zeros((ey.shape[0], self.dunits), dtype=ey.dtype))
+            z_list[0] = self.rnn0(z_prev[0], ey)
+            for l in six.moves.range(1, self.dlayers):
+                if z_prev[l] is None:
+                    xp = self.xp
+                    with chainer.backends.cuda.get_device_from_id(self._device_id):
+                        z_prev[l] = chainer.Variable(
+                            xp.zeros((z_list[l - 1].shape[0], self.dunits), dtype=z_list[l - 1].dtype))
+                z_list[l] = self['rnn%d' % l](z_prev[l], z_list[l - 1])
+        return z_list, c_list
 
     def __call__(self, hs, ys):
         """Decoder forward
@@ -93,9 +116,7 @@ class Decoder(chainer.Chain):
                 ey = F.hstack((z_out, att_c))  # utt x (zdim + hdim)
             else:
                 ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
-            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
-            for l in six.moves.range(1, self.dlayers):
-                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             z_all.append(z_list[-1])
 
         z_all = F.reshape(F.stack(z_all, axis=1),
@@ -193,10 +214,8 @@ class Decoder(chainer.Chain):
                 ey = self.embed(hyp['yseq'][i])  # utt list (1) x zdim
                 att_c, att_w = self.att([h], hyp['z_prev'][0], hyp['a_prev'])
                 ey = F.hstack((ey, att_c))  # utt(1) x (zdim + hdim)
-                c_list[0], z_list[0] = self.lstm0(hyp['c_prev'][0], hyp['z_prev'][0], ey)
-                for l in six.moves.range(1, self.dlayers):
-                    c_list[l], z_list[l] = self['lstm%d' % l](
-                        hyp['c_prev'][l], hyp['z_prev'][l], z_list[l - 1])
+
+                z_list, c_list = self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
 
                 # get nbest local scores and their ids
                 local_att_scores = F.log_softmax(self.output(z_list[-1])).data
@@ -342,9 +361,7 @@ class Decoder(chainer.Chain):
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
             ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
-            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
-            for l in six.moves.range(1, self.dlayers):
-                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             att_ws.append(att_w)  # for debugging
 
         att_ws = F.stack(att_ws, axis=1)
@@ -354,5 +371,6 @@ class Decoder(chainer.Chain):
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
-    return Decoder(args.eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
+    return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
+                   args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability)
