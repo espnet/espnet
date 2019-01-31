@@ -11,13 +11,13 @@ import os
 import pytest
 import random
 
-
 args = argparse.Namespace(
     elayers=4,
     subsample="1_2_2_1_1",
     etype="vggblstmp",
     eunits=320,
     eprojs=320,
+    dtype="lstm",
     dlayers=2,
     dunits=300,
     atype="location",
@@ -29,6 +29,7 @@ args = argparse.Namespace(
     sampling_probability=0.0,
     adim=320,
     dropout_rate=0.0,
+    dropout_rate_decoder=0.0,
     beam_size=3,
     penalty=0.5,
     maxlenratio=1.0,
@@ -91,9 +92,9 @@ def test_lecun_init_chainer():
     for name, p in model.namedparams():
         print(name)
         data = p.data
-        if "lstm0/upward/b" in name:
+        if "rnn0/upward/b" in name:
             assert data.sum() == data.size // 4
-        elif "lstm1/upward/b" in name:
+        elif "rnn1/upward/b" in name:
             assert data.sum() == data.size // 4
         elif "embed" in name:
             numpy.testing.assert_allclose(data.mean(), 0.0, 5e-2, 5e-2)
