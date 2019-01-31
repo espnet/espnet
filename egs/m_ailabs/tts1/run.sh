@@ -25,6 +25,12 @@ n_mels=80   # number of mel basis
 n_fft=1024  # number of fft points
 n_shift=256 # number of shift points
 win_length="" # window length
+# silence part trimming related
+do_trimming=true
+trim_threshold=60 # (in decibels)
+trim_win_length=1024
+trim_shift_length=256
+trim_min_silence=0.01
 # encoder related
 embed_dim=512
 elayers=1
@@ -88,9 +94,17 @@ set -e
 set -u
 set -o pipefail
 
+org_set=${lang}_${spk}
 train_set=${lang}_${spk}_train
 train_dev=${lang}_${spk}_dev
 eval_set=${lang}_${spk}_eval
+
+if ${do_trimming}; then
+    org_set=${org_set}_trim
+    train_set=${train_set}_trim
+    train_dev=${train_dev}_trim
+    eval_set=${eval_set}_trim
+fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -101,9 +115,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root} ${lang} ${spk} data/${lang}_${spk}
-    utils/fix_data_dir.sh data/${lang}_${spk}
-    utils/validate_data_dir.sh --no-feats data/${lang}_${spk}
+    local/data_prep.sh ${db_root} ${lang} ${spk} data/${org_set}
+    utils/fix_data_dir.sh data/${org_set}
+    utils/validate_data_dir.sh --no-feats data/${org_set}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -113,9 +127,23 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-
+    # Trim silence part
+    if ${do_trimming}; then
+        ${train_cmd} exp/trim_silence/${org_set}.log \
+            local/trim_silence.py \
+                --fs ${fs} \
+                --win_length ${trim_win_length} \
+                --shift_length ${trim_shift_length} \
+                --threshold ${trim_threshold} \
+                --min_silence ${trim_min_silence} \
+                --normalize 16 \
+                scp:data/${org_set}/wav.scp \
+                data/${org_set}/segments
+        echo "Successfully trimed silence part."
+    fi
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
+    ${do_trimming} && org_set=${org_set}_trim
     make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
         --fs ${fs} \
         --fmax "${fmax}" \
@@ -124,17 +152,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --n_shift ${n_shift} \
         --win_length "${win_length}" \
         --n_mels ${n_mels} \
-        data/${lang}_${spk} \
-        exp/make_fbank/${lang}_${spk} \
+        data/${org_set} \
+        exp/make_fbank/${org_set} \
         ${fbankdir}
 
     # make a dev set
-    utils/subset_data_dir.sh --last data/${lang}_${spk} 500 data/${lang}_${spk}_tmp
-    utils/subset_data_dir.sh --last data/${lang}_${spk}_tmp 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/${lang}_${spk}_tmp 250 data/${train_dev}
-    n=$(( $(wc -l < data/${lang}_${spk}/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --first data/${lang}_${spk} ${n} data/${train_set}
-    rm -rf data/${lang}_${spk}_tmp
+    utils/subset_data_dir.sh --last data/${org_set} 500 data/${org_set}_tmp
+    utils/subset_data_dir.sh --last data/${org_set}_tmp 250 data/${eval_set}
+    utils/subset_data_dir.sh --first data/${org_set}_tmp 250 data/${train_dev}
+    n=$(( $(wc -l < data/${org_set}/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --first data/${org_set} ${n} data/${train_set}
+    rm -rf data/${org_set}_tmp
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -167,7 +195,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
-
 
 if [ -z ${tag} ];then
     expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
