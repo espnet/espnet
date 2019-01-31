@@ -72,7 +72,7 @@ class E2E(torch.nn.Module):
         num_layers = len(elayers)
         eprojs = elayers[-1][2]
         subsample = np.ones(num_layers + 1, dtype=np.int)
-        if etype == 'blstmp':
+        if args.etype.endswith("p") and not args.etype.startswith("vgg"):
             ss = args.subsample.split("_")
             for j in range(min(num_layers + 1, len(ss))):
                 subsample[j] = int(ss[j])

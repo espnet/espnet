@@ -49,7 +49,7 @@ def main(args):
     # network architecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
+                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm', 'bgru', 'bgrup', 'vggbgrup', 'vggbgru'],
                         help='Type of encoder network architecture')
     parser.add_argument('--elayers', default='4x300', type=str,
                         help='Encoder layers configuration')
@@ -82,7 +82,7 @@ def main(args):
                         (negative value indicates no location-aware attention)')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
-                        choices=['lstm'],
+                        choices=['lstm', 'gru'],
                         help='Type of decoder network architecture')
     parser.add_argument('--dlayers', default=1, type=int,
                         help='Number of decoder layers')

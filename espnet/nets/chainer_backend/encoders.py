@@ -1,5 +1,4 @@
 import logging
-import sys
 
 import chainer
 import chainer.functions as F
@@ -15,9 +14,9 @@ from espnet.nets.e2e_asr_common import get_vgg2l_odim
 
 
 # TODO(watanabe) explanation of BLSTMP
-class BLSTMP(chainer.Chain):
-    def __init__(self, idim, elayers, subsample):
-        super(BLSTMP, self).__init__()
+class BRNNP(chainer.Chain):
+    def __init__(self, idim, elayers, subsample, typ="lstm"):
+        super(BRNNP, self).__init__()
         with self.init_scope():
             for layer in six.moves.range(len(elayers)):
                 units = elayers[layer][0]
@@ -26,16 +25,17 @@ class BLSTMP(chainer.Chain):
                     inputdim = idim
                 else:
                     inputdim = elayers[layer - 1][2]
-                setattr(self, "bilstm%d" % layer, L.NStepBiLSTM(
-                    1, inputdim, units, 0))
+                setattr(self, "birnn%d" % layer, L.NStepBiLSTM(
+                    1, inputdim, units, 0) if typ == "lstm" else L.NStepBiGRU(1, inputdim, units, 0))
                 # bottleneck layer to merge
                 setattr(self, "bt%d" % layer, L.Linear(2 * units, projs))
 
         self.elayers = elayers
         self.subsample = subsample
+        self.typ = typ
 
     def __call__(self, xs, ilens):
-        """BLSTMP forward
+        """BRNNP forward
 
         :param xs:
         :param ilens:
@@ -44,7 +44,10 @@ class BLSTMP(chainer.Chain):
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
 
         for layer in six.moves.range(len(self.elayers)):
-            hy, cy, ys = self['bilstm' + str(layer)](None, None, xs)
+            if self.typ == "lstm":
+                _, _, ys = self['birnn' + str(layer)](None, None, xs)
+            else:
+                _, ys = self['birnn' + str(layer)](None, xs)
             dropout = self.elayers[layer][1]
             if dropout > 0:
                 for i in range(len(ys)):
@@ -58,7 +61,6 @@ class BLSTMP(chainer.Chain):
             if proj_dropout > 0:
                 ys = F.dropout(ys, proj_dropout)
             xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
-            del hy, cy
 
         # final tanh operation
         xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), axis=0)
@@ -70,20 +72,24 @@ class BLSTMP(chainer.Chain):
         return xs, ilens  # x: utt list of frame x dim
 
 
-class BLSTM(chainer.Chain):
-    def __init__(self, idim, elayers):
-        super(BLSTM, self).__init__()
+class BRNN(chainer.Chain):
+    def __init__(self, idim, elayers, typ="lstm"):
+        super(BRNN, self).__init__()
         num_layers = len(elayers)
         cdim = elayers[0][0]
         dropout = elayers[0][1]
         hdim = elayers[0][2]
         with self.init_scope():
-            self.nblstm = L.NStepBiLSTM(num_layers, idim, cdim, dropout)
+            self.nbrnn = L.NStepBiLSTM(num_layers, idim, cdim, dropout) if typ == "lstm" else L.NStepBiGRU(num_layers,
+                                                                                                           idim,
+                                                                                                           cdim,
+                                                                                                           dropout)
             self.l_last = L.Linear(cdim * 2, hdim)
+        self.typ = typ
         self.proj_dropout = elayers[0][3]
 
     def __call__(self, xs, ilens):
-        """BLSTM forward
+        """BRNN forward
 
         :param xs:
         :param ilens:
@@ -92,15 +98,17 @@ class BLSTM(chainer.Chain):
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         # need to move ilens to cpu
         ilens = cuda.to_cpu(ilens)
-        hy, cy, ys = self.nblstm(None, None, xs)
-        if self.nblstm.dropout > 0:
+        if self.typ == "lstm":
+            _, _, ys = self.nbrnn(None, None, xs)
+        else:
+            _, ys = self.nbrnn(None, xs)
+        if self.nbrnn.dropout > 0:
             for i in range(len(ys)):
-                ys[i] = F.dropout(ys[i], self.nblstm.dropout)
+                ys[i] = F.dropout(ys[i], self.nbrnn.dropout)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
         if self.proj_dropout > 0:
             ys = F.dropout(ys, self.proj_dropout)
         xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
-        del hy, cy
 
         # final tanh operation
         xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), axis=0)
@@ -182,26 +190,29 @@ class Encoder(chainer.Chain):
     def __init__(self, etype, idim, elayers, subsample, in_channel=1):
         super(Encoder, self).__init__()
         expanded_layers, etype = expand_elayers(elayers, etype, warn=True)
+        typ = etype.lstrip("vgg").lstrip("b").rstrip("p")
+        if typ != "lstm" and typ != "gru":
+            logging.error("Error: need to specify an appropriate encoder architecture")
         with self.init_scope():
-            if etype == 'blstm':
-                self.enc = chainer.Sequential(BLSTM(idim, expanded_layers))
-                logging.info('BLSTM without projection for encoder')
-            elif etype == 'blstmp':
-                self.enc = chainer.Sequential(BLSTMP(idim, expanded_layers, subsample))
-                logging.info('BLSTM with every-layer projection for encoder')
-            elif etype == 'vggblstmp':
-                self.enc = chainer.Sequential(VGG2L(in_channel),
-                                              BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel), expanded_layers,
-                                                     subsample))
-                logging.info('Use CNN-VGG + BLSTMP for encoder')
-            elif etype == 'vggblstm':
-                self.enc = chainer.Sequential(VGG2L(in_channel),
-                                              BLSTM(get_vgg2l_odim(idim, in_channel=in_channel), expanded_layers))
-                logging.info('Use CNN-VGG + BLSTM for encoder')
+            if etype.startswith("vgg"):
+                if etype[-1] == "p":
+                    self.enc = chainer.Sequential(VGG2L(in_channel),
+                                                  BRNNP(get_vgg2l_odim(idim, in_channel=in_channel), expanded_layers,
+                                                        subsample, typ=typ))
+                    logging.info('Use CNN-VGG + B' + typ.upper() + 'P for encoder')
+                else:
+                    self.enc = chainer.Sequential(VGG2L(in_channel),
+                                                  BRNN(get_vgg2l_odim(idim, in_channel=in_channel), expanded_layers,
+                                                       typ=typ))
+                    logging.info('Use CNN-VGG + B' + typ.upper() + ' for encoder')
             else:
-                logging.error(
-                    "Error: need to specify an appropriate encoder architecture")
-                sys.exit()
+                if etype[-1] == "p":
+                    self.enc = chainer.Sequential(
+                        BRNNP(idim, expanded_layers, subsample, typ=typ))
+                    logging.info('B' + typ.upper() + ' with every-layer projection for encoder')
+                else:
+                    self.enc = chainer.Sequential(BRNN(idim, expanded_layers, typ=typ))
+                    logging.info('B' + typ.upper() + ' without projection for encoder')
 
     def __call__(self, xs, ilens):
         """Encoder forward
