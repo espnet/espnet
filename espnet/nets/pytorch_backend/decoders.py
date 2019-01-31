@@ -128,7 +128,7 @@ class Decoder(torch.nn.Module):
         eos = ys[0].new([self.eos])
         sos = ys[0].new([self.sos])
         if self.replace_sos:
-            ys_in = ys[:]
+            ys_in = ys[:]  # feed the first token as <sos>
             ys_out = [torch.cat([y[1:], eos], dim=0) for y in ys]
         else:
             ys_in = [torch.cat([sos, y], dim=0) for y in ys]

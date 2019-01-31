@@ -174,6 +174,9 @@ def main(args):
                         help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
+    # speech translation related
+    parser.add_argument('--replace-sos', default=False, nargs='?',
+                        help='Feed the first token as <sos>')
     args = parser.parse_args(args)
 
     # logging info

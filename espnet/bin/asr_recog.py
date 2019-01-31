@@ -70,6 +70,8 @@ def main(args):
                         help='Word list to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
+    parser.add_argument('--sos', default=False, type=str,
+                        help='dummy for MT interface')
     args = parser.parse_args(args)
 
     # logging info
