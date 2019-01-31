@@ -96,13 +96,13 @@ set -o pipefail
 
 org_set=${lang}_${spk}
 train_set=${lang}_${spk}_train
-train_dev=${lang}_${spk}_dev
+dev_set=${lang}_${spk}_dev
 eval_set=${lang}_${spk}_eval
 
 if ${do_trimming}; then
     org_set=${org_set}_trim
     train_set=${train_set}_trim
-    train_dev=${train_dev}_trim
+    dev_set=${dev_set}_trim
     eval_set=${eval_set}_trim
 fi
 
@@ -121,10 +121,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
+feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
 feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    ### Task dependent. You have to design training and dev sets by yourself.
+    ### Task dependent. You have to design training and dev name by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
     # Trim silence parts at the begining and the end of audio
@@ -155,7 +155,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # make a dev set
     utils/subset_data_dir.sh --last data/${org_set} 500 data/${org_set}_tmp
     utils/subset_data_dir.sh --last data/${org_set}_tmp 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/${org_set}_tmp 250 data/${train_dev}
+    utils/subset_data_dir.sh --first data/${org_set}_tmp 250 data/${dev_set}
     n=$(( $(wc -l < data/${org_set}/wav.scp) - 500 ))
     utils/subset_data_dir.sh --first data/${org_set} ${n} data/${train_set}
     rm -rf data/${org_set}_tmp
@@ -167,7 +167,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
@@ -187,7 +187,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
     data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
@@ -286,36 +286,36 @@ fi
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
     echo "stage 4: Decoding"
-    for sets in ${train_dev} ${eval_set};do
-        [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
-        cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
-        splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
+    for name in ${dev_set} ${eval_set};do
+        [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
+        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
+        splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:${nj} ${outdir}/${sets}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
-                --out ${outdir}/${sets}/feats.JOB \
-                --json ${outdir}/${sets}/split${nj}utt/data.JOB.json \
+                --out ${outdir}/${name}/feats.JOB \
+                --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
                 --threshold ${threshold} \
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
         # concatenate scp files
         for n in $(seq ${nj}); do
-            cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
-        done > ${outdir}/${sets}/feats.scp
+            cat "${outdir}/${name}/feats.$n.scp" || exit 1;
+        done > ${outdir}/${name}/feats.scp
     done
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
     echo "stage 5: Synthesis"
-    for sets in ${train_dev} ${eval_set};do
-        [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
+    for name in ${dev_set} ${eval_set};do
+        [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
-            scp:${outdir}/${sets}/feats.scp \
-            ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
+            scp:${outdir}/${name}/feats.scp \
+            ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
         convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} \
             --fmax "${fmax}" \
@@ -325,8 +325,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
             --win_length "${win_length}" \
             --n_mels ${n_mels} \
             --iters ${griffin_lim_iters} \
-            ${outdir}_denorm/${sets} \
-            ${outdir}_denorm/${sets}/log \
-            ${outdir}_denorm/${sets}/wav
+            ${outdir}_denorm/${name} \
+            ${outdir}_denorm/${name}/log \
+            ${outdir}_denorm/${name}/wav
     done
 fi
