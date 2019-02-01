@@ -86,7 +86,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
+train_set=train_no_dev
 dev_set=dev
 eval_set=eval
 
