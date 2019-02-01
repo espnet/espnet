@@ -250,7 +250,7 @@ def addtional_arguments_for_frontend(parser: argparse.ArgumentParser):
         return bool(strtobool(x))
 
     parser.add_argument(
-        '--use-dnn-frontends', type=my_strtobool, default=False,
+        '--use-frontend', type=my_strtobool, default=False,
         help='The flag to switch to use frontend system.')
 
     # WPE options

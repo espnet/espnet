@@ -286,7 +286,7 @@ EOF
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
-        --use-dnn-frontends True \
+        --use-frontend True \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
