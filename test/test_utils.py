@@ -47,8 +47,8 @@ def test_sortagrad(utils):
     for batch in batchset:
         cur_start_ilen = batch[0][1][key][0]['shape'][0]
         assert cur_start_ilen >= prev_start_ilen
-        prev_ilen = prev_start_ilen
-        for sample in batch[1:]:
+        prev_ilen = cur_start_ilen
+        for sample in batch:
             cur_ilen = sample[1][key][0]['shape'][0]
             assert cur_ilen <= prev_ilen
             prev_ilen = cur_ilen
