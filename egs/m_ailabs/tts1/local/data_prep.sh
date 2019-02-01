@@ -27,6 +27,14 @@ elif [ ${lang} = "it_IT" ];then
     available_spks=("lisa" "riccardo")
 elif [ ${lang} = "es_ES" ];then
     available_spks=("karen" "tux" "victor")
+elif [ ${lang} = "en_US" ];then
+    available_spks=("judy" "mary" "elliot")
+elif [ ${lang} = "fr_FR" ];then
+    available_spks=("ezwa" "nadine" "bernard" "gilles" "zeckou")
+elif [ ${lang} = "uk_UK" ];then
+    available_spks=("sumska" "loboda" "miskun" "obruchov" "shepel")
+elif [ ${lang} = "ru_RU" ];then
+    available_spks=("hajdurova" "minaev" "nikolaev")
 else
     echo "${lang} is not supported."
     exit 1
