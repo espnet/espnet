@@ -169,7 +169,7 @@ class LoadInputsAndTargets(object):
             assert len(xs) == len(ys), (len(xs), len(ys))
 
             # get index of non-zero length samples
-            nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(ys)))
+            nonzero_idx = list(filter(lambda i: len(ys[i]) > 0, range(len(ys))))
         else:
             nonzero_idx = range(len(xs))
 
