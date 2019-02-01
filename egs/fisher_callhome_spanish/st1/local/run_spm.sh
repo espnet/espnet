@@ -31,48 +31,38 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 dlayers=2
 dunits=1024
 # attention related
-atype=location
+atype=add
 adim=1024
-aconv_chans=10
-aconv_filts=100
-
-# hybrid CTC/attention
-mtlalpha=0.5
 
 # regualrization option
-samp_prob=0
+samp_prob=0.2
 lsm_type=unigram
 lsm_weight=0.1
 drop_enc=0.3
 drop_dec=0.0
-weight_decay=0
+weight_decay=0.000001
+
+# transfer learning ralated
+asr_model=
+mt_model=
+# NOTE: reserve here for the future usage
 
 # minibatch related
-batchsize=20
+batchsize=25
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
-epochs=10
+epochs=15
 patience=3
-
-lm_layers=2
-lm_units=650
-lm_opt=adam       # or sgd
-lm_batchsize=256  # batch size in LM training
-lm_epochs=60      # if the data size is large, we can reduce this
-lm_maxlen=100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
-lm_resume=        # specify a snapshot file to resume LM training
-lmtag=            # tag for managing LMs
+eps_decay=0.01
 
 # decoding parameter
-lm_weight=0.3
 beam_size=20
-penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.3
+penalty=1.0
+maxlenratio=0.5
+minlenratio=0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # Set this to somewhere where you want to put your data, or where
@@ -104,9 +94,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_sp.es
-train_dev=dev_sp.es
-recog_set="fisher_dev.es fisher_dev2.es fisher_test.es callhome_devtest.es callhome_evltest.es"
+train_set=train_sp.en
+train_dev=dev_sp.en
+recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -198,12 +188,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish_st/st1/dump/${train_set}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish/st1/dump/${train_set}/delta${do_delta}/storage \
           ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish_st/st1/dump/${train_dev}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish/st1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
@@ -249,48 +239,36 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
             data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
     done
+
+    # update json (add source references)
+    for x in ${train_set} ${train_dev}; do
+        feat_dir=${dumpdir}/${x}/delta${do_delta}
+        data_dir=data/`echo ${x} | cut -f -1 -d "."`.es
+        local/update_json.sh --bpecode ${bpemodel}.model ${feat_dir}/data_${bpemode}${nbpe}.json ${data_dir} ${dict}
+    done
+
+    # Fisher has 4 references per utterance
+    for rtask in fisher_dev.en fisher_dev2.en fisher_test.en; do
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        for no in 1 2 3; do
+          local/data2json.sh --text data/${rtask}/text.${no} --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
+              data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}_${no}.json
+        done
+    done
 fi
 
-# You can skip this and remove --rnnlm option in the recognition (stage 3)
-if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
-fi
-lmexpdir=exp/${train_set}_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
-mkdir -p ${lmexpdir}
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_${train_set}_${bpemode}${nbpe}
-    mkdir -p ${lmdatadir}
-    cat data/${train_set}/text | grep sp1.0 | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/train.txt
-    cat data/${train_dev}/text | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/valid.txt
-    # use only 1 gpu
-    if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
-    fi
-    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
-        lm_train.py \
-        --ngpu ${ngpu} \
-        --backend ${backend} \
-        --verbose 1 \
-        --outdir ${lmexpdir} \
-        --train-label ${lmdatadir}/train.txt \
-        --valid-label ${lmdatadir}/valid.txt \
-        --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --maxlen ${lm_maxlen} \
-        --dict ${dict}
-fi
+# NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
     if ${do_delta}; then
         expname=${expname}_delta
+    fi
+    if [ ! -z ${asr_model} ]; then
+      expname=${expname}_asrtrans
+    fi
+    if [ ! -z ${mt_model} ]; then
+      expname=${expname}_mttrans
     fi
 else
     expname=${train_set}_${backend}_${tag}
@@ -323,9 +301,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dunits ${dunits} \
         --atype ${atype} \
         --adim ${adim} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
+        --mtlalpha 0 \
         --batch-size ${batchsize} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
@@ -337,7 +313,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --patience ${patience} \
-        --weight-decay ${weight_decay}
+        --eps-decay ${eps_decay} \
+        --weight-decay ${weight_decay} \
+        --asr-model ${asr_model} \
+        --mt-model ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -346,7 +325,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
         mkdir -p ${expdir}/${decode_dir}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
@@ -368,13 +347,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight} \
             &
         wait
 
-        score_sclite.sh --nlsyms ${nlsyms} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        # Fisher has 4 references per utterance
+        if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
+            for no in 1 2 3; do
+              cp ${feat_recog_dir}/data_${bpemode}${nbpe}_${no}.json ${expdir}/${decode_dir}/data_ref${no}.json
+            done
+        fi
+
+        local/score_bleu.sh --set ${rtask} --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
