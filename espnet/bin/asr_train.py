@@ -97,8 +97,8 @@ def main(args):
                         help='Apply label smoothing with a specified distribution type')
     parser.add_argument('--lsm-weight', default=0.0, type=float,
                         help='Label smoothing weight')
-    parser.add_argument('--sampling-probability', default=0.0, type=float,
-                        help='Ratio of predicted labels fed back to decoder')
+    parser.add_argument('--sampling-probability', default="0.0", type=str,
+                        help='Ratio of predicted labels fed back to decoder, initss_ssinc_ssmax')
     # recognition options to compute CER/WER
     parser.add_argument('--report-cer', default=False, action='store_true',
                         help='Compute CER on development set')

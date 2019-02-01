@@ -20,7 +20,7 @@ MAX_DECODER_OUTPUT = 5
 
 class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
+                 char_list=None, labeldist=None, lsm_weight=0.):
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(odim, dunits)
@@ -43,7 +43,6 @@ class Decoder(chainer.Chain):
         self.labeldist = labeldist
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
-        self.sampling_probability = sampling_probability
 
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
         if self.dtype == "lstm":
@@ -66,7 +65,7 @@ class Decoder(chainer.Chain):
                 z_list[l] = self['rnn%d' % l](z_prev[l], z_list[l - 1])
         return z_list, c_list
 
-    def __call__(self, hs, ys):
+    def __call__(self, hs, ys, sampling_probability):
         """Decoder forward
 
         :param Variable hs:
@@ -108,7 +107,7 @@ class Decoder(chainer.Chain):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
-            if i > 0 and random.random() < self.sampling_probability:
+            if i > 0 and random.random() < sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
                 z_out = F.argmax(F.log_softmax(z_out), axis=1)
@@ -373,4 +372,4 @@ class Decoder(chainer.Chain):
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
-                   args.lsm_weight, args.sampling_probability)
+                   args.lsm_weight)

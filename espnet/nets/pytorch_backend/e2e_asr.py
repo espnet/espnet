@@ -166,7 +166,7 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def forward(self, xs_pad, ilens, ys_pad):
+    def forward(self, xs_pad, ilens, ys_pad, sampling_probability):
         """E2E forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
@@ -193,7 +193,7 @@ class E2E(torch.nn.Module):
             loss_att = None
             acc = None
         else:
-            loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
+            loss_att, acc = self.dec(hs_pad, hlens, ys_pad, sampling_probability)
         self.acc = acc
 
         # 5. compute cer/wer

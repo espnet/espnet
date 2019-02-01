@@ -48,8 +48,7 @@ class Decoder(torch.nn.Module):
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
-                 dropout=0.0):
+                 char_list=None, labeldist=None, lsm_weight=0.0,dropout=0.0):
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
@@ -85,7 +84,6 @@ class Decoder(torch.nn.Module):
         self.labeldist = labeldist
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
-        self.sampling_probability = sampling_probability
         self.dropout = dropout
 
         self.logzero = -10000000000.0
@@ -105,7 +103,7 @@ class Decoder(torch.nn.Module):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_pad):
+    def forward(self, hs_pad, hlens, ys_pad, sampling_probability):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
@@ -156,7 +154,7 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w)
-            if i > 0 and random.random() < self.sampling_probability:
+            if i > 0 and random.random() < sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
                 z_out = np.argmax(z_out.detach(), axis=1)
@@ -624,4 +622,4 @@ class Decoder(torch.nn.Module):
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
-                   args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder)
+                   args.lsm_weight, args.dropout_rate_decoder)

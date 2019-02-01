@@ -117,13 +117,15 @@ class CustomUpdater(training.StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu):
+                 optimizer, converter, device, ngpu, sampling_probability):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.converter = converter
         self.device = device
         self.ngpu = ngpu
+        self.sampling_probability = [float(x) for x in sampling_probability.split("_")]
+        assert len(self.sampling_probability) == 1 or len(self.sampling_probability) == 4
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -135,10 +137,12 @@ class CustomUpdater(training.StandardUpdater):
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
         x = self.converter(batch, self.device)
-
+        if len(self.sampling_probability) > 1 and train_iter.iteration % self.sampling_probability[3] == 0:
+            self.sampling_probability[0] += self.sampling_probability[1]
+            self.sampling_probability[1] = min(self.sampling_probability[1], self.sampling_probability[2])
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
-        loss = self.model(*x)[0]
+        loss = self.model(*(x + [self.sampling_probability[2]]))[0]
         if self.ngpu > 1:
             loss = loss.sum() / self.ngpu
         loss.backward()  # Backprop
@@ -311,7 +315,7 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.sampling_probability)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
