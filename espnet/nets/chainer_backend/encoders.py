@@ -22,7 +22,7 @@ class BRNNP(chainer.Chain):
                     inputdim = idim
                 else:
                     inputdim = hdim
-                setattr(self, "birnn%d" % i, L.NStepBiLSTM(
+                setattr(self, "bi%s%d" % (typ, i), L.NStepBiLSTM(
                     1, inputdim, cdim, dropout) if typ == "lstm" else L.NStepBiGRU(1, inputdim, cdim, dropout))
                 # bottleneck layer to merge
                 setattr(self, "bt%d" % i, L.Linear(2 * cdim, hdim))
@@ -43,9 +43,9 @@ class BRNNP(chainer.Chain):
 
         for layer in six.moves.range(self.elayers):
             if self.typ == "lstm":
-                _, _, ys = self['birnn' + str(layer)](None, None, xs)
+                _, _, ys = self['bi' + self.typ + str(layer)](None, None, xs)
             else:
-                _, ys = self['birnn' + str(layer)](None, xs)
+                _, ys = self['bi' + self.typ + str(layer)](None, xs)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             # TODO(watanabe) replace subsample and FC layer with CNN
             ys, ilens = _subsamplex(ys, self.subsample[layer + 1])
@@ -67,8 +67,9 @@ class BRNN(chainer.Chain):
     def __init__(self, idim, elayers, cdim, hdim, dropout, typ="lstm"):
         super(BRNN, self).__init__()
         with self.init_scope():
-            self.nbrnn = L.NStepBiLSTM(elayers, idim, cdim, dropout) if typ == "lstm" else L.NStepBiGRU(elayers, idim,
-                                                                                                        cdim, dropout)
+            rnn = L.NStepBiLSTM(elayers, idim, cdim, dropout) if typ == "lstm" else L.NStepBiGRU(elayers, idim,
+                                                                                                 cdim, dropout)
+            setattr(self, "nb" + typ, rnn)
             self.l_last = L.Linear(cdim * 2, hdim)
         self.typ = typ
 
@@ -83,10 +84,11 @@ class BRNN(chainer.Chain):
         # need to move ilens to cpu
         ilens = cuda.to_cpu(ilens)
 
+        rnn = getattr(self, "nb" + self.typ)
         if self.typ == "lstm":
-            _, _, ys = self.nbrnn(None, None, xs)
+            _, _, ys = rnn(None, None, xs)
         else:
-            _, ys = self.nbrnn(None, xs)
+            _, ys = rnn(None, xs)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
         xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
 
