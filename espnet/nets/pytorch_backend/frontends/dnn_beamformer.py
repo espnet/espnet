@@ -8,8 +8,8 @@ from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.encoders import CNN
-from espnet.nets.pytorch_backend.encoders import BLSTM
-from espnet.nets.pytorch_backend.encoders import BLSTMP
+from espnet.nets.pytorch_backend.encoders import BRNN
+from espnet.nets.pytorch_backend.encoders import BRNNP
 from espnet.nets.pytorch_backend.frontends.beamformer \
     import apply_beamforming_vector
 from espnet.nets.pytorch_backend.frontends.beamformer \
@@ -142,9 +142,9 @@ class MaskEstimator(torch.nn.Module):
         subsample = np.ones(blayers + 1, dtype=np.int)
 
         if btype == 'blstm':
-            self.blstm = BLSTM(bidim, blayers, bunits, bprojs, dropout)
+            self.blstm = BRNN(bidim, blayers, bunits, bprojs, dropout)
         elif btype == 'blstmp':
-            self.blstm = BLSTMP(bidim, blayers, bunits,
+            self.blstm = BRNNP(bidim, blayers, bunits,
                                 bprojs, subsample, dropout)
         elif btype == 'cnn':
             self.blstm = CNN(bidim, blayers, bunits, bprojs, residual=False)

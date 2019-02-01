@@ -6,8 +6,8 @@ import torch.nn
 import torch.nn as nn
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.encoders import BLSTM
-from espnet.nets.pytorch_backend.encoders import BLSTMP
+from espnet.nets.pytorch_backend.encoders import BRNN
+from espnet.nets.pytorch_backend.encoders import BRNNP
 from espnet.nets.pytorch_backend.frontends.wpe import wpe_one_iteration
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
@@ -96,9 +96,9 @@ class MaskEstimator(torch.nn.Module):
         subsample = np.ones(wlayers + 1, dtype=np.int)
 
         if wtype == 'blstm':
-            self.blstm = BLSTM(widim, wlayers, wunits, wprojs, dropout)
+            self.blstm = BRNN(widim, wlayers, wunits, wprojs, dropout)
         elif wtype == 'blstmp':
-            self.blstm = BLSTMP(widim, wlayers, wunits,
+            self.blstm = BRNNP(widim, wlayers, wunits,
                                 wprojs, subsample, dropout)
         else:
             raise ValueError(
