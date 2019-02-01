@@ -1,0 +1,17 @@
+#!/bin/bash
+grep -e Avg -e SPKR -m 3 exp/*/decode_*/result.txt
+
+exit
+
+
+<< EOF
+
+tr05_multi_noisy_si284_multich_pytorch_vggblstmp_e3_subsample1_1_1_unit1024_proj1024_d1_unit1024_location1024_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs10_mli600_mlo150_usebftrue/decode_*_beam20_emodel.acc.best_p0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/result.txt:
+
+                             | # Snt  # Wrd  | Corr    Sub    Del    Ins    Err  S.Err |
+dt05_real_isolated_6ch_track | 1640   160390 | 95.4    2.5    2.1    1.4    6.0   63.2 |
+dt05_simu_isolated_6ch_track | 1640   160400 | 95.5    2.6    1.9    1.2    5.7   60.4 |
+et05_real_isolated_6ch_track | 1320   126796 | 90.2    5.4    4.4    2.7   12.6   78.1 |
+et05_simu_isolated_6ch_track | 1320   126812 | 93.4    3.6    3.0    1.6    8.2   70.1 |
+
+EOF
