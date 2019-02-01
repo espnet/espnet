@@ -9,6 +9,7 @@ import numpy as np
 import soundfile
 
 from espnet.transform.transformation import Transformation
+from espnet.transform.transformation import using_transform_config
 
 
 class LoadInputsAndTargets(object):
@@ -33,6 +34,7 @@ class LoadInputsAndTargets(object):
         of the input length
     :param: bool use_speaker_embedding: Used for tts mode only
     :param: bool use_second_target: Used for tts mode only
+    :param: Optional[dict] transform_config: Used for tts mode only
     """
 
     def __init__(self, mode='asr',
@@ -41,7 +43,8 @@ class LoadInputsAndTargets(object):
                  load_output=True,
                  sort_in_input_length=True,
                  use_speaker_embedding=False,
-                 use_second_target=False
+                 use_second_target=False,
+                 transform_config=None
                  ):
         self._loaders = {}
         if mode not in ['asr', 'tts']:
@@ -71,6 +74,8 @@ class LoadInputsAndTargets(object):
         self.sort_in_input_length = sort_in_input_length
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
+        self.transform_config = \
+            {} if transform_config is None else transform_config
 
     def __call__(self, batch):
         """Function to load inputs and targets from list of dicts
@@ -146,9 +151,9 @@ class LoadInputsAndTargets(object):
         if self.preprocessing is not None:
             # Apply pre-processing only to input1 feature, now
             if 'input1' in return_batch:
-                return_batch['input1'] = \
-                    self.preprocessing(return_batch['input1'],
-                                       uttid_list)
+                with using_transform_config(self.transform_config):
+                    return_batch['input1'] = \
+                        self.preprocessing(return_batch['input1'], uttid_list)
 
         # Doesn't return the names now.
         return tuple(return_batch.values())
