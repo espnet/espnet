@@ -13,7 +13,7 @@ import os
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lang_tag", type=str, default=None, nargs="?",
-                        help="speaker tag")
+                        help="language tag (can be used for multi lingual case)")
     parser.add_argument("--spk_tag", type=str,
                         help="speaker tag")
     parser.add_argument("jsons", nargs="+", type=str,
@@ -36,7 +36,7 @@ def main():
                 if args.lang_tag is None:
                     line = "%s %s\n" % (uid, text)
                 else:
-                    line = "%s <%s> %s\n" % (uid, args.lang_tag, text)
+                    line = "%s <%s>%s\n" % (uid, args.lang_tag, text)
                 out.write(line)
 
 
