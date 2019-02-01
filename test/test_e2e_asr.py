@@ -181,19 +181,19 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
 )
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
-    dummy_json = make_dummy_json(10, [1, 700], [1, 700], idim=40, odim=5)
+    dummy_json = make_dummy_json(8, [1, 700], [1, 700], idim=20, odim=5)
     from espnet.asr.asr_utils import make_batchset
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
         import espnet.nets.chainer_backend.e2e_asr as m
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
-    model = m.E2E(40, 5, args)
+    model = m.E2E(20, 5, args)
     for batch in batchset:
         attn_loss = model(*convert_batch(batch, module))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(100, 40)
+        in_data = np.random.randn(100, 20)
         model.recognize(in_data, args, args.char_list)
 
 
