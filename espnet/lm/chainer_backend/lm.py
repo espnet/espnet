@@ -151,9 +151,10 @@ class RNNLM(chainer.Chain):
         super(RNNLM, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(n_vocab, n_units)
-            self.rnn = chainer.ChainList(
+            rnn = chainer.ChainList(
                 *[L.StatelessLSTM(n_units, n_units) for _ in range(n_layers)]) if typ == "lstm" \
                 else chainer.ChainList(*[L.StatelessGRU(n_units, n_units) for _ in range(n_layers)])
+            setattr(self, typ, rnn)
             self.lo = L.Linear(n_units, n_vocab)
 
         for param in self.params():
@@ -171,11 +172,12 @@ class RNNLM(chainer.Chain):
 
         h = [None] * self.n_layers
         emb = self.embed(x)
+        rnn = getattr(self, self.typ)
         if self.typ == "lstm":
             c = [None] * self.n_layers
-            c[0], h[0] = self.rnn[0](state['c'][0], state['h'][0], F.dropout(emb))
+            c[0], h[0] = rnn[0](state['c'][0], state['h'][0], F.dropout(emb))
             for n in six.moves.range(1, self.n_layers):
-                c[n], h[n] = self.rnn[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
+                c[n], h[n] = rnn[n](state['c'][n], state['h'][n], F.dropout(h[n - 1]))
             state = {'c': c, 'h': h}
         else:
             if state['h'][0] is None:
@@ -183,14 +185,14 @@ class RNNLM(chainer.Chain):
                 with chainer.backends.cuda.get_device_from_id(self._device_id):
                     state['h'][0] = chainer.Variable(
                         xp.zeros((emb.shape[0], self.n_units), dtype=emb.dtype))
-            h[0] = self.rnn[0](state['h'][0], F.dropout(emb))
+            h[0] = rnn[0](state['h'][0], F.dropout(emb))
             for n in six.moves.range(1, self.n_layers):
                 if state['h'][n] is None:
                     xp = self.xp
                     with chainer.backends.cuda.get_device_from_id(self._device_id):
                         state['h'][n] = chainer.Variable(
                             xp.zeros((h[n - 1].shape[0], self.n_units), dtype=h[n - 1].dtype))
-                h[n] = self.rnn[n](state['h'][n], F.dropout(h[n - 1]))
+                h[n] = rnn[n](state['h'][n], F.dropout(h[n - 1]))
             state = {'h': h}
         y = self.lo(F.dropout(h[-1]))
         return state, y

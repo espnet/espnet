@@ -34,7 +34,7 @@ class BRNNP(torch.nn.Module):
             rnn = torch.nn.LSTM(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=True,
                                 batch_first=True) if typ == "lstm" \
                 else torch.nn.GRU(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=True, batch_first=True)
-            setattr(self, "birnn%d" % i, rnn)
+            setattr(self, "bi%s%d" % (typ, i), rnn)
             # bottleneck layer to merge
             setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
 
@@ -54,7 +54,7 @@ class BRNNP(torch.nn.Module):
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         for layer in six.moves.range(self.elayers):
             xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
-            birnn = getattr(self, 'birnn' + str(layer))
+            birnn = getattr(self, 'bi' + self.typ + str(layer))
             birnn.flatten_parameters()
             ys, _ = birnn(xs_pack)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
@@ -84,10 +84,13 @@ class BRNN(torch.nn.Module):
 
     def __init__(self, idim, elayers, cdim, hdim, dropout, typ="lstm"):
         super(BRNN, self).__init__()
-        self.nbrnn = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
-                                   dropout=dropout, bidirectional=True) if typ == "lstm" \
-            else torch.nn.GRU(idim, cdim, elayers, batch_first=True, dropout=dropout,
-                              bidirectional=True)
+        if typ == "lstm":
+            rnn = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
+                                dropout=dropout, bidirectional=True)
+        else:
+            rnn = torch.nn.GRU(idim, cdim, elayers, batch_first=True,
+                               dropout=dropout, bidirectional=True)
+        setattr(self, "nb%s" % typ, rnn)
         self.l_last = torch.nn.Linear(cdim * 2, hdim)
         self.typ = typ
 
@@ -101,8 +104,9 @@ class BRNN(torch.nn.Module):
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
-        self.nbrnn.flatten_parameters()
-        ys, _ = self.nbrnn(xs_pack)
+        birnn = getattr(self, 'nb' + self.typ)
+        birnn.flatten_parameters()
+        ys, _ = birnn(xs_pack)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
         # (sum _utt frame_utt) x dim

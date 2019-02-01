@@ -26,10 +26,10 @@ def transfer_lm(ch_rnnlm, th_rnnlm):
     th_rnnlm.embed.weight.data = torch.from_numpy(ch_rnnlm.embed.W.data)
     if th_rnnlm.typ == "lstm":
         for n in range(ch_rnnlm.n_layers):
-            transfer_lstm(ch_rnnlm.rnn[n], th_rnnlm.rnn[n])
+            transfer_lstm(getattr(ch_rnnlm, ch_rnnlm.typ)[n], getattr(th_rnnlm, th_rnnlm.typ)[n])
     else:
         for n in range(ch_rnnlm.n_layers):
-            transfer_gru(ch_rnnlm.rnn[n], th_rnnlm.rnn[n])
+            transfer_gru(getattr(ch_rnnlm, ch_rnnlm.typ)[n], getattr(th_rnnlm, th_rnnlm.typ)[n])
     th_rnnlm.lo.weight.data = torch.from_numpy(ch_rnnlm.lo.W.data)
     th_rnnlm.lo.bias.data = torch.from_numpy(ch_rnnlm.lo.b.data)
 
