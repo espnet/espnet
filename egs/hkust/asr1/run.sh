@@ -308,6 +308,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
