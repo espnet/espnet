@@ -88,7 +88,7 @@ class E2E(torch.nn.Module):
         else:
             labeldist = None
 
-        if args.use_dnn_frontends:
+        if args.use_frontend:
             # Relative importing because of using python3 syntax
             from espnet.nets.pytorch_backend.frontends.frontend \
                 import frontend_for
