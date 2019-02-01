@@ -36,7 +36,7 @@ def test_make_batchset(utils):
 
 @pytest.mark.parametrize('utils', [espnet.asr.asr_utils, espnet.tts.tts_utils])
 def test_sortagrad(utils):
-    dummy_json = make_dummy_json(512, [1, 700], [1, 700])
+    dummy_json = make_dummy_json(128, [1, 700], [1, 700])
     if 'tts' in str(utils):
         batchset = utils.make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, batch_sort_key="input", shortest_first=True)
         key = 'output'
