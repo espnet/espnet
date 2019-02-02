@@ -172,12 +172,15 @@ def main(args):
     parser.add_argument('--multilingual', default=False, nargs='?',
                         help='')
     parser.add_argument('--replace-sos', default=False, nargs='?',
-                        help='Replace <sos> in the decoder with a target language ID (the first token in the target sequence)')
+                        help='Replace <sos> in the decoder with a target language ID \
+                              (the first token in the target sequence)')
     parser.add_argument('--target-forcing', default=False, nargs='?',
-                        help='Feed a target language ID (the first token in the target sentence) to the beggining of the source sentence \
+                        help='Feed a target language ID (the first token in the target sentence) \
+                              to the beggining of the source sentence \
                               (also to the end to the source sentence if the encoder is bidirectional)')
     parser.add_argument('--language-coding', default=False, nargs='?',
-                        help='Feed a target language ID (the first token in the target sentence) to every token in the source sentence')
+                        help='Feed a target language ID (the first token in the target sentence) \
+                              to every token in the source sentence')
 
     args = parser.parse_args(args)
 
