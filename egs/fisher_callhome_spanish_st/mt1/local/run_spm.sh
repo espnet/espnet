@@ -44,7 +44,7 @@ drop_dec=0.5
 weight_decay=0.000001
 
 # minibatch related
-batchsize=64
+batchsize=32
 maxlen_in=100  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=100 # if output length > maxlen_out, batchsize is automatically reduced
 

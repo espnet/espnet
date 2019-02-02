@@ -87,7 +87,7 @@ callhome_transcripts=/export/corpora/LDC/LDC96T17
 split_callhome=local/splits/split_callhome
 
 # bpemode (unigram or bpe)
-nbpe=1000
+nbpe=500
 bpemode=unigram
 
 # exp tag
