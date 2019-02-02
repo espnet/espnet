@@ -26,10 +26,11 @@ etype=blstm     # encoder architecture type
 elayers=2
 eunits=1024
 eprojs=1024
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+subsample=1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=2
 dunits=1024
+context_residual=true
 # attention related
 atype=add
 adim=1024
@@ -40,7 +41,7 @@ lsm_type=unigram
 lsm_weight=0.1
 drop_enc=0.5
 drop_dec=0.5
-weight_decay=0
+weight_decay=0.000001
 
 # minibatch related
 batchsize=64
@@ -184,6 +185,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ ! -z ${context_residual} ]; then
+      expname=${expname}_cres
+    fi
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -227,7 +231,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --opt ${opt} \
         --epochs ${epochs} \
         --patience ${patience} \
-        --weight-decay ${weight_decay}
+        --weight-decay ${weight_decay} \
+        --context-residual ${context_residual}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
