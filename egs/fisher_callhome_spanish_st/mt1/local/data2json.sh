@@ -75,7 +75,7 @@ fi
 mkdir -p ${tmpdir}/output
 if [ -n "${bpecode}" ]; then
     paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} \
-        | spm_encode --model=${bpecode} --output_format=piece) \
+        | spm_encode --model=${bpecode} --output_format=piece | cut -f 2- -d" ") \
         > ${tmpdir}/output/token.scp
 elif [ -n "${nlsyms}" ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/output/token.scp
@@ -89,15 +89,15 @@ odim=$(echo "$vocsize + 2" | bc)
 < ${tmpdir}/output/tokenid.scp awk -v odim=${odim} '{print $1 " " NF-1 "," odim}' > ${tmpdir}/output/shape.scp
 
 if ${filter_speed_perturbation}; then
-    cat ${dir}/text | grep sp1.0 > ${tmpdir}/output/text.scp
+    cat ${text} | grep sp1.0 > ${tmpdir}/output/text.scp
 else
-    cat ${dir}/text > ${tmpdir}/output/text.scp
+    cat ${text} > ${tmpdir}/output/text.scp
 fi
 
 # 3. Create scp files for the others
 mkdir -p ${tmpdir}/other
 if [ -n "${lang}" ]; then
-    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/other/lang.scp
+    awk -v lang=${lang} '{print $1 " " lang}' ${text} > ${tmpdir}/other/lang.scp
 fi
 cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
 
