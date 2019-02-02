@@ -50,6 +50,7 @@ def make_arg(**kwargs):
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
         ctc_type="warpctc",
+        context_residual=False,
         replace_sos=False,
         sos=False
     )

@@ -49,11 +49,12 @@ class Decoder(torch.nn.Module):
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
-                 dropout=0.0, replace_sos=False):
+                 dropout=0.0, context_residual=False, replace_sos=False):
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
         self.dlayers = dlayers
+        self.context_residual = context_residual
         self.embed = torch.nn.Embedding(odim, dunits)
         self.dropout_emb = torch.nn.Dropout(p=dropout)
 
@@ -71,7 +72,11 @@ class Decoder(torch.nn.Module):
             # NOTE: dropout is applied only for the vertical connections
             # see https://arxiv.org/pdf/1409.2329.pdf
         self.ignore_id = -1
-        self.output = torch.nn.Linear(dunits, odim)
+
+        if context_residual:
+            self.output = torch.nn.Linear(dunits + eprojs, odim)
+        else:
+            self.output = torch.nn.Linear(dunits, odim)
 
         self.loss = None
         self.att = att
@@ -87,7 +92,9 @@ class Decoder(torch.nn.Module):
         self.lsm_weight = lsm_weight
         self.sampling_probability = sampling_probability
         self.dropout = dropout
-        self.replace_sos = replace_sos  # for multilingual translation
+
+        # for multilingual translation
+        self.replace_sos = replace_sos
 
         self.logzero = -10000000000.0
 
@@ -170,9 +177,12 @@ class Decoder(torch.nn.Module):
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
-            z_all.append(self.dropout_dec[-1](z_list[-1]))
+            if self.context_residual:
+                z_all.append(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1))  # utt x (zdim + hdim)
+            else:
+                z_all.append(self.dropout_dec[-1](z_list[-1]))  # utt x (zdim)
 
-        z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
+        z_all = torch.stack(z_all, dim=1).view(batch * olength, -1)
         # compute loss
         y_all = self.output(z_all)
         if LooseVersion(torch.__version__) < LooseVersion('1.0'):
@@ -294,7 +304,11 @@ class Decoder(torch.nn.Module):
                 z_list, c_list = self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
 
                 # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(self.output(self.dropout_dec[-1](z_list[-1])), dim=1)
+                if self.context_residual:
+                    logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1), dim=1)
+                else:
+                    logits = self.output(self.dropout_dec[-1](z_list[-1]), dim=1)
+                local_att_scores = F.log_softmax(logits, dim=1)
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
@@ -474,7 +488,11 @@ class Decoder(torch.nn.Module):
 
             # attention decoder
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_prev, c_prev)
-            local_scores = att_weight * F.log_softmax(self.output(self.dropout_dec[-1](z_list[-1])), dim=1)
+            if self.context_residual:
+                logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1))
+            else:
+                logits = self.output(self.dropout_dec[-1](z_list[-1]))
+            local_scores = att_weight * F.log_softmax(logits, dim=1)
 
             # rnnlm
             if rnnlm:
@@ -647,4 +665,4 @@ def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att,
                    args.verbose, args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
-                   args.replace_sos)
+                   args.context_residual, args.replace_sos)
