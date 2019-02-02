@@ -55,6 +55,8 @@ def main(args):
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', default=0.0, type=float,
                         help='Input length ratio to obtain min output length')
+    parser.add_argument('--ctc-weight', default=0.0, type=float,
+                        help='dummy')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
@@ -70,7 +72,7 @@ def main(args):
                         help='RNNLM weight.')
     # multilingual related
     parser.add_argument('--sos', default=False, type=str,
-                        help='SOS token to feed the decoder.')
+                        help='Replace <sos> in the decoder with a target language ID')
     args = parser.parse_args(args)
 
     # logging info

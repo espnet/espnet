@@ -70,8 +70,9 @@ def main(args):
                         help='Word list to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
+    # speech translation related
     parser.add_argument('--sos', default=False, type=str,
-                        help='dummy for MT interface')
+                        help='Replace <sos> in the decoder with a target language ID')
     args = parser.parse_args(args)
 
     # logging info
