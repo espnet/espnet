@@ -307,7 +307,7 @@ class Decoder(torch.nn.Module):
                 if self.context_residual:
                     logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1), dim=1)
                 else:
-                    logits = self.output(self.dropout_dec[-1](z_list[-1]), dim=1)
+                    logits = self.output(self.dropout_dec[-1](z_list[-1]))
                 local_att_scores = F.log_softmax(logits, dim=1)
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
