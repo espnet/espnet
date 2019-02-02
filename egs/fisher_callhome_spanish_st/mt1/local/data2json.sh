@@ -75,7 +75,7 @@ fi
 mkdir -p ${tmpdir}/output
 if [ -n "${bpecode}" ]; then
     paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} \
-        | spm_encode --model=${bpecode} --output_format=piece | cut -f 2- -d" ") \
+        | spm_encode --model=${bpecode} --output_format=piece) \
         > ${tmpdir}/output/token.scp
 elif [ -n "${nlsyms}" ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} ${text} > ${tmpdir}/output/token.scp
