@@ -44,6 +44,7 @@ def make_arg(**kwargs):
         char_list=["a", "i", "u", "e", "o"],
         outdir=None,
         ctc_type="warpctc",
+        context_residual=False,
         replace_sos=False,
         sos=False
     )

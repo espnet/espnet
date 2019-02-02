@@ -40,6 +40,7 @@ args = argparse.Namespace(
     outdir=None,
     seed=1,
     ctc_type='warpctc',
+    context_residual=False,
     replace_sos=False
 )
 
