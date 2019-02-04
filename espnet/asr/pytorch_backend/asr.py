@@ -146,7 +146,7 @@ class CustomUpdater(training.StandardUpdater):
             self.sampling_probability[1] = min(self.sampling_probability[1], self.sampling_probability[2])
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
-        loss = self.model(*(x + [self.sampling_probability[0]]))[0]
+        loss = self.model(*(x + (self.sampling_probability[0],)))[0]
         if self.ngpu > 1:
             loss = loss.sum() / self.ngpu
         loss.backward()  # Backprop

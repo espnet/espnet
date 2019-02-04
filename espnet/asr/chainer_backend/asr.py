@@ -97,7 +97,7 @@ class CustomUpdater(training.StandardUpdater):
             self.sampling_probability[0] += self.sampling_probability[1]
             self.sampling_probability[1] = min(self.sampling_probability[1], self.sampling_probability[2])
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(*(x + [self.sampling_probability[0]]))
+        loss = optimizer.target(*(x + (self.sampling_probability[0],)))
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
