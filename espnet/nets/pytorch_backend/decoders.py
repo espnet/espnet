@@ -48,7 +48,7 @@ class Decoder(torch.nn.Module):
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0.0,dropout=0.0):
+                 char_list=None, labeldist=None, lsm_weight=0.0, dropout=0.0):
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
@@ -103,12 +103,13 @@ class Decoder(torch.nn.Module):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_pad, sampling_probability):
+    def forward(self, hs_pad, hlens, ys_pad, sampling_probability=0.0):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param float sampling_probability: The scheduled sampling probability for this forward
         :return: attention loss value
         :rtype: torch.Tensor
         :return: accuracy

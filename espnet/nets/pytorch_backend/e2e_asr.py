@@ -166,13 +166,14 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def forward(self, xs_pad, ilens, ys_pad, sampling_probability):
+    def forward(self, xs_pad, ilens, ys_pad, sampling_probability=0.0):
         """E2E forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :return: ctc loass value
+        :param float sampling_probability: The scheduled sampling probability for this forward
+        :return: ctc loss value
         :rtype: torch.Tensor
         :return: attention loss value
         :rtype: torch.Tensor

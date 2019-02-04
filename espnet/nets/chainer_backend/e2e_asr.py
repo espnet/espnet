@@ -72,7 +72,7 @@ class E2E(chainer.Chain):
         self.loss = None
         self.flag_return = flag_return
 
-    def __call__(self, xs, ilens, ys, sampling_probability):
+    def __call__(self, xs, ilens, ys, sampling_probability=0.0):
         """E2E forward
 
         :param xs:

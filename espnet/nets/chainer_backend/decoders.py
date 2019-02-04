@@ -65,7 +65,7 @@ class Decoder(chainer.Chain):
                 z_list[l] = self['rnn%d' % l](z_prev[l], z_list[l - 1])
         return z_list, c_list
 
-    def __call__(self, hs, ys, sampling_probability):
+    def __call__(self, hs, ys, sampling_probability=0.0):
         """Decoder forward
 
         :param Variable hs:
