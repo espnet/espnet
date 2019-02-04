@@ -82,6 +82,7 @@ class CustomUpdater(training.StandardUpdater):
             logging.error("Wrong sampling probability format : " + str(
                 sampling_probability) + "\nExpected start_inc_max_numiter or staticvalue")
             exit(1)
+        self.iter = 0
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -92,8 +93,9 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get batch and convert into variables
         batch = train_iter.next()
+        self.iter += 1
         x = self.converter(batch, self.device)
-        if not self.static_ss and train_iter.iteration % self.sampling_probability[3] == 0:
+        if not self.static_ss and self.iter % self.sampling_probability[3] == 0:
             self.sampling_probability[0] += self.sampling_probability[1]
             self.sampling_probability[1] = min(self.sampling_probability[1], self.sampling_probability[2])
         # Compute the loss at this time step and accumulate it

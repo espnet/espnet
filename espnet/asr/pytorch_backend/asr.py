@@ -126,6 +126,7 @@ class CustomUpdater(training.StandardUpdater):
         self.ngpu = ngpu
         self.sampling_probability = [float(x) for x in sampling_probability.split("_")]
         self.static_ss = len(self.sampling_probability) == 1
+        self.iter = 0
         if not self.static_ss and not len(self.sampling_probability) == 4:
             logging.error("Wrong sampling probability format : " + str(
                 sampling_probability) + "\nExpected start_inc_max_numiter or staticvalue")
@@ -140,8 +141,9 @@ class CustomUpdater(training.StandardUpdater):
 
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
+        self.iter += 1
         x = self.converter(batch, self.device)
-        if not self.static_ss and train_iter.iteration % self.sampling_probability[3] == 0:
+        if not self.static_ss and self.iter % self.sampling_probability[3] == 0:
             self.sampling_probability[0] += self.sampling_probability[1]
             self.sampling_probability[1] = min(self.sampling_probability[1], self.sampling_probability[2])
         # Compute the loss at this time step and accumulate it
