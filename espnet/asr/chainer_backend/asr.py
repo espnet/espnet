@@ -310,7 +310,7 @@ def train(args):
 
         # set up updater
         updater = CustomUpdater(
-            train_iter, optimizer, converter=converter, device=gpu_id)
+            train_iter, optimizer, converter=converter, device=gpu_id, sampling_probability=args.sampling_probability)
     else:
         # set up minibatches
         train_subsets = []
