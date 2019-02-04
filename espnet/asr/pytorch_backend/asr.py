@@ -125,7 +125,11 @@ class CustomUpdater(training.StandardUpdater):
         self.device = device
         self.ngpu = ngpu
         self.sampling_probability = [float(x) for x in sampling_probability.split("_")]
-        assert len(self.sampling_probability) == 1 or len(self.sampling_probability) == 4
+        self.static_ss = len(self.sampling_probability) == 1
+        if not self.static_ss and not len(self.sampling_probability) == 4:
+            logging.error("Wrong sampling probability format : " + str(
+                sampling_probability) + "\nExpected start_inc_max_numiter or staticvalue")
+            exit(1)
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -137,12 +141,12 @@ class CustomUpdater(training.StandardUpdater):
         # Get the next batch ( a list of json files)
         batch = train_iter.next()
         x = self.converter(batch, self.device)
-        if len(self.sampling_probability) > 1 and train_iter.iteration % self.sampling_probability[3] == 0:
+        if not self.static_ss and train_iter.iteration % self.sampling_probability[3] == 0:
             self.sampling_probability[0] += self.sampling_probability[1]
             self.sampling_probability[1] = min(self.sampling_probability[1], self.sampling_probability[2])
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
-        loss = self.model(*(x + [self.sampling_probability[2]]))[0]
+        loss = self.model(*(x + [self.sampling_probability[0]]))[0]
         if self.ngpu > 1:
             loss = loss.sum() / self.ngpu
         loss.backward()  # Backprop
