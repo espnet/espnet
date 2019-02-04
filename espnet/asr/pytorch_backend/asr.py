@@ -145,7 +145,12 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
         if not self.static_ss and self.iter % self.sampling_probability[3] == 0:
             self.sampling_probability[0] += self.sampling_probability[1]
+            logging.warn("SS : " + str(self.sampling_probability[0]))
+            logging.warn("MIN of " + str(self.sampling_probability[0]) + " and " + str(
+                self.sampling_probability[2]) + " = " + str(
+                min(self.sampling_probability[0], self.sampling_probability[2])))
             self.sampling_probability[0] = min(self.sampling_probability[0], self.sampling_probability[2])
+
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
         loss = self.model(*(x + (self.sampling_probability[0],)))[0]
