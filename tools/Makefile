@@ -1,6 +1,16 @@
-PYTHON := /usr/bin/python3.7
-TH_VERSION := 1.0.0  # 0.4.1 or 1.0.0
-KALDI =
+# If a Python interpreter is specified, then creates a virtualenv from it
+# PYTHON := /usr/bin/python2.7
+PYTHON :=
+# PyTorch version: 0.4.1 or 1.0.0
+TH_VERSION := 1.0.0
+# The python version installed in the conda setup
+PYTHON_VERSION := 3.7
+# Use a prebuild Kaldi to omit the installation
+KALDI :=
+
+# Both Miniconda2/3 can install any Python versions
+CONDA_URL := https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+# PyTorch>=1.0.0 requires gcc>=4.9 when buliding the extensions
 GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
@@ -9,9 +19,10 @@ all: venv chainer_patch.done kaldi.done nkf.done warp-ctc.done chainer_ctc.done 
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
+
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
-	ln -s $(KALDI) kaldi
+	ln -s $(abspath KALDI) kaldi
 	touch kaldi.done
 else
 kaldi.done:
@@ -21,14 +32,30 @@ kaldi.done:
 	touch kaldi.done
 endif
 
+
+ifneq ($(strip $(PYTHON)),)
 venv:
 	test -d venv || virtualenv -p $(PYTHON) venv
-
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
 	. venv/bin/activate; pip install cupy==5.0.0 torch==$(TH_VERSION) matplotlib
 	touch espnet.done
+else
+miniconda.sh:
+	test -f miniconda.sh || wget $(CONDA_URL) -O miniconda.sh
+venv: miniconda.sh
+	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
+	. venv/bin/activate && conda update -y conda
+	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
+	. venv/bin/activate && conda info -a
+espnet.done: venv
+	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
+	. venv/bin/activate && conda install -y hp5y matplotlib
+	. venv/bin/activate && pip install -e ..
+	. venv/bin/activate && pip install cupy==4.3.0
+	touch espnet.done
+endif
 
 kaldiio: venv
 	. venv/bin/activate; pip install git+https://github.com/nttcslab-sp/kaldiio.git
