@@ -5,20 +5,20 @@
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition, and end-to-end text-to-speech.
-ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine, 
+ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
 
 ## Key Features
 
-- Hybrid CTC/attention based end-to-end ASR 
+- Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
 - Encoder: VGG-like CNN + BLSTM or pyramid BLSTM
 - Attention: Dot product, location-aware attention, variants of multihead (pytorch only)
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Flexible network architecture thanks to chainer and pytorch
-- Kaldi style complete recipe 
+- Kaldi style complete recipe
   - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
 - State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Moderate performance in standard English benchmarks
@@ -26,9 +26,9 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 
-- Python2.7+  
-- Cuda 8.0 or 9.1 (for the use of GPU)  
-- Cudnn 6+ (for the use of GPU)  
+- Python2.7+
+- Cuda 8.0 or 9.1 (for the use of GPU)
+- Cudnn 6+ (for the use of GPU)
 - NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
@@ -49,7 +49,7 @@ export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
 
-If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl) 
+If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl)
 and set paths in your `.bashrc` or `.bash_profile` appropriately, for example:
 ```
 CUDAROOT=/path/to/cuda
@@ -64,39 +64,45 @@ export CUDA_PATH=$CUDAROOT
 
 ### Step 2-A) installation with compiled Kaldi
 
-Install Python libraries and other required tools using system python and virtualenv
+Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi
 ```
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+
+Or using specified python and virtualenv
 ```sh
 $ cd tools
-$ make KALDI=/path/to/kaldi -f conda.mk
+$ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
 ```
+
+Or install specific Python version with miniconda
+``sh
+$ cd tools
+$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
+``
+
+v0.3.0: Change to use miniconda by default installation.
 
 ### Step 2-B) installation including Kaldi installation
 
-Install Kaldi, Python libraries and other required tools using system python and virtualenv
+Install Kaldi, Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make -j
 ```
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+
+Or using specified python and virtualenv
 ```sh
 $ cd tools
-$ make -f conda.mk -j
+$ make -j PYTHON=/usr/bin/python2.7
 ```
 
-### Step 2-C) installation with specified python
-
-Install Kaldi, Python libraries and other required tools using specified python and virtualenv
-```sh
+Or install specific Python version with miniconda
+``sh
 $ cd tools
-$ make -j PYTHON=/path/to/python2.7
-```
-You can also specified `python3.6`, but some preprocessing functions require `python2.7`.  
-So we recommend to use `python2.7`.
+$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
+``
 
 ### Step 3) installation check
 
@@ -170,7 +176,7 @@ Note that we would not include the installation of Tensorboard to simplify our i
 
 ### Use of GPU
 
-If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
+If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g.,
 ```sh
 # use single gpu
 $ ./run.sh --ngpu 1
@@ -187,7 +193,7 @@ $ ./run.sh --ngpu 0
 ```
 Default setup uses CPU (`--ngpu 0`).
 
-Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) 
+Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
 is required before setup.
 
 ### Error due to ACS (Multiple GPUs)
@@ -209,7 +215,7 @@ For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
 It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
 
 ### Error due to matplotlib
-If you have the following error (or other numpy related errors), 
+If you have the following error (or other numpy related errors),
 ```
 RuntimeError: module compiled against API version 0xc but this version of numpy is 0xb
 Exception in main training loop: numpy.core.multiarray failed to import
@@ -242,7 +248,7 @@ $ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
 $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
 ```
 
-The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value 
+The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
 (i.e., `--recog_model model.loss.best`).
 About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
 
