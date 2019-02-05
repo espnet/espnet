@@ -171,7 +171,6 @@ def main(args):
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
 
-
     # transfer learning related
     parser.add_argument('--asr-model', default=False, nargs='?',
                         help='Pre-trained ASR model')
