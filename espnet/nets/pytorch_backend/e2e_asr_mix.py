@@ -173,8 +173,8 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def min_PIT_process(self, loss):
-        '''E2E min_PIT_process
+    def min_pit_process(self, loss):
+        '''E2E min_pit_process
 
         :param list|1-D torch.Tensor loss: list of losses for each sample [h1r1,h1r2,h2r1,h2r2],
             or [h1r1,h1r2,h1r3,h2r1,h2r2,h2r3,h3r1,h3r2,h3r3]
@@ -203,8 +203,8 @@ class E2E(torch.nn.Module):
 
         return perm_loss, permutation
 
-    def min_PIT_CTC_batch(self, losses):
-        '''E2E min_PIT_CTC_batch
+    def min_pit_ctc_batch(self, losses):
+        '''E2E min_pit_ctc_batch
 
         :param torch.Tensor losses: CTC losses (B, 1|4|9)
         :return: min ctc loss value
@@ -216,7 +216,7 @@ class E2E(torch.nn.Module):
             return losses[:, 0], to_device(self, torch.zeros(losses.size(0), dtype=torch.long, requires_grad=True))
         else:
             bs = losses.size(0)
-            ret = [self.min_PIT_process(losses[i]) for i in range(bs)]
+            ret = [self.min_pit_process(losses[i]) for i in range(bs)]
             loss_perm = torch.stack([r[0] for r in ret], dim=0)
             permutation = torch.tensor([r[1] for r in ret]).long()
             return torch.mean(to_device(self, loss_perm)), to_device(self, permutation)
@@ -244,7 +244,7 @@ class E2E(torch.nn.Module):
         elif self.num_spkrs <= 3:
             loss_ctc_perm = torch.stack([self.ctc(hs_pad_sd[i // self.num_spkrs], hlens, ys_pad_sd[i % self.num_spkrs])
                                          for i in range(self.num_spkrs ** 2)], dim=1)  # (B, num_spkrs^2)
-            loss_ctc, min_perm = self.min_PIT_CTC_batch(loss_ctc_perm)
+            loss_ctc, min_perm = self.min_pit_ctc_batch(loss_ctc_perm)
             logging.info('ctc loss:' + str(float(loss_ctc)))
 
         # 3. attention loss
@@ -300,8 +300,8 @@ class E2E(torch.nn.Module):
                 tmp_cers = [editdistance.eval(hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs])
                             for ns in range(self.num_spkrs)]  # h1r1,h1r2,h2r1,h2r2
 
-                wers.append(self.min_PIT_process(tmp_wers) / len(sum(ref_words, [])))
-                cers.append(self.min_PIT_process(tmp_cers) / len(sum(ref_words, [])))
+                wers.append(self.min_pit_process(tmp_wers) / len(sum(ref_words, [])))
+                cers.append(self.min_pit_process(tmp_cers) / len(sum(ref_words, [])))
 
             wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
             cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
@@ -431,7 +431,7 @@ class E2E(torch.nn.Module):
             if self.num_spkrs <= 3:
                 loss_ctc = torch.stack([self.ctc(hpad_sd[i // self.num_spkrs], hlens, ys_pad_sd[i % self.num_spkrs])
                                         for i in range(self.num_spkrs ** 2)], 1)  # (B, num_spkrs^2)
-                loss_ctc, min_perm = self.min_PIT_CTC_batch(loss_ctc)
+                loss_ctc, min_perm = self.min_pit_ctc_batch(loss_ctc)
             for i in range(ys_pad_sd.size(1)):  # B
                 ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
 
