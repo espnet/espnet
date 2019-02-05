@@ -170,6 +170,9 @@ def main():
     parser.add_argument('--expected-loss', default='', type=str,
                         choices=['tts', 'none', 'wer'],
                         help='Type of expected loss (tts, wer, ...)')
+    parser.add_argument('--generator', default='tte', type=str,
+                        choices=['tts', 'tte'],
+                        help='Type of generator (tts, tte, ...)')
     parser.add_argument('--n-samples-per-input', default=5, type=int,
                         help='Number of samples per input generated from model')
     parser.add_argument('--sample-maxlenratio', default=0.8, type=float,
@@ -188,6 +191,9 @@ def main():
                         help='Weight for teacher forcing loss')
     parser.add_argument('--update-asr-only', action='store_true',
                         help='Update ASR model only')
+    parser.add_argument('--freeze', default='none', type=str,
+                        choices=['attdec', 'dec', 'encattdec', 'encatt', 'enc', 'none'],
+                        help='parameters to be frozen in asr')
     parser.add_argument('--freeze-asr', action='store_true',
                         help='Freeze ASR parameters')
     parser.add_argument('--freeze-tts', action='store_true',
