@@ -77,10 +77,10 @@ $ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
 ```
 
 Or install specific Python version with miniconda
-``sh
+```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
-``
+```
 
 v0.3.0: Change to use miniconda by default installation.
 
@@ -99,10 +99,10 @@ $ make -j PYTHON=/usr/bin/python2.7
 ```
 
 Or install specific Python version with miniconda
-``sh
+```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
-``
+```
 
 ### Step 3) installation check
 
