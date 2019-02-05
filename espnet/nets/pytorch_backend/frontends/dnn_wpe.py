@@ -2,8 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-import torch.nn
-import torch.nn as nn
+import torch.nn.functional as F
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.encoders import BRNN
@@ -12,7 +11,7 @@ from espnet.nets.pytorch_backend.frontends.wpe import wpe_one_iteration
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
-class DNN_WPE(nn.Module):
+class DNN_WPE(torch.nn.Module):
     def __init__(self,
                  wtype: str='blstmp',
                  widim: int=257,
@@ -99,7 +98,7 @@ class MaskEstimator(torch.nn.Module):
             self.blstm = BRNN(widim, wlayers, wunits, wprojs, dropout)
         elif wtype == 'blstmp':
             self.blstm = BRNNP(widim, wlayers, wunits,
-                                wprojs, subsample, dropout)
+                               wprojs, subsample, dropout)
         else:
             raise ValueError(
                 "Error: need to specify an appropriate architecture: {}"
@@ -117,19 +116,25 @@ class MaskEstimator(torch.nn.Module):
             mask: (B, F, C, T)
             ilens: (B,)
         """
+        assert xs.size(0) == ilens.size(0), (xs.size(0), ilens.size(0))
+        _, _, C, input_length = xs.size()
         # (B, F, C, T) -> (B, C, T, F)
         xs = xs.permute(0, 2, 3, 1)
 
-        B, C, T, _ = xs.size()
         # Calculate amplitude: (B, C, T, F) -> (B, C, T, F)
         power = (xs.real ** 2 + xs.imag ** 2) ** 0.5
         xs = power ** 0.5
-        # (B, C, T, F) -> (B * C, T, F)
-        xs = xs.view(B * C, xs.size(-2), -1)
-        ilens_ = ilens[:, None].expand(-1, C).contiguous().view(B * C)
-        xs, _ = self.blstm(xs, ilens_)
-        xs = xs.view(B, C, T, -1)
+        # xs: (B, C, T, F) -> xs: (B * C, T, F)
+        xs = xs.view(-1, xs.size(-2), xs.size(-1))
+        # ilens: (B,) -> ilens_: (B * C)
+        ilens_ = ilens[:, None].expand(-1, C).contiguous().view(-1)
 
+        # xs: (B * C, T, F) -> xs: (B * C, T, D)
+        xs, _ = self.blstm(xs, ilens_)
+        # xs: (B * C, T, D) -> xs: (B, C, T, D)
+        xs = xs.view(-1, C, xs.size(-2), xs.size(-1))
+
+        # xs: (B, C, T, D) -> mask:(B, C, T, F)
         mask = self.out(xs)
         mask.masked_fill(make_pad_mask(ilens, mask, length_dim=2), 0)
 
@@ -137,4 +142,9 @@ class MaskEstimator(torch.nn.Module):
 
         # (B, C, T, F) -> (B, F, C, T)
         mask = mask.permute(0, 3, 1, 2)
+
+        # Take cares of multi gpu cases: If input_length > max(ilens)
+        if xs.size(-1) < input_length:
+            mask = F.pad(mask, [0, input_length - mask.size(-1)], value=0)
+
         return mask, ilens

@@ -189,12 +189,14 @@ class CustomConverter(object):
         # perform padding and convert to tensor
         if xs[0].dtype.kind == 'c':
             # Relative importing because of using python3 syntax
-            from torch_complex.tensor import ComplexTensor
-            xs_pad = pad_list([ComplexTensor(x).float() for x in xs],
-                              0).to(device)
+            xs_pad_real = pad_list(
+                [torch.from_numpy(x.real).float() for x in xs], 0).to(device)
+            xs_pad_imag = pad_list(
+                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
+            xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs],
-                              0).to(device)
+            xs_pad = pad_list(
+                [torch.from_numpy(x).float() for x in xs], 0).to(device)
 
         ilens = torch.from_numpy(ilens).to(device)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys],
