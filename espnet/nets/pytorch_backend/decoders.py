@@ -81,7 +81,7 @@ class Decoder(torch.nn.Module):
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :param int strm_idx: stream index for attention ModuleList when args.spa (speaker parallel attention) is True
+        :param int strm_idx: stream index indicates the index of decoding stream.
         :return: attention loss value
         :rtype: torch.Tensor
         :return: accuracy
@@ -89,6 +89,8 @@ class Decoder(torch.nn.Module):
         """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+        # attention index for the attention module
+        # in SPA (speaker parallel attention), att_idx is used to select attention module. In other cases, it is 0.
         att_idx = min(strm_idx, len(self.att) - 1)
 
         # hlen should be list of integer
