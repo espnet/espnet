@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2018 Nagoya University (Takenori Yoshimura)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -87,8 +87,8 @@ set -u
 set -o pipefail
 
 train_set=train_no_dev
-train_dev=train_dev
-eval_set="eval"
+train_dev=dev
+eval_set=eval
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
