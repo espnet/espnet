@@ -3,9 +3,11 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done nkf.done warp-ctc.done chainer_ctc.done sentencepiece.done mecab.done kaldiio moses
+all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+
+extra: nkf.done sentencepiece.done mecab.done moses
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -36,13 +38,6 @@ chainer_patch.done: espnet.done
 	. venv/bin/activate; patch $(FILENAME) < prefetch.patch
 	touch chainer_patch.done
 
-nkf.done:
-	rm -rf nkf
-	mkdir -p nkf
-	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
-	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
-	touch nkf.done
-
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
 	git clone https://github.com/jnishi/warp-ctc.git
@@ -58,6 +53,13 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
+
+nkf.done:
+	rm -rf nkf
+	mkdir -p nkf
+	cd nkf; wget https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
+	cd nkf; tar zxvf nkf-2.1.4.tar.gz; cd nkf-2.1.4; $(MAKE) prefix=.
+	touch nkf.done
 
 sentencepiece.done:
 	rm -rf sentencepiece
@@ -95,7 +97,7 @@ moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
 clean:
-	rm -rf kaldi venv nkf warp-ctc chainer_ctc sentencepiece mecab swig moses
+	rm -rf kaldi venv warp-ctc chainer_ctc nkf sentencepiece mecab swig moses
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
@@ -105,3 +107,6 @@ clean_python:
 	rm -f miniconda.sh
 	rm -rf chainer_patch.done warp-ctc.done chainer_ctc.done
 	find . -iname "*.pyc" -delete
+
+clean_extra:
+	rm -rf nkf sentencepiece mecab swig moses
