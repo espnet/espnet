@@ -16,8 +16,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('jsons', type=str, nargs='+',
                         help='json files')
-    parser.add_argument('--multi', '-m', type=int,
-                        help='Test the json file for multiple input/output', default=0)
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--output-json', default='', type=str,

@@ -6,7 +6,8 @@ if [ $# -le 2 ]; then
 fi
 
 . ./path.sh
-export PATH=$PWD/local:$PATH
+find_transcripts=$KALDI_ROOT/egs/wsj/s5/local/find_transcripts.pl
+normalize_transcript=$KALDI_ROOT/egs/wsj/s5/local/normalize_transcript.pl
 
 wavdir=$1
 srcdir=$2
@@ -55,13 +56,13 @@ for x in `ls ${wsj_full_wav}/links/`; do find -L ${wsj_full_wav}/links/$x -iname
 
 # Convert the transcripts into our format (no normalization yet)
 for f in si_tr_s si_et_05 si_dt_05; do
-  cat ${f}.scp | awk '{print $1}' | find_transcripts.pl dot_files.flist > ${f}.trans1
+  cat ${f}.scp | awk '{print $1}' | ${find_transcripts} dot_files.flist > ${f}.trans1
 
   # Do some basic normalization steps.  At this point we don't remove OOVs--
   # that will be done inside the training scripts, as we'd like to make the
   # data-preparation stage independent of the specific lexicon used.
   noiseword="<NOISE>"
-  cat ${f}.trans1 | normalize_transcript.pl $noiseword | sort > ${f}.txt || exit 1;
+  cat ${f}.trans1 | ${normalize_transcript} ${noiseword} | sort > ${f}.txt || exit 1;
 done
 
 # change to the original path

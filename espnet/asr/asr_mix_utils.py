@@ -5,7 +5,6 @@
 
 import copy
 import logging
-# matplotlib related
 import os
 
 from chainer.training import extension

@@ -34,7 +34,7 @@ dlayers=1
 dunits=300
 # attention related
 atype=location
-spa=false           # speaker parallel attention
+use_spa=false           # speaker parallel attention
 adim=320
 awin=5
 aheads=4
@@ -94,9 +94,6 @@ wsj_2mix_scripts=$PWD/data/local/wsj_mix/scripts
 tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
-
-. ./path.sh
-. ./cmd.sh
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -272,7 +269,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_sde${elayers_sd}_rece${elayers_rec}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_spa${spa}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_sde${elayers_sd}_rece${elayers_rec}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_spa${use_spa}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expname=${expname}_lsm${lsm_type}${lsm_weight}
     fi
@@ -288,7 +285,7 @@ mkdir -p ${expdir}
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Network Training"
     other_opts=""
-    ${spa} && other_opts="--spa"
+    ${use_spa} && other_opts="--spa"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_mix_train.py \

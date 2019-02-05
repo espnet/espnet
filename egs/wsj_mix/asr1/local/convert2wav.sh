@@ -9,7 +9,6 @@ if [ ! -x $sph2pipe ]; then
 fi
 ndx2flist=$KALDI_ROOT/egs/wsj/s5/local/ndx2flist.pl
 flist2scp=$KALDI_ROOT/egs/wsj/s5/local/flist2scp.pl
-export PATH=$PWD/local:$PATH
 
 WSJ0=$1
 dir=$2
@@ -45,7 +44,7 @@ for spk in `ls links/${disk}/wsj0/si_dt_05`; do
 done | sort > si_dt_05.flist
 
 for f in si_tr_s si_et_05 si_dt_05; do
-  flist2scp.pl ${f}.flist | sort > ${f}.scp
+  ${flist2scp} ${f}.flist | sort > ${f}.scp
 done
 
 # Create scp's with wav's. (the wv1 in the distribution is not really wav, it is sph.)
