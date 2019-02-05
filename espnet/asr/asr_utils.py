@@ -164,6 +164,34 @@ def load_inputs_and_targets(batch):
 
         return xs, xs
 
+def freeze_parameters(model, elayers, *freeze_layer):
+    size = 0
+    count = 0
+    for child in model.children():
+        logging.info(str(type(child)))
+        for name, module in child.named_children():
+            logging.info(str(type(module)))
+            if name not in freeze_layer and name is 'enc':
+                for enc_name, enc_module in module.named_children():
+                    for enc_layer_name, enc_layer_module in enc_module.named_children():
+                        count += 1
+                        if count <= elayers:
+                            logging.info(str(enc_layer_name)+ " components is frozen")
+                            for mname, param in module.named_parameters():
+                                param.requires_grad = False
+                                size += param.numel()
+                        else:
+                            logging.info(str(enc_layer_name)+ " components is not frozen")
+            elif name not in freeze_layer and name is not 'enc':
+                for mname, param in module.named_parameters():
+                    logging.info(str(mname)+ " components is frozen")
+                    logging.info(str(mname)+ " >> params after re-init")
+                    param.requires_grad = False
+                    size += param.numel()
+            else:
+                logging.info(str(name)+" components is not frozen" )
+    return model, size
+
 
 # * -------------------- chainer extension related -------------------- *
 class CompareValueTrigger(object):
