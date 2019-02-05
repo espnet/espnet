@@ -36,13 +36,15 @@ class Frontend(nn.Module):
 
         self.use_beamformer = use_beamformer
         self.use_wpe = use_wpe
+        self.use_dnn_mask_for_wpe = use_dnn_mask_for_wpe
 
         if self.use_wpe:
-            if use_dnn_mask_for_wpe:
+            if self.use_dnn_mask_for_wpe:
                 iterations = 1
             else:
                 # Performing as conventional WPE, without DNN Estimator
                 iterations = 2
+
             self.wpe = DNN_WPE(wtype=wtype,
                                widim=idim,
                                wunits=wunits,
@@ -69,8 +71,9 @@ class Frontend(nn.Module):
             self.beamformer = None
 
     def forward(self, x: ComplexTensor,
-                ilens: Union[torch.LongTensor, numpy.ndarray, List[int]]=None)\
+                ilens: Union[torch.LongTensor, numpy.ndarray, List[int]])\
             -> Tuple[ComplexTensor, torch.LongTensor]:
+        assert len(x) == len(ilens), (len(x), len(ilens))
         # (B, T, F) or (B, T, C, F)
         if x.dim() not in (3, 4):
             raise ValueError(f'Input dim must be 3 or 4: {x.dim()}')
@@ -78,15 +81,27 @@ class Frontend(nn.Module):
             ilens = torch.from_numpy(numpy.asarray(ilens)).to(x.device)
 
         h = x
-        # 1. WPE
-        if h.dim() == 4 and self.use_wpe:
-            # h: (B, T, C, F) -> (B, T, C, F)
-            h, ilens = self.wpe(h, ilens)
+        if h.dim() == 4:
+            if self.training and self.use_beamformer \
+                    and self.use_wpe and self.use_dnn_mask_for_wpe:
+                true_false = [True, False]
+                numpy.random.shuffle(true_false)
+                use_wpe, use_beamformer = true_false
 
-        # 2. Beamformer
-        if h.dim() == 4 and self.use_beamformer:
-            # h: (B, T, C, F) -> h: (B, T, F)
-            h, ilens = self.beamformer(h, ilens)
+            else:
+                use_wpe = self.use_wpe
+                use_beamformer = self.use_beamformer
+
+            # 1. WPE
+            if use_wpe:
+                # h: (B, T, C, F) -> h: (B, T, C, F)
+                h, ilens = self.wpe(h, ilens)
+
+            # 2. Beamformer
+            if use_beamformer:
+                # h: (B, T, C, F) -> h: (B, T, F)
+                h, ilens = self.beamformer(h, ilens)
+
         return h, ilens
 
 

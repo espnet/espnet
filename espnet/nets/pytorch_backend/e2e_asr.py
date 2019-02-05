@@ -194,12 +194,12 @@ class E2E(torch.nn.Module):
         """
         # 0. Frontend
         if self.frontend is not None:
-            hs_pad, hlens = self.frontend(xs_pad, ilens)
+            hs_pad, hlens = self.frontend(_to_torch_tensor(xs_pad), ilens)
             hs_pad, hlens = self.feature_transform(hs_pad, hlens)
         else:
             hs_pad, hlens = xs_pad, ilens
 
-        # 1. encoder
+        # 1. Encoder
         hs_pad, hlens = self.enc(hs_pad, hlens)
 
         # 2. CTC loss
@@ -297,12 +297,7 @@ class E2E(torch.nn.Module):
 
         # subsample frame
         x = x[::self.subsample[0], :]
-        if x.dtype.kind == 'c':
-            # Relative importing because of using python3 syntax
-            from torch_complex.tensor import ComplexTensor
-            h = to_device(self, ComplexTensor(x).float())
-        else:
-            h = to_device(self, torch.from_numpy(x).float())
+        h = to_device(self, _to_torch_tensor(x).float())
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
@@ -346,12 +341,7 @@ class E2E(torch.nn.Module):
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
-        if xs[0].dtype.kind == 'c':
-            # Relative importing because of using python3 syntax
-            from torch_complex.tensor import ComplexTensor
-            xs = [to_device(self, ComplexTensor(xx).float()) for xx in xs]
-        else:
-            xs = [to_device(self, torch.from_numpy(xx).float()) for xx in xs]
+        xs = [to_device(self, _to_torch_tensor(xx).float()) for xx in xs]
         xs_pad = pad_list(xs, 0.0)
 
         # 0. Frontend
@@ -359,7 +349,7 @@ class E2E(torch.nn.Module):
             hs_pad, hlens = self.frontend(xs_pad, ilens)
             hs_pad, hlens = self.feature_transform(hs_pad, hlens)
         else:
-            hs_pad, hlens = hs_pad, ilens
+            hs_pad, hlens = xs_pad, ilens
 
         # 1. encoder
         hs_pad, hlens = self.enc(hs_pad, hlens)
@@ -391,7 +381,7 @@ class E2E(torch.nn.Module):
         with torch.no_grad():
             # 0. Frontend
             if self.frontend is not None:
-                hs_pad, hlens = self.frontend(xs_pad, ilens)
+                hs_pad, hlens = self.frontend(_to_torch_tensor(xs_pad), ilens)
                 hs_pad, hlens = self.feature_transform(hs_pad, hlens)
             else:
                 hs_pad, hlens = xs_pad, ilens
@@ -403,3 +393,50 @@ class E2E(torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
 
         return att_ws
+
+
+def _to_torch_tensor(x):
+    """Change to
+
+    :param: Union[np.ndarray, torch.Tensor, ComplexTensor, dict] x:
+    :rtype: Union[torch.Tensor, ComplexTensor]:
+
+        >>> xs = np.ones(3, dtype=np.float32)
+        >>> xs = _to_torch_tensor(xs)
+        tensor([1., 1., 1.])
+        >>> xs = torch.ones(3, 4, 5)
+        >>> assert _to_torch_tensor(xs) is xs
+        >>> xs = {'real': xs, 'imag': xs}
+        >>> _to_torch_tensor(xs)
+        ComplexTensor(
+        Real:
+        tensor([1., 1., 1.])
+        Imag;
+        tensor([1., 1., 1.])
+        )
+    """
+
+    # Dynamically importing because torch_complex requires python3
+    from torch_complex.tensor import ComplexTensor
+    # If numpy, change to torch tensor
+    if isinstance(x, np.ndarray):
+        if x.dtype.kind == 'c':
+            return ComplexTensor(x)
+        else:
+            return torch.from_numpy(x)
+
+    # If torch.Tensor, as it is
+    elif isinstance(x, (torch.Tensor, ComplexTensor)):
+        return x
+
+    # If {'real': ..., 'imag': ...}, convert to ComplexTensor
+    elif isinstance(x, dict):
+        if 'real' not in x or 'imag' not in x:
+            raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
+        # Relative importing because of using python3 syntax
+        return ComplexTensor(x['real'], x['imag'])
+    else:
+        raise ValueError(
+            "x must be numpy.ndarra, torch.Tensor or a dict like "
+            "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
+            "but got {}".format(type(x)))

@@ -1,15 +1,16 @@
+from typing import List
 from typing import Tuple
+from typing import Union
 
 import librosa
 import numpy as np
 import torch
-from torch import nn as nn
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
-class FeatureTransform(nn.Module):
+class FeatureTransform(torch.nn.Module):
     def __init__(self,
                  # Mel options,
                  fs: int=16000,
@@ -41,16 +42,24 @@ class FeatureTransform(nn.Module):
         else:
             self.uttmvn = None
 
-    def forward(self, x: ComplexTensor, ilens: torch.LongTensor=None) \
+    def forward(self, x: ComplexTensor,
+                ilens: Union[torch.LongTensor, np.ndarray, List[int]]) \
             -> Tuple[torch.Tensor, torch.LongTensor]:
         # (B, T, F) or (B, T, C, F)
         if x.dim() not in (3, 4):
             raise ValueError(f'Input dim must be 3 or 4: {x.dim()}')
+        if not torch.is_tensor(ilens):
+            ilens = torch.from_numpy(np.asarray(ilens)).to(x.device)
 
         if x.dim() == 4:
             # h: (B, T, C, F) -> h: (B, T, F)
-            # Use the first channel
-            h = x[:, :, 0, :]
+            if self.training:
+                # Select 1ch randomly
+                ch = torch.randint(0, x.size(2), [1]).item()
+                h = x[:, :, ch, :]
+            else:
+                # Use the first channel
+                h = x[:, :, 0, :]
         else:
             h = x
 
@@ -66,7 +75,7 @@ class FeatureTransform(nn.Module):
         return h, ilens
 
 
-class LogMel(nn.Module):
+class LogMel(torch.nn.Module):
     def __init__(self, fs: int=16000, n_fft: int=512, n_mels: int=80,
                  fmin: float=None, fmax: float=None):
         super().__init__()
@@ -98,7 +107,7 @@ class LogMel(nn.Module):
         return logmel_feat, ilens
 
 
-class GlobalMVN(nn.Module):
+class GlobalMVN(torch.nn.Module):
     """Apply global mean and variance normalization
 
     Args:
@@ -152,7 +161,7 @@ class GlobalMVN(nn.Module):
         return x, ilens
 
 
-class UtteranceMVN(nn.Module):
+class UtteranceMVN(torch.nn.Module):
     def __init__(self,
                  norm_means: bool=True,
                  norm_vars: bool=False,

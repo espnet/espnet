@@ -68,7 +68,6 @@ def make_batchset(data, batch_size, max_length_in,
             batch_size=batch_size,
             max_length_in=max_length_in,
             max_length_out=max_length_out,
-            num_batches=num_batches,
             min_batch_size=min_batch_size)
         batches_list.append(batches)
 
@@ -78,22 +77,24 @@ def make_batchset(data, batch_size, max_length_in,
         # Concat list. This way is faster than "sum(batch_list, [])"
         batches = list(itertools.chain(*batches_list))
 
-    assert all(all(batch[0][1]['category'] == e[1]['category'] for e in batch)
-               for batch in batches)
+    # for debugging
+    if num_batches > 0:
+        batches = batches[:num_batches]
+    logging.info('# minibatches: ' + str(len(batches)))
+
     # batch: List[List[Tuple[str, dict]]]
     return batches
 
 
 def make_batchset_within_category(
         data, batch_size, max_length_in, max_length_out,
-        num_batches=0, min_batch_size=1):
+        min_batch_size=1):
     """Make batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
     :param int batch_size: batch size
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
-    :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: mininum batch size (for multi-gpu)
     :return: List[List[Tuple[str, dict]]] list of batches
     """
@@ -134,11 +135,6 @@ def make_batchset_within_category(
         if end == len(sorted_data):
             break
         start = end
-
-    # for debugging
-    if num_batches > 0:
-        minibatches = minibatches[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatches)))
 
     # batch: List[List[Tuple[str, dict]]]
     return minibatches
