@@ -89,11 +89,11 @@ def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):
         raise ValueError("Invalid mode")
 
 
-def convert_batch(batch, backend="pytorch", is_cuda=False):
+def convert_batch(batch, backend="pytorch", is_cuda=False, idim=40, odim=5):
     ilens = np.array([x[1]['input'][0]['shape'][0] for x in batch])
     olens = np.array([x[1]['output'][0]['shape'][0] for x in batch])
-    xs = [np.random.randn(ilen, 40).astype(np.float32) for ilen in ilens]
-    ys = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens]
+    xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
+    ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
     is_pytorch = backend == "pytorch"
     if is_pytorch:
         xs = pad_list([torch.from_numpy(x).float() for x in xs], 0)
@@ -190,7 +190,7 @@ def test_sortagrad_trainable(module):
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E(20, 5, args)
     for batch in batchset:
-        attn_loss = model(*convert_batch(batch, module))[0]
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 20)
