@@ -33,7 +33,9 @@ for l in file(sys.argv[1]):
     u = u.strip().split('/')[-1]
     trans = trans.strip().replace("-", " ")
     if not trans.isupper() or \
-       not trans.strip().replace(' ', '').replace("'", "").isalpha():
+       not trans.strip().replace(' ', '').replace("'", "").isalnum():
+       # Note(kamo): Changed from the original: isalpha() -> isalnum()
+       # not trans.strip().replace(' ', '').replace("'", "").isalpha():
         err("The transcript for '%s'(user '%s') is not properly normalized - skipped!"
             % (u, id_prefix))
         err(trans)
