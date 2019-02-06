@@ -263,7 +263,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 --unit ${lm_units} \
                 --opt ${lm_opt} \
                 --batchsize ${lm_batchsize} \
-                --epoch ${lm_epochs} \
+                --epochs ${lm_epochs} \
                 --patience ${lm_patience} \
                 --maxlen ${lm_maxlen} \
 		--dict ${lmdict}

@@ -40,6 +40,7 @@ from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import set_early_stop
 
 REPORT_INTERVAL = 100
 
@@ -315,7 +316,7 @@ def train(args):
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
+    logging.info('#total iterations = ' + str(args.epochs * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
     model = ClassifierWithState(rnn)
@@ -345,7 +346,7 @@ def train(args):
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.gradclip))
 
     updater = BPTTUpdater(train_iter, optimizer, gpu_id)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
+    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
                                         trigger=(REPORT_INTERVAL, 'iteration')))
@@ -363,16 +364,13 @@ def train(args):
         logging.info('resumed from %s' % args.resume)
         chainer.serializers.load_npz(args.resume, trainer)
 
-    if args.patience > 0:
-        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
-                                                                              patients=args.patience,
-                                                                              max_trigger=(args.epoch, 'epoch'))
+    set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer))
 
     trainer.run()
-    check_early_stop(trainer, args.epoch)
+    check_early_stop(trainer, args.epochs)
 
     # compute perplexity for test set
     if args.test_label:
