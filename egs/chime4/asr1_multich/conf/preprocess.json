@@ -1,0 +1,1 @@
+{"process": [{"type": "stft", "n_fft": 400, "n_shift": 160}]}
