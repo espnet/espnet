@@ -144,7 +144,7 @@ class MaskEstimator(torch.nn.Module):
         mask = mask.permute(0, 3, 1, 2)
 
         # Take cares of multi gpu cases: If input_length > max(ilens)
-        if xs.size(-1) < input_length:
+        if mask.size(-1) < input_length:
             mask = F.pad(mask, [0, input_length - mask.size(-1)], value=0)
 
         return mask, ilens
