@@ -18,13 +18,19 @@ N=0          # number of minibatches to be used (mainly for debugging). "0" uses
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 # feature extraction related
-fs=22050    # sampling frequency
+fs=16000    # sampling frequency
 fmax=""     # maximum frequency
 fmin=""     # minimum frequency
 n_mels=80   # number of mel basis
 n_fft=1024  # number of fft points
 n_shift=256 # number of shift points
 win_length="" # window length
+# silence part trimming related
+do_trimming=true
+trim_threshold=60 # (in decibels)
+trim_win_length=1024
+trim_shift_length=256
+trim_min_silence=0.01
 # encoder related
 embed_dim=512
 elayers=1
@@ -54,9 +60,9 @@ bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy
 reduction_factor=1
 # minibatch related
 batchsize=32
-batch_sort_key=shuffle # shuffle or input or output
-maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
-maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
+batch_sort_key=output # shuffle or input or output
+maxlen_in=200     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
+maxlen_out=800    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
 # optimization related
 lr=1e-3
 eps=1e-6
@@ -70,10 +76,12 @@ model=model.loss.best
 threshold=0.5    # threshold to stop the generation
 maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
 minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
-griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
+griffin_lim_iters=100  # the number of iterations of Griffin-Lim
 
-# root directory of db
+# dataset configuration
 db_root=downloads
+lang=it_IT  # en_UK, de_DE, es_ES, it_IT
+spk=riccardo  # see local/data_prep.sh to check available speakers
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -86,21 +94,30 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_no_dev
-dev_set=dev
-eval_set=eval
+org_set=${lang}_${spk}
+train_set=${lang}_${spk}_train
+dev_set=${lang}_${spk}_dev
+eval_set=${lang}_${spk}_eval
+
+if ${do_trimming}; then
+    org_set=${org_set}_trim
+    train_set=${train_set}_trim
+    dev_set=${dev_set}_trim
+    eval_set=${eval_set}_trim
+fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download.sh ${db_root}
+    local/download.sh ${db_root} ${lang}
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
-    utils/validate_data_dir.sh --no-feats data/train
+    local/data_prep.sh ${db_root} ${lang} ${spk} data/${org_set}
+    utils/fix_data_dir.sh data/${org_set}
+    utils/validate_data_dir.sh --no-feats data/${org_set}
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -110,7 +127,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev name by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-
+    # Trim silence parts at the begining and the end of audio
+    if ${do_trimming}; then
+        local/trim_silence.sh --cmd "${train_cmd}" \
+            --fs ${fs} \
+            --win_length ${trim_win_length} \
+            --shift_length ${trim_shift_length} \
+            --threshold ${trim_threshold} \
+            --min_silence ${trim_min_silence} \
+            data/${org_set} \
+            exp/trim_silence/${org_set}
+    fi
     # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
     make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
@@ -121,16 +148,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --n_shift ${n_shift} \
         --win_length "${win_length}" \
         --n_mels ${n_mels} \
-        data/train \
-        exp/make_fbank/train \
+        data/${org_set} \
+        exp/make_fbank/${org_set} \
         ${fbankdir}
 
     # make a dev set
-    utils/subset_data_dir.sh --last data/train 500 data/deveval
-    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 250 data/${dev_set}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --last data/${org_set} 500 data/${org_set}_tmp
+    utils/subset_data_dir.sh --last data/${org_set}_tmp 250 data/${eval_set}
+    utils/subset_data_dir.sh --first data/${org_set}_tmp 250 data/${dev_set}
+    n=$(( $(wc -l < data/${org_set}/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --first data/${org_set} ${n} data/${train_set}
+    rm -rf data/${org_set}_tmp
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -163,7 +191,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
-
 
 if [ -z ${tag} ];then
     expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
