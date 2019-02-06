@@ -15,10 +15,13 @@ N=0            # number of minibatches to be used (mainly for debugging). "0" us
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 
-# feature configuration
-do_delta=false
+# configuration path
+preprocess_conf=conf/preprocess.json
 
 # network architecture
+use_beamformer=true
+use_wpe=false
+use_dnn_mask_for_wpe=false
 # encoder related
 etype=vggblstmp     # encoder architecture type
 elayers=3
@@ -44,8 +47,8 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=10
-patience=3
+epochs=20
+patience=0
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
@@ -76,6 +79,9 @@ samp_prob=0.0
 chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
 wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
 wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
+chime4_data=/data/rigel1/corpora/CHiME4
+wsj0=/data/rigel1/corpora/LDC93S6A
+wsj1=/data/rigel1/corpora/LDC94S13A
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -156,10 +162,7 @@ echo "dictionary: ${dict}"
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
-    if ${do_delta}; then
-        expname=${expname}_delta
-    fi
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs$((${batchsize} * ${ngpu}))_mli${maxlen_in}_mlo${maxlen_out}_usebf${use_beamformer}_usewp${use_wpe}_usednnw${use_dnn_mask_for_wpe}
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -181,19 +184,11 @@ if [ ${stage} -le 2 ]; then
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
-    python << EOF > ${expdir}/preprocess.conf
-#!/usr/bin/env python
-import json
-cfg = dict(process=[dict(type='stft', n_fft=400, n_shift=160)])
-jsonstr = json.dumps(cfg)
-print(jsonstr)
-EOF
-
     echo "make json files"
     for setname in tr05_multi_noisy_multich ${train_dev} ${recog_set}; do
         data2json.sh --cmd "${train_cmd}" --nj 30 \
         --category "multichannel" \
-        --preprocess-conf ${expdir}/preprocess.conf --filetype sound.hdf5 \
+        --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
         --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
         --out data/${setname}/data.json data/${setname} ${dict}
     done
@@ -201,7 +196,7 @@ EOF
     for setname in train_si284; do
         data2json.sh --cmd "${train_cmd}" --nj 30 \
         --category "singlechannel" \
-        --preprocess-conf ${expdir}/preprocess.conf --filetype sound.hdf5 \
+        --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
         --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
         --out data/${setname}/data.json data/${setname} ${dict}
     done
@@ -274,19 +269,14 @@ fi
 
 
 if [ ${stage} -le 4 ]; then
-    echo "stage 4: Network Training"
-
-    python << EOF > ${expdir}/preprocess.conf
-#!/usr/bin/env python
-import json
-cfg = dict(process=[dict(type='stft', n_fft=400, n_shift=160)])
-jsonstr = json.dumps(cfg)
-print(jsonstr)
-EOF
+    echo "stage 4: Network Training: expdir=${expdir}"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --use-frontend True \
+        --use-beamformer ${use_beamformer} \
+        --use-wpe ${use_wpe} \
+        --use-dnn-mask-for-wpe ${use_dnn_mask_for_wpe} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -299,7 +289,7 @@ EOF
         --resume ${resume} \
         --train-json data/${train_set}/data.json \
         --valid-json data/${train_dev}/data.json \
-        --preprocess-conf ${expdir}/preprocess.conf \
+        --preprocess-conf ${preprocess_conf} \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
