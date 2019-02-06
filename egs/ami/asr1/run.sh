@@ -52,7 +52,7 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
-sortagrad=0
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=15
 patience=3
@@ -63,7 +63,7 @@ lm_vocabsize=20000  # effective only for word LMs
 lm_layers=1         # 2 for character LMs
 lm_units=1000       # 650 for character LMs
 lm_opt=sgd          # adam for character LMs
-lm_sortagrad=0
+lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 lm_batchsize=64    # 1024 for character LMs
 lm_epochs=20        # number of epochs
 lm_patience=3
