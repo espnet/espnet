@@ -27,12 +27,13 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 ## Requirements
 
 - Python2.7+
-- Cuda 8.0 or 9.1 (for the use of GPU)
+- Cuda 8.0,9.1,10.0 depeding one each DNN library (for the use of GPU)
 - Cudnn 6+ (for the use of GPU)
 - NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.1+
+- PyTorch 0.4.1,1.0.0 
+- gcc>=4.9 for PyTorch1.0.0
 - Chainer 5.0.0
 
 ## Installation
@@ -82,7 +83,7 @@ $ cd tools
 $ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
 ```
 
-v0.3.0: Change to use miniconda by default installation.
+v0.3.0: Changed to use miniconda by default installation.
 
 ### Step 2-B) installation including Kaldi installation
 
@@ -101,7 +102,7 @@ $ make -j PYTHON=/usr/bin/python2.7
 Or install specific Python version with miniconda
 ```sh
 $ cd tools
-$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
+$ make PYTHON_VERSION=3.6
 ```
 
 ### Step 3) installation check
