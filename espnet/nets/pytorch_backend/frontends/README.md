@@ -26,6 +26,11 @@ All components are implemented using PyTorch, thus they can perform with its aut
     Implemented DNN MVDR based on 
     *Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;*
     https://arxiv.org/abs/1703.04783
+    
+    and https://github.com/fgnt/nn-gev
+    
+    There are also gev implementation, but it can't work now 
+    because Eigen value decomposition is not implemented.
 
 
 1. Feature transformation
