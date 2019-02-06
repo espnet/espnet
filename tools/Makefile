@@ -1,10 +1,11 @@
 # If a Python interpreter is specified, then creates a virtualenv from it
 # PYTHON := /usr/bin/python2.7
 PYTHON :=
-# PyTorch version: 0.4.1 or 1.0.0
-TH_VERSION := 1.0.0
 # The python version installed in the conda setup
 PYTHON_VERSION := 3.7
+CUPY_VERSION := 5.0.0
+# PyTorch version: 0.4.1 or 1.0.0
+TH_VERSION := 1.0.0
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
 
@@ -39,7 +40,7 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==5.0.0 torch==$(TH_VERSION) matplotlib
+	. venv/bin/activate; pip install cupy==$(CUPY_VERSION) torch==$(TH_VERSION) matplotlib
 	touch espnet.done
 else
 miniconda.sh:
@@ -53,7 +54,7 @@ espnet.done: venv
 	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
 	. venv/bin/activate && conda install -y hp5y matplotlib
 	. venv/bin/activate && pip install -e ..
-	. venv/bin/activate && pip install cupy==4.3.0
+	. venv/bin/activate && pip install cupy==$(CUPY_VERSION) 
 	touch espnet.done
 endif
 
