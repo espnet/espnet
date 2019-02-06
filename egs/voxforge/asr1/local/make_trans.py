@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2012  Vassil Panayotov
-#           2017  Johns Hopkins University (author: Shinji Watanabe)
+# Copyright 2012 Vassil Panayotov
 # Apache 2.0
 
 """
@@ -13,32 +12,36 @@ It checks if the prompts file have transcription for all audio files in the list
 if this is the case produces a transcript line for each file in the format:
 prefix_a0405 IT SEEMED THE ORDAINED ORDER OF THINGS THAT DOGS SHOULD WORK
 """
+from __future__ import print_function
 
 import sys
 
 def err(msg):
-    print >> sys.stderr, msg
+    print(msg, file=sys.stderr)
 
 if len(sys.argv) < 3:
     err("Usage: %s <prompts-file> <id-prefix> <utt-id1> <utt-id2> ... " % sys.argv[0])
     sys.exit(1)
 
+#err(str(sys.argv))
 id_prefix = sys.argv[2]
 utt_ids = sys.argv[3:]
 utt2trans = dict()
-unnorm_utt = set()
-
+unnorm_utt = set() 
 for l in file(sys.argv[1]):
     u, trans = l.split(None, 1)
     u = u.strip().split('/')[-1]
-    # convert to upper case
-    trans = unicode(trans, 'utf_8').strip().replace("-", " ").upper()
+    trans = trans.strip().replace("-", " ")
     if not trans.isupper() or \
        not trans.strip().replace(' ', '').replace("'", "").isalnum():
-        err("The transcript for '%s'(user '%s') is not properly normalized"
+       # Note(kamo): Changed from the original: isalpha() -> isalnum()
+       # not trans.strip().replace(' ', '').replace("'", "").isalpha():
+        err("The transcript for '%s'(user '%s') is not properly normalized - skipped!"
             % (u, id_prefix))
-        err(trans.encode('utf_8'))
-    utt2trans[u] = trans.encode('utf_8')
+        err(trans)
+        unnorm_utt.add(u)
+        continue
+    utt2trans[u] = trans
 
 for uid in utt_ids:
     if uid in unnorm_utt:
@@ -46,5 +49,5 @@ for uid in utt_ids:
     if not uid in utt2trans:
         err("No transcript found for %s_%s" % (id_prefix, uid))
         continue
-    print "%s-%s %s" % (id_prefix, uid, utt2trans[uid])
-                                                                                            
+    print("%s-%s %s" % (id_prefix, uid, utt2trans[uid]))
+
