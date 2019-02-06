@@ -1,10 +1,10 @@
 from e2e_tts_cyc_th import Tacotron2
 from e2e_tts_cyc_th import Tacotron2Loss
 from tts_cyc_pytorch import CustomConverter
+from espnet.asr.asr_utils import torch_load
 
 import logging
 import pickle
-import torch
 
 
 def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
@@ -26,7 +26,6 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
     #        )
     # else:
     #    output_activation_fn = None
-
     # TACOTRON CYCLE-CONSISTENT LOSS HERE
     # Define model
     tacotron2 = Tacotron2(
@@ -38,8 +37,9 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
         # load trained model parameters
         logging.info('reading model parameters from ' + tts_model_file)
 
-        tacotron2.load_state_dict(
-            torch.load(tts_model_file, map_location=lambda storage, loc: storage))
+        torch_load(tts_model_file, tacotron2)
+        # tacotron2.load_state_dict(
+        #    torch.load(tts_model_file, map_location=lambda storage, loc: storage))
     else:
         logging.info("not using pretrained tacotron2 model")
     # Set to eval mode
@@ -61,7 +61,6 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
 
 
 def load_tacotron_loss(tts_model_conf, tts_model_file):
-
     # Read model
     if 'conf' in tts_model_conf:
         with open(tts_model_conf, 'rb') as f:

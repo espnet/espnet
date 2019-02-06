@@ -20,7 +20,7 @@ import random
 import six
 import torch
 import torch.nn.functional as F
-import warpctc_pytorch as warp_ctc
+# import warpctc_pytorch as warp_ctc
 
 from chainer import reporter
 from torch.nn.utils.rnn import pack_padded_sequence
@@ -272,13 +272,7 @@ class ExpectedLoss(torch.nn.Module):
         self.lm_loss_weight = lm_loss_weight
         # needed for Tacotron loss
         self.ngpu = args.ngpu
-
-    # def batch_factor(self, x):
-    #    '''Returns the factor by which a batch is normalized e.g. number of
-    #    elements in the batch
-    #    '''
-
-    #    return len(x)
+        self.generator = args.generator
 
     def forward(self, xs, ilens, ys):
         '''Loss forward
@@ -287,15 +281,19 @@ class ExpectedLoss(torch.nn.Module):
         :param ys:  self.n_samples_per_input per each x entry
         :return:
         '''
-
         # sample output sequence with the current model
         loss_ctc, loss_att, ys, ygen, ylens, hpad, hlens = \
             self.predictor.generate(xs, ys, n_samples_per_input=self.n_samples_per_input,
                                     topk=self.topk, maxlenratio=self.maxlenratio,
                                     minlenratio=self.minlenratio,
-                                    freeze_encoder=True,
+                                    freeze_encoder=False,
                                     return_encoder_states=True,
                                     oracle=self.oracle)
+        if self.generator == 'tts':
+            hpad = xs
+            ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+            hpad, hlens = mask_by_length_and_multiply(hpad, torch.tensor(ilens), 0, self.n_samples_per_input)
+
         acc = None
         loss = None
         alpha = self.mtlalpha
@@ -367,7 +365,6 @@ class ExpectedLoss(torch.nn.Module):
                 self.loss = -weight.mean()
 
         self.loss = self.loss * 1. / self.ngpu
-
         # Inform use        import ipdb; ipdb.set_trace()r
         if self.verbose > 0 and self.char_list is not None:
             for i in six.moves.range(len(xs)):
@@ -376,10 +373,9 @@ class ExpectedLoss(torch.nn.Module):
                     y_str = "".join([self.char_list[int(ygen[k, l])] for l in range(ylens[k])])
                     if self.loss_fn is not None:
                         # logging.info("generation[%d]: %.4f %.4f " % (k, weight[k], taco_loss[k]) + y_str)
-                        logging.info("generation[%d]: %.4f %.4f " % (k, weight[k].item(), taco_loss.item()) + y_str)
+                        logging.info("generation[%d]: %.4f %.4f " % (k, weight[k].item(), taco_loss[k].item()) + y_str)
                     else:
                         logging.info("generation[%d]: %.4f " % (k, weight[k].item()) + y_str)
-
         if self.loss_fn is not None:
             if self.policy_gradient:  # use log posterior probs
                 loss_cyc_data = float(taco_loss.mean())
@@ -694,7 +690,7 @@ class E2E(torch.nn.Module):
         return y
 
     def generate(self, xs, ys, n_samples_per_input=10, topk=0, maxlenratio=1.0,
-                 minlenratio=0.3, freeze_encoder=False, return_encoder_states=False, oracle=False):
+                 minlenratio=0.3, freeze_encoder=True, return_encoder_states=False, oracle=False):
         '''E2E generate
 
         :param data:
@@ -729,6 +725,7 @@ class E2E(torch.nn.Module):
         # expand encoder states by n_sample_per_input
         hpad, hlens = mask_by_length_and_multiply(hpad, hlens, 0, n_samples_per_input)
         if freeze_encoder:
+            logging.warn("Encoder is frozen")
             new_hpad = hpad.detach()
             del hpad
             hpad = new_hpad
@@ -800,7 +797,7 @@ class CTC(torch.nn.Module):
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
-        self.loss_fn = warp_ctc.CTCLoss(size_average=True)
+        self.loss_fn = 0  # warp_ctc.CTCLoss(size_average=True)
         self.ignore_id = -1
 
     def forward(self, hs_pad, hlens, ys_pad):
@@ -2211,13 +2208,13 @@ class AttForwardTA(torch.nn.Module):
         # weighted sum over flames
         # utt x hdim
         # NOTE use bmm instead of sum(*)
-        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+        ctxt = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
 
         # update transition agent prob
         self.trans_agent_prob = torch.sigmoid(
-            self.mlp_ta(torch.cat([c, out_prev, dec_z], dim=1)))
+            self.mlp_ta(torch.cat([ctxt, out_prev, dec_z], dim=1)))
 
-        return c, w
+        return ctxt, w
 
 
 # ------------- Decoder Network ----------------------------------------------------------------------------------------

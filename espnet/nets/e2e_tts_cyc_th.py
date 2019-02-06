@@ -191,31 +191,40 @@ class Tacotron2Loss(torch.nn.Module):
                 cbhg_outs = cbhg_outs.masked_select(mask)
 
         # calculate loss
-        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
-        mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-        bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
+        l1_loss = F.l1_loss(after_outs, ys, reduce=False) + F.l1_loss(before_outs, ys, reduce=False)
+        l1_loss = l1_loss.mean(2).mean(1)
+        mse_loss = F.mse_loss(after_outs, ys, reduce=False) + F.mse_loss(before_outs, ys, reduce=False)
+        mse_loss = mse_loss.mean(2).mean(1)
+        bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights, reduce=False)
+        bce_loss = bce_loss.mean(1)
+
         if self.use_cbhg:
             # calculate chbg loss and then itegrate them
-            cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs)
-            cbhg_mse_loss = F.mse_loss(cbhg_outs, spcs)
+            cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs, reduce=False)
+            cbhg_l1_loss = cbhg_l1_loss.mean(2).mean(1)
+            cbhg_mse_loss = F.mse_loss(cbhg_outs, spcs, reduce=False)
+            cbhg_mse_loss = cbhg_mse_loss.mean(2).mean(1)
             loss = l1_loss + mse_loss + bce_loss + cbhg_l1_loss + cbhg_mse_loss
             # report loss values for logging
-            # self.reporter.report([
-            #    {'loss_l1': l1_loss.item()},
-            #    {'loss_mse': mse_loss.item()},
-            #    {'loss_bce': bce_loss.item()},
-            #    {'cbhg_l1_loss': cbhg_l1_loss.item()},
-            #    {'cbhg_mse_loss': cbhg_mse_loss.item()},
-            #    {'loss': loss.item()}])
+            self.reporter.report([{'l1_loss': l1_loss.mean(0).item()},
+                                  {'mse_loss': mse_loss.mean(0).item()},
+                                  {'bce_loss': bce_loss.mean(0).item()},
+                                  {'cbhg_l1_loss': cbhg_l1_loss.mean(0).item()},
+                                  {'cbhg_mse_loss': cbhg_mse_loss.mean(0).item()},
+                                  {'loss': loss.mean(0).item()}])
         else:
             # integrate loss
             loss = l1_loss + mse_loss + bce_loss
             # report loss values for logging
             # self.reporter.report([
-            #    {'loss_l1': l1_loss.item()},
-            #    {'loss_mse': mse_loss.item()},
-            #    {'loss_bce': bce_loss.item()},
-            #    {'loss': loss.item()}])
+            #   {'l1_loss': l1_loss.mean(0).item()},
+            #   {'mse_loss': mse_loss.mean(0).item()},
+            #   {'bce_loss': bce_loss.mean(0).item()},
+            #   {'loss': loss.mean(0).item()}])
+        logging.info("tacotron2loss returned - total: " + str(loss.mean(0)))
+        logging.info("tacotron2loss returned - l1: " + str(l1_loss.mean(0)))
+        logging.info("tacotron2loss returned - mse: " + str(mse_loss.mean(0)))
+        logging.info("tacotron2loss returned - bce: " + str(bce_loss.mean(0)))
 
         return loss
 
@@ -456,11 +465,11 @@ class Tacotron2(torch.nn.Module):
         # self.dropout = args.dropout
         self.dropout = 0.2
         # self.zoneout = args.zoneout
-        self.zoneout = 0.1
+        self.zoneout = 0.0
         # self.reduction_factor = args.reduction_factor
         self.reduction_factor = 1
         # self.atype = args.atype
-        self.atype = "location"
+        self.atype = 'forward_ta'
         # self.use_cbhg = args.use_cbhg
         self.use_cbhg = False
         if self.use_cbhg:
@@ -816,7 +825,7 @@ class Decoder(torch.nn.Module):
                  use_batch_norm=True,
                  use_concate=True,
                  dropout=0.5,
-                 zoneout=0.1,
+                 zoneout=0.0,
                  threshold=0.5,
                  reduction_factor=1,
                  maxlenratio=5.0,
