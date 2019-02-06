@@ -19,7 +19,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import chainer
 from chainer import Chain
 from chainer.dataset import convert
 from chainer import reporter
