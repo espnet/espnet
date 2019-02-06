@@ -396,7 +396,7 @@ class E2E(torch.nn.Module):
 
 
 def _to_torch_tensor(x):
-    """Change to
+    """Change to torch.Tensor or ComplexTensor from numpy.ndarray
 
     :param: Union[np.ndarray, torch.Tensor, ComplexTensor, dict] x:
     :rtype: Union[torch.Tensor, ComplexTensor]:

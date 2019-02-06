@@ -84,6 +84,7 @@ class Frontend(nn.Module):
         if h.dim() == 4:
             if self.training and self.use_beamformer \
                     and self.use_wpe and self.use_dnn_mask_for_wpe:
+                # Select one from DNN-WPE and DNN-Beamformer
                 true_false = [True, False]
                 numpy.random.shuffle(true_false)
                 use_wpe, use_beamformer = true_false
