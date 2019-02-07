@@ -206,7 +206,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-        --epochs 40 \
+        --epoch 40 \
         --batchsize 256 \
         --dict ${dict}
 fi

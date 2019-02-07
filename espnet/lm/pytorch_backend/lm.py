@@ -353,7 +353,7 @@ def train(args):
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
-    logging.info('#total iterations = ' + str(args.epochs * len(train_iter.batch_indices)))
+    logging.info('#total iterations = ' + str(args.epoch * len(train_iter.batch_indices)))
     # Prepare an RNNLM model
     rnn = RNNLM(args.n_vocab, args.layer, args.unit, args.type)
     model = ClassifierWithState(rnn)
@@ -384,7 +384,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     updater = BPTTUpdater(train_iter, model, optimizer, gpu_id, gradclip=args.gradclip)
-    trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
+    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.outdir)
     trainer.extend(LMEvaluator(val_iter, model, reporter, device=gpu_id))
     trainer.extend(extensions.LogReport(postprocess=compute_perplexity,
                                         trigger=(REPORT_INTERVAL, 'iteration')))
@@ -409,7 +409,7 @@ def train(args):
         trainer.extend(TensorboardLogger(writer))
 
     trainer.run()
-    check_early_stop(trainer, args.epochs)
+    check_early_stop(trainer, args.epoch)
 
     # compute perplexity for test set
     if args.test_label:
