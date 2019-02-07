@@ -403,7 +403,7 @@ def train(args):
         logging.info('resumed from %s' % args.resume)
         torch_resume(args.resume, trainer)
 
-    set_early_stop(trainer, args)
+    set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer))
