@@ -23,7 +23,7 @@ all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
-	ln -s $(abspath KALDI) kaldi
+	ln -s $(abspath $(KALDI)) kaldi
 	touch kaldi.done
 else
 kaldi.done:
@@ -52,7 +52,7 @@ venv: miniconda.sh
 	. venv/bin/activate && conda info -a
 espnet.done: venv
 	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
-	. venv/bin/activate && conda install -y hp5y matplotlib
+	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	. venv/bin/activate && pip install cupy==$(CUPY_VERSION) 
 	touch espnet.done
