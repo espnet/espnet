@@ -284,7 +284,6 @@ def train(args):
                 import pickle
                 idim, odim, train_args = pickle.load(f)
         elif 'json' in args.asr_model_conf:
-            from espnet.asr.asr_utils import get_model_conf
             idim, odim, train_args = get_model_conf(args.asr_model,
                                                     conf_path=args.asr_model_conf)
         e2e = E2E(idim, odim, train_args)
@@ -329,7 +328,8 @@ def train(args):
         if args.expected_loss == 'tts':
             from taco_cycle_consistency import load_tacotron_loss
             assert args.tts_model, "Need to provide --tts-model and set --expected-loss tts"
-            loss_fn = load_tacotron_loss(args.tts_model_conf, args.tts_model)
+            loss_fn = load_tacotron_loss(args.tts_model_conf, args.tts_model,
+                                         asr_model.reporter)
         elif args.expected_loss == 'none':
             loss_fn = None
         else:

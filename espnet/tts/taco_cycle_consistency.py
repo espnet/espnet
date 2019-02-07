@@ -9,7 +9,7 @@ import pickle
 
 def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
                        use_masking=False, bce_pos_weight=20.0,
-                       spk_embed_dim=None):
+                       spk_embed_dim=None, reporter=None):
 
     # define output activation function
     # if hasattr(train_args, 'output_activation'):
@@ -48,8 +48,8 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
     loss = Tacotron2Loss(
         model=tacotron2,
         use_masking=use_masking,
-        bce_pos_weight=bce_pos_weight
-        # report=False,
+        bce_pos_weight=bce_pos_weight,
+        reporter=reporter
         # These two are needed together
         # reduce_loss=False,
         # use_bce_loss=False
@@ -60,7 +60,7 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
     return loss
 
 
-def load_tacotron_loss(tts_model_conf, tts_model_file):
+def load_tacotron_loss(tts_model_conf, tts_model_file, reporter):
     # Read model
     if 'conf' in tts_model_conf:
         with open(tts_model_conf, 'rb') as f:
@@ -74,6 +74,7 @@ def load_tacotron_loss(tts_model_conf, tts_model_file):
         idim=idim_taco,
         odim=odim_taco,
         train_args=train_args_taco,
+        reporter=reporter
     )
 
 

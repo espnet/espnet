@@ -131,7 +131,7 @@ class Tacotron2Loss(torch.nn.Module):
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
 
-    def __init__(self, model, use_masking=True, bce_pos_weight=1.0):
+    def __init__(self, model, use_masking=True, bce_pos_weight=1.0, reporter=None):
         super(Tacotron2Loss, self).__init__()
         self.model = model
         self.use_masking = use_masking
@@ -142,7 +142,7 @@ class Tacotron2Loss(torch.nn.Module):
         else:
             self.use_cbhg = model.use_cbhg
             self.reduction_factor = model.reduction_factor
-        self.reporter = Reporter()
+        self.reporter = reporter if reporter is not None else Reporter()
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
         """TACOTRON2 LOSS FORWARD CALCULATION
@@ -216,15 +216,10 @@ class Tacotron2Loss(torch.nn.Module):
             # integrate loss
             loss = l1_loss + mse_loss + bce_loss
             # report loss values for logging
-            # self.reporter.report([
-            #   {'l1_loss': l1_loss.mean(0).item()},
-            #   {'mse_loss': mse_loss.mean(0).item()},
-            #   {'bce_loss': bce_loss.mean(0).item()},
-            #   {'loss': loss.mean(0).item()}])
-        logging.info("tacotron2loss returned - total: " + str(loss.mean(0)))
-        logging.info("tacotron2loss returned - l1: " + str(l1_loss.mean(0)))
-        logging.info("tacotron2loss returned - mse: " + str(mse_loss.mean(0)))
-        logging.info("tacotron2loss returned - bce: " + str(bce_loss.mean(0)))
+            self.reporter.report_tts(l1_loss.mean(0).item(),
+                                     mse_loss.mean(0).item(),
+                                     bce_loss.mean(0).item(),
+                                     loss.mean(0).item())
 
         return loss
 
