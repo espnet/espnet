@@ -14,15 +14,16 @@ def check_early_stop(trainer, epochs):
             end_epoch) + "\nYou can change the patience or set it to 0 to run all epochs")
 
 
-def set_early_stop(trainer, args):
+def set_early_stop(trainer, args, is_lm=False):
     """Sets the early stop trigger given the program arguments
 
     :param trainer: The trainer used for training
     :param args: The program arguments
+    :param is_lm: If the trainer is for a LM (epoch instead of epochs)
     """
     patience = args.patience
     criterion = args.early_stop_criterion
-    epochs = args.epochs
+    epochs = args.epoch if is_lm else args.epochs
     mode = 'max' if 'acc' in criterion else 'min'
     if patience > 0:
         trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=criterion,
