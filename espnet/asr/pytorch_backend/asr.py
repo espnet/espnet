@@ -51,6 +51,7 @@ from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import set_early_stop
 
 matplotlib.use('Agg')
 
@@ -264,9 +265,11 @@ def train(args):
     # Setup an optimizer
     if args.opt == 'adadelta':
         optimizer = torch.optim.Adadelta(
-            model.parameters(), rho=0.95, eps=args.eps)
+            model.parameters(), rho=0.95, eps=args.eps,
+            weight_decay=args.weight_decay)
     elif args.opt == 'adam':
-        optimizer = torch.optim.Adam(model.parameters())
+        optimizer = torch.optim.Adam(model.parameters(),
+                                     weight_decay=args.weight_decay)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -393,10 +396,7 @@ def train(args):
         report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
-    if args.patience > 0:
-        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
-                                                                              patients=args.patience,
-                                                                              max_trigger=(args.epochs, 'epoch'))
+    set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)

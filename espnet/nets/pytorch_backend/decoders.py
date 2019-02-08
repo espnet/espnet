@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 import logging
 import random
 import six
@@ -32,6 +33,7 @@ class Decoder(torch.nn.Module):
 
     :param int eprojs: # encoder projection units
     :param int odim: dimension of outputs
+    :param str dtype: gru or lstm
     :param int dlayers: # decoder layers
     :param int dunits: # decoder units
     :param int sos: start of sequence symbol id
@@ -41,18 +43,33 @@ class Decoder(torch.nn.Module):
     :param list char_list: list of character strings
     :param ndarray labeldist: distribution of label smoothing
     :param float lsm_weight: label smoothing weight
+    :param float sampling_probability: scheduled sampling probability
+    :param float dropout: dropout rate
     """
 
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
+    def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
+                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
+                 dropout=0.0):
         super(Decoder, self).__init__()
+        self.dtype = dtype
         self.dunits = dunits
         self.dlayers = dlayers
         self.embed = torch.nn.Embedding(odim, dunits)
+        self.dropout_emb = torch.nn.Dropout(p=dropout)
+
         self.decoder = torch.nn.ModuleList()
-        self.decoder += [torch.nn.LSTMCell(dunits + eprojs, dunits)]
+        self.dropout_dec = torch.nn.ModuleList()
+        self.decoder += [
+            torch.nn.LSTMCell(dunits + eprojs, dunits) if self.dtype == "lstm" else torch.nn.GRUCell(dunits + eprojs,
+                                                                                                     dunits)]
+        self.dropout_dec += [torch.nn.Dropout(p=dropout)]
         for _ in six.moves.range(1, self.dlayers):
-            self.decoder += [torch.nn.LSTMCell(dunits, dunits)]
+            self.decoder += [
+                torch.nn.LSTMCell(dunits, dunits) if self.dtype == "lstm" else torch.nn.GRUCell(dunits + eprojs,
+                                                                                                dunits)]
+            self.dropout_dec += [torch.nn.Dropout(p=dropout)]
+            # NOTE: dropout is applied only for the vertical connections
+            # see https://arxiv.org/pdf/1409.2329.pdf
         self.ignore_id = -1
         self.output = torch.nn.Linear(dunits, odim)
 
@@ -69,11 +86,24 @@ class Decoder(torch.nn.Module):
         self.vlabeldist = None
         self.lsm_weight = lsm_weight
         self.sampling_probability = sampling_probability
+        self.dropout = dropout
 
         self.logzero = -10000000000.0
 
     def zero_state(self, hs_pad):
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
+
+    def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
+        if self.dtype == "lstm":
+            z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.decoder[l](
+                    self.dropout_dec[l - 1](z_list[l - 1]), (z_prev[l], c_prev[l]))
+        else:
+            z_list[0] = self.decoder[0](ey, z_prev[0])
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
+        return z_list, c_list
 
     def forward(self, hs_pad, hlens, ys_pad):
         """Decoder forward
@@ -121,31 +151,32 @@ class Decoder(torch.nn.Module):
         self.att.reset()  # reset pre-computation of h
 
         # pre-computation of embedding
-        eys = self.embed(ys_in_pad)  # utt x olen x zdim
+        eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs_pad, hlens, z_list[0], att_w)
+            att_c, att_w = self.att(hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
                 z_out = np.argmax(z_out.detach(), axis=1)
-                z_out = self.embed(z_out.cuda())
+                z_out = self.dropout_emb(self.embed(z_out.cuda()))
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
-            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-            z_all.append(z_list[-1])
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
+            z_all.append(self.dropout_dec[-1](z_list[-1]))
 
         z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
         # compute loss
         y_all = self.output(z_all)
+        if LooseVersion(torch.__version__) < LooseVersion('1.0'):
+            reduction_str = 'elementwise_mean'
+        else:
+            reduction_str = 'mean'
         self.loss = F.cross_entropy(y_all, ys_out_pad.view(-1),
                                     ignore_index=self.ignore_id,
-                                    size_average=True)
+                                    reduction=reduction_str)
         # -1: eos, which is removed in the loss computation
         self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
         acc = th_accuracy(y_all, ys_out_pad, ignore_label=self.ignore_id)
@@ -240,17 +271,15 @@ class Decoder(torch.nn.Module):
             for hyp in hyps:
                 vy.unsqueeze(1)
                 vy[0] = hyp['yseq'][i]
-                ey = self.embed(vy)  # utt list (1) x zdim
+                ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
                 ey.unsqueeze(0)
-                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)], hyp['z_prev'][0], hyp['a_prev'])
+                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)],
+                                        self.dropout_dec[0](hyp['z_prev'][0]), hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
-                z_list[0], c_list[0] = self.decoder[0](ey, (hyp['z_prev'][0], hyp['c_prev'][0]))
-                for l in six.moves.range(1, self.dlayers):
-                    z_list[l], c_list[l] = self.decoder[l](
-                        z_list[l - 1], (hyp['z_prev'][l], hyp['c_prev'][l]))
+                z_list, c_list = self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
 
                 # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(self.output(z_list[-1]), dim=1)
+                local_att_scores = F.log_softmax(self.output(self.dropout_dec[-1](z_list[-1])), dim=1)
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
@@ -417,15 +446,13 @@ class Decoder(torch.nn.Module):
             logging.debug('position ' + str(i))
 
             vy = to_device(self, torch.LongTensor(get_last_yseq(yseq)))
-            ey = self.embed(vy)
-            att_c, att_w = self.att(exp_h, exp_hlens, z_prev[0], a_prev)
+            ey = self.dropout_emb(self.embed(vy))
+            att_c, att_w = self.att(exp_h, exp_hlens, self.dropout_dec[0](z_prev[0]), a_prev)
             ey = torch.cat((ey, att_c), dim=1)
 
             # attention decoder
-            z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](z_list[l - 1], (z_prev[l], c_prev[l]))
-            local_scores = att_weight * F.log_softmax(self.output(z_list[-1]), dim=1)
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_prev, c_prev)
+            local_scores = att_weight * F.log_softmax(self.output(self.dropout_dec[-1](z_list[-1])), dim=1)
 
             # rnnlm
             if rnnlm:
@@ -580,16 +607,13 @@ class Decoder(torch.nn.Module):
         self.att.reset()  # reset pre-computation of h
 
         # pre-computation of embedding
-        eys = self.embed(ys_in_pad)  # utt x olen x zdim
+        eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs_pad, hlen, z_list[0], att_w)
+            att_c, att_w = self.att(hs_pad, hlen, self.dropout_dec[0](z_list[0]), att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
-            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             att_ws.append(att_w)
 
         # convert to numpy array with the shape (B, Lmax, Tmax)
@@ -598,5 +622,6 @@ class Decoder(torch.nn.Module):
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
-    return Decoder(args.eprojs, odim, args.dlayers, args.dunits, sos, eos, att, args.verbose, args.char_list, labeldist,
-                   args.lsm_weight, args.sampling_probability)
+    return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
+                   args.char_list, labeldist,
+                   args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder)
