@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+from __future__ import division
 
 import numpy as np
 import pytest
@@ -159,10 +160,7 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     with torch.no_grad():
         spemb = None if model_args['spk_embed_dim'] is None else spembs[0]
         model.inference(xs[0][:ilens[0]], Namespace(**inference_args), spemb)
-        att_ws = model.calculate_all_attentions(xs, ilens, ys, spembs)
-    assert att_ws.shape[0] == bs
-    assert att_ws.shape[1] == max(olens)
-    assert att_ws.shape[2] == max(ilens)
+        model.calculate_all_attentions(xs, ilens, ys, spembs)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
