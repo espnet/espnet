@@ -49,10 +49,13 @@ def add_early_stop(trainer, args):
     :param trainer: The trainer to add the trigger to
     :param args: The program arguments
     """
+    mode = 'max' if 'acc' in args.early_stop_criterion else 'min'
+
     if args.patience > 0:
         trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
                                                                               patients=args.patience,
-                                                                              max_trigger=(args.epochs, 'epoch'))
+                                                                              max_trigger=(args.epochs, 'epoch'),
+                                                                              mode=mode)
 
 
 def load_jsons(args):

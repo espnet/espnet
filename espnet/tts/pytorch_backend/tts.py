@@ -249,7 +249,7 @@ def train(args):
     # Set up a trainer
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
     evaluator = CustomEvaluator(model, valid_iter, reporter, converter, device)
-    att_fig_converter = CustomConverter(False, args.use_speaker_embedding)
+    att_fig_converter = CustomConverter(False, args.use_speaker_embedding, args.preprocess_conf)
     trainer = prepare_trainer(updater, evaluator, att_fig_converter, model, valid_json, args, device)
 
     # Run the training

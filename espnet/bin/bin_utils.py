@@ -44,7 +44,8 @@ def get_train_argparser(typ="asr"):
                         help='Batch size')
     parser.add_argument('--epochs', '-e', default=30, type=int,
                         help='Number of maximum epochs')
-    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+    parser.add_argument('--early-stop-criterion',
+                        default='validation/main/acc' if typ == "asr" else 'validation/main/loss', type=str, nargs='?',
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")

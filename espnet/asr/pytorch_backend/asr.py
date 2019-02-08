@@ -256,7 +256,6 @@ def train(args):
     evaluator = CustomEvaluator(model, valid_iter, reporter, converter, device)
 
     trainer = prepare_trainer(updater, evaluator, converter, model, valid_json, args, device)
-
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
