@@ -43,11 +43,11 @@ find ${db} -name "transcript_utf8.txt" | sort | while read -r filename; do
     cat ${filename} >> ${rawtext}
 done
 if [ -e ${usr_dict_dir} ]; then
-   dict=${usr_dict_dir}
+    dict=${usr_dict_dir}
 else
-   dict=${esp_dict_dir}
+    dict=${esp_dict_dir}
 fi
 PYTHONIOENCODING=utf-8 PYTHONPATH=local/text python local/clean_text.py \
-   ${dict} ${rawtext} > ${text}
+    ${dict} ${rawtext} > ${text}
 rm ${rawtext}
 echo "finished making text."

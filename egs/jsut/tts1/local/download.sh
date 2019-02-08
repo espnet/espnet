@@ -6,7 +6,7 @@
 db=$1
 
 cwd=`pwd`
-if [ ! -e ${db}/jsut_ver1.1 ];then
+if [ ! -e ${db}/jsut_ver1.1 ]; then
     mkdir -p ${db}
     cd ${db}
     wget http://ss-takashi.sakura.ne.jp/corpus/jsut_ver1.1.zip
