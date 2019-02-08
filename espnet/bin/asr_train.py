@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# encoding: utf-8
 
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -48,7 +49,7 @@ def main(args):
     # network architecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
+                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm', 'bgru', 'bgrup', 'vggbgrup', 'vggbgru'],
                         help='Type of encoder network architecture')
     parser.add_argument('--elayers', default=4, type=int,
                         help='Number of encoder layers')
@@ -61,8 +62,8 @@ def main(args):
                              'every y frame at 2nd layer etc.')
     # loss
     parser.add_argument('--ctc_type', default='warpctc', type=str,
-                        choices=['chainer', 'warpctc'],
-                        help='Type of CTC implementation to calculate loss.')
+                        choices=['builtin', 'warpctc'],
+                        help='Type of CTC implementation to calculate loss. ')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
@@ -84,7 +85,7 @@ def main(args):
                         (negative value indicates no location-aware attention)')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
-                        choices=['lstm'],
+                        choices=['lstm', 'gru'],
                         help='Type of decoder network architecture')
     parser.add_argument('--dlayers', default=1, type=int,
                         help='Number of decoder layers')
@@ -129,7 +130,9 @@ def main(args):
                         help='Blank symbol')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
-                        help='Dropout rate')
+                        help='Dropout rate for the encoder')
+    parser.add_argument('--dropout-rate-decoder', default=0.0, type=float,
+                        help='Dropout rate for the decoder')
     # minibatch related
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
@@ -149,6 +152,8 @@ def main(args):
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
                         help='Decaying ratio of epsilon')
+    parser.add_argument('--weight-decay', default=0.0, type=float,
+                        help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
                         choices=['loss', 'acc'],
                         help='Criterion to perform epsilon decay')
@@ -156,7 +161,7 @@ def main(args):
                         help='Threshold to stop iteration')
     parser.add_argument('--epochs', '-e', default=30, type=int,
                         help='Maximum number of epochs')
-    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+    parser.add_argument('--early-stop-criterion', default='validation/main/acc', type=str, nargs='?',
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")
@@ -164,6 +169,11 @@ def main(args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    # transfer learning related
+    parser.add_argument('--asr-model', default=False, nargs='?',
+                        help='Pre-trained ASR model')
+    parser.add_argument('--mt-model', default=False, nargs='?',
+                        help='Pre-trained MT model')
     args = parser.parse_args(args)
 
     # logging info

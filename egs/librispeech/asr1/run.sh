@@ -179,15 +179,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
     spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict} 
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
     data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
-	 data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
-    
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
+
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
@@ -214,9 +214,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
     # combine external text and transcriptions and shuffle them with seed 777
     zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
-	spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
+        spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
     cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
-							> ${lmdatadir}/valid.txt
+        > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -276,7 +276,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
-	--adim ${adim} \
+        --adim ${adim} \
         --aconv-chans ${aconv_chans} \
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
@@ -305,13 +305,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         #### use CPU for decoding
         ngpu=0
 
-	# set batchsize 0 to disable batch decoding
+        # set batchsize 0 to disable batch decoding
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
-	    --batchsize 0 \
-	    --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --batchsize 0 \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
@@ -331,4 +331,3 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     wait
     echo "Finished"
 fi
-

@@ -21,6 +21,7 @@ def make_arg(**kwargs):
         etype="blstmp",
         eunits=100,
         eprojs=100,
+        dtype="lstm",
         dlayers=1,
         dunits=300,
         atype="location",
@@ -32,6 +33,7 @@ def make_arg(**kwargs):
         sampling_probability=0.0,
         adim=320,
         dropout_rate=0.0,
+        dropout_rate_decoder=0.0,
         nbest=5,
         beam_size=3,
         penalty=0.5,
@@ -41,7 +43,7 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=["a", "i", "u", "e", "o"],
         outdir=None,
-        ctc_type="chainer"
+        ctc_type="warpctc"
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -57,16 +59,24 @@ def init_chainer_weight_const(m, val):
         p.data[:] = val
 
 
-@pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.chainer_backend.e2e_asr", 0),
-    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr", 1),
-    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr", 3),
+@pytest.mark.parametrize(("etype", "dtype", "m_str", "text_idx1"), [
+    ("blstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 0),
+    ("blstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 1),
+    ("vggblstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 2),
+    ("vggblstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 3),
+    ("bgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 4),
+    ("bgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 5),
+    ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 6),
+    ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 7),
 ])
-def test_recognition_results(etype, m_str, text_idx1):
+def test_recognition_results(etype, dtype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
     seq_true_texts = ([["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
+                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
+                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
+                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
                        ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
                        ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
                        ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"]])
@@ -99,16 +109,24 @@ def test_recognition_results(etype, m_str, text_idx1):
         assert seq_hat_text == seq_true_text
 
 
-@pytest.mark.parametrize(("etype", "m_str", "text_idx1"), [
-    ("blstmp", "espnet.nets.chainer_backend.e2e_asr", 0),
-    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr", 1),
-    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr", 2),
-    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr", 3),
+@pytest.mark.parametrize(("etype", "dtype", "m_str", "text_idx1"), [
+    ("blstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 0),
+    ("blstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 1),
+    ("vggblstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr", 2),
+    ("vggblstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr", 3),
+    ("bgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 4),
+    ("bgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 5),
+    ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr", 6),
+    ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr", 7),
 ])
-def test_recognition_results_with_lm(etype, m_str, text_idx1):
+def test_recognition_results_with_lm(etype, dtype, m_str, text_idx1):
     const = 1e-4
     numpy.random.seed(1)
     seq_true_texts = [["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
+                      ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
+                      ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
+                      ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
+                      ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"],
                       ["o", "iuiuiuiuiuiuiuiuo", "aiaiaiaiaiaiaiaio"],
                       ["o", "uiuiuiuiuiuiuiuio", "aiaiaiaiaiaiaiaio"]]
@@ -148,13 +166,17 @@ def test_recognition_results_with_lm(etype, m_str, text_idx1):
         assert seq_hat_text == seq_true_text
 
 
-@pytest.mark.parametrize(("etype", "m_str"), [
-    ("blstmp", "espnet.nets.chainer_backend.e2e_asr"),
-    ("blstmp", "espnet.nets.pytorch_backend.e2e_asr"),
-    ("vggblstmp", "espnet.nets.chainer_backend.e2e_asr"),
-    ("vggblstmp", "espnet.nets.pytorch_backend.e2e_asr"),
+@pytest.mark.parametrize(("etype", "dtype", "m_str"), [
+    ("blstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr"),
+    ("blstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr"),
+    ("vggblstmp", "lstm", "espnet.nets.chainer_backend.e2e_asr"),
+    ("vggblstmp", "lstm", "espnet.nets.pytorch_backend.e2e_asr"),
+    ("bgrup", "gru", "espnet.nets.chainer_backend.e2e_asr"),
+    ("bgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr"),
+    ("vggbgrup", "gru", "espnet.nets.chainer_backend.e2e_asr"),
+    ("vggbgrup", "gru", "espnet.nets.pytorch_backend.e2e_asr"),
 ])
-def test_batch_beam_search(etype, m_str):
+def test_batch_beam_search(etype, dtype, m_str):
     const = 1e-4
     numpy.random.seed(1)
 
