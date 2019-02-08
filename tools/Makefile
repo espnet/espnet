@@ -9,6 +9,7 @@ all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses
 
+
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
 	ln -s $(KALDI) kaldi
