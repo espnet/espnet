@@ -34,6 +34,8 @@ tools/venv/
 tools/warp-ctc/
 tools/chainer_ctc/
 tools/sentencepiece/
+tools/mecab/
+tools/swig/
 tools/nkf*
 tools/chainer_ctc*
 tools/warp-ctc*
