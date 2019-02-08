@@ -33,6 +33,7 @@ from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import set_early_stop
 
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
@@ -372,10 +373,7 @@ def train(args):
     trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
-    if args.patience > 0:
-        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
-                                                                              patients=args.patience,
-                                                                              max_trigger=(args.epochs, 'epoch'))
+    set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, att_reporter))

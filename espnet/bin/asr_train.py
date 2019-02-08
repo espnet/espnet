@@ -163,7 +163,7 @@ def main(args):
                         help='Threshold to stop iteration')
     parser.add_argument('--epochs', '-e', default=30, type=int,
                         help='Maximum number of epochs')
-    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+    parser.add_argument('--early-stop-criterion', default='validation/main/acc', type=str, nargs='?',
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")

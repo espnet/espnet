@@ -3,8 +3,21 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import sys
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
+import codecs
+from io import open
+import sys
+
+
+PY2 = sys.version_info[0] == 2
+sys.stdin = codecs.getreader('utf-8')(
+    sys.stdin if PY2 else sys.stdin.buffer)
+sys.stdout = codecs.getwriter('utf-8')(
+    sys.stdout if PY2 else sys.stdout.buffer)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -12,12 +25,11 @@ if __name__ == '__main__':
                         help='filter list')
     args = parser.parse_args()
 
-    with open(args.filter_list) as f:
-        fil = [unicode(x, 'utf_8').rstrip() for x in f.readlines()]
+    with open(args.filter_list, encoding='utf-8') as f:
+        fil = [x.rstrip() for x in f]
 
-    for x in sys.stdin.readlines():
+    for x in sys.stdin:
         # extract text parts
-        text = ' '.join(unicode(x, 'utf_8').rstrip().split()[1:])
+        text = ' '.join(x.rstrip().split()[1:])
         if text in fil:
-            print x.split()[0], text.encode('utf_8')
-                                                
+            print(x.split()[0], text)
