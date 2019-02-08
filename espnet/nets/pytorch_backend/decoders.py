@@ -49,7 +49,7 @@ class Decoder(torch.nn.Module):
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
-                 dropout=0.0, context_residual=False, replace_sos=False):
+                 dropout=0.0, context_residual=False, replace_sos=False, multilingual=False):
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
@@ -95,6 +95,9 @@ class Decoder(torch.nn.Module):
 
         # for multilingual translation
         self.replace_sos = replace_sos
+        if replace_sos:
+            assert multilingual
+        self.multilingual = multilingual
 
         self.logzero = -10000000000.0
 
@@ -113,12 +116,13 @@ class Decoder(torch.nn.Module):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_pad):
+    def forward(self, hs_pad, hlens, ys_pad, tgt_lang_ids=None):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
         :return: attention loss value
         :rtype: torch.Tensor
         :return: accuracy
@@ -135,11 +139,10 @@ class Decoder(torch.nn.Module):
         eos = ys[0].new([self.eos])
         sos = ys[0].new([self.sos])
         if self.replace_sos:
-            ys_in = ys[:]  # feed the first token as <sos>
-            ys_out = [torch.cat([y[1:], eos], dim=0) for y in ys]
+            ys_in = [torch.cat([idx, y], dim=0) for idx, y in zip(tgt_lang_ids, ys)]
         else:
             ys_in = [torch.cat([sos, y], dim=0) for y in ys]
-            ys_out = [torch.cat([y, eos], dim=0) for y in ys]
+        ys_out = [torch.cat([y, eos], dim=0) for y in ys]
 
         # padding for ys with -1
         # pys: utt x olen
@@ -252,13 +255,13 @@ class Decoder(torch.nn.Module):
         ctc_weight = recog_args.ctc_weight
 
         # preprate sos
-        if recog_args.sos:
-            logging.info('sos index: ' + str(char_list.index(recog_args.sos)))
-            logging.info('sos mark: ' + recog_args.sos)
-            y = char_list.index(recog_args.sos)
+        if self.replace_sos and recog_args.tgt_lang:
+            logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
+            logging.info('<sos> mark: ' + recog_args.tgt_lang)
+            y = char_list.index(recog_args.tgt_lang)
         else:
-            logging.info('sos index: ' + str(self.sos))
-            logging.info('sos mark: ' + char_list[self.sos])
+            logging.info('<sos> index: ' + str(self.sos))
+            logging.info('<sos> mark: ' + char_list[self.sos])
             y = self.sos
         vy = h.new_zeros(1).long()
 
@@ -305,7 +308,7 @@ class Decoder(torch.nn.Module):
 
                 # get nbest local scores and their ids
                 if self.context_residual:
-                    logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1), dim=1)
+                    logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1))
                 else:
                     logits = self.output(self.dropout_dec[-1](z_list[-1]))
                 local_att_scores = F.log_softmax(logits, dim=1)
@@ -415,7 +418,7 @@ class Decoder(torch.nn.Module):
         return nbest_hyps
 
     def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
-                             normalize_score=True):
+                             normalize_score=True, tgt_lang_ids=None):
         logging.info('input lengths: ' + str(h.size(1)))
         h = mask_by_length(h, hlens, 0.0)
 
@@ -454,13 +457,16 @@ class Decoder(torch.nn.Module):
 
         self.att.reset()  # reset pre-computation of h
 
-        if recog_args.sos:
-            logging.info('sos index: ' + str(char_list.index(recog_args.sos)))
-            logging.info('sos mark: ' + recog_args.sos)
-            yseq = [[char_list.index(recog_args.sos)] for _ in six.moves.range(n_bb)]
+        if self.replace_sos and recog_args.tgt_lang:
+            logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
+            logging.info('<sos> mark: ' + recog_args.tgt_lang)
+            yseq = [[char_list.index(recog_args.tgt_lang)] for _ in six.moves.range(n_bb)]
+        elif tgt_lang_ids is not None:
+            # NOTE: used for evaluation during training
+            yseq = [[tgt_lang_ids[b // recog_args.beam_size]] for b in six.moves.range(n_bb)]
         else:
-            logging.info('sos index: ' + str(self.sos))
-            logging.info('sos mark: ' + char_list[self.sos])
+            logging.info('<sos> index: ' + str(self.sos))
+            logging.info('<sos> mark: ' + char_list[self.sos])
             yseq = [[self.sos] for _ in six.moves.range(n_bb)]
         accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
         stop_search = [False for _ in six.moves.range(batch)]
@@ -604,12 +610,13 @@ class Decoder(torch.nn.Module):
 
         return nbest_hyps
 
-    def calculate_all_attentions(self, hs_pad, hlen, ys_pad):
+    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, tgt_lang_ids=None):
         """Calculate all of attentions
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).
@@ -625,7 +632,10 @@ class Decoder(torch.nn.Module):
         # prepare input and output word sequences with sos/eos IDs
         eos = ys[0].new([self.eos])
         sos = ys[0].new([self.sos])
-        ys_in = [torch.cat([sos, y], dim=0) for y in ys]
+        if self.replace_sos:
+            ys_in = [torch.cat([idx, y], dim=0) for idx, y in zip(tgt_lang_ids, ys)]
+        else:
+            ys_in = [torch.cat([sos, y], dim=0) for y in ys]
         ys_out = [torch.cat([y, eos], dim=0) for y in ys]
 
         # padding for ys with -1
@@ -662,7 +672,11 @@ class Decoder(torch.nn.Module):
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
+    if not hasattr(args, 'multilingual'):
+        args.multilingual = False
+    # TODO(hirofumi): fix later
+
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att,
                    args.verbose, args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
-                   args.context_residual, args.replace_sos)
+                   args.context_residual, args.replace_sos, args.multilingual)

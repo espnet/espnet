@@ -52,6 +52,7 @@ from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import set_early_stop
 
 matplotlib.use('Agg')
 
@@ -61,15 +62,14 @@ REPORT_INTERVAL = 100
 class CustomConverter(object):
     """Custom batch converter for Pytorch
 
-    :param int replace_sos : for multilingual NMT
+    :param int odim : index for <pad>
     """
 
-    def __init__(self, preprocess_conf=None, odim=-1, replace_sos=False):
+    def __init__(self, preprocess_conf=None, odim=-1):
         self.load_inputs_and_targets = LoadInputsAndTargets(
             mode='mt', load_input=False, load_output=True, preprocess_conf=preprocess_conf)
         self.ignore_id = -1
         self.pad = odim
-        self.replace_sos = replace_sos
 
     def transform(self, item):
         return self.load_inputs_and_targets(item)
@@ -90,15 +90,7 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
-
-        if self.replace_sos:
-            # replace <2src> to <2tgt> in source sentences
-            xs_pad = [torch.cat((torch.from_numpy(y[0:1]), torch.from_numpy(x[1:])), dim=-1).long()
-                      for x, y in zip(xs, ys)]
-        else:
-            xs_pad = [torch.from_numpy(x).long() for x in xs]
-        xs_pad = pad_list(xs_pad, self.pad).to(device)
+        xs_pad = pad_list([torch.from_numpy(x).long() for x in xs], self.pad).to(device)
         ilens = torch.from_numpy(ilens).to(device)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
 
@@ -126,6 +118,7 @@ def train(args):
     logging.info('#output dims: ' + str(odim))
 
     model = E2E(idim, odim, args)
+    print(model)
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -173,8 +166,7 @@ def train(args):
 
     # Setup a converter
     converter = CustomConverter(preprocess_conf=args.preprocess_conf,
-                                odim=odim,  # for padding
-                                replace_sos=args.replace_sos)
+                                odim=odim)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -318,6 +310,7 @@ def train(args):
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)
+    set_early_stop(trainer, args)
 
 
 def recog(args):
@@ -382,19 +375,23 @@ def recog(args):
         preprocess_conf=train_args.preprocess_conf
         if args.preprocess_conf is None else args.preprocess_conf)
 
+    id2token = {i: x for i, x in enumerate(train_args.char_list)}
+
     if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 with using_transform_config({'train': True}):
-                    feat = load_inputs_and_targets(batch)[0][0]
+                    src = load_inputs_and_targets(batch)[0][0]
 
-                if train_args.replace_sos:
-                    feat = [[train_args.char_list.index(args.sos)] + js[name]['output'][1]['tokenid'].split()]
+                if train_args.multilingual:
+                    # remove source language ID in the beggining
+                    src = [js[name]['output'][1]['tokenid'].split()[1:]]
                 else:
-                    feat = [js[name]['output'][1]['tokenid'].split()]
-                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                    src = [js[name]['output'][1]['tokenid'].split()]
+                logging.info('src sentence: %s', ' '.join([id2token[int(y)] for y in src[0]]))
+                nbest_hyps = model.recognize(src, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
         try:
@@ -417,15 +414,16 @@ def recog(args):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
                 with using_transform_config({'train': False}):
-                    feats = load_inputs_and_targets(batch)[0]
+                    srcs = load_inputs_and_targets(batch)[0]
 
-                if train_args.replace_sos:
-                    feats = [[train_args.char_list.index(args.sos)] + js[name]['output'][1]
-                             ['tokenid'].split() for name in names]
+                if train_args.multilingual:
+                    # remove source language ID in the beggining
+                    srcs = [[train_args.char_list.index(args.tgt_lang)] + js[name]['output'][1]
+                            ['tokenid'].split() for name in names]
                 else:
-                    feats = [js[name]['output'][1]['tokenid'].split() for name in names]
-                feats = [np.fromiter(map(int, feat), dtype=np.int64) for feat in feats]
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                    srcs = [js[name]['output'][1]['tokenid'].split() for name in names]
+                srcs = [np.fromiter(map(int, src), dtype=np.int64) for src in srcs]
+                nbest_hyps = model.recognize_batch(srcs, args, train_args.char_list, rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)

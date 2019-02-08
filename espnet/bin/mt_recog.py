@@ -71,8 +71,8 @@ def main(args):
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
     # multilingual related
-    parser.add_argument('--sos', default=False, type=str,
-                        help='Replace <sos> in the decoder with a target language ID')
+    parser.add_argument('--tgt-lang', default=False, type=str,
+                        help='target language ID (e.g., <en>, <de>, <fr> etc.)')
     args = parser.parse_args(args)
 
     # logging info
