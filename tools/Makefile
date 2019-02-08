@@ -3,7 +3,7 @@ KALDI =
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio
+all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio extra
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
@@ -96,8 +96,8 @@ mecab.done:
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
-clean:
-	rm -rf kaldi venv warp-ctc chainer_ctc nkf sentencepiece mecab swig moses
+clean: clean_extra
+	rm -rf kaldi venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete

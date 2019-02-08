@@ -165,36 +165,36 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 
-if [ -z ${tag} ];then
+if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
-    if [ ${econv_layers} -gt 0 ];then
+    if [ ${econv_layers} -gt 0 ]; then
         expname=${expname}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
     expname=${expname}-${elayers}x${eunits}_dec${dlayers}x${dunits}
-    if [ ${prenet_layers} -gt 0 ];then
+    if [ ${prenet_layers} -gt 0 ]; then
         expname=${expname}_pre${prenet_layers}x${prenet_units}
     fi
-    if [ ${postnet_layers} -gt 0 ];then
+    if [ ${postnet_layers} -gt 0 ]; then
         expname=${expname}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
     fi
     expname=${expname}_${atype}${adim}-${aconv_filts}x${aconv_chans}
-    if ${cumulate_att_w};then
+    if ${cumulate_att_w}; then
         expname=${expname}_cm
     fi
-    if ${use_batch_norm};then
+    if ${use_batch_norm}; then
         expname=${expname}_bn
     fi
-    if ${use_residual};then
+    if ${use_residual}; then
         expname=${expname}_rs
     fi
-    if ${use_concate};then
+    if ${use_concate}; then
         expname=${expname}_cc
     fi
-    if ${use_masking};then
+    if ${use_masking}; then
         expname=${expname}_msk_pw${bce_pos_weight}
     fi
     expname=${expname}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
-    if [ ! ${batch_sort_key} = "shuffle" ];then
+    if [ ! ${batch_sort_key} = "shuffle" ]; then
         expname=${expname}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
     fi
     expname=${expname}_sd${seed}
@@ -203,7 +203,7 @@ else
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
@@ -257,9 +257,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
 fi
 
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
-    for sets in ${train_dev} ${eval_set};do
+    for sets in ${train_dev} ${eval_set}; do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
@@ -282,9 +282,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
     done
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Synthesis"
-    for sets in ${train_dev} ${eval_set};do
+    for sets in ${train_dev} ${eval_set}; do
         [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
