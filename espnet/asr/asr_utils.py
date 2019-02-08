@@ -25,7 +25,6 @@ import matplotlib
 import numpy as np
 import torch
 
-
 matplotlib.use('Agg')
 
 
@@ -89,6 +88,55 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     #               'output': [{'shape': ...}]}),
     #             ...]
     return minibatches
+
+
+def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_len=1):
+    # sort by input lengths
+    sorted_data = sorted(data.items(), key=lambda sample: int(
+        sample[1]['input'][0]['shape'][0]), reverse=False)
+    length = len(sorted_data)
+    idim = int(sorted_data[0][1]['input'][0]['shape'][1])
+    odim = int(sorted_data[0][1]['output'][0]['shape'][1])
+    logging.info('# utts: ' + str(len(sorted_data)))
+    minibatch = []
+    start = 0
+    n = 0
+    min_b = 0
+    max_b = 0
+    while True:
+        # Dynamic batch size depending on size of samples
+        b = 0
+        next_size = 0
+        max_olen = 0
+        while next_size < max_batch_size and (start + b) < length:
+            ilen = int(sorted_data[start + b][1]['input'][0]['shape'][0]) * idim
+            olen = int(sorted_data[start + b][1]['output'][0]['shape'][0]) * odim
+            if olen > max_olen:
+                max_olen = olen
+            next_size = (max_olen + ilen) * (b + 1)
+            if next_size <= max_batch_size:
+                b += 1
+            elif next_size == 0:
+                raise ValueError("Can't fit one sample in max_batch_size : Please raise value")
+        b = max(min_batch_len, b)
+        if max_b == 0 or b > max_b:
+            max_b = b
+        if min_b == 0 or b < min_b:
+            min_b = b
+        end = min(length, start + b)
+        batch = sorted_data[start:end]
+        batch.reverse()
+        minibatch.append(batch)
+        if end == length:
+            break
+        start = end
+        n += 1
+    if num_batches > 0:
+        minibatch = minibatch[:num_batches]
+
+    logging.warning(str(len(minibatch)) + " batches containing from " + str(min_b) + " to " + str(max_b) + " samples.")
+
+    return minibatch
 
 
 class CompareValueTrigger(object):
