@@ -26,7 +26,7 @@ from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import BLSTMP
+from espnet.nets.pytorch_backend.encoders import BRNNP
 from espnet.nets.pytorch_backend.encoders import VGG2L
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -77,7 +77,7 @@ class E2E(torch.nn.Module):
         # subsample info
         # +1 means input (+1) and layers outputs (args.elayer)
         subsample = np.ones(args.elayers_sd + args.elayers_rec + 1, dtype=np.int)
-        if args.etype == 'blstmp':
+        if args.etype.endswith("p") and not args.etype.startswith("vgg"):
             ss = args.subsample.split("_")
             for j in range(min(args.elayers + 1, len(ss))):
                 subsample[j] = int(ss[j])
@@ -331,10 +331,10 @@ class E2E(torch.nn.Module):
         # Neither CPUTensor nor float/int value can be used
         # because NCCL communicates between GPU devices.
         device = next(self.parameters()).device
-        acc = torch.tensor([acc], device=device)
+
+        acc = torch.tensor([acc], device=device) if acc is not None else None
         cer = torch.tensor([cer], device=device)
         wer = torch.tensor([wer], device=device)
-
         return self.loss, loss_ctc, loss_att, acc, cer, wer
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
@@ -460,15 +460,21 @@ class Encoder(torch.nn.Module):
     def __init__(self, etype, idim, elayers_sd, elayers_rec, eunits, eprojs,
                  subsample, dropout, num_spkrs=2, in_channel=1):
         super(Encoder, self).__init__()
-        if etype == 'vggblstmp':
-            self.enc_mix = torch.nn.ModuleList([VGG2L(in_channel)])
-            self.enc_sd = torch.nn.ModuleList([torch.nn.ModuleList([BLSTMP(get_vgg2l_odim(idim, in_channel=in_channel),
-                                                                           elayers_sd, eunits, eprojs,
-                                                                           subsample[:elayers_sd + 1], dropout)])
-                                               for i in range(num_spkrs)])
-            self.enc_rec = torch.nn.ModuleList([BLSTMP(eprojs, elayers_rec, eunits, eprojs,
-                                                       subsample[elayers_sd:], dropout)])
-            logging.info('Use CNN-VGG + BLSTMP for encoder')
+        typ = etype.lstrip("vgg").lstrip("b").rstrip("p")
+        if typ != "lstm" and typ != "gru":
+            logging.error("Error: need to specify an appropriate encoder architecture")
+        if etype.startswith("vgg"):
+            if etype[-1] == "p":
+                self.enc_mix = torch.nn.ModuleList([VGG2L(in_channel)])
+                self.enc_sd = torch.nn.ModuleList([torch.nn.ModuleList([BRNNP(get_vgg2l_odim(idim,
+                                                                                             in_channel=in_channel),
+                                                                              elayers_sd, eunits, eprojs,
+                                                                              subsample[:elayers_sd + 1], dropout,
+                                                                              typ=typ)])
+                                                   for i in range(num_spkrs)])
+                self.enc_rec = torch.nn.ModuleList([BRNNP(eprojs, elayers_rec, eunits, eprojs,
+                                                          subsample[elayers_sd:], dropout, typ=typ)])
+                logging.info('Use CNN-VGG + B' + typ.upper() + 'P for encoder')
         else:
             logging.error(
                 "Error: need to specify an appropriate encoder architecture")
