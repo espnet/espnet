@@ -30,6 +30,8 @@ def main(args):
                         help='Verbose option')
     parser.add_argument('--batchsize', default=1, type=int,
                         help='Batch size for beam search (0: means no batch processing)')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # task related
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')

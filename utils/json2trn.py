@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -10,8 +10,12 @@ import codecs
 import json
 import logging
 
+from espnet.utils.cli_utils import get_commandline_args
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str, help='json files')
     parser.add_argument('dict', type=str, help='dict')
     parser.add_argument('--num-spkrs', type=int, default=1, help='number of speakers')
@@ -25,7 +29,9 @@ if __name__ == '__main__':
     assert n_ref == args.num_spkrs
 
     # logging info
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+    logfmt = '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s'
+    logging.basicConfig(level=logging.INFO, format=logfmt)
+    logging.info(get_commandline_args())
 
     logging.info("reading %s", args.json)
     with codecs.open(args.json, 'r', encoding="utf-8") as f:

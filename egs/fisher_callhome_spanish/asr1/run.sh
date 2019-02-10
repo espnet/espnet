@@ -9,6 +9,7 @@
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
+stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -27,6 +28,7 @@ elayers=3
 eunits=1024
 eprojs=1024
 subsample=1_1_1 # skip every n frame from input to nth layers
+edropout=0.2
 # decoder related
 dlayers=1
 dunits=1024
@@ -39,7 +41,7 @@ aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.5
+mtlalpha=0.2
 
 # label smoothing
 lsm_type=
@@ -47,12 +49,12 @@ lsm_weight=0.05
 
 # minibatch related
 batchsize=24
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 opt=adadelta
-epochs=15
+epochs=8
 patience=3
 
 # rnnlm related
@@ -69,7 +71,7 @@ lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
 
 # decoding parameter
-lm_weight=1.0
+lm_weight=0.5
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
@@ -105,12 +107,13 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
+train_set_ori=train
+train_set=train_sp
 train_dev=dev
 train_test="test"
 recog_set="dev test callhome_dev callhome_test callhome_train"
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
@@ -126,7 +129,7 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
@@ -148,18 +151,29 @@ if [ ${stage} -le 1 ]; then
     local/create_splits.sh ${split}
     local/callhome_create_splits.sh ${split_callhome}
 
+    # speed-perturbed. data/${train_set_ori} is the orignal and data/${train_set} is the augmented
+    utils/perturb_data_dir_speed.sh 0.9 data/${train_set_ori} data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/${train_set_ori} data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/${train_set_ori} data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+
+    utils/fix_data_dir.sh data/train_sp
+    utils/validate_data_dir.sh data/train_sp
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
 
@@ -175,22 +189,22 @@ if [ ${stage} -le 1 ]; then
     done
 fi
 
-dict=data/lang_1char/${train_set}_units.txt
+dict=data/lang_1char/${train_set_ori}_units.txt
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    cut -f 2- -d' ' data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+    cut -f 2- -d' ' data/${train_set_ori}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -220,14 +234,14 @@ lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
 
     if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train.txt
+        cut -f 2- -d" " data/${train_set_ori}/text > ${lmdatadir}/train.txt
         cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
         cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
@@ -235,7 +249,7 @@ if [ ${stage} -le 3 ]; then
         lmdatadir=data/local/lm_train
         lmdict=${dict}
         mkdir -p ${lmdatadir}
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text \
             | cut -f 2- -d" " > ${lmdatadir}/train.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
@@ -270,7 +284,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_edropout${edropout}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expname=${expname}_lsm${lsm_type}${lsm_weight}
     fi
@@ -283,7 +297,7 @@ fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
@@ -306,6 +320,7 @@ if [ ${stage} -le 4 ]; then
         --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
+        --dropout-rate ${edropout} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --atype ${atype} \
@@ -326,7 +341,7 @@ if [ ${stage} -le 4 ]; then
         --patience ${patience}
 fi
 
-if [ ${stage} -le 5 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 

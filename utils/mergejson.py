@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
@@ -13,77 +13,107 @@ import json
 import logging
 import sys
 
+from espnet.utils.cli_utils import get_commandline_args
+
 is_python2 = sys.version_info[0] == 2
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('jsons', type=str, nargs='+',
-                        help='json files')
-    parser.add_argument('--multi', '-m', type=int,
-                        help='Test the json file for multiple input/output', default=0)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--input-jsons', type=str, nargs='+', action='append',
+                        default=[], help='Json files for the inputs')
+    parser.add_argument('--output-jsons', type=str, nargs='+', action='append',
+                        default=[], help='Json files for the outputs')
+    parser.add_argument('--jsons', type=str, nargs='+', action='append',
+                        default=[],
+                        help='The json files except for the input and outputs')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
-    parser.add_argument('--output-json', default='', type=str,
-                        help='output json file')
+    parser.add_argument('-O', dest='output', type=str, help='Output json file')
     args = parser.parse_args()
 
     # logging info
+    logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     if args.verbose > 0:
-        logging.basicConfig(
-            level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        logging.basicConfig(level=logging.INFO, format=logfmt)
     else:
-        logging.basicConfig(
-            level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
+        logging.basicConfig(level=logging.WARN, format=logfmt)
+    logging.info(get_commandline_args())
 
+    js_dict = {}  # Dict[str, List[List[Dict[str, Dict[str, dict]]]]]
     # make intersection set for utterance keys
-    js = []
-    intersec_ks = []
-    for x in args.jsons:
-        with codecs.open(x, encoding="utf-8") as f:
-            j = json.load(f)
-        ks = j['utts'].keys()
-        logging.info(x + ': has ' + str(len(ks)) + ' utterances')
-        if len(intersec_ks) > 0:
-            intersec_ks = intersec_ks.intersection(set(ks))
-            if len(intersec_ks) == 0:
-                logging.warning("No intersection")
-                break
-        else:
-            intersec_ks = set(ks)
-        js.append(j)
+    intersec_ks = None  # Set[str]
+    for jtype, jsons_list in [('input', args.input_jsons),
+                              ('output', args.output_jsons),
+                              ('other', args.jsons)]:
+        js_dict[jtype] = []
+        for jsons in jsons_list:
+            js = []
+            for x in jsons:
+                with codecs.open(x, encoding="utf-8") as f:
+                    j = json.load(f)
+                ks = list(j['utts'].keys())
+                logging.info(x + ': has ' + str(len(ks)) + ' utterances')
+                if intersec_ks is not None:
+                    intersec_ks = intersec_ks.intersection(set(ks))
+                    if len(intersec_ks) == 0:
+                        logging.warning("No intersection")
+                        break
+                else:
+                    intersec_ks = set(ks)
+                js.append(j)
+            js_dict[jtype].append(js)
     logging.info('new json has ' + str(len(intersec_ks)) + ' utterances')
 
-    old_dic = dict()
+    new_dic = {}
     for k in intersec_ks:
-        v = js[0]['utts'][k]
-        for j in js[1:]:
-            v.update(j['utts'][k])
-        old_dic[k] = v
+        new_dic[k] = {'input': [], 'output': []}
+        for jtype in ['input', 'output', 'other']:
+            for idx, js in enumerate(js_dict[jtype], 1):
+                # Merge dicts from jsons into a dict
+                dic = {k2: v for j in js for k2, v in j['utts'][k].items()}
 
-    new_dic = dict()
-    for key_id in old_dic:
-        dic = old_dic[key_id]
+                if jtype == 'other':
+                    new_dic[k].update(dic)
+                else:
+                    _dic = {}
 
-        in_dic = {}
-        # if dic.has_key(('idim', 'utf-8')):
-        if 'idim' in dic:
-            in_dic['shape'] = (int(dic['ilen']), int(dic['idim']))
-        in_dic['name'] = 'input1'
-        in_dic['feat'] = dic['feat']
+                    # FIXME(kamo): ad-hoc way to change str to List[int]
+                    if jtype == 'input':
+                        _dic['name'] = 'input{}'.format(idx)
+                        if 'ilen' in dic and 'idim' in dic:
+                            _dic['shape'] = (int(dic['ilen']),
+                                             int(dic['idim']))
+                        elif 'ilen' in dic:
+                            _dic['shape'] = (int(dic['ilen']),)
+                        elif 'idim' in dic:
+                            _dic['shape'] = (int(dic['idim']),)
 
-        out_dic = {}
-        out_dic['name'] = 'target1'
-        out_dic['shape'] = (int(dic['olen']), int(dic['odim']))
-        out_dic['text'] = dic['text']
-        out_dic['token'] = dic['token']
-        out_dic['tokenid'] = dic['tokenid']
+                    elif jtype == 'output':
+                        _dic['name'] = 'target{}'.format(idx)
+                        if 'olen' in dic and 'odim' in dic:
+                            _dic['shape'] = (int(dic['olen']),
+                                             int(dic['odim']))
+                        elif 'ilen' in dic:
+                            _dic['shape'] = (int(dic['olen']),)
+                        elif 'idim' in dic:
+                            _dic['shape'] = (int(dic['odim']),)
+                    if 'shape' in dic:
+                        # shape: "80,1000" -> [80, 1000]
+                        _dic['shape'] = list(map(int, dic['shape'].split(',')))
 
-        new_dic[key_id] = {'input': [in_dic], 'output': [out_dic],
-                           'utt2spk': dic['utt2spk']}
+                    for k2, v in dic.items():
+                        if k2 not in ['ilen', 'idim', 'olen', 'odim', 'shape']:
+                            _dic[k2] = v
+                    new_dic[k][jtype].append(_dic)
 
     # ensure "ensure_ascii=False", which is a bug
-    if args.output_json:
-        sys.stdout = codecs.open(args.output_json, "w", encoding="utf-8")
+    if args.output is not None:
+        sys.stdout = codecs.open(args.output, "w", encoding="utf-8")
     else:
-        sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
-    print(json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': ')))
+        sys.stdout = codecs.getwriter("utf-8")(
+            sys.stdout if is_python2 else sys.stdout.buffer)
+    print(json.dumps({'utts': new_dic},
+                     indent=4, ensure_ascii=False,
+                     sort_keys=True, separators=(',', ': ')))

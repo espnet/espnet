@@ -1,6 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
+    [ ! -z $LC_ALL ] && export LC_ALL="en_US.UTF-8"
+
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
     tmpdir=$(mktemp -d testXXXXXX)
     cat << EOF > $tmpdir/text
@@ -20,7 +22,7 @@ teardown() {
     rm -rf $tmpdir
 }
 
-@test "" {
+@test "text2token.py" {
     python $utils/text2token.py $tmpdir/text > $tmpdir/vocab
     diff $tmpdir/vocab $tmpdir/valid
 }
