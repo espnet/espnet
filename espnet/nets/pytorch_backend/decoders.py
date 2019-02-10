@@ -280,7 +280,7 @@ class Decoder(torch.nn.Module):
                 ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
                 ey.unsqueeze(0)
                 att_c, att_w = self.att[att_idx](h.unsqueeze(0), [h.size(0)],
-                                        self.dropout_dec[0](hyp['z_prev'][0]), hyp['a_prev'])
+                                                 self.dropout_dec[0](hyp['z_prev'][0]), hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
                 z_list, c_list = self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
 

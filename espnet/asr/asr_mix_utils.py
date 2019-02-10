@@ -9,8 +9,6 @@ import os
 
 from chainer.training import extension
 
-# io related
-import kaldi_io_py
 import matplotlib
 import numpy as np
 
