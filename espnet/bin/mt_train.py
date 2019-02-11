@@ -170,7 +170,7 @@ def main(args):
                         help='')
     # multilingual NMT related
     parser.add_argument('--multilingual', default=False, nargs='?',
-                        help='')
+                        help='multilingual translation')
     parser.add_argument('--replace-sos', default=False, nargs='?',
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
