@@ -41,16 +41,16 @@ def shape(x):
 
 
 if __name__ == '__main__':
+    description = '''
+'''
     parser = argparse.ArgumentParser(
-        description=
-        'Given each file paths with such format as <key>:<file>:<type>. '
-        '<type> can be omitted and the default is "str". '
-        'e.g. {} '
-        '--input-scps feat:data/feats.scp shape:data/utt2feat_shape:shape '
-        '--input-scps feat:data/feats2.scp shape:data/utt2feat2_shape:shape '
-        '--output-scps text:data/text shape:data/utt2text_shape:shape '
-        '--scps utt2spk:data/utt2spk'
-        .format(sys.argv[0]),
+        description='Given each file paths with such format as '
+                    '<key>:<file>:<type>. type> can be omitted and the default '
+                    'is "str". e.g. {} '
+                    '--input-scps feat:data/feats.scp shape:data/utt2feat_shape:shape '
+                    '--input-scps feat:data/feats2.scp shape:data/utt2feat2_shape:shape '
+                    '--output-scps text:data/text shape:data/utt2text_shape:shape '
+                    '--scps utt2spk:data/utt2spk'.format(sys.argv[0]),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--input-scps', type=str, nargs='*', action='append',
                         default=[], help='Json files for the inputs')
