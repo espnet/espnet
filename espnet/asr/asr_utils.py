@@ -135,6 +135,18 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1)
         batch = sorted_data[start:end]
         batch.reverse()
         minibatch.append(batch)
+        # Check for min_batch_size and fixes the batches if needed
+        i = -1
+        while len(minibatch[i]) < min_batch_size:
+            missing = min_batch_size - len(minibatch[i])
+            if -i == len(minibatch):
+                minibatch[i + 1].extend(minibatch[i])
+                minibatch = minibatch[1:]
+                break
+            else:
+                minibatch[i].extend(minibatch[i - 1][:missing])
+                minibatch[i - 1] = minibatch[i - 1][missing:]
+                i -= 1
         if end == length:
             break
         start = end

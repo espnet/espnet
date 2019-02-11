@@ -56,13 +56,10 @@ def test_make_batchset(utils):
 @pytest.mark.parametrize('utils', [espnet.asr.asr_utils])
 def test_make_dynamic_batchset(utils):
     dummy_json = make_dummy_json(128, [128, 512], [16, 128])
-    # check w/o adaptive batch size
-    batchset = utils.make_dynamic_batchset(dummy_json, 500000, min_batch_size=1)
-    assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
-    print([len(batch) for batch in batchset])
-    batchset = utils.make_dynamic_batchset(dummy_json, 500000, min_batch_size=4)
-    assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
-    print([len(batch) for batch in batchset])
+    for min_batch_size in range(1, 20, 3):
+        batchset = utils.make_dynamic_batchset(dummy_json, 500000, min_batch_size=min_batch_size)
+        assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
+        print([len(batch) for batch in batchset])
 
 
 def test_load_inputs_and_targets_legacy_format(tmpdir):
