@@ -30,7 +30,7 @@ matplotlib.use('Agg')
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, min_batch_size=1):
+                  num_batches=0, min_batch_size=1, test=0):
     """Make batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
@@ -81,6 +81,8 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     # for debugging
     if num_batches > 0:
         minibatches = minibatches[:num_batches]
+    if test > 0:
+        minibatch = minibatch[:20] + minibatch[-20:] + minibatch[::test]
     logging.info('# minibatches: ' + str(len(minibatches)))
 
     # such like: [('uttid1',
@@ -90,7 +92,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     return minibatches
 
 
-def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1):
+def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1, test=0):
     """Make variably sized batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
@@ -147,6 +149,9 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1)
         n += 1
     if num_batches > 0:
         minibatch = minibatch[:num_batches]
+    if test > 0:
+        # Check for CUDA OoM
+        minibatch = minibatch[:20] + minibatch[-20:] + minibatch[::test]
     lengths = [len(batch) for batch in minibatch]
     logging.warning(str(len(minibatch)) + " batches containing from " + str(min(lengths)) + " to " + str(
         max(lengths)) + " samples.")

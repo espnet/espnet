@@ -289,15 +289,15 @@ def train(args):
     if args.batch_size > 0:
         train = make_batchset(train_json, args.batch_size,
                               args.maxlen_in, args.maxlen_out, args.minibatches,
-                              min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                              min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
         valid = make_batchset(valid_json, args.batch_size,
                               args.maxlen_in, args.maxlen_out, args.minibatches,
-                              min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                              min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
     else:
         train = make_dynamic_batchset(train_json, args.max_batch_size, args.minibatches,
-                                      min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                                      min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
         valid = make_dynamic_batchset(valid_json, args.max_batch_size, args.minibatches,
-                                      min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                                      min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
     # hack to make batchsize argument as 1
     # actual batchsize is included in a list
     if args.n_iter_processes > 0:
