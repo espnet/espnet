@@ -75,11 +75,11 @@ class E2E(torch.nn.Module):
         self.eos = odim - 1
 
         # subsample info
-        # +1 means input (+1) and layers outputs (args.elayer)
+        # +1 means input (+1) and layers outputs (args.elayer_sd + args.elayers_rec)
         subsample = np.ones(args.elayers_sd + args.elayers_rec + 1, dtype=np.int)
         if args.etype.endswith("p") and not args.etype.startswith("vgg"):
             ss = args.subsample.split("_")
-            for j in range(min(args.elayers + 1, len(ss))):
+            for j in range(min(args.elayers_sd + args.elayers_rec + 1, len(ss))):
                 subsample[j] = int(ss[j])
         else:
             logging.warning(
@@ -179,22 +179,22 @@ class E2E(torch.nn.Module):
         :param list|1-D torch.Tensor loss: list of losses for each sample [h1r1,h1r2,h2r1,h2r2],
             or [h1r1,h1r2,h1r3,h2r1,h2r2,h2r3,h3r1,h3r2,h3r3]
         :return: min_loss
-        :rtype: torch.Tensor
+        :rtype: torch.Tensor size=(2|3)
         :return: permutation
-        :rtype: torch.Tensor
+        :rtype: List, len=(2|3)
         '''
         if self.num_spkrs == 2:
             perm_choices = [[0, 1], [1, 0]]
-            score_perms = torch.cat([loss[0] + loss[3],
-                                     loss[1] + loss[2]]) / self.num_spkrs
+            score_perms = torch.stack([loss[0] + loss[3],
+                                       loss[1] + loss[2]]) / self.num_spkrs
         elif self.num_spkrs == 3:
             perm_choices = [[0, 1, 2], [0, 2, 1], [1, 2, 0], [1, 0, 2], [2, 0, 1], [2, 1, 0]]
-            score_perms = torch.cat([loss[0] + loss[4] + loss[8],
-                                     loss[0] + loss[5] + loss[7],
-                                     loss[1] + loss[5] + loss[6],
-                                     loss[1] + loss[3] + loss[8],
-                                     loss[2] + loss[3] + loss[7],
-                                     loss[2] + loss[4] + loss[6]]) / self.num_spkrs
+            score_perms = torch.stack([loss[0] + loss[4] + loss[8],
+                                       loss[0] + loss[5] + loss[7],
+                                       loss[1] + loss[5] + loss[6],
+                                       loss[1] + loss[3] + loss[8],
+                                       loss[2] + loss[3] + loss[7],
+                                       loss[2] + loss[4] + loss[6]]) / self.num_spkrs
         else:
             raise Exception("NotImplementedError")
 
@@ -208,12 +208,12 @@ class E2E(torch.nn.Module):
 
         :param torch.Tensor losses: CTC losses (B, 1|4|9)
         :return: min ctc loss value
-        :rtype: torch.Tensor
+        :rtype: torch.Tensor (B)
         :return: permutation of min ctc loss value
-        :rtype: torch.Tensor
+        :rtype: torch.Tensor (B, 1|2|3)
         '''
         if self.num_spkrs == 1:
-            return losses[:, 0], to_device(self, torch.zeros(losses.size(0), dtype=torch.long, requires_grad=True))
+            return to_device(self, torch.mean(losses[:, 0])), to_device(self, torch.zeros(losses.size(0)).long())
         else:
             bs = losses.size(0)
             ret = [self.min_pit_process(losses[i]) for i in range(bs)]
