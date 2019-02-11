@@ -30,7 +30,8 @@ requirements = {
         'h5py>=2.9.0',
         'tensorboardX>=1.4',
         'pillow>=5.3.0',
-        'nara_wpe'
+        'nara_wpe',
+        'nltk',
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
