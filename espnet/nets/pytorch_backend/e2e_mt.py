@@ -106,7 +106,7 @@ class E2E(torch.nn.Module):
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
                           'rnnlm': args.rnnlm, 'nbest': args.nbest,
                           'space': args.sym_space, 'blank': args.sym_blank,
-                          'sos': False}
+                          'tgt_lang': False}
 
             self.recog_args = argparse.Namespace(**recog_args)
             self.report_bleu = args.report_bleu
@@ -211,7 +211,7 @@ class E2E(torch.nn.Module):
                 hs_pad, torch.tensor(hlens), None,
                 self.recog_args, self.char_list,
                 self.rnnlm,
-                tgt_lang_ids=tgt_lang_ids.sqeeze(1).tolist() if self.replace_sos else None)
+                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
@@ -264,16 +264,19 @@ class E2E(torch.nn.Module):
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
         if self.target_forcing or self.language_coding:
+            id2token = {i: x for i, x in enumerate(char_list)}
+            logging.info('src (multilingual): %s', ' '.join([id2token[int(y)]
+                                                             for y in [char_list.index(recog_args.tgt_lang)] + x[0]]))
             h = to_device(self, torch.from_numpy(np.fromiter(
                 map(int, [char_list.index(recog_args.tgt_lang)] + x[0]), dtype=np.int64)))
         else:
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0]), dtype=np.int64)))
         h = h.contiguous()
-        ilen = [h.size(0)]
         h_emb = self.dropout_emb_src(self.embed_src(h.unsqueeze(0)))
         if self.language_coding:
             # remove target language ID in the beggining
             h_emb = torch.cat((h_emb[:, 1:], h_emb[:, 0:1].expand_as(h_emb[:, 1:])), dim=-1)
+        ilen = [h_emb.size(1)]
         h, _ = self.enc(h_emb, ilen)
 
         # 2. decoder

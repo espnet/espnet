@@ -375,8 +375,6 @@ def recog(args):
         preprocess_conf=train_args.preprocess_conf
         if args.preprocess_conf is None else args.preprocess_conf)
 
-    id2token = {i: x for i, x in enumerate(train_args.char_list)}
-
     if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
@@ -390,7 +388,6 @@ def recog(args):
                     src = [js[name]['output'][1]['tokenid'].split()[1:]]
                 else:
                     src = [js[name]['output'][1]['tokenid'].split()]
-                logging.info('src sentence: %s', ' '.join([id2token[int(y)] for y in src[0]]))
                 nbest_hyps = model.recognize(src, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
@@ -418,8 +415,7 @@ def recog(args):
 
                 if train_args.multilingual:
                     # remove source language ID in the beggining
-                    srcs = [[train_args.char_list.index(args.tgt_lang)] + js[name]['output'][1]
-                            ['tokenid'].split() for name in names]
+                    srcs = [js[name]['output'][1]['tokenid'].split()[1:] for name in names]
                 else:
                     srcs = [js[name]['output'][1]['tokenid'].split() for name in names]
                 srcs = [np.fromiter(map(int, src), dtype=np.int64) for src in srcs]
