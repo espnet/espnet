@@ -22,11 +22,11 @@ if [ $# -lt 2 ]; then
     exit 1;
 fi
 
-cdir=`pwd`
-dir=`pwd`/data/local/data
-local=`pwd`/local
-utils=`pwd`/utils
-tmpdir=`pwd`/data/local/tmp
+cdir=$(pwd)
+dir=$(pwd)/data/local/data
+local=$(pwd)/local
+utils=$(pwd)/utils
+tmpdir=$(pwd)/data/local/tmp
 
 . ./path.sh || exit 1; # Needed for KALDI_ROOT
 export PATH=$PATH:$KALDI_ROOT/tools/irstlm/bin
@@ -64,16 +64,16 @@ if [ -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o -d links/LDC96S35/CALL
     speech_train=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN
     speech_dev=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST
     speech_test=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST
-    fcount_train=`find ${speech_train} -iname '*.SPH' | wc -l`
-    fcount_dev=`find ${speech_dev} -iname '*.SPH' | wc -l`
-    fcount_test=`find ${speech_test} -iname '*.SPH' | wc -l`
+    fcount_train=$(find ${speech_train} -iname '*.SPH' | wc -l)
+    fcount_dev=$(find ${speech_dev} -iname '*.SPH' | wc -l)
+    fcount_test=$(find ${speech_test} -iname '*.SPH' | wc -l)
 elif [ -d links/LDC96S35/callhome/spanish/speech/devtest -o -d links/LDC96S35/callhome/spanish/speech/evltest -o -d links/LDC96S35/callhome/spanish/speech/train ]; then
     speech_train=$dir/links/LDC96S35/callhome/spanish/speech/train
     speech_dev=$dir/links/LDC96S35/callhome/spanish/speech/devtest
     speech_test=$dir/links/LDC96S35/callhome/spanish/speech/evltest
-    fcount_train=`find ${speech_train} -iname '*.sph' | wc -l`
-    fcount_dev=`find ${speech_dev} -iname '*.sph' | wc -l`
-    fcount_test=`find ${speech_test} -iname '*.sph' | wc -l`
+    fcount_train=$(find ${speech_train} -iname '*.sph' | wc -l)
+    fcount_dev=$(find ${speech_dev} -iname '*.sph' | wc -l)
+    fcount_test=$(find ${speech_test} -iname '*.sph' | wc -l)
 else
     echo "Dev, Eval or Train directories missing or not properly organised within the speech data dir"
     exit 1;
@@ -83,9 +83,9 @@ transcripts_train=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/tra
 transcripts_dev=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest
 transcripts_test=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/evltest
 
-fcount_t_train=`find ${transcripts_train} -iname '*.txt' | wc -l`
-fcount_t_dev=`find ${transcripts_dev} -iname '*.txt' | wc -l`
-fcount_t_test=`find ${transcripts_test} -iname '*.txt' | wc -l`
+fcount_t_train=$(find ${transcripts_train} -iname '*.txt' | wc -l)
+fcount_t_dev=$(find ${transcripts_dev} -iname '*.txt' | wc -l)
+fcount_t_test=$(find ${transcripts_test} -iname '*.txt' | wc -l)
 
 #Now check if we got all the files that we needed
 if [ $fcount_train != 80 -o $fcount_dev != 20 -o $fcount_test != 20 -o $fcount_t_train != 80 -o $fcount_t_dev != 20 -o $fcount_t_test != 20 ]; then
@@ -132,7 +132,7 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-    for f in `cat $tmpdir/callhome_train_sph.flist`; do
+    for f in $(cat $tmpdir/callhome_train_sph.flist); do
         # convert to absolute path
         make_absolute.sh $f
     done > $tmpdir/callhome_train_sph_abs.flist
