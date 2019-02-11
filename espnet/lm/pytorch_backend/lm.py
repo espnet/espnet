@@ -19,7 +19,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import chainer
 from chainer import Chain
 from chainer.dataset import convert
 from chainer import reporter
@@ -43,6 +42,7 @@ from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import set_early_stop
 
 REPORT_INTERVAL = 100
 
@@ -405,10 +405,7 @@ def train(args):
         logging.info('resumed from %s' % args.resume)
         torch_resume(args.resume, trainer)
 
-    if args.patience > 0:
-        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
-                                                                              patients=args.patience,
-                                                                              max_trigger=(args.epoch, 'epoch'))
+    set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer))
