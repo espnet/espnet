@@ -41,6 +41,7 @@ mtlalpha=0.5
 
 # minibatch related
 batchsize=30
+max_batch_size=1000000
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -244,6 +245,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --aconv-filts ${aconv_filts} \
         --mtlalpha ${mtlalpha} \
         --batch-size ${batchsize} \
+        --max-batch-size ${max_batch_size} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
