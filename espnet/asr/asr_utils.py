@@ -152,7 +152,7 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1,
     if test > 0:
         # Check for CUDA OoM
         minibatch = minibatch[:20] + minibatch[-20:] + minibatch[::test]
-    lengths = [len(b) for b in minibatch]
+    lengths = [len(x) for x in minibatch]
     logging.warning(str(len(minibatch)) + " batches containing from " + str(min(lengths)) + " to " + str(
         max(lengths)) + " samples.")
 
