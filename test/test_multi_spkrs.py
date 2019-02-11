@@ -3,10 +3,6 @@
 # Copyright 2018 Hiroshi Seki
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import espnet.lm.pytorch_backend.lm as lm_pytorch
-
-import espnet.lm.chainer_backend.lm as lm_chainer
-
 import argparse
 import importlib
 import numpy
@@ -65,7 +61,7 @@ def init_chainer_weight_const(m, val):
 
 @pytest.mark.parametrize(("etype", "dtype", "num_spkrs", "spa", "m_str", "text_idx1"), [
     ("vggblstmp", "lstm", 2, True, "espnet.nets.pytorch_backend.e2e_asr_mix", 0),
-    ("vggbgrup",  "gru",  2, True, "espnet.nets.pytorch_backend.e2e_asr_mix", 1),
+    ("vggbgrup", "gru", 2, True, "espnet.nets.pytorch_backend.e2e_asr_mix", 1),
 ])
 def test_recognition_results_multi_outputs(etype, dtype, num_spkrs, spa, m_str, text_idx1):
     const = 1e-4
@@ -104,6 +100,7 @@ def test_recognition_results_multi_outputs(etype, dtype, num_spkrs, spa, m_str, 
         seq_true_text_sd = data[0][1]["token"]
 
         assert seq_hat_text_sd == seq_true_text_sd
+
 
 @pytest.mark.parametrize(("etype", "dtype", "num_spkrs", "m_str", "data_idx"), [
     ("vggblstmp", "lstm", 1, "espnet.nets.pytorch_backend.e2e_asr_mix", 0),
