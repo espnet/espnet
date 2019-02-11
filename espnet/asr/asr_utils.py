@@ -91,7 +91,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
 
 
 def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1):
-    """Make batch set from json dictionary
+    """Make variably sized batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
     :param int max_batch_size: Maximum size of a batch
@@ -109,8 +109,6 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1)
     minibatch = []
     start = 0
     n = 0
-    min_b = 0
-    max_b = 0
     while True:
         # Dynamic batch size depending on size of samples
         b = 0
@@ -127,10 +125,6 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1)
             elif next_size == 0:
                 raise ValueError("Can't fit one sample in max_batch_size : Please raise value")
         b = max(min_batch_size, b)
-        if max_b == 0 or b > max_b:
-            max_b = b
-        if min_b == 0 or b < min_b:
-            min_b = b
         end = min(length, start + b)
         batch = sorted_data[start:end]
         batch.reverse()
@@ -153,8 +147,9 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1)
         n += 1
     if num_batches > 0:
         minibatch = minibatch[:num_batches]
-
-    logging.warning(str(len(minibatch)) + " batches containing from " + str(min_b) + " to " + str(max_b) + " samples.")
+    lengths = [len(batch) for batch in minibatch]
+    logging.warning(str(len(minibatch)) + " batches containing from " + str(min(lengths)) + " to " + str(
+        max(lengths)) + " samples.")
 
     return minibatch
 
