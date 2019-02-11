@@ -90,7 +90,15 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     return minibatches
 
 
-def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_len=1):
+def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1):
+    """Make batch set from json dictionary
+
+    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param int max_batch_size: Maximum size of a batch
+    :param int num_batches: # number of batches to use (for debug)
+    :param int min_batch_size: minimum batch size (for multi-gpu)
+    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
+    """
     # sort by input lengths
     sorted_data = sorted(data.items(), key=lambda sample: int(
         sample[1]['input'][0]['shape'][0]), reverse=False)
@@ -118,7 +126,7 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_len=1):
                 b += 1
             elif next_size == 0:
                 raise ValueError("Can't fit one sample in max_batch_size : Please raise value")
-        b = max(min_batch_len, b)
+        b = max(min_batch_size, b)
         if max_b == 0 or b > max_b:
             max_b = b
         if min_b == 0 or b < min_b:

@@ -27,6 +27,7 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import make_dynamic_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
@@ -284,16 +285,21 @@ def train(args):
         train_json = json.load(f)['utts']
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
-
     # make minibatch list (variable length)
-    train = make_batchset(train_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
-    valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+    if args.batch_size > 0:
+        train = make_batchset(train_json, args.batch_size,
+                              args.maxlen_in, args.maxlen_out, args.minibatches,
+                              min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+        valid = make_batchset(valid_json, args.batch_size,
+                              args.maxlen_in, args.maxlen_out, args.minibatches,
+                              min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+    else:
+        train = make_dynamic_batchset(train_json, args.max_batch_size, args.minibatches,
+                                      min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+        valid = make_dynamic_batchset(valid_json, args.max_batch_size, args.minibatches,
+                                      min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsize argument as 1
-    # actual bathsize is included in a list
+    # actual batchsize is included in a list
     if args.n_iter_processes > 0:
         train_iter = chainer.iterators.MultiprocessIterator(
             TransformDataset(train, converter.transform),

@@ -136,6 +136,8 @@ def main(args):
     # minibatch related
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
+    parser.add_argument('--max-batch-size', default=1000000, type=int,
+                        help='Maximum size of batch for dynamic batchsize, disabled if batch-size>0')
     parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
                         help='Batch size is reduced if the input sequence length > ML')
     parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
