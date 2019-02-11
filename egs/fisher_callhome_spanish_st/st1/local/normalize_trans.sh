@@ -17,7 +17,7 @@ fi
 [ ! -d data/local/fisher-callhome-corpus ] && git clone https://github.com/joshua-decoder/fisher-callhome-corpus.git data/local/fisher-callhome-corpus
 
 # create symbolic links
-cur_dir=`pwd`
+cur_dir=$(pwd)
 cd local/
 rm -rf mapping
 ln -s $cur_dir/data/local/fisher-callhome-corpus/mapping .
@@ -127,14 +127,14 @@ done
 
 # error check
 for set in fisher_train callhome_train callhome_devtest callhome_evltest; do
-    n_es=`cat data/${set}/text.tc.es | wc -l`
-    n_en=`cat data/${set}/text.tc.en | wc -l`
+    n_es=$(cat data/${set}/text.tc.es | wc -l)
+    n_en=$(cat data/${set}/text.tc.en | wc -l)
     [ $n_es -ne $n_en ] && echo "Warning: expected $n_es data data files, found $n_en" && exit 1;
 done
 for set in fisher_dev fisher_dev2 fisher_test; do
-    n_es=`cat data/${set}/text.tc.es | wc -l`
+    n_es=$(cat data/${set}/text.tc.es | wc -l)
     for no in 0 1 2 3; do
-        n_en=`cat data/${set}/text.tc.en.${no} | wc -l`
+        n_en=$(cat data/${set}/text.tc.en.${no} | wc -l)
         [ $n_es -ne $n_en ] && echo "Warning: expected $n_es data data files, found $n_en" && exit 1;
     done
 done

@@ -23,13 +23,13 @@ if [ $# -lt 2 ]; then
     exit 1;
 fi
 
-cdir=`pwd`
-dir=`pwd`/data/local/data
-lmdir=`pwd`/data/local/nist_lm
+cdir=$(pwd)
+dir=$(pwd)/data/local/data
+lmdir=$(pwd)/data/local/nist_lm
 mkdir -p $dir $lmdir
-local=`pwd`/local
-utils=`pwd`/utils
-tmpdir=`pwd`/data/local/tmp
+local=$(pwd)/local
+utils=$(pwd)/utils
+tmpdir=$(pwd)/data/local/tmp
 mkdir -p $tmpdir
 
 . ./path.sh || exit 1; # Needed for KALDI_ROOT
@@ -72,10 +72,10 @@ fi
 speech=$dir/links/LDC2010S01/data/speech
 transcripts=$dir/links/LDC2010T04/fisher_spa_tr/data/transcripts
 
-#fcount_d1=`find ${speech_d1} -iname '*.sph' | wc -l`
-#fcount_d2=`find ${speech_d2} -iname '*.sph' | wc -l`
-fcount_s=`find ${speech} -iname '*.sph' | wc -l`
-fcount_t=`find ${transcripts} -iname '*.tdf' | wc -l`
+#fcount_d1=$(find ${speech_d1} -iname '*.sph' | wc -l)
+#fcount_d2=$(find ${speech_d2} -iname '*.sph' | wc -l)
+fcount_s=$(find ${speech} -iname '*.sph' | wc -l)
+fcount_t=$(find ${transcripts} -iname '*.tdf' | wc -l)
 #TODO:it seems like not all speech files have transcripts
 #Now check if we got all the files that we needed
 #if [ $fcount_d1 != 411 -o $fcount_d2 != 408 -o $fcount_t != 819 ];
@@ -162,7 +162,7 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-    for f in `cat $tmpdir/train_sph.flist`; do
+    for f in $(cat $tmpdir/train_sph.flist); do
         # convert to absolute path
         make_absolute.sh $f
     done > $tmpdir/train_sph_abs.flist

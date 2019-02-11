@@ -12,7 +12,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 src=$1
-set=`echo $src | awk -F"/" '{print $NF}'`
+set=$(echo $src | awk -F"/" '{print $NF}')
 
 # fix the original directory at first
 cp -rf data/$set data/$set.tmp
