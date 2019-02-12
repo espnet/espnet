@@ -134,7 +134,7 @@ teardown() {
 
 @test "" {
     export PATH=$BATS_TEST_DIRNAME/../utils/:$PATH
-    [ ! -d ./utils ] && ln -s $BATS_TEST_DIRNAME/../egs/wsj/asr1/utils
+    [ ! -d ./utils ] && ln -s $BATS_TEST_DIRNAME/../egs/wsj/asr1/utils .
     score_sclite.sh --wer true --num_spkrs 2 ${tmpdir} ${tmpdir}/dictionary.txt
     sed -i '1d' ${tmpdir}/min_perm_result.json
     diff ${tmpdir}/min_perm_result.json ${tmpdir}/valid_min_perm_result_json
