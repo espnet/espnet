@@ -1,1 +1,0 @@
-../../st1/local/json2trn.py
