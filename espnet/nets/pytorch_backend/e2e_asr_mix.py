@@ -75,11 +75,11 @@ class E2E(torch.nn.Module):
         self.eos = odim - 1
 
         # subsample info
-        # +1 means input (+1) and layers outputs (args.elayer_sd + args.elayers_rec)
-        subsample = np.ones(args.elayers_sd + args.elayers_rec + 1, dtype=np.int)
+        # +1 means input (+1) and layers outputs (args.elayer_sd + args.elayers)
+        subsample = np.ones(args.elayers_sd + args.elayers + 1, dtype=np.int)
         if args.etype.endswith("p") and not args.etype.startswith("vgg"):
             ss = args.subsample.split("_")
-            for j in range(min(args.elayers_sd + args.elayers_rec + 1, len(ss))):
+            for j in range(min(args.elayers_sd + args.elayers + 1, len(ss))):
                 subsample[j] = int(ss[j])
         else:
             logging.warning(
@@ -512,5 +512,5 @@ class Encoder(torch.nn.Module):
 
 
 def encoder_for(args, idim, subsample):
-    return Encoder(args.etype, idim, args.elayers_sd, args.elayers_rec, args.eunits, args.eprojs, subsample,
+    return Encoder(args.etype, idim, args.elayers_sd, args.elayers, args.eunits, args.eprojs, subsample,
                    args.dropout_rate, args.num_spkrs)

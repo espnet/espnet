@@ -288,7 +288,7 @@ if [ ${stage} -le 4 ]; then
     ${use_spa} && other_opts="--spa"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_mix_train.py \
+        asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -354,12 +354,13 @@ if [ ${stage} -le 5 ]; then
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            asr_mix_recog.py \
+            asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}  \
+            --model ${expdir}/results/${recog_model} \
+            --num-spkrs ${num_spkrs} \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
