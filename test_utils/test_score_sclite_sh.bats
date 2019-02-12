@@ -134,11 +134,11 @@ teardown() {
 
 @test "" {
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
-    ln -s $(cd $BATS_TEST_DIRNAME/..; pwd)/egs/wsj/asr1/utils .
+    ln -s $(cd $BATS_TEST_DIRNAME/..; pwd)/egs/wsj/asr1/utils/parse_options.sh ./utils
     ${utils}/score_sclite.sh --wer true --num_spkrs 2 ${tmpdir} ${tmpdir}/dictionary.txt
     sed -i '1d' ${tmpdir}/min_perm_result.json
     diff ${tmpdir}/min_perm_result.json ${tmpdir}/valid_min_perm_result_json
     sed -i '1d' ${tmpdir}/min_perm_result.wrd.json
     diff ${tmpdir}/min_perm_result.wrd.json ${tmpdir}/valid_min_perm_result_wrd_json
-    rm ./utils
+    rm ./utils/parse_options.sh
 }
