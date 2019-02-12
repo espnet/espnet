@@ -11,8 +11,6 @@ import math
 import os
 
 # chainer related
-import chainer
-
 from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
