@@ -134,6 +134,8 @@ def main(args):
     parser.add_argument('--dropout-rate-decoder', default=0.0, type=float,
                         help='Dropout rate for the decoder')
     # minibatch related
+    parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
+                        help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
     parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
