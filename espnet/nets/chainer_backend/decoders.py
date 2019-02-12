@@ -31,11 +31,12 @@ class Decoder(chainer.Chain):
             for l in six.moves.range(1, dlayers):
                 setattr(self, 'rnn%d' % l,
                         L.StatelessLSTM(dunits, dunits) if dtype == "lstm" else L.StatelessGRU(dunits, dunits))
-            self.output = L.Linear(dunits, odim)
             self.rnnlm = rnnlm
             if self.rnnlm is not None and cfunits > 0:
+                self.output = None
                 self.cf = ColdFusionLayer(dunits, odim, cfunits)
             else:
+                self.output = L.Linear(dunits, odim)
                 self.cf = None
         self.dtype = dtype
         self.loss = None
@@ -132,7 +133,8 @@ class Decoder(chainer.Chain):
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             z_all.append(z_list[-1])
             if self.cf is not None:
-                lm_state, probs = self.rnnlm.predict(x=F.argmax(self.output(z_list[-1]), axis=1), state=lm_state)
+                with chainer.no_backprop_mode():
+                    lm_state, probs = self.rnnlm.predict(x=F.argmax(y_all[-1], axis=1), state=lm_state)
                 y_all.append(self.cf(z_list[-1], probs))
 
         if self.cf is None:

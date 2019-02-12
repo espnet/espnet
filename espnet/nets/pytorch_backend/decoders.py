@@ -73,12 +73,13 @@ class Decoder(torch.nn.Module):
             # NOTE: dropout is applied only for the vertical connections
             # see https://arxiv.org/pdf/1409.2329.pdf
         self.ignore_id = -1
-        self.output = torch.nn.Linear(dunits, odim)
         self.rnnlm = rnnlm
         if self.rnnlm is not None and cfunits > 0:
             self.cf = ColdFusionLayer(dunits, odim, cfunits)
+            self.output = None
         else:
             self.cf = None
+            self.output = torch.nn.Linear(dunits, odim)
 
         self.loss = None
         self.att = att
@@ -168,7 +169,7 @@ class Decoder(torch.nn.Module):
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 if self.cf is not None:
-                    z_out = to_device(self, torch.argmax(y_all[-1].cpu(), dim=1))
+                    z_out = torch.argmax(y_all[-1], dim=1)
                 else:
                     z_out = self.output(z_all[-1])
                     z_out = np.argmax(z_out.detach(), axis=1)
@@ -179,10 +180,10 @@ class Decoder(torch.nn.Module):
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             z_all.append(self.dropout_dec[-1](z_list[-1]))
             if self.cf is not None:
-                lm_state, local_lm_scores = self.rnnlm.predict(
-                    x=to_device(self,
-                                torch.argmax(self.output(z_list[-1]).cpu(), dim=1)),
-                    state=lm_state)
+                with torch.no_grad():
+                    lm_state, local_lm_scores = self.rnnlm.predict(
+                        x=torch.argmax(y_all[-1], dim=1),
+                        state=lm_state)
                 y_all.append(self.cf(z_list[-1], local_lm_scores))
 
         if self.cf is not None:
