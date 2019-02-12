@@ -14,7 +14,7 @@ import pytest
 def make_arg(**kwargs):
     defaults = dict(
         elayers_sd=1,
-        elayers_rec=2,
+        elayers=2,
         subsample="1_2_2_1_1",
         etype="vggblstmp",
         eunits=100,
