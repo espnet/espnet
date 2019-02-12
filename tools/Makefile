@@ -31,7 +31,7 @@ espnet.done: venv
 kaldi-io-for-python.done: venv
 	rm -rf kaldi-io-for-python
 	git clone https://github.com/vesis84/kaldi-io-for-python.git
-	cd kaldi-io-for-python; ln -s kaldi_io.py kaldi_io_py.py; cp ../setup_kaldi-io-for-python.py setup.py
+	cd kaldi-io-for-python; ln -s kaldi_io/kaldi_io.py kaldi_io_py.py; cp ../setup_kaldi-io-for-python.py setup.py
 	. venv/bin/activate; cd kaldi-io-for-python; pip install .
 	touch kaldi-io-for-python.done
 
