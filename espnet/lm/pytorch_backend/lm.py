@@ -342,7 +342,7 @@ def train(args):
 
     updater = BPTTUpdater(train_iter, model, optimizer, gpu_id, gradclip=args.gradclip)
     evaluator = LMEvaluator(val_iter, model, reporter, device=gpu_id)
-    trainer = prepare_trainer(updater, evaluator, model, args, torch_resume)
+    trainer = prepare_trainer(updater, evaluator, model, [train_iter], args, torch_resume)
 
     trainer.run()
     check_early_stop(trainer, args.epochs)

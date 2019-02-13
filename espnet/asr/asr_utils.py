@@ -37,7 +37,7 @@ def make_args_batchset(data, args):
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, min_batch_size=1):
+                  num_batches=0, min_batch_size=1, shortest_first=False):
     """Make batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
@@ -45,12 +45,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
-    :param int min_batch_size: mininum batch size (for multi-gpu)
+    :param int min_batch_size: minimum batch size (for multi-gpu)
+    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
     :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
     """
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['input'][0]['shape'][0]), reverse=True)
+        data[1]['input'][0]['shape'][0]), reverse=not shortest_first)
     logging.info('# utts: ' + str(len(sorted_data)))
 
     # check #utts is more than min_batch_size
@@ -72,12 +73,16 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         bs = max(min_batch_size, int(batch_size / (1 + factor)))
         end = min(len(sorted_data), start + bs)
         minibatch = sorted_data[start:end]
+        if shortest_first:
+            minibatch.reverse()
 
         # check each batch is more than minimum batchsize
         if len(minibatch) < min_batch_size:
             mod = min_batch_size - len(minibatch) % min_batch_size
             additional_minibatch = [sorted_data[i]
                                     for i in np.random.randint(0, start, mod)]
+            if shortest_first:
+                additional_minibatch.reverse()
             minibatch.extend(additional_minibatch)
         minibatches.append(minibatch)
 
@@ -358,7 +363,7 @@ def add_progress_report(trainer, args):
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
 
-def prepare_trainer(updater, evaluator, converter, model, valid_json, args, device):
+def prepare_trainer(updater, evaluator, converter, model, train_iters, valid_json, args, device):
     """Instantiates and adds common extensions to the trainer
 
     :param updater: The training updater
@@ -372,7 +377,8 @@ def prepare_trainer(updater, evaluator, converter, model, valid_json, args, devi
     """
     mtl_mode = get_mtl_mode(args.mtlalpha)
     plot_keys = get_plot_keys()
-    trainer = prepare_asr_tts_trainer(updater, evaluator, converter, model, valid_json, args, device, plot_keys,
+    trainer = prepare_asr_tts_trainer(updater, evaluator, converter, model, train_iters, valid_json, args, device,
+                                      plot_keys,
                                       mtl_mode)
     add_progress_report(trainer, args)
     add_epsilon_decay(trainer, model, args)

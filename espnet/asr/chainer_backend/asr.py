@@ -35,6 +35,10 @@ from espnet.asr.asr_utils import write_results
 from espnet.nets.chainer_backend.e2e_asr import E2E
 from espnet.utils.io_utils import LoadInputsAndTargets
 
+from espnet.utils.training.iterators import ShufflingEnabler
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import get_model_conf
@@ -248,24 +252,26 @@ def train(args):
     # set up training iterator and updater
     converter = CustomConverter(subsampling_factor=model.subsample[0],
                                 preprocess_conf=args.preprocess_conf)
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
-                              args.maxlen_in, args.maxlen_out, args.minibatches)
+                              args.maxlen_in, args.maxlen_out, args.minibatches, shortest_first=use_sortagrad)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
-            train_iter = chainer.iterators.MultiprocessIterator(
+            train_iters = list(ToggleableShufflingMultiprocessIterator(
                 TransformDataset(train, converter.transform),
-                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+                shuffle=not use_sortagrad))
         else:
-            train_iter = chainer.iterators.SerialIterator(
+            train_iters = list(ToggleableShufflingSerialIterator(
                 TransformDataset(train, converter.transform),
-                batch_size=1)
+                batch_size=1, shuffle=not use_sortagrad))
 
         # set up updater
         updater = CustomUpdater(
-            train_iter, optimizer, converter=converter, device=gpu_id)
+            train_iters[0], optimizer, converter=converter, device=gpu_id)
     else:
         # set up minibatches
         train_subsets = []
@@ -287,20 +293,20 @@ def train(args):
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
-            train_iters = [chainer.iterators.MultiprocessIterator(
+            train_iters = [ToggleableShufflingMultiprocessIterator(
                 TransformDataset(train_subsets[gid], converter.transform),
-                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+                batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+                shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
         else:
-            train_iters = [chainer.iterators.SerialIterator(
+            train_iters = [ToggleableShufflingSerialIterator(
                 TransformDataset(train_subsets[gid], converter.transform),
-                batch_size=1)
+                batch_size=1, shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
 
         # set up updater
         updater = CustomParallelUpdater(
             train_iters, optimizer, converter=converter, devices=devices)
-        # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     if args.n_iter_processes > 0:
@@ -314,7 +320,7 @@ def train(args):
             batch_size=1, repeat=False, shuffle=False)
     evaluator = extensions.Evaluator(valid_iter, model, converter=converter, device=gpu_id)
 
-    trainer = prepare_trainer(updater, evaluator, converter, model, valid_json, args, gpu_id)
+    trainer = prepare_trainer(updater, evaluator, converter, model, train_iters, valid_json, args, gpu_id)
 
     # Run the training
     trainer.run()

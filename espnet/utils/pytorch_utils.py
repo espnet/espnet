@@ -11,6 +11,9 @@ from chainer.serializers.npz import DictionarySerializer
 from chainer.serializers.npz import NpzDeserializer
 from chainer.training import extension
 
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+
 
 def torch_save(path, model):
     """Function to save torch model states
@@ -127,7 +130,7 @@ def warn_if_no_cuda():
         logging.warning('cuda is not available')
 
 
-def get_iterators(train, valid, converter, n_iter_processes):
+def get_iterators(train, valid, converter, n_iter_processes, use_sortagrad=False):
     """Returns training and validation iterators
 
     :param train: The training data
@@ -139,18 +142,18 @@ def get_iterators(train, valid, converter, n_iter_processes):
     # hack to make batchsize argument as 1
     # actual batchsize is included in a list
     if n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
+        train_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(train, converter.transform),
-            batch_size=1, n_processes=n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
+            batch_size=1, shuffle=not use_sortagrad, n_processes=n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+        valid_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
-        train_iter = chainer.iterators.SerialIterator(
+        train_iter = ToggleableShufflingSerialIterator(
             TransformDataset(train, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
+            batch_size=1, shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingSerialIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False)
     return train_iter, valid_iter

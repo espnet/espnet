@@ -21,6 +21,7 @@ from chainer.training import extension
 from chainer.training import extensions
 
 from espnet.utils.training.train_utils import add_early_stop
+from espnet.utils.training.train_utils import add_sortagrad
 from espnet.utils.training.train_utils import add_tensorboard
 from espnet.utils.training.train_utils import REPORT_INTERVAL
 
@@ -83,7 +84,7 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
        randomly shuffled.
     """
 
-    def __init__(self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True):
+    def __init__(self, dataset, batch_size, max_length=0, sos=0, eos=0, repeat=True, shuffle=True):
         self.dataset = dataset
         self.batch_size = batch_size  # batch size
         # Number of completed sweeps over the dataset. In this case, it is
@@ -108,8 +109,9 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
                     be = min(be, bs + max(batch_size // (sent_length // max_length + 1), 1))
                 self.batch_indices.append(np.array(indices[bs:be]))
                 bs = be
-            # shuffle batches
-            random.shuffle(self.batch_indices)
+            if shuffle:
+                # shuffle batches
+                random.shuffle(self.batch_indices)
         else:
             self.batch_indices = [np.array([i]) for i in six.moves.range(length)]
 
@@ -145,6 +147,9 @@ class ParallelSentenceIterator(chainer.dataset.Iterator):
             self.epoch = epoch
 
         return batch
+
+    def start_shuffle(self):
+        random.shuffle(self.batch_indices)
 
     @property
     def epoch_detail(self):
@@ -272,7 +277,7 @@ def get_iterators(train, val, args, eos):
     :return: (train_iter, val_iter)
     """
     train_iter = ParallelSentenceIterator(train, args.batch_size,
-                                          max_length=args.maxlen, sos=eos, eos=eos)
+                                          max_length=args.maxlen, sos=eos, eos=eos, shuffle=args.sortagrad == 0)
     val_iter = ParallelSentenceIterator(val, args.batch_size,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
 
@@ -366,7 +371,7 @@ def test_perplexity(model, evaluator_class, args, device, load_func, reporter=No
     logging.info('test perplexity: ' + str(np.exp(float(result['main/loss']))))
 
 
-def prepare_trainer(updater, evaluator, model, args, resume_func):
+def prepare_trainer(updater, evaluator, model, train_iters, args, resume_func):
     """Prepare a LM trainer
 
     :param updater: The training updater
@@ -385,6 +390,7 @@ def prepare_trainer(updater, evaluator, model, args, resume_func):
         resume_func(args.resume, trainer)
     add_early_stop(trainer, args)
     add_tensorboard(trainer, args.tensorboard_dir)
+    add_sortagrad(trainer, train_iters, args.epochs, args.sortagrad)
     return trainer
 
 

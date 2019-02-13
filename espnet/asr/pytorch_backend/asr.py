@@ -9,6 +9,7 @@ import logging
 import math
 
 # chainer related
+from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
@@ -35,6 +36,11 @@ from espnet.utils.pytorch_utils import warn_if_no_cuda
 
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+
+from espnet.utils.training.iterators import ShufflingEnabler
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+
 from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
 
@@ -244,18 +250,19 @@ def train(args):
 
     train_json, valid_json = load_jsons(args)
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # make minibatch list (variable length)
     train = make_args_batchset(train_json, args)
     valid = make_args_batchset(valid_json, args)
 
-    train_iter, valid_iter = get_iterators(train, valid, converter, args.n_iter_processes)
+    train_iter, valid_iter = get_iterators(train, valid, converter, args.n_iter_processes, use_sortagrad=use_sortagrad)
 
     # Set up a trainer
     updater = CustomUpdater(
         model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     evaluator = CustomEvaluator(model, valid_iter, reporter, converter, device)
 
-    trainer = prepare_trainer(updater, evaluator, converter, model, valid_json, args, device)
+    trainer = prepare_trainer(updater, evaluator, converter, model, [train_iter], valid_json, args, device)
     # Run the training
     trainer.run()
     check_early_stop(trainer, args.epochs)

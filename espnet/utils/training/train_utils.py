@@ -10,6 +10,7 @@ from chainer.training import extensions
 
 from tensorboardX import SummaryWriter
 
+from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 
 from espnet.utils.pytorch_utils import torch_resume
@@ -131,7 +132,7 @@ def add_plot_report(trainer, values):
         trainer.extend(extensions.PlotReport(tup[1], 'epoch', file_name=tup[0] + '.png'))
 
 
-def prepare_asr_tts_trainer(updater, evaluator, converter, model, valid_json, args, plot_keys, device, mtl_mode=None,
+def prepare_asr_tts_trainer(updater, evaluator, converter, model, train_iters, valid_json, args, plot_keys, device, mtl_mode=None,
                             reverse_par=False):
     """Prepares a common trainer for asr and tts
 
@@ -167,6 +168,7 @@ def prepare_asr_tts_trainer(updater, evaluator, converter, model, valid_json, ar
     add_plot_report(trainer, plot_keys)
     att_reporter = add_attention_report(trainer, model, args, valid_json, converter, device, reverse_par=reverse_par)
     add_tensorboard(trainer, args.tensorboard_dir, att_reporter)
+    add_sortagrad(trainer, train_iters, args.sortagrad, args.epochs)
     return trainer
 
 
@@ -314,3 +316,9 @@ def write_conf(args, idim=None, odim=None):
                 'utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
+
+
+def add_sortagrad(trainer, train_iters, sortagrad, epochs):
+    if sortagrad != 0:
+        trainer.extend(ShufflingEnabler(train_iters),
+                       trigger=(sortagrad if sortagrad != -1 else epochs, 'epoch'))

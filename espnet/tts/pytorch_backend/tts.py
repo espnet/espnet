@@ -240,17 +240,21 @@ def train(args):
 
     train_json, valid_json = load_jsons(args)
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
+    if use_sortagrad:
+        args.batch_sort_key = "input"
     # make minibatch list (variable length)
     train_batchset = make_args_batchset(train_json, args)
     valid_batchset = make_args_batchset(valid_json, args)
 
-    train_iter, valid_iter = get_iterators(train_batchset, valid_batchset, converter, args.n_iter_processes)
+    train_iter, valid_iter = get_iterators(train_batchset, valid_batchset, converter, args.n_iter_processes,
+                                           use_sortagrad=use_sortagrad)
 
     # Set up a trainer
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
     evaluator = CustomEvaluator(model, valid_iter, reporter, converter, device)
     att_fig_converter = CustomConverter(False, args.use_speaker_embedding, args.preprocess_conf)
-    trainer = prepare_trainer(updater, evaluator, att_fig_converter, model, valid_json, args, device)
+    trainer = prepare_trainer(updater, evaluator, att_fig_converter, model, [train_iter], valid_json, args, device)
 
     # Run the training
     trainer.run()

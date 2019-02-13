@@ -51,6 +51,8 @@ def get_train_argparser(typ="asr"):
                         help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
+    parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
+                        help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     return parser
 
 

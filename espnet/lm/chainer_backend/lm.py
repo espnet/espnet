@@ -34,6 +34,7 @@ from espnet.lm.lm_utils import test_perplexity
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import write_conf
 
@@ -306,7 +307,7 @@ def train(args):
 
     updater = BPTTUpdater(train_iter, optimizer, gpu_id)
     evaluator = LMEvaluator(val_iter, model, device=gpu_id)
-    trainer = prepare_trainer(updater, evaluator, model, args,
+    trainer = prepare_trainer(updater, evaluator, model, [train_iter], args,
                               chainer.serializers.load_npz)
 
     trainer.run()
