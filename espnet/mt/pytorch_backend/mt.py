@@ -370,24 +370,11 @@ def recog(args):
         js = json.load(f)['utts']
     new_js = {}
 
-    load_inputs_and_targets = LoadInputsAndTargets(
-        mode='mt', load_input=False, load_output=False, sort_in_input_length=False,
-        preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf)
-
     if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-                batch = [(name, js[name])]
-                with using_transform_config({'train': True}):
-                    src = load_inputs_and_targets(batch)[0][0]
-
-                if train_args.multilingual:
-                    # remove source language ID in the beggining
-                    src = [js[name]['output'][1]['tokenid'].split()[1:]]
-                else:
-                    src = [js[name]['output'][1]['tokenid'].split()]
+                src = [js[name]['output'][1]['tokenid'].split()]
                 nbest_hyps = model.recognize(src, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
@@ -409,15 +396,7 @@ def recog(args):
         with torch.no_grad():
             for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
-                batch = [(name, js[name]) for name in names]
-                with using_transform_config({'train': False}):
-                    srcs = load_inputs_and_targets(batch)[0]
-
-                if train_args.multilingual:
-                    # remove source language ID in the beggining
-                    srcs = [js[name]['output'][1]['tokenid'].split()[1:] for name in names]
-                else:
-                    srcs = [js[name]['output'][1]['tokenid'].split() for name in names]
+                srcs = [js[name]['output'][1]['tokenid'].split() for name in names]
                 srcs = [np.fromiter(map(int, src), dtype=np.int64) for src in srcs]
                 nbest_hyps = model.recognize_batch(srcs, args, train_args.char_list, rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
