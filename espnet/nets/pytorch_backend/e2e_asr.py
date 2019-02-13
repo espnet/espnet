@@ -88,6 +88,10 @@ class E2E(torch.nn.Module):
         else:
             labeldist = None
 
+        # speech translation related
+        self.multilingual = args.multilingual
+        self.replace_sos = args.replace_sos
+
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
         # ctc
@@ -106,7 +110,8 @@ class E2E(torch.nn.Module):
                           'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
                           'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
                           'rnnlm': args.rnnlm, 'nbest': args.nbest,
-                          'space': args.sym_space, 'blank': args.sym_blank}
+                          'space': args.sym_space, 'blank': args.sym_blank,
+                          'tgt_lang': False}
 
             self.recog_args = argparse.Namespace(**recog_args)
             self.report_cer = args.report_cer
@@ -180,6 +185,11 @@ class E2E(torch.nn.Module):
         :rtype: float
         """
         # 1. encoder
+        if self.multilingual:
+            tgt_lang_ids = ys_pad[:, 0:1]
+            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+        else:
+            tgt_lang_ids = None
         hs_pad, hlens = self.enc(xs_pad, ilens)
 
         # 2. CTC loss
@@ -193,7 +203,7 @@ class E2E(torch.nn.Module):
             loss_att = None
             acc = None
         else:
-            loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad)
+            loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids)
         self.acc = acc
 
         # 5. compute cer/wer
@@ -207,9 +217,11 @@ class E2E(torch.nn.Module):
                 lpz = None
 
             wers, cers = [], []
-            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), lpz,
-                                                       self.recog_args, self.char_list,
-                                                       self.rnnlm)
+            nbest_hyps = self.dec.recognize_beam_batch(
+                hs_pad, torch.tensor(hlens), lpz,
+                self.recog_args, self.char_list,
+                self.rnnlm,
+                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
@@ -283,7 +295,7 @@ class E2E(torch.nn.Module):
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
         h = h.contiguous()
-        h, _ = self.enc(h.unsqueeze(0), ilen)
+        h, hlen = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -347,9 +359,14 @@ class E2E(torch.nn.Module):
         """
         with torch.no_grad():
             # encoder
+            if self.multilingual:
+                tgt_lang_ids = ys_pad[:, 0:1]
+                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+            else:
+                tgt_lang_ids = None
             hpad, hlens = self.enc(xs_pad, ilens)
 
             # decoder
-            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
+            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids)
 
         return att_ws

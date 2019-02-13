@@ -33,7 +33,6 @@ from espnet.mt.mt_utils import make_batchset
 from espnet.mt.mt_utils import PlotAttentionReport
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_mt import E2E
-from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.asr.pytorch_backend.asr import CustomEvaluator

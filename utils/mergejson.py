@@ -11,6 +11,7 @@ import argparse
 import codecs
 import json
 import logging
+import os
 import sys
 
 from espnet.utils.cli_utils import get_commandline_args
