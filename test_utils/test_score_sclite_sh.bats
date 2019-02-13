@@ -135,8 +135,6 @@ teardown() {
 @test "" {
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
 
-    sed "s=MAIN_ROOT\=\$PWD/../../..=MAIN_ROOT\=$(cd $BATS_TEST_DIRNAME/..; pwd)=" \
-        < $(cd $BATS_TEST_DIRNAME/..; pwd)/egs/wsj/asr1/path.sh > path.sh
     ln -s $(cd $BATS_TEST_DIRNAME/..; pwd)/egs/wsj/asr1/utils/parse_options.sh ./utils
 
     ${utils}/score_sclite.sh --wer true --num_spkrs 2 ${tmpdir} ${tmpdir}/dictionary.txt
@@ -144,6 +142,6 @@ teardown() {
     diff ${tmpdir}/min_perm_result.json ${tmpdir}/valid_min_perm_result_json
     sed -i '1d' ${tmpdir}/min_perm_result.wrd.json
     diff ${tmpdir}/min_perm_result.wrd.json ${tmpdir}/valid_min_perm_result_wrd_json
-    rm path.sh
+
     rm utils/parse_options.sh
 }
