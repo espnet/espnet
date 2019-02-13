@@ -76,6 +76,11 @@ if __name__ == '__main__':
     for key_id in intersec_org_dic:
         orgdic = intersec_org_dic[key_id]
         adddic = intersec_add_dic[key_id]
+
+        if 'utt2spk' not in orgdic:
+            orgdic['utt2spk'] = ''
+        # NOTE: for machine translation
+
         # add as input
         if args.is_input:
             # original input
