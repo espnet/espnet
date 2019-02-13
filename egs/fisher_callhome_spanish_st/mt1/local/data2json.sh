@@ -116,9 +116,9 @@ if [ -n "${out}" ]; then
 else
     out_opt=""
 fi
-local/mergejson.py --verbose ${verbose} \
-    --input-jsons ${tmpdir}/input/*.json \
-    --output-jsons ${tmpdir}/output/*.json \
-    --jsons ${tmpdir}/other/*.json ${out_opt}
+mergejson.py --verbose ${verbose} \
+  --input-jsons ${tmpdir}/input/*.json \
+  --output-jsons ${tmpdir}/output/*.json \
+  --jsons ${tmpdir}/other/*.json ${out_opt}
 
 rm -fr ${tmpdir}
