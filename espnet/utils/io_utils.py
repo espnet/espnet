@@ -26,7 +26,7 @@ class LoadInputsAndTargets(object):
     >>> feat, target = l(batch)
 
     :param: str mode: Specify the task mode, "asr" or "tts"
-    :param: str preproces_conf: The path of a json file for pre-processing
+    :param: str preprocess_conf: The path of a json file for pre-processing
     :param: bool load_input: If False, not to load the input data
     :param: bool load_output: If False, not to load the output data
     :param: bool sort_in_input_length: Sort the mini-batch in descending order
@@ -88,7 +88,7 @@ class LoadInputsAndTargets(object):
         x_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         y_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         uttid_list = []  # List[str]
-
+        print(batch)
         for uttid, info in batch:
             uttid_list.append(uttid)
 
