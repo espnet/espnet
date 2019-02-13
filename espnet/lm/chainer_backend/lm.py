@@ -39,6 +39,7 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
@@ -312,9 +313,11 @@ def train(args):
     logging.info('#tokens in the validation data = ' + str(n_val_tokens))
     logging.info('oov rate in the validation data = %.2f %%' % (n_val_oovs / n_val_tokens * 100))
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
+
     # Create the dataset iterators
     train_iter = ParallelSentenceIterator(train, args.batchsize,
-                                          max_length=args.maxlen, sos=eos, eos=eos)
+                                          max_length=args.maxlen, sos=eos, eos=eos, shuffle=not use_sortagrad)
     val_iter = ParallelSentenceIterator(val, args.batchsize,
                                         max_length=args.maxlen, sos=eos, eos=eos, repeat=False)
     logging.info('#iterations per epoch = ' + str(len(train_iter.batch_indices)))
@@ -361,6 +364,10 @@ def train(args):
         model, 'rnnlm.model.{.updater.epoch}'))
     # MEMO(Hori): wants to use MinValueTrigger, but it seems to fail in resuming
     trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
+
+    if use_sortagrad:
+        trainer.extend(ShufflingEnabler([train_iter]),
+                       trigger=(args.sortagrad if args.sortagrad != -1 else args.epoch, 'epoch'))
 
     if args.resume:
         logging.info('resumed from %s' % args.resume)

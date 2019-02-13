@@ -10,7 +10,7 @@ import numpy as np
 
 
 def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, batch_sort_key='shuffle', min_batch_size=1):
+                  num_batches=0, batch_sort_key='shuffle', min_batch_size=1, shortest_first=False):
     """Make batch set from json dictionary
 
     :param dict data: dictionary loaded from data.json
@@ -19,7 +19,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param str batch_sort_key: 'shuffle' or 'input' or 'output'
-    :param int min_batch_size: mininum batch size (for multi-gpu)
+    :param int min_batch_size: minimum batch size (for multi-gpu)
     :return: list of batches
     """
     # sort data with batch_sort_key
@@ -31,13 +31,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
         # sort it by input lengths (long to short)
         # NOTE: input and output are reversed due to the use of same json as asr
         sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['output'][0]['shape'][0]), reverse=True)
+            data[1]['output'][0]['shape'][0]), reverse=not shortest_first)
     elif batch_sort_key == 'output':
         logging.info('use batch sorted by output length and adaptive batch size.')
         # sort it by output lengths (long to short)
         # NOTE: input and output are reversed due to the use of same json as asr
         sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['input'][0]['shape'][0]), reverse=True)
+            data[1]['input'][0]['shape'][0]), reverse=not shortest_first)
     else:
         raise ValueError('batch_sort_key should be selected from None, input, and output.')
     logging.info('# utts: ' + str(len(sorted_data)))
@@ -66,9 +66,13 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
 
         # check each batch is more than minimum batchsize
         minibatch = sorted_data[start:end]
+        if shortest_first:
+            minibatch.reverse()
         if len(minibatch) < min_batch_size:
             mod = min_batch_size - len(minibatch) % min_batch_size
             additional_minibatch = [sorted_data[i] for i in np.random.randint(0, start, mod)]
+            if shortest_first:
+                additional_minibatch.reverse()
             minibatch.extend(additional_minibatch)
         minibatches.append(minibatch)
 
