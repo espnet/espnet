@@ -182,8 +182,8 @@ class Decoder(torch.nn.Module):
             if self.cf is not None:
                 with torch.no_grad():
                     lm_state, local_lm_scores = self.rnnlm.predict(
-                        x=to_device(self,
-                                    torch.argmax(y_all[-1], dim=1) if i > 0 else torch.Tensor(batch).fill_(self.sos)),
+                        x=torch.argmax(y_all[-1], dim=1) if i > 0 else to_device(self, torch.Tensor(batch).fill_(
+                            self.sos).long()),
                         state=lm_state)
                 y_all.append(self.cf(z_list[-1], local_lm_scores))
 
