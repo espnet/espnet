@@ -35,6 +35,10 @@ from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
+from espnet.utils.training.iterators import ShufflingEnabler
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+
 import matplotlib
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
@@ -274,30 +278,34 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
+    if use_sortagrad:
+        args.batch_sort_key = "input"
     # make minibatch list (variable length)
     train_batchset = make_batchset(train_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
                                    args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
     valid_batchset = make_batchset(valid_json, args.batch_size,
                                    args.maxlen_in, args.maxlen_out,
                                    args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
+        train_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(train_batchset, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
+            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+            shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(valid_batchset, converter.transform),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
-        train_iter = chainer.iterators.SerialIterator(
+        train_iter = ToggleableShufflingSerialIterator(
             TransformDataset(train_batchset, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
+            batch_size=1, shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingSerialIterator(
             TransformDataset(valid_batchset, converter.transform),
             batch_size=1, repeat=False, shuffle=False)
 
@@ -369,6 +377,10 @@ def train(args):
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, att_reporter))
+
+    if use_sortagrad:
+        trainer.extend(ShufflingEnabler([train_iter]),
+                       trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
 
     # Run the training
     trainer.run()
