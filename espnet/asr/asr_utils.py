@@ -40,6 +40,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :param int test: Return only every `test` batches
     :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
     """
     # sort it by input lengths (long to short)
@@ -104,6 +105,7 @@ def make_variable_batchset(data, max_batch_size, num_batches=0, min_batch_size=1
     :param int max_batch_size: Maximum size of a batch
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
+    :param int test: Return only every `test` batches
     :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
     """
     # sort by input lengths
