@@ -266,8 +266,8 @@ class E2E(torch.nn.Module):
         if self.multilingual:
             id2token = {i: x for i, x in enumerate(char_list)}
             if self.target_forcing or self.language_coding:
-                logging.info('src (multilingual): %s', ' '.join([id2token[int(y)]
-                                                                 for y in [char_list.index(recog_args.tgt_lang)] + x[0][1:]]))
+                logging.info('src (multilingual): %s', ' '.join(
+                    [id2token[int(y)] for y in [char_list.index(recog_args.tgt_lang)] + x[0][1:]]))
                 h = to_device(self, torch.from_numpy(np.fromiter(
                     map(int, [char_list.index(recog_args.tgt_lang)] + x[0][1:]), dtype=np.int64)))
             elif self.replace_sos:
