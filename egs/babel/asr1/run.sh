@@ -52,6 +52,7 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=15
 patience=3
@@ -61,6 +62,7 @@ use_lm=false
 lm_layers=2
 lm_units=650
 lm_opt=sgd        # or adam
+lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 lm_batchsize=256  # batch size in LM training
 lm_epochs=20      # if the data size is large, we can reduce this
 lm_patience=3
@@ -227,6 +229,7 @@ if ${use_lm}; then
           --layer ${lm_layers} \
           --unit ${lm_units} \
           --opt ${lm_opt} \
+          --sortagrad ${lm_sortagrad} \
           --batchsize ${lm_batchsize} \
           --epoch ${lm_epochs} \
           --patience ${lm_patience} \
@@ -283,6 +286,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --maxlen-out ${maxlen_out} \
         --sampling-probability ${samp_prob} \
         --opt ${opt} \
+        --sortagrad ${sortagrad} \
         --epochs ${epochs} \
         --patience ${patience}
 fi
