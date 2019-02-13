@@ -370,6 +370,7 @@ def prepare_trainer(updater, evaluator, converter, model, train_iters, valid_jso
     :param evaluator: The training evaluator
     :param converter: The batch converter
     :param model: The model to train
+    :param train_iters: The training iterator(s)
     :param valid_json: The validation json
     :param args: The program arguments
     :param device: The device to use
@@ -394,6 +395,7 @@ def single_beam_search(model, js, args, train_args, rnnlm, load_inputs_and_targe
     :param args: The decoding arguments
     :param train_args: The model training arguments
     :param rnnlm: The RNNLM used for Shallow Fusion
+    :param load_inputs_and_targets: The function to load the input and targets from a batch
     :return: The json with the predictions
     """
     # TODO(gtache) move load_inputs_and_targets here

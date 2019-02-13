@@ -151,6 +151,7 @@ def prepare_trainer(updater, evaluator, converter, model, train_iters, valid_jso
     :param evaluator: The training evaluator
     :param converter: The batch converter
     :param model: The model
+    :param train_iters: The training iterator(s)
     :param valid_json: The validation json
     :param args: The program arguments
     :param device: The device to use

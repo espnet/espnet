@@ -377,6 +377,7 @@ def prepare_trainer(updater, evaluator, model, train_iters, args, resume_func):
     :param updater: The training updater
     :param evaluator: The training evaluator
     :param model: The model to train
+    :param train_iters: The training iterator(s)
     :param args: The program arguments
     :param resume_func: The function to use to resume training
     :return: The trainer with common extensions

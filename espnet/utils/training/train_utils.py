@@ -132,7 +132,8 @@ def add_plot_report(trainer, values):
         trainer.extend(extensions.PlotReport(tup[1], 'epoch', file_name=tup[0] + '.png'))
 
 
-def prepare_asr_tts_trainer(updater, evaluator, converter, model, train_iters, valid_json, args, plot_keys, device, mtl_mode=None,
+def prepare_asr_tts_trainer(updater, evaluator, converter, model, train_iters, valid_json, args, plot_keys, device,
+                            mtl_mode=None,
                             reverse_par=False):
     """Prepares a common trainer for asr and tts
 
@@ -140,6 +141,7 @@ def prepare_asr_tts_trainer(updater, evaluator, converter, model, train_iters, v
     :param evaluator: The training evaluator
     :param converter: The batch converter
     :param model: The model
+    :param train_iters: The training iterator(s)
     :param valid_json: The validation json
     :param args: The program arguments
     :param plot_keys: The keys to report for plotting
