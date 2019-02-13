@@ -27,7 +27,7 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
-from espnet.asr.asr_utils import make_dynamic_batchset
+from espnet.asr.asr_utils import make_variable_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
@@ -294,10 +294,10 @@ def train(args):
                               args.maxlen_in, args.maxlen_out, args.minibatches,
                               min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
     else:
-        train = make_dynamic_batchset(train_json, args.max_batch_size, args.minibatches,
-                                      min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
-        valid = make_dynamic_batchset(valid_json, args.max_batch_size, args.minibatches,
-                                      min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
+        train = make_variable_batchset(train_json, args.max_batch_size, args.minibatches,
+                                       min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
+        valid = make_variable_batchset(valid_json, args.max_batch_size, args.minibatches,
+                                       min_batch_size=args.ngpu if args.ngpu > 1 else 1, test=args.test_batch_size)
     # hack to make batchsize argument as 1
     # actual batchsize is included in a list
     if args.n_iter_processes > 0:

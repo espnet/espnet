@@ -57,7 +57,7 @@ def test_make_batchset(utils):
 def test_make_dynamic_batchset(utils):
     dummy_json = make_dummy_json(128, [128, 512], [16, 128])
     for min_batch_size in range(1, 20, 3):
-        batchset = utils.make_dynamic_batchset(dummy_json, 500000, min_batch_size=min_batch_size)
+        batchset = utils.make_variable_batchset(dummy_json, 500000, min_batch_size=min_batch_size)
         assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
         print([len(batch) for batch in batchset])
 

@@ -82,7 +82,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     if num_batches > 0:
         minibatches = minibatches[:num_batches]
     if test > 0:
-        minibatch = minibatch[:20] + minibatch[-20:] + minibatch[::test]
+        minibatches = minibatch[:20] + minibatch[-20:] + minibatch[::test]
     logging.info('# minibatches: ' + str(len(minibatches)))
 
     # such like: [('uttid1',
@@ -92,7 +92,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     return minibatches
 
 
-def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1, test=0):
+def make_variable_batchset(data, max_batch_size, num_batches=0, min_batch_size=1, test=0):
     """Make variably sized batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
@@ -108,7 +108,7 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1,
     idim = int(sorted_data[0][1]['input'][0]['shape'][1])
     odim = int(sorted_data[0][1]['output'][0]['shape'][1])
     logging.info('# utts: ' + str(len(sorted_data)))
-    minibatch = []
+    minibatches = []
     start = 0
     n = 0
     while True:
@@ -130,33 +130,33 @@ def make_dynamic_batchset(data, max_batch_size, num_batches=0, min_batch_size=1,
         end = min(length, start + b)
         batch = sorted_data[start:end]
         batch.reverse()
-        minibatch.append(batch)
+        minibatches.append(batch)
         # Check for min_batch_size and fixes the batches if needed
         i = -1
-        while len(minibatch[i]) < min_batch_size:
-            missing = min_batch_size - len(minibatch[i])
-            if -i == len(minibatch):
-                minibatch[i + 1].extend(minibatch[i])
-                minibatch = minibatch[1:]
+        while len(minibatches[i]) < min_batch_size:
+            missing = min_batch_size - len(minibatches[i])
+            if -i == len(minibatches):
+                minibatches[i + 1].extend(minibatches[i])
+                minibatches = minibatches[1:]
                 break
             else:
-                minibatch[i].extend(minibatch[i - 1][:missing])
-                minibatch[i - 1] = minibatch[i - 1][missing:]
+                minibatches[i].extend(minibatches[i - 1][:missing])
+                minibatches[i - 1] = minibatches[i - 1][missing:]
                 i -= 1
         if end == length:
             break
         start = end
         n += 1
     if num_batches > 0:
-        minibatch = minibatch[:num_batches]
+        minibatches = minibatches[:num_batches]
     if test > 0:
         # Check for CUDA OoM
-        minibatch = minibatch[:20] + minibatch[-20:] + minibatch[::test]
-    lengths = [len(x) for x in minibatch]
-    logging.warning(str(len(minibatch)) + " batches containing from " + str(min(lengths)) + " to " + str(
+        minibatches = minibatches[:20] + minibatches[-20:] + minibatches[::test]
+    lengths = [len(x) for x in minibatches]
+    logging.warning(str(len(minibatches)) + " batches containing from " + str(min(lengths)) + " to " + str(
         max(lengths)) + " samples.")
 
-    return minibatch
+    return minibatches
 
 
 class CompareValueTrigger(object):
