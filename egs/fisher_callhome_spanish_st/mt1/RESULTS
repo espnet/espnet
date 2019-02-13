@@ -1,0 +1,13 @@
+# NOTE: apostrophe is included both in hyp and ref
+
+# egs/fisher_callhome_spanish_st/mt1/exp/train_sp.en_pytorch_blstm_e2_subsample1_1_unit1024_proj1024_d2_unit1024_add1024_adadelta_sampprob0_lsm0.1_drop0.30.3_bs32_mli100_mlo100_wd0.000001
+fisher_dev.en
+BLEU = 65.06, 88.2/73.3/59.1/46.9 (BP=1.000, ratio=1.004, hyp_len=40677, ref_len=40498)
+fisher_dev2.en
+BLEU = 66.00, 88.8/74.0/60.1/48.0 (BP=1.000, ratio=1.006, hyp_len=39728, ref_len=39501)
+fisher_test.en
+BLEU = 63.40, 88.1/72.1/57.2/44.5 (BP=1.000, ratio=1.010, hyp_len=39868, ref_len=39469)
+callhome_devtest.en
+BLEU = 32.32, 61.9/38.9/25.9/17.5 (BP=1.000, ratio=1.014, hyp_len=37963, ref_len=37429)
+callhome_evltest.en
+BLEU = 31.70, 60.8/38.3/25.3/17.1 (BP=1.000, ratio=1.022, hyp_len=18878, ref_len=18465)
