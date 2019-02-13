@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str, help='json files')
-    parser.add_argument('dict-tgt', type=str, help='dict for target language')
+    parser.add_argument('dict', type=str, help='dict for target language')
     parser.add_argument('ref', type=str, help='ref')
     parser.add_argument('--hyp', type=str, help='hyp', default=False, nargs='?')
     parser.add_argument('--src', type=str, help='src', default=False, nargs='?')
@@ -37,8 +37,8 @@ if __name__ == '__main__':
     with codecs.open(args.json, 'r', encoding="utf-8") as f:
         j = json.load(f)
 
-    logging.info("reading %s", args.dict_tgt)
-    with codecs.open(args.dict_tgt, 'r', encoding="utf-8") as f:
+    logging.info("reading %s", args.dict)
+    with codecs.open(args.dict, 'r', encoding="utf-8") as f:
         dictionary = f.readlines()
     char_list = [entry.split(' ')[0] for entry in dictionary]
     char_list.insert(0, '<blank>')
