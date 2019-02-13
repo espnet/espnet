@@ -134,8 +134,9 @@ class Decoder(chainer.Chain):
             z_all.append(z_list[-1])
             if self.cf is not None:
                 with chainer.no_backprop_mode():
-                    lm_state, probs = self.rnnlm.predict(x=F.argmax(y_all[-1], axis=1) if i > 0 else self.sos,
-                                                         state=lm_state)
+                    lm_state, probs = self.rnnlm.predict(
+                        x=F.argmax(y_all[-1], axis=1) if i > 0 else np.asarray([self.sos] * batch),
+                        state=lm_state)
                 y_all.append(self.cf(z_list[-1], probs))
 
         if self.cf is None:
