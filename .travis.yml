@@ -51,7 +51,7 @@ install:
   - cd tools
   - git clone https://github.com/vesis84/kaldi-io-for-python.git
   - cd kaldi-io-for-python
-  - ln -s kaldi_io.py kaldi_io_py.py
+  - ln -s kaldi_io/kaldi_io.py kaldi_io_py.py
   - cp ../setup_kaldi-io-for-python.py setup.py
   - pip install .
   - cd ../..
