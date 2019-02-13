@@ -188,6 +188,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make a non-linguistic symbol list for all languages"
     cut -f 2- -d " " data/train_nodev.*/text | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
+    echo "<unk>" >> ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between source and target languages

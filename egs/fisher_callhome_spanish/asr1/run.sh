@@ -202,6 +202,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make a non-linguistic symbol list"
     cut -f 2- -d' ' data/${train_set_ori}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+    echo "<unk>" >> ${nlsyms}
     cat ${nlsyms}
 
     echo "make a dictionary"
