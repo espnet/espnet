@@ -25,12 +25,6 @@ dic=$2
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
 json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn ${dir}/hyp.trn
 
-# remove punctuation
-paste -d "(" <(cut -d '(' -f 1 ${dir}/hyp.trn | local/remove_punctuation.pl | sed -e "s/¿//g") <(cut -d '(' -f 2- ${dir}/hyp.trn) > ${dir}/hyp.trn.tmp
-mv ${dir}/hyp.trn.tmp ${dir}/hyp.trn
-paste -d "(" <(cut -d '(' -f 1 ${dir}/ref.trn | local/remove_punctuation.pl | sed -e "s/¿//g") <(cut -d '(' -f 2- ${dir}/ref.trn) > ${dir}/ref.trn.tmp
-mv ${dir}/ref.trn.tmp ${dir}/ref.trn
-
 if ${remove_blank}; then
     sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp.trn
 fi
@@ -44,6 +38,12 @@ if [ -n "${filter}" ]; then
     sed -i.bak3 -f ${filter} ${dir}/hyp.trn
     sed -i.bak3 -f ${filter} ${dir}/ref.trn
 fi
+
+# remove punctuation
+paste -d "(" <(cut -d '(' -f 1 ${dir}/hyp.trn | local/remove_punctuation.pl | sed -e "s/¿//g" | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/hyp.trn) > ${dir}/hyp.trn.tmp
+mv ${dir}/hyp.trn.tmp ${dir}/hyp.trn
+paste -d "(" <(cut -d '(' -f 1 ${dir}/ref.trn | local/remove_punctuation.pl | sed -e "s/¿//g" | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/ref.trn) > ${dir}/ref.trn.tmp
+mv ${dir}/ref.trn.tmp ${dir}/ref.trn
 
 sclite -r ${dir}/ref.trn trn -h ${dir}/hyp.trn trn -i rm -o all stdout > ${dir}/result.txt
 

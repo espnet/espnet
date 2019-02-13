@@ -48,17 +48,17 @@ for set in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callho
     cat data/$set/es.joshua.org | normalize-punctuation.perl -l es | local/normalize_punctuation.pl > data/$set/es.joshua.norm.tc
     lowercase.perl < data/$set/es.joshua.norm.tc > data/$set/es.joshua.norm.lc
     cat data/$set/es.joshua.norm.lc | local/remove_punctuation.pl > data/$set/es.joshua.norm.lc.rm
-    tokenizer.perl -a -l es < data/$set/es.joshua.norm.tc > data/$set/es.joshua.norm.tc.tok
-    tokenizer.perl -a -l es < data/$set/es.joshua.norm.lc > data/$set/es.joshua.norm.lc.tok
-    tokenizer.perl -a -l es < data/$set/es.joshua.norm.lc.rm > data/$set/es.joshua.norm.lc.rm.tok
+    tokenizer.perl -a -l es -q < data/$set/es.joshua.norm.tc > data/$set/es.joshua.norm.tc.tok
+    tokenizer.perl -a -l es -q < data/$set/es.joshua.norm.lc > data/$set/es.joshua.norm.lc.tok
+    tokenizer.perl -a -l es -q < data/$set/es.joshua.norm.lc.rm > data/$set/es.joshua.norm.lc.rm.tok
 
     # Now checking these Es transcriptions are matching (double check)
     cat data/$set/text > data/$set/text.tmp
     cut -f 2- -d " " data/$set/text.tmp > data/$set/es.kaldi.org
     cat data/$set/es.kaldi.org | normalize-punctuation.perl -l es | local/normalize_punctuation.pl > data/$set/es.kaldi.norm.tc
     lowercase.perl < data/$set/es.kaldi.norm.tc > data/$set/es.kaldi.norm.lc
-    tokenizer.perl -a -l es < data/$set/es.kaldi.norm.tc > data/$set/es.kaldi.norm.tc.tok
-    tokenizer.perl -a -l es < data/$set/es.kaldi.norm.lc > data/$set/es.kaldi.norm.lc.tok
+    tokenizer.perl -a -l es -q < data/$set/es.kaldi.norm.tc > data/$set/es.kaldi.norm.tc.tok
+    tokenizer.perl -a -l es -q < data/$set/es.kaldi.norm.lc > data/$set/es.kaldi.norm.lc.tok
 
     # use references from joshua-decoder/fisher-callhome-corpus
     paste -d " " <(awk '{print $1}' data/$set/text.tmp) <(cat data/$set/es.joshua.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
@@ -83,9 +83,9 @@ for set in fisher_train callhome_train callhome_devtest callhome_evltest; do
     cat data/$set/en.org | normalize-punctuation.perl -l en | sed -e "s/¿//g" | local/normalize_punctuation.pl > data/$set/en.norm.tc
     lowercase.perl < data/$set/en.norm.tc > data/$set/en.norm.lc
     cat data/$set/en.norm.lc | local/remove_punctuation.pl > data/$set/en.norm.lc.rm
-    tokenizer.perl -a -l en < data/$set/en.norm.tc > data/$set/en.norm.tc.tok
-    tokenizer.perl -a -l en < data/$set/en.norm.lc > data/$set/en.norm.lc.tok
-    tokenizer.perl -a -l en < data/$set/en.norm.lc.rm > data/$set/en.norm.lc.rm.tok
+    tokenizer.perl -a -l en -q < data/$set/en.norm.tc > data/$set/en.norm.tc.tok
+    tokenizer.perl -a -l en -q < data/$set/en.norm.lc > data/$set/en.norm.lc.tok
+    tokenizer.perl -a -l en -q < data/$set/en.norm.lc.rm > data/$set/en.norm.lc.rm.tok
     paste -d " " <(awk '{print $1}' data/$set/text.tc.es) <(cat data/$set/en.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
       > data/$set/text.tc.en
     paste -d " " <(awk '{print $1}' data/$set/text.lc.es) <(cat data/$set/en.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
@@ -106,9 +106,9 @@ for set in fisher_dev fisher_dev2 fisher_test; do
         cat data/$set/en.${no}.org | normalize-punctuation.perl -l en | sed -e "s/¿//g"| local/normalize_punctuation.pl > data/$set/en.${no}.norm.tc
         lowercase.perl < data/$set/en.${no}.norm.tc > data/$set/en.${no}.norm.lc
         cat data/$set/en.${no}.norm.lc | local/remove_punctuation.pl > data/$set/en.${no}.norm.lc.rm
-        tokenizer.perl -a -l en < data/$set/en.${no}.norm.tc > data/$set/en.${no}.norm.tc.tok
-        tokenizer.perl -a -l en < data/$set/en.${no}.norm.lc > data/$set/en.${no}.norm.lc.tok
-        tokenizer.perl -a -l en < data/$set/en.${no}.norm.lc.rm > data/$set/en.${no}.norm.lc.rm.tok
+        tokenizer.perl -a -l en -q < data/$set/en.${no}.norm.tc > data/$set/en.${no}.norm.tc.tok
+        tokenizer.perl -a -l en -q < data/$set/en.${no}.norm.lc > data/$set/en.${no}.norm.lc.tok
+        tokenizer.perl -a -l en -q < data/$set/en.${no}.norm.lc.rm > data/$set/en.${no}.norm.lc.rm.tok
         paste -d " " <(awk '{print $1}' data/$set/text.tc.es) <(cat data/$set/en.${no}.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
           > data/$set/text.tc.en.${no}
         paste -d " " <(awk '{print $1}' data/$set/text.lc.es) <(cat data/$set/en.${no}.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
