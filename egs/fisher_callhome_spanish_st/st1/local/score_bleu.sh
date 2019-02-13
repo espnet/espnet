@@ -91,13 +91,13 @@ else
 fi
 
 # detokenize
-detokenizer.perl -l en < ${dir}/ref.wrd.trn | local/remove_punctuation.pl > ${dir}/ref.wrd.trn.detok
-detokenizer.perl -l en < ${dir}/hyp.wrd.trn | local/remove_punctuation.pl > ${dir}/hyp.wrd.trn.detok
-detokenizer.perl -l en < ${dir}/src.wrd.trn | local/remove_punctuation.pl > ${dir}/src.wrd.trn.detok
+detokenizer.perl -l en -q < ${dir}/ref.wrd.trn | local/remove_punctuation.pl > ${dir}/ref.wrd.trn.detok
+detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn | local/remove_punctuation.pl > ${dir}/hyp.wrd.trn.detok
+detokenizer.perl -l en -q < ${dir}/src.wrd.trn | local/remove_punctuation.pl > ${dir}/src.wrd.trn.detok
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-    detokenizer.perl -l en < ${dir}/ref1.wrd.trn | local/remove_punctuation.pl > ${dir}/ref1.wrd.trn.detok
-    detokenizer.perl -l en < ${dir}/ref2.wrd.trn | local/remove_punctuation.pl > ${dir}/ref2.wrd.trn.detok
-    detokenizer.perl -l en < ${dir}/ref3.wrd.trn | local/remove_punctuation.pl > ${dir}/ref3.wrd.trn.detok
+    detokenizer.perl -l en -q < ${dir}/ref1.wrd.trn | local/remove_punctuation.pl > ${dir}/ref1.wrd.trn.detok
+    detokenizer.perl -l en -q < ${dir}/ref2.wrd.trn | local/remove_punctuation.pl > ${dir}/ref2.wrd.trn.detok
+    detokenizer.perl -l en -q < ${dir}/ref3.wrd.trn | local/remove_punctuation.pl > ${dir}/ref3.wrd.trn.detok
 fi
 
 echo ${set} > ${dir}/result.txt

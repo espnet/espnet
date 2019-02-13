@@ -126,7 +126,7 @@ while(<STDIN>) {
   s/\*/ /g; # for callhome_train
 
   # remove consecutive commas and spaces
-  s/\.+/ /g;
+  s/\.+/./g;
   s/\s+/ /g;
 
   # remove last bar (except for partial words)
