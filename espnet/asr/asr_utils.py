@@ -88,7 +88,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     if num_batches > 0:
         minibatches = minibatches[:num_batches]
     if test > 0:
-        minibatches = minibatch[:20] + minibatch[-20:] + minibatch[::test]
+        minibatches = minibatches[:20] + minibatches[-20:] + minibatches[::test]
     logging.info('# minibatches: ' + str(len(minibatches)))
 
     # such like: [('uttid1',

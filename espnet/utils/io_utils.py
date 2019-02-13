@@ -88,7 +88,6 @@ class LoadInputsAndTargets(object):
         x_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         y_feats_dict = OrderedDict()  # OrderedDict[str, List[np.ndarray]]
         uttid_list = []  # List[str]
-        print(batch)
         for uttid, info in batch:
             uttid_list.append(uttid)
 
