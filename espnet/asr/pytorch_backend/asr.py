@@ -35,6 +35,7 @@ from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+
 from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
 
