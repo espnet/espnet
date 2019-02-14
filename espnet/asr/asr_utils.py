@@ -512,7 +512,7 @@ def load_lm(args, train_args):
             rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
             rnnlm = lm.ClassifierWithState(
                 lm.RNNLM(
-                    len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
+                    len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit, rnnlm_args.type))
             if is_pytorch:
                 torch_load(args.rnnlm, rnnlm)
                 rnnlm.eval()
@@ -528,7 +528,7 @@ def load_lm(args, train_args):
             word_dict = rnnlm_args.char_list_dict
             char_dict = {x: i for i, x in enumerate(train_args.char_list)}
             word_rnnlm = lm.ClassifierWithState(lm.RNNLM(
-                len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
+                len(word_dict), rnnlm_args.layer, rnnlm_args.unit, rnnlm_args.type))
             if is_pytorch:
                 torch_load(args.word_rnnlm, word_rnnlm)
                 word_rnnlm.eval()
