@@ -55,7 +55,7 @@ class FeatureTransform(torch.nn.Module):
             # h: (B, T, C, F) -> h: (B, T, F)
             if self.training:
                 # Select 1ch randomly
-                ch = torch.randint(0, x.size(2), [1]).item()
+                ch = np.random.randint(x.size(2))
                 h = x[:, :, ch, :]
             else:
                 # Use the first channel

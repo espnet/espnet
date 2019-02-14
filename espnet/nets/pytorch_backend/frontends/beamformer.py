@@ -97,7 +97,7 @@ def get_mvdr_vector2(psd_s: ComplexTensor,
 # TODO(kamo): Implement forward-backward function for symeig
 def get_gev_vector(psd_s: ComplexTensor, psd_n: ComplexTensor)\
         -> ComplexTensor:
-    """Returns the GEV(Generalized Eigenvalue) beamforming vector.
+    """Returns the GEV(Generalized Eigen Value) beamforming vector.
         Spsd @ h =  ev x Npsd @ h
 
     Citation:
