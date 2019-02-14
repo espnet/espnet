@@ -86,9 +86,9 @@ samp_prob=0.0
 # data
 wsj0=/export/corpora5/LDC/LDC93S6B
 wsj1=/export/corpora5/LDC/LDC94S13B
-wsj_full_wav=$PWD/data/wsj0
-wsj_2mix_wav=$PWD/data/local/wsj_mix/2speakers
-wsj_2mix_scripts=$PWD/data/local/wsj_mix/scripts
+wsj_full_wav=$PWD/data/wsj0/wsj0_wav
+wsj_2mix_wav=$PWD/data/wsj0_mix/2speakers
+wsj_2mix_scripts=$PWD/data/wsj0_mix/scripts
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -110,7 +110,7 @@ if [ ${stage} -le 0 ]; then
     echo "stage 0: Data preparation"
     ### This part is for WSJ0 mix
     ### Download mixture scripts and create mixtures for 2 speakers
-    local/wsj0_create_mixture.sh ${wsj_2mix_scripts} ${wsj_full_wav} \
+    local/wsj0_create_mixture.sh ${wsj_2mix_scripts} ${wsj0} ${wsj_full_wav} \
         ${wsj_2mix_wav} || exit 1;
     local/wsj0_2mix_data_prep.sh ${wsj_2mix_wav}/wav16k/max ${wsj_2mix_scripts} \
         ${wsj_full_wav} || exit 1;
@@ -123,8 +123,9 @@ if [ ${stage} -le 0 ]; then
     #mkdir -p data/wsj
     #mv data/{dev_dt_05,local,test_dev93_5k,test_eval92_5k,test_eval93_5k,dev_dt_20,test_dev93,test_eval92,test_eval93,train_si284} data/wsj
 
-    ### Before next stop, suppose wsj_2mix_corpus has been generated.
+    ### Before next step, suppose wsj_2mix_corpus has been generated.
     #local/wsj_2mix_data_prep.sh ${wsj_2mix_wav}/wav16k/max ${wsj_2mix_script} || exit 1;
+    exit 0;
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -214,7 +215,7 @@ mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ]; then
     echo "stage 3: LM Preparation"
-    
+
     if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
@@ -269,7 +270,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_sde${elayers_sd}_rece${elayers_rec}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_spa${use_spa}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_sde${elayers_sd}_rece${elayers_rec}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_spa${use_spa}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_seed${seed}
     if [ "${lsm_type}" != "" ]; then
         expname=${expname}_lsm${lsm_type}${lsm_weight}
     fi
@@ -305,7 +306,7 @@ if [ ${stage} -le 4 ]; then
         --num-spkrs ${num_spkrs} \
         --etype ${etype} \
         --elayers-sd ${elayers_sd} \
-        --elayers-rec ${elayers_rec} \
+        --elayers ${elayers_rec} \
         --eunits ${eunits} \
         --eprojs ${eprojs} \
         --subsample ${subsample} \
