@@ -4,9 +4,10 @@
 
 . utils/parse_options.sh
 
-if [ $# -ne 3 ]; then
-  echo "Usage: $0 <dir> <wsj0-full-wav> <wsj0-2mix-wav>"
+if [ $# -ne 4 ]; then
+  echo "Usage: $0 <dir> <wsj0-path> <wsj0-full-wav> <wsj0-2mix-wav>"
   echo " where <dir> is download space,"
+  echo " <wsj0-path> is the original wsj0 path"
   echo " <wsj0-full-wav> is wsj0 full wave files path, <wsj0-2mix-wav> is wav generation space."
   echo "Note: this script won't actually re-download things if called twice,"
   echo "because we use the --continue flag to 'wget'."
@@ -17,10 +18,11 @@ if [ $# -ne 3 ]; then
   echo ", which are the mixture combination schemes."
   exit 1;
 fi
+
 dir=$1
-wsj_full_wav=$2
-wsj_2mix_wav=$3
-set -x
+wsj0_path=$2
+wsj_full_wav=$3
+wsj_2mix_wav=$4
 
 rootdir=$PWD
 echo "Downloading WSJ0_mixture scripts."
@@ -36,10 +38,12 @@ wget --continue -O $wdir/create-speaker-mixtures.zip ${url}
 unzip ${wdir}/create-speaker-mixtures.zip -d ${dir}
 
 sed -i -e "s=/db/processed/public/WSJ0WAV_full=${wsj_full_wav}=" \
-       -e "s=/mm1/leroux/wsj0-mix/2speakers=${wsj_2mix_wav}=" ${dir}/create_wav_2speakers.m
+       -e "s=/mm1/leroux/wsj0-mix/2speakers=${wsj_2mix_wav}=" \
+       -e "s='min','max'='max'=" \
+       ${dir}/create_wav_2speakers.m
 
 echo "WSJ0 wav file."
-convert2wav.sh ${wsj0_path} ${wsj_full_wav} || exit 1;
+local/convert2wav.sh ${wsj0_path} ${wsj_full_wav} || exit 1;
 
 echo "Creating Mixtures."
 
@@ -54,4 +58,4 @@ chmod +x $mixfile
 cd ${dir}
 $train_cmd ${dir}/mix.log $mixfile
 
-#cd ${rootdir}
+cd ${rootdir}
