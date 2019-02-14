@@ -1,4 +1,5 @@
 import io
+import logging
 import sys
 
 import h5py
@@ -125,25 +126,37 @@ class FileReaderWrapper(object):
 
                         hdf5_file = hdf5_dict.get(path)
                         if hdf5_file is None:
-                            if self.filetype == 'sound.hdf5':
-                                hdf5_file = SoundHDF5File(path, 'r')
-                            else:
-                                hdf5_file = h5py.File(path, 'r')
+                            try:
+                                if self.filetype == 'sound.hdf5':
+                                        hdf5_file = SoundHDF5File(path, 'r')
+                                else:
+                                    hdf5_file = h5py.File(path, 'r')
+                            except Exception:
+                                logging.error(
+                                    'Error when loading {}'.format(path))
+                                raise
                             hdf5_dict[path] = hdf5_file
+
+                        try:
+                            data = hdf5_file[h5_key]
+                        except Exception:
+                            logging.error('Error when loading {} with key={}'
+                                          .format(path, h5_key))
+                            raise
 
                         if self.filetype == 'sound.hdf5':
                             # Change Tuple[ndarray, int] -> Tuple[int, ndarray]
                             # (soundfile style -> scipy style)
-                            array, rate = hdf5_file[h5_key]
+                            array, rate = data
 
                             if self.return_shape:
                                 array = array.shape
                             yield key, (rate, array)
                         else:
                             if self.return_shape:
-                                yield key, hdf5_file[h5_key].shape
+                                yield key, data.shape
                             else:
-                                yield key, hdf5_file[h5_key][()]
+                                yield key, data[()]
 
                 # Closing all files
                 for k in hdf5_dict:
