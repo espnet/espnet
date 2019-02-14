@@ -22,6 +22,10 @@ preprocess_conf=conf/preprocess.json
 use_beamformer=true
 use_wpe=false
 use_dnn_mask_for_wpe=false
+blayers=2
+wlayers=2
+b2type=0
+
 # encoder related
 etype=vggblstmp     # encoder architecture type
 elayers=3
@@ -47,7 +51,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 
 # optimization related
 opt=adadelta
-epochs=20
+epochs=12
 patience=0
 
 # rnnlm related
@@ -277,6 +281,8 @@ if [ ${stage} -le 4 ]; then
         --use-beamformer ${use_beamformer} \
         --use-wpe ${use_wpe} \
         --use-dnn-mask-for-wpe ${use_dnn_mask_for_wpe} \
+        --blayers ${blayers} \
+        --wlayers ${wlayers} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
