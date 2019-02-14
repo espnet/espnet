@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends.dnn_beamformer import DNN_MVDR
+from espnet.nets.pytorch_backend.frontends.dnn_beamformer import DNN_Beamformer
 from espnet.nets.pytorch_backend.frontends.dnn_wpe import DNN_WPE
 
 
@@ -40,6 +40,8 @@ class Frontend(nn.Module):
 
         if self.use_wpe:
             if self.use_dnn_mask_for_wpe:
+                # Use DNN for power estimation
+                # (Not observed significant gains)
                 iterations = 1
             else:
                 # Performing as conventional WPE, without DNN Estimator
@@ -59,14 +61,14 @@ class Frontend(nn.Module):
             self.wpe = None
 
         if self.use_beamformer:
-            self.beamformer = DNN_MVDR(btype=btype,
-                                       bidim=idim,
-                                       bunits=bunits,
-                                       bprojs=bprojs,
-                                       blayers=blayers,
-                                       dropout_rate=bdropout_rate,
-                                       badim=badim,
-                                       ref_channel=ref_channel)
+            self.beamformer = DNN_Beamformer(btype=btype,
+                                             bidim=idim,
+                                             bunits=bunits,
+                                             bprojs=bprojs,
+                                             blayers=blayers,
+                                             dropout_rate=bdropout_rate,
+                                             badim=badim,
+                                             ref_channel=ref_channel)
         else:
             self.beamformer = None
 
@@ -82,12 +84,16 @@ class Frontend(nn.Module):
 
         h = x
         if h.dim() == 4:
-            if self.training and self.use_beamformer \
-                    and self.use_wpe and self.use_dnn_mask_for_wpe:
-                # Select one from DNN-WPE and DNN-Beamformer
-                true_false = [True, False]
-                numpy.random.shuffle(true_false)
-                use_wpe, use_beamformer = true_false
+            if self.training:
+                choices = [(False, False)]
+                if self.use_wpe:
+                    choices.append((True, False))
+
+                if self.use_beamformer:
+                    choices.append((False, True))
+
+                use_wpe, use_beamformer = \
+                    choices[numpy.random.randint(len(choices))]
 
             else:
                 use_wpe = self.use_wpe
