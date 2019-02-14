@@ -317,7 +317,7 @@ class E2E(torch.nn.Module):
         else:
             lpz = None
 
-        # 2. decoder
+        # 2. Decoder
         # decode the first utterance
         y = self.dec.recognize_beam(hs[0], lpz, recog_args, char_list, rnnlm)
 
@@ -360,7 +360,7 @@ class E2E(torch.nn.Module):
         else:
             lpz = None
 
-        # 2. decoder
+        # 2. Decoder
         y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
