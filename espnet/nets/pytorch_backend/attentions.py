@@ -1374,49 +1374,53 @@ class AttForwardTA(torch.nn.Module):
         return c, w
 
 
-def att_for(args):
+def att_for(args, num_att=1):
     """Instantiates an attention module given the program arguments
 
     :param Namespace args: The arguments
+    :param int num_att: number of attention modules (in multi-speaker case, it can be 2 or more)
     :rtype torch.nn.Module
     :return: The attention module
     """
-    att = None
-    if args.atype == 'noatt':
-        att = NoAtt()
-    elif args.atype == 'dot':
-        att = AttDot(args.eprojs, args.dunits, args.adim)
-    elif args.atype == 'add':
-        att = AttAdd(args.eprojs, args.dunits, args.adim)
-    elif args.atype == 'location':
-        att = AttLoc(args.eprojs, args.dunits,
-                     args.adim, args.aconv_chans, args.aconv_filts)
-    elif args.atype == 'location2d':
-        att = AttLoc2D(args.eprojs, args.dunits,
-                       args.adim, args.awin, args.aconv_chans, args.aconv_filts)
-    elif args.atype == 'location_recurrent':
-        att = AttLocRec(args.eprojs, args.dunits,
-                        args.adim, args.aconv_chans, args.aconv_filts)
-    elif args.atype == 'coverage':
-        att = AttCov(args.eprojs, args.dunits, args.adim)
-    elif args.atype == 'coverage_location':
-        att = AttCovLoc(args.eprojs, args.dunits, args.adim,
-                        args.aconv_chans, args.aconv_filts)
-    elif args.atype == 'multi_head_dot':
-        att = AttMultiHeadDot(args.eprojs, args.dunits,
-                              args.aheads, args.adim, args.adim)
-    elif args.atype == 'multi_head_add':
-        att = AttMultiHeadAdd(args.eprojs, args.dunits,
-                              args.aheads, args.adim, args.adim)
-    elif args.atype == 'multi_head_loc':
-        att = AttMultiHeadLoc(args.eprojs, args.dunits,
-                              args.aheads, args.adim, args.adim,
-                              args.aconv_chans, args.aconv_filts)
-    elif args.atype == 'multi_head_multi_res_loc':
-        att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
-                                      args.aheads, args.adim, args.adim,
-                                      args.aconv_chans, args.aconv_filts)
-    return att
+    att_list = torch.nn.ModuleList()
+    for i in range(num_att):
+        att = None
+        if args.atype == 'noatt':
+            att = NoAtt()
+        elif args.atype == 'dot':
+            att = AttDot(args.eprojs, args.dunits, args.adim)
+        elif args.atype == 'add':
+            att = AttAdd(args.eprojs, args.dunits, args.adim)
+        elif args.atype == 'location':
+            att = AttLoc(args.eprojs, args.dunits,
+                         args.adim, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'location2d':
+            att = AttLoc2D(args.eprojs, args.dunits,
+                           args.adim, args.awin, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'location_recurrent':
+            att = AttLocRec(args.eprojs, args.dunits,
+                            args.adim, args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'coverage':
+            att = AttCov(args.eprojs, args.dunits, args.adim)
+        elif args.atype == 'coverage_location':
+            att = AttCovLoc(args.eprojs, args.dunits, args.adim,
+                            args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'multi_head_dot':
+            att = AttMultiHeadDot(args.eprojs, args.dunits,
+                                  args.aheads, args.adim, args.adim)
+        elif args.atype == 'multi_head_add':
+            att = AttMultiHeadAdd(args.eprojs, args.dunits,
+                                  args.aheads, args.adim, args.adim)
+        elif args.atype == 'multi_head_loc':
+            att = AttMultiHeadLoc(args.eprojs, args.dunits,
+                                  args.aheads, args.adim, args.adim,
+                                  args.aconv_chans, args.aconv_filts)
+        elif args.atype == 'multi_head_multi_res_loc':
+            att = AttMultiHeadMultiResLoc(args.eprojs, args.dunits,
+                                          args.aheads, args.adim, args.adim,
+                                          args.aconv_chans, args.aconv_filts)
+        att_list.append(att)
+    return att_list
 
 
 def att_to_numpy(att_ws, att):
