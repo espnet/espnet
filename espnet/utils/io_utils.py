@@ -276,6 +276,9 @@ class LoadInputsAndTargets(object):
         In order to make the fds to be opened only at the first referring,
         the loader are stored in self._loaders
 
+        >>> ndarray = loader.get_from_loader(
+        ...     'some/path.h5:F01_050C0101_PED_REAL', filetype='hdf5')
+
         :param: str filepath:
         :param: str filetype:
         :return:
