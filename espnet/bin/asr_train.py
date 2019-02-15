@@ -48,11 +48,16 @@ def main(args):
                         help='Filename of validation label data (json)')
     # network architecture
     # encoder
+    parser.add_argument('--num-spkrs', default=1, type=int,
+                        choices=[1, 2],
+                        help='Number of speakers in the speech.')
     parser.add_argument('--etype', default='blstmp', type=str,
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm', 'bgru', 'bgrup', 'vggbgrup', 'vggbgru'],
                         help='Type of encoder network architecture')
+    parser.add_argument('--elayers-sd', default=4, type=int,
+                        help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')
     parser.add_argument('--elayers', default=4, type=int,
-                        help='Number of encoder layers')
+                        help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
     parser.add_argument('--eunits', '-u', default=300, type=int,
                         help='Number of encoder hidden units')
     parser.add_argument('--eprojs', default=320, type=int,
@@ -63,7 +68,7 @@ def main(args):
     # loss
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
-                        help='Type of CTC implementation to calculate loss. ')
+                        help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
@@ -83,6 +88,8 @@ def main(args):
     parser.add_argument('--aconv-filts', default=100, type=int,
                         help='Number of attention convolution filters \
                         (negative value indicates no location-aware attention)')
+    parser.add_argument('--spa', action='store_true',
+                        help='Enable speaker parallel attention.')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
                         choices=['lstm', 'gru'],
@@ -230,14 +237,21 @@ def main(args):
 
     # train
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        from espnet.asr.chainer_backend.asr import train
-        train(args)
-    elif args.backend == "pytorch":
-        from espnet.asr.pytorch_backend.asr import train
-        train(args)
-    else:
-        raise ValueError("Only chainer and pytorch are supported.")
+    if args.num_spkrs == 1:
+        if args.backend == "chainer":
+            from espnet.asr.chainer_backend.asr import train
+            train(args)
+        elif args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr import train
+            train(args)
+        else:
+            raise ValueError("Only chainer and pytorch are supported.")
+    elif args.num_spkrs > 1:
+        if args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr_mix import train
+            train(args)
+        else:
+            raise ValueError("Only pytorch is supported.")
 
 
 if __name__ == '__main__':
