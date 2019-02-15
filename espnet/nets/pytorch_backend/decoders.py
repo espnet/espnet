@@ -173,7 +173,7 @@ class Decoder(torch.nn.Module):
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 if self.cf is not None:
-                    z_out = torch.argmax(y_all[-1], dim=1)
+                    z_out = torch.argmax(y_all[-1].detach(), dim=1)
                 else:
                     z_out = self.output(z_all[-1])
                     z_out = np.argmax(z_out.detach(), axis=1)
