@@ -17,7 +17,7 @@ do_delta=false
 cmvn=cmvn.ark
 
 # rnnlm related
-use_wordlm=true     # false means to train/use a character LM
+use_wordlm=true     # false means to use a character LM
 lang_model=rnnlm.model.best
 
 # decoding parameter
@@ -30,13 +30,14 @@ ctc_weight=0.3
 recog_model=model.acc.best
 decode_dir=decode
 
-# data
-wav=""
-
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh
-. ./cmd.sh
+wav=$1
+
+if [ $# != 1 ]; then
+    echo "Usage: $0 <wav>"
+    exit 1;
+fi
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -44,14 +45,30 @@ set -e
 set -u
 set -o pipefail
 
+# existence check
+if [ ! -f "${cmvn}" ]; then
+    echo "No such CMVN file: ${cmvn}"
+    exit 1
+fi
+if [ ! -f "${lang_model}" ]; then
+    echo "No such language model: ${lang_model}"
+    exit 1
+fi
+if [ ! -f "${recog_model}" ]; then
+    echo "No such E2E model: ${recog_model}"
+    exit 1
+fi
+if [ ! -f "${wav}" ]; then
+    echo "No such wav file: ${wav}"
+    exit 1
+fi
+
+base=`basename $wav .wav`
+decode_dir=${decode_dir}/${base}
+
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    if [ -z "${wav}" ]; then
-        echo "Please specify --wav option"
-	exit 1
-    fi
     echo "stage 0: Data preparation"
     mkdir -p ${decode_dir}/data
-    base=`basename $wav .wav`
     echo "$base $wav" > ${decode_dir}/data/wav.scp
     echo "X $base" > ${decode_dir}/data/spk2utt
     echo "$base X" > ${decode_dir}/data/utt2spk
