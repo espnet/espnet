@@ -58,8 +58,7 @@ if __name__ == '__main__':
                         help='The json files except for the input and outputs')
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
-    parser.add_argument('--out', '-O', type=argparse.FileType('w'),
-                        default=sys.stdout,
+    parser.add_argument('--out', '-O', type=str,
                         help='The output filename. '
                              'If omitted, then output to sys.stdout')
 
@@ -139,7 +138,11 @@ if __name__ == '__main__':
     #
     # To reduce memory usage, reading the input text files for each lines
     # and writing JSON elements per samples.
-    args.out.write('{\n    "utts": {\n')
+    if args.out is None:
+        out = sys.stdout
+    else:
+        out = open(args.out, 'w', encoding='utf-8')
+    out.write('{\n    "utts": {\n')
     nutt = 0
     while True:
         nutt += 1
@@ -180,10 +183,10 @@ if __name__ == '__main__':
         # The end of file
         if first == '':
             if nutt != 1:
-                args.out.write('\n')
+                out.write('\n')
             break
         if nutt != 1:
-            args.out.write(',\n')
+            out.write(',\n')
 
         entry = {}
         for inout, _lines, _infos in [('input', input_lines, input_infos),
@@ -240,8 +243,8 @@ if __name__ == '__main__':
         entry = ('\n' + indent).join(entry.split('\n'))
 
         uttid = first.split()[0]
-        args.out.write('        "{}": {}'.format(uttid, entry))
+        out.write('        "{}": {}'.format(uttid, entry))
 
-    args.out.write('    }\n}\n')
+    out.write('    }\n}\n')
 
-    logging.info('{} entries in {}'.format(nutt, args.out.name))
+    logging.info('{} entries in {}'.format(nutt, out.name))
