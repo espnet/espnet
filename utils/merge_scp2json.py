@@ -41,8 +41,6 @@ def shape(x):
 
 
 if __name__ == '__main__':
-    description = '''
-'''
     parser = argparse.ArgumentParser(
         description='Given each file paths with such format as '
                     '<key>:<file>:<type>. type> can be omitted and the default '
@@ -89,8 +87,8 @@ if __name__ == '__main__':
                 sps = key_scp.split(':')
                 if len(sps) == 2:
                     key, scp = sps
-                    type_func = str
-                    type_func_str = 'str'
+                    type_func = None
+                    type_func_str = 'none'
                 elif len(sps) == 3:
                     key, scp, type_func_str = sps
                     fail = False
@@ -216,14 +214,15 @@ if __name__ == '__main__':
                     type_func = info[2]
                     value = value.rstrip()
 
-                    try:
-                        # type_func: Callable[[str], Any]
-                        value = type_func(value)
-                    except Exception:
-                        logging.error('"{}" is an invalid function '
-                                      'for the {} th line in {}: \n>>> {}'
-                                      .format(info[4], nutt, info[1], line))
-                        raise
+                    if type_func is not None:
+                        try:
+                            # type_func: Callable[[str], Any]
+                            value = type_func(value)
+                        except Exception:
+                            logging.error('"{}" is an invalid function '
+                                          'for the {} th line in {}: \n>>> {}'
+                                          .format(info[4], nutt, info[1], line))
+                            raise
 
                     d[key] = value
                 lis.append(d)
