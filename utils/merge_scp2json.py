@@ -14,7 +14,7 @@ import sys
 from espnet.utils.cli_utils import get_commandline_args
 
 PY2 = sys.version_info[0] == 2
-sys.stdin = codecs.getwriter('utf-8')(sys.stdin if PY2 else sys.stdin.buffer)
+sys.stdin = codecs.getreader('utf-8')(sys.stdin if PY2 else sys.stdin.buffer)
 sys.stdout = codecs.getwriter('utf-8')(
     sys.stdout if PY2 else sys.stdout.buffer)
 
