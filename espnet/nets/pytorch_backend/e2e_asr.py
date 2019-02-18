@@ -194,7 +194,7 @@ class E2E(torch.nn.Module):
             loss_att = None
             acc = None
         else:
-            loss_att, acc = self.dec(hs_pad, hlens, ys_pad, sampling_probability)
+            loss_att, acc = self.dec(hs_pad, hlens, ys_pad, sampling_probability=sampling_probability)
         self.acc = acc
 
         # 5. compute cer/wer
