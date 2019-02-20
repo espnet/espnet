@@ -4,7 +4,7 @@
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -17,16 +17,16 @@ do_delta=false
 # network architecture
 # encoder related
 etype=blstmp     # encoder architecture type
-elayers=4
-eunits=320
-eprojs=320
+elayers=3
+eunits=128
+eprojs=128
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=1
-dunits=300
+dunits=128
 # attention related
 atype=location
-adim=320
+adim=128
 aconv_chans=10
 aconv_filts=100
 
@@ -34,7 +34,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=30
+batchsize=5
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
