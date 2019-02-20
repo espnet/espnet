@@ -14,15 +14,21 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-- Encoder: VGG-like CNN + BLSTM or pyramid BLSTM
-- Attention: Dot product, location-aware attention, variants of multihead (pytorch only)
+- Encoder: VGG-like CNN + BiRNN (LSTM/GRU) or sub-sampling BiRNN (LSTM/GRU)
+- Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
+- Batch GPU decoding
+- Tacotron2 based end-to-end TTS
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
-  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
-- State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
-- Moderate performance in standard English benchmarks
-- Tacotron2 based end-to-end TTS (new!)
+  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
+  - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, Librispeech, M-AILABS, etc.)
+  - Support speech translation recipes with a similar manner to the ASR recipe (Fisher callhome Spanish to English, IWSLT'18)
+  - Support Speech separation and recognition (WSJ-2mix)
+- State-of-the-art performance in several benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
+- Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
+- Tensorboard based monitoring
+
 
 ## Requirements
 
