@@ -9,6 +9,7 @@
 # general configuration
 backend=chainer # chainer or pytorch
 stage=0         # start from 0 if you need to start from data preparation
+stop_stage=100
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump    # directory to dump full features
@@ -47,11 +48,14 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=15
+patience=3
 
 # rnnlm related
 lm_weight=0.3
+lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 
 # decoding parameter
 beam_size=20
@@ -87,7 +91,7 @@ train_set=train_nodup
 train_dev=train_dev
 recog_set="eval1 eval2 eval3"
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
@@ -103,7 +107,7 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
@@ -154,7 +158,7 @@ fi
 dict=data/lang_char/${train_set}_${bpemode}${nbpe}_units.txt
 bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_char/
@@ -177,9 +181,10 @@ if [ ${stage} -le 2 ]; then
 fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 5)
-lmexpdir=exp/train_rnnlm_${backend}_2layer_bs256_${bpemode}${nbpe}
+lmexpname=train_rnnlm_${backend}_2layer_bs256_${bpemode}${nbpe}
+lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
@@ -200,30 +205,34 @@ if [ ${stage} -le 3 ]; then
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --epoch 40 \
+        --sortagrad ${lm_sortagrad} \
         --batchsize 256 \
         --dict ${dict}
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_adim${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_adim${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_${bpemode}${nbpe}
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
        asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -251,10 +260,12 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --sortagrad ${sortagrad} \
+        --epochs ${epochs} \
+        --patience ${patience}
 fi
 
-if [ ${stage} -le 5 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 

@@ -6,9 +6,10 @@
 . ./path.sh
 . ./cmd.sh
 
-# genearl configuration
+# general configuration
 backend=pytorch
 stage=-1
+stop_stage=100
 ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
@@ -40,7 +41,7 @@ postnet_layers=5 # if set 0, no postnet is used
 postnet_chans=512
 postnet_filts=5
 # attention related
-atype=location
+atype=forward_ta
 adim=128
 aconv_chans=32
 aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
@@ -61,6 +62,7 @@ cbhg_highway_units=128
 cbhg_gru_units=256
 # minibatch related
 batchsize=32
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 batch_sort_key=shuffle # shuffle or input or output
 maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
 maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
@@ -71,6 +73,7 @@ weight_decay=0.0
 dropout=0.5
 zoneout=0.1
 epochs=200
+patience=20
 # decoding related
 model=model.loss.best
 threshold=0.5    # threshold to stop the generation
@@ -93,15 +96,15 @@ set -u
 set -o pipefail
 
 train_set=train_no_dev
-train_dev=train_dev
+dev_set=dev
 eval_set=eval
 
-if [ ${stage} -le -1 ]; then
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     local/download.sh ${db_root}
 fi
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
@@ -110,10 +113,10 @@ if [ ${stage} -le 0 ]; then
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${train_dev}; mkdir -p ${feat_dt_dir}
+feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
 feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
-if [ ${stage} -le 1 ]; then
-    ### Task dependent. You have to design training and dev sets by yourself.
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    ### Task dependent. You have to design training and dev name by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
@@ -134,7 +137,7 @@ if [ ${stage} -le 1 ]; then
     # make a dev set
     utils/subset_data_dir.sh --last data/train 500 data/deveval
     utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 250 data/${train_dev}
+    utils/subset_data_dir.sh --first data/deveval 250 data/${dev_set}
     n=$(( $(wc -l < data/train/wav.scp) - 500 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
@@ -145,14 +148,14 @@ if [ ${stage} -le 1 ]; then
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
 fi
 
 dict=data/lang_1char/${train_set}_units.txt
 echo "dictionary: ${dict}"
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
@@ -165,18 +168,17 @@ if [ ${stage} -le 2 ]; then
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+         data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
     data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Spectrogram extraction"
     stftdir=stft
-    for name in ${train_set} ${train_dev} ${eval_set}; do
+    for name in ${train_set} ${dev_set} ${eval_set}; do
         utils/copy_data_dir.sh data/${name} data/${name}_stft
         make_stft.sh --nj ${nj} --cmd "$train_cmd" \
-            --fs ${fs} \
             --n_fft ${n_fft} \
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
@@ -189,7 +191,7 @@ if [ ${stage} -le 3 ]; then
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}_stft/feats.scp data/${train_set}_stft/cmvn.ark
 
-    for name in ${train_set} ${train_dev} ${eval_set}; do
+    for name in ${train_set} ${dev_set} ${eval_set}; do
         # dump features for training
         dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
             data/${name}_stft/feats.scp \
@@ -203,42 +205,44 @@ if [ ${stage} -le 3 ]; then
 fi
 
 if [ -z ${tag} ];then
-    expdir=exp/${train_set}_${backend}_taco2_cbhg_r${reduction_factor}_enc${embed_dim}
+    expname=${train_set}_${backend}_taco2_cbhg_r${reduction_factor}_enc${embed_dim}
     if [ ${econv_layers} -gt 0 ];then
-        expdir=${expdir}-${econv_layers}x${econv_filts}x${econv_chans}
+        expname=${expname}-${econv_layers}x${econv_filts}x${econv_chans}
     fi
-    expdir=${expdir}-${elayers}x${eunits}_dec${dlayers}x${dunits}
+    expname=${expname}-${elayers}x${eunits}_dec${dlayers}x${dunits}
     if [ ${prenet_layers} -gt 0 ];then
-        expdir=${expdir}_pre${prenet_layers}x${prenet_units}
+        expname=${expname}_pre${prenet_layers}x${prenet_units}
     fi
     if [ ${postnet_layers} -gt 0 ];then
-        expdir=${expdir}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
+        expname=${expname}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
     fi
-    expdir=${expdir}_${atype}${adim}-${aconv_filts}x${aconv_chans}
+    expname=${expname}_${atype}${adim}-${aconv_filts}x${aconv_chans}
     if ${cumulate_att_w};then
-        expdir=${expdir}_cm
+        expname=${expname}_cm
     fi
     if ${use_batch_norm};then
-        expdir=${expdir}_bn
+        expname=${expname}_bn
     fi
     if ${use_residual};then
-        expdir=${expdir}_rs
+        expname=${expname}_rs
     fi
     if ${use_concate};then
-        expdir=${expdir}_cc
+        expname=${expname}_cc
     fi
     if ${use_masking};then
-        expdir=${expdir}_msk_pw${bce_pos_weight}
+        expname=${expname}_msk_pw${bce_pos_weight}
     fi
-    expdir=${expdir}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
+    expname=${expname}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
     if [ ! ${batch_sort_key} = "shuffle" ];then
-        expdir=${expdir}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
+        expname=${expname}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
     fi
-    expdir=${expdir}_sd${seed}
+    expname=${expname}_sd${seed}
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
-if [ ${stage} -le 4 ];then
+expdir=exp/${expname}
+mkdir -p ${expdir}
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
     echo "stage 4: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
@@ -248,6 +252,7 @@ if [ ${stage} -le 4 ];then
            --ngpu ${ngpu} \
            --minibatches ${N} \
            --outdir ${expdir}/results \
+           --tensorboard-dir tensorboard/${expname} \
            --verbose ${verbose} \
            --seed ${seed} \
            --resume ${resume} \
@@ -290,54 +295,56 @@ if [ ${stage} -le 4 ];then
            --zoneout ${zoneout} \
            --reduction_factor ${reduction_factor} \
            --weight-decay ${weight_decay} \
+           --sortagrad ${sortagrad} \
            --batch_sort_key ${batch_sort_key} \
            --batch-size ${batchsize} \
            --maxlen-in ${maxlen_in} \
            --maxlen-out ${maxlen_out} \
-           --epochs ${epochs}
+           --epochs ${epochs} \
+           --patience ${patience}
 fi
 
 outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
-if [ ${stage} -le 5 ];then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
     echo "stage 5: Decoding"
-    for sets in ${train_dev} ${eval_set};do
-        [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
-        cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
-        splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
+    for name in ${dev_set} ${eval_set};do
+        [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
+        cp ${dumpdir}/${name}/data.json ${outdir}/${name}
+        splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
-        ${train_cmd} JOB=1:$nj ${outdir}/${sets}/log/decode.JOB.log \
+        ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
             tts_decode.py \
                 --backend ${backend} \
                 --ngpu 0 \
                 --verbose ${verbose} \
-                --out ${outdir}/${sets}/feats.JOB \
-                --json ${outdir}/${sets}/split${nj}utt/data.JOB.json \
+                --out ${outdir}/${name}/feats.JOB \
+                --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
                 --model ${expdir}/results/${model} \
                 --threshold ${threshold} \
                 --maxlenratio ${maxlenratio} \
                 --minlenratio ${minlenratio}
         # concatenate scp files
-        for n in $(seq $nj); do
-            cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
-        done > ${outdir}/${sets}/feats.scp
+        for n in $(seq ${nj}); do
+            cat "${outdir}/${name}/feats.$n.scp" || exit 1;
+        done > ${outdir}/${name}/feats.scp
     done
 fi
 
-if [ ${stage} -le 6 ];then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ];then
     echo "stage 6: Synthesis"
-    for sets in ${train_dev} ${eval_set};do
-        [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
+    for name in ${dev_set} ${eval_set};do
+        [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}_stft/cmvn.ark \
-            scp:${outdir}/${sets}/feats.scp \
-            ark,scp:${outdir}_denorm/${sets}/feats.ark,${outdir}_denorm/${sets}/feats.scp
+            scp:${outdir}/${name}/feats.scp \
+            ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
         convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} \
             --n_fft ${n_fft} \
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
             --iters ${griffin_lim_iters} \
-            ${outdir}_denorm/${sets} \
-            ${outdir}_denorm/${sets}/log \
-            ${outdir}_denorm/${sets}/wav
+            ${outdir}_denorm/${name} \
+            ${outdir}_denorm/${name}/log \
+            ${outdir}_denorm/${name}/wav
     done
 fi

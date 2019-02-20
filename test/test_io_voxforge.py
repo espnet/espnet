@@ -12,7 +12,7 @@ import pytest
 
 # TODO(karita): use much smaller corpus like AN4 and download if it does not exists
 def test_voxforge_feats():
-    import kaldi_io_py
+    import kaldiio
     pytest.importorskip("kaldi_io")
     import kaldi_io
 
@@ -20,7 +20,7 @@ def test_voxforge_feats():
     if not os.path.exists(train_scp):
         pytest.skip("voxforge scp has not been created")
 
-    r1 = kaldi_io_py.read_mat_scp(train_scp)
+    r1 = kaldiio.load_scp(train_scp).items()
     r2 = kaldi_io.RandomAccessBaseFloatMatrixReader(train_scp)
 
     for k, v1 in r1:
