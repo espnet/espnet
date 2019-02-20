@@ -153,7 +153,7 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Recognition and scoring
 
 The training progress (loss and accuracy for training and validation data) can be monitored with the following command
-```
+```sh
 $ tail -f exp/${expdir}/train.log
 ```
 With the default verbose (=0), it gives you the following information
@@ -174,8 +174,8 @@ this epoch [#####.............................................] 10.84%
 ```
 
 In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
-```
-tensorboard --logdir tensorboard
+```sh 
+$ tensorboard --logdir tensorboard
 ```
 and connecting to the given address (default : localhost:6006). This will provide the following information:
 ![2018-12-18_19h49_48](https://user-images.githubusercontent.com/14289171/50175839-2491e280-02fe-11e9-8dfc-de303804034d.png)
