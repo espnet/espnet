@@ -16,6 +16,7 @@ requirements = {
         # for some reason, matplotlib should be separately installed
         # 'matplotlib',
         'scipy',
+        'h5py',
         # Installation from anaconda is recommended for PyTorch
         # 'torch==0.4.1',
         'chainer==5.0.0',
