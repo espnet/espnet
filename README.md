@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 
-ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition, and end-to-end text-to-speech.
+ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
@@ -21,10 +21,10 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Tacotron2 based end-to-end TTS
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
-  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
+  - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
   - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, Librispeech, M-AILABS, etc.)
-  - Support speech translation recipes with a similar manner to the ASR recipe (Fisher callhome Spanish to English, IWSLT'18)
-  - Support Speech separation and recognition (WSJ-2mix)
+  - Support speech translation recipes (Fisher callhome Spanish to English, IWSLT'18)
+  - Support speech separation and recognition recipe (WSJ-2mix)
 - State-of-the-art performance in several benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
 - Tensorboard based monitoring
@@ -32,13 +32,13 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 
-- Python2.7+
-- Cuda 8.0,9.0,9.1,10.0 depending on each DNN library (for the use of GPU)
+- Python 2.7+, 3.7+ (mainly support Python3.7+)
+- Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library (for the use of GPU)
 - Cudnn 6+ (for the use of GPU)
 - NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.1,1.0.0 
+- PyTorch 0.4.1, 1.0.0 
 - gcc>=4.9 for PyTorch1.0.0
 - Chainer 5.0.0
 
@@ -96,13 +96,13 @@ v0.3.0: Changed to use miniconda by default installation.
 Install Kaldi, Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
-$ make -j
+$ make -j 10
 ```
 
 Or using specified python and virtualenv
 ```sh
 $ cd tools
-$ make -j PYTHON=/usr/bin/python2.7
+$ make -j 10 PYTHON=/usr/bin/python2.7
 ```
 
 Or install specific Python version with miniconda
@@ -153,7 +153,7 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Recognition and scoring
 
 The training progress (loss and accuracy for training and validation data) can be monitored with the following command
-```
+```sh
 $ tail -f exp/${expdir}/train.log
 ```
 With the default verbose (=0), it gives you the following information
@@ -174,8 +174,8 @@ this epoch [#####.............................................] 10.84%
 ```
 
 In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
-```
-tensorboard --logdir tensorboard
+```sh 
+$ tensorboard --logdir tensorboard
 ```
 and connecting to the given address (default : localhost:6006). This will provide the following information:
 ![2018-12-18_19h49_48](https://user-images.githubusercontent.com/14289171/50175839-2491e280-02fe-11e9-8dfc-de303804034d.png)
