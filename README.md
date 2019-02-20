@@ -14,15 +14,21 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-- Encoder: VGG-like CNN + BLSTM or pyramid BLSTM
-- Attention: Dot product, location-aware attention, variants of multihead (pytorch only)
+- Encoder: VGG-like CNN + BiRNN (LSTM/GRU) or sub-sampling BiRNN (LSTM/GRU)
+- Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
+- Batch GPU decoding
+- Tacotron2 based end-to-end TTS
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
-  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
-- State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
-- Moderate performance in standard English benchmarks
-- Tacotron2 based end-to-end TTS (new!)
+  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
+  - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, Librispeech, M-AILABS, etc.)
+  - Support speech translation recipes with a similar manner to the ASR recipe (Fisher callhome Spanish to English, IWSLT'18)
+  - Support Speech separation and recognition (WSJ-2mix)
+- State-of-the-art performance in several benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
+- Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
+- Tensorboard based monitoring
+
 
 ## Requirements
 
@@ -251,7 +257,7 @@ $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
 
 The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
 (i.e., `--recog_model model.loss.best`).
-About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
+About the effectiveness of the hybrid CTC/attention during training and recognition, see [2] and [3].
 
 ## Results
 
@@ -285,9 +291,10 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
 | TTS recipe support | no support | supported |
 
-## References (Please cite the following articles)
+## References
+[1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
 
-[1] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
+[2] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
 
-[2] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
+[3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
 
