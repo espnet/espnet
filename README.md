@@ -5,20 +5,20 @@
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition, and end-to-end text-to-speech.
-ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine, 
+ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
 
 ## Key Features
 
-- Hybrid CTC/attention based end-to-end ASR 
+- Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
 - Encoder: VGG-like CNN + BLSTM or pyramid BLSTM
 - Attention: Dot product, location-aware attention, variants of multihead (pytorch only)
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Flexible network architecture thanks to chainer and pytorch
-- Kaldi style complete recipe 
+- Kaldi style complete recipe
   - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
 - State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Moderate performance in standard English benchmarks
@@ -26,13 +26,14 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 
-- Python2.7+  
-- Cuda 8.0 or 9.1 (for the use of GPU)  
-- Cudnn 6+ (for the use of GPU)  
+- Python2.7+
+- Cuda 8.0,9.0,9.1,10.0 depending on each DNN library (for the use of GPU)
+- Cudnn 6+ (for the use of GPU)
 - NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.1+
+- PyTorch 0.4.1,1.0.0 
+- gcc>=4.9 for PyTorch1.0.0
 - Chainer 5.0.0
 
 ## Installation
@@ -49,7 +50,7 @@ export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
 
-If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl) 
+If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl)
 and set paths in your `.bashrc` or `.bash_profile` appropriately, for example:
 ```
 CUDAROOT=/path/to/cuda
@@ -64,39 +65,45 @@ export CUDA_PATH=$CUDAROOT
 
 ### Step 2-A) installation with compiled Kaldi
 
-Install Python libraries and other required tools using system python and virtualenv
+Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi
 ```
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+
+Or using specified python and virtualenv
 ```sh
 $ cd tools
-$ make KALDI=/path/to/kaldi -f conda.mk
+$ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
 ```
+
+Or install specific Python version with miniconda
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
+```
+
+v0.3.0: Changed to use miniconda by default installation.
 
 ### Step 2-B) installation including Kaldi installation
 
-Install Kaldi, Python libraries and other required tools using system python and virtualenv
+Install Kaldi, Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make -j
 ```
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+
+Or using specified python and virtualenv
 ```sh
 $ cd tools
-$ make -f conda.mk -j
+$ make -j PYTHON=/usr/bin/python2.7
 ```
 
-### Step 2-C) installation with specified python
-
-Install Kaldi, Python libraries and other required tools using specified python and virtualenv
+Or install specific Python version with miniconda
 ```sh
 $ cd tools
-$ make -j PYTHON=/path/to/python2.7
+$ make PYTHON_VERSION=3.6
 ```
-You can also specified `python3.6`, but some preprocessing functions require `python2.7`.  
-So we recommend to use `python2.7`.
 
 ### Step 3) installation check
 
@@ -160,9 +167,17 @@ this epoch [#####.............................................] 10.84%
    0.71428 iters/sec. Estimated time to finish: 2 days, 16:23:34.613215.
 ```
 
+In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
+```
+tensorboard --logdir tensorboard
+```
+and connecting to the given address (default : localhost:6006). This will provide the following information:
+![2018-12-18_19h49_48](https://user-images.githubusercontent.com/14289171/50175839-2491e280-02fe-11e9-8dfc-de303804034d.png)
+Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (`pip install tensorflow; pip install tensorboard`) when you want to use Tensorboard.
+
 ### Use of GPU
 
-If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
+If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g.,
 ```sh
 # use single gpu
 $ ./run.sh --ngpu 1
@@ -179,7 +194,7 @@ $ ./run.sh --ngpu 0
 ```
 Default setup uses CPU (`--ngpu 0`).
 
-Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) 
+Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
 is required before setup.
 
 ### Error due to ACS (Multiple GPUs)
@@ -187,6 +202,7 @@ is required before setup.
 When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
 Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
 To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
+
 
 ### Docker Container
 
@@ -200,7 +216,7 @@ For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
 It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
 
 ### Error due to matplotlib
-If you have the following error (or other numpy related errors), 
+If you have the following error (or other numpy related errors),
 ```
 RuntimeError: module compiled against API version 0xc but this version of numpy is 0xb
 Exception in main training loop: numpy.core.multiarray failed to import
@@ -233,7 +249,7 @@ $ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
 $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
 ```
 
-The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value 
+The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
 (i.e., `--recog_model model.loss.best`).
 About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
 
@@ -245,13 +261,15 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | WSJ dev93 | 3.2 | 7.0 |
 | WSJ eval92| 2.1 | 4.7 |
-| CSJ eval1 | 7.3 | N/A  |
-| CSJ eval2 | 5.3 | N/A  |
-| CSJ eval3 | 5.9 | N/A  |
+| CSJ eval1 | 6.6 | N/A  |
+| CSJ eval2 | 4.8 | N/A  |
+| CSJ eval3 | 5.3 | N/A  |
+| Aishell dev | 6.8 | N/A |
+| Aishell test | 8.0 | N/A |
 | HKUST train_dev | 28.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
-| Librispeech dev_clean  | N/A | 4.2 |
-| Librispeech test_clean | N/A | 4.2 |
+| Librispeech dev_clean  | N/A | 4.0 |
+| Librispeech test_clean | N/A | 4.0 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 

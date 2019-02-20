@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# encoding: utf-8
 
 # Copyright 2017 Tomoki Hayashi (Nagoya University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -15,7 +16,7 @@ import sys
 import numpy as np
 
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -39,18 +40,24 @@ def main():
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
-    # network archtecture
+    # network architecture
     # encoder
+    parser.add_argument('--num-spkrs', default=1, type=int,
+                        choices=[1, 2],
+                        help='Number of speakers in the speech.')
     parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
+                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm', 'bgru', 'bgrup', 'vggbgrup', 'vggbgru'],
                         help='Type of encoder network architecture')
+    parser.add_argument('--elayers-sd', default=4, type=int,
+                        help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')
     parser.add_argument('--elayers', default=4, type=int,
-                        help='Number of encoder layers')
+                        help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
     parser.add_argument('--eunits', '-u', default=300, type=int,
                         help='Number of encoder hidden units')
     parser.add_argument('--eprojs', default=320, type=int,
@@ -60,7 +67,7 @@ def main():
                              'every y frame at 2nd layer etc.')
     # loss
     parser.add_argument('--ctc_type', default='warpctc', type=str,
-                        choices=['chainer', 'warpctc'],
+                        choices=['builtin', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
@@ -81,9 +88,11 @@ def main():
     parser.add_argument('--aconv-filts', default=100, type=int,
                         help='Number of attention convolution filters \
                         (negative value indicates no location-aware attention)')
+    parser.add_argument('--spa', action='store_true',
+                        help='Enable speaker parallel attention.')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
-                        choices=['lstm'],
+                        choices=['lstm', 'gru'],
                         help='Type of decoder network architecture')
     parser.add_argument('--dlayers', default=1, type=int,
                         help='Number of decoder layers')
@@ -128,8 +137,12 @@ def main():
                         help='Blank symbol')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
-                        help='Dropout rate')
+                        help='Dropout rate for the encoder')
+    parser.add_argument('--dropout-rate-decoder', default=0.0, type=float,
+                        help='Dropout rate for the decoder')
     # minibatch related
+    parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
+                        help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
     parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
@@ -138,6 +151,8 @@ def main():
                         help='Batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n_iter_processes', default=0, type=int,
                         help='Number of processes of iterator')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam'],
@@ -146,18 +161,29 @@ def main():
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
                         help='Decaying ratio of epsilon')
+    parser.add_argument('--weight-decay', default=0.0, type=float,
+                        help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
                         choices=['loss', 'acc'],
                         help='Criterion to perform epsilon decay')
     parser.add_argument('--threshold', default=1e-4, type=float,
                         help='Threshold to stop iteration')
     parser.add_argument('--epochs', '-e', default=30, type=int,
-                        help='Number of maximum epochs')
+                        help='Maximum number of epochs')
+    parser.add_argument('--early-stop-criterion', default='validation/main/acc', type=str, nargs='?',
+                        help="Value to monitor to trigger an early stopping of the training")
+    parser.add_argument('--patience', default=3, type=int, nargs='?',
+                        help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--grad-clip', default=5, type=float,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
-    args = parser.parse_args()
+    # transfer learning related
+    parser.add_argument('--asr-model', default=False, nargs='?',
+                        help='Pre-trained ASR model')
+    parser.add_argument('--mt-model', default=False, nargs='?',
+                        help='Pre-trained MT model')
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose > 0:
@@ -184,7 +210,7 @@ def main():
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -211,15 +237,22 @@ def main():
 
     # train
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        from espnet.asr.asr_chainer import train
-        train(args)
-    elif args.backend == "pytorch":
-        from espnet.asr.asr_pytorch import train
-        train(args)
-    else:
-        raise ValueError("chainer and pytorch are only supported.")
+    if args.num_spkrs == 1:
+        if args.backend == "chainer":
+            from espnet.asr.chainer_backend.asr import train
+            train(args)
+        elif args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr import train
+            train(args)
+        else:
+            raise ValueError("Only chainer and pytorch are supported.")
+    elif args.num_spkrs > 1:
+        if args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr_mix import train
+            train(args)
+        else:
+            raise ValueError("Only pytorch is supported.")
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

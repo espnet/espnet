@@ -9,11 +9,13 @@ slurm-*.out
 espnet.egg-info/
 
 doc/_build
+.idea
 
 # recipe related
 egs/*/*/data*
 egs/*/*/db
 egs/*/*/downloads
+egs/*/*/tensorboard
 egs/*/*/dump
 egs/*/*/exp
 egs/*/*/fbank
@@ -32,9 +34,14 @@ tools/venv/
 tools/warp-ctc/
 tools/chainer_ctc/
 tools/sentencepiece/
+tools/mecab/
+tools/swig/
 tools/nkf*
 tools/chainer_ctc*
 tools/warp-ctc*
 tools/sentencepiece/*
 tools/moses
 tools/*.done
+
+.idea/
+.hypothesis/
