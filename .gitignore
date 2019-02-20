@@ -1,3 +1,4 @@
+# general
 *~
 *.pyc
 \#*\#
@@ -7,9 +8,9 @@ slurm-*.out
 .eggs/
 .pytest_cache/
 espnet.egg-info/
-
 doc/_build
 .idea
+.hypothesis/
 
 # recipe related
 egs/*/*/data*
@@ -43,5 +44,3 @@ tools/sentencepiece/*
 tools/moses
 tools/*.done
 
-.idea/
-.hypothesis/
