@@ -459,6 +459,16 @@ def recog(args):
                 extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
                                               word_dict, char_dict))
 
+    # load trained model parameters
+    logging.info('reading model parameters from ' + args.model)
+    e2e = E2E(idim, odim, train_args)
+    model = Loss(e2e, train_args.mtlalpha)
+    if train_args.rnnlm is not None:
+        # set rnnlm. external rnnlm is used for recognition.
+        model.predictor.rnnlm = rnnlm
+    torch_load(args.model, model)
+    e2e.recog_args = args
+
     # gpu
     if args.ngpu == 1:
         gpu_id = range(args.ngpu)
