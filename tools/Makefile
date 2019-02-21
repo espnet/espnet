@@ -124,7 +124,7 @@ mecab.done:
 		fi; \
 		deactivate; \
 		export PATH=$(PWD)/swig/bin:$(PATH); \
-		export PATH=$(PWD)/mecab/bin; \
+		export PATH=$(PWD)/mecab/bin:$(PATH); \
 		. $(PWD)/venv/bin/activate; pip install mecab-python3; \
 	else \
 		pip install mecab-python; \
