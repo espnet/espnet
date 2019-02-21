@@ -17,7 +17,7 @@ verbose=0
 filetype=""
 preprocess_conf=""
 out="" # if omitted, write in stdout
-num_spkrs=2
+num_spkrs=1
 
 . utils/parse_options.sh
 
@@ -111,7 +111,7 @@ if [ -n "${out}" ]; then
 else
     out_opt=""
 fi
-merge_scp2json.py --verbose ${verbose} \
+local/merge_scp2json.py --verbose ${verbose} \
     ${input_strs} \
     ${output_strs} \
     --scps utt2spk:${tmpdir}/other/utt2spk.scp ${out_opt}
