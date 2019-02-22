@@ -45,6 +45,7 @@ maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=10
 patience=3
@@ -55,6 +56,7 @@ lm_vocabsize=65000  # effective only for word LMs
 lm_layers=1         # 2 for character LMs
 lm_units=1000       # 650 for character LMs
 lm_opt=sgd          # adam for character LMs
+lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 lm_batchsize=300    # 1024 for character LMs
 lm_epochs=20        # number of epochs
 lm_patience=3
@@ -262,6 +264,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 --layer ${lm_layers} \
                 --unit ${lm_units} \
                 --opt ${lm_opt} \
+                --sortagrad ${lm_sortagrad} \
                 --batchsize ${lm_batchsize} \
                 --epoch ${lm_epochs} \
                 --patience ${lm_patience} \
@@ -313,6 +316,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --sampling-probability ${samp_prob} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
+        --sortagrad ${sortagrad} \
         --epochs ${epochs} \
         --patience ${patience}
 fi

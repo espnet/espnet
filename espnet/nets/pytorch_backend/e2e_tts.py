@@ -133,6 +133,7 @@ class Tacotron2Loss(torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
+        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         # calcuate outputs
         if self.use_cbhg:
             cbhg_outs, after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
@@ -850,6 +851,10 @@ class Decoder(torch.nn.Module):
         :return: attention weights (B, Lmax, Tmax)
         :rtype: numpy array
         """
+        # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
+        if self.reduction_factor > 1:
+            ys = ys[:, self.reduction_factor - 1::self.reduction_factor]
+
         # length list should be list of int
         hlens = list(map(int, hlens))
 

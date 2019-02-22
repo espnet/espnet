@@ -11,8 +11,6 @@ import math
 import os
 
 # chainer related
-import chainer
-
 from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
@@ -35,6 +33,11 @@ from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+
+from espnet.utils.training.iterators import ShufflingEnabler
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 # rnnlm
@@ -50,6 +53,7 @@ from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
+from espnet.utils.training.train_utils import set_early_stop
 
 matplotlib.use('Agg')
 
@@ -294,28 +298,30 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1)
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
+        train_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(train, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
+            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+            shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
-        train_iter = chainer.iterators.SerialIterator(
+        train_iter = ToggleableShufflingSerialIterator(
             TransformDataset(train, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
+            batch_size=1, shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingSerialIterator(
             TransformDataset(valid, converter.transform),
             batch_size=1, repeat=False, shuffle=False)
 
@@ -324,6 +330,10 @@ def train(args):
         model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
+
+    if use_sortagrad:
+        trainer.extend(ShufflingEnabler([train_iter]),
+                       trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
 
     # Resume from a snapshot
     if args.resume:
@@ -405,10 +415,7 @@ def train(args):
         report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
 
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
-    if args.patience > 0:
-        trainer.stop_trigger = chainer.training.triggers.EarlyStoppingTrigger(monitor=args.early_stop_criterion,
-                                                                              patients=args.patience,
-                                                                              max_trigger=(args.epochs, 'epoch'))
+    set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         writer = SummaryWriter(log_dir=args.tensorboard_dir)
