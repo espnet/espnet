@@ -1,4 +1,4 @@
-# [WIP](kamo) DNN based frontend system
+# [WIP] DNN based frontend system
 
 [Warining] **Not all components are enough tested.**
 
