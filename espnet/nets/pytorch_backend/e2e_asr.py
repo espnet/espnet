@@ -285,10 +285,9 @@ class E2E(torch.nn.Module):
         device = next(self.parameters()).device
 
         acc = torch.tensor([acc], device=device) if acc is not None else None
-        cer_ctc = torch.tensor([cer_ctc], device=device) if cer_ctc is not None else None
         cer = torch.tensor([cer], device=device)
         wer = torch.tensor([wer], device=device)
-        return self.loss, loss_ctc, loss_att, acc, cer_ctc, cer, wer
+        return self.loss, loss_ctc, loss_att, acc, cer, wer
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
