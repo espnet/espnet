@@ -219,9 +219,10 @@ class E2E(torch.nn.Module):
 
                 hyp_chars = seq_hat_text.replace(' ', '')
                 ref_chars = seq_true_text.replace(' ', '')
-                cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+                if len(ref_chars) > 0:
+                    cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
 
-            cer_ctc = sum(cers) / len(cers)
+            cer_ctc = sum(cers) / len(cers) if cers else None
 
         # 5. compute cer/wer
         if self.training or not (self.report_cer or self.report_wer):
