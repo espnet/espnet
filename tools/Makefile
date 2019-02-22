@@ -16,7 +16,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio extra
+all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio pytorch_complex extra
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
