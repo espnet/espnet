@@ -95,25 +95,29 @@ if [ -n "${category}" ]; then
 fi
 cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
 
+# 4. Merge scp files into a JSON file
+opts=""
+for intype in input output other; do
+    if [ ${intype} != other ]; then
+        opts+="--${intype}-scps "
+    else
+        opts+="--scps "
+    fi
 
-# 4. Create JSON files from each scp files
-rm -f ${tmpdir}/*/*.json
-for intype in 'input' 'output' 'other'; do
-    for x in "${tmpdir}/${intype}"/*.scp; do
+    for x in ${tmpdir}/${intype}/*.scp; do
         k=$(basename ${x} .scp)
-        < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
+        if [ ${k} = shape ]; then
+            opts+="shape:${x}:shape "
+        else
+            opts+="${k}:${x} "
+        fi
     done
 done
 
-# 5. Merge JSON files into one and output to stdout
 if [ -n "${out}" ]; then
-    out_opt="-O ${out}"
-else
-    out_opt=""
+    opts+="-O ${out}"
 fi
-mergejson.py --verbose ${verbose} \
-    --input-jsons ${tmpdir}/input/*.json \
-    --output-jsons ${tmpdir}/output/*.json \
-    --jsons ${tmpdir}/other/*.json ${out_opt}
+
+merge_scp2json.py --verbose ${verbose} ${opts}
 
 rm -fr ${tmpdir}

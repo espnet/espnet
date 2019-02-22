@@ -49,11 +49,16 @@ def main(args):
                         help='Filename of validation label data (json)')
     # network architecture
     # encoder
+    parser.add_argument('--num-spkrs', default=1, type=int,
+                        choices=[1, 2],
+                        help='Number of speakers in the speech.')
     parser.add_argument('--etype', default='blstmp', type=str,
                         choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm', 'bgru', 'bgrup', 'vggbgrup', 'vggbgru'],
                         help='Type of encoder network architecture')
+    parser.add_argument('--elayers-sd', default=4, type=int,
+                        help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')
     parser.add_argument('--elayers', default=4, type=int,
-                        help='Number of encoder layers')
+                        help='Number of encoder layers (for shared recognition part in multi-speaker asr mode)')
     parser.add_argument('--eunits', '-u', default=300, type=int,
                         help='Number of encoder hidden units')
     parser.add_argument('--eprojs', default=320, type=int,
@@ -64,7 +69,7 @@ def main(args):
     # loss
     parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
-                        help='Type of CTC implementation to calculate loss. ')
+                        help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
                         choices=['noatt', 'dot', 'add', 'location', 'coverage',
@@ -84,6 +89,8 @@ def main(args):
     parser.add_argument('--aconv-filts', default=100, type=int,
                         help='Number of attention convolution filters \
                         (negative value indicates no location-aware attention)')
+    parser.add_argument('--spa', action='store_true',
+                        help='Enable speaker parallel attention.')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
                         choices=['lstm', 'gru'],
@@ -135,6 +142,8 @@ def main(args):
     parser.add_argument('--dropout-rate-decoder', default=0.0, type=float,
                         help='Dropout rate for the decoder')
     # minibatch related
+    parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
+                        help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
     parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
@@ -162,7 +171,7 @@ def main(args):
                         help='Threshold to stop iteration')
     parser.add_argument('--epochs', '-e', default=30, type=int,
                         help='Maximum number of epochs')
-    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+    parser.add_argument('--early-stop-criterion', default='validation/main/acc', type=str, nargs='?',
                         help="Value to monitor to trigger an early stopping of the training")
     parser.add_argument('--patience', default=3, type=int, nargs='?',
                         help="Number of epochs to wait without improvement before stopping the training")
@@ -232,14 +241,21 @@ def main(args):
 
     # train
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        from espnet.asr.chainer_backend.asr import train
-        train(args)
-    elif args.backend == "pytorch":
-        from espnet.asr.pytorch_backend.asr import train
-        train(args)
-    else:
-        raise ValueError("Only chainer and pytorch are supported.")
+    if args.num_spkrs == 1:
+        if args.backend == "chainer":
+            from espnet.asr.chainer_backend.asr import train
+            train(args)
+        elif args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr import train
+            train(args)
+        else:
+            raise ValueError("Only chainer and pytorch are supported.")
+    elif args.num_spkrs > 1:
+        if args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr_mix import train
+            train(args)
+        else:
+            raise ValueError("Only pytorch is supported.")
 
 
 def addtional_arguments_for_frontend(parser: argparse.ArgumentParser):
