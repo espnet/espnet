@@ -148,7 +148,7 @@ class GlobalMVN(torch.nn.Module):
 
     def extra_repr(self):
         return f'stats_file={self.stats_file}, ' \
-               f'norm_means={self.norm_means}, norm_vars={self.norm_vars}'
+            f'norm_means={self.norm_means}, norm_vars={self.norm_vars}'
 
     def forward(self, x: torch.Tensor, ilens: torch.LongTensor) \
             -> Tuple[torch.Tensor, torch.LongTensor]:

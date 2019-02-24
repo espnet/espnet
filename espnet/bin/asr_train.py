@@ -18,81 +18,7 @@ import numpy as np
 
 
 def main(args):
-    parser = get_parser()
-    args = parser.parse_args(args)
-
-    # logging info
-    if args.verbose > 0:
-        logging.basicConfig(
-            level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-    else:
-        logging.basicConfig(
-            level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
-        logging.warning('Skip DEBUG/INFO messages')
-
-    # check CUDA_VISIBLE_DEVICES
-    if args.ngpu > 0:
-        # python 2 case
-        if platform.python_version_tuple()[0] == '2':
-            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
-                logging.info('CLSP: use gpu' + cvd)
-                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-        # python 3 case
-        else:
-            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
-                logging.info('CLSP: use gpu' + cvd)
-                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-        cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
-        if cvd is None:
-            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
-        elif args.ngpu != len(cvd.split(",")):
-            logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
-            sys.exit(1)
-
-    # display PYTHONPATH
-    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
-
-    # set random seed
-    logging.info('random seed = %d' % args.seed)
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-
-    # load dictionary for debug log
-    if args.dict is not None:
-        with open(args.dict, 'rb') as f:
-            dictionary = f.readlines()
-        char_list = [entry.decode('utf-8').split(' ')[0]
-                     for entry in dictionary]
-        char_list.insert(0, '<blank>')
-        char_list.append('<eos>')
-        args.char_list = char_list
-    else:
-        args.char_list = None
-
-    # train
-    logging.info('backend = ' + args.backend)
-    if args.num_spkrs == 1:
-        if args.backend == "chainer":
-            from espnet.asr.chainer_backend.asr import train
-            train(args)
-        elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import train
-            train(args)
-        else:
-            raise ValueError("Only chainer and pytorch are supported.")
-    elif args.num_spkrs > 1:
-        if args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr_mix import train
-            train(args)
-        else:
-            raise ValueError("Only pytorch is supported.")
-
-
-def get_parser():
     parser = argparse.ArgumentParser()
-
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
@@ -260,6 +186,81 @@ def get_parser():
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
 
+    addtional_arguments_for_frontend(parser)
+    args = parser.parse_args(args)
+
+    # logging info
+    if args.verbose > 0:
+        logging.basicConfig(
+            level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+    else:
+        logging.basicConfig(
+            level=logging.WARN, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
+        logging.warning('Skip DEBUG/INFO messages')
+
+    # check CUDA_VISIBLE_DEVICES
+    if args.ngpu > 0:
+        # python 2 case
+        if platform.python_version_tuple()[0] == '2':
+            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
+                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
+                logging.info('CLSP: use gpu' + cvd)
+                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+        # python 3 case
+        else:
+            if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
+                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
+                logging.info('CLSP: use gpu' + cvd)
+                os.environ['CUDA_VISIBLE_DEVICES'] = cvd
+        cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
+        if cvd is None:
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
+        elif args.ngpu != len(cvd.split(",")):
+            logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
+            sys.exit(1)
+
+    # display PYTHONPATH
+    logging.info('python path = ' + os.environ.get('PYTHONPATH', '(None)'))
+
+    # set random seed
+    logging.info('random seed = %d' % args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+
+    # load dictionary for debug log
+    if args.dict is not None:
+        with open(args.dict, 'rb') as f:
+            dictionary = f.readlines()
+        char_list = [entry.decode('utf-8').split(' ')[0]
+                     for entry in dictionary]
+        char_list.insert(0, '<blank>')
+        char_list.append('<eos>')
+        args.char_list = char_list
+    else:
+        args.char_list = None
+
+    # train
+    logging.info('backend = ' + args.backend)
+    if args.num_spkrs == 1:
+        if args.backend == "chainer":
+            from espnet.asr.chainer_backend.asr import train
+            train(args)
+        elif args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr import train
+            train(args)
+        else:
+            raise ValueError("Only chainer and pytorch are supported.")
+    elif args.num_spkrs > 1:
+        if args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr_mix import train
+            train(args)
+        else:
+            raise ValueError("Only pytorch is supported.")
+
+
+def addtional_arguments_for_frontend(parser: argparse.ArgumentParser):
+    # FIXME(kamo): More smart way for configuration
+
     def my_strtobool(x):
         # strtobool returns integer, but it's confusing, so changing to bool
         return bool(strtobool(x))
@@ -326,8 +327,6 @@ def get_parser():
                         help='')
     parser.add_argument('--fmax', type=float, default=None,
                         help='')
-
-    return parser
 
 
 if __name__ == '__main__':
