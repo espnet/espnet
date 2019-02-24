@@ -369,7 +369,7 @@ def train(args):
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    if mtl_mode is not 'ctc':
+    if mtl_mode != 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
@@ -378,7 +378,7 @@ def train(args):
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+        if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -487,7 +487,7 @@ def recog(args):
         preprocess_conf=train_args.preprocess_conf
         if args.preprocess_conf is None else args.preprocess_conf,
         transform_config={'train': False}
-        )
+    )
 
     if args.batchsize == 0:
         with torch.no_grad():

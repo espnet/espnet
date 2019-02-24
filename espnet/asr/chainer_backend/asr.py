@@ -403,13 +403,13 @@ def train(args):
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    if mtl_mode is not 'ctc':
+    if mtl_mode != 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+        if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',

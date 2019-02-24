@@ -34,7 +34,8 @@ class MaskEstimator(torch.nn.Module):
 
     def forward(self, xs: ComplexTensor, ilens: torch.LongTensor) \
             -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
-        """
+        """The forward function
+
         Args:
             xs: (B, F, C, T)
             ilens: (B,)

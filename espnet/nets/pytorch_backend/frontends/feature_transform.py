@@ -13,17 +13,17 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 class FeatureTransform(torch.nn.Module):
     def __init__(self,
                  # Mel options,
-                 fs: int=16000,
-                 n_fft: int=512,
-                 n_mels: int=80,
-                 fmin: float=0.0,
-                 fmax: float=None,
+                 fs: int = 16000,
+                 n_fft: int = 512,
+                 n_mels: int = 80,
+                 fmin: float = 0.0,
+                 fmax: float = None,
 
                  # Normalization
-                 stats_file: str=None,
-                 apply_uttmvn: bool=True,
-                 uttmvn_norm_means: bool=True,
-                 uttmvn_norm_vars: bool=False
+                 stats_file: str = None,
+                 apply_uttmvn: bool = True,
+                 uttmvn_norm_means: bool = True,
+                 uttmvn_norm_vars: bool = False
                  ):
         super().__init__()
         self.apply_uttmvn = apply_uttmvn
@@ -76,8 +76,8 @@ class FeatureTransform(torch.nn.Module):
 
 
 class LogMel(torch.nn.Module):
-    def __init__(self, fs: int=16000, n_fft: int=512, n_mels: int=80,
-                 fmin: float=None, fmax: float=None):
+    def __init__(self, fs: int = 16000, n_fft: int = 512, n_mels: int = 80,
+                 fmin: float = None, fmax: float = None):
         super().__init__()
 
         _mel_options = dict(sr=fs,
@@ -120,11 +120,12 @@ class GlobalMVN(torch.nn.Module):
             and the last elements eqauls to the number of samples.
         std_floor(float):
     """
+
     def __init__(self,
                  stats_file: str,
-                 norm_means: bool=True,
-                 norm_vars: bool=True,
-                 eps: float=1.0e-20):
+                 norm_means: bool = True,
+                 norm_vars: bool = True,
+                 eps: float = 1.0e-20):
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars
@@ -163,9 +164,9 @@ class GlobalMVN(torch.nn.Module):
 
 class UtteranceMVN(torch.nn.Module):
     def __init__(self,
-                 norm_means: bool=True,
-                 norm_vars: bool=False,
-                 eps: float=1.0e-20):
+                 norm_means: bool = True,
+                 norm_vars: bool = False,
+                 eps: float = 1.0e-20):
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars
@@ -185,9 +186,9 @@ class UtteranceMVN(torch.nn.Module):
 def utterance_mvn(
         x: torch.Tensor,
         ilens: torch.LongTensor,
-        norm_means: bool=True,
-        norm_vars: bool=False,
-        eps: float=1.0e-20) -> Tuple[torch.Tensor, torch.LongTensor]:
+        norm_means: bool = True,
+        norm_vars: bool = False,
+        eps: float = 1.0e-20) -> Tuple[torch.Tensor, torch.LongTensor]:
     """Apply utterance mean and variance normalization
 
     Args:

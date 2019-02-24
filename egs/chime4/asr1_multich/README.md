@@ -41,6 +41,7 @@ All components are implemented using PyTorch, thus they can perform with its aut
 ## The traning strategy
 
 1. Using Chime4 data and WSJ0 data as training set.
+
     WSJ0 is single channel audio data and Chime4 can be used with multi channels.
     so If single channel data comes in the mini-batch when traning time,
     then skipping the neural network for the frontend part,
@@ -49,6 +50,7 @@ All components are implemented using PyTorch, thus they can perform with its aut
     Note that different channel data are created to separated mini-batchs.
     To do this, these two data are given with different "category" tags.
 1. Skipping the frontend part in the probability of 1/2 when training.
+
     To traing the backend part with nolsy data,
     passing the multi-channel data to the backend part without the frontend,
     and the backend cannot handle multi-channel, so selecting 1-channel randomly.

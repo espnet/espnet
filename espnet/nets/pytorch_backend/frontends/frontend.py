@@ -1,4 +1,6 @@
-from typing import Tuple, List, Union
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import numpy
 import torch
@@ -13,24 +15,24 @@ class Frontend(nn.Module):
     def __init__(self,
                  idim: int,
                  # WPE options
-                 use_wpe: bool=False,
-                 wtype: str='blstmp',
-                 wlayers: int=3,
-                 wunits: int=300,
-                 wprojs: int=320,
-                 wdropout_rate: float=0.0,
-                 taps: int=5,
-                 delay: int=3,
-                 use_dnn_mask_for_wpe: bool=True,
+                 use_wpe: bool = False,
+                 wtype: str = 'blstmp',
+                 wlayers: int = 3,
+                 wunits: int = 300,
+                 wprojs: int = 320,
+                 wdropout_rate: float = 0.0,
+                 taps: int = 5,
+                 delay: int = 3,
+                 use_dnn_mask_for_wpe: bool = True,
 
                  # Beamformer options
-                 use_beamformer: bool=False,
-                 btype: str='blstmp',
-                 blayers: int=3,
-                 bunits: int=300,
-                 bprojs: int=320,
-                 badim: int=320,
-                 ref_channel: int=None,
+                 use_beamformer: bool = False,
+                 btype: str = 'blstmp',
+                 blayers: int = 3,
+                 bunits: int = 300,
+                 bprojs: int = 320,
+                 badim: int = 320,
+                 ref_channel: int = None,
                  bdropout_rate=0.0):
         super().__init__()
 
