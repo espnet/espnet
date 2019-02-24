@@ -24,7 +24,6 @@ use_wpe=false
 use_dnn_mask_for_wpe=false
 blayers=2
 wlayers=2
-b2type=0
 
 # encoder related
 etype=vggblstmp     # encoder architecture type
@@ -168,7 +167,7 @@ echo "dictionary: ${dict}"
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs$((${batchsize} * ${ngpu}))_mli${maxlen_in}_mlo${maxlen_out}_usebf${use_beamformer}_usewp${use_wpe}_usednnw${use_dnn_mask_for_wpe}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs$((batchsize * ngpu))_mli${maxlen_in}_mlo${maxlen_out}_usebf${use_beamformer}_usewp${use_wpe}_usednnw${use_dnn_mask_for_wpe}
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -199,13 +198,12 @@ if [ ${stage} -le 2 ]; then
         --out data/${setname}/data.json data/${setname} ${dict}
     done
 
-    for setname in train_si284; do
-        data2json.sh --cmd "${train_cmd}" --nj 30 \
-        --category "singlechannel" \
-        --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
-        --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
-        --out data/${setname}/data.json data/${setname} ${dict}
-    done
+    setname=train_si284
+    data2json.sh --cmd "${train_cmd}" --nj 30 \
+    --category "singlechannel" \
+    --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
+    --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
+    --out data/${setname}/data.json data/${setname} ${dict}
 
     mkdir -p data/${train_set}
     concatjson.py data/tr05_multi_noisy_multich/data.json data/train_si284/data.json > data/${train_set}/data.json
