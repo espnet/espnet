@@ -52,7 +52,7 @@ def make_arg(**kwargs):
         outdir=None,
         ctc_type="warpctc",
         sortagrad=0,
-        use_frontend=True
+        use_frontend=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)

@@ -26,6 +26,8 @@ def get_power_spectral_density_matrix(xs: ComplexTensor, mask: torch.Tensor,
 
     # Normalized mask along T: (..., T)
     if normalization:
+        # If assuming the tensor is padded with zero, the summation along
+        # the time axis is same regardless of the padding length.
         mask = mask / mask.sum(dim=-1)[..., None]
 
     # psd: (..., T, C, C)

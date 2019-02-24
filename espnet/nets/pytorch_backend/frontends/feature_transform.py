@@ -201,7 +201,7 @@ def utterance_mvn(
     """
     ilens_ = ilens.type_as(x)
     # mean: (B, D)
-    mean = x.sum(dim=1) / ilens_.type_as(x)[:, None]
+    mean = x.sum(dim=1) / ilens_[:, None]
 
     if norm_means:
         x -= mean[:, None, :]
@@ -212,7 +212,7 @@ def utterance_mvn(
     # Zero padding
     x_.masked_fill(make_pad_mask(ilens, x_, 1), 0.0)
     if norm_vars:
-        var = x_.pow(2).sum(dim=1) / ilens_.type_as(x)[:, None]
+        var = x_.pow(2).sum(dim=1) / ilens_[:, None]
         var = torch.clamp(var, min=eps)
         x /= var.sqrt()[:, None, :]
         x_ = x
