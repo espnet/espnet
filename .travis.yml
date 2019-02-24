@@ -71,9 +71,9 @@ install:
 script:
   # TODO test coding style?
   - if [[ "${ESPNET_PYTHON_VERSION}" == 2.7 ]]; then
-        flake8 espnet test utils
-    else
         flake8 --exclude espnet/nets/pytorch_backend/frontends espnet test utils
+    else
+        flake8 espnet test utils
     fi
   - autopep8 -r espnet test utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
