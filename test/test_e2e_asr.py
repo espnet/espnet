@@ -15,7 +15,6 @@ import numpy as np
 import pytest
 import torch
 
-from espnet.bin.asr_train import get_parser
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from test.utils_test import make_dummy_json
 
@@ -52,13 +51,11 @@ def make_arg(**kwargs):
         char_list=[u"あ", u"い", u"う", u"え", u"お"],
         outdir=None,
         ctc_type="warpctc",
-        sortagrad=0
+        sortagrad=0,
+        use_frontend=True
     )
-    parser = get_parser()
-    args = parser.parse_args(args=['--outdir', 'dummy', '--dict', 'dummy'])
     defaults.update(kwargs)
-    args.__dict__.update(defaults)
-    return args
+    return argparse.Namespace(**defaults)
 
 
 def prepare_inputs(mode, ilens=[150, 100], olens=[4, 3], is_cuda=False):

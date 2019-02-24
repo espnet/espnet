@@ -43,7 +43,8 @@ def make_arg(**kwargs):
         verbose=2,
         char_list=["a", "i", "u", "e", "o"],
         outdir=None,
-        ctc_type="warpctc"
+        ctc_type="warpctc",
+        use_frontend=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
