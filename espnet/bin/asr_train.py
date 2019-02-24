@@ -258,7 +258,7 @@ def main(args):
             raise ValueError("Only pytorch is supported.")
 
 
-def addtional_arguments_for_frontend(parser: argparse.ArgumentParser):
+def addtional_arguments_for_frontend(parser):
     # FIXME(kamo): More smart way for configuration
 
     def my_strtobool(x):
