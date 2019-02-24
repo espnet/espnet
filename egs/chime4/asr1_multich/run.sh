@@ -250,7 +250,7 @@ if [ ${stage} -le 3 ]; then
     fi
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
-    echo "LM training does not support multi-gpu. single gpu will be used."
+        echo "LM training does not support multi-gpu. single gpu will be used."
     fi
 
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \

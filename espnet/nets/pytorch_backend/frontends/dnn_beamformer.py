@@ -14,13 +14,14 @@ from torch_complex.tensor import ComplexTensor
 
 
 class DNN_Beamformer(torch.nn.Module):
-    """
+    """DNN mask based Beamformer
 
     Citation:
         Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;
         https://arxiv.org/abs/1703.04783
 
     """
+
     def __init__(self,
                  bidim,
                  btype='blstmp',
@@ -29,7 +30,7 @@ class DNN_Beamformer(torch.nn.Module):
                  bprojs=320,
                  dropout_rate=0.0,
                  badim=320,
-                 ref_channel: int=None,
+                 ref_channel: int = None,
                  beamformer_type='mvdr'):
         super().__init__()
         self.mask = MaskEstimator(btype, bidim, blayers, bunits, bprojs,
@@ -44,7 +45,7 @@ class DNN_Beamformer(torch.nn.Module):
 
     def forward(self, data: ComplexTensor, ilens: torch.LongTensor) \
             -> Tuple[ComplexTensor, torch.LongTensor]:
-        """
+        """The forward function
 
         Notation:
             B: Batch
@@ -58,6 +59,7 @@ class DNN_Beamformer(torch.nn.Module):
         Returns:
             enhanced (ComplexTensor): (B, T, F)
             ilens (torch.Tensor): (B,)
+
         """
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
@@ -91,8 +93,9 @@ class AttentionReference(torch.nn.Module):
         self.gvec = torch.nn.Linear(att_dim, 1)
 
     def forward(self, psd_in: ComplexTensor, ilens: torch.LongTensor,
-                scaling: float=2.0) -> Tuple[torch.Tensor, torch.LongTensor]:
-        """
+                scaling: float = 2.0) -> Tuple[torch.Tensor, torch.LongTensor]:
+        """The forward function
+
         Args:
             psd_in (ComplexTensor): (B, F, C, C)
             ilens (torch.Tensor): (B,)

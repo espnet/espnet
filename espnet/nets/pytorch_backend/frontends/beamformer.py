@@ -9,7 +9,6 @@ from torch_complex.tensor import ComplexTensor
 def get_power_spectral_density_matrix(xs: ComplexTensor, mask: torch.Tensor,
                                       normalization=True) -> ComplexTensor:
     """Return cross-channel power spectral density (PSD) matrix
-        (a,k.a spatial covariance matrices)
 
     Args:
         xs (ComplexTensor): (..., F, C, T)
@@ -40,8 +39,8 @@ def get_power_spectral_density_matrix(xs: ComplexTensor, mask: torch.Tensor,
 def get_mvdr_vector(psd_s: ComplexTensor,
                     psd_n: ComplexTensor,
                     reference_vector: torch.Tensor) -> ComplexTensor:
-    """
-    Return the MVDR(Minimum Variance Distortionless Response) vector:
+    """Return the MVDR(Minimum Variance Distortionless Response) vector:
+
         h = (Npsd^-1 @ Spsd) / (Tr(Npsd^-1 @ Spsd)) @ u
 
     Citation:
@@ -68,8 +67,8 @@ def get_mvdr_vector(psd_s: ComplexTensor,
 # TODO(kamo): Implement forward-backward function for symeig
 def get_mvdr_vector2(psd_s: ComplexTensor,
                      psd_n: ComplexTensor) -> ComplexTensor:
-    """
-    Return the MVDR(Minimum Variance Distortionless Response) vector:
+    """Return the MVDR(Minimum Variance Distortionless Response) vector:
+
         h = (Npsd^-1 @ A) / (A^H @ Npsd^-1 @ A)
 
     Args:
@@ -98,6 +97,7 @@ def get_mvdr_vector2(psd_s: ComplexTensor,
 def get_gev_vector(psd_s: ComplexTensor, psd_n: ComplexTensor)\
         -> ComplexTensor:
     """Returns the GEV(Generalized Eigen Value) beamforming vector.
+
         Spsd @ h =  ev x Npsd @ h
 
     Citation:
@@ -110,6 +110,7 @@ def get_gev_vector(psd_s: ComplexTensor, psd_n: ComplexTensor)\
         psd_n (ComplexTensor): (..., F, C, C)
     Returns:
         beamform_vector (ComplexTensor): (..., F, C)
+
     """
     eigenvals, eigenvecs = FC.symeig(psd_s, psd_n)
     # eigenvals: (..., C) -> (...)
@@ -124,6 +125,7 @@ def blind_analytic_normalization(beamform_vector: ComplexTensor,
                                  psd_n: ComplexTensor,
                                  eps=1e-10) -> ComplexTensor:
     """Reduces distortions in beamformed output.
+
         h = sqrt(|h* @ Npsd @ Npsd @ h|) / |h* @ Npsd @ h| x h
 
     Args:

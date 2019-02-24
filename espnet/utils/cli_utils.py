@@ -128,7 +128,7 @@ class FileReaderWrapper(object):
                         if hdf5_file is None:
                             try:
                                 if self.filetype == 'sound.hdf5':
-                                        hdf5_file = SoundHDF5File(path, 'r')
+                                    hdf5_file = SoundHDF5File(path, 'r')
                                 else:
                                     hdf5_file = h5py.File(path, 'r')
                             except Exception:

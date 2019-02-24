@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
-""" WPE pytorch version: Ported from https://github.com/fgnt/nara_wpe 
+""" WPE pytorch version: Ported from https://github.com/fgnt/nara_wpe
 Many functions aren't enough tested"""
 
 
@@ -139,7 +139,8 @@ def get_filter_matrix_conj(correlation_matrix: ComplexTensor,
 def perform_filter_operation(Y: ComplexTensor,
                              filter_matrix_conj: ComplexTensor, taps, delay) \
         -> ComplexTensor:
-    """
+    """perform_filter_operation
+
     Args:
         Y : Complex-valued STFT signal of shape (F, C, T)
         filter Matrix (F, taps, C, C)
@@ -150,7 +151,7 @@ def perform_filter_operation(Y: ComplexTensor,
     for tau_minus_delay in range(taps):
         new = FC.einsum('fde,fdt->fet',
                         (filter_matrix_conj[:, tau_minus_delay, :, :],
-                        Y[:, :, :T - delay - tau_minus_delay]))
+                         Y[:, :, :T - delay - tau_minus_delay]))
         new = FC.pad(new, (delay + tau_minus_delay, 0),
                      mode='constant', value=0)
         reverb_tail = reverb_tail + new
@@ -161,7 +162,8 @@ def perform_filter_operation(Y: ComplexTensor,
 def perform_filter_operation_v2(Y: ComplexTensor,
                                 filter_matrix_conj: ComplexTensor,
                                 taps, delay) -> ComplexTensor:
-    """
+    """perform_filter_operation_v2
+
     Args:
         Y : Complex-valued STFT signal of shape (F, C, T)
         filter Matrix (F, taps, C, C)
@@ -178,11 +180,11 @@ def perform_filter_operation_v2(Y: ComplexTensor,
 
 def wpe_one_iteration(Y: ComplexTensor,
                       power: torch.Tensor,
-                      taps: int=10,
-                      delay: int=3,
-                      eps: float=1e-10,
-                      inverse_power: bool=True) -> ComplexTensor:
-    """WPE
+                      taps: int = 10,
+                      delay: int = 3,
+                      eps: float = 1e-10,
+                      inverse_power: bool = True) -> ComplexTensor:
+    """WPE for one iteration
 
     Args:
         Y: Complex valued STFT signal with shape (..., C, T)
@@ -215,7 +217,7 @@ def wpe_one_iteration(Y: ComplexTensor,
 
 
 def wpe(Y: ComplexTensor, taps=10, delay=3, iterations=3) -> ComplexTensor:
-    """
+    """WPE
 
     Args:
         Y: Complex valued STFT signal with shape (F, C, T)
@@ -237,13 +239,12 @@ def wpe(Y: ComplexTensor, taps=10, delay=3, iterations=3) -> ComplexTensor:
 def online_wpe_step(
         input_buffer: ComplexTensor,
         power: torch.Tensor,
-        inv_cov: ComplexTensor=None,
-        filter_taps: ComplexTensor=None,
-        alpha: float=0.99,
-        taps: int=10,
-        delay: int=3):
-    """
-    One step of online dereverberation.
+        inv_cov: ComplexTensor = None,
+        filter_taps: ComplexTensor = None,
+        alpha: float = 0.99,
+        taps: int = 10,
+        delay: int = 3):
+    """One step of online dereverberation.
 
     Args:
         input_buffer: (F, C, taps + delay + 1)
@@ -278,7 +279,7 @@ def online_wpe_step(
     if inv_cov is None:
         inv_cov = ComplexTensor(
             torch.eye(C * taps, dtype=input_buffer.dtype).expand(
-            *input_buffer.size()[:-2], C * taps, C * taps))
+                *input_buffer.size()[:-2], C * taps, C * taps))
     if filter_taps is None:
         filter_taps = ComplexTensor(
             torch.zeros(*input_buffer.size()[:-2], C * taps, C,

@@ -11,17 +11,17 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 class DNN_WPE(torch.nn.Module):
     def __init__(self,
-                 wtype: str='blstmp',
-                 widim: int=257,
-                 wlayers: int=3,
-                 wunits: int=300,
-                 wprojs: int=320,
-                 dropout_rate: float=0.0,
-                 taps: int=5,
-                 delay: int=3,
-                 use_dnn_mask: bool=True,
-                 iterations: int=1,
-                 normalization: bool=False,
+                 wtype: str = 'blstmp',
+                 widim: int = 257,
+                 wlayers: int = 3,
+                 wunits: int = 300,
+                 wprojs: int = 320,
+                 dropout_rate: float = 0.0,
+                 taps: int = 5,
+                 delay: int = 3,
+                 use_dnn_mask: bool = True,
+                 iterations: int = 1,
+                 normalization: bool = False,
                  ):
         super().__init__()
         self.iterations = iterations
@@ -40,7 +40,7 @@ class DNN_WPE(torch.nn.Module):
     def forward(self,
                 data: ComplexTensor, ilens: torch.LongTensor) \
             -> Tuple[ComplexTensor, torch.LongTensor]:
-        """
+        """The forward function
 
         Notation:
             B: Batch

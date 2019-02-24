@@ -90,10 +90,10 @@ class E2E(torch.nn.Module):
 
         if args.use_frontend:
             # Relative importing because of using python3 syntax
-            from espnet.nets.pytorch_backend.frontends.frontend \
-                import frontend_for
             from espnet.nets.pytorch_backend.frontends.feature_transform \
                 import feature_transform_for
+            from espnet.nets.pytorch_backend.frontends.frontend \
+                import frontend_for
 
             self.frontend = frontend_for(args, idim)
             self.feature_transform = feature_transform_for(args)
@@ -416,27 +416,41 @@ def _to_torch_tensor(x):
         )
     """
 
-    # Dynamically importing because torch_complex requires python3
-    from torch_complex.tensor import ComplexTensor
     # If numpy, change to torch tensor
     if isinstance(x, np.ndarray):
         if x.dtype.kind == 'c':
+            # Dynamically importing because torch_complex requires python3
+            from torch_complex.tensor import ComplexTensor
             return ComplexTensor(x)
         else:
             return torch.from_numpy(x)
 
-    # If torch.Tensor, as it is
-    elif isinstance(x, (torch.Tensor, ComplexTensor)):
-        return x
-
     # If {'real': ..., 'imag': ...}, convert to ComplexTensor
     elif isinstance(x, dict):
+        # Dynamically importing because torch_complex requires python3
+        from torch_complex.tensor import ComplexTensor
+
         if 'real' not in x or 'imag' not in x:
             raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
         # Relative importing because of using python3 syntax
         return ComplexTensor(x['real'], x['imag'])
+
+    # If torch.Tensor, as it is
+    elif isinstance(x, torch.Tensor):
+        return x
+
     else:
-        raise ValueError(
-            "x must be numpy.ndarra, torch.Tensor or a dict like "
-            "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
-            "but got {}".format(type(x)))
+        error = ("x must be numpy.ndarray, torch.Tensor or a dict like "
+                 "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
+                 "but got {}".format(type(x)))
+        try:
+            from torch_complex.tensor import ComplexTensor
+        except Exception:
+            # If PY2
+            raise ValueError(error)
+        else:
+            # If PY3
+            if isinstance(x, ComplexTensor):
+                return x
+            else:
+                raise ValueError(error)

@@ -56,7 +56,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :return: List[List[Tuple[str, dict]]] list of batches
     """
 
-    category2data  = {}  # Dict[str, dict]
+    category2data = {}  # Dict[str, dict]
     for k, v in data.items():
         category2data.setdefault(v.get('category'), {})[k] = v
 
