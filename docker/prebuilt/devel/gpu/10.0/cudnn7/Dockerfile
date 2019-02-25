@@ -29,7 +29,7 @@ ENV PATH /usr/local/cuda/bin:${PATH}
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0 brand=tesla,driver>=384,driver<385"
-ENV CUDA_HOME /usr/lib/nvidia
+ENV CUDA_HOME /usr/local/cuda
 
 ## FROM CUDA 10.0 runtime
 
