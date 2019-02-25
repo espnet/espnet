@@ -135,7 +135,7 @@ def main():
         _cmvn_stats[1, -1] = 0.
 
         # You can get the mean and std as following,
-        # >>> N = _cmvn_stats[0, 0]
+        # >>> N = _cmvn_stats[0, -1]
         # >>> mean = _cmvn_stats[0, :-1] / N
         # >>> std = np.sqrt(_cmvn_stats[1, :-1] / N - mean ** 2)
 
