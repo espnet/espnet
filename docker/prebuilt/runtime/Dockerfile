@@ -44,6 +44,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
         wget \ 
         swig \
         zip \
+        unzip \
         zlib1g-dev \
         && \
     apt-get -y install --reinstall \
