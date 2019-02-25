@@ -38,7 +38,7 @@ with h5py.File('${tmpdir}/feats.h5') as h, open('${tmpdir}/wav.scp', 'r') as s:
         key, path = line.strip().split()
         valid, rate = W.read(path)
         test = h[key]
-        np.testing.assert_array_equal(test, test)
+        np.testing.assert_array_equal((rate, valid), test)
 EOF
 }
 
