@@ -17,6 +17,8 @@ import numpy as np
 import six
 import torch
 
+from itertools import groupby
+
 from chainer import reporter
 
 from espnet.nets.e2e_asr_common import label_smoothing_dist
@@ -35,10 +37,11 @@ CTC_LOSS_THRESHOLD = 10000
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper"""
 
-    def report(self, loss_ctc, loss_att, acc, cer, wer, mtl_loss):
+    def report(self, loss_ctc, loss_att, acc, cer_ctc, cer, wer, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
         reporter.report({'acc': acc}, self)
+        reporter.report({'cer_ctc': cer_ctc}, self)
         reporter.report({'cer': cer}, self)
         reporter.report({'wer': wer}, self)
         logging.info('mtl loss:' + str(mtl_loss))
@@ -61,6 +64,8 @@ class E2E(torch.nn.Module):
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
+        self.space = args.sym_space
+        self.blank = args.sym_blank
         self.reporter = Reporter()
 
         # below means the last number becomes eos/sos ID
@@ -190,11 +195,34 @@ class E2E(torch.nn.Module):
 
         # 3. attention loss
         if self.mtlalpha == 1:
-            loss_att = None
-            acc = None
+            loss_att, acc = None, None
         else:
             loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
         self.acc = acc
+
+        # 4. compute cer without beam search
+        if self.mtlalpha == 0:
+            cer_ctc = None
+        else:
+            cers = []
+
+            y_hats = self.ctc.argmax(hs_pad).data
+            for i, y in enumerate(y_hats):
+                y_hat = [x[0] for x in groupby(y)]
+                y_true = ys_pad[i]
+
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
+                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+                seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.space, ' ')
+
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                if len(ref_chars) > 0:
+                    cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+
+            cer_ctc = sum(cers) / len(cers) if cers else None
 
         # 5. compute cer/wer
         if self.training or not (self.report_cer or self.report_wer):
@@ -247,7 +275,7 @@ class E2E(torch.nn.Module):
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer_ctc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
 
