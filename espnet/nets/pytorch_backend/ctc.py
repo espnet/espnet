@@ -94,6 +94,15 @@ class CTC(torch.nn.Module):
         """
         return F.log_softmax(self.ctc_lo(hs_pad), dim=2)
 
+    def argmax(self, hs_pad):
+        """argmax of frame activations
+
+        :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
+        :return: argmax applied 2d tensor (B, Tmax)
+        :rtype: torch.Tensor
+        """
+        return torch.argmax(self.ctc_lo(hs_pad), dim=2)
+
 
 def ctc_for(args, odim, reduce=True):
     """Returns the CTC module for the given args and output dimension
