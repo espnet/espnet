@@ -120,9 +120,7 @@ mecab.done:
 			touch $(PWD)/swig.done; \
 		fi; \
 		deactivate; \
-		export PATH=$(PWD)/swig/bin:$(PATH); \
-		export PATH=$(PWD)/mecab/bin:$(PATH); \
-		. $(PWD)/venv/bin/activate; pip install mecab-python3; \
+		. $(PWD)/venv/bin/activate; PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH) pip install mecab-python3; \
 	else \
 		pip install mecab-python; \
 	fi
