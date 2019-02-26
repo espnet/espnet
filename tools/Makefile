@@ -16,7 +16,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio extra
+all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
@@ -56,12 +56,9 @@ espnet.done: venv
 	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
-	. venv/bin/activate && pip install cupy==$(CUPY_VERSION) 
+	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
 	touch espnet.done
 endif
-
-kaldiio: venv
-	. venv/bin/activate; pip install git+https://github.com/nttcslab-sp/kaldiio.git
 
 chainer_patch.done: espnet.done
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
