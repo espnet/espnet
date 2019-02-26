@@ -22,7 +22,7 @@ fi
 #Test Docker Containers with cpu setup
 if [ ${stage} -le 1 ]; then
     run_stage=-1
-    for cuda_ver in 8.0 9.0 9.1 9.2 10.0;do
+    for cuda_ver in cpu 8.0 9.0 9.1 9.2 10.0;do
         for backend in pytorch chainer;do
             docker_cuda=""
             gpu=-1
