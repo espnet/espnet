@@ -14,10 +14,11 @@ WORKDIR /espnet/tools
 
 # Delete cupy if cpu image
 RUN if [ -z "$( nvcc -V )" ];then \
-        sed -i 's| cupy==5.0.0||' Makefile; \
+        sed -i 's| cupy==$(CUPY_VERSION) torch|torch|' Makefile && \
+        sed -i '\|. venv/bin/activate && pip install cupy==$(CUPY_VERSION)|d' Makefile; \
     fi 
 
-RUN make KALDI=/kaldi all && \
+RUN make KALDI=/kaldi && \
     rm -rf ../espnet
 
 WORKDIR /
