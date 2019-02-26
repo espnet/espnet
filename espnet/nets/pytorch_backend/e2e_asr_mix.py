@@ -49,6 +49,62 @@ class Reporter(chainer.Chain):
         reporter.report({'loss': mtl_loss}, self)
 
 
+class PIT:
+    """ Permutation Invariant Training (PIT) module
+
+    :parameter int num_spkrs: number of speakers for PIT process (2 or 3)
+    """
+    def __init__(self, num_spkrs):
+        self.num_spkrs = num_spkrs
+        if self.num_spkrs == 2:
+            self.perm_choices = [[0, 1], [1, 0]]
+        elif self.num_spkrs == 3:
+            self.perm_choices = [[0, 1, 2], [0, 2, 1], [1, 2, 0], [1, 0, 2], [2, 0, 1], [2, 1, 0]]
+        else:
+            raise ValueError
+
+    def min_pit_sample(self, loss):
+        """PIT min_pit_sample
+        :param 1-D torch.Tensor loss: list of losses for one sample,
+            including [h1r1, h1r2, h2r1, h2r2] or [h1r1, h1r2, h1r3, h2r1, h2r2, h2r3, h3r1, h3r2, h3r3]
+        :return min_loss
+        :rtype torch.Tensor (1)
+        :return permutation
+        :rtype List: len=2
+        """
+        if self.num_spkrs == 2:
+            score_perms = torch.stack([loss[0] + loss[3],
+                                       loss[1] + loss[2]]) / self.num_spkrs
+        elif self.num_spkrs == 3:
+            score_perms = torch.stack([loss[0] + loss[4] + loss[8],
+                                       loss[0] + loss[5] + loss[7],
+                                       loss[1] + loss[5] + loss[6],
+                                       loss[1] + loss[3] + loss[8],
+                                       loss[2] + loss[3] + loss[7],
+                                       loss[2] + loss[4] + loss[6]]) / self.num_spkrs
+
+        perm_loss, min_idx = torch.min(score_perms, 0)
+        permutation = self.perm_choices[min_idx]
+
+        return perm_loss, permutation
+
+    def pit_process(self, losses):
+        """PIT pit
+        :param torch.Tensor losses: losses (B, 1|4|9)
+        :return pit_loss
+        :rtype torch.Tensor (B)
+        :return permutation
+        :rtype torch.LongTensor (B, 1|2|3)
+        """
+        bs = losses.size(0)
+        ret = [self.min_pit_sample(losses[i]) for i in range(bs)]
+
+        loss_perm = torch.stack([r[0] for r in ret], dim=0).to(losses.device)  # (B)
+        permutation = torch.tensor([r[1] for r in ret]).long().to(losses.device)
+
+        return torch.mean(loss_perm), permutation
+
+
 class E2E(torch.nn.Module):
     """E2E module
 
@@ -68,6 +124,7 @@ class E2E(torch.nn.Module):
         self.reporter = Reporter()
         self.num_spkrs = args.num_spkrs
         self.spa = args.spa
+        self.pit = PIT(self.num_spkrs)
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -244,7 +301,7 @@ class E2E(torch.nn.Module):
         elif self.num_spkrs <= 3:
             loss_ctc_perm = torch.stack([self.ctc(hs_pad_sd[i // self.num_spkrs], hlens, ys_pad_sd[i % self.num_spkrs])
                                          for i in range(self.num_spkrs ** 2)], dim=1)  # (B, num_spkrs^2)
-            loss_ctc, min_perm = self.min_pit_ctc_batch(loss_ctc_perm)
+            loss_ctc, min_perm = self.pit.pit_process(loss_ctc_perm)
             logging.info('ctc loss:' + str(float(loss_ctc)))
 
         # 3. attention loss
@@ -300,8 +357,8 @@ class E2E(torch.nn.Module):
                 tmp_cers = [editdistance.eval(hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs])
                             for ns in range(self.num_spkrs)]  # h1r1,h1r2,h2r1,h2r2
 
-                wers.append(self.min_pit_process(tmp_wers) / len(sum(ref_words, [])))
-                cers.append(self.min_pit_process(tmp_cers) / len(sum(ref_words, [])))
+                wers.append(self.pit.min_pit_sample(tmp_wers) / len(sum(ref_words, [])))
+                cers.append(self.pit.min_pit_sample(tmp_cers) / len(sum(ref_words, [])))
 
             wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
             cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
@@ -431,7 +488,7 @@ class E2E(torch.nn.Module):
             if self.num_spkrs <= 3:
                 loss_ctc = torch.stack([self.ctc(hpad_sd[i // self.num_spkrs], hlens, ys_pad_sd[i % self.num_spkrs])
                                         for i in range(self.num_spkrs ** 2)], 1)  # (B, num_spkrs^2)
-                loss_ctc, min_perm = self.min_pit_ctc_batch(loss_ctc)
+                loss_ctc, min_perm = self.pit.pit_process(loss_ctc)
             for i in range(ys_pad_sd.size(1)):  # B
                 ys_pad_sd[:, i] = ys_pad_sd[min_perm[i], i]
 
