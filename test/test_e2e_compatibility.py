@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 
+import importlib
 import os
 import platform
 import shutil
@@ -13,13 +14,14 @@ import subprocess
 import sys
 import tempfile
 
+import chainer
 import numpy as np
 import pytest
 import torch
 
+from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.e2e_asr import E2E
 
 
 IS_PY3 = platform.python_version_tuple()[0] == '3'
@@ -47,7 +49,7 @@ def download_zip_from_google_drive(download_dir, file_id):
         sys.exit(cmd_state.returncode)
 
     # get model file path
-    cmd = ["find", download_dir, "-name", "model.acc.best"]
+    cmd = ["find", download_dir, "-name", "model.*.best"]
     cmd_state = subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
 
     # check
@@ -58,19 +60,27 @@ def download_zip_from_google_drive(download_dir, file_id):
     return cmd_state.stdout.decode("utf-8").split("\n")[0]
 
 
+# TODO(kan-bayashi): make it to be compatible with python2
 @pytest.mark.skipif(not IS_PY3, reason="not support python 2")
-@pytest.mark.parametrize("file_id", ["1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg"])
-def test_pytorch_downloaded_model_decodable(file_id):
+@pytest.mark.parametrize("module, file_id", [
+    ("espnet.nets.pytorch_backend.e2e_asr", "1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg"),
+    ("espnet.nets.chainer_backend.e2e_asr", "1m2SZLNxvur3q13T6Zrx6rEVfqEifgPsx"),
+])
+def test_downloaded_asr_model_decodable(module, file_id):
     # download model
     tmpdir = tempfile.mkdtemp(prefix="tmp_", dir=".")
     model_path = download_zip_from_google_drive(tmpdir, file_id)
 
     # load trained model parameters
+    m = importlib.import_module(module)
     idim, odim, train_args = get_model_conf(model_path)
-    model = E2E(idim, odim, train_args)
-    torch_load(model_path, model)
+    model = m.E2E(idim, odim, train_args)
+    if "chainer" in module:
+        chainer_load(model_path, model)
+    else:
+        torch_load(model_path, model)
 
-    with torch.no_grad():
+    with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(128, idim)
         model.recognize(in_data, train_args, train_args.char_list)  # decodable
 
