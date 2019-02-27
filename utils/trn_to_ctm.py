@@ -2,8 +2,8 @@
 
 import argparse
 import codecs
-import re
 import math
+import re
 import sys
 
 is_python2 = sys.version_info[0] == 2
