@@ -16,7 +16,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra
+all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra check_install
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
@@ -128,6 +128,9 @@ mecab.done:
 
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
+
+check_install: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra
+	. venv/bin/activate; python check_install.py
 
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
