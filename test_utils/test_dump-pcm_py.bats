@@ -36,7 +36,7 @@ import scipy.io.wavfile as W
 with h5py.File('${tmpdir}/feats.h5') as h, open('${tmpdir}/wav.scp', 'r') as s:
     for line in s:
         key, path = line.strip().split()
-        valid, rate = W.read(path)
+        rate, valid = W.read(path)
         test = h[key]
         assert rate == 8000
         np.testing.assert_array_equal(test, valid)
