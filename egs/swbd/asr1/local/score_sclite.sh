@@ -105,6 +105,6 @@ rt03* )
  ;;
 esac
 
-grep 'Percent Total Error' ${score_dir}/hyp.ctm*filt.dtl
+grep 'Percent Total Error' ${score_dir}/hyp.*ctm.filt.dtl
 
 exit 0
