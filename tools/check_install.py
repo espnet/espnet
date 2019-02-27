@@ -13,11 +13,11 @@ MANUALLY_INSTALLED_LIBRARIES = [
     ('espnet', None),
     ('kaldiio', None),
     ('matplotlib', None),
-    ('torch', "0.4.1"),
-    ('chainer', "5.0.0"),
-    ('cupy', "5.0.0"),
+    ('torch', ("0.4.1", "1.0.0")),
+    ('chainer', ("5.0.0")),
+    ('cupy', ("5.0.0")),
     ('chainer_ctc', None),
-    ('warpctc_pytorch', "0.1.1")
+    ('warpctc_pytorch', ("0.1.1"))
 ]
 
 logging.basicConfig(
@@ -56,18 +56,18 @@ else:
     is_correct_version_list = []
     for idx, (name, version) in enumerate(library_list):
         if version is not None:
-            try:
-                lib = importlib.import_module(name)
-                if hasattr(lib, "__version__"):
-                    assert lib.__version__ == version
+            lib = importlib.import_module(name)
+            if hasattr(lib, "__version__"):
+                is_correct = lib.__version__ in version
+                if is_correct:
                     logging.info("--> %s version is matched." % name)
                     is_correct_version_list.append(True)
                 else:
-                    logging.info("--> %s has no version info, but version is specified." % name)
-                    logging.info("--> maybe it is better to reinstall the latest version.")
+                    logging.warning("--> %s version is not matched (%s==%s)." % (name, lib.__version__, version))
                     is_correct_version_list.append(False)
-            except AssertionError:
-                logging.warning("--> %s version is not matched (%s==%s)." % (name, lib.__version__, version))
+            else:
+                logging.info("--> %s has no version info, but version is specified." % name)
+                logging.info("--> maybe it is better to reinstall the latest version.")
                 is_correct_version_list.append(False)
     logging.info("library version check done.")
     logging.info("%d / %d libraries are correct version." % (
