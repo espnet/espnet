@@ -1,9 +1,10 @@
 import chainer
-import numpy as np
 from chainer.iterators import MultiprocessIterator
 from chainer.iterators import SerialIterator
 from chainer.iterators import ShuffleOrderSampler
 from chainer.training.extension import Extension
+
+import numpy as np
 
 
 class ShufflingEnabler(Extension):
