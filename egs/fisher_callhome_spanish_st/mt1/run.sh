@@ -56,7 +56,7 @@ patience=3
 # decoding parameter
 beam_size=20
 penalty=0.2
-maxlenratio=1.2
+maxlenratio=3.0
 minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 

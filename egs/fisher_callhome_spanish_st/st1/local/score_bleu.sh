@@ -25,12 +25,12 @@ dic_tgt=$2
 dic_src=$3
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-json2trn_mt.py ${dir}/data.json ${dic_tgt} ${dir}/ref.trn.org \
+json2trn_mt.py ${dir}/data.json ${dic_tgt} --ref ${dir}/ref.trn.org \
     --hyp ${dir}/hyp.trn.org --src ${dir}/src.trn.org --dict-src ${dic_src}
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-    json2trn_mt.py ${dir}/data_ref1.json ${dic_tgt} ${dir}/ref1.trn.org
-    json2trn_mt.py ${dir}/data_ref2.json ${dic_tgt} ${dir}/ref2.trn.org
-    json2trn_mt.py ${dir}/data_ref3.json ${dic_tgt} ${dir}/ref3.trn.org
+    json2trn_mt.py ${dir}/data_ref1.json ${dic_tgt} --ref ${dir}/ref1.trn.org
+    json2trn_mt.py ${dir}/data_ref2.json ${dic_tgt} --ref ${dir}/ref2.trn.org
+    json2trn_mt.py ${dir}/data_ref3.json ${dic_tgt} --ref ${dir}/ref3.trn.org
 fi
 
 # remove uttterance id
