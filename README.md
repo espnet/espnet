@@ -116,7 +116,7 @@ $ make PYTHON_VERSION=3.6
 You can check whether the install is succeeded via the following commands
 ```sh
 $ cd tools
-$ source venv/bin/activate && python check_install.py
+$ make check_install
 ```
 If you have no warning, ready to run the recipe!
 
