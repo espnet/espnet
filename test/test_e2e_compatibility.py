@@ -61,15 +61,18 @@ def download_zip_from_google_drive(download_dir, file_id):
 
 
 # TODO(kan-bayashi): make it to be compatible with python2
+# "1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg": v.0.3.0 an4/asr pytorch
+# "1m2SZLNxvur3q13T6Zrx6rEVfqEifgPsx": v.0.3.0 an4/asr chainer
 @pytest.mark.skipif(not IS_PY3, reason="not support python 2")
-@pytest.mark.parametrize("module, file_id", [
-    ("espnet.nets.pytorch_backend.e2e_asr", "1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg"),
-    ("espnet.nets.chainer_backend.e2e_asr", "1m2SZLNxvur3q13T6Zrx6rEVfqEifgPsx"),
+@pytest.mark.parametrize("module, download_info", [
+    ("espnet.nets.pytorch_backend.e2e_asr", ("v.0.3.0 egs/an4/asr1 pytorch", "1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg")),
+    ("espnet.nets.chainer_backend.e2e_asr", ("v.0.3.0 egs/an4/asr1 chainer", "1m2SZLNxvur3q13T6Zrx6rEVfqEifgPsx"))
 ])
-def test_downloaded_asr_model_decodable(module, file_id):
+def test_downloaded_asr_model_decodable(module, download_info):
     # download model
+    print(download_info[0])
     tmpdir = tempfile.mkdtemp(prefix="tmp_", dir=".")
-    model_path = download_zip_from_google_drive(tmpdir, file_id)
+    model_path = download_zip_from_google_drive(tmpdir, download_info[1])
 
     # load trained model parameters
     m = importlib.import_module(module)
