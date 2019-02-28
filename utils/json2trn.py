@@ -9,11 +9,12 @@ import argparse
 import codecs
 import json
 import logging
+import sys
 
 from espnet.utils.cli_utils import get_commandline_args
 
 
-if __name__ == '__main__':
+def main(args):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('json', type=str, help='json files')
@@ -21,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--num-spkrs', type=int, default=1, help='number of speakers')
     parser.add_argument('--refs', type=str, nargs='+', help='ref for all speakers')
     parser.add_argument('--hyps', type=str, nargs='+', help='hyp for all outputs')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     n_ref = len(args.refs)
     n_hyp = len(args.hyps)
@@ -69,3 +70,7 @@ if __name__ == '__main__':
 
         hyp_file.close()
         ref_file.close()
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
