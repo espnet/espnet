@@ -16,9 +16,12 @@ def main(args):
                         help='input trn')
     parser.add_argument('stm', type=str, default=None, nargs='?', help='output stm')
     args = parser.parse_args(args)
+    convert(args.trn, args.stm, args.orig_stm)
 
-    if args.orig_stm is not None:
-        with codecs.open(args.orig_stm, 'r', encoding="utf-8") as orig_stm:
+
+def convert(trn=None, stm=None, orig_stm=None):
+    if orig_stm is not None:
+        with codecs.open(orig_stm, 'r', encoding="utf-8") as orig_stm:
             orig_content = orig_stm.readlines()
             has_orig = True
             header = []
@@ -33,9 +36,11 @@ def main(args):
             del content
     else:
         has_orig = False
+        header = None
+        mapping = None
 
-    if args.trn is not None:
-        with codecs.open(args.trn, 'r', encoding="utf-8") as trn:
+    if trn is not None:
+        with codecs.open(trn, 'r', encoding="utf-8") as trn:
             content = trn.readlines()
     else:
         trn = codecs.getreader("utf-8")(sys.stdin if is_python2 else sys.stdin.buffer)
@@ -43,7 +48,11 @@ def main(args):
 
     for i, line in enumerate(content):
         idx = line.rindex("(")
-        split = (line[:idx].strip().upper().replace("  ", " ").replace("((", "(") + " ", line[idx + 1:].strip()[:-1])
+        split = [line[:idx].strip().upper() + " ", line[idx + 1:].strip()[:-1]]
+        while "((" in split[0]:
+            split[0] = split[0].replace("((", "(")
+        while "  " in split[0]:
+            split[0] = split[0].replace("  ", " ")
         segm_info = re.split("[-_]", split[1])
         segm_info = [s.strip() for s in segm_info]
         col1 = segm_info[0] + "_" + segm_info[1]
@@ -57,8 +66,8 @@ def main(args):
         col6 = mapping[col3] if has_orig else ""
         segm_info = [col1, col2, col3, col4, col5, col6]
         content[i] = " ".join(segm_info) + "  " + split[0]
-    if args.stm is not None:
-        sys.stdout = codecs.open(args.stm, "w", encoding="utf-8")
+    if stm is not None:
+        sys.stdout = codecs.open(stm, "w", encoding="utf-8")
     else:
         sys.stdout = codecs.getwriter("utf-8")(
             sys.stdout if is_python2 else sys.stdout.buffer)
