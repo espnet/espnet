@@ -330,7 +330,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         wait
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-
+        local/score_sclite.sh data/eval2000 ${expdir}/${decode_dir}
+        local/score_sclite.sh data/rt03 ${expdir}/${decode_dir}
     ) &
     done
     wait
