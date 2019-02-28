@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import argparse
 import os
@@ -40,7 +41,7 @@ def main(args):
     json2trn.convert(args.json, args.dict, refs, hyps, args.num_spkrs)
     for trn in refs + hyps:
         # We don't remove non-lang-syms because kaldi already removes them when scoring
-        call_args = ["sed", "-i.blank", "-r", "s/<blank> //g", trn]
+        call_args = ["sed", "-i.bak2", "-r", "s/<blank> //g", trn]
         subprocess.check_call(call_args)
         if args.bpe is not None:
             with open(wrd_name(trn), 'w') as out:
@@ -59,20 +60,20 @@ def main(args):
         trn2stm.convert(wrd_name(trn), stm, args.orig_stm)
     if del_ref:
         os.remove(refs[0])
-        os.remove(refs[0] + ".blank")
+        os.remove(refs[0] + ".bak2")
         os.remove(wrd_name(refs[0]))
 
     for trn, ctm in zip(hyps, args.ctm):
         trn2ctm.convert(wrd_name(trn), ctm)
     if del_hyp:
         os.remove(hyps[0])
-        os.remove(hyps[0] + ".blank")
+        os.remove(hyps[0] + ".bak2")
         os.remove(wrd_name(hyps[0]))
 
 
 def wrd_name(trn):
     split = trn.split(".")
-    return split[0] + ".wrd." + split[1]
+    return ".".join(split[:-1]) + ".wrd." + split[-1]
 
 
 if __name__ == "__main__":

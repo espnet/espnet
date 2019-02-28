@@ -37,13 +37,15 @@ ctm=${score_dir}/hyp.ctm
 stm=${score_dir}/ref.stm
 mkdir -p ${score_dir}
 if [ ${stage} -le 0 ]; then
-    ref=${dir}/ref.wrd.trn
-    hyp=${dir}/hyp.wrd.trn
     if [ -z ${dict} ]; then
         # Assuming trn files exist
+        ref=${dir}/ref.wrd.trn
+        hyp=${dir}/hyp.wrd.trn
         trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
         trn2ctm.py ${hyp} ${ctm}
     else
+        ref=${dir}/ref.trn
+        hyp=${dir}/hyp.trn
         json2sctm.py ${dir}/data.json ${dict} --orig-stm ${data}/stm --stm ${stm} --refs ${ref} --ctm ${ctm} --hyps ${hyp}
     fi
 fi
