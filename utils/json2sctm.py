@@ -39,7 +39,7 @@ def main(args):
         del_hyp = False
     json2trn.convert(args.json, args.dict, refs, hyps, args.num_spkrs)
     for trn in refs + hyps:
-        # We don't remove non-lang-syms because kaldi removes them when scoring
+        # We don't remove non-lang-syms because kaldi already removes them when scoring
         call_args = ["sed", "-i.blank", "-r", "s/<blank> //g", trn]
         subprocess.check_call(call_args)
         if args.bpe is not None:
@@ -48,7 +48,7 @@ def main(args):
                     sed_args = ["sed", "-e", "s/▁/ /g"]
                     sed = subprocess.Popen(sed_args, stdout=out, stdin=subprocess.PIPE)
                     spm_args = ["spm_decode", "--model=" + args.bpe, "--input_format=piece"]
-                    spm_decode = subprocess.Popen(spm_args, stdin=spm_in)
+                    subprocess.Popen(spm_args, stdin=spm_in)
                     sed.communicate()
         else:
             call_args = ["sed", "-e", "s/ //g", "-e", "s/(/ (/", "-e", "s/<space>/ /g", trn]
