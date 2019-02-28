@@ -9,7 +9,7 @@ stage=0
 [ -f ./path.sh ] && . ./path.sh
 . parse_options.sh || exit 1;
 
-if [ $# -ne 2 ]; then
+if [ $# -lt 2 ]; then
   echo "Usage: local/score_sclite.sh [--cmd (run.pl|queue.pl...)] <data-dir> <decode-dir>"
   echo " Options:"
   echo "    --cmd (run.pl|queue.pl...)      # specify how to run the sub-processes."
@@ -19,6 +19,7 @@ fi
 
 data=$1
 dir=$2
+dict=${3:-}
 
 hubscr=${KALDI_ROOT}/tools/sctk/bin/hubscr.pl
 [ ! -f ${hubscr} ] && echo "Cannot find scoring program at $hubscr" && exit 1;
@@ -36,8 +37,13 @@ mkdir -p ${score_dir}
 if [ ${stage} -le 0 ]; then
     ref=${dir}/ref.wrd.trn
     hyp=${dir}/hyp.wrd.trn
-    trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
-    trn2ctm.py ${hyp} ${ctm}
+    if [ -z ${dict} ]; then
+        # Assuming trn files exist
+        trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
+        trn2ctm.py ${hyp} ${ctm}
+    else
+        json2sctm.py ${dir}/data.json ${dict} --orig-stm ${data}/stm --stm ${stm} --refs ${ref} --ctm ${ctm} --hyps ${hyp}
+    fi
 fi
 
 if [ ${stage} -le 1 ]; then
