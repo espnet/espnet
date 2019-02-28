@@ -23,37 +23,38 @@ def main(args):
     parser.add_argument('--refs', type=str, nargs='+', help='ref for all speakers')
     parser.add_argument('--hyps', type=str, nargs='+', help='hyp for all outputs')
     args = parser.parse_args(args)
+    convert(args.json, args.dict, args.refs, args.hyps, args.num_spkrs)
 
-    n_ref = len(args.refs)
-    n_hyp = len(args.hyps)
+
+def convert(jsonf, dic, refs, hyps, num_spkrs=1):
+    n_ref = len(refs)
+    n_hyp = len(hyps)
     assert n_ref == n_hyp
-    assert n_ref == args.num_spkrs
+    assert n_ref == num_spkrs
 
     # logging info
     logfmt = '%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s'
     logging.basicConfig(level=logging.INFO, format=logfmt)
     logging.info(get_commandline_args())
 
-    logging.info("reading %s", args.json)
-    with codecs.open(args.json, 'r', encoding="utf-8") as f:
+    logging.info("reading %s", jsonf)
+    with codecs.open(jsonf, 'r', encoding="utf-8") as f:
         j = json.load(f)
 
-    logging.info("reading %s", args.dict)
-    with codecs.open(args.dict, 'r', encoding="utf-8") as f:
+    logging.info("reading %s", dic)
+    with codecs.open(dic, 'r', encoding="utf-8") as f:
         dictionary = f.readlines()
     char_list = [entry.split(' ')[0] for entry in dictionary]
     char_list.insert(0, '<blank>')
     char_list.append('<eos>')
 
-    hyps = []
-    refs = []
-    for ns in range(args.num_spkrs):
-        hyp_file = codecs.open(args.hyps[ns], 'w', encoding="utf-8")
-        ref_file = codecs.open(args.refs[ns], 'w', encoding="utf-8")
+    for ns in range(num_spkrs):
+        hyp_file = codecs.open(hyps[ns], 'w', encoding="utf-8")
+        ref_file = codecs.open(refs[ns], 'w', encoding="utf-8")
 
         for x in j['utts']:
             # hyps
-            if args.num_spkrs == 1:
+            if num_spkrs == 1:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['rec_tokenid'].split()]
             else:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][ns][0]['rec_tokenid'].split()]
@@ -61,7 +62,7 @@ def main(args):
             hyp_file.write(" (" + j['utts'][x]['utt2spk'].replace('-', '_') + "-" + x + ")\n")
 
             # ref
-            if args.num_spkrs == 1:
+            if num_spkrs == 1:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][0]['tokenid'].split()]
             else:
                 seq = [char_list[int(i)] for i in j['utts'][x]['output'][ns][0]['tokenid'].split()]

@@ -36,8 +36,8 @@ mkdir -p ${score_dir}
 if [ ${stage} -le 0 ]; then
     ref=${dir}/ref.wrd.trn
     hyp=${dir}/hyp.wrd.trn
-    trn_to_stm.py --orig-stm ${data}/stm ${ref} ${stm}
-    trn_to_ctm.py ${hyp} ${ctm}
+    trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
+    trn2ctm.py ${hyp} ${ctm}
 fi
 
 if [ ${stage} -le 1 ]; then
