@@ -113,4 +113,4 @@ def ctc_for(args, odim, reduce=True):
     :return: the corresponding CTC module
     """
     return CTC(odim, args.eprojs, args.dropout_rate,
-               ctc_type=vars(args).get('ctc_type', 'builtin'), reduce=reduce)
+               ctc_type=args.ctc_type, reduce=reduce)
