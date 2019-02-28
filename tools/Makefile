@@ -16,7 +16,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra
+all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra check_install
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
@@ -101,7 +101,7 @@ sentencepiece.done:
 	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 	touch sentencepiece.done
 
-mecab.done:
+mecab.done: espnet.done
 	rm -rf mecab
 	git clone https://github.com/taku910/mecab.git
 	cd mecab/mecab && ./configure --with-charset=utf8 --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) check && $(MAKE) install
@@ -126,8 +126,12 @@ mecab.done:
 	fi
 	touch mecab.done
 
-moses:
+moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
+	touch moses.done
+
+check_install: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra
+	. venv/bin/activate; python check_install.py
 
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
@@ -142,4 +146,5 @@ clean_python:
 	find . -iname "*.pyc" -delete
 
 clean_extra:
+	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
 	rm -rf nkf sentencepiece mecab swig moses
