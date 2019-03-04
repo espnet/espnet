@@ -20,7 +20,7 @@ all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra che
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses
+extra: nkf.done sentencepiece.done mecab.done moses.done
 
 
 ifneq ($(strip $(KALDI)),)
@@ -120,7 +120,10 @@ mecab.done: espnet.done
 			touch $(PWD)/swig.done; \
 		fi; \
 		deactivate; \
-		. $(PWD)/venv/bin/activate; PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH) pip install mecab-python3; \
+		. $(PWD)/venv/bin/activate; \
+		export PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH); \
+		export LD_LIBRARY_PATH=$(PWD)/venv/lib:$(LD_LIBRARY_PATH); \
+		pip install mecab-python3; \
 	else \
 		pip install mecab-python; \
 	fi
