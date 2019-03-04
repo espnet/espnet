@@ -20,7 +20,7 @@ all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra che
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses
+extra: nkf.done sentencepiece.done mecab.done moses.done
 
 
 ifneq ($(strip $(KALDI)),)
