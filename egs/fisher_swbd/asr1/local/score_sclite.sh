@@ -4,12 +4,11 @@
 # begin configuration section.
 cmd=run.pl
 stage=0
-#end configuration section.
 
 [ -f ./path.sh ] && . ./path.sh
 . parse_options.sh || exit 1;
 
-if [ $# -lt 2 ]; then
+if [ $# -ne 3 ]; then
   echo "Usage: local/score_sclite.sh [--cmd (run.pl|queue.pl...)] <data-dir> <decode-dir> (<dict>)"
   echo " Options:"
   echo "    --cmd (run.pl|queue.pl...)      # specify how to run the sub-processes."
@@ -21,6 +20,8 @@ data=$1
 dir=$2
 dict=${3:-}
 
+model=${dir}/../final.mdl # assume model one level up from decoding dir.
+
 hubscr=${KALDI_ROOT}/tools/sctk/bin/hubscr.pl
 [ ! -f ${hubscr} ] && echo "Cannot find scoring program at $hubscr" && exit 1;
 hubdir=$(dirname ${hubscr})
@@ -28,6 +29,7 @@ hubdir=$(dirname ${hubscr})
 for f in ${data}/stm ${data}/glm; do
   [ ! -f ${f} ] && echo "$0: expecting file $f to exist" && exit 1;
 done
+
 name=$(basename ${data}) # e.g. eval2000
 
 score_dir=${dir}/scoring
@@ -49,18 +51,11 @@ if [ ${stage} -le 0 ]; then
 fi
 
 if [ ${stage} -le 1 ]; then
-  # Remove some stuff we don't want to score, from the ctm.
-  # the big expression in parentheses contains all the things that get mapped
-  # by the glm file, into hesitations.
-  # The -$ expression removes partial words.
-  # the aim here is to remove all the things that appear in the reference as optionally
-  # deletable (inside parentheses), as if we delete these there is no loss, while
-  # if we get them correct there is no gain.
-  cp ${ctm} ${score_dir}/tmpf;
-  cat ${score_dir}/tmpf | grep -i -v -E '\[NOISE|LAUGHTER|VOCALIZED-NOISE\]' | \
-  grep -i -v -E '<UNK>' | \
-  grep -i -v -E ' (UH|UM|EH|MM|HM|AH|HUH|HA|ER|OOF|HEE|ACH|EEE|EW)$' | \
-  grep -v -- '-$' > ${ctm};
+# Remove some stuff we don't want to score, from the ctm.
+    cp ${ctm} ${score_dir}/tmpf
+    cat ${score_dir}/tmpf | grep -i -v -E '\[NOISE|LAUGHTER|VOCALIZED-NOISE\]' | \
+      grep -i -v -E '<UNK>' > ${ctm};
+#     grep -i -v -E '<UNK>|%HESITATION' > $x;  # hesitation is scored
 fi
 
 # Score the set...
@@ -69,27 +64,27 @@ if [ ${stage} -le 2 ]; then
 fi
 
 # For eval2000 score the subsets
-case "$name" in
-  eval2000*)
-    # Score only the, swbd part...
-    if [ ${stage} -le 3 ]; then
+case "$name" in eval2000* )
+  # Score only the, swbd part...
+  if [ ${stage} -le 3 ]; then
         swbd_stm=${score_dir}/ref.swbd.stm
         swbd_ctm=${score_dir}/hyp.swbd.ctm
         ${cmd} ${score_dir}/score.swbd.log \
           grep -v '^en_' ${stm} '>' ${swbd_stm} '&&' \
           grep -v '^en_' ${ctm} '>' ${swbd_ctm} '&&' \
           ${hubscr} -p ${hubdir} -V -l english -h hub5 -g ${data}/glm -r ${swbd_stm} ${swbd_ctm} || exit 1;
-    fi
-    # Score only the, callhome part...
-    if [ ${stage} -le 3 ]; then
+  fi
+  # Score only the, callhome part...
+  if [ ${stage} -le 3 ]; then
         callhm_stm=${score_dir}/ref.callhm.stm
         callhm_ctm=${score_dir}/hyp.callhm.ctm
         ${cmd} ${score_dir}/score.callhm.log \
           grep -v '^sw_' ${stm} '>' ${callhm_stm} '&&' \
           grep -v '^sw_' ${ctm} '>' ${callhm_ctm} '&&' \
           ${hubscr} -p ${hubdir} -V -l english -h hub5 -g ${data}/glm -r ${callhm_stm} ${callhm_ctm} || exit 1;
-    fi
-    ;;
+  fi
+ ;;
+
 rt03* )
 
   # Score only the swbd part...
