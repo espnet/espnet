@@ -120,7 +120,10 @@ mecab.done: espnet.done
 			touch $(PWD)/swig.done; \
 		fi; \
 		deactivate; \
-		. $(PWD)/venv/bin/activate; PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH) pip install mecab-python3; \
+		. $(PWD)/venv/bin/activate; \
+		export PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH); \
+		export LD_LIBRARY_PATH=$(PWD)/venv/lib:$(LD_LIBRARY_PATH); \
+		pip install mecab-python3; \
 	else \
 		pip install mecab-python; \
 	fi
