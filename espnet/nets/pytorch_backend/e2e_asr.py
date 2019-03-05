@@ -303,14 +303,10 @@ class E2E(torch.nn.Module):
         prev = self.training
         self.eval()
         # subsample frame
-        x = x[::self.subsample[0], :]
-        ilen = [x.shape[0]]
-        h = to_device(self, torch.from_numpy(
-            np.array(x, dtype=np.float32)))
+        h, ilen = self.subsample_frames(x)
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
-        h = h.contiguous()
         h, _ = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
@@ -381,3 +377,81 @@ class E2E(torch.nn.Module):
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
 
         return att_ws
+
+    def subsample_frames(self, x):
+        # subsample frame
+        x = x[::self.subsample[0], :]
+        ilen = [x.shape[0]]
+        h = to_device(self, torch.from_numpy(
+            np.array(x, dtype=np.float32)))
+        h.contiguous()
+        return h, ilen
+
+
+class StreamingE2E(object):
+    """
+    Convenience wrapper over E2E class for streaming recognitions.
+    Not recommended for GPUs.
+    """
+    def __init__(self, e2e, recog_args, char_list, rnnlm=None):
+        """
+        :param E2E e2e: E2E ASR object
+        :param recog_args: arguments for "recognize" method of E2E
+        """
+        self._e2e = e2e
+        self._recog_args = recog_args
+        self._char_list = char_list
+        self._rnnlm = rnnlm
+
+        self._offset = 0
+
+        # TODO: (optimization) some of these might be matrices, not sure yet
+        self._encoder_states = []
+        self._ctc_posteriors = []
+        self._decoder_states = []
+        self._partial_recognitions = []
+
+    def accept_input(self, x):
+        h, ilen = self._e2e.subsample_frames(x)
+
+        # TODO: fully implement streaming encoder once JJ merges in the unidirectional encoder
+        # TODO: /home/pzelasko/spoken/espnet/espnet/nets/pytorch_backend/encoders.py:59 - retrieve the hidden state and pass it downstream
+        # TODO: join previous states into a matrix before passing them here
+        h, encoder_state, _ = self._e2e.enc(
+            h.unsqueeze(0),
+            ilen,
+            self._encoder_states[-1] if self._encoder_states else None
+        )
+        self._encoder_states.append(encoder_state)  # TODO: when to free?
+
+        # TODO: apply the offset here
+        # TODO: pass h[offset:] as the argument here
+        # TODO: add a variable to keep the history of CTC outputs
+        lpz = self._e2e.ctc.log_softmax(h)[0] if self._recog_args.ctc_weight > 0.0 else None
+        self._ctc_posteriors.append(lpz)
+
+        # TODO: establish what's the increment of CTC decoder (how many new letters might be there) [rough estimate]
+
+        # 2. decoder
+        # decode the first utterance
+
+        # TODO: pass a parameter saying how many iterations we can run the attention decoder for
+        # TODO: we need to affect the maxlen using the CTC approximation in recognize_beam method
+        y = self._e2e.dec.recognize_beam(h[0], lpz, self._recog_args, self._char_list, self._rnnlm)
+        self._partial_recognitions.append(y)
+
+        return y
+
+
+
+
+
+
+    # TODO: ideas for refactoring
+    #def advance_encoder(self):
+    #    pass
+    #def advance_decoder(self):
+    #    pass
+    def retrieve_recognition(self):
+        # TODO: concatenate partial recognitions (not sure yet if they are strings)
+        return self._partial_recognitions
