@@ -91,18 +91,19 @@ class BRNN(torch.nn.Module):
         self.l_last = torch.nn.Linear(cdim * 2, hdim)
         self.typ = typ
 
-    def forward(self, xs_pad, ilens):
+    def forward(self, xs_pad, ilens, prev_state=None):
         """BRNN forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor prev_state: batch of previous RNN states
         :return: batch of hidden state sequences (B, Tmax, eprojs)
         :rtype: torch.Tensor
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
         self.nbrnn.flatten_parameters()
-        ys, _ = self.nbrnn(xs_pack)
+        ys, _ = self.nbrnn(xs_pack, hx=prev_state)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
         # (sum _utt frame_utt) x dim
@@ -186,43 +187,42 @@ class Encoder(torch.nn.Module):
         typ = etype.lstrip("vgg").lstrip("b").rstrip("p")
         if typ != "lstm" and typ != "gru":
             logging.error("Error: need to specify an appropriate encoder architecture")
-        if etype.startswith("vgg"):
-            if etype[-1] == "p":
-                self.enc = torch.nn.ModuleList([VGG2L(in_channel),
-                                                BRNNP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                      eprojs,
-                                                      subsample, dropout, typ=typ)])
-                logging.info('Use CNN-VGG + B' + typ.upper() + 'P for encoder')
-            else:
-                self.enc = torch.nn.ModuleList([VGG2L(in_channel),
-                                                BRNN(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                     eprojs,
-                                                     dropout, typ=typ)])
-                logging.info('Use CNN-VGG + B' + typ.upper() + ' for encoder')
-        else:
-            if etype[-1] == "p":
-                self.enc = torch.nn.ModuleList(
-                    [BRNNP(idim, elayers, eunits, eprojs, subsample, dropout, typ=typ)])
-                logging.info('B' + typ.upper() + ' with every-layer projection for encoder')
-            else:
-                self.enc = torch.nn.ModuleList([BRNN(idim, elayers, eunits, eprojs, dropout, typ=typ)])
-                logging.info('B' + typ.upper() + ' without projection for encoder')
 
-    def forward(self, xs_pad, ilens):
+        module_list = []
+        rnn_input_dim = idim
+
+        if etype.startswith("vgg"):
+            module_list.append(VGG2L(in_channel))
+            rnn_input_dim = get_vgg2l_odim(idim, in_channel=in_channel)
+
+        module_list.append(
+            BRNNP(rnn_input_dim, elayers, eunits, eprojs, subsample, dropout, typ=typ)
+            if etype[-1] == "p"
+            else BRNN(rnn_input_dim, elayers, eunits, eprojs, dropout, typ=typ)
+        )
+
+        self.enc = torch.nn.ModuleList(module_list)
+        logging.info('Use {} for encoder'.format(etype))
+
+    def forward(self, xs_pad, ilens, prev_states=None):
         """Encoder forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor prev_state: batch of previous encoder hidden states (?, ...)
         :return: batch of hidden state sequences (B, Tmax, eprojs)
         :rtype: torch.Tensor
         """
+
+        # TODO: pass the previous state only to the relevant modules
+        states = None  # TODO: retrieve the previous state from the relevant modules
         for module in self.enc:
             xs_pad, ilens = module(xs_pad, ilens)
 
         # make mask to remove bias value in padded part
         mask = to_device(self, make_pad_mask(ilens).unsqueeze(-1))
 
-        return xs_pad.masked_fill(mask, 0.0), ilens
+        return xs_pad.masked_fill(mask, 0.0), ilens, states
 
 
 def encoder_for(args, idim, subsample):

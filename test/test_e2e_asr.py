@@ -178,6 +178,20 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
         model.recognize(in_data, args, args.char_list)  # decodable
 
 
+def test_streaming_e2e():
+    m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
+    args = make_arg()
+    model = m.E2E(40, 5, args)
+    asr = m.StreamingE2E(model, args, args.char_list)
+
+    for i in range(10):
+        in_data = np.random.randn(100, 40)
+        asr.accept_input(in_data)
+
+    recogs = asr.retrieve_recognition()
+    pass
+
+
 @pytest.mark.parametrize(
     "module", ["pytorch", "chainer"]
 )
