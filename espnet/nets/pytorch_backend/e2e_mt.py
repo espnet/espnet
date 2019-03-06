@@ -10,6 +10,7 @@ from __future__ import division
 import argparse
 import logging
 import math
+import os
 
 import chainer
 import numpy as np
@@ -69,17 +70,14 @@ class E2E(torch.nn.Module):
         self.subsample = subsample
 
         # label smoothing info
-        if args.lsm_type:
+        if args.lsm_type and os.path.isfile(args.train_json):
             logging.info("Use label smoothing with " + args.lsm_type)
             labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         else:
             labeldist = None
 
         # multilingual related
-        self.multilingual = args.multilingual
         self.replace_sos = args.replace_sos
-        self.target_forcing = args.target_forcing
-        self.language_coding = args.language_coding
 
         # encoder
         if args.language_coding:
@@ -177,22 +175,12 @@ class E2E(torch.nn.Module):
         :rtype: float
         """
         # 1. encoder
-        if self.multilingual:
-            if self.target_forcing or self.language_coding:
-                xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
-            elif self.replace_sos:
-                # remove source language ID in the beggining
-                xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad[:, 1:]))
-            else:
-                raise ValueError
+        if self.replace_sos:
+            # remove source language ID in the beggining
             tgt_lang_ids = ys_pad[:, 0:1]
-            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
-            if not self.target_forcing:
-                ilens -= 1
-
-            # concatenate target language ID to each input token
-            if self.language_coding:
-                xs_pad_emb = torch.cat((xs_pad_emb[:, 1:], xs_pad_emb[:, 0:1].expand_as(xs_pad_emb[:, 1:])), dim=-1)
+            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
+            xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad[:, 1:]))
+            ilens -= 1
         else:
             xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
             tgt_lang_ids = None
@@ -263,24 +251,12 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
-        if self.multilingual:
+        if self.replace_sos:
             id2token = {i: x for i, x in enumerate(char_list)}
-            if self.target_forcing or self.language_coding:
-                logging.info('src (multilingual): %s', ' '.join(
-                    [id2token[int(y)] for y in [char_list.index(recog_args.tgt_lang)] + x[0][1:]]))
-                h = to_device(self, torch.from_numpy(np.fromiter(
-                    map(int, [char_list.index(recog_args.tgt_lang)] + x[0][1:]), dtype=np.int64)))
-            elif self.replace_sos:
-                logging.info('src (multilingual): %s', ' '.join([id2token[int(y)] for y in x[0][1:]]))
-                h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0][1:]), dtype=np.int64)))
-            else:
-                raise ValueError
+            logging.info('src (multilingual): %s', ' '.join([id2token[int(y)] for y in x[0][1:]]))
+            h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0][1:]), dtype=np.int64)))
             h = h.contiguous()
             h_emb = self.dropout_emb_src(self.embed_src(h.unsqueeze(0)))
-
-            # concatenate target language ID to each input token
-            if self.language_coding:
-                h_emb = torch.cat((h_emb[:, 1:], h_emb[:, 0:1].expand_as(h_emb[:, 1:])), dim=-1)
         else:
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0]), dtype=np.int64)))
             h = h.contiguous()
@@ -311,20 +287,10 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         ilens = np.array([x.shape[0] for x in xs], dtype=np.int64)
-        if self.multilingual:
-            if self.target_forcing:
-                ilens += 1
-            if self.target_forcing or self.language_coding:
-                hs = [to_device(self, torch.from_numpy([char_list.index(recog_args.tgt_lang)] + xx).long())
-                      for xx in xs]
-            elif self.replace_sos:
-                hs = [to_device(self, torch.from_numpy(xx).long()) for xx in xs]
-            else:
-                raise ValueError
+        if self.replace_sos:
+            hs = [to_device(self, torch.from_numpy(xx).long()) for xx in xs]
             xpad = pad_list(hs, self.pad)
             xpad_emb = self.dropout_emb_src(self.embed_src(xpad))
-            if self.language_coding:
-                xpad_emb = torch.cat((xpad_emb[:, 1:], xpad_emb[:, 0:1].expand_as(xpad_emb[:, 1:])), dim=-1)
         else:
             hs = [to_device(self, torch.from_numpy(xx).long()) for xx in xs]
             xpad = pad_list(hs, self.pad)
@@ -351,23 +317,12 @@ class E2E(torch.nn.Module):
         """
         with torch.no_grad():
             # encoder
-            if self.multilingual:
-                if self.target_forcing or self.language_coding:
-                    xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
-                elif self.replace_sos:
-                    # remove source language ID in the beggining
-                    xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad[:, 1:]))
-                else:
-                    raise ValueError
+            if self.replace_sos:
+                # remove source language ID in the beggining
                 tgt_lang_ids = ys_pad[:, 0:1]
                 ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
-                if not self.target_forcing:
-                    ilens -= 1
-
-                # concatenate target language ID to each input token
-                if self.language_coding:
-                    xs_pad_emb = torch.cat(
-                        (xs_pad_emb[:, 1:], xs_pad_emb[:, 0: 1].expand_as(xs_pad_emb[:, 1:])), dim=-1)
+                xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad[:, 1:]))
+                ilens -= 1
             else:
                 xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
                 tgt_lang_ids = None
