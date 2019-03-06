@@ -56,9 +56,12 @@ class E2E(torch.nn.Module):
     :param int idim: dimension of inputs
     :param int odim: dimension of outputs
     :param Namespace args: argument Namespace containing options
+    :param E2E (torch.nn.Module) asr_model: pre-trained ASR model for encoder initialization
+    :param E2E (torch.nn.Module) mt_model: pre-trained NMT model for decoder initialization
+
     """
 
-    def __init__(self, idim, odim, args, asr_model=None, mt_model=None, st_model=None):
+    def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
         super(E2E, self).__init__()
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
