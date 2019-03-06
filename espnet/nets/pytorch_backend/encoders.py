@@ -26,7 +26,7 @@ class BRNNP(torch.nn.Module):
 
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout, typ="blstm"):
         super(BRNNP, self).__init__()
-        bidir = typ[0]=="b"
+        bidir = typ[0] == "b"
         for i in six.moves.range(elayers):
             if i == 0:
                 inputdim = idim
@@ -88,7 +88,7 @@ class BRNN(torch.nn.Module):
 
     def __init__(self, idim, elayers, cdim, hdim, dropout, typ="blstm"):
         super(BRNN, self).__init__()
-        bidir = typ[0]=="b"
+        bidir = typ[0] == "b"
         self.nbrnn = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
                                    dropout=dropout, bidirectional=bidir) if "lstm" in typ \
             else torch.nn.GRU(idim, cdim, elayers, batch_first=True, dropout=dropout,
@@ -192,7 +192,7 @@ class Encoder(torch.nn.Module):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
         typ = etype.lstrip("vgg").rstrip("p")
-        if typ not in ['lstm','gru','blstm','bgru']:
+        if typ not in ['lstm', 'gru', 'blstm', 'bgru']:
             logging.error("Error: need to specify an appropriate encoder architecture")
         if etype.startswith("vgg"):
             if etype[-1] == "p":
