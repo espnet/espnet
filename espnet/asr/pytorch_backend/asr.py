@@ -31,7 +31,7 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.pytorch_backend.e2e_asr import E2E
+from espnet.nets.pytorch_backend.e2e_asr import E2E, StreamingE2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
 from espnet.utils.training.iterators import ShufflingEnabler
@@ -487,7 +487,18 @@ def recog(args):
                 batch = [(name, js[name])]
                 with using_transform_config({'train': True}):
                     feat = load_inputs_and_targets(batch)[0][0]
-                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                if args.streaming_window:
+                    logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
+                    se2e = StreamingE2E(e2e=model, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
+                    for i in range(0, feat.shape[0], args.streaming_window):
+                        logging.info('Feeding frames %d - %d', i, i+args.streaming_window)
+                        se2e.accept_input(feat[i:i+args.streaming_window])
+                    logging.info('Running offline attention decoder')
+                    se2e.advance_decoder()
+                    logging.info('Offline attention decoder finished')
+                    nbest_hyps = se2e.retrieve_recognition()
+                else:
+                    nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
         try:
