@@ -230,7 +230,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=16
 
     for rtask in ${recog_set}; do
     (
@@ -266,7 +266,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --set ${rtask} ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --nlsyms ${nlsyms} --set ${rtask} ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
