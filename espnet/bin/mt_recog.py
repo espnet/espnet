@@ -112,8 +112,10 @@ def main(args):
     # recog
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        from espnet.mt.chainer_backend.mt import recog
-        recog(args)
+        raise NotImplementedError("Only pytorch are supported.")
+        # TODO(hirfumi): support for chainer backend
+        # from espnet.mt.chainer_backend.mt import train
+        # train(args)
     elif args.backend == "pytorch":
         from espnet.mt.pytorch_backend.mt import recog
         recog(args)

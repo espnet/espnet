@@ -169,18 +169,9 @@ def main(args):
     parser.add_argument('--context-residual', default='', nargs='?',
                         help='')
     # multilingual NMT related
-    parser.add_argument('--multilingual', default=False, nargs='?',
-                        help='multilingual translation')
     parser.add_argument('--replace-sos', default=False, nargs='?',
                         help='Replace <sos> in the decoder with a target language ID \
                               (the first token in the target sequence)')
-    parser.add_argument('--target-forcing', default=False, nargs='?',
-                        help='Feed a target language ID (the first token in the target sentence) \
-                              to the beggining of the source sentence \
-                              (also to the end to the source sentence if the encoder is bidirectional)')
-    parser.add_argument('--language-coding', default=False, nargs='?',
-                        help='Feed a target language ID (the first token in the target sentence) \
-                              to every token in the source sentence')
 
     args = parser.parse_args(args)
 
@@ -237,8 +228,8 @@ def main(args):
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
-        raise NotImplementedError()
-    # TODO(hirfumi): support for chainer backend
+        raise NotImplementedError("Only pytorch are supported.")
+        # TODO(hirfumi): support for chainer backend
         # from espnet.mt.chainer_backend.mt import train
         # train(args)
     elif args.backend == "pytorch":

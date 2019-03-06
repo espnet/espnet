@@ -42,6 +42,9 @@ def main(args):
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
+    parser.add_argument('--num-spkrs', default=1, type=int,
+                        choices=[1, 2],
+                        help='Number of speakers in the speech.')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
@@ -111,14 +114,21 @@ def main(args):
 
     # recog
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        from espnet.asr.chainer_backend.asr import recog
-        recog(args)
-    elif args.backend == "pytorch":
-        from espnet.asr.pytorch_backend.asr import recog
-        recog(args)
-    else:
-        raise ValueError("Only chainer and pytorch are supported.")
+    if args.num_spkrs == 1:
+        if args.backend == "chainer":
+            from espnet.asr.chainer_backend.asr import recog
+            recog(args)
+        elif args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr import recog
+            recog(args)
+        else:
+            raise ValueError("Only chainer and pytorch are supported.")
+    elif args.num_spkrs == 2:
+        if args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr_mix import recog
+            recog(args)
+        else:
+            raise ValueError("Only pytorch is supported.")
 
 
 if __name__ == '__main__':
