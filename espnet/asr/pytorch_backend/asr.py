@@ -33,11 +33,10 @@ from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-
+from espnet.nets.pytorch_backend.e2e_mt import E2E as E2E_mt
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
-
 from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
 
@@ -230,9 +229,28 @@ def train(args):
         mtl_mode = 'mtl'
         logging.info('Multitask learning mode')
 
+    asr_model, mt_model = None, None
+    # Initialize encoder with pre-trained ASR encoder
+    if args.asr_model:
+        # read training config
+        idim_asr, odim_asr, train_args_asr = get_model_conf(args.asr_model)
+        asr_model = E2E(idim_asr, odim_asr, train_args_asr)
+        torch_load(args.asr_model, asr_model)
+
+    # Initialize decoder with pre-trained MT decoder
+    if args.mt_model:
+        idim_mt, odim_mt, train_args_mt = get_model_conf(args.mt_model)
+        mt_model = E2E_mt(idim_mt, odim_mt, train_args_mt)
+        torch_load(args.mt_model, mt_model)
+
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model = E2E(idim, odim, args, asr_model, mt_model)
     subsampling_factor = model.subsample[0]
+
+    if args.asr_model:
+        del asr_model
+    if args.mt_model:
+        del mt_model
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
