@@ -184,8 +184,8 @@ def test_streaming_e2e():
     model = m.E2E(40, 5, args)
     asr = m.StreamingE2E(model, args, args.char_list)
 
+    in_data = np.random.randn(100, 40)
     for i in range(10):
-        in_data = np.random.randn(100, 40)
         asr.accept_input(in_data)
 
     recogs = asr.retrieve_recognition()

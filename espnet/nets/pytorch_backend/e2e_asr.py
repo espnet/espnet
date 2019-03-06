@@ -185,7 +185,7 @@ class E2E(torch.nn.Module):
         :rtype: float
         """
         # 1. encoder
-        hs_pad, hlens = self.enc(xs_pad, ilens)
+        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # 2. CTC loss
         if self.mtlalpha == 0:
@@ -307,7 +307,7 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
-        h, _ = self.enc(h.unsqueeze(0), ilen)
+        h, *_ = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -343,7 +343,7 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         xpad = pad_list(hs, 0.0)
-        hpad, hlens = self.enc(xpad, ilens)
+        hpad, hlens, _ = self.enc(xpad, ilens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -371,7 +371,7 @@ class E2E(torch.nn.Module):
         """
         with torch.no_grad():
             # encoder
-            hpad, hlens = self.enc(xs_pad, ilens)
+            hpad, hlens, _ = self.enc(xs_pad, ilens)
 
             # decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
@@ -406,7 +406,7 @@ class StreamingE2E(object):
         self._offset = 0
 
         # TODO: (optimization) some of these might be matrices, not sure yet
-        self._encoder_states = []
+        self._previous_encoder_state = None
         self._ctc_posteriors = []
         self._decoder_states = []
         self._partial_recognitions = []
@@ -414,15 +414,11 @@ class StreamingE2E(object):
     def accept_input(self, x):
         h, ilen = self._e2e.subsample_frames(x)
 
-        # TODO: fully implement streaming encoder once JJ merges in the unidirectional encoder
-        # TODO: /home/pzelasko/spoken/espnet/espnet/nets/pytorch_backend/encoders.py:59 - retrieve the hidden state and pass it downstream
-        # TODO: join previous states into a matrix before passing them here
-        h, encoder_state, _ = self._e2e.enc(
+        h, _, self._previous_encoder_state = self._e2e.enc(
             h.unsqueeze(0),
             ilen,
-            self._encoder_states[-1] if self._encoder_states else None
+            self._previous_encoder_state
         )
-        self._encoder_states.append(encoder_state)  # TODO: when to free?
 
         # TODO: apply the offset here
         # TODO: pass h[offset:] as the argument here
@@ -437,6 +433,7 @@ class StreamingE2E(object):
 
         # TODO: pass a parameter saying how many iterations we can run the attention decoder for
         # TODO: we need to affect the maxlen using the CTC approximation in recognize_beam method
+        # TODO: for the first version, use greedy decoding for attention decoder as well
         y = self._e2e.dec.recognize_beam(h[0], lpz, self._recog_args, self._char_list, self._rnnlm)
         self._partial_recognitions.append(y)
 
