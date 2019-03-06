@@ -53,6 +53,7 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=10
 patience=3
@@ -75,6 +76,10 @@ minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
+# preprocessing related
+st_case=tc  # or lc
+asr_case=lc  # or tc
+
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
@@ -87,8 +92,8 @@ callhome_transcripts=/export/corpora/LDC/LDC96T17
 split_callhome=local/splits/split_callhome
 
 # bpemode (unigram or bpe)
-nbpe=500
-bpemode=unigram
+nbpe=1000
+bpemode=bpe
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -164,7 +169,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train_sp fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
-        local/divide_lang.sh data/${x}
+        local/divide_lang.sh ${st_case} ${asr_case} data/${x}
     done
 
     for lang in es en; do
@@ -335,6 +340,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dropout-rate ${drop_enc} \
         --dropout-rate-decoder ${drop_dec} \
         --opt ${opt} \
+        --sortagrad ${sortagrad} \
         --epochs ${epochs} \
         --patience ${patience} \
         --weight-decay ${weight_decay}
@@ -342,7 +348,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=16
 
     for rtask in ${recog_set}; do
     (

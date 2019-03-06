@@ -15,10 +15,6 @@ while(<STDIN>) {
 
   # normalize punctuation
   s/_/ /g;
-  s/&/ & /g;
-  s/--/ - /g;
-  s/%/ %/g;    # for En
-  s/\$/\$ /g;  # for En
   s/`/'/g;     # for En
   s/´/'/g;     # for En
 
@@ -106,7 +102,7 @@ while(<STDIN>) {
   # callhome_evltest
   s/so\//so/g;
 
-  # remove punctuation
+  # remove noisy punctuation
   s/\(/ /g;
   s/\)/ /g;
   s/\</ /g;
@@ -125,8 +121,7 @@ while(<STDIN>) {
   s/\¨/ /g;
   s/\*/ /g; # for callhome_train
 
-  # remove consecutive commas and spaces
-  s/\.+/./g;
+  # remove consecutive spaces
   s/\s+/ /g;
 
   # remove last bar (except for partial words)

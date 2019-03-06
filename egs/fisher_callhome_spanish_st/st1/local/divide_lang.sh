@@ -5,13 +5,15 @@
 
 . ./path.sh
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 <src-dir>"
-  echo "e.g.: $0 data/dev"
+if [ "$#" -ne 3 ]; then
+  echo "Usage: $0 <st-case> <asr-case> <src-dir>"
+  echo "e.g.: $0 tc data/dev"
   exit 1
 fi
 
-src=$1
+st_case=$1
+asr_case=$1
+src=$2
 set=$(echo $src | awk -F"/" '{print $NF}')
 
 # fix the original directory at first
@@ -34,7 +36,7 @@ mkdir -p data/$set.es
 for f in spk2utt utt2spk segments feats.scp wav.scp utt2num_frames spk2gender reco2file_and_channel; do
     sort data/$set/$f > data/$set.es/$f
 done
-sort data/$set/text.lc.es > data/$set.es/text
+sort data/$set/text.${asr_case}.es > data/$set.es/text
 utils/fix_data_dir.sh data/$set.es || exit 1;
 utils/validate_data_dir.sh data/$set.es || exit 1;
 
@@ -44,13 +46,13 @@ mkdir -p data/$set.en
 for f in spk2utt utt2spk segments feats.scp wav.scp utt2num_frames spk2gender reco2file_and_channel; do
     sort data/$set/$f > data/$set.en/$f
 done
-if [ -f data/$set/text.lc.en ]; then
-    sort data/$set/text.lc.en > data/$set.en/text
+if [ -f data/$set/text.${st_case}.en ]; then
+    sort data/$set/text.${st_case}.en > data/$set.en/text
 else
-    sort data/$set/text.lc.en.0 > data/$set.en/text
-    sort data/$set/text.lc.en.1 > data/$set.en/text.1
-    sort data/$set/text.lc.en.2 > data/$set.en/text.2
-    sort data/$set/text.lc.en.3 > data/$set.en/text.3
+    sort data/$set/text.${st_case}.en.0 > data/$set.en/text
+    sort data/$set/text.${st_case}.en.1 > data/$set.en/text.1
+    sort data/$set/text.${st_case}.en.2 > data/$set.en/text.2
+    sort data/$set/text.${st_case}.en.3 > data/$set.en/text.3
 fi
 utils/fix_data_dir.sh data/$set.en || exit 1;
 utils/validate_data_dir.sh data/$set.en || exit 1;
