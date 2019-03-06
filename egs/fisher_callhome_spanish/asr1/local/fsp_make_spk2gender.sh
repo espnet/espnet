@@ -12,9 +12,9 @@ tmpFileLocation = 'data/local/tmp/spk2gendertmp'
 tmpFile = None
 
 try:
-     tmpFile = open(tmpFileLocation)
+    tmpFile = open(tmpFileLocation)
 except IOError:
-    print 'The file spk2gendertmp does not exist. Run fsp_make_trans.pl first?'
+    print('The file spk2gendertmp does not exist. Run fsp_make_trans.pl first?')
 
 speakers = {}
 
@@ -25,5 +25,5 @@ for line in tmpFile:
     else:
         speakers[comp[0]] = comp[1]
 
-for speaker, gender in speakers.iteritems():
-    print speaker + " " + gender
+for speaker, gender in speakers.items():
+    print(speaker + " " + gender)

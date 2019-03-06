@@ -138,7 +138,8 @@ if [ $stage -le 2 ]; then
   grep -v '()' | \
   #Now go after the non-printable characters and multiple spaces
   sed -r 's:¿::g'  | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $tmpdir/text.2
-  cp $tmpdir/text.2 $dir/train_all/text
+  awk -F' ' '{print NF" "NR}' $tmpdir/text.2 | grep -w ^1 | awk -F' ' '{print $2}' | sed 's%$%d%' | sed -f - $tmpdir/text.2 > $tmpdir/text.3
+  cp $tmpdir/text.3 $dir/train_all/text
 
   #Create segments file and utt2spk file
   ! cat $dir/train_all/text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/train_all/utt2spk \
