@@ -253,7 +253,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ) &
     pids+=($!)
     done
-    for pid in "${pids[@]}"; do wait ${pid}; done
+    for pid in "${pids[@]}"; do wait ${pid} || { echo "Some jobs failed"; exit 1; }; done
 
     echo "Finished"
 fi
