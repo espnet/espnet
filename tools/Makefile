@@ -16,11 +16,11 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio extra
+all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra check_install
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses
+extra: nkf.done sentencepiece.done mecab.done moses.done
 
 
 ifneq ($(strip $(KALDI)),)
@@ -56,12 +56,9 @@ espnet.done: venv
 	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
-	. venv/bin/activate && pip install cupy==$(CUPY_VERSION) 
+	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
 	touch espnet.done
 endif
-
-kaldiio: venv
-	. venv/bin/activate; pip install git+https://github.com/nttcslab-sp/kaldiio.git
 
 chainer_patch.done: espnet.done
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
@@ -104,7 +101,7 @@ sentencepiece.done:
 	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 	touch sentencepiece.done
 
-mecab.done:
+mecab.done: espnet.done
 	rm -rf mecab
 	git clone https://github.com/taku910/mecab.git
 	cd mecab/mecab && ./configure --with-charset=utf8 --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) check && $(MAKE) install
@@ -123,15 +120,21 @@ mecab.done:
 			touch $(PWD)/swig.done; \
 		fi; \
 		deactivate; \
-		export PATH=$(PWD)/swig/bin:$(PATH); \
-		. venv/bin/activate; pip install mecab-python3; \
+		. $(PWD)/venv/bin/activate; \
+		export PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH); \
+		export LD_LIBRARY_PATH=$(PWD)/venv/lib:$(LD_LIBRARY_PATH); \
+		pip install mecab-python3; \
 	else \
 		pip install mecab-python; \
 	fi
 	touch mecab.done
 
-moses:
+moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
+	touch moses.done
+
+check_install: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra
+	. venv/bin/activate; python check_install.py
 
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
@@ -146,4 +149,5 @@ clean_python:
 	find . -iname "*.pyc" -delete
 
 clean_extra:
+	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
 	rm -rf nkf sentencepiece mecab swig moses

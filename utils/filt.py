@@ -10,24 +10,32 @@ import sys
 
 is_python2 = sys.version_info[0] == 2
 
-if __name__ == '__main__':
+
+def main(args):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--exclude', '-v', dest='exclude', action='store_true',
                         help='exclude filter words')
     parser.add_argument('filt', type=str, help='filter list')
     parser.add_argument('infile', type=str, help='input file')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
+    filter_file(args.infile, args.filt, args.exclude)
 
+
+def filter_file(infile, filt, exclude):
     vocab = set()
-    with codecs.open(args.filt, "r", encoding="utf-8") as vocabfile:
+    with codecs.open(filt, "r", encoding="utf-8") as vocabfile:
         for line in vocabfile:
             vocab.add(line.strip())
 
     sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
-    with codecs.open(args.infile, "r", encoding="utf-8") as textfile:
+    with codecs.open(infile, "r", encoding="utf-8") as textfile:
         for line in textfile:
-            if args.exclude:
+            if exclude:
                 print(" ".join(map(lambda word: word if word not in vocab else '', line.strip().split())))
             else:
                 print(" ".join(map(lambda word: word if word in vocab else '<UNK>', line.strip().split())))
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

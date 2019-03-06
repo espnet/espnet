@@ -16,6 +16,7 @@ requirements = {
         # for some reason, matplotlib should be separately installed
         # 'matplotlib',
         'scipy',
+        'h5py',
         # Installation from anaconda is recommended for PyTorch
         # 'torch==0.4.1',
         'chainer==5.0.0',
@@ -32,6 +33,7 @@ requirements = {
         'pillow>=5.3.0',
         'nara_wpe',
         'nltk',
+        'kaldiio'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
@@ -55,7 +57,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name='espnet',
-      version='0.2.0',
+      version='0.3.0',
       url='http://github.com/espnet/espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',

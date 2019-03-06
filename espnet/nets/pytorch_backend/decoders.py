@@ -626,7 +626,7 @@ class Decoder(torch.nn.Module):
                 1) multi-head case => attention weights (B, H, Lmax, Tmax),
                 2) other case => attention weights (B, Lmax, Tmax).
             :rtype: float ndarray
-            """
+        """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
         att_idx = min(strm_idx, len(self.att) - 1)
