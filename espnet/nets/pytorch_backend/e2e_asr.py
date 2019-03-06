@@ -406,49 +406,39 @@ class StreamingE2E(object):
         self._offset = 0
 
         # TODO: (optimization) some of these might be matrices, not sure yet
-        self._previous_encoder_state = None
+        self._previous_encoder_recurrent_state = None
+        self._encoder_states = []
         self._ctc_posteriors = []
         self._decoder_states = []
-        self._partial_recognitions = []
+        self._last_recognition = None
+
+        assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attetion decoders."
 
     def accept_input(self, x):
         h, ilen = self._e2e.subsample_frames(x)
 
-        h, _, self._previous_encoder_state = self._e2e.enc(
+        # Streaming encoder
+        h, _, self._previous_encoder_recurrent_state = self._e2e.enc(
             h.unsqueeze(0),
             ilen,
-            self._previous_encoder_state
+            self._previous_encoder_recurrent_state
         )
+        self._encoder_states.append(h.squeeze(0))
 
-        # TODO: apply the offset here
-        # TODO: pass h[offset:] as the argument here
-        # TODO: add a variable to keep the history of CTC outputs
-        lpz = self._e2e.ctc.log_softmax(h)[0] if self._recog_args.ctc_weight > 0.0 else None
-        self._ctc_posteriors.append(lpz)
+        # CTC posteriors for the incoming audio
+        self._ctc_posteriors.append(self._e2e.ctc.log_softmax(h).squeeze(0))
 
+    def _input_window_for_decoder(self):
+        # TODO: retain ~1 sec worth of audio in this function
+        return torch.cat(self._encoder_states, dim=0), torch.cat(self._ctc_posteriors, dim=0)
+
+    def advance_decoder(self):
         # TODO: establish what's the increment of CTC decoder (how many new letters might be there) [rough estimate]
-
-        # 2. decoder
-        # decode the first utterance
-
         # TODO: pass a parameter saying how many iterations we can run the attention decoder for
         # TODO: we need to affect the maxlen using the CTC approximation in recognize_beam method
         # TODO: for the first version, use greedy decoding for attention decoder as well
-        y = self._e2e.dec.recognize_beam(h[0], lpz, self._recog_args, self._char_list, self._rnnlm)
-        self._partial_recognitions.append(y)
+        h, lpz = self._input_window_for_decoder()
+        self._last_recognition = self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
 
-        return y
-
-
-
-
-
-
-    # TODO: ideas for refactoring
-    #def advance_encoder(self):
-    #    pass
-    #def advance_decoder(self):
-    #    pass
     def retrieve_recognition(self):
-        # TODO: concatenate partial recognitions (not sure yet if they are strings)
-        return self._partial_recognitions
+        return self._last_recognition
