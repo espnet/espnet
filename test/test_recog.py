@@ -48,7 +48,6 @@ def make_arg(**kwargs):
         sym_blank="<blank>",
         context_residual=False,
         replace_sos=False,
-        multilingual=False,
         tgt_lang=False
     )
     defaults.update(kwargs)
