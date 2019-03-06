@@ -29,16 +29,16 @@ ENV PATH /usr/local/cuda/bin:${PATH}
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0 brand=tesla,driver>=384,driver<385"
-ENV CUDA_HOME /usr/lib/nvidia
+ENV CUDA_HOME /usr/local/cuda
 
 ## FROM CUDA 10.0 runtime
 
-ENV NCCL_VERSION 2.3.5
+ENV NCCL_VERSION 2.4.2
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         cuda-libraries-$CUDA_PKG_VERSION \
         cuda-nvtx-$CUDA_PKG_VERSION \
-        libnccl2=$NCCL_VERSION-2+cuda10.0 && \
+        libnccl2=$NCCL_VERSION-1+cuda10.0 && \
     apt-mark hold libnccl2 && \
     rm -rf /var/lib/apt/lists/*
 
@@ -50,14 +50,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         cuda-nvml-dev-$CUDA_PKG_VERSION \
         cuda-minimal-build-$CUDA_PKG_VERSION \
         cuda-command-line-tools-$CUDA_PKG_VERSION \
-        libnccl-dev=$NCCL_VERSION-2+cuda10.0 && \
+        libnccl-dev=$NCCL_VERSION-1+cuda10.0 && \
     rm -rf /var/lib/apt/lists/*
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 ## FROM CUDA 10.0-CUDNN 7 devel
 
-ENV CUDNN_VERSION 7.3.1.20
+ENV CUDNN_VERSION 7.4.1.5
 LABEL com.nvidia.cudnn.version="${CUDNN_VERSION}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
