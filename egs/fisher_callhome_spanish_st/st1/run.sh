@@ -30,6 +30,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=2
 dunits=1024
+context_residual=true
 # attention related
 atype=add
 adim=1024
@@ -53,16 +54,16 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=15
 patience=3
-eps_decay=0.01
 
 # decoding parameter
 beam_size=20
-penalty=0.2
-maxlenratio=0.8
-minlenratio=0
+penalty=0.3
+maxlenratio=1.6
+minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # Set this to somewhere where you want to put your data, or where
@@ -257,6 +258,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ ! -z ${context_residual} ]; then
+      expname=${expname}_cres
+    fi
     if [ ! -z ${asr_model} ]; then
       expname=${expname}_asrtrans
     fi
@@ -304,12 +308,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dropout-rate ${drop_enc} \
         --dropout-rate-decoder ${drop_dec} \
         --opt ${opt} \
+        --sortagrad ${sortagrad} \
         --epochs ${epochs} \
         --patience ${patience} \
-        --eps-decay ${eps_decay} \
         --weight-decay ${weight_decay} \
         --asr-model ${asr_model} \
-        --mt-model ${mt_model}
+        --mt-model ${mt_model} \
+        --context-residual ${context_residual}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
