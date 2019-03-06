@@ -9,6 +9,7 @@ from __future__ import division
 import argparse
 import logging
 import math
+import os
 
 import editdistance
 
@@ -16,6 +17,8 @@ import chainer
 import numpy as np
 import six
 import torch
+
+from itertools import groupby
 
 from chainer import reporter
 
@@ -25,6 +28,7 @@ from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.decoders import decoder_for
 from espnet.nets.pytorch_backend.encoders import encoder_for
+from espnet.nets.pytorch_backend.encoders import Encoder
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -35,10 +39,11 @@ CTC_LOSS_THRESHOLD = 10000
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper"""
 
-    def report(self, loss_ctc, loss_att, acc, cer, wer, mtl_loss):
+    def report(self, loss_ctc, loss_att, acc, cer_ctc, cer, wer, mtl_loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
         reporter.report({'acc': acc}, self)
+        reporter.report({'cer_ctc': cer_ctc}, self)
         reporter.report({'cer': cer}, self)
         reporter.report({'wer': wer}, self)
         logging.info('mtl loss:' + str(mtl_loss))
@@ -53,7 +58,7 @@ class E2E(torch.nn.Module):
     :param Namespace args: argument Namespace containing options
     """
 
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, asr_model=None, mt_model=None, st_model=None):
         super(E2E, self).__init__()
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
@@ -61,6 +66,8 @@ class E2E(torch.nn.Module):
         self.verbose = args.verbose
         self.char_list = args.char_list
         self.outdir = args.outdir
+        self.space = args.sym_space
+        self.blank = args.sym_blank
         self.reporter = Reporter()
 
         # below means the last number becomes eos/sos ID
@@ -82,18 +89,29 @@ class E2E(torch.nn.Module):
         self.subsample = subsample
 
         # label smoothing info
-        if args.lsm_type:
+        # if args.lsm_type:
+        if args.lsm_type and os.path.isfile(args.train_json):
             logging.info("Use label smoothing with " + args.lsm_type)
             labeldist = label_smoothing_dist(odim, args.lsm_type, transcript=args.train_json)
         else:
             labeldist = None
 
-        # speech translation related
+        # multilingual speech translation related
         self.multilingual = args.multilingual
         self.replace_sos = args.replace_sos
 
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
+        if not hasattr(args, 'additional_nlayers'):
+            args.additional_nlayers = 0
+            args.additional_layer_type = 'blstm'
+            args.pretrain_additional_layers = False
+        if args.additional_nlayers > 0:
+            self.enc_add = Encoder(
+                'lstm', args.eprojs, args.additional_nlayers, args.eunits, args.eprojs,
+                [1] * args.additional_nlayers, args.dropout_rate)
+        else:
+            self.enc_add = None
         # ctc
         self.ctc = ctc_for(args, odim)
         # attention
@@ -103,6 +121,36 @@ class E2E(torch.nn.Module):
 
         # weight initialization
         self.init_like_chainer()
+
+        # pre-training
+        if asr_model is not None:
+            param_dict = dict(asr_model.named_parameters())
+            for n, p in self.named_parameters():
+                # overwrite the encoder
+                if n in param_dict.keys() and p.size() == param_dict[n].size():
+                    if 'enc.enc' in n:
+                        p.data = param_dict[n].data
+                        logging.warning('Overwrite %s' % n)
+        if mt_model is not None:
+            param_dict = dict(mt_model.named_parameters())
+            for n, p in self.named_parameters():
+                # overwrite the decoder
+                if n in param_dict.keys() and p.size() == param_dict[n].size():
+                    if 'dec.' in n or 'att' in n:
+                        p.data = param_dict[n].data
+                        logging.warning('Overwrite %s' % n)
+
+                # overwrite additional layers with the MT encoder
+                if 'enc_add.enc' in n and args.pretrain_additional_layers:
+                    p.data = param_dict[n.replace('enc_add', 'enc')].data
+                    logging.warning('Overwrite %s' % n)
+        if st_model is not None:
+            param_dict = dict(st_model.named_parameters())
+            for n, p in self.named_parameters():
+                # overwrite the encoder
+                if n in param_dict.keys() and p.size() == param_dict[n].size():
+                    p.data = param_dict[n].data
+                    logging.warning('Overwrite %s' % n)
 
         # options for beam search
         if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
@@ -191,6 +239,8 @@ class E2E(torch.nn.Module):
         else:
             tgt_lang_ids = None
         hs_pad, hlens = self.enc(xs_pad, ilens)
+        if self.enc_add is not None:
+            hs_pad, hlens = self.enc_add(hs_pad, hlens)
 
         # 2. CTC loss
         if self.mtlalpha == 0:
@@ -200,11 +250,34 @@ class E2E(torch.nn.Module):
 
         # 3. attention loss
         if self.mtlalpha == 1:
-            loss_att = None
-            acc = None
+            loss_att, acc = None, None
         else:
             loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids)
         self.acc = acc
+
+        # 4. compute cer without beam search
+        if self.mtlalpha == 0:
+            cer_ctc = None
+        else:
+            cers = []
+
+            y_hats = self.ctc.argmax(hs_pad).data
+            for i, y in enumerate(y_hats):
+                y_hat = [x[0] for x in groupby(y)]
+                y_true = ys_pad[i]
+
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
+                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+                seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.space, ' ')
+
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                if len(ref_chars) > 0:
+                    cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+
+            cer_ctc = sum(cers) / len(cers) if cers else None
 
         # 5. compute cer/wer
         if self.training or not (self.report_cer or self.report_wer):
@@ -259,7 +332,7 @@ class E2E(torch.nn.Module):
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
+            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer_ctc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
 
@@ -296,6 +369,8 @@ class E2E(torch.nn.Module):
         # make a utt list (1) to use the same interface for encoder
         h = h.contiguous()
         h, hlen = self.enc(h.unsqueeze(0), ilen)
+        if self.enc_add is not None:
+            h, _ = self.enc_add(h, hlen)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -332,6 +407,8 @@ class E2E(torch.nn.Module):
         # 1. encoder
         xpad = pad_list(hs, 0.0)
         hpad, hlens = self.enc(xpad, ilens)
+        if self.enc_add is not None:
+            hpad, hlens = self.enc_add(hpad, hlens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -365,6 +442,8 @@ class E2E(torch.nn.Module):
             else:
                 tgt_lang_ids = None
             hpad, hlens = self.enc(xs_pad, ilens)
+            if self.enc_add is not None:
+                hpad, hlens = self.enc_add(hpad, hlens)
 
             # decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids)

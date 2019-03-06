@@ -45,11 +45,13 @@ class Decoder(torch.nn.Module):
     :param float lsm_weight: label smoothing weight
     :param float sampling_probability: scheduled sampling probability
     :param float dropout: dropout rate
+    :param float context_residual: if True, use context vector for token generation
+    :param float replace_sos: use for multilingual (speech/text) translation
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
-                 dropout=0.0, context_residual=False, replace_sos=False, multilingual=False):
+                 dropout=0.0, context_residual=False, replace_sos=False):
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
@@ -95,9 +97,6 @@ class Decoder(torch.nn.Module):
 
         # for multilingual translation
         self.replace_sos = replace_sos
-        if replace_sos:
-            assert multilingual
-        self.multilingual = multilingual
 
         self.logzero = -10000000000.0
 
@@ -116,12 +115,13 @@ class Decoder(torch.nn.Module):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_pad, tgt_lang_ids=None):
+    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0, tgt_lang_ids=None):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
         :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param int strm_idx: stream index indicates the index of decoding stream.
         :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
         :return: attention loss value
         :rtype: torch.Tensor
@@ -130,6 +130,9 @@ class Decoder(torch.nn.Module):
         """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+        # attention index for the attention module
+        # in SPA (speaker parallel attention), att_idx is used to select attention module. In other cases, it is 0.
+        att_idx = min(strm_idx, len(self.att) - 1)
 
         # hlen should be list of integer
         hlens = list(map(int, hlens))
@@ -163,14 +166,14 @@ class Decoder(torch.nn.Module):
             z_list.append(self.zero_state(hs_pad))
         att_w = None
         z_all = []
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # pre-computation of embedding
         eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w)
+            att_c, att_w = self.att[att_idx](hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
@@ -228,7 +231,7 @@ class Decoder(torch.nn.Module):
 
         return self.loss, acc, ppl
 
-    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None):
+    def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None, strm_idx=0):
         """beam search implementation
 
         :param torch.Tensor h: encoder hidden state (T, eprojs)
@@ -236,10 +239,12 @@ class Decoder(torch.nn.Module):
         :param Namespace recog_args: argument Namespace containing options
         :param char_list: list of character strings
         :param torch.nn.Module rnnlm: language module
+        :param int strm_idx: stream index for speaker parallel attention in multi-speaker case
         :return: N-best decoding results
         :rtype: list of dicts
         """
         logging.info('input lengths: ' + str(h.size(0)))
+        att_idx = min(strm_idx, len(self.att) - 1)
         # initialization
         c_list = [self.zero_state(h.unsqueeze(0))]
         z_list = [self.zero_state(h.unsqueeze(0))]
@@ -247,7 +252,7 @@ class Decoder(torch.nn.Module):
             c_list.append(self.zero_state(h.unsqueeze(0)))
             z_list.append(self.zero_state(h.unsqueeze(0)))
         a = None
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # search parms
         beam = recog_args.beam_size
@@ -256,13 +261,11 @@ class Decoder(torch.nn.Module):
 
         # preprate sos
         if self.replace_sos and recog_args.tgt_lang:
-            logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
-            logging.info('<sos> mark: ' + recog_args.tgt_lang)
             y = char_list.index(recog_args.tgt_lang)
         else:
-            logging.info('<sos> index: ' + str(self.sos))
-            logging.info('<sos> mark: ' + char_list[self.sos])
             y = self.sos
+        logging.info('<sos> index: ' + str(y))
+        logging.info('<sos> mark: ' + char_list[y])
         vy = h.new_zeros(1).long()
 
         if recog_args.maxlenratio == 0:
@@ -301,8 +304,8 @@ class Decoder(torch.nn.Module):
                 vy[0] = hyp['yseq'][i]
                 ey = self.dropout_emb(self.embed(vy))  # utt list (1) x zdim
                 ey.unsqueeze(0)
-                att_c, att_w = self.att(h.unsqueeze(0), [h.size(0)],
-                                        self.dropout_dec[0](hyp['z_prev'][0]), hyp['a_prev'])
+                att_c, att_w = self.att[att_idx](h.unsqueeze(0), [h.size(0)],
+                                                 self.dropout_dec[0](hyp['z_prev'][0]), hyp['a_prev'])
                 ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
                 z_list, c_list = self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
 
@@ -418,8 +421,9 @@ class Decoder(torch.nn.Module):
         return nbest_hyps
 
     def recognize_beam_batch(self, h, hlens, lpz, recog_args, char_list, rnnlm=None,
-                             normalize_score=True, tgt_lang_ids=None):
+                             normalize_score=True, strm_idx=0, tgt_lang_ids=None):
         logging.info('input lengths: ' + str(h.size(1)))
+        att_idx = min(strm_idx, len(self.att) - 1)
         h = mask_by_length(h, hlens, 0.0)
 
         # search params
@@ -455,7 +459,7 @@ class Decoder(torch.nn.Module):
         a_prev = None
         rnnlm_prev = None
 
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         if self.replace_sos and recog_args.tgt_lang:
             logging.info('<sos> index: ' + str(char_list.index(recog_args.tgt_lang)))
@@ -489,7 +493,7 @@ class Decoder(torch.nn.Module):
 
             vy = to_device(self, torch.LongTensor(get_last_yseq(yseq)))
             ey = self.dropout_emb(self.embed(vy))
-            att_c, att_w = self.att(exp_h, exp_hlens, self.dropout_dec[0](z_prev[0]), a_prev)
+            att_c, att_w = self.att[att_idx](exp_h, exp_hlens, self.dropout_dec[0](z_prev[0]), a_prev)
             ey = torch.cat((ey, att_c), dim=1)
 
             # attention decoder
@@ -610,20 +614,22 @@ class Decoder(torch.nn.Module):
 
         return nbest_hyps
 
-    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, tgt_lang_ids=None):
+    def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0, tgt_lang_ids=None):
         """Calculate all of attentions
 
-        :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
-        :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
-        :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
-        :return: attention weights with the following shape,
-            1) multi-head case => attention weights (B, H, Lmax, Tmax),
-            2) other case => attention weights (B, Lmax, Tmax).
-        :rtype: float ndarray
-        """
+            :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
+            :param torch.Tensor hlen: batch of lengths of hidden state sequences (B)
+            :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+            :param int strm_idx: stream index for parallel speaker attention in multi-speaker case
+            :param torch.Tensor tgt_lang_ids: batch of target language id tensor (B, 1)
+            :return: attention weights with the following shape,
+                1) multi-head case => attention weights (B, H, Lmax, Tmax),
+                2) other case => attention weights (B, Lmax, Tmax).
+            :rtype: float ndarray
+            """
         # TODO(kan-bayashi): need to make more smart way
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+        att_idx = min(strm_idx, len(self.att) - 1)
 
         # hlen should be list of integer
         hlen = list(map(int, hlen))
@@ -654,29 +660,25 @@ class Decoder(torch.nn.Module):
             z_list.append(self.zero_state(hs_pad))
         att_w = None
         att_ws = []
-        self.att.reset()  # reset pre-computation of h
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # pre-computation of embedding
         eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att(hs_pad, hlen, self.dropout_dec[0](z_list[0]), att_w)
+            att_c, att_w = self.att[att_idx](hs_pad, hlen, self.dropout_dec[0](z_list[0]), att_w)
             ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             att_ws.append(att_w)
 
         # convert to numpy array with the shape (B, Lmax, Tmax)
-        att_ws = att_to_numpy(att_ws, self.att)
+        att_ws = att_to_numpy(att_ws, self.att[att_idx])
         return att_ws
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
-    if not hasattr(args, 'multilingual'):
-        args.multilingual = False
-    # TODO(hirofumi): fix later
-
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att,
                    args.verbose, args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
-                   args.context_residual, args.replace_sos, args.multilingual)
+                   args.context_residual, args.replace_sos)
