@@ -28,8 +28,8 @@ if __name__ == '__main__':
     try:
         tmpFile = open(tmpFileLocation, encoding='utf-8')
     except IOError:
-        print('The file spk2gendertmp does not exist. Run fsp_make_trans.pl first?',
-              file=sys.stderr)
+        print('The file spk2gendertmp does not exist. Run fsp_make_trans.pl first?')
+        # file=sys.stderr
         raise
 
     speakers = {}

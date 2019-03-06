@@ -30,6 +30,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=2
 dunits=1024
+context_residual=true
 # attention related
 atype=add
 adim=1024
@@ -53,17 +54,21 @@ maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=15
 patience=3
-eps_decay=0.01
 
 # decoding parameter
 beam_size=20
 penalty=1.0
 maxlenratio=0.5
-minlenratio=0
+minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+
+# preprocessing related
+st_case=tc  # or lc
+asr_case=lc  # or tc
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -78,7 +83,7 @@ split_callhome=local/splits/split_callhome
 
 # bpemode (unigram or bpe)
 nbpe=1000
-bpemode=unigram
+bpemode=bpe
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -154,7 +159,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train_sp fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
-        local/divide_lang.sh data/${x}
+        local/divide_lang.sh ${st_case} ${asr_case} data/${x}
     done
 
     for lang in es en; do
@@ -223,9 +228,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    offset=`cat ${dict} | wc -l`
+    offset=$(cat ${dict} | wc -l)
     cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    spm_train --user_defined_symbols=`cat ${nlsyms} | tr "\n" ","` --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+    spm_train --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
 
@@ -243,7 +248,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # update json (add source references)
     for x in ${train_set} ${train_dev}; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
-        data_dir=data/`echo ${x} | cut -f -1 -d "."`.es
+        data_dir=data/$(echo ${x} | cut -f -1 -d ".").es
         local/update_json.sh --bpecode ${bpemodel}.model ${feat_dir}/data_${bpemode}${nbpe}.json ${data_dir} ${dict}
     done
 
@@ -263,6 +268,9 @@ if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
     if ${do_delta}; then
         expname=${expname}_delta
+    fi
+    if [ ! -z ${context_residual} ]; then
+      expname=${expname}_cres
     fi
     if [ ! -z ${asr_model} ]; then
       expname=${expname}_asrtrans
@@ -311,17 +319,18 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dropout-rate ${drop_enc} \
         --dropout-rate-decoder ${drop_dec} \
         --opt ${opt} \
+        --sortagrad ${sortagrad} \
         --epochs ${epochs} \
         --patience ${patience} \
-        --eps-decay ${eps_decay} \
         --weight-decay ${weight_decay} \
         --asr-model ${asr_model} \
-        --mt-model ${mt_model}
+        --mt-model ${mt_model} \
+        --context-residual ${context_residual}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=16
 
     for rtask in ${recog_set}; do
     (
