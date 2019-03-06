@@ -39,8 +39,8 @@ adim=1024
 samp_prob=0
 lsm_type=unigram
 lsm_weight=0.1
-drop_enc=0.5
-drop_dec=0.5
+drop_enc=0.3
+drop_dec=0.3
 weight_decay=0.000001
 
 # minibatch related
@@ -61,8 +61,8 @@ minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # bpemode (unigram or bpe)
-nbpe=1000
-bpemode=unigram
+nbpe=16000
+bpemode=bpe
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -137,9 +137,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    offset=`cat ${dict} | wc -l`
+    offset=$(cat ${dict} | wc -l)
     cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    spm_train --user_defined_symbols=`cat ${nlsyms} | tr "\n" ","` --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+    spm_train --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
 
@@ -237,7 +237,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=16
 
     for rtask in ${recog_set}; do
     (
