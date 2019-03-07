@@ -127,7 +127,7 @@ $ make clean_python
 $ make python
 ```
 
-If there are some problems during the installation of extra modules (e.g. [#606](https://github.com/espnet/espnet/issues/606), you can try minimum installation via following commands
+If there are some problems during the installation of extra modules (e.g. [#606](https://github.com/espnet/espnet/issues/606)), you can try minimum installation via following commands
 ```sh
 $ cd tools
 $ make clean
