@@ -120,10 +120,13 @@ if [ ${stage} -le 0 ]; then
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
     local/wsj_format_data.sh
     mkdir -p data/wsj
-    mv data/{dev_dt_05,local,test_dev93_5k,test_eval92_5k,test_eval93_5k,dev_dt_20,test_dev93,test_eval92,test_eval93,train_si284} data/wsj
+    mv data/{dev_dt_05,local,test_dev93_5k,test_eval92_5k,test_eval93_5k,\
+             dev_dt_20,test_dev93,test_eval92,test_eval93,train_si284} data/wsj
 
-    ### Or this part is for WSJ mix
-    ### Before next step, suppose wsj_2mix_corpus has been generated.
+    ### Or this part is for WSJ mix, which is a larger two-speaker mixture corpus created from WSJ corpus. Used in
+    ### Seki H, Hori T, Watanabe S, et al. End-to-End Multi-Lingual Multi-Speaker Speech Recognition[J]. 2018. and
+    ### Chang X, Qian Y, Yu K, et al. End-to-End Monaural Multi-speaker ASR System without Pretraining[J]. 2019
+    ### Before next step, suppose wsj_2mix_corpus has been generated (please refer to wsj0_mixture for more details).
     #local/wsj_2mix_data_prep.sh ${wsj_2mix_wav}/wav16k/max ${wsj_2mix_script} || exit 1;
 fi
 
