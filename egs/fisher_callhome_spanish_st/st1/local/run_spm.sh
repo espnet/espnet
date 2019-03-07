@@ -221,17 +221,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1spm/
 
-    # echo "make a non-linguistic symbol list for all languages"
-    # cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
-    # cat ${nlsyms}
-    #
-    # # Share the same dictinary between source and target languages
-    # echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    # offset=$(cat ${dict} | wc -l)
-    # cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    # spm_train --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
-    # spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
-    # wc -l ${dict}
+    echo "make a non-linguistic symbol list for all languages"
+    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
+    cat ${nlsyms}
+
+    # Share the same dictinary between source and target languages
+    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    offset=$(cat ${dict} | wc -l)
+    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    spm_train --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
+    wc -l ${dict}
 
     # make json labels
     data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
@@ -260,8 +260,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         done
     done
 fi
-
-exit 1
 
 # NOTE: skip stage 3: LM Preparation
 
