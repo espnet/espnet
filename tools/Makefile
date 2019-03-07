@@ -16,9 +16,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: minimum extra check_install
-
-minimum: kaldi.done python
+all: kaldi.done python check_install
 
 python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
@@ -135,7 +133,7 @@ moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
-check_install: minimum
+check_install: kaldi.done python
 	. venv/bin/activate; python check_install.py
 
 clean: clean_extra
@@ -145,9 +143,9 @@ clean: clean_extra
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf venv warp-ctc chainer_ctc kaldi-io-for-python
+	rm -rf venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-	rm -rf chainer_patch.done warp-ctc.done chainer_ctc.done
+	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:
