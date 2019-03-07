@@ -234,13 +234,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
+    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
+    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
+        local/data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
             data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
     done
 
