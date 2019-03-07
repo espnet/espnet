@@ -16,9 +16,11 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra check_install
+all: minimum extra check_install
 
-all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+minimum: kaldi.done python
+
+python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
 
@@ -133,7 +135,7 @@ moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
-check_install: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra
+check_install: minimum
 	. venv/bin/activate; python check_install.py
 
 clean: clean_extra
