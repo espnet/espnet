@@ -26,7 +26,7 @@ class RNNP(torch.nn.Module):
 
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout, typ="blstm"):
         super(RNNP, self).__init__()
-        bidir = typ[0]=="b"
+        bidir = typ[0] == "b"
         for i in six.moves.range(elayers):
             if i == 0:
                 inputdim = idim
@@ -89,7 +89,7 @@ class RNN(torch.nn.Module):
 
     def __init__(self, idim, elayers, cdim, hdim, dropout, typ="blstm"):
         super(RNN, self).__init__()
-        bidir = typ[0]=="b"
+        bidir = typ[0] == "b"
         self.nbrnn = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
                                    dropout=dropout, bidirectional=bidir) if "lstm" in typ \
             else torch.nn.GRU(idim, cdim, elayers, batch_first=True, dropout=dropout,
@@ -193,20 +193,20 @@ class Encoder(torch.nn.Module):
     def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
         super(Encoder, self).__init__()
         typ = etype.lstrip("vgg").rstrip("p")
-        if typ not in ['lstm','gru','blstm','bgru']:
+        if typ not in ['lstm', 'gru', 'blstm', 'bgru']:
             logging.error("Error: need to specify an appropriate encoder architecture")
         if etype.startswith("vgg"):
             if etype[-1] == "p":
                 self.enc = torch.nn.ModuleList([VGG2L(in_channel),
                                                 RNNP(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                      eprojs,
-                                                      subsample, dropout, typ=typ)])
+                                                     eprojs,
+                                                     subsample, dropout, typ=typ)])
                 logging.info('Use CNN-VGG + ' + typ.upper() + 'P for encoder')
             else:
                 self.enc = torch.nn.ModuleList([VGG2L(in_channel),
                                                 RNN(get_vgg2l_odim(idim, in_channel=in_channel), elayers, eunits,
-                                                     eprojs,
-                                                     dropout, typ=typ)])
+                                                    eprojs,
+                                                    dropout, typ=typ)])
                 logging.info('Use CNN-VGG + ' + typ.upper() + ' for encoder')
         else:
             if etype[-1] == "p":
