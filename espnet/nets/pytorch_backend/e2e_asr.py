@@ -228,7 +228,7 @@ class E2E(torch.nn.Module):
         if self.mtlalpha == 1:
             loss_att, acc = None, None
         else:
-            loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids)
+            loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
         self.acc = acc
 
         # 4. compute cer without beam search
@@ -416,6 +416,6 @@ class E2E(torch.nn.Module):
             hpad, hlens = self.enc(xs_pad, ilens)
 
             # decoder
-            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids)
+            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
 
         return att_ws
