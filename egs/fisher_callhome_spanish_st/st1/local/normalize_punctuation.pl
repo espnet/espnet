@@ -17,6 +17,7 @@ while(<STDIN>) {
   s/_/ /g;
   s/`/'/g;     # for En
   s/´/'/g;     # for En
+  s/\¨/'/g;    # I¨m -> I'm etc.
 
   # remove noisy parts
   s/noise//g;
@@ -113,25 +114,29 @@ while(<STDIN>) {
   s/\}/ /g;
   s/\\/ /g;
   s/\// /g;
-  s/:/ /g;
   s/\;/ /g;
   s/~/ /g;
   s/=/ /g;
   s/\·/ /g;
-  s/\¨/ /g;
   s/\*/ /g; # for callhome_train
 
-  # remove consecutive spaces
+  # remove noisy punctuation in the first character
+  my $count;
+  for ($count = 0; $count < 1; $count++){
+      s/^\s+//g;
+      s/^\,\s*//g;
+      s/^\.+\s*//g;
+      s/^!\s*//g;
+  }
+  s/^\.\s*$//g;  # only period sentence
+  s/^\?\s*$//g;  # only question mark sentence
+
+  # remove consecutive whitespaces
   s/\s+/ /g;
 
-  # remove last bar (except for partial words)
-  s/\s+$//;
-  s/\s-$//;
-
-  # remove whitespace again
-  s/\s+/ /g;
-  s/^\s+//;
-  s/\s+$//;
+  # remove the first and last whitespaces
+  s/^\s+//g;
+  s/\s+$//g;
 
   print "$_\n";
 }

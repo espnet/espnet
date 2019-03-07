@@ -6,14 +6,14 @@
 . ./path.sh
 
 if [ "$#" -ne 3 ]; then
-  echo "Usage: $0 <st-case> <asr-case> <src-dir>"
-  echo "e.g.: $0 tc data/dev"
-  exit 1
+    echo "Usage: $0 <st-case> <asr-case> <src-dir>"
+    echo "e.g.: $0 tc data/dev"
+    exit 1
 fi
 
 st_case=$1
-asr_case=$1
-src=$2
+asr_case=$2
+src=$3
 set=$(echo $src | awk -F"/" '{print $NF}')
 
 # fix the original directory at first

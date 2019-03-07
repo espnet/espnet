@@ -78,7 +78,7 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 
 # preprocessing related
 st_case=tc  # or lc
-asr_case=lc  # or tc
+asr_case=lc.rm  # or tc or lc
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -238,7 +238,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json

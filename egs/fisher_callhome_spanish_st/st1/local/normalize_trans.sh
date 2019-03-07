@@ -8,9 +8,9 @@ export LC_ALL=C
 . ./path.sh
 
 if [ $# -lt 2 ]; then
-   echo "Usage: $0 <LDC2010T04-location> <LDC96T17-location>"
-   echo "e.g.: $0 /export/corpora/LDC/LDC2010T04 /export/corpora/LDC/LDC96T17"
-   exit 1;
+    echo "Usage: $0 <LDC2010T04-location> <LDC96T17-location>"
+    echo "e.g.: $0 /export/corpora/LDC/LDC2010T04 /export/corpora/LDC/LDC96T17"
+    exit 1;
 fi
 
 # download data preparation scripts for transcriptions

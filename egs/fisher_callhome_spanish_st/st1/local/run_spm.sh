@@ -46,7 +46,6 @@ weight_decay=0.000001
 # transfer learning ralated
 asr_model=
 mt_model=
-# NOTE: reserve here for the future usage
 
 # minibatch related
 batchsize=25
@@ -68,7 +67,7 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 
 # preprocessing related
 st_case=tc  # or lc
-asr_case=lc  # or tc
+asr_case=lc.rm  # or tc or lc
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -222,20 +221,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1spm/
 
-    echo "make a non-linguistic symbol list for all languages"
-    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
-    cat ${nlsyms}
-
-    # Share the same dictinary between source and target languages
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    offset=$(cat ${dict} | wc -l)
-    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    spm_train --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
-    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
-    wc -l ${dict}
+    # echo "make a non-linguistic symbol list for all languages"
+    # cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
+    # cat ${nlsyms}
+    #
+    # # Share the same dictinary between source and target languages
+    # echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    # offset=$(cat ${dict} | wc -l)
+    # cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    # spm_train --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+    # spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
+    # wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
@@ -261,6 +260,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         done
     done
 fi
+
+exit 1
 
 # NOTE: skip stage 3: LM Preparation
 
