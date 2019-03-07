@@ -38,7 +38,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.1, 1.0.0 
+- PyTorch 0.4.1, 1.0.0
 - gcc>=4.9 for PyTorch1.0.0
 - Chainer 5.0.0
 
@@ -124,7 +124,14 @@ If there are some problems in python libraries, you can re-setup only python env
 ```sh
 $ cd tools
 $ make clean_python
-$ make all_python
+$ make python
+```
+
+If there are some problems during the installation of extra modules (e.g. [#606](https://github.com/espnet/espnet/issues/606), you can try minimum installation via following commands
+```sh
+$ cd tools
+$ make clean
+$ make minimum
 ```
 And then check the install is succeeded again.
 
