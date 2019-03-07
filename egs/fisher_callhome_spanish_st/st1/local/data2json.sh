@@ -109,6 +109,14 @@ for intype in 'output' 'other'; do
         < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
     done
 done
+if [ -n "${feat}" ]; then
+  for intype in 'input'; do
+      for x in "${tmpdir}/${intype}"/*.scp; do
+          k=$(basename ${x} .scp)
+          < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
+      done
+  done
+fi
 
 # 5. Merge JSON files into one and output to stdout
 if [ -n "${out}" ]; then
