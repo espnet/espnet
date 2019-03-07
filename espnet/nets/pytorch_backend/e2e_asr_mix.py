@@ -26,7 +26,7 @@ from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import BRNNP
+from espnet.nets.pytorch_backend.encoders import RNNP
 from espnet.nets.pytorch_backend.encoders import VGG2L
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -528,14 +528,14 @@ class Encoder(torch.nn.Module):
         if etype.startswith("vgg"):
             if etype[-1] == "p":
                 self.enc_mix = torch.nn.ModuleList([VGG2L(in_channel)])
-                self.enc_sd = torch.nn.ModuleList([torch.nn.ModuleList([BRNNP(get_vgg2l_odim(idim,
-                                                                                             in_channel=in_channel),
-                                                                              elayers_sd, eunits, eprojs,
-                                                                              subsample[:elayers_sd + 1], dropout,
-                                                                              typ=typ)])
+                self.enc_sd = torch.nn.ModuleList([torch.nn.ModuleList([RNNP(get_vgg2l_odim(idim,
+                                                                                            in_channel=in_channel),
+                                                                             elayers_sd, eunits, eprojs,
+                                                                             subsample[:elayers_sd + 1], dropout,
+                                                                             typ=typ)])
                                                    for i in range(num_spkrs)])
-                self.enc_rec = torch.nn.ModuleList([BRNNP(eprojs, elayers_rec, eunits, eprojs,
-                                                          subsample[elayers_sd:], dropout, typ=typ)])
+                self.enc_rec = torch.nn.ModuleList([RNNP(eprojs, elayers_rec, eunits, eprojs,
+                                                         subsample[elayers_sd:], dropout, typ=typ)])
                 logging.info('Use CNN-VGG + B' + typ.upper() + 'P for encoder')
         else:
             logging.error(
