@@ -46,10 +46,9 @@ weight_decay=0.000001
 # transfer learning ralated
 asr_model=
 mt_model=
-# NOTE: reserve here for the future usage
 
 # minibatch related
-batchsize=15
+batchsize=20
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -65,6 +64,10 @@ penalty=0.3
 maxlenratio=1.6
 minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+
+# preprocessing related
+st_case=tc  # or lc
+asr_case=lc.rm  # or tc or lc
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -151,7 +154,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train_sp fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
-        local/divide_lang.sh data/${x}
+        local/divide_lang.sh ${st_case} ${asr_case} data/${x}
     done
 
     for lang in es en; do
@@ -224,7 +227,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
@@ -319,7 +322,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=16
 
     for rtask in ${recog_set}; do
     (
@@ -355,7 +358,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --set ${rtask} ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --nlsyms ${nlsyms} --set ${rtask} ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
