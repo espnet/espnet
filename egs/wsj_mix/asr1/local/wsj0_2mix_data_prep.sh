@@ -11,7 +11,7 @@ normalize_transcript=$KALDI_ROOT/egs/wsj/s5/local/normalize_transcript.pl
 
 wavdir=$1
 srcdir=$2
-wsj_full_wav=$4
+wsj_full_wav=$3
 
 # check if the wav dir exists.
 for f in $wavdir/tr $wavdir/cv $wavdir/tt; do
@@ -30,8 +30,7 @@ for f in $srcdir/mix_2_spk_max_tr_mix $srcdir/mix_2_spk_max_cv_mix $srcdir/mix_2
 done
 
 data=./data
-rm -r ${data} 2>/dev/null
-mkdir -p ${data}
+rm -r ${data}/{tr,cv,tt} 2>/dev/null
 
 for x in tr cv tt; do
   mkdir -p ${data}/$x
