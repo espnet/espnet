@@ -62,7 +62,7 @@ class RNNP(chainer.Chain):
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
 
         for layer in six.moves.range(self.elayers):
-            if self.typ == "lstm":
+            if "lstm" in self.typ:
                 _, _, ys = self[self.rnn_label + str(layer)](None, None, xs)
             else:
                 _, ys = self[self.rnn_label + str(layer)](None, xs)
@@ -109,7 +109,7 @@ class RNN(chainer.Chain):
         # need to move ilens to cpu
         ilens = cuda.to_cpu(ilens)
 
-        if self.typ == "lstm":
+        if "lstm" in self.typ:
             _, _, ys = self.nbrnn(None, None, xs)
         else:
             _, ys = self.nbrnn(None, xs)
