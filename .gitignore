@@ -26,6 +26,7 @@ egs/*/*/tensorboard
 egs/*/*/wav*
 
 # tools related
+tools/bats-core
 tools/chainer_ctc/
 tools/kaldi*
 tools/mecab/
