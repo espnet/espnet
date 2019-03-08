@@ -6,72 +6,112 @@
 
 . ./path.sh
 
+nj=1
+cmd=run.pl
 nlsyms=""
 lang=""
 feat="" # feat.scp
 oov="<unk>"
 bpecode=""
 verbose=0
+filetype=""
+preprocess_conf=""
+out="" # if omitted, write in stdout
+num_spkrs=1
 
 . utils/parse_options.sh
-set -x
 
 if [ $# != 2 ]; then
-    echo "Usage: $0 <data-dir> <dict>";
+    cat << EOF 1>&2
+Usage: $0 <data-dir> <dict>
+e.g. $0 data/train data/lang_1char/train_units.txt
+Options:
+  --nj <nj>                                        # number of parallel jobs
+  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
+  --feat <feat-scp>                                # feat.scp
+  --oov <oov-word>                                 # Default: <unk>
+  --out <outputfile>                               # If omitted, write in stdout
+  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
+  --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp
+  --verbose <num>                                  # Default: 0
+  --num-spkrs <num>                                # Number of speakers Default: 2
+EOF
     exit 1;
 fi
+
+set -euo pipefail
 
 dir=$1
 dic=$2
 tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
-rm -f ${tmpdir}/*.scp
+trap 'rm -rf ${tmpdir}' EXIT
 
-# input, which is not necessary for decoding mode, and make it as an option
-if [ ! -z ${feat} ]; then
-    if [ ${verbose} -eq 0 ]; then
-        utils/data/get_utt2num_frames.sh ${dir} &> /dev/null
-        cp ${dir}/utt2num_frames ${tmpdir}/ilen.scp
-        feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp &> /dev/null
-    else
-        utils/data/get_utt2num_frames.sh ${dir}
-        cp ${dir}/utt2num_frames ${tmpdir}/ilen.scp
-        feat-to-dim scp:${feat} ark,t:${tmpdir}/idim.scp
+# 1. Create scp files for inputs
+#   These are not necessary for decoding mode, and make it as an option
+mkdir -p ${tmpdir}/input
+input_strs=""
+if [ -n ${feat} ]; then
+    cat ${feat} > ${tmpdir}/input/feat.scp
+
+    # Dump in the "legacy" style JSON format
+    if [ -n "${filetype}" ]; then
+        awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
+            > ${tmpdir}/input/filetype.scp
     fi
+
+    feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
+        --filetype "${filetype}" \
+        --preprocess-conf "${preprocess_conf}" \
+        --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
+
+    input_strs=${input_strs}"--input-scps feat:${tmpdir}/input/feat.scp shape:${tmpdir}/input/shape.scp:shape "
 fi
 
-# output
-if [ ! -z ${bpecode} ]; then
-    paste -d " " <(awk '{print $1}' ${dir}/text_spk1) <(cut -f 2- -d" " ${dir}/text_spk1 | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token_spk1.scp
-    paste -d " " <(awk '{print $1}' ${dir}/text_spk2) <(cut -f 2- -d" " ${dir}/text_spk2 | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token_spk2.scp
-elif [ ! -z ${nlsyms} ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text_spk1 > ${tmpdir}/token_spk1.scp
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text_spk2 > ${tmpdir}/token_spk2.scp
-else
-    text2token.py -s 1 -n 1 ${dir}/text_spk1 > ${tmpdir}/token_spk1.scp
-    text2token.py -s 1 -n 1 ${dir}/text_spk2 > ${tmpdir}/token_spk2.scp
-fi
-cat ${tmpdir}/token_spk1.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid_spk1.scp
-cat ${tmpdir}/token_spk2.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid_spk2.scp
-cat ${tmpdir}/tokenid_spk1.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/olen_spk1.scp
-cat ${tmpdir}/tokenid_spk2.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/olen_spk2.scp
-# +2 comes from CTC blank and EOS
-vocsize=`tail -n 1 ${dic} | awk '{print $2}'`
-odim=`echo "$vocsize + 2" | bc`
-awk -v odim=${odim} '{print $1 " " odim}' ${tmpdir}/ilen.scp > ${tmpdir}/odim.scp
+# 2. Create scp files for outputs
+mkdir -p ${tmpdir}/output
+output_strs=""
+for outidx in $(seq ${num_spkrs}); do
+  if [ ${num_spkrs} -eq 1 ]; then
+    suffix=""
+  else
+    suffix="_spk"${outidx}
+  fi
+  if [ -n "${bpecode}" ]; then
+      paste -d " " <(awk '{print $1}' ${dir}/text${suffix}) <(cut -f 2- -d" " ${dir}/text${suffix} \
+          | spm_encode --model=${bpecode} --output_format=piece) \
+          > ${tmpdir}/output/token${suffix}.scp
+  elif [ -n "${nlsyms}" ]; then
+      text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text${suffix} > ${tmpdir}/output/token${suffix}.scp
+  else
+      text2token.py -s 1 -n 1 ${dir}/text${suffix} > ${tmpdir}/output/token${suffix}.scp
+  fi
+  < ${tmpdir}/output/token${suffix}.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid${suffix}.scp
+  # +2 comes from CTC blank and EOS
+  vocsize=`tail -n 1 ${dic} | awk '{print $2}'`
+  odim=`echo "$vocsize + 2" | bc`
+  < ${tmpdir}/output/tokenid${suffix}.scp awk -v odim=${odim} '{print $1 " " NF-1 "," odim}' > ${tmpdir}/output/shape${suffix}.scp
 
-# others
-if [ ! -z ${lang} ]; then
-    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text_spk1 > ${tmpdir}/lang_spk1.scp
-    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text_spk2 > ${tmpdir}/lang_spk2.scp
-fi
-# feats
-cat ${feat} > ${tmpdir}/feat.scp
+  cat ${dir}/text${suffix} > ${tmpdir}/output/text${suffix}.scp
 
-rm -f ${tmpdir}/*.json
-for x in ${dir}/text_spk1 ${dir}/text_spk2 ${dir}/utt2spk ${tmpdir}/*.scp; do
-    k=`basename ${x} .scp`
-    cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
+  # 3. Create scp files for the others
+  mkdir -p ${tmpdir}/other
+  if [ -n "${lang}" ]; then
+      awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text${suffix} > ${tmpdir}/other/lang${suffix}.scp
+  fi
+  output_strs=${output_strs}"--output-scps text:${tmpdir}/output/text${suffix}.scp \
+                             token:${tmpdir}/output/token${suffix}.scp \
+                             tokenid:${tmpdir}/output/tokenid${suffix}.scp \
+                             shape:${tmpdir}/output/shape${suffix}.scp:shape "
 done
-local/mergejson.py --verbose ${verbose} ${tmpdir}/*.json
+cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
 
-rm -fr ${tmpdir}
+# 5. Merge JSON files into one and output to stdout
+if [ -n "${out}" ]; then
+    out_opt="-O ${out}"
+else
+    out_opt=""
+fi
+local/merge_scp2json.py --verbose ${verbose} \
+    ${input_strs} \
+    ${output_strs} \
+    --scps utt2spk:${tmpdir}/other/utt2spk.scp ${out_opt}
