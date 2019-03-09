@@ -114,7 +114,7 @@ fi
 if [ $stage -le 2 ]; then
   sort $tmpdir/callhome.text.1 | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $tmpdir/text.2
   #Filter out uttreances that don't have any text transcription
-  awk -F' ' '{print NF" "NR}' $tmpdir/text.2 | grep -w ^1 | awk -F' ' '{print $2}' | sed 's%$%d%' | sed -f - $tmpdir/text.2 > $dir/callhome_train_all/callhome.text
+  awk 'NF>1 {print}' $tmpdir/text.2 > $dir/callhome_train_all/callhome.text
 
   #Create segments file and utt2spk file
   ! cat $dir/callhome_train_all/callhome.text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/callhome_train_all/callhome_utt2spk \

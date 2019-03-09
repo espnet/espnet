@@ -139,7 +139,7 @@ if [ $stage -le 2 ]; then
   #Now go after the non-printable characters and multiple spaces
   sed -r 's:¿::g'  | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $tmpdir/text.2
   #Filter out uttreances that don't have any text transcription
-  awk -F' ' '{print NF" "NR}' $tmpdir/text.2 | grep -w ^1 | awk -F' ' '{print $2}' | sed 's%$%d%' | sed -f - $tmpdir/text.2 > $tmpdir/text.3
+  awk 'NF>1 {print}' $tmpdir/text.2 > $tmpdir/text.3
   cp $tmpdir/text.3 $dir/train_all/text
 
   #Create segments file and utt2spk file
