@@ -238,6 +238,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=32
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
@@ -259,16 +260,16 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} &
-        wait
+            --minlenratio ${minlenratio}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
         local/score_sclite.sh data/eval2000 ${expdir}/${decode_dir}
         local/score_sclite.sh data/rt03 ${expdir}/${decode_dir}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    for pid in "${pids[@]}"; do wait ${pid} ; done
     echo "Finished"
 fi
 

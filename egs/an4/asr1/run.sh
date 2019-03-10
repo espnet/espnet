@@ -221,7 +221,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=8
 
-    pids=()
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
@@ -251,9 +251,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         score_sclite.sh ${expdir}/${decode_dir} ${dict}
 
     ) &
-    pids+=($!)
+    pids+=($!) # store background pids
     done
-    for pid in "${pids[@]}"; do wait ${pid} || { echo "Some jobs failed"; exit 1; }; done
+    for pid in "${pids[@]}"; do wait ${pid} ; done
 
     echo "Finished"
 fi

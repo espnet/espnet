@@ -304,6 +304,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
       extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
     fi
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
@@ -330,14 +331,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --ctc-weight ${ctc_weight} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            ${extra_opts} &
-        wait
+            ${extra_opts}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    for pid in "${pids[@]}"; do wait ${pid} ; done
     echo "Finished"
 fi
 
