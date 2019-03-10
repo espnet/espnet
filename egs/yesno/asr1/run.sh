@@ -97,7 +97,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
     # Feature extraction
-    for x in train_yesno test_yesno; do 
+    for x in train_yesno test_yesno; do
         steps/make_fbank_pitch.sh --nj 1 --write_utt2num_frames true data/${x} exp/make_fbank/${x} ${fbankdir}
         steps/compute_cmvn_stats.sh data/${x} exp/make_fbank/${x} ${fbankdir}
     done
@@ -200,13 +200,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=2
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -224,15 +225,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            &
-        wait
+            --ctc-weight ${ctc_weight}
 
         score_sclite.sh ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    for pid in "${pids[@]}"; do wait ${pid} ; done
     echo "Finished"
 fi
 

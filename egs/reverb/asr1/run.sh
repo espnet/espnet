@@ -111,7 +111,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/generate_data.sh --wavdir ${wavdir} ${wsjcam0}
     local/prepare_simu_data.sh --wavdir ${wavdir} ${reverb} ${wsjcam0}
     local/prepare_real_data.sh --wavdir ${wavdir} ${reverb}
-    
+
     # Run WPE and Beamformit
     local/run_wpe.sh
     local/run_beamform.sh ${wavdir}/WPE/
@@ -321,6 +321,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         if [ ${use_wordlm} = true ]; then
@@ -336,7 +337,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -355,14 +356,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --lm-weight ${lm_weight} \
-            ${recog_opts} &
-        wait
+            ${recog_opts}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    for pid in "${pids[@]}"; do wait ${pid} ; done
+
     echo "Report the result"
     decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
     if [ ${use_wordlm} = true ]; then
