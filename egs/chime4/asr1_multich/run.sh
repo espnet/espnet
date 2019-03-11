@@ -9,6 +9,7 @@
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
+stop_stage=1000000
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -20,10 +21,9 @@ preprocess_conf=conf/preprocess.json
 
 # network architecture
 use_beamformer=true
-use_wpe=false
-use_dnn_mask_for_wpe=false
-blayers=2
-wlayers=2
+blayers=3
+bunits=300
+bprojs=300
 
 # encoder related
 etype=vggblstmp     # encoder architecture type
@@ -77,6 +77,9 @@ minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
+# enhanced speech option
+fs=16000
+
 # scheduled sampling option
 samp_prob=0.0
 
@@ -102,11 +105,13 @@ set -e
 set -u
 set -o pipefail
 
+which sox &> /dev/null || { echo "Error: requires sox command."; exit 1; }
+
 train_set=tr05_multi_noisy_si284 # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
 train_dev=dt05_multi_isolated_6ch_track
 recog_set="dt05_real_isolated_6ch_track dt05_simu_isolated_6ch_track et05_real_isolated_6ch_track et05_simu_isolated_6ch_track"
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ## Task dependent. You have to make the following data preparation part by yourself.
     # But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
@@ -116,6 +121,7 @@ if [ ${stage} -le 0 ]; then
     echo "prepartion for chime4 data"
     local/real_noisy_chime4_data_prep.sh ${chime4_data}
     local/simu_noisy_chime4_data_prep.sh ${chime4_data}
+    local/bth_chime4_data_prep.sh ${chime4_data}
     echo "test data for 6ch track"
     local/real_enhan_chime4_data_prep.sh isolated_6ch_track ${chime4_data}/data/audio/16kHz/isolated_6ch_track
     local/simu_enhan_chime4_data_prep.sh isolated_6ch_track ${chime4_data}/data/audio/16kHz/isolated_6ch_track
@@ -125,32 +131,32 @@ if [ ${stage} -le 0 ]; then
     local/wsj_format_data.sh
 fi
 
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ## But you can utilize Kaldi recipes in most cases
     echo "stage 1: Dump wav files into a HDF5 file"
 
     echo "combine real and simulation data"
-    utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy
+    # utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy
     for setname in tr05_multi_noisy ${recog_set};do
-        echo ${setname}
+    # for setname in dt05_bth et05_bth;do
         mkdir -p data/${setname}_multich
-        <data/${setname}/utt2spk sed -r 's/^(.*?).CH[0-9](_.*?) /\1\2 /g' | sort -u >data/${setname}_multich/utt2spk
-        <data/${setname}/text sed -r 's/^(.*?).CH[0-9](_.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
+        <data/${setname}/utt2spk sed -r 's/^(.*?).CH[0-9](_?.*?) /\1\2 /g' | sort -u >data/${setname}_multich/utt2spk
+        <data/${setname}/text sed -r 's/^(.*?).CH[0-9](_?.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
         <data/${setname}_multich/utt2spk utils/utt2spk_to_spk2utt.pl >data/${setname}_multich/spk2utt
 
         # 2th mic is omitted in default
         for ch in 1 3 4 5 6; do
-            <data/${setname}/wav.scp grep "CH${ch}" | sed -r 's/^(.*?).CH[0-9](_.*?) /\1\2 /g' >data/${setname}_multich/wav_ch${ch}.scp
+            <data/${setname}/wav.scp grep "CH${ch}" | sed -r 's/^(.*?).CH[0-9](_?.*?) /\1\2 /g' >data/${setname}_multich/wav_ch${ch}.scp
         done
-        gather-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
+        mix-mono-wav-scp.py data/${setname}_multich/wav_ch*.scp > data/${setname}_multich/wav.scp
         rm -f data/${setname}_multich/wav_ch*.scp
     done
 
     # Note that data/tr05_multi_noisy_multich has multi-channel wav data, while data/train_si284 has 1ch only
-    dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" data/train_si284
+    dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" --format flac data/train_si284
     for setname in tr05_multi_noisy ${recog_set}; do
-        dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" data/${setname}_multich
+        dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" --format flac data/${setname}_multich
     done
     utils/combine_data.sh data/${train_dev}_multich data/dt05_simu_isolated_6ch_track_multich data/dt05_real_isolated_6ch_track_multich
 
@@ -167,14 +173,14 @@ echo "dictionary: ${dict}"
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs$((batchsize * ngpu))_mli${maxlen_in}_mlo${maxlen_out}_usebf${use_beamformer}_usewp${use_wpe}_usednnw${use_dnn_mask_for_wpe}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs$((batchsize * ngpu))_mli${maxlen_in}_mlo${maxlen_out}_usebf${use_beamformer}_bunit${bunits}_bproj${bprojs}
 else
     expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
@@ -192,18 +198,18 @@ if [ ${stage} -le 2 ]; then
     echo "make json files"
     for setname in tr05_multi_noisy_multich ${train_dev} ${recog_set}; do
         data2json.sh --cmd "${train_cmd}" --nj 30 \
-        --category "multichannel" \
-        --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
-        --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
-        --out data/${setname}/data.json data/${setname} ${dict}
+            --category "multichannel" \
+            --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
+            --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
+            --out data/${setname}/data.json data/${setname} ${dict}
     done
 
     setname=train_si284
     data2json.sh --cmd "${train_cmd}" --nj 30 \
-    --category "singlechannel" \
-    --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
-    --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
-    --out data/${setname}/data.json data/${setname} ${dict}
+        --category "singlechannel" \
+        --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
+        --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
+        --out data/${setname}/data.json data/${setname} ${dict}
 
     mkdir -p data/${train_set}
     concatjson.py data/tr05_multi_noisy_multich/data.json data/train_si284/data.json > data/${train_set}/data.json
@@ -221,7 +227,7 @@ lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
@@ -273,17 +279,16 @@ if [ ${stage} -le 3 ]; then
 fi
 
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training: expdir=${expdir}"
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --use-frontend True \
         --use-beamformer ${use_beamformer} \
-        --use-wpe ${use_wpe} \
-        --use-dnn-mask-for-wpe ${use_dnn_mask_for_wpe} \
         --blayers ${blayers} \
-        --wlayers ${wlayers} \
+        --bunits ${bunits} \
+        --bprojs ${bprojs} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -319,13 +324,14 @@ if [ ${stage} -le 4 ]; then
         --patience ${patience}
 fi
 
-if [ ${stage} -le 5 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=200
 
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+
         if [ ${use_wordlm} = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
@@ -352,14 +358,87 @@ if [ ${stage} -le 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --lm-weight ${lm_weight} \
-            ${recog_opts} &
-        wait
-
+            ${recog_opts}
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
     done
     wait
-    echo "Finished"
+
+    echo "Decoding successfully finished"
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "stage 6: Enhance speech"
+    nj=200
+    ngpu=0
+
+    for rtask in ${recog_set}; do
+    (
+        enhdir=${expdir}/enhance_${rtask}
+        mkdir -p ${enhdir}/outdir
+        splitjson.py --parts ${nj} data/${rtask}/data.json
+
+        ${decode_cmd} JOB=1:${nj} ${enhdir}/log/enhance.JOB.log \
+            asr_enhance.py \
+                --ngpu ${ngpu} \
+                --backend ${backend} \
+                --debugmode ${debugmode} \
+                --model ${expdir}/results/${recog_model}  \
+                --recog-json data/${rtask}/split${nj}utt/data.JOB.json \
+                --enh-wspecifier ark,scp:${enhdir}/outdir/enhance.JOB,${enhdir}/outdir/enhance.JOB.scp \
+                --enh-filetype "sound" \
+                --image-dir ${enhdir}/images \
+                --fs ${fs}
+    ) &
+    done
+    wait
+
+    for rtask in ${recog_set}; do
+        enhdir=${expdir}/enhance_${rtask}
+        for i in $(seq 1 ${nj}); do
+            cat ${enhdir}/outdir/enhance.${i}.scp
+        done > ${enhdir}/enhance.scp
+    done
+fi
+
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "stage 7: Evaluate enhanced speech"
+    for rtask in ${recog_set}; do
+    (
+        rtask=$(echo ${rtask} | sed -e 's/_multich//')
+
+        for place in PED CAF STR BUS; do
+            basedir=eval_mixture/${rtask}/eval_${place}
+            bth=$(echo ${rtask} | sed -r "s/(dt05|et05).*/\1_bth/")
+            mkdir -p ${basedir}
+
+            <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
+            <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/target.scp
+            eval_source_separation.sh --cmd ${train_cmd} --nj 100 --source-image false ${basedir}/reference.scp ${basedir}/target.scp ${basedir}
+
+        done
+    ) &
+    done
+    wait
+
+    mkdir -p ${expdir}/eval_enhance
+    for rtask in ${recog_set}; do
+    (
+
+        enhdir=${expdir}/enhance_${rtask}
+        for place in PED CAF STR BUS; do
+            basedir=${enhdir}/eval_${place}
+            bth=$(echo ${rtask} | sed -r "s/(dt05|et05).*/\1_bth/")
+            mkdir -p ${basedir}
+
+            <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
+            <${enhdir}/enhance.scp grep ${place} | sed -r "s/^[^_]*_(.*?)_${place}_(REAL|SIMU) /\1 /g" | sort > ${basedir}/target.scp
+            eval_source_separation.sh --cmd ${train_cmd} --nj 100  --source-image false ${basedir}/reference.scp ${basedir}/target.scp ${basedir}
+        done
+    ) &
+    done
+    wait
 fi
 
