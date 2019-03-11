@@ -60,7 +60,7 @@ chainer_ctc.done: espnet.done
 	git clone https://github.com/jheymann85/chainer_ctc.git
 	. venv/bin/activate; pip install cython
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
-	. venv/bin/activate; cd chainer_ctc && pip install .
+	. venv/bin/activate; cd chainer_ctc && pip install --user -e .
 	touch chainer_ctc.done
 
 sentencepiece.done:
