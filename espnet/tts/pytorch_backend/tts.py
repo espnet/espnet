@@ -27,6 +27,7 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
+from espnet.transform.transformation import using_transform_config
 from espnet.tts.tts_utils import make_batchset
 from espnet.utils.io_utils import LoadInputsAndTargets
 
@@ -80,7 +81,7 @@ class CustomEvaluator(extensions.Evaluator):
         summary = chainer.reporter.DictSummary()
 
         self.model.eval()
-        with torch.no_grad():
+        with torch.no_grad(), using_transform_config({'train': False}):
             for batch in it:
                 observation = {}
                 with chainer.reporter.report_scope(observation):
@@ -424,10 +425,11 @@ def decode(args):
         mode='tts', load_input=False, sort_in_input_length=False,
         use_speaker_embedding=train_args.use_speaker_embedding,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf,
-        transform_config={'train': False})
+        if args.preprocess_conf is None else args.preprocess_conf)
 
-    with torch.no_grad(), kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+    with torch.no_grad(), using_transform_config({'train': False}), \
+        kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+
         for idx, utt_id in enumerate(js.keys()):
             batch = [(utt_id, js[utt_id])]
             data = load_inputs_and_targets(batch)
