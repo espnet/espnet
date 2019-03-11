@@ -63,8 +63,9 @@ class RNNP(torch.nn.Module):
             xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
             rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
             rnn.flatten_parameters()
-            ys, _ = rnn(xs_pack)
-            ys, states = rnn(xs_pack, prev_state)
+            if prev_state is not None and self.nbrnn.bidirectional:
+                prev_state = zero_backward_rnn_state(prev_state)
+            ys, states = rnn(xs_pack, hx=prev_state)
             elayer_states.append(states)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
@@ -116,6 +117,8 @@ class RNN(torch.nn.Module):
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
         self.nbrnn.flatten_parameters()
+        if prev_state is not None and self.nbrnn.bidirectional:
+            prev_state = zero_backward_rnn_state(prev_state)
         ys, states = self.nbrnn(xs_pack, hx=prev_state)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
@@ -124,6 +127,15 @@ class RNN(torch.nn.Module):
             ys_pad.contiguous().view(-1, ys_pad.size(2))))
         xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
         return xs_pad, ilens, states  # x: utt list of frame x dim
+
+
+def zero_backward_rnn_state(states):
+    if isinstance(states, (list, tuple)):
+        for state in states:
+            state[1::2] = 0.
+    else:
+        states[1::2] = 0.
+    return states
 
 
 class VGG2L(torch.nn.Module):
