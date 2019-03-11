@@ -9,6 +9,12 @@ import json
 import logging
 import math
 import os
+import sys
+
+if sys.version_info[0] == 2:
+    from itertools import izip_longest as zip_longest
+else:
+    from itertools import zip_longest as zip_longest
 
 # chainer related
 from chainer.datasets import TransformDataset
@@ -19,8 +25,11 @@ from chainer.training import extensions
 # torch related
 import torch
 
+import numpy as np
+from tensorboardX import SummaryWriter
+
 # espnet related
-from espnet.asr.asr_utils import adadelta_eps_decay
+from espnet.asr.asr_utils import adadelta_eps_decay, plot_spectrogram
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
@@ -31,31 +40,26 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-
+from espnet.transform.spectrogram import IStft
+from espnet.transform.transformation import Transformation
+from espnet.transform.transformation import using_transform_config
+from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
-
-from espnet.utils.io_utils import LoadInputsAndTargets
-
-# rnnlm
-import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch
-
-# matplotlib related
-import matplotlib
-import numpy as np
-
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
-from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
+import matplotlib
 matplotlib.use('Agg')
+
 
 REPORT_INTERVAL = 100
 
@@ -92,7 +96,7 @@ class CustomEvaluator(extensions.Evaluator):
         summary = reporter_module.DictSummary()
 
         self.model.eval()
-        with torch.no_grad():
+        with torch.no_grad(), using_transform_config({'train': False}):
             for batch in it:
                 observation = {}
                 with reporter_module.report_scope(observation):
@@ -471,7 +475,7 @@ def recog(args):
 
     # gpu
     if args.ngpu == 1:
-        gpu_id = range(args.ngpu)
+        gpu_id = list(range(args.ngpu))
         logging.info('gpu id: ' + str(gpu_id))
         model.cuda()
         if rnnlm:
@@ -485,24 +489,18 @@ def recog(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf,
-        transform_config={'train': False}
-    )
+        if args.preprocess_conf is None else args.preprocess_conf)
 
     if args.batchsize == 0:
-        with torch.no_grad():
+        with torch.no_grad(), using_transform_config({'train': False}):
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
                 nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
-    else:
-        try:
-            from itertools import zip_longest as zip_longest
-        except Exception:
-            from itertools import izip_longest as zip_longest
 
+    else:
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
@@ -513,12 +511,13 @@ def recog(args):
         sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
         keys = [keys[i] for i in sorted_index]
 
-        with torch.no_grad():
+        with torch.no_grad(), using_transform_config({'train': False}):
             for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
                 feats = load_inputs_and_targets(batch)[0]
                 nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
@@ -526,3 +525,173 @@ def recog(args):
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+
+
+def enhance(args):
+    """Dumping enhanced speech and mask
+
+    :param Namespace args: The program arguments
+    """
+    set_deterministic_pytorch(args)
+    # read training config
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
+
+    # load trained model parameters
+    logging.info('reading model parameters from ' + args.model)
+    model = E2E(idim, odim, train_args)
+    torch_load(args.model, model)
+    model.recog_args = args
+
+    # gpu
+    if args.ngpu == 1:
+        gpu_id = list(range(args.ngpu))
+        logging.info('gpu id: ' + str(gpu_id))
+        model.cuda()
+
+    # read json data
+    with open(args.recog_json, 'rb') as f:
+        js = json.load(f)['utts']
+
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='asr', load_output=False, sort_in_input_length=False,
+        preprocess_conf=None  # Apply pre_process in outer func
+        )
+    if args.batchsize == 0:
+        args.batchsize = 1
+
+    # Creates writers for outputs from the network
+    if args.enh_wspecifier is not None:
+        enh_writer = FileWriterWrapper(args.enh_wspecifier,
+                                       filetype=args.enh_filetype)
+    else:
+        enh_writer = None
+
+    # Creates a Transformation instance
+    preprocess_conf = (
+        train_args.preprocess_conf if args.preprocess_conf is None
+        else args.preprocess_conf)
+    if preprocess_conf is not None:
+        logging.info('Use preprocessing'.format(preprocess_conf))
+        transform = Transformation(preprocess_conf)
+    else:
+        transform = None
+
+    # Creates a IStft instance
+    istft = None
+    frame_shift = args.istft_n_shift  # Used for plot the spectrogram
+    if args.apply_istft:
+        if preprocess_conf is not None:
+            # Read the conffile and find stft setting
+            with open(preprocess_conf) as f:
+                # Json format: e.g.
+                #    {"process": [{"type": "stft",
+                #                  "win_length": 400,
+                #                  "n_fft": 512, "n_shift": 160,
+                #                  "window": "han"},
+                #                 {"type": "foo", ...}, ...]}
+                conf = json.load(f)
+                assert 'process' in conf, conf
+                # Find stft setting
+                for p in conf['process']:
+                    if p['type'] == 'stft':
+                        istft = IStft(win_length=p['win_length'],
+                                      n_shift=p['n_shift'],
+                                      window=p.get('window', 'hann'))
+                        logging.info('stft is found in {}. '
+                                     'Setting istft config from it\n{}'
+                                     .format(f, istft))
+                        frame_shift = p['n_shift']
+                        break
+        if istft is None:
+            # Set from command line arguments
+            istft = IStft(win_length=args.istft_win_length,
+                          n_shift=args.istft_n_shift,
+                          window=args.istft_window)
+            logging.info('Setting istft config from the command line args\n{}'
+                         .format(istft))
+
+    # sort data
+    keys = list(js.keys())
+    feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+    sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+    keys = [keys[i] for i in sorted_index]
+
+    def grouper(n, iterable, fillvalue=None):
+        kargs = [iter(iterable)] * n
+        return zip_longest(*kargs, fillvalue=fillvalue)
+
+    num_images = 0
+    if not os.path.exists(args.image_dir):
+        os.makedirs(args.image_dir)
+
+    for names in grouper(args.batchsize, keys, None):
+        batch = [(name, js[name]) for name in names]
+
+        # May be in time region: (1, [Time, Channel])
+        org_feats = load_inputs_and_targets(batch)[0]
+        if transform is not None:
+            with using_transform_config({'train': False}):
+                # May be in time-freq region: : (1, [Time, Channel, Freq])
+                feats = transform(org_feats)
+        else:
+            feats = org_feats
+
+        with torch.no_grad():
+            enhanced, mask, ilens = model.enhance(feats)
+
+        for idx, name in enumerate(names):
+            # Write enhanced wave files
+            if enh_writer is not None:
+                enh = enhanced[idx][:ilens[idx]]
+                if istft is not None:
+                    enh = istft(enh)
+                else:
+                    enh = enh
+
+                if args.keep_length:
+                    if len(org_feats[idx]) < len(enh):
+                        # Truncate the frames added by stft padding
+                        enh = enh[:len(org_feats[idx])]
+                    elif len(org_feats) > len(enh):
+                        padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
+                            + [(0, 0)] * (enh.ndim - 1)
+                        enh = np.pad(enh, padwidth, mode='constant')
+
+                if args.enh_filetype in ('sound', 'sound.hdf5'):
+                    enh_writer[name] = (args.fs, enh)
+                else:
+                    enh_writer[name] = enh
+
+            # Plot spectrogram
+            if args.image_dir is not None and num_images < args.num_images:
+                import matplotlib.pyplot as plt
+                num_images += 1
+                ref_ch = 0
+
+                plt.figure(figsize=(20, 10))
+                plt.subplot(4, 1, 1)
+                plt.title('Mask [ref={}ch]'.format(ref_ch))
+                plot_spectrogram(plt, mask[idx, :, ref_ch].T, fs=args.fs,
+                                 mode='linear', frame_shift=frame_shift,
+                                 bottom=False, labelbottom=False)
+
+                plt.subplot(4, 1, 2)
+                plt.title('Noisy speech [ref={}ch]'.format(ref_ch))
+                plot_spectrogram(plt, feats[idx][:, ref_ch].T, fs=args.fs,
+                                 mode='db', frame_shift=frame_shift,
+                                 bottom=False, labelbottom=False)
+
+                plt.subplot(4, 1, 3)
+                plt.title('Masked speech [ref={}ch]'.format(ref_ch))
+                plot_spectrogram(
+                    plt, (feats[idx][:, ref_ch] * mask[idx, :, ref_ch]).T,
+                    frame_shift=frame_shift,
+                    fs=args.fs, mode='db', bottom=False, labelbottom=False)
+
+                plt.subplot(4, 1, 4)
+                plt.title('Enhanced speech')
+                plot_spectrogram(plt, enhanced[idx].T, fs=args.fs,
+                                 mode='db', frame_shift=frame_shift)
+
+                plt.savefig(os.path.join(args.image_dir, name + '.png'))
+                plt.clf()
