@@ -25,7 +25,6 @@ from chainer.serializers.npz import NpzDeserializer
 import matplotlib
 import numpy as np
 import torch
-
 matplotlib.use('Agg')
 
 
@@ -539,3 +538,62 @@ def add_results_to_json(js, nbest_hyps, char_list):
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js
+
+
+def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
+                     bottom=True, left=True, right=True, top=False,
+                     labelbottom=True, labelleft=True, labelright=True,
+                     labeltop=False, cmap='inferno'):
+    """Plot spectrogram using matplotlib
+
+    :param plt:
+    :param spec: (Freq, Time)
+    :param mode:
+    :param fs:
+    :param frame_shift:
+    :param bottom:
+    :param left:
+    :param right:
+    :param top:
+    :param labelbottom:
+    :param labelleft:
+    :param labelright:
+    :param labeltop:
+    :param cmap:
+
+    """
+    spec = np.abs(spec)
+    if mode == 'db':
+        x = 20 * np.log10(spec + np.finfo(spec.dtype).eps)
+    elif mode == 'linear':
+        x = spec
+    else:
+        raise ValueError(mode)
+
+    if fs is not None:
+        ytop = fs / 2000
+        ylabel = 'kHz'
+    else:
+        ytop = x.shape[0]
+        ylabel = 'bin'
+
+    if frame_shift is not None and fs is not None:
+        xtop = x.shape[1] * frame_shift / fs
+        xlabel = 's'
+    else:
+        xtop = x.shape[1]
+        xlabel = 'frame'
+
+    extent = (0, xtop, 0, ytop)
+    plt.imshow(x[::-1], cmap=cmap, extent=extent)
+
+    if labelbottom:
+        plt.xlabel('time [{}]'.format(xlabel))
+    if labelleft:
+        plt.ylabel('freq [{}]'.format(ylabel))
+    plt.colorbar().set_label('{}'.format(mode))
+
+    plt.tick_params(bottom=bottom, left=left, right=right, top=top,
+                    labelbottom=labelbottom, labelleft=labelleft,
+                    labelright=labelright, labeltop=labeltop)
+    plt.axis('auto')
