@@ -63,7 +63,7 @@ class RNNP(torch.nn.Module):
             xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
             rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
             rnn.flatten_parameters()
-            if prev_state is not None and self.nbrnn.bidirectional:
+            if prev_state is not None and rnn.bidirectional:
                 prev_state = zero_backward_rnn_state(prev_state)
             ys, states = rnn(xs_pack, hx=prev_state)
             elayer_states.append(states)
