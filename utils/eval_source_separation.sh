@@ -4,7 +4,7 @@ echo "$0 $*" >&2 # Print the command line for logging
 
 nj=10
 cmd=run.pl
-evaltypes="SDR STOI ESTOI"
+evaltypes="SDR STOI ESTOI PESQ"
 permutation=true
 source_image=true
 
