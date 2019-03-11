@@ -16,7 +16,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio pytorch_complex extra
+all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio pytorch_complex extra pesq
 
 all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
@@ -138,8 +138,17 @@ mecab.done:
 moses:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 
+pesq: PESQ/P862/Software/PESQ
+PESQ/P862/Software/PESQ: PESQ
+	cd PESQ/P862/Software/source; gcc *.c -lm -o PESQ
+PESQ: PESQ.zip
+	rm -rf PESQ
+	unzip PESQ.zip -d PESQ
+PESQ.zip:
+	wget 'https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200102-I!!SOFT-ZST-E&type=items' -O PESQ.zip
+
 clean: clean_extra
-	rm -rf kaldi venv warp-ctc chainer_ctc
+	rm -rf kaldi venv warp-ctc chainer_ctc PESQ PESQ.zip
 	rm -f miniconda.sh
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
