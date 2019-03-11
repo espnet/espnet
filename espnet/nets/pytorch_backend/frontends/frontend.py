@@ -1,4 +1,5 @@
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -76,7 +77,7 @@ class Frontend(nn.Module):
 
     def forward(self, x: ComplexTensor,
                 ilens: Union[torch.LongTensor, numpy.ndarray, List[int]])\
-            -> Tuple[ComplexTensor, torch.LongTensor]:
+            -> Tuple[ComplexTensor, torch.LongTensor, Optional[ComplexTensor]]:
         assert len(x) == len(ilens), (len(x), len(ilens))
         # (B, T, F) or (B, T, C, F)
         if x.dim() not in (3, 4):
@@ -84,6 +85,7 @@ class Frontend(nn.Module):
         if not torch.is_tensor(ilens):
             ilens = torch.from_numpy(numpy.asarray(ilens)).to(x.device)
 
+        mask = None
         h = x
         if h.dim() == 4:
             if self.training:
@@ -104,14 +106,14 @@ class Frontend(nn.Module):
             # 1. WPE
             if use_wpe:
                 # h: (B, T, C, F) -> h: (B, T, C, F)
-                h, ilens = self.wpe(h, ilens)
+                h, ilens, mask = self.wpe(h, ilens)
 
             # 2. Beamformer
             if use_beamformer:
                 # h: (B, T, C, F) -> h: (B, T, F)
-                h, ilens = self.beamformer(h, ilens)
+                h, ilens, mask = self.beamformer(h, ilens)
 
-        return h, ilens
+        return h, ilens, mask
 
 
 def frontend_for(args, idim):
