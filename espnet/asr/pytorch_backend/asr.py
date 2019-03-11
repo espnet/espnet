@@ -599,7 +599,7 @@ def enhance(args):
                                       window=p.get('window', 'hann'))
                         logging.info('stft is found in {}. '
                                      'Setting istft config from it\n{}'
-                                     .format(f, istft))
+                                     .format(preprocess_conf, istft))
                         frame_shift = p['n_shift']
                         break
         if istft is None:
