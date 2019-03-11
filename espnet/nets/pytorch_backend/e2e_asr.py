@@ -96,7 +96,7 @@ class E2E(torch.nn.Module):
                 import frontend_for
 
             self.frontend = frontend_for(args, idim)
-            self.feature_transform = feature_transform_for(args)
+            self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
             idim = args.n_mels
         else:
             self.frontend = None
@@ -194,7 +194,7 @@ class E2E(torch.nn.Module):
         """
         # 0. Frontend
         if self.frontend is not None:
-            hs_pad, hlens = self.frontend(_to_torch_tensor(xs_pad), ilens)
+            hs_pad, hlens, mask = self.frontend(_to_torch_tensor(xs_pad), ilens)
             hs_pad, hlens = self.feature_transform(hs_pad, hlens)
         else:
             hs_pad, hlens = xs_pad, ilens
@@ -303,8 +303,8 @@ class E2E(torch.nn.Module):
 
         # 0. Frontend
         if self.frontend is not None:
-            hs, hlens = self.frontend(hs, ilens)
-            hs, hlens = self.feature_transform(hs, hlens)
+            enhanced, hlens, mask = self.frontend(hs, ilens)
+            hs, hlens = self.feature_transform(enhanced, hlens)
         else:
             hs, hlens = hs, ilens
 
@@ -323,6 +323,7 @@ class E2E(torch.nn.Module):
 
         if prev:
             self.train()
+
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
@@ -346,8 +347,8 @@ class E2E(torch.nn.Module):
 
         # 0. Frontend
         if self.frontend is not None:
-            hs_pad, hlens = self.frontend(xs_pad, ilens)
-            hs_pad, hlens = self.feature_transform(hs_pad, hlens)
+            enhanced, hlens, mask = self.frontend(xs_pad, ilens)
+            hs_pad, hlens = self.feature_transform(enhanced, hlens)
         else:
             hs_pad, hlens = xs_pad, ilens
 
@@ -367,6 +368,25 @@ class E2E(torch.nn.Module):
             self.train()
         return y
 
+    def enhance(self, xs):
+        """Forwarding only the frontend stage
+
+        :param ndarray xs: input acoustic feature (T, C, F)
+        """
+
+        if self.frontend is None:
+            raise RuntimeError('Frontend does\'t exist')
+        prev = self.training
+        self.eval()
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        xs = [to_device(self, _to_torch_tensor(xx).float()) for xx in xs]
+        xs_pad = pad_list(xs, 0.0)
+        enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
+        return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
+
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation
 
@@ -381,7 +401,7 @@ class E2E(torch.nn.Module):
         with torch.no_grad():
             # 0. Frontend
             if self.frontend is not None:
-                hs_pad, hlens = self.frontend(_to_torch_tensor(xs_pad), ilens)
+                hs_pad, hlens, mask = self.frontend(_to_torch_tensor(xs_pad), ilens)
                 hs_pad, hlens = self.feature_transform(hs_pad, hlens)
             else:
                 hs_pad, hlens = xs_pad, ilens
