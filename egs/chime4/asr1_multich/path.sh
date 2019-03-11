@@ -14,5 +14,6 @@ else
     source $MAIN_ROOT/tools/venv/bin/activate
 fi
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
+export PATH=$MAIN_ROOT/tools/PESQ/P862/Software/source:$PATH
 
 export OMP_NUM_THREADS=1
