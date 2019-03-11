@@ -20,12 +20,20 @@ else:
 
 def dynamic_import(import_path):
     alias = dict(
+        speed_perturbation='espnet.transform.perturb:SpeedPerturbation',
+        volume_perturbation='espnet.transform.perturb:VolumePerturbation',
+        noise_injection='espnet.transform.perturb:NoiseInjection',
+        bandpass_perturbation='espnet.transform.perturb:BandpassPerturbation',
+        rir_convolve='espnet.transform.perturb:RIRConvolve',
         delta='espnet.transform.add_deltas:AddDeltas',
         cmvn='espnet.transform.cmvn:CMVN',
         utterance_cmvn='espnet.transform.cmvn:UtteranceCMVN',
         fbank='espnet.transform.spectrogram:LogMelSpectrogram',
         spectrogram='espnet.transform.spectrogram:Spectrogram',
         stft='espnet.transform.spectrogram:Stft',
+        istft='espnet.transform.spectrogram:IStft',
+        stft2fbank='espnet.transform.spectrogram:Stft2LogMelSpectrogram',
+        asr_forward='espnet.transform.asr_forward:AsrForward',
         wpe='espnet.transform.wpe:WPE',
         channel_selector='espnet.transform.channel_selector:ChannelSelector')
 
@@ -187,8 +195,7 @@ class Transformation(object):
         ...                       {"type": "cmvn",
         ...                        "stats": "data/train/cmvn.ark",
         ...                        "norm_vars": True},
-        ...                       {"type": "delta", "window": 2, "order": 2}],
-        ...           "mode": "sequential"}
+        ...                       {"type": "delta", "window": 2, "order": 2}]}
         >>> transform = Transformation(**kwargs)
         >>> bs = 10
         >>> xs = [np.random.randn(100, 80).astype(np.float32)
@@ -247,6 +254,7 @@ class Transformation(object):
             xs = [xs]
         else:
             is_batch = True
+
         if isinstance(uttid_list, str):
             uttid_list = [uttid_list for _ in range(len(xs))]
 
