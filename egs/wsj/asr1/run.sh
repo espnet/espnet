@@ -355,7 +355,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    for pid in "${pids[@]}"; do wait ${pid} ; done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
 
