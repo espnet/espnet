@@ -389,6 +389,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
                 --enh-wspecifier ark,scp:${enhdir}/outdir/enhance.JOB,${enhdir}/outdir/enhance.JOB.scp \
                 --enh-filetype "sound" \
                 --image-dir ${enhdir}/images \
+                --num-images 20 \
                 --fs ${fs}
     ) &
     done
@@ -405,26 +406,32 @@ fi
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Evaluate enhanced speech"
-    for rtask in ${recog_set}; do
-    (
-        rtask=$(echo ${rtask} | sed -e 's/_multich//')
+    if false; then
+        for rtask in ${recog_set}; do
+            # SKip real data because there are no clean signal
+            echo ${rtask} | grep real &> /dev/null && continue
+        (
+            rtask=$(echo ${rtask} | sed -e 's/_multich//')
 
-        for place in PED CAF STR BUS; do
-            basedir=eval_mixture/${rtask}/eval_${place}
-            bth=$(echo ${rtask} | sed -r "s/(dt05|et05).*/\1_bth/")
-            mkdir -p ${basedir}
+            for place in PED CAF STR BUS; do
+                basedir=eval_noisy/${rtask}/eval_${place}
+                bth=$(echo ${rtask} | sed -r "s/(dt05|et05).*/\1_bth/")
+                mkdir -p ${basedir}
 
-            <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
-            <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/target.scp
-            eval_source_separation.sh --cmd ${train_cmd} --nj 100 --source-image false ${basedir}/reference.scp ${basedir}/target.scp ${basedir}
+                <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
+                <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/target.scp
+                eval_source_separation.sh --cmd ${train_cmd} --nj 100 --source-image false ${basedir}/reference.scp ${basedir}/target.scp ${basedir}
 
+            done
+        ) &
         done
-    ) &
-    done
-    wait
+        wait
+    fi
 
     mkdir -p ${expdir}/eval_enhance
     for rtask in ${recog_set}; do
+        # SKip real data because there are no clean signal
+        echo ${rtask} | grep real &> /dev/null && continue
     (
 
         enhdir=${expdir}/enhance_${rtask}
@@ -440,5 +447,8 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     ) &
     done
     wait
+
+    ./local/show_enhance_results.sh --recog-set "${recog_set}" ${expdir}/enhance_
+
 fi
 
