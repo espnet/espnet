@@ -1,5 +1,6 @@
 import io
 import logging
+import os
 import sys
 
 import h5py
@@ -69,14 +70,21 @@ class FileReaderWrapper(object):
 
     """
 
-    def __init__(self, rspecifier, filetype='mat', return_shape=False):
+    def __init__(self, rspecifier, filetype='mat', return_shape=False,
+                 segments=None):
+        if segments is None and filetype != 'mat':
+            raise ValueError('Not supporting segments if filetype={}'
+                             .format(filetype))
+
         self.rspecifier = rspecifier
         self.filetype = filetype
         self.return_shape = return_shape
+        self.segments = segments
 
     def __iter__(self):
         if self.filetype == 'mat':
-            with kaldiio.ReadHelper(self.rspecifier) as reader:
+            with kaldiio.ReadHelper(
+                    self.rspecifier, segments=self.segments) as reader:
                 for key, array in reader:
                     if self.return_shape:
                         array = array.shape
@@ -226,11 +234,14 @@ class FileWriterWrapper(object):
     """
 
     def __init__(self, wspecifier, filetype='mat',
-                 write_num_frames=None, compress=False, compression_method=2):
+                 write_num_frames=None, compress=False, compression_method=2,
+                 pcm_format='wav'):
         self.writer_scp = None
         # Used for writing scp
         self.filename = None
         self.filetype = filetype
+        # Used for filetype='sound' or 'sound.hdf5'
+        self.pcm_format = pcm_format
         self.kwargs = {}
 
         if filetype == 'mat':
@@ -240,8 +251,11 @@ class FileWriterWrapper(object):
             else:
                 self.writer = kaldiio.WriteHelper(wspecifier)
 
-        elif filetype in ['hdf5', 'sound.hdf5']:
-            # ark,scp:out.ark,out.scp -> {'ark': 'out.ark', 'scp': 'out.scp'}
+        elif filetype in ['hdf5', 'sound.hdf5', 'sound']:
+            # 1. Create spec_dict
+
+            # e.g.
+            #   ark,scp:out.ark,out.scp -> {'ark': 'out.ark', 'scp': 'out.scp'}
             ark_scp, filepath = wspecifier.split(':', 1)
             if ark_scp not in ['ark', 'scp,ark', 'ark,scp']:
                 raise ValueError(
@@ -252,11 +266,30 @@ class FileWriterWrapper(object):
                 raise ValueError(
                     'Mismatch: {} and {}'.format(ark_scp, filepath))
             spec_dict = dict(zip(ark_scps, filepaths))
-            if filetype == 'sound.hdf5':
-                self.writer = SoundHDF5File(spec_dict['ark'], 'w')
-            else:
-                self.writer = h5py.File(spec_dict['ark'], 'w')
+
+            # 2. Set writer
             self.filename = spec_dict['ark']
+
+            if filetype == 'sound.hdf5':
+                self.writer = SoundHDF5File(spec_dict['ark'], 'w',
+                                            format=self.pcm_format)
+
+            elif filetype == 'hdf5':
+                self.writer = h5py.File(spec_dict['ark'], 'w')
+
+            elif filetype == 'sound':
+                # Use "ark" value as directory to save wav files
+                # e.g. ark,scp:dirname,wav.scp
+                # -> The wave files are found in dirname/*.wav
+                wavdir = spec_dict['ark']
+                if not os.path.exists(wavdir):
+                    os.makedirs(wavdir)
+                self.writer = None
+            else:
+                # Cannot reach
+                raise RuntimeError
+
+            # 3. Set writer_scp
             if 'scp' in spec_dict:
                 self.writer_scp = io.open(
                     spec_dict['scp'], 'w', encoding='utf-8')
@@ -281,25 +314,40 @@ class FileWriterWrapper(object):
             self.writer_nframe = None
 
     def __setitem__(self, key, value):
-
         if self.filetype == 'mat':
             self.writer[key] = value
+
         elif self.filetype == 'hdf5':
             self.writer.create_dataset(key, data=value, **self.kwargs)
+
         elif self.filetype == 'sound.hdf5':
             assert_scipy_wav_style(value)
             # Change Tuple[int, ndarray] -> Tuple[ndarray, int]
             # (scipy style -> soundfile style)
             value = (value[1], value[0])
             self.writer.create_dataset(key, data=value, **self.kwargs)
+
+        elif self.filetype == 'sound':
+            assert_scipy_wav_style(value)
+            rate, signal = value
+
+            wavfile = os.path.join(self.filename, key + '.' + self.pcm_format)
+            soundfile.write(wavfile, signal.astype(numpy.int16), rate)
+
         else:
+            # Cannot reach
             raise NotImplementedError
 
         if self.writer_scp is not None:
             if self.filetype in ['hdf5', 'sound.hdf5']:
                 self.writer_scp.write(
                     u'{} {}:{}\n'.format(key, self.filename, key))
+            elif self.filetype in 'sound':
+                wavfile = os.path.join(
+                    self.filename, key + '.' + self.pcm_format)
+                self.writer_scp.write(u'{} {}\n'.format(key, wavfile))
             else:
+                # Cannot reach
                 raise NotImplementedError
 
         if self.writer_nframe is not None:
