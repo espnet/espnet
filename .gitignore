@@ -39,4 +39,4 @@ tools/sentencepiece/
 tools/swig/
 tools/warp-ctc/
 tools/*.done
-
+tools/PESQ*
