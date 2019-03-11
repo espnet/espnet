@@ -150,7 +150,7 @@ def main(args):
                         help='Batch size is reduced if the input sequence length > ML')
     parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
-    parser.add_argument('--n_iter_processes', default=0, type=int,
+    parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
@@ -186,7 +186,71 @@ def main(args):
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
 
-    addtional_arguments_for_frontend(parser)
+    def my_strtobool(x):
+        # strtobool returns integer, but it's confusing, so changing to bool
+        return bool(strtobool(x))
+
+    parser.add_argument(
+        '--use-frontend', type=my_strtobool, default=False,
+        help='The flag to switch to use frontend system.')
+
+    # WPE related
+    parser.add_argument('--use-wpe', type=my_strtobool, default=False, help='')
+    parser.add_argument('--wtype', type=str, default='blstmp',
+                        help='')
+    parser.add_argument('--wlayers', type=int, default=2,
+                        help='')
+    parser.add_argument('--wunits', type=int, default=300,
+                        help='')
+    parser.add_argument('--wprojs', type=int, default=300,
+                        help='')
+    parser.add_argument('--wdropout-rate', type=float, default=0.0,
+                        help='')
+    parser.add_argument('--taps', type=int, default=5,
+                        help='')
+    parser.add_argument('--delay', type=int, default=3,
+                        help='')
+    parser.add_argument('--use-dnn-mask-for-wpe', type=my_strtobool,
+                        default=False, help='')
+
+    # Beamformer related
+    parser.add_argument('--use-beamformer', type=my_strtobool,
+                        default=True, help='')
+    parser.add_argument('--btype', type=str, default='blstmp',
+                        help='')
+    parser.add_argument('--blayers', type=int, default=2,
+                        help='')
+    parser.add_argument('--bunits', type=int, default=300,
+                        help='')
+    parser.add_argument('--bprojs', type=int, default=300,
+                        help='')
+    parser.add_argument('--badim', type=int, default=320,
+                        help='')
+    parser.add_argument('--ref-channel', type=int, default=None,
+                        help='')
+    parser.add_argument('--bdropout-rate', type=float, default=0.0,
+                        help='')
+
+    # Feature transform: Normalization
+    parser.add_argument('--stats-file', type=str, default=None,
+                        help='')
+    parser.add_argument('--apply-uttmvn', type=my_strtobool, default=True,
+                        help='')
+    parser.add_argument('--uttmvn-norm-means', type=my_strtobool,
+                        default=True, help='')
+    parser.add_argument('--uttmvn-norm-vars', type=my_strtobool, default=False,
+                        help='')
+
+    # Feature transform: Fbank
+    parser.add_argument('--fs', type=int, default=16000,
+                        help='')
+    parser.add_argument('--n-mels', type=int, default=80,
+                        help='')
+    parser.add_argument('--fmin', type=float, default=0.,
+                        help='')
+    parser.add_argument('--fmax', type=float, default=None,
+                        help='')
+
     args = parser.parse_args(args)
 
     # logging info
@@ -256,77 +320,6 @@ def main(args):
             train(args)
         else:
             raise ValueError("Only pytorch is supported.")
-
-
-def addtional_arguments_for_frontend(parser):
-    # FIXME(kamo): More smart way for configuration
-
-    def my_strtobool(x):
-        # strtobool returns integer, but it's confusing, so changing to bool
-        return bool(strtobool(x))
-
-    parser.add_argument(
-        '--use-frontend', type=my_strtobool, default=False,
-        help='The flag to switch to use frontend system.')
-
-    # WPE options
-    parser.add_argument('--use-wpe', type=my_strtobool, default=False, help='')
-    parser.add_argument('--wtype', type=str, default='blstmp',
-                        help='')
-    parser.add_argument('--wlayers', type=int, default=2,
-                        help='')
-    parser.add_argument('--wunits', type=int, default=300,
-                        help='')
-    parser.add_argument('--wprojs', type=int, default=300,
-                        help='')
-    parser.add_argument('--wdropout-rate', type=float, default=0.0,
-                        help='')
-    parser.add_argument('--taps', type=int, default=5,
-                        help='')
-    parser.add_argument('--delay', type=int, default=3,
-                        help='')
-    parser.add_argument('--use-dnn-mask-for-wpe', type=my_strtobool,
-                        default=True, help='')
-
-    # Beamformer options
-    parser.add_argument('--use-beamformer', type=my_strtobool,
-                        default=True, help='')
-    parser.add_argument('--btype', type=str, default='blstmp',
-                        help='')
-    parser.add_argument('--blayers', type=int, default=2,
-                        help='')
-    parser.add_argument('--bunits', type=int, default=300,
-                        help='')
-    parser.add_argument('--bprojs', type=int, default=300,
-                        help='')
-    parser.add_argument('--badim', type=int, default=320,
-                        help='')
-    parser.add_argument('--ref-channel', type=int, default=None,
-                        help='')
-    parser.add_argument('--bdropout-rate', type=float, default=0.0,
-                        help='')
-
-    # Normalization
-    parser.add_argument('--stats-file', type=str, default=None,
-                        help='')
-    parser.add_argument('--apply-uttmvn', type=my_strtobool, default=True,
-                        help='')
-    parser.add_argument('--uttmvn-norm-means', type=my_strtobool,
-                        default=True, help='')
-    parser.add_argument('--uttmvn-norm-vars', type=my_strtobool, default=False,
-                        help='')
-
-    # window_length = nfft / fs = 25ms is default of Kaldi-Asr
-    parser.add_argument('--fs', type=int, default=16000,
-                        help='')
-    parser.add_argument('--n-fft', type=int, default=400,
-                        help='')
-    parser.add_argument('--n-mels', type=int, default=80,
-                        help='')
-    parser.add_argument('--fmin', type=float, default=0.,
-                        help='')
-    parser.add_argument('--fmax', type=float, default=None,
-                        help='')
 
 
 if __name__ == '__main__':
