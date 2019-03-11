@@ -36,6 +36,7 @@ from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
+from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.training.iterators import ShufflingEnabler
@@ -176,6 +177,10 @@ class CustomConverter(object):
     def transform(self, item):
         return self.load_inputs_and_targets(item)
 
+    def transform_eval(self, item):
+        with using_transform_config({'train': False}):
+            return self.load_inputs_and_targets(item)
+
     def __call__(self, batch, device):
         # set device
         xp = cuda.cupy if device != -1 else np
@@ -277,6 +282,9 @@ def train(args):
         optimizer = chainer.optimizers.AdaDelta(eps=args.eps)
     elif args.opt == 'adam':
         optimizer = chainer.optimizers.Adam()
+    else:
+        raise NotImplementedError('args.opt={}'.format(args.opt))
+
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
@@ -362,12 +370,12 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     if args.n_iter_processes > 0:
         valid_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(valid, converter.transform),
+            TransformDataset(valid, converter.transform_eval),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
         valid_iter = chainer.iterators.SerialIterator(
-            TransformDataset(valid, converter.transform),
+            TransformDataset(valid, converter.transform_eval),
             batch_size=1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
@@ -507,12 +515,11 @@ def recog(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf,
-        transform_config={'train': False})
+        if args.preprocess_conf is None else args.preprocess_conf)
 
     # decode each utterance
     new_js = {}
-    with chainer.no_backprop_mode():
+    with chainer.no_backprop_mode(), using_transform_config({'train': False}):
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             batch = [(name, js[name])]
