@@ -39,7 +39,7 @@ class DNN_WPE(torch.nn.Module):
 
     def forward(self,
                 data: ComplexTensor, ilens: torch.LongTensor) \
-            -> Tuple[ComplexTensor, torch.LongTensor]:
+            -> Tuple[ComplexTensor, torch.LongTensor, ComplexTensor]:
         """The forward function
 
         Notation:
@@ -57,6 +57,7 @@ class DNN_WPE(torch.nn.Module):
         """
         # (B, T, C, F) -> (B, F, C, T)
         enhanced = data = data.permute(0, 3, 2, 1)
+        mask = None
 
         for i in range(self.iterations):
             # Calculate power: (..., C, T)
@@ -83,4 +84,6 @@ class DNN_WPE(torch.nn.Module):
 
         # (B, F, C, T) -> (B, T, C, F)
         enhanced = enhanced.permute(0, 3, 2, 1)
-        return enhanced, ilens
+        if mask is not None:
+            mask = mask.transpose(-1, -3)
+        return enhanced, ilens, mask

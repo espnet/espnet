@@ -44,7 +44,7 @@ class DNN_Beamformer(torch.nn.Module):
         self.beamformer_type = beamformer_type
 
     def forward(self, data: ComplexTensor, ilens: torch.LongTensor) \
-            -> Tuple[ComplexTensor, torch.LongTensor]:
+            -> Tuple[ComplexTensor, torch.LongTensor, ComplexTensor]:
         """The forward function
 
         Notation:
@@ -64,10 +64,11 @@ class DNN_Beamformer(torch.nn.Module):
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
 
-        (speech, noise), _ = self.mask(data, ilens)
+        # mask: (B, F, C, T)
+        (mask_speech, mask_noise), _ = self.mask(data, ilens)
 
-        psd_speech = get_power_spectral_density_matrix(data, speech)
-        psd_noise = get_power_spectral_density_matrix(data, noise)
+        psd_speech = get_power_spectral_density_matrix(data, mask_speech)
+        psd_noise = get_power_spectral_density_matrix(data, mask_noise)
 
         # u: (B, C)
         if self.ref_channel is None:
@@ -83,7 +84,9 @@ class DNN_Beamformer(torch.nn.Module):
 
         # (..., F, T) -> (..., T, F)
         enhanced = enhanced.transpose(-1, -2)
-        return enhanced, ilens
+        mask_speech = mask_speech.transpose(-1, -3)
+
+        return enhanced, ilens, mask_speech
 
 
 class AttentionReference(torch.nn.Module):

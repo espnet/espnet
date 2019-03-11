@@ -7,7 +7,8 @@ from torch_complex.tensor import ComplexTensor
 
 
 def get_power_spectral_density_matrix(xs: ComplexTensor, mask: torch.Tensor,
-                                      normalization=True) -> ComplexTensor:
+                                      normalization=True,
+                                      eps: float = 1e-15) -> ComplexTensor:
     """Return cross-channel power spectral density (PSD) matrix
 
     Args:
@@ -28,7 +29,7 @@ def get_power_spectral_density_matrix(xs: ComplexTensor, mask: torch.Tensor,
     if normalization:
         # If assuming the tensor is padded with zero, the summation along
         # the time axis is same regardless of the padding length.
-        mask = mask / mask.sum(dim=-1)[..., None]
+        mask = mask / (mask.sum(dim=-1, keepdim=True) + eps)
 
     # psd: (..., T, C, C)
     psd = psd_Y * mask[..., None, None]
@@ -45,7 +46,7 @@ def get_mvdr_vector(psd_s: ComplexTensor,
 
         h = (Npsd^-1 @ Spsd) / (Tr(Npsd^-1 @ Spsd)) @ u
 
-    Citation:
+    Reference:
         On optimal frequency-domain multichannel linear filtering
         for noise reduction; M. Souden et al., 2010;
         https://ieeexplore.ieee.org/document/5089420
@@ -68,7 +69,8 @@ def get_mvdr_vector(psd_s: ComplexTensor,
 
 # TODO(kamo): Implement forward-backward function for symeig
 def get_mvdr_vector2(psd_s: ComplexTensor,
-                     psd_n: ComplexTensor) -> ComplexTensor:
+                     psd_n: ComplexTensor,
+                     eps: float = 1e-15)-> ComplexTensor:
     """Return the MVDR(Minimum Variance Distortionless Response) vector:
 
         h = (Npsd^-1 @ A) / (A^H @ Npsd^-1 @ A)
@@ -76,6 +78,7 @@ def get_mvdr_vector2(psd_s: ComplexTensor,
     Args:
         psd_s (ComplexTensor): (..., F, C, C)
         psd_n (ComplexTensor): (..., F, C, C)
+        eps:
     Returns:
         beamform_vector (ComplexTensor): (..., F, C)
     """
@@ -91,7 +94,7 @@ def get_mvdr_vector2(psd_s: ComplexTensor,
     # denominator: (..., C) x (..., F, C) -> (..., F)
     denominator = FC.einsum('...c,...dc->...d', [pca_vector.conj(), numerator])
     # h: (..., F, C) / (..., F) -> (..., F, C)
-    beamform_vector = numerator / denominator[..., None]
+    beamform_vector = numerator / (denominator[..., None] + eps)
     return beamform_vector
 
 
@@ -102,7 +105,7 @@ def get_gev_vector(psd_s: ComplexTensor, psd_n: ComplexTensor)\
 
         Spsd @ h =  ev x Npsd @ h
 
-    Citation:
+    Reference:
         NEURAL NETWORK BASED SPECTRAL MASK ESTIMATION FOR ACOUSTIC BEAMFORMING;
         Jahn Heymann et al.., 2016;
         https://ieeexplore.ieee.org/abstract/document/7471664
@@ -125,7 +128,7 @@ def get_gev_vector(psd_s: ComplexTensor, psd_n: ComplexTensor)\
 
 def blind_analytic_normalization(beamform_vector: ComplexTensor,
                                  psd_n: ComplexTensor,
-                                 eps=1e-10) -> ComplexTensor:
+                                 eps=1e-15) -> ComplexTensor:
     """Reduces distortions in beamformed output.
 
         h = sqrt(|h* @ Npsd @ Npsd @ h|) / |h* @ Npsd @ h| x h

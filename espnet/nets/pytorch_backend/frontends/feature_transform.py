@@ -219,11 +219,11 @@ def utterance_mvn(
     return x_, ilens
 
 
-def feature_transform_for(args):
+def feature_transform_for(args, n_fft):
     return FeatureTransform(
         # Mel options,
         fs=args.fs,
-        n_fft=args.n_fft,
+        n_fft=n_fft,
         n_mels=args.n_mels,
         fmin=args.fmin,
         fmax=args.fmax,
