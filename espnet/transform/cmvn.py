@@ -114,7 +114,7 @@ class UtteranceCMVN(object):
         self.std_floor = std_floor
 
     def __repr__(self):
-        return ('{name}(norm_means={norm_means}, norm_vars={norm_vars}, '
+        return ('{name}(norm_means={norm_means}, norm_vars={norm_vars})'
                 .format(name=self.__class__.__name__,
                         norm_means=self.norm_means, norm_vars=self.norm_vars))
 
