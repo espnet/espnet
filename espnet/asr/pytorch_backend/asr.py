@@ -494,7 +494,7 @@ def recog(args):
                         logging.info('Feeding frames %d - %d', i, i+args.streaming_window)
                         se2e.accept_input(feat[i:i+args.streaming_window])
                     logging.info('Running offline attention decoder')
-                    se2e.advance_decoder()
+                    se2e.decode_with_attention_offline()
                     logging.info('Offline attention decoder finished')
                     nbest_hyps = se2e.retrieve_recognition()
                 else:

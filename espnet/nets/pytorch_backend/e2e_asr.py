@@ -428,12 +428,37 @@ class StreamingE2E(object):
         # CTC posteriors for the incoming audio
         self._ctc_posteriors.append(self._e2e.ctc.log_softmax(h).squeeze(0))
 
-    def _input_window_for_decoder(self):
-        # TODO: retain ~1 sec worth of audio in this function
-        return torch.cat(self._encoder_states, dim=0), torch.cat(self._ctc_posteriors, dim=0)
+    def _input_window_for_decoder(self, use_all=False):
+        if use_all:
+            return torch.cat(self._encoder_states, dim=0), torch.cat(self._ctc_posteriors, dim=0)
 
-    def advance_decoder(self):
-        # TODO: establish what's the increment of CTC decoder (how many new letters might be there) [rough estimate]
+        def select_unprocessed_windows(window_tensors):
+            last_offset = self._offset
+            offset_traversed = 0
+            selected_windows = []
+            for es in window_tensors:
+                if offset_traversed > last_offset:
+                    selected_windows.append(es)
+                    continue
+                offset_traversed += es.size(1)
+            return torch.cat(selected_windows, dim=0)
+
+        return (
+            select_unprocessed_windows(self._encoder_states),
+            select_unprocessed_windows(self._ctc_posteriors)
+        )
+
+    def decode_with_attention_offline(self):
+        """
+        Run the attention decoder offline, even though the previous layers (encoder and CTC decoder)
+        were being run in the online mode.
+        This method should be run after all the audio has been consumed.
+        This is used mostly to compare the results between offline and online implementation of the previous layers.
+        """
+        h, lpz = self._input_window_for_decoder(use_all=True)
+        self._last_recognition = self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
+
+    def advance_attention_decoder(self):
         # TODO: pass a parameter saying how many iterations we can run the attention decoder for
         # TODO: we need to affect the maxlen using the CTC approximation in recognize_beam method
         # TODO: for the first version, use greedy decoding for attention decoder as well
