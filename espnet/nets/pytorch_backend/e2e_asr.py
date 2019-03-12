@@ -389,12 +389,11 @@ class E2E(torch.nn.Module):
 
 
 class StreamingE2E(object):
-    """
-    Convenience wrapper over E2E class for streaming recognitions.
+    """Convenience wrapper over E2E class for streaming recognitions.
     Not recommended for GPUs.
     """
     def __init__(self, e2e, recog_args, char_list, rnnlm=None):
-        """
+        """StreamingE2E constructor.
         :param E2E e2e: E2E ASR object
         :param recog_args: arguments for "recognize" method of E2E
         """
@@ -403,18 +402,19 @@ class StreamingE2E(object):
         self._char_list = char_list
         self._rnnlm = rnnlm
 
-        self._offset = 0
+        self._e2e.eval()
 
-        # TODO: (optimization) some of these might be matrices, not sure yet
+        self._offset = 0
         self._previous_encoder_recurrent_state = None
         self._encoder_states = []
         self._ctc_posteriors = []
-        self._decoder_states = []
         self._last_recognition = None
 
         assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attetion decoders."
 
     def accept_input(self, x):
+        """Call this method each time a new batch of input is available."""
+
         h, ilen = self._e2e.subsample_frames(x)
 
         # Streaming encoder
@@ -449,19 +449,19 @@ class StreamingE2E(object):
         )
 
     def decode_with_attention_offline(self):
-        """
-        Run the attention decoder offline, even though the previous layers (encoder and CTC decoder)
+        """Run the attention decoder offline, even though the previous layers (encoder and CTC decoder)
         were being run in the online mode.
         This method should be run after all the audio has been consumed.
         This is used mostly to compare the results between offline and online implementation of the previous layers.
         """
         h, lpz = self._input_window_for_decoder(use_all=True)
+
         self._last_recognition = self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
 
     def advance_attention_decoder(self):
-        # TODO: pass a parameter saying how many iterations we can run the attention decoder for
-        # TODO: we need to affect the maxlen using the CTC approximation in recognize_beam method
-        # TODO: for the first version, use greedy decoding for attention decoder as well
+        # TODO(pzelasko): pass a parameter saying how many iterations we can run the attention decoder for
+        # TODO(pzelasko): we need to affect the maxlen using the CTC approximation in recognize_beam method
+        # TODO(pzelasko): for the first version, use greedy decoding for attention decoder as well
         h, lpz = self._input_window_for_decoder()
         self._last_recognition = self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
 
