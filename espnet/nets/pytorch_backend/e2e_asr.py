@@ -307,7 +307,7 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
-        h, *_ = self.enc(h.unsqueeze(0), ilen)
+        h, _, _ = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
