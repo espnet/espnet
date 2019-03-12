@@ -10,7 +10,7 @@
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=1000000
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=2         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
@@ -44,7 +44,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=10
+batchsize=5
 maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -87,6 +87,9 @@ samp_prob=0.0
 chime4_data=/export/corpora4/CHiME4/CHiME3    # JHU setup
 wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
 wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
+chime4_data=/data/rigel1/corpora/CHiME4
+wsj0=/data/rigel1/corpora/LDC93S6A
+wsj1=/data/rigel1/corpora/LDC94S13A
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -131,10 +134,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ## But you can utilize Kaldi recipes in most cases
     echo "stage 1: Dump wav files into a HDF5 file"
 
-    echo "combine real and simulation data"
-    # utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy
+    utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy
     for setname in tr05_multi_noisy ${recog_set};do
-    # for setname in dt05_bth et05_bth;do
         mkdir -p data/${setname}_multich
         <data/${setname}/utt2spk sed -r 's/^(.*?).CH[0-9](_?.*?) /\1\2 /g' | sort -u >data/${setname}_multich/utt2spk
         <data/${setname}/text sed -r 's/^(.*?).CH[0-9](_?.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text
@@ -153,6 +154,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for setname in tr05_multi_noisy ${recog_set}; do
         dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" --format flac data/${setname}_multich
     done
+    utils/combine_data.sh data/${train_set}_multich data/tr05_multi_noisy data/train_si284
     utils/combine_data.sh data/${train_dev}_multich data/dt05_simu_isolated_6ch_track_multich data/dt05_real_isolated_6ch_track_multich
 
 fi
