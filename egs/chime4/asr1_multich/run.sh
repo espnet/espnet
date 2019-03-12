@@ -84,12 +84,9 @@ fs=16000
 samp_prob=0.0
 
 # data
-chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
+chime4_data=/export/corpora4/CHiME4/CHiME3    # JHU setup
 wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
 wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
-chime4_data=/data/rigel1/corpora/CHiME4
-wsj0=/data/rigel1/corpora/LDC93S6A
-wsj1=/data/rigel1/corpora/LDC94S13A
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -194,6 +191,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
+
+    # "--category" is just a mark to be used excludely for minibatch creation.
+    # i.e. A minibatch always consists of the samples in either one of these categories.
 
     echo "make json files"
     for setname in tr05_multi_noisy_multich ${train_dev} ${recog_set}; do
@@ -406,27 +406,6 @@ fi
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Evaluate enhanced speech"
-    if false; then
-        for rtask in ${recog_set}; do
-            # SKip real data because there are no clean signal
-            echo ${rtask} | grep real &> /dev/null && continue
-        (
-            rtask=$(echo ${rtask} | sed -e 's/_multich//')
-
-            for place in PED CAF STR BUS; do
-                basedir=eval_noisy/${rtask}/eval_${place}
-                bth=$(echo ${rtask} | sed -r "s/(dt05|et05).*/\1_bth/")
-                mkdir -p ${basedir}
-
-                <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
-                <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/target.scp
-                eval_source_separation.sh --cmd ${train_cmd} --nj 100 --source-image false ${basedir}/reference.scp ${basedir}/target.scp ${basedir}
-
-            done
-        ) &
-        done
-        wait
-    fi
 
     mkdir -p ${expdir}/eval_enhance
     for rtask in ${recog_set}; do
@@ -447,8 +426,32 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     ) &
     done
     wait
+    ./local/show_enhance_results.sh ${expdir}/enhance_
 
-    ./local/show_enhance_results.sh --recog-set "${recog_set}" ${expdir}/enhance_
 
+    # Computes SDR/STOI/PESQ, etc., between noisy and clean signals.
+    # The resutl can be seen in ./RESULT, so you don't need to run this block.
+    if false; then
+        for rtask in ${recog_set}; do
+            # SKip real data because there are no clean signal
+            echo ${rtask} | grep real &> /dev/null && continue
+        (
+            rtask=$(echo ${rtask} | sed -e 's/_multich//')
+
+            for place in PED CAF STR BUS; do
+                basedir=eval_noisy/${rtask}/eval_${place}
+                bth=$(echo ${rtask} | sed -r "s/(dt05|et05).*/\1_bth/")
+                mkdir -p ${basedir}
+
+                <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
+                <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/target.scp
+                eval_source_separation.sh --cmd ${train_cmd} --nj 100 --source-image false ${basedir}/reference.scp ${basedir}/target.scp ${basedir}
+
+            done
+        ) &
+        done
+        wait
+        ./local/show_enhance_results.sh eval_noisy/
+    fi
 fi
 
