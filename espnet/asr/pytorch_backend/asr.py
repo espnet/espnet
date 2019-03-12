@@ -31,7 +31,8 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.pytorch_backend.e2e_asr import E2E, StreamingE2E
+from espnet.nets.pytorch_backend.e2e_asr import E2E
+from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 
 from espnet.utils.training.iterators import ShufflingEnabler
