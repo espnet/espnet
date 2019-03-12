@@ -235,54 +235,6 @@ class E2E(torch.nn.Module):
         for l in six.moves.range(len(self.dec.decoder)):
             set_forget_bias_to_one(self.dec.decoder[l].bias_ih)
 
-    def min_pit_process(self, loss):
-        '''E2E min_pit_process
-
-        :param list|1-D torch.Tensor loss: list of losses for each sample [h1r1,h1r2,h2r1,h2r2],
-            or [h1r1,h1r2,h1r3,h2r1,h2r2,h2r3,h3r1,h3r2,h3r3]
-        :return: min_loss
-        :rtype: torch.Tensor size=(2|3)
-        :return: permutation
-        :rtype: List, len=(2|3)
-        '''
-        if self.num_spkrs == 2:
-            perm_choices = [[0, 1], [1, 0]]
-            score_perms = torch.stack([loss[0] + loss[3],
-                                       loss[1] + loss[2]]) / self.num_spkrs
-        elif self.num_spkrs == 3:
-            perm_choices = [[0, 1, 2], [0, 2, 1], [1, 2, 0], [1, 0, 2], [2, 0, 1], [2, 1, 0]]
-            score_perms = torch.stack([loss[0] + loss[4] + loss[8],
-                                       loss[0] + loss[5] + loss[7],
-                                       loss[1] + loss[5] + loss[6],
-                                       loss[1] + loss[3] + loss[8],
-                                       loss[2] + loss[3] + loss[7],
-                                       loss[2] + loss[4] + loss[6]]) / self.num_spkrs
-        else:
-            raise Exception("NotImplementedError")
-
-        perm_loss, min_idx = torch.min(score_perms, 0)
-        permutation = perm_choices[min_idx]
-
-        return perm_loss, permutation
-
-    def min_pit_ctc_batch(self, losses):
-        '''E2E min_pit_ctc_batch
-
-        :param torch.Tensor losses: CTC losses (B, 1|4|9)
-        :return: min ctc loss value
-        :rtype: torch.Tensor (B)
-        :return: permutation of min ctc loss value
-        :rtype: torch.Tensor (B, 1|2|3)
-        '''
-        if self.num_spkrs == 1:
-            return to_device(self, torch.mean(losses[:, 0])), to_device(self, torch.zeros(losses.size(0)).long())
-        else:
-            bs = losses.size(0)
-            ret = [self.min_pit_process(losses[i]) for i in range(bs)]
-            loss_perm = torch.stack([r[0] for r in ret], dim=0)
-            permutation = torch.tensor([r[1] for r in ret]).long()
-            return torch.mean(to_device(self, loss_perm)), to_device(self, permutation)
-
     def forward(self, xs_pad, ilens, ys_pad_sd):
         """E2E forward
 
@@ -358,12 +310,12 @@ class E2E(torch.nn.Module):
                     ref_chars.append(seq_true_text.replace(' ', ''))
 
                 tmp_wers = [editdistance.eval(hyp_words[ns // self.num_spkrs], ref_words[ns % self.num_spkrs])
-                            for ns in range(self.num_spkrs)]  # h1r1,h1r2,h2r1,h2r2
+                            for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
                 tmp_cers = [editdistance.eval(hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs])
-                            for ns in range(self.num_spkrs)]  # h1r1,h1r2,h2r1,h2r2
+                            for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
 
-                wers.append(self.pit.min_pit_sample(tmp_wers) / len(sum(ref_words, [])))
-                cers.append(self.pit.min_pit_sample(tmp_cers) / len(sum(ref_words, [])))
+                wers.append(self.pit.min_pit_sample(torch.tensor(tmp_wers))[0] / len(sum(ref_words, [])))
+                cers.append(self.pit.min_pit_sample(torch.tensor(tmp_cers))[0] / len(sum(ref_words, [])))
 
             wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
             cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
