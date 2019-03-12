@@ -163,8 +163,10 @@ def eval_PESQ(ref, enh, fs, compute_permutation):
             for i, j in enumerate(indices):
                 lis = []
                 for imic in range(n_mic):
+                    # PESQ +<8000|16000> <ref.wav> <enh.wav> [smos] [cond]
                     commands = ['PESQ', '+{}'.format(fs),
-                                ref_files[i][imic], enh_files[j][imic]]
+                                ref_files[i][imic], enh_files[j][imic],
+                                '/dev/null', '/dev/null']
                     with subprocess.Popen(
                             commands, stdout=subprocess.PIPE) as p:
                         stdout, _ = p.communicate()
