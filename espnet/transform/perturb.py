@@ -125,7 +125,7 @@ class BandpassPerturbation(object):
                                '(Time, Channel, Freq) or (Time, Freq)')
 
         ratio = self.state.uniform(self.lower, self.upper)
-        axes = [i if i >= 0 else x.ndim - i for i in self.axes]
+        axes = [i if i >= 0 else x_stft.ndim - i for i in self.axes]
         shape = [s if i in axes else 1 for i, s in enumerate(x_stft.shape)]
 
         mask = self.state.randn(*shape) > ratio
