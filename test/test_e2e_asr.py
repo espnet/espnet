@@ -188,7 +188,7 @@ def test_streaming_e2e():
     for i in range(10):
         asr.accept_input(in_data)
 
-    asr.advance_decoder()
+    asr.decode_with_attention_offline()
 
     recogs = asr.retrieve_recognition()
     pass
