@@ -98,8 +98,8 @@ if [ -f ${data}/segments ]; then
 
   utils/split_scp.pl ${data}/segments ${split_segments}
 
-  ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log ${opts} \
-      dump-pcm.py --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
+  ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log \
+      dump-pcm.py ${opts} --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
       --keep-length ${keep_length} --segment=${logdir}/segments.JOB scp:${scp} \
       ark,scp:${pcmdir}/raw_pcm_${name}.JOB${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
 
@@ -113,8 +113,8 @@ else
 
   utils/split_scp.pl ${scp} ${split_scps}
 
-  ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log ${opts} \
-      dump-pcm.py --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
+  ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log \
+      dump-pcm.py ${opts} --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
       --keep-length ${keep_length} scp:${logdir}/wav.JOB.scp \
       ark,scp:${pcmdir}/raw_pcm_${name}.JOB${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
 
