@@ -393,6 +393,7 @@ class StreamingE2E(object):
 
     Not recommended for GPUs.
     """
+
     def __init__(self, e2e, recog_args, char_list, rnnlm=None):
         """StreamingE2E constructor.
 
