@@ -630,6 +630,211 @@ class Decoder(torch.nn.Module):
         return att_ws
 
 
+class StreamingDecoderEmptyNbestException(Exception):
+    pass
+
+
+class StreamingDecoderAlreadyFinishedException(Exception):
+    pass
+
+
+class StreamingDecoder(object):
+    def __init__(
+            self,
+            attention_decoder,
+            h,
+            lpz,
+            recog_args,
+            char_list,
+            rnnlm=None,
+            strm_idx=0,
+            maxlen=None,
+            minlen=None
+    ):
+        self._decoder = attention_decoder
+        self._char_list = char_list
+        self._recog_args = recog_args
+        self._rnnlm = rnnlm
+        self._maxlen = maxlen
+        self._minlen = minlen
+
+        self._att_idx = min(strm_idx, len(self._decoder.att) - 1)
+        # initialization
+        self._c_list = [self._decoder.zero_state(h.unsqueeze(0))]
+        self._z_list = [self._decoder.zero_state(h.unsqueeze(0))]
+        for _ in six.moves.range(1, self._decoder.dlayers):
+            self._c_list.append(self._decoder.zero_state(h.unsqueeze(0)))
+            self._z_list.append(self._decoder.zero_state(h.unsqueeze(0)))
+        self._decoder.att[self._decoder.att_idx].reset()  # reset pre-computation of h
+
+        # search parms
+        self._beam = recog_args.beam_size
+        self._penalty = recog_args.penalty
+        self._ctc_weight = recog_args.ctc_weight
+
+        # preprate sos
+        self._y = self._decoder.sos
+        self._vy = h.new_zeros(1).long()
+
+        # initialize hypothesis
+        if self._rnnlm:
+            hyp = {'score': 0.0, 'yseq': [self._y], 'c_prev': self._c_list,
+                   'z_prev': self._z_list, 'a_prev': None, 'rnnlm_prev': None}
+        else:
+            hyp = {'score': 0.0, 'yseq': [self._y], 'c_prev': self._c_list, 'z_prev': self._z_list, 'a_prev': None}
+        if lpz is not None:
+            self._ctc_prefix_score = CTCPrefixScore(lpz.detach().numpy(), 0, self._decoder.eos, np)
+            hyp['ctc_state_prev'] = self._ctc_prefix_score.initial_state()
+            hyp['ctc_score_prev'] = 0.0
+            self._ctc_beam = (
+                min(lpz.shape[-1], int(self._beam * CTC_SCORING_RATIO))
+                if self._ctc_weight != 1.0
+                else lpz.shape[-1]
+            )
+        self._hyps = [hyp]
+        self._ended_hyps = []
+        self._i = 0
+        self._is_finished = False
+
+    def advance_single_character(self, h, lpz):
+        if self._is_finished:
+            raise StreamingDecoderAlreadyFinishedException()
+
+        logging.debug('position ' + str(self._i))
+
+        hyps_best_kept = []
+        for hyp in self._hyps:
+            self._vy.unsqueeze(1)
+            self._vy[0] = hyp['yseq'][self._i]
+            ey = self._decoder.dropout_emb(self._decoder.embed(self._vy))  # utt list (1) x zdim
+            ey.unsqueeze(0)
+            att_c, att_w = self._decoder.att[self._att_idx](h.unsqueeze(0), [h.size(0)],
+                                             self._decoder.dropout_dec[0](hyp['z_prev'][0]), hyp['a_prev'])
+            ey = torch.cat((ey, att_c), dim=1)  # utt(1) x (zdim + hdim)
+            self._z_list, self._c_list = self._decoder.rnn_forward(
+                ey, self._z_list, self._c_list, hyp['z_prev'], hyp['c_prev']
+            )
+
+            # get nbest local scores and their ids
+            local_att_scores = F.log_softmax(
+                self._decoder.output(self._decoder.dropout_dec[-1](self._z_list[-1])), dim=1
+            )
+            if self._rnnlm:
+                self._rnnlm_state, local_lm_scores = self._rnnlm.predict(hyp['rnnlm_prev'], self._vy)
+                local_scores = local_att_scores + self._recog_args.lm_weight * local_lm_scores
+            else:
+                local_scores = local_att_scores
+
+            if lpz is not None:
+                local_best_scores, local_best_ids = torch.topk(
+                    local_att_scores, self._ctc_beam, dim=1)
+                ctc_scores, ctc_states = self._ctc_prefix_score(
+                    hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                local_scores = \
+                    (1.0 - self._ctc_weight) * local_att_scores[:, local_best_ids[0]] \
+                    + self._ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
+                if self._rnnlm:
+                    local_scores += self._recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
+                local_best_scores, joint_best_ids = torch.topk(local_scores, self._beam, dim=1)
+                local_best_ids = local_best_ids[:, joint_best_ids[0]]
+            else:
+                local_best_scores, local_best_ids = torch.topk(local_scores, self._beam, dim=1)
+
+            for j in six.moves.range(self._beam):
+                new_hyp = {}
+                # [:] is needed!
+                new_hyp['z_prev'] = self._z_list[:]
+                new_hyp['c_prev'] = self._c_list[:]
+                new_hyp['a_prev'] = att_w[:]
+                new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
+                new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
+                new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
+                new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
+                if self._rnnlm:
+                    new_hyp['rnnlm_prev'] = self._rnnlm_state
+                if lpz is not None:
+                    new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
+                    new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
+                # will be (2 x beam) hyps at most
+                hyps_best_kept.append(new_hyp)
+
+            hyps_best_kept = sorted(
+                hyps_best_kept, key=lambda x: x['score'], reverse=True)[:self._beam]
+
+        # sort and get nbest
+        self._hyps = hyps_best_kept
+        logging.debug('number of pruned hypotheses: ' + str(len(self._hyps)))
+        logging.debug(
+            'best hypo: ' + ''.join([self._char_list[int(x)] for x in self._hyps[0]['yseq'][1:]]))
+
+        # add eos in the final loop to avoid that there are no ended hyps
+        if self._maxlen is not None and self._i == self._maxlen - 1:
+            self.finalize_decoding()
+
+        # add ended hypotheses to a final list, and removed them from current hypotheses
+        # (this will be a problem, number of hyps < beam)
+        remained_hyps = []
+        for hyp in self._hyps:
+            if hyp['yseq'][-1] == self._decoder.eos:
+                # only store the sequence that has more than minlen outputs
+                # also add penalty
+                if self._minlen is None or len(hyp['yseq']) > self._minlen:
+                    hyp['score'] += (self._i + 1) * self._penalty
+                    if self._rnnlm:  # Word LM needs to add final <eos> score
+                        hyp['score'] += self._recog_args.lm_weight * self._rnnlm.final(
+                            hyp['rnnlm_prev'])
+                    self._ended_hyps.append(hyp)
+            else:
+                remained_hyps.append(hyp)
+
+        # end detection
+        if end_detect(self._ended_hyps, self._i) and self._recog_args.maxlenratio == 0.0:
+            logging.info('end detected at %d', self._i)
+            self._is_finished = True
+            return
+
+        self._hyps = remained_hyps
+        if len(self._hyps) > 0:
+            logging.debug('remaining hypotheses: ' + str(len(self._hyps)))
+        else:
+            logging.info('no hypothesis. Finish decoding.')
+            self._is_finished = True
+            return
+
+        for hyp in self._hyps:
+            logging.debug(
+                'hypo: ' + ''.join([self._char_list[int(x)] for x in hyp['yseq'][1:]]))
+
+        logging.debug('number of ended hypotheses: ' + str(len(self._ended_hyps)))
+
+    def is_finished(self):
+        return self._is_finished
+
+    def finalize_decoding(self):
+        logging.info('adding <eos> in the last position in the loop')
+        for hyp in self._hyps:
+            hyp['yseq'].append(self._decoder.eos)
+        self._is_finished = True
+
+    def retrieve_recognition(self):
+        if not self._is_finished:
+            self.finalize_decoding()
+
+        nbest_hyps = sorted(
+            self._ended_hyps, key=lambda x: x['score'], reverse=True)[:min(len(self._ended_hyps), self._recog_args.nbest)]
+
+        # check number of hypotheses
+        if len(nbest_hyps) == 0:
+            logging.warning('there is no N-best results, perform recognition again with smaller minlenratio.')
+            raise StreamingDecoderEmptyNbestException()
+
+        logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
+        logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
+
+        # remove sos
+        return nbest_hyps
+
+
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
