@@ -18,7 +18,8 @@ import numpy as np
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
@@ -187,7 +188,7 @@ def main(args):
                         help='Pre-trained MT model')
 
     def my_strtobool(x):
-        # strtobool returns integer, but it's confusing, so changing to bool
+        # strtobool returns integer, but it's confusing,
         return bool(strtobool(x))
 
     parser.add_argument(
@@ -195,7 +196,8 @@ def main(args):
         help='The flag to switch to use frontend system.')
 
     # WPE related
-    parser.add_argument('--use-wpe', type=my_strtobool, default=False, help='')
+    parser.add_argument('--use-wpe', type=my_strtobool, default=False,
+                        help='Apply Weighted Prediction Error ')
     parser.add_argument('--wtype', type=str, default='blstmp',
                         help='')
     parser.add_argument('--wlayers', type=int, default=2,
@@ -211,7 +213,9 @@ def main(args):
     parser.add_argument('--delay', type=int, default=3,
                         help='')
     parser.add_argument('--use-dnn-mask-for-wpe', type=my_strtobool,
-                        default=False, help='')
+                        default=False,
+                        help='Use DNN to estimate the power spectrogram. '
+                             'This option is experimental.')
 
     # Beamformer related
     parser.add_argument('--use-beamformer', type=my_strtobool,
@@ -227,7 +231,8 @@ def main(args):
     parser.add_argument('--badim', type=int, default=320,
                         help='')
     parser.add_argument('--ref-channel', type=int, default=None,
-                        help='')
+                        help='The reference channel used for beamformer. '
+                             'By default, the channel is estimated by DNN.')
     parser.add_argument('--bdropout-rate', type=float, default=0.0,
                         help='')
 
@@ -235,7 +240,8 @@ def main(args):
     parser.add_argument('--stats-file', type=str, default=None,
                         help='')
     parser.add_argument('--apply-uttmvn', type=my_strtobool, default=True,
-                        help='')
+                        help='Apply utterance level mean '
+                             'variance normalization.')
     parser.add_argument('--uttmvn-norm-means', type=my_strtobool,
                         default=True, help='')
     parser.add_argument('--uttmvn-norm-vars', type=my_strtobool, default=False,
@@ -243,7 +249,8 @@ def main(args):
 
     # Feature transform: Fbank
     parser.add_argument('--fs', type=int, default=16000,
-                        help='')
+                        help='The sample frequency used for '
+                             'the mel matrix creation.')
     parser.add_argument('--n-mels', type=int, default=80,
                         help='')
     parser.add_argument('--fmin', type=float, default=0.,
