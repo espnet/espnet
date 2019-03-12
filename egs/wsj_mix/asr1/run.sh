@@ -15,7 +15,6 @@ dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
-seed=1
 
 # feature configuration
 do_delta=true
@@ -115,17 +114,18 @@ if [ ${stage} -le 0 ]; then
     local/wsj0_2mix_data_prep.sh ${wsj_2mix_wav}/wav16k/max ${wsj_2mix_scripts} \
         ${wsj_full_wav} || exit 1;
 
-    ### Or this part is for WSJ mix
-    ### First prepare single speaker WSJ corpus. Prepare WSJ data for the use of spk, text in WSJ-2mix
-    ### But you can utilize Kaldi recipes in most cases
-    #local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
-    #local/wsj_format_data.sh
-    #mkdir -p data/wsj
-    #mv data/{dev_dt_05,local,test_dev93_5k,test_eval92_5k,test_eval93_5k,dev_dt_20,test_dev93,test_eval92,test_eval93,train_si284} data/wsj
+    ### Also need wsj corpus to prepare language information
+    ### This is from Kaldi WSJ recipe
+    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
+    local/wsj_format_data.sh
+    mkdir -p data/wsj
+    mv data/{dev_dt_*,local,test_dev*,test_eval*,train_si284} data/wsj
 
-    ### Before next step, suppose wsj_2mix_corpus has been generated.
+    ### Or this part is for WSJ mix, which is a larger two-speaker mixture corpus created from WSJ corpus. Used in
+    ### Seki H, Hori T, Watanabe S, et al. End-to-End Multi-Lingual Multi-Speaker Speech Recognition[J]. 2018. and
+    ### Chang X, Qian Y, Yu K, et al. End-to-End Monaural Multi-speaker ASR System without Pretraining[J]. 2019
+    ### Before next step, suppose wsj_2mix_corpus has been generated (please refer to wsj0_mixture for more details).
     #local/wsj_2mix_data_prep.sh ${wsj_2mix_wav}/wav16k/max ${wsj_2mix_script} || exit 1;
-    exit 0;
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -190,14 +190,14 @@ if [ ${stage} -le 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    local/data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
+    local/data2json.sh --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} --num-spkrs 2 \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} \
+    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --nlsyms ${nlsyms} --num-spkrs 2 \
          data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         local/data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            --nlsyms ${nlsyms} data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+            --nlsyms ${nlsyms} --num-spkrs 2 data/${rtask} ${dict} > ${feat_recog_dir}/data.json
     done
 fi
 
@@ -270,7 +270,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_sde${elayers_sd}_rece${elayers_rec}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_spa${use_spa}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_seed${seed}
+    expname=${train_set}_${backend}_${etype}_sde${elayers_sd}_rece${elayers_rec}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_spa${use_spa}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if [ "${lsm_type}" != "" ]; then
         expname=${expname}_lsm${lsm_type}${lsm_weight}
     fi
@@ -300,7 +300,6 @@ if [ ${stage} -le 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --seed ${seed} \
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json \
         --num-spkrs ${num_spkrs} \

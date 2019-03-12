@@ -305,14 +305,14 @@ def train(args):
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
-            train_iters = list(ToggleableShufflingMultiprocessIterator(
+            train_iters = [ToggleableShufflingMultiprocessIterator(
                 TransformDataset(train, converter.transform),
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
-                shuffle=not use_sortagrad))
+                shuffle=not use_sortagrad)]
         else:
-            train_iters = list(ToggleableShufflingSerialIterator(
+            train_iters = [ToggleableShufflingSerialIterator(
                 TransformDataset(train, converter.transform),
-                batch_size=1, shuffle=not use_sortagrad))
+                batch_size=1, shuffle=not use_sortagrad)]
 
         # set up updater
         updater = CustomUpdater(

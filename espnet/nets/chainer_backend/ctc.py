@@ -114,7 +114,7 @@ def ctc_for(args, odim):
     :param int odim: The output dimension
     :return: The CTC module
     """
-    ctc_type = vars(args).get("ctc_type", "builtin")
+    ctc_type = args.ctc_type
     if ctc_type == 'builtin':
         logging.info("Using chainer CTC implementation")
         ctc = CTC(odim, args.eprojs, args.dropout_rate)

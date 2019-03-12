@@ -34,6 +34,7 @@ requirements = {
         'nara_wpe',
         'museval',
         'pystoi'
+        'kaldiio'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [

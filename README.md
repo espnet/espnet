@@ -38,7 +38,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.1, 1.0.0 
+- PyTorch 0.4.1, 1.0.0
 - gcc>=4.9 for PyTorch1.0.0
 - Chainer 5.0.0
 
@@ -116,7 +116,7 @@ $ make PYTHON_VERSION=3.6
 You can check whether the install is succeeded via the following commands
 ```sh
 $ cd tools
-$ source venv/bin/activate && python check_install.py
+$ make check_install
 ```
 If you have no warning, ready to run the recipe!
 
@@ -124,9 +124,8 @@ If there are some problems in python libraries, you can re-setup only python env
 ```sh
 $ cd tools
 $ make clean_python
-$ make all_python
+$ make python
 ```
-And then check the install is succeeded again.
 
 ## Execution of example scripts
 
@@ -269,7 +268,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | WSJ eval92| 2.1 | 4.7 |
 | CSJ eval1 | 6.6 | N/A  |
 | CSJ eval2 | 4.8 | N/A  |
-| CSJ eval3 | 5.3 | N/A  |
+| CSJ eval3 | 5.0 | N/A  |
 | Aishell dev | 6.8 | N/A |
 | Aishell test | 8.0 | N/A |
 | HKUST train_dev | 28.8 | N/A  |

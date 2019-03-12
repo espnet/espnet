@@ -27,9 +27,7 @@ egs/*/*/wav*
 
 # tools related
 tools/chainer_ctc/
-tools/kaldi/
-tools/kaldi-io-for-python/
-tools/kaldi_github/
+tools/kaldi*
 tools/mecab/
 tools/miniconda.sh
 tools/moses/
