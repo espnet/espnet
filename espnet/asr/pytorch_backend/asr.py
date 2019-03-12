@@ -369,6 +369,8 @@ def train(args):
                                          'epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/acc', 'validation/main/acc'],
                                          'epoch', file_name='acc.png'))
+    trainer.extend(extensions.PlotReport(['main/cer_ctc', 'validation/main/cer_ctc'],
+                                         'epoch', file_name='cer.png'))
 
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
@@ -405,7 +407,8 @@ def train(args):
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
-                   'main/acc', 'validation/main/acc', 'elapsed_time']
+                   'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
+                   'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),

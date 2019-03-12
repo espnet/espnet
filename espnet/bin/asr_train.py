@@ -54,7 +54,8 @@ def main(args):
                         choices=[1, 2],
                         help='Number of speakers in the speech.')
     parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm', 'bgru', 'bgrup', 'vggbgrup', 'vggbgru'],
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
                         help='Type of encoder network architecture')
     parser.add_argument('--elayers-sd', default=4, type=int,
                         help='Number of encoder layers for speaker differentiate part. (multi-speaker asr mode only)')

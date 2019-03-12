@@ -16,11 +16,11 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done kaldiio pytorch_complex extra pesq
+all: kaldi.done python check_install
 
-all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses
+extra: nkf.done sentencepiece.done mecab.done moses.done pytorch_complex pesq
 
 
 ifneq ($(strip $(KALDI)),)
@@ -59,9 +59,6 @@ espnet.done: venv
 	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
 	touch espnet.done
 endif
-
-kaldiio: venv
-	. venv/bin/activate; pip install git+https://github.com/nttcslab-sp/kaldiio.git
 
 pytorch_complex: venv
 	# Require python>=3.6, pytorch>=1.0
@@ -108,7 +105,7 @@ sentencepiece.done:
 	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 	touch sentencepiece.done
 
-mecab.done:
+mecab.done: espnet.done
 	rm -rf mecab
 	git clone https://github.com/taku910/mecab.git
 	cd mecab/mecab && ./configure --with-charset=utf8 --prefix=$(PWD)/mecab && $(MAKE) && $(MAKE) check && $(MAKE) install
@@ -127,16 +124,20 @@ mecab.done:
 			touch $(PWD)/swig.done; \
 		fi; \
 		deactivate; \
-		export PATH=$(PWD)/swig/bin:$(PATH); \
-		export PATH=$(PWD)/mecab/bin:$(PATH); \
+		export PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH); \
+		export LD_LIBRARY_PATH=$(PWD)/venv/lib:$(LD_LIBRARY_PATH); \
 		. $(PWD)/venv/bin/activate; pip install mecab-python3; \
 	else \
 		pip install mecab-python; \
 	fi
 	touch mecab.done
 
-moses:
+moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
+	touch moses.done
+
+check_install: kaldi.done python
+	. venv/bin/activate; python check_install.py
 
 pesq: PESQ/P862/Software/PESQ
 PESQ/P862/Software/PESQ: PESQ
@@ -154,10 +155,11 @@ clean: clean_extra
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf venv warp-ctc chainer_ctc kaldi-io-for-python
+	rm -rf venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-	rm -rf chainer_patch.done warp-ctc.done chainer_ctc.done
+	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:
+	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
 	rm -rf nkf sentencepiece mecab swig moses
