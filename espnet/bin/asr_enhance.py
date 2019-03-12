@@ -12,7 +12,8 @@ from espnet.asr.pytorch_backend.asr import enhance
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
@@ -47,7 +48,7 @@ def main(args):
                         help='Specify the file format for enhanced speech. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--fs', type=int, default=16000,
-                        help='The frame frequency')
+                        help='The sample frequency')
     parser.add_argument('--keep-length', type=strtobool, default=True,
                         help='Adjust the output length to match '
                              'with the input for enhanced speech')
