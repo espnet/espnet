@@ -72,22 +72,25 @@ def eval_STOI(ref, y, fs, extended=False, compute_permutation=True):
     return tuple(value), tuple(perm)
 
 
-class TemporaryDirectory(object):
-    """Ported from python3 tempflie.TemporaryDirectory"""
-    def __init__(self, suffix=None, prefix=None, dir=None):
-        self.name = tempfile.mkdtemp(suffix, prefix, dir)
+if PY2:
+    class TemporaryDirectory(object):
+        """Ported from python3 tempflie.TemporaryDirectory"""
+        def __init__(self, suffix=None, prefix=None, dir=None):
+            self.name = tempfile.mkdtemp(suffix, prefix, dir)
 
-    def __repr__(self):
-        return "<{} {!r}>".format(self.__class__.__name__, self.name)
+        def __repr__(self):
+            return "<{} {!r}>".format(self.__class__.__name__, self.name)
 
-    def __enter__(self):
-        return self.name
+        def __enter__(self):
+            return self.name
 
-    def __exit__(self, exc, value, tb):
-        self.cleanup()
+        def __exit__(self, exc, value, tb):
+            self.cleanup()
 
-    def cleanup(self):
-        shutil.rmtree(self.name)
+        def cleanup(self):
+            shutil.rmtree(self.name)
+else:
+    from tempfile import TemporaryDirectory
 
 
 def eval_PESQ(ref, enh, fs, compute_permutation):
@@ -213,8 +216,9 @@ def main():
                         help='Compute all permutations or '
                              'use the pair of input order')
     parser.add_argument('--source-image', type=strtobool, default=True,
-                        help='Use this option in the case that '
-                             'the reference is source image. '
+                        help='Use this option if '
+                             'the reference is source image, '
+                             'i.e. "bss_eval_images" is used. '
                              'For more detail, see museval source codes.')
     args = parser.parse_args()
 
