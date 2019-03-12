@@ -627,11 +627,11 @@ def enhance(args):
     for names in grouper(args.batchsize, keys, None):
         batch = [(name, js[name]) for name in names]
 
-        # May be in time region: (1, [Time, Channel])
+        # May be in time region: (Batch, [Time, Channel])
         org_feats = load_inputs_and_targets(batch)[0]
         if transform is not None:
             with using_transform_config({'train': False}):
-                # May be in time-freq region: : (1, [Time, Channel, Freq])
+                # May be in time-freq region: : (Batch, [Time, Channel, Freq])
                 feats = transform(org_feats)
         else:
             feats = org_feats
@@ -640,9 +640,14 @@ def enhance(args):
             enhanced, mask, ilens = model.enhance(feats)
 
         for idx, name in enumerate(names):
+            # Assuming mask, feats : [Batch, Time, Channel. Freq]
+            #          enhanced    : [Batch, Time, Freq]
+            enh = enhanced[idx][:ilens[idx]]
+            mas = mask[idx][:ilens[idx]]
+            feat = feats[idx]
+
             # Write enhanced wave files
             if enh_writer is not None:
-                enh = enhanced[idx][:ilens[idx]]
                 if istft is not None:
                     enh = istft(enh)
                 else:
@@ -660,6 +665,8 @@ def enhance(args):
                 if args.enh_filetype in ('sound', 'sound.hdf5'):
                     enh_writer[name] = (args.fs, enh)
                 else:
+                    # Hint: To dump stft_signal, mask or etc,
+                    # enh_filetype='hdf5' might be convenient.
                     enh_writer[name] = enh
 
             # Plot spectrogram
@@ -671,27 +678,31 @@ def enhance(args):
                 plt.figure(figsize=(20, 10))
                 plt.subplot(4, 1, 1)
                 plt.title('Mask [ref={}ch]'.format(ref_ch))
-                plot_spectrogram(plt, mask[idx, :, ref_ch].T, fs=args.fs,
+                plot_spectrogram(plt, mas[:, ref_ch].T, fs=args.fs,
                                  mode='linear', frame_shift=frame_shift,
                                  bottom=False, labelbottom=False)
 
                 plt.subplot(4, 1, 2)
                 plt.title('Noisy speech [ref={}ch]'.format(ref_ch))
-                plot_spectrogram(plt, feats[idx][:, ref_ch].T, fs=args.fs,
+                plot_spectrogram(plt, feat[:, ref_ch].T, fs=args.fs,
                                  mode='db', frame_shift=frame_shift,
                                  bottom=False, labelbottom=False)
 
                 plt.subplot(4, 1, 3)
                 plt.title('Masked speech [ref={}ch]'.format(ref_ch))
                 plot_spectrogram(
-                    plt, (feats[idx][:, ref_ch] * mask[idx, :, ref_ch]).T,
+                    plt, (feat[:, ref_ch] * mas[:, ref_ch]).T,
                     frame_shift=frame_shift,
                     fs=args.fs, mode='db', bottom=False, labelbottom=False)
 
                 plt.subplot(4, 1, 4)
                 plt.title('Enhanced speech')
-                plot_spectrogram(plt, enhanced[idx].T, fs=args.fs,
+                plot_spectrogram(plt, enh.T, fs=args.fs,
                                  mode='db', frame_shift=frame_shift)
 
                 plt.savefig(os.path.join(args.image_dir, name + '.png'))
                 plt.clf()
+
+            if num_images >= args.num_images and enh_writer is None:
+                logging.info('Breaking the process.')
+                break

@@ -75,9 +75,6 @@ def main(args):
                              'if stft is found in the preprocess-conf')
 
     args = parser.parse_args(args)
-    if args.enh_wspecifier is None and args.mask_wspecifier is None:
-        raise argparse.ArgumentError(
-            'Must specify one or more from "--enh-wspecifier" and "--mask-wspecifier"')
 
     # logging info
     if args.verbose == 1:

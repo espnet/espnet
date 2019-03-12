@@ -14,8 +14,8 @@ else:
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Mix mono-channel wav.scp into a multi-channel wav.scp '
-                    'using sox' )
+        description='Mixing wav.scp files into a multi-channel wav.scp '
+                    'using sox.')
     parser.add_argument('scp', type=str, nargs='+', help='Give wav.scp')
     parser.add_argument('out', nargs='?', type=argparse.FileType('w'),
                         default=sys.stdout,
@@ -42,7 +42,9 @@ def main():
             wavs.append(wav.strip())
 
         if not all(k == keys[0] for k in keys):
-            raise RuntimeError('The ids mismatch: {}'.format(keys))
+            raise RuntimeError(
+                'The ids mismatch. Hint; the input files must be '
+                'sorted and must have same ids: {}'.format(keys))
 
         args.out.write('{} sox -M {} -c {} -t wav - |\n'.format(
             keys[0], ' '.join('{}'.format(w) for w in wavs), len(fscps)))

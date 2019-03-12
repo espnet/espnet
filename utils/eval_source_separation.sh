@@ -6,6 +6,7 @@ nj=10
 cmd=run.pl
 evaltypes="SDR STOI ESTOI PESQ"
 permutation=true
+# Use museval.metrics.bss_eval_images or museval.metrics.bss_eval_source
 source_image=true
 
 . ./path.sh
