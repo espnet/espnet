@@ -70,7 +70,7 @@ def get_mvdr_vector(psd_s: ComplexTensor,
 # TODO(kamo): Implement forward-backward function for symeig
 def get_mvdr_vector2(psd_s: ComplexTensor,
                      psd_n: ComplexTensor,
-                     eps: float = 1e-15)-> ComplexTensor:
+                     eps: float = 1e-15) -> ComplexTensor:
     """Return the MVDR(Minimum Variance Distortionless Response) vector:
 
         h = (Npsd^-1 @ A) / (A^H @ Npsd^-1 @ A)

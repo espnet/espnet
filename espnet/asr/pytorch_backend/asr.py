@@ -11,11 +11,6 @@ import math
 import os
 import sys
 
-if sys.version_info[0] == 2:
-    from itertools import izip_longest as zip_longest
-else:
-    from itertools import zip_longest as zip_longest
-
 # chainer related
 from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
@@ -29,11 +24,12 @@ import numpy as np
 from tensorboardX import SummaryWriter
 
 # espnet related
-from espnet.asr.asr_utils import adadelta_eps_decay, plot_spectrogram
+from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import plot_spectrogram
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
@@ -60,6 +56,10 @@ from espnet.utils.training.train_utils import set_early_stop
 import matplotlib
 matplotlib.use('Agg')
 
+if sys.version_info[0] == 2:
+    from itertools import izip_longest as zip_longest
+else:
+    from itertools import zip_longest as zip_longest
 
 REPORT_INTERVAL = 100
 
@@ -558,7 +558,7 @@ def enhance(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=None  # Apply pre_process in outer func
-        )
+    )
     if args.batchsize == 0:
         args.batchsize = 1
 

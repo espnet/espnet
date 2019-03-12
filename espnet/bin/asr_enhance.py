@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import argparse
+from distutils.util import strtobool
 import logging
 import os
 import random
 import sys
-from distutils.util import strtobool
 
 import numpy as np
 

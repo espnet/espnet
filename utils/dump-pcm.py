@@ -39,7 +39,7 @@ def main():
     parser.add_argument('--keep-length', type=strtobool, default=True,
                         help='Truncating or zero padding if the output length '
                              'is changed from the input by preprocessing')
-    parser.add_argument('rspecifier', type=str, nargs='+', help='WAV scp file')
+    parser.add_argument('rspecifier', type=str, help='WAV scp file')
     parser.add_argument(
         '--segments', type=str,
         help='segments-file format: each line is either'
@@ -73,6 +73,10 @@ def main():
             if args.filetype == 'mat':
                 # Kaldi-matrix doesn't support integer
                 array = array.astype(numpy.float32)
+
+            if array.ndim == 1:
+                # (Time) -> (Time, Channel)
+                array = array[:, None]
 
             if args.normalize is not None and args.normalize != 1:
                 array = array.astype(numpy.float32)

@@ -413,6 +413,8 @@ class E2E(torch.nn.Module):
         xs = [to_device(self, _to_torch_tensor(xx).float()) for xx in xs]
         xs_pad = pad_list(xs, 0.0)
         enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
+        if prev:
+            self.train()
         return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
