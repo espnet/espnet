@@ -72,7 +72,7 @@ class FileReaderWrapper(object):
 
     def __init__(self, rspecifier, filetype='mat', return_shape=False,
                  segments=None):
-        if segments is None and filetype != 'mat':
+        if segments is not None and filetype != 'mat':
             raise ValueError('Not supporting segments if filetype={}'
                              .format(filetype))
 

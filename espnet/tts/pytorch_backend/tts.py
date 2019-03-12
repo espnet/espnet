@@ -428,7 +428,7 @@ def decode(args):
         if args.preprocess_conf is None else args.preprocess_conf)
 
     with torch.no_grad(), using_transform_config({'train': False}), \
-        kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+            kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
 
         for idx, utt_id in enumerate(js.keys()):
             batch = [(utt_id, js[utt_id])]

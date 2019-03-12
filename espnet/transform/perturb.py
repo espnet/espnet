@@ -51,7 +51,7 @@ class SpeedPerturbation(object):
 
     def __repr__(self):
         if self.utt2ratio is None:
-            return ('{}(lower={}, upper={}, ' 
+            return ('{}(lower={}, upper={}, '
                     'keep_length={}, res_type={})'.format(
                         self.__class__.__name__, self.lower, self.upper,
                         self.keep_length, self.res_type))
@@ -310,7 +310,7 @@ class RIRConvolve(object):
 
     def __repr__(self):
         return '{}("{}")'.format(self.__class__.__name__,
-                               self.utt2rir_file)
+                                 self.utt2rir_file)
 
     def __call__(self, x, uttid):
         if not transform_config['train']:

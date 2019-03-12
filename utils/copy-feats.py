@@ -68,9 +68,9 @@ def main():
                 mat = preprocessing(mat, uttid_list=utt)
 
             # shape = (Time, Channel)
-            if args.filetype in ['sound.hdf5', 'sound']:
+            if args.out_filetype in ['sound.hdf5', 'sound']:
                 # Write Tuple[int, numpy.ndarray] (scipy style)
-                writer[utt] = (rate, mas)
+                writer[utt] = (rate, mat)
             else:
                 writer[utt] = mat
 
