@@ -102,8 +102,6 @@ set -e
 set -u
 set -o pipefail
 
-which sox &> /dev/null || { echo "Error: requires sox command."; exit 1; }
-
 train_set=tr05_multi_noisy_si284 # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
 train_dev=dt05_multi_isolated_6ch_track
 recog_set="dt05_real_isolated_6ch_track dt05_simu_isolated_6ch_track et05_real_isolated_6ch_track et05_simu_isolated_6ch_track"
