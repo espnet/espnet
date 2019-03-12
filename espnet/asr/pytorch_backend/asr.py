@@ -491,8 +491,8 @@ def recog(args):
                     logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
                     se2e = StreamingE2E(e2e=model, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
                     for i in range(0, feat.shape[0], args.streaming_window):
-                        logging.info('Feeding frames %d - %d', i, i+args.streaming_window)
-                        se2e.accept_input(feat[i:i+args.streaming_window])
+                        logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
+                        se2e.accept_input(feat[i:i + args.streaming_window])
                     logging.info('Running offline attention decoder')
                     se2e.decode_with_attention_offline()
                     logging.info('Offline attention decoder finished')

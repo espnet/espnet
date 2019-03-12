@@ -78,7 +78,7 @@ class RNNP(torch.nn.Module):
                                 )(ys_pad.contiguous().view(-1, ys_pad.size(2)))
             xs_pad = torch.tanh(projected.view(ys_pad.size(0), ys_pad.size(1), -1))
 
-        return xs_pad, ilens, elayer_states # x: utt list of frame x dim
+        return xs_pad, ilens, elayer_states  # x: utt list of frame x dim
 
 
 class RNN(torch.nn.Module):

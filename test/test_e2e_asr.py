@@ -190,8 +190,7 @@ def test_streaming_e2e():
 
     asr.decode_with_attention_offline()
 
-    recogs = asr.retrieve_recognition()
-    pass
+    asr.retrieve_recognition()
 
 
 @pytest.mark.parametrize(
