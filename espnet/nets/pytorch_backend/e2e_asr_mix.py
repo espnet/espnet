@@ -506,7 +506,7 @@ class Encoder(torch.nn.Module):
         """
         # mixture encoder
         for module in self.enc_mix:
-            xs_pad, ilens = module(xs_pad, ilens)
+            xs_pad, ilens, _ = module(xs_pad, ilens)
 
         # SD and Rec encoder
         xs_pad_sd = [xs_pad for i in range(self.num_spkrs)]
@@ -514,10 +514,10 @@ class Encoder(torch.nn.Module):
         for ns in range(self.num_spkrs):
             # Encoder_SD: speaker differentiate encoder
             for module in self.enc_sd[ns]:
-                xs_pad_sd[ns], ilens_sd[ns] = module(xs_pad_sd[ns], ilens_sd[ns])
+                xs_pad_sd[ns], ilens_sd[ns], _ = module(xs_pad_sd[ns], ilens_sd[ns])
             # Encoder_Rec: recognition encoder
             for module in self.enc_rec:
-                xs_pad_sd[ns], ilens_sd[ns] = module(xs_pad_sd[ns], ilens_sd[ns])
+                xs_pad_sd[ns], ilens_sd[ns], _ = module(xs_pad_sd[ns], ilens_sd[ns])
 
         # make mask to remove bias value in padded part
         mask = to_device(self, make_pad_mask(ilens_sd[0]).unsqueeze(-1))
