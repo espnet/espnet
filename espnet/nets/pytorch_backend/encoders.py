@@ -63,18 +63,12 @@ class RNNP(torch.nn.Module):
         elayer_states = []
         for layer in six.moves.range(self.elayers):
             xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
-<<<<<<< HEAD
-            birnn = getattr(self, 'bi' + self.typ + str(layer))
-            birnn.flatten_parameters()
-            ys, _ = birnn(xs_pack)
-=======
             rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
             rnn.flatten_parameters()
             if prev_state is not None and rnn.bidirectional:
                 prev_state = reset_backward_rnn_state(prev_state)
             ys, states = rnn(xs_pack, hx=prev_state)
             elayer_states.append(states)
->>>>>>> upstream/master
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
             sub = self.subsample[layer + 1]
@@ -124,18 +118,12 @@ class RNN(torch.nn.Module):
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
-<<<<<<< HEAD
-        self.nblstm.flatten_parameters()
-        # self.nbrnn.flatten_parameters()
-        ys, _ = self.nblstm(xs_pack)
-=======
         self.nbrnn.flatten_parameters()
         if prev_state is not None and self.nbrnn.bidirectional:
             # We assume that when previous state is passed, it means that we're streaming the input
             # and therefore cannot propagate backward BRNN state (otherwise it goes in the wrong direction)
             prev_state = reset_backward_rnn_state(prev_state)
         ys, states = self.nbrnn(xs_pack, hx=prev_state)
->>>>>>> upstream/master
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
         # (sum _utt frame_utt) x dim
