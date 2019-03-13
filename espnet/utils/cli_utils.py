@@ -1,8 +1,8 @@
+from distutils.util import strtobool as dist_strtobool
 import io
 import logging
 import os
 import sys
-from distutils.util import strtobool as dist_strtobool
 
 import h5py
 import kaldiio
