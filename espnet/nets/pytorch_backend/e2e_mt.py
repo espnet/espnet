@@ -80,11 +80,7 @@ class E2E(torch.nn.Module):
         self.replace_sos = args.replace_sos
 
         # encoder
-        if args.language_coding:
-            assert not args.target_forcing
-            self.enc = encoder_for(args, args.dunits * 2, self.subsample)
-        else:
-            self.enc = encoder_for(args, args.dunits, self.subsample)
+        self.enc = encoder_for(args, args.dunits, self.subsample)
         # attention
         self.att = att_for(args)
         # decoder
