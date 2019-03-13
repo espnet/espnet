@@ -241,6 +241,7 @@ nlsyms=data/lang_1char/non_lang_syms.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
+<<<<<<< Updated upstream
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
 
@@ -253,6 +254,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     cat data/train_nodevtest_sp.*/text | grep sp1.0 | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
+=======
+    # echo "stage 2: Dictionary and Json Data Preparation"
+    # mkdir -p data/lang_1char/
+    #
+    # echo "make a non-linguistic symbol list for all languages"
+    # cat data/train_nodevtest_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
+    # cat ${nlsyms}
+    #
+    # # Share the same dictinary between source and target languages
+    # echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    # cat data/train_nodevtest_sp.*/text | grep sp1.0 | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
+    #   | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    # wc -l ${dict}
+>>>>>>> Stashed changes
 
     # make json labels
     local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
@@ -277,6 +292,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             data/$(echo ${x} | cut -f -1 -d ".").en ${dict}
     done
 fi
+
+exit 1
 
 # NOTE: skip stage 3: LM Preparation
 
@@ -348,7 +365,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=16
 
+<<<<<<< Updated upstream
     pids=() # initialize pids
+=======
+>>>>>>> Stashed changes
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
