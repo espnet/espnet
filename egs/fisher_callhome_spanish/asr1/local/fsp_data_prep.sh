@@ -138,7 +138,9 @@ if [ $stage -le 2 ]; then
   grep -v '()' | \
   #Now go after the non-printable characters and multiple spaces
   sed -r 's:¿::g'  | sed 's/^\s\s*|\s\s*$//g' | sed 's/\s\s*/ /g' > $tmpdir/text.2
-  cp $tmpdir/text.2 $dir/train_all/text
+  #Filter out uttreances that don't have any text transcription
+  awk 'NF>1 {print}' $tmpdir/text.2 > $tmpdir/text.3
+  cp $tmpdir/text.3 $dir/train_all/text
 
   #Create segments file and utt2spk file
   ! cat $dir/train_all/text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/train_all/utt2spk \
@@ -164,7 +166,7 @@ fi
 if [ $stage -le 4 ]; then
   # Build the speaker to gender map, the temporary file with the speaker in gender information is already created by fsp_make_trans.pl.
   cd $cdir
-  $local/fsp_make_spk2gender.sh > $dir/train_all/spk2gender
+  $local/fsp_make_spk2gender.py > $dir/train_all/spk2gender
 fi
 
 fix_data_dir.sh $dir/train_all || exit 1

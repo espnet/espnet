@@ -276,6 +276,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
+    pids=() # initialize pids
     # for rtask in ${train_dev} ${recog_set}; do
     for rtask in ${recog_set}; do
     (
@@ -300,9 +301,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            &
-        wait
+            --minlenratio ${minlenratio}
 
         if [ ${rtask} = "dev.de" ]; then
           local/score_bleu.sh --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
@@ -312,7 +311,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         fi
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
