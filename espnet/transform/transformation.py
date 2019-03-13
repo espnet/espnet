@@ -33,7 +33,6 @@ def dynamic_import(import_path):
         stft='espnet.transform.spectrogram:Stft',
         istft='espnet.transform.spectrogram:IStft',
         stft2fbank='espnet.transform.spectrogram:Stft2LogMelSpectrogram',
-        asr_forward='espnet.transform.asr_forward:AsrForward',
         wpe='espnet.transform.wpe:WPE',
         channel_selector='espnet.transform.channel_selector:ChannelSelector')
 
