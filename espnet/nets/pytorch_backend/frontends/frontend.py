@@ -126,8 +126,8 @@ def frontend_for(args, idim):
         wunits=args.wunits,
         wprojs=args.wprojs,
         wdropout_rate=args.wdropout_rate,
-        taps=args.taps,
-        delay=args.delay,
+        taps=args.wpe_taps,
+        delay=args.wpe_delay,
         use_dnn_mask_for_wpe=args.use_dnn_mask_for_wpe,
 
         # Beamformer options

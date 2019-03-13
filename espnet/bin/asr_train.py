@@ -6,7 +6,6 @@
 
 
 import argparse
-from distutils.util import strtobool
 import logging
 import os
 import platform
@@ -15,6 +14,8 @@ import subprocess
 import sys
 
 import numpy as np
+
+from espnet.utils.cli_utils import strtobool
 
 
 def main(args):
@@ -188,19 +189,19 @@ def main(args):
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
 
-    def my_strtobool(x):
-        # strtobool returns integer, but it's confusing,
-        return bool(strtobool(x))
-
     parser.add_argument(
-        '--use-frontend', type=my_strtobool, default=False,
+        '--use-frontend', type=strtobool, default=False,
         help='The flag to switch to use frontend system.')
 
     # WPE related
-    parser.add_argument('--use-wpe', type=my_strtobool, default=False,
-                        help='Apply Weighted Prediction Error ')
-    parser.add_argument('--wtype', type=str, default='blstmp',
-                        help='')
+    parser.add_argument('--use-wpe', type=strtobool, default=False,
+                        help='Apply Weighted Prediction Error')
+    parser.add_argument('--wtype', default='blstmp', type=str,
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                        help='Type of encoder network architecture '
+                             'of the mask estimator for WPE. '
+                             '')
     parser.add_argument('--wlayers', type=int, default=2,
                         help='')
     parser.add_argument('--wunits', type=int, default=300,
@@ -209,20 +210,23 @@ def main(args):
                         help='')
     parser.add_argument('--wdropout-rate', type=float, default=0.0,
                         help='')
-    parser.add_argument('--taps', type=int, default=5,
+    parser.add_argument('--wpe-taps', type=int, default=5,
                         help='')
-    parser.add_argument('--delay', type=int, default=3,
+    parser.add_argument('--wpe-delay', type=int, default=3,
                         help='')
-    parser.add_argument('--use-dnn-mask-for-wpe', type=my_strtobool,
+    parser.add_argument('--use-dnn-mask-for-wpe', type=strtobool,
                         default=False,
                         help='Use DNN to estimate the power spectrogram. '
                              'This option is experimental.')
 
     # Beamformer related
-    parser.add_argument('--use-beamformer', type=my_strtobool,
+    parser.add_argument('--use-beamformer', type=strtobool,
                         default=True, help='')
-    parser.add_argument('--btype', type=str, default='blstmp',
-                        help='')
+    parser.add_argument('--btype', default='blstmp', type=str,
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                        help='Type of encoder network architecture '
+                             'of the mask estimator for Beamformer.')
     parser.add_argument('--blayers', type=int, default=2,
                         help='')
     parser.add_argument('--bunits', type=int, default=300,
@@ -239,24 +243,24 @@ def main(args):
 
     # Feature transform: Normalization
     parser.add_argument('--stats-file', type=str, default=None,
-                        help='')
-    parser.add_argument('--apply-uttmvn', type=my_strtobool, default=True,
+                        help='The stats file for the feature normalization')
+    parser.add_argument('--apply-uttmvn', type=strtobool, default=True,
                         help='Apply utterance level mean '
                              'variance normalization.')
-    parser.add_argument('--uttmvn-norm-means', type=my_strtobool,
+    parser.add_argument('--uttmvn-norm-means', type=strtobool,
                         default=True, help='')
-    parser.add_argument('--uttmvn-norm-vars', type=my_strtobool, default=False,
+    parser.add_argument('--uttmvn-norm-vars', type=strtobool, default=False,
                         help='')
 
     # Feature transform: Fbank
-    parser.add_argument('--fs', type=int, default=16000,
+    parser.add_argument('--fbank-fs', type=int, default=16000,
                         help='The sample frequency used for '
-                             'the mel matrix creation.')
+                             'the mel-fbank creation.')
     parser.add_argument('--n-mels', type=int, default=80,
+                        help='The number of mel-frequency bins.')
+    parser.add_argument('--fbank-fmin', type=float, default=0.,
                         help='')
-    parser.add_argument('--fmin', type=float, default=0.,
-                        help='')
-    parser.add_argument('--fmax', type=float, default=None,
+    parser.add_argument('--fbank-fmax', type=float, default=None,
                         help='')
 
     args = parser.parse_args(args)
