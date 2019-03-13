@@ -5,9 +5,17 @@
 #           2018 Xuankai Chang (Shanghai Jiao Tong University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
+import codecs
 import json
 import logging
+import sys
+
+is_python2 = sys.version_info[0] == 2
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -29,7 +37,7 @@ if __name__ == '__main__':
     js = []
     intersec_ks = []
     for x in args.jsons:
-        with open(x, 'r') as f:
+        with codecs.open(x, encoding="utf-8") as f:
             j = json.load(f)
         ks = j['utts'].keys()
         logging.info(x + ': has ' + str(len(ks)) + ' utterances')
@@ -47,5 +55,7 @@ if __name__ == '__main__':
             v.update(j['utts'][k])
         dic[k] = v
 
-    jsonstring = json.dumps({'utts': dic}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8')
+    jsonstring = json.dumps({'utts': dic}, indent=4, sort_keys=True,
+                            ensure_ascii=False, separators=(',', ': '))
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     print(jsonstring)
