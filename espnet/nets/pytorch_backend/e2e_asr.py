@@ -340,7 +340,6 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
-        h = h.contiguous()
         h, _, _ = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
