@@ -33,7 +33,7 @@ requirements = {
         'pillow>=5.3.0',
         'nara_wpe',
         'museval',
-        'pystoi'
+        'pystoi',
         'kaldiio'
     ],
     'setup': ['numpy', 'pytest-runner'],
