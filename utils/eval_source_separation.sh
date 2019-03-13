@@ -45,7 +45,7 @@ utils/split_scp.pl ${reffiles[0]} ${split_scps} || exit 1;
 
 ${cmd} JOB=1:${nj} ${logdir}/eval-enhanced-speech.JOB.log \
     eval-source-separation.py \
-    --ref ${reffiles[@]} --enh ${enhfiles[@]} \
+    --ref "${reffiles[@]}" --enh "${enhfiles[@]}" \
     --keylist ${logdir}/key.JOB.scp \
     --out ${logdir}/JOB \
     --evaltypes ${evaltypes} \
@@ -53,7 +53,7 @@ ${cmd} JOB=1:${nj} ${logdir}/eval-enhanced-speech.JOB.log \
     --bss_eval_images ${bss_eval_images}
 
 
-for t in $(echo ${evaltypes} | sed -e 's/SDR/SDR ISR SIR SAR/'); do
+for t in ${evaltypes/SDR/SDR ISR SIR SAR}; do
     for i in $(seq 1 ${nj}); do
         cat ${logdir}/${i}/${t}
     done > ${dir}/${t}
@@ -70,4 +70,3 @@ print(mean)
 EOF
 
 done
-

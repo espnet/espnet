@@ -444,7 +444,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             # SKip real data because there are no clean signal
             echo ${rtask} | grep real &> /dev/null && continue
         (
-            rtask=$(echo ${rtask} | sed -e 's/_multich//')
+            rtask=${rtask/_multich//}
 
             for place in PED CAF STR BUS; do
                 basedir=eval_noisy/${rtask}/eval_${place}
@@ -466,4 +466,3 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         ./local/show_enhance_results.sh eval_noisy/
     fi
 fi
-
