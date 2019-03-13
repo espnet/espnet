@@ -5,9 +5,8 @@ import torch
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.encoders import BRNN
-from espnet.nets.pytorch_backend.encoders import BRNNP
-from espnet.nets.pytorch_backend.encoders import CNN
+from espnet.nets.pytorch_backend.encoders import RNN
+from espnet.nets.pytorch_backend.encoders import RNNP
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
@@ -16,17 +15,12 @@ class MaskEstimator(torch.nn.Module):
         super().__init__()
         subsample = np.ones(layers + 1, dtype=np.int)
 
-        if type == 'brnn':
-            self.brnn = BRNN(idim, layers, units, projs, dropout)
-        elif type == 'blstmp':
-            self.brnn = BRNNP(idim, layers, units,
-                              projs, subsample, dropout)
-        elif type == 'cnn':
-            self.brnn = CNN(idim, layers, units, projs, residual=False)
+        typ = type.lstrip("vgg").rstrip("p")
+        if type[-1] == "p":
+            self.brnn = RNN(idim, layers, units, projs, dropout, typ=typ)
         else:
-            raise ValueError(
-                "Error: need to specify an appropriate architecture: {}"
-                .format(type))
+            self.brnn = RNNP(idim, layers, units, projs, subsample, dropout,
+                             typ=typ)
         self.type = type
         self.nmask = nmask
         self.linears = torch.nn.ModuleList(

@@ -2,6 +2,7 @@ import io
 import logging
 import os
 import sys
+from distutils.util import strtobool as dist_strtobool
 
 import h5py
 import kaldiio
@@ -17,6 +18,11 @@ if PY2:
 else:
     # The ABCs from 'collections' will stop working in 3.8
     from collections.abc import Sequence
+
+
+def strtobool(x):
+    # distutils.util.strtobool returns integer, but it's confusing,
+    return bool(dist_strtobool(x))
 
 
 def get_commandline_args():

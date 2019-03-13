@@ -222,11 +222,11 @@ def utterance_mvn(
 def feature_transform_for(args, n_fft):
     return FeatureTransform(
         # Mel options,
-        fs=args.fs,
+        fs=args.fbank_fs,
         n_fft=n_fft,
         n_mels=args.n_mels,
-        fmin=args.fmin,
-        fmax=args.fmax,
+        fmin=args.fbank_fmin,
+        fmax=args.fbank_fmax,
 
         # Normalization
         stats_file=args.stats_file,
