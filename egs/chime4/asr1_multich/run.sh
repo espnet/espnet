@@ -10,7 +10,7 @@
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=1000000
-ngpu=2         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      # verbose option
@@ -44,7 +44,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=5
+batchsize=10
 maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -52,7 +52,7 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=12
-patience=0
+patience=3
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
@@ -87,9 +87,6 @@ samp_prob=0.0
 chime4_data=/export/corpora4/CHiME4/CHiME3    # JHU setup
 wsj0=/export/corpora5/LDC/LDC93S6B            # JHU setup
 wsj1=/export/corpora5/LDC/LDC94S13B           # JHU setup
-chime4_data=/data/rigel1/corpora/CHiME4
-wsj0=/data/rigel1/corpora/LDC93S6A
-wsj1=/data/rigel1/corpora/LDC94S13A
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -328,6 +325,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=200
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
@@ -362,8 +360,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
     echo "Decoding successfully finished"
 fi
@@ -373,6 +373,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     nj=200
     ngpu=0
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         enhdir=${expdir}/enhance_${rtask}
@@ -392,8 +393,10 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
                 --num-images 20 \
                 --fs ${fs}
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
     for rtask in ${recog_set}; do
         enhdir=${expdir}/enhance_${rtask}
@@ -408,6 +411,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Evaluate enhanced speech"
 
     mkdir -p ${expdir}/eval_enhance
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
         # SKip real data because there are no clean signal
         echo ${rtask} | grep real &> /dev/null && continue
@@ -420,18 +424,22 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             mkdir -p ${basedir}
 
             <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
-            <${enhdir}/enhance.scp grep ${place} | sed -r "s/^[^_]*_(.*?)_${place}_(REAL|SIMU) /\1 /g" | sort > ${basedir}/target.scp
-            eval_source_separation.sh --cmd ${train_cmd} --nj 100  --source-image false ${basedir}/reference.scp ${basedir}/target.scp ${basedir}
+            <${enhdir}/enhance.scp grep ${place} | sed -r "s/^[^_]*_(.*?)_${place}_(REAL|SIMU) /\1 /g" | sort > ${basedir}/estimated.scp
+            # FIME(kamo): Should we use bss_eval_images?
+            eval_source_separation.sh --cmd ${train_cmd} --nj 100  --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
         done
     ) &
+    pids+=($!) # store background pids
     done
-    wait
-    ./local/show_enhance_results.sh ${expdir}/enhance_
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
+    ./local/show_enhance_results.sh ${expdir}/enhance_
 
     # Computes SDR/STOI/PESQ, etc., between noisy and clean signals.
     # The resutl can be seen in ./RESULT, so you don't need to run this block.
     if false; then
+        pids=() # initialize pids
         for rtask in ${recog_set}; do
             # SKip real data because there are no clean signal
             echo ${rtask} | grep real &> /dev/null && continue
@@ -444,13 +452,17 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 mkdir -p ${basedir}
 
                 <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
-                <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/target.scp
-                eval_source_separation.sh --cmd ${train_cmd} --nj 100 --source-image false ${basedir}/reference.scp ${basedir}/target.scp ${basedir}
+                <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/estimated.scp
+
+                eval_source_separation.sh --cmd ${train_cmd} --nj 100 --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
 
             done
         ) &
+        pids+=($!) # store background pids
         done
-        wait
+        i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+        [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+
         ./local/show_enhance_results.sh eval_noisy/
     fi
 fi
