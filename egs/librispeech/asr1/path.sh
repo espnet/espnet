@@ -23,5 +23,5 @@ if ! which spm_decode > /dev/null; then
     echo "Error: it seems that sentencepiece is not installed." >&2
     echo "Error: please install sentencepiece as follows." >&2
     echo "Error: cd ${MAIN_ROOT}/tools && make sentencepiece.done" >&2
-    exit 1
+    return 1
 fi

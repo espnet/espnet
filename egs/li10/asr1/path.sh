@@ -24,5 +24,5 @@ if ! which nkf > /dev/null; then
     echo "Error: it seems that nkf is not installed." >&2
     echo "Error: please install nkf as follows." >&2
     echo "Error: cd ${MAIN_ROOT}/tools && make nkf.done" >&2
-    exit 1
+    return 1
 fi
