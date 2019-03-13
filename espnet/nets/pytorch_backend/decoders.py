@@ -822,6 +822,7 @@ class StreamingDecoder(object):
         logging.info('adding <eos> in the last position in the loop')
         for hyp in self._hyps:
             hyp['yseq'].append(self._decoder.eos)
+            self._ended_hyps.append(hyp)
         self._is_finished = True
 
     def retrieve_recognition(self):
