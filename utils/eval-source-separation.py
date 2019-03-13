@@ -217,10 +217,9 @@ def main():
     parser.add_argument('--permutation', type=strtobool, default=True,
                         help='Compute all permutations or '
                              'use the pair of input order')
-    parser.add_argument('--source-image', type=strtobool, default=True,
-                        help='Use this option if '
-                             'the reference is source image, '
-                             'i.e. "bss_eval_images" is used. '
+    parser.add_argument('--bss_eval_images', type=strtobool, default=True,
+                        help='Use bss_eval_images or bss_eval_sources. '
+                             'Museval recommends to use bss_eval_images. '
                              'For more detail, see museval source codes.')
     args = parser.parse_args()
 
@@ -333,7 +332,7 @@ def main():
         # 4. Evaluates
         for evaltype in args.evaltypes:
             if evaltype == 'SDR':
-                if args.source_image:
+                if args.bss_eval_images:
                     (sdr, isr, sir, sar, perm) = \
                         museval.metrics.bss_eval_images(
                             ref_signals, enh_signals,
@@ -343,7 +342,7 @@ def main():
                         museval.metrics.bss_eval_sources(
                             ref_signals, enh_signals,
                             compute_permutation=args.permutation)
-                    isr = np.array([[0] for _ in range(len(sdr))])
+                    isr = np.array([[np.nan] for _ in range(len(sdr))])
 
                 # sdr: (Nsrc, Nframe)
                 writers['SDR'].write(
