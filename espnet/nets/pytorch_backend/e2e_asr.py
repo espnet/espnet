@@ -388,6 +388,7 @@ class E2E(torch.nn.Module):
         return h, ilen
 
 
+# TODO(pzelasko): Currently allows half-streaming only; needs streaming attention decoder implementation
 class StreamingE2E(object):
     """Convenience wrapper over E2E class for streaming recognitions.
 
@@ -470,14 +471,4 @@ class StreamingE2E(object):
         """
         h, lpz = self._input_window_for_decoder(use_all=True)
 
-        self._last_recognition = self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
-
-    def advance_attention_decoder(self):
-        # TODO(pzelasko): pass a parameter saying how many iterations we can run the attention decoder for
-        # TODO(pzelasko): we need to affect the maxlen using the CTC approximation in recognize_beam method
-        # TODO(pzelasko): for the first version, use greedy decoding for attention decoder as well
-        h, lpz = self._input_window_for_decoder()
-        self._last_recognition = self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
-
-    def retrieve_recognition(self):
-        return self._last_recognition
+        return self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)

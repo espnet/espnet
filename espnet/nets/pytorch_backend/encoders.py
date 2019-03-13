@@ -64,7 +64,7 @@ class RNNP(torch.nn.Module):
             rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
             rnn.flatten_parameters()
             if prev_state is not None and rnn.bidirectional:
-                prev_state = zero_backward_rnn_state(prev_state)
+                prev_state = reset_backward_rnn_state(prev_state)
             ys, states = rnn(xs_pack, hx=prev_state)
             elayer_states.append(states)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
@@ -118,7 +118,9 @@ class RNN(torch.nn.Module):
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
         self.nbrnn.flatten_parameters()
         if prev_state is not None and self.nbrnn.bidirectional:
-            prev_state = zero_backward_rnn_state(prev_state)
+            # We assume that when previous state is passed, it means that we're streaming the input
+            # and therefore cannot propagate backward BRNN state (otherwise it goes in the wrong direction)
+            prev_state = reset_backward_rnn_state(prev_state)
         ys, states = self.nbrnn(xs_pack, hx=prev_state)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
@@ -129,7 +131,8 @@ class RNN(torch.nn.Module):
         return xs_pad, ilens, states  # x: utt list of frame x dim
 
 
-def zero_backward_rnn_state(states):
+def reset_backward_rnn_state(states):
+    """Sets backward BRNN states to zeroes - useful in processing of sliding windows over the inputs"""
     if isinstance(states, (list, tuple)):
         for state in states:
             state[1::2] = 0.
