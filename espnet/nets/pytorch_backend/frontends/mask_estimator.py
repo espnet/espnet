@@ -17,10 +17,11 @@ class MaskEstimator(torch.nn.Module):
 
         typ = type.lstrip("vgg").rstrip("p")
         if type[-1] == "p":
-            self.brnn = RNN(idim, layers, units, projs, dropout, typ=typ)
-        else:
             self.brnn = RNNP(idim, layers, units, projs, subsample, dropout,
                              typ=typ)
+        else:
+            self.brnn = RNN(idim, layers, units, projs, dropout, typ=typ)
+
         self.type = type
         self.nmask = nmask
         self.linears = torch.nn.ModuleList(
