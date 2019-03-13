@@ -32,6 +32,8 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
 CTC_LOSS_THRESHOLD = 10000
+TIME_DIMENSION = 0
+BLANK_INDEX = 0
 
 
 class Reporter(chainer.Chain):
@@ -429,11 +431,21 @@ class StreamingE2E(object):
         self._previous_encoder_recurrent_state = None
         self._encoder_states = []
         self._ctc_posteriors = []
-        self._last_recognition = None
+
+    @property
+    def encoder(self):
+        return self._e2e.enc
+
+    @property
+    def offline_decoder(self):
+        return self._e2e.dec
+
+    @property
+    def online_decoder(self):
+        return self._online_decoder
 
     def accept_input(self, x):
         """Call this method each time a new batch of input is available."""
-
         h, ilen = self._e2e.subsample_frames(x)
 
         # Streaming encoder
@@ -447,72 +459,20 @@ class StreamingE2E(object):
         # CTC posteriors for the incoming audio
         self._ctc_posteriors.append(self._e2e.ctc.log_softmax(h).squeeze(0))
 
-    def _input_window_for_decoder(self, use_all=False):
-        TIME_DIM = 0
-
-        if use_all:
-            return torch.cat(self._encoder_states, dim=TIME_DIM), torch.cat(self._ctc_posteriors, dim=TIME_DIM)
-
-        def select_unprocessed_windows(window_tensors):
-            last_offset = self._offset
-            offset_traversed = 0
-            selected_windows = []
-            for tensor in window_tensors:
-                if offset_traversed >= last_offset:
-                    selected_windows.append(tensor)
-                    continue
-                offset_traversed += tensor.size(TIME_DIM)
-            return torch.cat(selected_windows, dim=TIME_DIM)
-
-        next_input_windows = (
-            select_unprocessed_windows(self._encoder_states),
-            select_unprocessed_windows(self._ctc_posteriors)
-        )
-
-        self._offset = sum(t.size(TIME_DIM) for t in self._encoder_states)
-
-        return next_input_windows
-
-    def decode_with_attention_offline(self):
-        """Run the attention decoder offline.
-
-        Works even if the previous layers (encoder and CTC decoder) were being run in the online mode.
-        This method should be run after all the audio has been consumed.
-        This is used mostly to compare the results between offline and online implementation of the previous layers.
-        """
-        h, lpz = self._input_window_for_decoder(use_all=True)
-
-        self._last_recognition = self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
-        return self._last_recognition
-
     def advance_attention_decoder(self):
         """Run the online attention decoder for the new audio chunk (you should call accept_input before)"""
-        BLANK = 0
-
         h, lpz = self._input_window_for_decoder()
         _, best_path_indices = torch.topk(lpz, 1, dim=1)
 
-        # TODO(pzelasko): handle and edge case when new LPZ is lost because approx n characters == 0
-
-        approximate_n_characters = 0
-        last_new_character = -1
-        blank_encountered_since_new_character = False
-        for letter in best_path_indices.numpy().reshape(-1):
-            at_new_character = (
-                    (letter != last_new_character and letter != BLANK)
-                    or
-                    (blank_encountered_since_new_character and letter == last_new_character)
-            )
-            if at_new_character:
-                approximate_n_characters += 1
-                last_new_character = letter
-                blank_encountered_since_new_character = False
-                continue
-
-            blank_encountered_since_new_character = letter == BLANK
+        approximate_n_characters = approximate_number_of_ctc_characters(best_path_indices)
 
         for i in range(approximate_n_characters):
             self._online_decoder.advance_single_character(h, lpz)
+
+        # Only increment the offset if we found any characters in the CTC -
+        # otherwise this window would never be seen by the attention decoder
+        if approximate_n_characters > 0:
+            self._offset = sum(t.size(TIME_DIMENSION) for t in self._encoder_states)
 
     def is_finished(self):
         """Call this method before passing new audio.
@@ -528,3 +488,62 @@ class StreamingE2E(object):
         Call this method either after you're sure that no more audio is available, or `is_finished()` returned True.
         """
         return self._online_decoder.retrieve_recognition()
+
+    def accept_encoder_state(self, h):
+        """Internal utility for easy comparison of the online performance between different encoders."""
+        self._encoder_states.append(h.squeeze(0))
+        self._ctc_posteriors.append(self._e2e.ctc.log_softmax(h).squeeze(0))
+
+    def decode_with_attention_offline(self):
+        """Run the attention decoder offline.
+
+        Works even if the previous layers (encoder and CTC decoder) were being run in the online mode.
+        This method should be run after all the audio has been consumed.
+        This is used mostly to compare the results between offline and online implementation of the previous layers.
+        """
+        h, lpz = self._input_window_for_decoder(use_all=True)
+        return self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
+
+    def _input_window_for_decoder(self, use_all=False):
+        if use_all:
+            return torch.cat(self._encoder_states, dim=TIME_DIMENSION), \
+                   torch.cat(self._ctc_posteriors, dim=TIME_DIMENSION)
+
+        def select_unprocessed_windows(window_tensors):
+            last_offset = self._offset
+            offset_traversed = 0
+            selected_windows = []
+            for tensor in window_tensors:
+                if offset_traversed >= last_offset:
+                    selected_windows.append(tensor)
+                    continue
+                offset_traversed += tensor.size(TIME_DIMENSION)
+            return torch.cat(selected_windows, dim=TIME_DIMENSION)
+
+        next_input_windows = (
+            select_unprocessed_windows(self._encoder_states),
+            select_unprocessed_windows(self._ctc_posteriors)
+        )
+
+        return next_input_windows
+
+
+def approximate_number_of_ctc_characters(best_path_indices):
+    """Parse the greedy CTC recognition to obtain the number of recognized characters"""
+    approximate_n_characters = 0
+    last_new_character = -1
+    blank_encountered_since_new_character = False
+    for letter in best_path_indices.numpy().reshape(-1):
+        at_new_character = (
+                (letter != last_new_character and letter != BLANK_INDEX)
+                or
+                (blank_encountered_since_new_character and letter == last_new_character)
+        )
+        if at_new_character:
+            approximate_n_characters += 1
+            last_new_character = letter
+            blank_encountered_since_new_character = False
+            continue
+
+        blank_encountered_since_new_character = letter == BLANK_INDEX
+    return approximate_n_characters

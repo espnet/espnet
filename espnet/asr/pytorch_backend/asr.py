@@ -424,6 +424,9 @@ def recog(args):
 
     :param Namespace args: The program arguments
     """
+    if args.batchsize != 0 and (args.online_encoder or args.online_decoder):
+        raise ValueError("Requested online encoder or decoder; they work only with --batchsize 0.")
+
     set_deterministic_pytorch(args)
     # read training config
     idim, odim, train_args = get_model_conf(args.model, args.model_conf)
@@ -488,27 +491,8 @@ def recog(args):
                 batch = [(name, js[name])]
                 with using_transform_config({'train': True}):
                     feat = load_inputs_and_targets(batch)[0][0]
-                if args.streaming_window:
-                    logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
-                    se2e = StreamingE2E(e2e=model, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
-                    streaming_recogs = []
-                    for i in range(0, feat.shape[0], args.streaming_window):
-                        logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
-                        se2e.accept_input(feat[i:i + args.streaming_window])
-                        logging.info('Running online attention decoder')
-                        se2e.advance_attention_decoder()
-                        if se2e.is_finished():
-                            logging.info('Online attention decoder FINISHED BEFORE END OF AUDIO - resetting')
-                            logging.warning("WER won't make sense as we're not concatenating recognitions "
-                                            "between chunks at the moment")
-                            streaming_recogs.append(se2e.retrieve_recognition())
-                            se2e.reset()
-                    #logging.info('Running offline attention decoder')
-                    #se2e.decode_with_attention_offline()
-                    logging.info('Offline attention decoder finished')
-                    nbest_hyps = se2e.retrieve_recognition()
-                else:
-                    nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                run_asr = ASR_PROGRAM_MODES[(args.online_encoder, args.online_decoder)]
+                nbest_hyps = run_asr(feat, model, rnnlm, args, train_args)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
         try:
@@ -540,3 +524,74 @@ def recog(args):
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+
+
+def run_online_encoder_online_decoder(feat, e2e, rnnlm, args, train_args):
+    logging.info('Using streaming encoder with streaming decoder and window size of %d frames', args.streaming_window)
+    se2e = StreamingE2E(e2e=e2e, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
+    streaming_recogs = []
+
+    for i in range(0, feat.shape[0], args.streaming_window):
+        logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
+        se2e.accept_input(feat[i:i + args.streaming_window])
+        logging.info('Running online attention decoder')
+        se2e.advance_attention_decoder()
+        if se2e.is_finished():
+            logging.info('Online attention decoder FINISHED BEFORE END OF AUDIO - resetting')
+            logging.warning("WER won't make sense as we're not concatenating recognitions "
+                            "between chunks at the moment")
+            streaming_recogs.append(se2e.retrieve_recognition())
+            se2e.reset()
+
+    logging.info('Finishing online attention decoder')
+    return se2e.retrieve_recognition()
+
+
+def run_online_encoder_offline_decoder(feat, e2e, rnnlm, args, train_args):
+    logging.info('Using streaming encoder with offline decoder and window size of %d frames', args.streaming_window)
+    se2e = StreamingE2E(e2e=e2e, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
+
+    for i in range(0, feat.shape[0], args.streaming_window):
+        logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
+        se2e.accept_input(feat[i:i + args.streaming_window])
+
+    logging.info('Running offline attention decoder')
+    return se2e.decode_with_attention_offline()
+
+
+def run_offline_encoder_online_decoder(feat, e2e, rnnlm, args, train_args):
+    logging.info('Using offline encoder with streaming decoder and window size of %d frames', args.streaming_window)
+    se2e = StreamingE2E(e2e=e2e, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
+    streaming_recogs = []
+
+    h, ilen = e2e.subsample_frames(feat)
+    h, *_ = se2e.encoder(h.unsqueeze(0), ilen)
+
+    encoder_state_window_len = int(args.streaming_window / 4)
+    for i in range(0, h.shape[1], encoder_state_window_len):
+        logging.info('Feeding encoder states %d - %d', i, i + encoder_state_window_len)
+        se2e.accept_encoder_state(h[i:i + encoder_state_window_len])
+        logging.info('Advancing online attention decoder')
+        se2e.advance_attention_decoder()
+        if se2e.is_finished():
+            logging.warning("Online attention decoder FINISHED BEFORE END OF AUDIO - resetting. "
+                            "WER won't make sense as we're not concatenating recognitions "
+                            "between chunks at the moment")
+            streaming_recogs.append(se2e.retrieve_recognition())
+            se2e.reset()
+
+    logging.info('Finishing online attention decoder')
+    return se2e.retrieve_recognition()
+
+
+def run_offline_encoder_offline_decoder(feat, e2e, rnnlm, args, train_args):
+    logging.info('Running offline recognition')
+    return e2e.recognize(feat, args, train_args.char_list, rnnlm)
+
+
+ASR_PROGRAM_MODES = {
+    (True, True): run_online_encoder_online_decoder,
+    (True, False): run_online_encoder_offline_decoder,
+    (False, True): run_offline_encoder_online_decoder,
+    (False, False): run_offline_encoder_offline_decoder
+}
