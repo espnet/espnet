@@ -216,7 +216,7 @@ class E2E(torch.nn.Module):
             ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
         else:
             tgt_lang_ids = None
-        hs_pad, hlens = self.enc(xs_pad, ilens)
+        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
 
         # 2. CTC loss
         if self.mtlalpha == 0:
@@ -336,15 +336,12 @@ class E2E(torch.nn.Module):
         prev = self.training
         self.eval()
         # subsample frame
-        x = x[::self.subsample[0], :]
-        ilen = [x.shape[0]]
-        h = to_device(self, torch.from_numpy(
-            np.array(x, dtype=np.float32)))
+        h, ilen = self.subsample_frames(x)
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
         h = h.contiguous()
-        h, hlen = self.enc(h.unsqueeze(0), ilen)
+        h, _, _ = self.enc(h.unsqueeze(0), ilen)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -380,7 +377,7 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         xpad = pad_list(hs, 0.0)
-        hpad, hlens = self.enc(xpad, ilens)
+        hpad, hlens, _ = self.enc(xpad, ilens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
@@ -413,9 +410,94 @@ class E2E(torch.nn.Module):
                 ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
             else:
                 tgt_lang_ids = None
-            hpad, hlens = self.enc(xs_pad, ilens)
+            hpad, hlens, _ = self.enc(xs_pad, ilens)
 
             # decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
 
         return att_ws
+
+    def subsample_frames(self, x):
+        # subsample frame
+        x = x[::self.subsample[0], :]
+        ilen = [x.shape[0]]
+        h = to_device(self, torch.from_numpy(
+            np.array(x, dtype=np.float32)))
+        h.contiguous()
+        return h, ilen
+
+
+# TODO(pzelasko): Currently allows half-streaming only; needs streaming attention decoder implementation
+class StreamingE2E(object):
+    """Convenience wrapper over E2E class for streaming recognitions.
+
+    Not recommended for GPUs.
+    """
+
+    def __init__(self, e2e, recog_args, char_list, rnnlm=None):
+        """StreamingE2E constructor.
+
+        :param E2E e2e: E2E ASR object
+        :param recog_args: arguments for "recognize" method of E2E
+        """
+        self._e2e = e2e
+        self._recog_args = recog_args
+        self._char_list = char_list
+        self._rnnlm = rnnlm
+
+        self._e2e.eval()
+
+        self._offset = 0
+        self._previous_encoder_recurrent_state = None
+        self._encoder_states = []
+        self._ctc_posteriors = []
+        self._last_recognition = None
+
+        assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attention decoders."
+
+    def accept_input(self, x):
+        """Call this method each time a new batch of input is available."""
+
+        h, ilen = self._e2e.subsample_frames(x)
+
+        # Streaming encoder
+        h, _, self._previous_encoder_recurrent_state = self._e2e.enc(
+            h.unsqueeze(0),
+            ilen,
+            self._previous_encoder_recurrent_state
+        )
+        self._encoder_states.append(h.squeeze(0))
+
+        # CTC posteriors for the incoming audio
+        self._ctc_posteriors.append(self._e2e.ctc.log_softmax(h).squeeze(0))
+
+    def _input_window_for_decoder(self, use_all=False):
+        if use_all:
+            return torch.cat(self._encoder_states, dim=0), torch.cat(self._ctc_posteriors, dim=0)
+
+        def select_unprocessed_windows(window_tensors):
+            last_offset = self._offset
+            offset_traversed = 0
+            selected_windows = []
+            for es in window_tensors:
+                if offset_traversed > last_offset:
+                    selected_windows.append(es)
+                    continue
+                offset_traversed += es.size(1)
+            return torch.cat(selected_windows, dim=0)
+
+        return (
+            select_unprocessed_windows(self._encoder_states),
+            select_unprocessed_windows(self._ctc_posteriors)
+        )
+
+    def decode_with_attention_offline(self):
+        """Run the attention decoder offline.
+
+        Works even if the previous layers (encoder and CTC decoder) were being run in the online mode.
+        This method should be run after all the audio has been consumed.
+        This is used mostly to compare the results between offline and online implementation of the previous layers.
+        """
+        h, lpz = self._input_window_for_decoder(use_all=True)
+
+        return self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
