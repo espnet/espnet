@@ -196,11 +196,14 @@ class CustomConverter(object):
 
         # perform padding and convert to tensor
         if xs[0].dtype.kind == 'c':
-            # Relative importing because of using python3 syntax
             xs_pad_real = pad_list(
                 [torch.from_numpy(x.real).float() for x in xs], 0).to(device)
             xs_pad_imag = pad_list(
                 [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
+            # Note(kamo): 
+            # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
+            # Don't create ComplexTensor and give it E2E here
+            # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
             xs_pad = pad_list(
