@@ -178,7 +178,7 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
         model.recognize(in_data, args, args.char_list)  # decodable
 
 
-def test_streaming_e2e():
+def test_streaming_e2e_encoder_and_ctc_with_offline_attention():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
     args = make_arg()
     model = m.E2E(40, 5, args)
@@ -189,8 +189,6 @@ def test_streaming_e2e():
         asr.accept_input(in_data)
 
     asr.decode_with_attention_offline()
-
-    asr.retrieve_recognition()
 
 
 @pytest.mark.parametrize(
