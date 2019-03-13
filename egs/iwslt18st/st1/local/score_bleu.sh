@@ -15,16 +15,18 @@ lc=false
 
 . utils/parse_options.sh
 
-if [ $# != 2 ]; then
-    echo "Usage: $0 <decode-dir> <dict>";
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <decode-dir> <dict-tgt> <dict-src>";
     exit 1;
 fi
 
 dir=$1
-dic=$2
+dic_tgt=$2
+dic_src=$3
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-local/json2trn.py ${dir}/data.json ${dic} --ref ${dir}/ref.trn.org --hyp ${dir}/hyp.trn.org --src ${dir}/src.trn.org
+json2trn_mt.py ${dir}/data.json ${dic_tgt} --ref ${dir}/ref.trn.org \
+    --hyp ${dir}/hyp.trn.org --src ${dir}/src.trn.org --dict-src ${dic_src}
 
 # remove uttterance id
 perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn.org > ${dir}/ref.trn
@@ -56,11 +58,9 @@ else
 fi
 
 # detokenize
-detokenizer.perl -l de < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
-detokenizer.perl -l de < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
-detokenizer.perl -l de < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
-
-sleep 1
+detokenizer.perl -l de -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
+detokenizer.perl -l de -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
+detokenizer.perl -l de -q < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 
 if ${lc}; then
     # case-insensitive

@@ -16,9 +16,9 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 .PHONY: all clean
 
-all: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra check_install
+all: kaldi.done python check_install
 
-all_python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
 
@@ -120,10 +120,9 @@ mecab.done: espnet.done
 			touch $(PWD)/swig.done; \
 		fi; \
 		deactivate; \
-		. $(PWD)/venv/bin/activate; \
 		export PATH=$(PWD)/swig/bin:$(PWD)/mecab/bin:$(PATH); \
 		export LD_LIBRARY_PATH=$(PWD)/venv/lib:$(LD_LIBRARY_PATH); \
-		pip install mecab-python3; \
+		. $(PWD)/venv/bin/activate; pip install mecab-python3; \
 	else \
 		pip install mecab-python; \
 	fi
@@ -133,7 +132,7 @@ moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
-check_install: venv chainer_patch.done kaldi.done warp-ctc.done chainer_ctc.done extra
+check_install: kaldi.done python
 	. venv/bin/activate; python check_install.py
 
 clean: clean_extra
@@ -143,9 +142,9 @@ clean: clean_extra
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf venv warp-ctc chainer_ctc kaldi-io-for-python
+	rm -rf venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-	rm -rf chainer_patch.done warp-ctc.done chainer_ctc.done
+	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:

@@ -106,16 +106,11 @@ def test_recognition_results_multi_outputs(etype, dtype, num_spkrs, spa, m_str, 
 
 
 @pytest.mark.parametrize(("etype", "dtype", "num_spkrs", "m_str", "data_idx"), [
-    ("vggblstmp", "lstm", 1, "espnet.nets.pytorch_backend.e2e_asr_mix", 0),
-    ("vggblstmp", "lstm", 2, "espnet.nets.pytorch_backend.e2e_asr_mix", 1),
+    ("vggblstmp", "lstm", 2, "espnet.nets.pytorch_backend.e2e_asr_mix", 0),
 ])
 def test_pit_process(etype, dtype, num_spkrs, m_str, data_idx):
     bs = 10
     m = importlib.import_module(m_str)
-
-    losses_1 = torch.ones([bs, 1], dtype=torch.float32)
-    true_losses_1 = torch.ones(bs, dtype=torch.float32)
-    true_perm_1 = torch.zeros(bs, dtype=torch.long)
 
     losses_2 = torch.ones([bs, 4], dtype=torch.float32)
     for i in range(bs):
@@ -127,13 +122,13 @@ def test_pit_process(etype, dtype, num_spkrs, m_str, data_idx):
         true_perm_2.append(perm_choices_2[i % 4])
     true_perm_2 = torch.tensor(true_perm_2).long()
 
-    losses = [losses_1, losses_2]
-    true_losses = [torch.mean(true_losses_1), torch.mean(true_losses_2)]
-    true_perm = [true_perm_1, true_perm_2]
+    losses = [losses_2]
+    true_losses = [torch.mean(true_losses_2)]
+    true_perm = [true_perm_2]
 
     args = make_arg(etype=etype, num_spkrs=num_spkrs)
     model = m.E2E(40, 5, args)
-    min_loss, min_perm = model.min_pit_ctc_batch(losses[data_idx])
+    min_loss, min_perm = model.pit.pit_process(losses[data_idx])
 
     assert min_loss == true_losses[data_idx]
     assert torch.equal(min_perm, true_perm[data_idx])

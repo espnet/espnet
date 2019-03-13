@@ -117,7 +117,6 @@ def train(args):
     logging.info('#output dims: ' + str(odim))
 
     model = E2E(idim, odim, args)
-    print(model)
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -368,6 +367,12 @@ def recog(args):
     with open(args.recog_json, 'rb') as f:
         js = json.load(f)['utts']
     new_js = {}
+
+    # remove enmpy utterances
+    if train_args.replace_sos:
+        js = {k: v for k, v in js.items() if v['output'][0]['shape'][0] > 1 and v['output'][1]['shape'][0] > 1}
+    else:
+        js = {k: v for k, v in js.items() if v['output'][0]['shape'][0] > 0 and v['output'][1]['shape'][0] > 0}
 
     if args.batchsize == 0:
         with torch.no_grad():

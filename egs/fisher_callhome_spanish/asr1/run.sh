@@ -17,7 +17,7 @@ N=0            # number of minibatches to be used (mainly for debugging). "0" us
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 seed=1
-
+sp_prtb=true   # Speed perturbation
 # feature configuration
 do_delta=false
 
@@ -109,8 +109,11 @@ set -e
 set -u
 set -o pipefail
 
-train_set_ori=train
-train_set=train_sp
+train_set=train
+if [ ${sp_prtb} = true ]; then
+    train_set_ori=train
+    train_set=train_sp
+fi
 train_dev=dev
 train_test="test"
 recog_set="dev test callhome_dev callhome_test callhome_train"
@@ -153,31 +156,46 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/create_splits.sh ${split}
     local/callhome_create_splits.sh ${split_callhome}
 
-    # speed-perturbed. data/${train_set_ori} is the orignal and data/${train_set} is the augmented
-    utils/perturb_data_dir_speed.sh 0.9 data/${train_set_ori} data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/${train_set_ori} data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/${train_set_ori} data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
-        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    if [ ${sp_prtb} = true ]; then
+        # speed-perturbed. data/${train_set_ori} is the orignal and data/${train_set} is the augmented
+        utils/perturb_data_dir_speed.sh 0.9 data/${train_set_ori} data/temp1
+        utils/perturb_data_dir_speed.sh 1.0 data/${train_set_ori} data/temp2
+        utils/perturb_data_dir_speed.sh 1.1 data/${train_set_ori} data/temp3
+        utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+        rm -r data/temp1 data/temp2 data/temp3
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
+            data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
 
-    utils/fix_data_dir.sh data/train_sp
-    utils/validate_data_dir.sh data/train_sp
+        utils/fix_data_dir.sh data/train_sp
+        utils/validate_data_dir.sh data/train_sp
+    fi
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
-        ${feat_tr_dir}/storage
-    fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-    utils/create_split_dir.pl \
-        /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
-        ${feat_dt_dir}/storage
-    fi
+if [ ${sp_prtb} = true ]; then
+        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+        utils/create_split_dir.pl \
+            /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
+            ${feat_tr_dir}/storage
+        fi
+        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+        utils/create_split_dir.pl \
+            /export/b{10,11,12,13}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
+            ${feat_dt_dir}/storage
+        fi
+else
+        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
+        utils/create_split_dir.pl \
+            /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_set}/delta${do_delta}/storage \
+            ${feat_tr_dir}/storage
+        fi
+        if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
+        utils/create_split_dir.pl \
+            /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/asr1/dump/${train_dev}/delta${do_delta}/storage \
+            ${feat_dt_dir}/storage
+        fi
+fi
 
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
@@ -191,7 +209,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1char/${train_set_ori}_units.txt
+
+dict=data/lang_1char/${train_set}_units.txt
+if [ ${sp_prtb} = true ]; then
+    dict=data/lang_1char/${train_set_ori}_units.txt
+fi
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 echo "dictionary: ${dict}"
@@ -201,13 +223,23 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list"
-    cut -f 2- -d' ' data/${train_set_ori}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+    if [ ${sp_prtb} = true ]; then
+        cut -f 2- -d' ' data/${train_set_ori}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+    else
+        cut -f 2- -d' ' data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+
+    fi
     cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    if [ ${sp_prtb} = true ]; then
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text | cut -f 2- -d" " | tr " " "\n" \
+            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    else
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    fi
     wc -l ${dict}
 
     echo "make json files"
@@ -243,7 +275,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        cut -f 2- -d" " data/${train_set_ori}/text > ${lmdatadir}/train.txt
+        if [ ${sp_prtb} = true ]; then
+            cut -f 2- -d" " data/${train_set_ori}/text > ${lmdatadir}/train.txt
+        else
+            cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train.txt
+        fi
         cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
         cut -f 2- -d" " data/${train_test}/text > ${lmdatadir}/test.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
@@ -251,8 +287,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         lmdatadir=data/local/lm_train
         lmdict=${dict}
         mkdir -p ${lmdatadir}
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text \
-            | cut -f 2- -d" " > ${lmdatadir}/train.txt
+        if [ ${sp_prtb} = true ]; then
+            text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set_ori}/text \
+                | cut -f 2- -d" " > ${lmdatadir}/train.txt
+        else
+            text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
+                | cut -f 2- -d" " > ${lmdatadir}/train.txt
+        fi
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_test}/text \
@@ -349,6 +390,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
@@ -381,14 +423,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --lm-weight ${lm_weight} \
-            ${recog_opts} &
-        wait
+            ${recog_opts}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
 

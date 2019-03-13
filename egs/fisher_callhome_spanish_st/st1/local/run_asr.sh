@@ -130,68 +130,68 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    fbankdir=fbank
-    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
-        # upsample audio from 8k to 16k to make a recipe consistent with others
-        sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
-
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-            data/${x} exp/make_fbank/${x} ${fbankdir}
-    done
-
-    # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/fisher_train data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/fisher_train data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/fisher_train data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/train_sp data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train_sp exp/make_fbank/train_sp ${fbankdir}
-    for lang in es en; do
-        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >data/train_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >data/train_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >data/train_sp/text.lc.rm.${lang}
-        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >>data/train_sp/text.lc.rm.${lang}
-        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >>data/train_sp/text.lc.rm.${lang}
-    done
-
-    # Divide into source and target languages
-    for x in train_sp fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
-        local/divide_lang.sh ${st_case} ${asr_case} data/${x}
-    done
-
-    for lang in es en; do
-        cp -rf data/fisher_dev.${lang} data/dev_sp.${lang}
-        # NOTE: do not use callhome_train for the training set
-    done
-
-    for x in train_sp dev_sp; do
-        # remove utt having more than 3000 frames
-        # remove utt having more than 400 characters
-        for lang in es en; do
-            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
-        done
-
-        # Match the number of utterances between source and target languages
-        # extract commocn lines
-        cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.en.tmp/reclist1
-        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.en.tmp/reclist2
-        comm -12 data/${x}.en.tmp/reclist1 data/${x}.en.tmp/reclist2 > data/${x}.en.tmp/reclist
-
-        for lang in es en; do
-            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
-            utils/fix_data_dir.sh data/${x}.${lang}
-        done
-        rm -rf data/${x}.*.tmp
-    done
+    # fbankdir=fbank
+    # # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+    # for x in fisher_train fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
+    #     # upsample audio from 8k to 16k to make a recipe consistent with others
+    #     sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
+    #
+    #     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+    #         data/${x} exp/make_fbank/${x} ${fbankdir}
+    # done
+    #
+    # # speed-perturbed
+    # utils/perturb_data_dir_speed.sh 0.9 data/fisher_train data/temp1
+    # utils/perturb_data_dir_speed.sh 1.0 data/fisher_train data/temp2
+    # utils/perturb_data_dir_speed.sh 1.1 data/fisher_train data/temp3
+    # utils/combine_data.sh --extra-files utt2uniq data/train_sp data/temp1 data/temp2 data/temp3
+    # rm -r data/temp1 data/temp2 data/temp3
+    # steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+    #     data/train_sp exp/make_fbank/train_sp ${fbankdir}
+    # for lang in es en; do
+    #     awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >data/train_sp/text.tc.${lang}
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >data/train_sp/text.lc.${lang}
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >data/train_sp/text.lc.rm.${lang}
+    #     awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >>data/train_sp/text.lc.rm.${lang}
+    #     awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/fisher_train/utt2spk > data/train_sp/utt_map
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.tc.${lang} >>data/train_sp/text.tc.${lang}
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.${lang} >>data/train_sp/text.lc.${lang}
+    #     utils/apply_map.pl -f 1 data/train_sp/utt_map <data/fisher_train/text.lc.rm.${lang} >>data/train_sp/text.lc.rm.${lang}
+    # done
+    #
+    # # Divide into source and target languages
+    # for x in train_sp fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
+    #     local/divide_lang.sh ${st_case} ${asr_case} data/${x}
+    # done
+    #
+    # for lang in es en; do
+    #     cp -rf data/fisher_dev.${lang} data/dev_sp.${lang}
+    #     # NOTE: do not use callhome_train for the training set
+    # done
+    #
+    # for x in train_sp dev_sp; do
+    #     # remove utt having more than 3000 frames
+    #     # remove utt having more than 400 characters
+    #     for lang in es en; do
+    #         remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
+    #     done
+    #
+    #     # Match the number of utterances between source and target languages
+    #     # extract commocn lines
+    #     cut -f -1 -d " " data/${x}.es.tmp/text > data/${x}.en.tmp/reclist1
+    #     cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.en.tmp/reclist2
+    #     comm -12 data/${x}.en.tmp/reclist1 data/${x}.en.tmp/reclist2 > data/${x}.en.tmp/reclist
+    #
+    #     for lang in es en; do
+    #         reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.en.tmp/reclist data/${x}.${lang}
+    #         utils/fix_data_dir.sh data/${x}.${lang}
+    #     done
+    #     rm -rf data/${x}.*.tmp
+    # done
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -224,18 +224,18 @@ nlsyms=data/lang_1char/non_lang_syms.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
-    echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
-
-    echo "make a non-linguistic symbol list for all languages"
-    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
-    cat ${nlsyms}
-
-    # Share the same dictinary between source and target languages
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train_sp.*/text | grep sp1.0 | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
-      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
+    # echo "stage 2: Dictionary and Json Data Preparation"
+    # mkdir -p data/lang_1char/
+    #
+    # echo "make a non-linguistic symbol list for all languages"
+    # cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
+    # cat ${nlsyms}
+    #
+    # # Share the same dictinary between source and target languages
+    # echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    # cat data/train_sp.*/text | grep sp1.0 | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
+    #   | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    # wc -l ${dict}
 
     # make json labels
     local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --nlsyms ${nlsyms} \
@@ -338,6 +338,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --patience ${patience} \
         --weight-decay ${weight_decay}
 fi
+
+exit 1
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"

@@ -83,6 +83,7 @@ class CustomConverter(object):
         # batch should be located in list
         assert len(batch) == 1
         xs, ys = batch[0]
+        ys = list(ys)  # Convert zip object to list in python 3.x
 
         # perform subsampling
         if self.subsampling_factor > 1:
