@@ -48,7 +48,7 @@ asr_model=
 mt_model=
 
 # minibatch related
-batchsize=20
+batchsize=15
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
@@ -97,6 +97,11 @@ set -o pipefail
 train_set=train_sp.en
 train_dev=dev_sp.en
 recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
+recog_set="fisher_dev.en"
+recog_set="fisher_dev2.en"
+recog_set="fisher_test.en"
+recog_set="callhome_devtest.en"
+recog_set="callhome_evltest.en"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -320,10 +325,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --context-residual ${context_residual}
 fi
 
+exit 1
+
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=16
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
@@ -347,9 +355,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            &
-        wait
+            --minlenratio ${minlenratio}
 
         # Fisher has 4 references per utterance
         if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
@@ -358,10 +364,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --nlsyms ${nlsyms} --set ${rtask} ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --case ${st_case} --nlsyms ${nlsyms} --set ${rtask} ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi

@@ -1,6 +1,9 @@
 # NOTE: apostrophe is included both in hyp and ref
 
 # egs/fisher_callhome_spanish_st/mt1/exp/train_sp.en_pytorch_blstm_e2_subsample1_1_unit1024_proj1024_d2_unit1024_add1024_adadelta_sampprob0_lsm0.1_drop0.30.3_bs32_mli100_mlo100_wd0.000001
+# case-sensitive
+
+# case-insensitive & remove punctuation except for apostrophe to compare with previous works
 fisher_dev.en
 BLEU = 65.06, 88.2/73.3/59.1/46.9 (BP=1.000, ratio=1.004, hyp_len=40677, ref_len=40498)
 fisher_dev2.en

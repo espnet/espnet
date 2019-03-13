@@ -11,6 +11,7 @@ nlsyms=""
 bpe=""
 bpemodel=""
 filter=""
+case=tc
 set=""
 
 . utils/parse_options.sh
@@ -100,16 +101,29 @@ if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     detokenizer.perl -l en -q < ${dir}/ref3.wrd.trn | local/remove_punctuation.pl > ${dir}/ref3.wrd.trn.detok
 fi
 
-echo ${set} > ${dir}/result.txt
+if [ ${case} = tc ]; then
+    echo ${set} > ${dir}/result.tc.txt
+    if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
+        # 4 references
+        multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.tc.txt
+    else
+        # 1 reference
+        multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.tc.txt
+    fi
+    echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
+    cat ${dir}/result.tc.txt
+fi
+
+echo ${set} > ${dir}/result.lc.txt
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     # 4 references
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.txt
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.lc.txt
 else
     # 1 reference
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.txt
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.lc.txt
 fi
-echo "write a case-insensitive BLEU result in ${dir}/result.txt"
-cat ${dir}/result.txt
+echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
+cat ${dir}/result.lc.txt
 
 
 # TODO(hirofumi): add TER & METEOR metrics here

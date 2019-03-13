@@ -3,9 +3,6 @@
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-lc=
-remove_punctuation=
-
 . utils/parse_options.sh || exit 1;
 
 if [ "$#" -ne 2 ]; then
@@ -67,8 +64,8 @@ fi
 # (1a) Transcriptions and translations preparation
 if [ $set != tst2018 ]; then
     # make basic transcription file (add segments info)
-    python local/parse_xml.py $xml_en > $dst/en.org
-    python local/parse_xml.py $xml_de > $dst/de.org
+    local/parse_xml.py $xml_en > $dst/en.org
+    local/parse_xml.py $xml_de > $dst/de.org
 
     # copy for evaluation
     cp $xml_en $dst
@@ -79,41 +76,44 @@ if [ $set != tst2018 ]; then
     for lang in en de; do
         # normalize punctuation
         cut -d " " -f 2- $dst/${lang}.org | normalize-punctuation.perl -l ${lang} > $dst/${lang}.norm
+        # NOTE: Only Moses script is applied for the evaluation sets
 
         # lowercasing
-        if ${lc}; then
-            lowercase.perl < $dst/${lang}.norm > $dst/${lang}.norm.lc
-        else
-            cp $dst/${lang}.norm $dst/${lang}.norm.lc
-        fi
+        lowercase.perl < $dst/${lang}.norm > $dst/${lang}.norm.lc
+        cp $dst/${lang}.norm $dst/${lang}.norm.tc
 
-        # remove punctuation
-        if ${remove_punctuation}; then
-            local/remove_punctuation.pl < $dst/${lang}.norm.lc > $dst/${lang}.norm.lc.rm
-        else
-            cp $dst/${lang}.norm.lc $dst/${lang}.norm.lc.rm
-        fi
+        # remove punctuation (not used)
+        local/remove_punctuation.pl < $dst/${lang}.norm.lc > $dst/${lang}.norm.lc.rm
 
         # tokenization
-        tokenizer.perl -a -l ${lang} < $dst/${lang}.norm.lc.rm > $dst/${lang}.norm.lc.rm.tok
+        tokenizer.perl -l ${lang} -q < $dst/${lang}.norm.tc > $dst/${lang}.norm.tc.tok
+        tokenizer.perl -l ${lang} -q < $dst/${lang}.norm.lc > $dst/${lang}.norm.lc.tok
+        tokenizer.perl -l ${lang} -q < $dst/${lang}.norm.lc.rm > $dst/${lang}.norm.lc.rm.tok
+
+        paste -d " " <(awk '{print $1}' $dst/${lang}.org) <(cat $dst/${lang}.norm.tc.tok) > $dst/text.tc.${lang}
+        paste -d " " <(awk '{print $1}' $dst/${lang}.org) <(cat $dst/${lang}.norm.lc.tok) > $dst/text.lc.${lang}
+        paste -d " " <(awk '{print $1}' $dst/${lang}.org) <(cat $dst/${lang}.norm.lc.rm.tok) > $dst/text.lc.rm.${lang}
+
+        # save original and cleaned punctuation
+        cat $dst/${lang}.org | lowercase.perl | text2token.py -s 0 -n 1 | tr " " "\n" \
+          | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > $dst/punctuation.${lang}
+        cat $dst/${lang}.norm.tc | lowercase.perl | text2token.py -s 0 -n 1 | tr " " "\n" \
+          | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > $dst/punctuation.clean.${lang}
     done
 
     # add segmentation based ctm files provided by organizers
-    for f in `cat $src/CTM_LIST`; do
-        talkid=`echo $f | cut -d "."  -f 3`
-        cat $src/$f | sort | sed -e "/#/d" > $dst/ctm.$talkid
-        paste -d " " <(cut -d " " -f 1 $dst/en.org) <(cat $dst/en.norm.lc.rm) | grep $talkid > $dst/text.en.$talkid
-        python local/ctm2segments.py $dst/text.en.$talkid $dst/ctm.$talkid $set $talkid > $dst/segments.$talkid || exit 1;
-    done
-    cat $dst/segments* | sort > $dst/segments
+    # for f in $(cat $src/CTM_LIST); do
+    #     talkid=$(echo $f | cut -d "."  -f 3)
+    #     cat $src/$f | sort | sed -e "/#/d" > $dst/ctm.$talkid
+    #     paste -d " " <(cut -d " " -f 1 $dst/en.org) <(cat $dst/en.norm.lc.rm) | grep $talkid > $dst/text.en.$talkid
+    #     local/ctm2segments.py $dst/text.en.$talkid $dst/ctm.$talkid $set $talkid > $dst/segments.$talkid || exit 1;
+    # done
+    # cat $dst/segments* | sort > $dst/segments
 
     # error check
-    n_en=`cat $dst/en.norm.lc.rm.tok | wc -l`
-    n_de=`cat $dst/de.norm.lc.rm.tok | wc -l`
+    n_en=$(cat $dst/en.norm.tc.tok | wc -l)
+    n_de=$(cat $dst/de.norm.tc.tok | wc -l)
     [ $n_en -ne $n_de ] && echo "Warning: expected $n_en data data files, found $n_de" && exit 1;
-
-    paste -d " " <(awk '{print $1}' $dst/en.org) <(cat $dst/en.norm.lc.rm.tok) > $dst/text.en
-    paste -d " " <(awk '{print $1}' $dst/de.org) <(cat $dst/de.norm.lc.rm.tok) > $dst/text.de
 fi
 
 
@@ -135,27 +135,27 @@ fi
 # (1c-a) Make segments files from $src/test-db.yaml
 #segments file format is: utt-id start-time end-time, e.g.:
 #ted_0001_0003501_0003684 ted_0001 003.501 0003.684
-# cat $yml | awk '/./{ print $0 }' > $dst/.yaml0
-# awk '{
-#     wav=$3; offset=$4; duration=$5;
-#     gsub(",","",wav); gsub("\"","",wav);
-#     gsub(",","",offset); gsub("\"","",offset); gsub("offset:","",offset);
-#     gsub("}","",duration); gsub("\"","",duration); gsub("duration:","",duration);
-#     match(wav, /\/[a-z0-9]+.en.[a-z]+[0-9]+.wav/);
-#     spkid = substr(wav, RSTART, RLENGTH); gsub(".wav","",spkid); gsub("/","",spkid);
-#     duration=sprintf("%.7f", duration);
-#     if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
-#     else extendt=0;
-#     offset=sprintf("%.7f", offset);
-#     startt=offset-extendt;
-#     endt=offset+duration+extendt;
-#     printf("%s_%07.0f_%07.0f %s %.2f %.2f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5), spkid, startt, endt);
-# }' $dst/.yaml0 | sort > $dst/segments
+cat $yml | awk '/./{ print $0 }' > $dst/.yaml0
+awk '{
+    wav=$3; offset=$4; duration=$5;
+    gsub(",","",wav); gsub("\"","",wav);
+    gsub(",","",offset); gsub("\"","",offset); gsub("offset:","",offset);
+    gsub("}","",duration); gsub("\"","",duration); gsub("duration:","",duration);
+    match(wav, /\/[a-z0-9]+.en.[a-z]+[0-9]+.wav/);
+    spkid = substr(wav, RSTART, RLENGTH); gsub(".wav","",spkid); gsub("/","",spkid);
+    duration=sprintf("%.7f", duration);
+    if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
+    else extendt=0;
+    offset=sprintf("%.7f", offset);
+    startt=offset-extendt;
+    endt=offset+duration+extendt;
+    printf("%s_%07.0f_%07.0f %s %.2f %.2f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5), spkid, startt, endt);
+}' $dst/.yaml0 | sort > $dst/segments
 # NOTE: Extend the lengths of short utterances (< 0.2s) rather than exclude them
 
 awk '{
     spkid=$2; split(spkid,S,"[.]");
-    set=S[1]; talkid=S[2];
+    set=S[1]; talkid=S[3];
     printf("%s cat '$wav_dir'/%s.en.%s.wav |\n", spkid, set, talkid);
 }' < $dst/segments | uniq | sort > $dst/wav.scp
 
@@ -173,8 +173,14 @@ for f in spk2utt utt2spk wav.scp segments; do
     cp $dst/$f data/${set}/
 done
 if [ $set != tst2018 ]; then
-    cp $dst/text.de data/${set}/text_noseg.de
-    cp $dst/text.en data/${set}/text_noseg.en
+    # en
+    cp $dst/text.tc.en data/${set}/text_noseg.tc.en
+    cp $dst/text.lc.en data/${set}/text_noseg.lc.en
+    cp $dst/text.lc.rm.en data/${set}/text_noseg.lc.rm.en
+    # de
+    cp $dst/text.tc.de data/${set}/text_noseg.tc.de
+    cp $dst/text.lc.de data/${set}/text_noseg.lc.de
+    cp $dst/text.lc.rm.de data/${set}/text_noseg.lc.rm.de
     # NOTE: for passing utils/validate_data_dir.sh
 fi
 
