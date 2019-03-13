@@ -97,11 +97,6 @@ set -o pipefail
 train_set=train_sp.en
 train_dev=dev_sp.en
 recog_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callhome_evltest.en"
-recog_set="fisher_dev.en"
-recog_set="fisher_dev2.en"
-recog_set="fisher_test.en"
-recog_set="callhome_devtest.en"
-recog_set="callhome_evltest.en"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -325,8 +320,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --context-residual ${context_residual}
 fi
 
-exit 1
-
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=16
@@ -364,7 +357,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --case ${st_case} --nlsyms ${nlsyms} --set ${rtask} ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --case ${st_case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
