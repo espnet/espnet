@@ -25,7 +25,7 @@ from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.decoders import decoder_for
+from espnet.nets.pytorch_backend.decoders import decoder_for, StreamingDecoder
 from espnet.nets.pytorch_backend.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -406,6 +406,16 @@ class StreamingE2E(object):
         self._rnnlm = rnnlm
 
         self._e2e.eval()
+        #self._online_decoder = StreamingDecoder(
+        #    attention_decoder=self._e2e.dec,
+        #    h=None,
+        #    lpz=None,
+        #    recog_args=recog_args,
+        #    char_list=char_list,
+        #    rnnlm=rnnlm,
+        #    maxlen=None,
+        #    minlen=None
+        #)
 
         self._offset = 0
         self._previous_encoder_recurrent_state = None
@@ -413,7 +423,7 @@ class StreamingE2E(object):
         self._ctc_posteriors = []
         self._last_recognition = None
 
-        assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attetion decoders."
+        assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attention decoders."
 
     def accept_input(self, x):
         """Call this method each time a new batch of input is available."""

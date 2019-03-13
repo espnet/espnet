@@ -642,7 +642,6 @@ class StreamingDecoder(object):
     def __init__(
             self,
             attention_decoder,
-            h,
             lpz,
             recog_args,
             char_list,
@@ -660,11 +659,11 @@ class StreamingDecoder(object):
 
         self._att_idx = min(strm_idx, len(self._decoder.att) - 1)
         # initialization
-        self._c_list = [self._decoder.zero_state(h.unsqueeze(0))]
-        self._z_list = [self._decoder.zero_state(h.unsqueeze(0))]
+        self._c_list = [self._decoder.zero_state(torch.zeros(1, self._decoder.dunits))]
+        self._z_list = [self._decoder.zero_state(torch.zeros(1, self._decoder.dunits))]
         for _ in six.moves.range(1, self._decoder.dlayers):
-            self._c_list.append(self._decoder.zero_state(h.unsqueeze(0)))
-            self._z_list.append(self._decoder.zero_state(h.unsqueeze(0)))
+            self._c_list.append(self._decoder.zero_state(torch.zeros(1, self._decoder.dunits)))
+            self._z_list.append(self._decoder.zero_state(torch.zeros(1, self._decoder.dunits)))
         self._decoder.att[self._decoder.att_idx].reset()  # reset pre-computation of h
 
         # search parms
@@ -674,23 +673,23 @@ class StreamingDecoder(object):
 
         # preprate sos
         self._y = self._decoder.sos
-        self._vy = h.new_zeros(1).long()
+        self._vy = torch.zeros(1).long()
 
         # initialize hypothesis
+        hyp = {'score': 0.0, 'yseq': [self._y], 'c_prev': self._c_list,
+                   'z_prev': self._z_list, 'a_prev': None}
         if self._rnnlm:
-            hyp = {'score': 0.0, 'yseq': [self._y], 'c_prev': self._c_list,
-                   'z_prev': self._z_list, 'a_prev': None, 'rnnlm_prev': None}
-        else:
-            hyp = {'score': 0.0, 'yseq': [self._y], 'c_prev': self._c_list, 'z_prev': self._z_list, 'a_prev': None}
-        if lpz is not None:
-            self._ctc_prefix_score = CTCPrefixScore(lpz.detach().numpy(), 0, self._decoder.eos, np)
-            hyp['ctc_state_prev'] = self._ctc_prefix_score.initial_state()
-            hyp['ctc_score_prev'] = 0.0
-            self._ctc_beam = (
-                min(lpz.shape[-1], int(self._beam * CTC_SCORING_RATIO))
-                if self._ctc_weight != 1.0
-                else lpz.shape[-1]
-            )
+            hyp.update({'rnnlm_prev': None})
+
+        # TODO: CTCPrefixScore seems to need to know the whole CTC activation matrix...?
+        self._ctc_prefix_score = CTCPrefixScore(lpz.detach().numpy(), 0, self._decoder.eos, np)
+        hyp['ctc_state_prev'] = self._ctc_prefix_score.initial_state()
+        hyp['ctc_score_prev'] = 0.0
+        self._ctc_beam = (
+            min(lpz.shape[-1], int(self._beam * CTC_SCORING_RATIO))
+            if self._ctc_weight != 1.0
+            else lpz.shape[-1]
+        )
         self._hyps = [hyp]
         self._ended_hyps = []
         self._i = 0
@@ -741,13 +740,14 @@ class StreamingDecoder(object):
                 local_best_scores, local_best_ids = torch.topk(local_scores, self._beam, dim=1)
 
             for j in six.moves.range(self._beam):
-                new_hyp = {}
                 # [:] is needed!
-                new_hyp['z_prev'] = self._z_list[:]
-                new_hyp['c_prev'] = self._c_list[:]
-                new_hyp['a_prev'] = att_w[:]
-                new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
-                new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
+                new_hyp = {
+                    'z_prev': self._z_list[:],
+                    'c_prev': self._c_list[:],
+                    'a_prev': att_w[:],
+                    'score': hyp['score'] + local_best_scores[0, j],
+                    'yseq': [0] * (1 + len(hyp['yseq']))
+                }
                 new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
                 new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
                 if self._rnnlm:
