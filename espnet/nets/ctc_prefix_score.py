@@ -138,14 +138,39 @@ class CTCPrefixScore(object):
             r[i, 1] = r[i - 1, 1] + self.x[i, self.blank]
         return r
 
+    def append_new_ctc_posteriors(self, lpz=None):
+        """Accept CTC posteriors for the incoming frame (use only when streaming)
+
+        :param lpz: optional increment of lpz (used in streaming processing)
+        """
+        # Extend CTC scores with the incoming frame
+        self.x = self.xp.concatenate([self.x, lpz.detach().numpy()], axis=0)
+        # Update input length
+        self.input_length = len(self.x)
+
     def __call__(self, y, cs, r_prev):
         """Compute CTC prefix scores for next labels
 
         :param y     : prefix label sequence
         :param cs    : array of next labels
         :param r_prev: previous CTC state
+        :param output_frame_number: needed to keep track of lpz updates when performing streaming recognition
         :return ctc_scores, ctc_states
         """
+        r_prev_len = r_prev.shape[0]
+        # When streaming
+        if r_prev_len < self.input_length:
+            # TODO(pzelasko): this computation is likely redundant among competing n-best paths - may be optimized
+            # Compute r for the new part of CTC posteriors
+            r_prev_increment = np.full((self.input_length - r_prev_len, 2), self.logzero, dtype=r_prev.dtype)
+            r_prev_increment[:, 1] = self.x[r_prev_len:, self.blank]
+            r_prev = self.xp.concatenate([
+                r_prev,
+                r_prev_increment
+            ])
+            for i in six.moves.range(r_prev_len, self.input_length):
+                r_prev[i, 1] = r_prev[i - 1, 1] + self.x[i, self.blank]
+
         # initialize CTC states
         output_length = len(y) - 1  # ignore sos
         # new CTC states are prepared as a frame x (n or b) x n_labels tensor

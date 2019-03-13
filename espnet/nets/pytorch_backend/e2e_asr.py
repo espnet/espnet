@@ -388,14 +388,13 @@ class E2E(torch.nn.Module):
         return h, ilen
 
 
-# TODO(pzelasko): Currently allows half-streaming only; needs streaming attention decoder implementation
 class StreamingE2E(object):
     """Convenience wrapper over E2E class for streaming recognitions.
 
     Not recommended for GPUs.
     """
 
-    def __init__(self, e2e, recog_args, char_list, rnnlm=None):
+    def __init__(self, e2e, recog_args, char_list, rnnlm=None, minlen=None, maxlen=None):
         """StreamingE2E constructor.
 
         :param E2E e2e: E2E ASR object
@@ -405,26 +404,32 @@ class StreamingE2E(object):
         self._recog_args = recog_args
         self._char_list = char_list
         self._rnnlm = rnnlm
+        self._minlen = minlen
+        self._maxlen = maxlen
 
         self._e2e.eval()
-        #self._online_decoder = StreamingDecoder(
-        #    attention_decoder=self._e2e.dec,
-        #    h=None,
-        #    lpz=None,
-        #    recog_args=recog_args,
-        #    char_list=char_list,
-        #    rnnlm=rnnlm,
-        #    maxlen=None,
-        #    minlen=None
-        #)
+        self.reset()
 
+        assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attention decoders."
+
+    def reset(self):
+        """Reset all internal state allowing to start the decoding for a new utterance.
+
+        Use this when you want to continue recognizing audio stream after the decoder has finished.
+        """
+        self._online_decoder = StreamingDecoder(
+            attention_decoder=self._e2e.dec,
+            recog_args=self._recog_args,
+            char_list=self._char_list,
+            rnnlm=self._rnnlm,
+            maxlen=self._maxlen,
+            minlen=self._minlen
+        )
         self._offset = 0
         self._previous_encoder_recurrent_state = None
         self._encoder_states = []
         self._ctc_posteriors = []
         self._last_recognition = None
-
-        assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attention decoders."
 
     def accept_input(self, x):
         """Call this method each time a new batch of input is available."""
@@ -443,24 +448,30 @@ class StreamingE2E(object):
         self._ctc_posteriors.append(self._e2e.ctc.log_softmax(h).squeeze(0))
 
     def _input_window_for_decoder(self, use_all=False):
+        TIME_DIM = 0
+
         if use_all:
-            return torch.cat(self._encoder_states, dim=0), torch.cat(self._ctc_posteriors, dim=0)
+            return torch.cat(self._encoder_states, dim=TIME_DIM), torch.cat(self._ctc_posteriors, dim=TIME_DIM)
 
         def select_unprocessed_windows(window_tensors):
             last_offset = self._offset
             offset_traversed = 0
             selected_windows = []
-            for es in window_tensors:
-                if offset_traversed > last_offset:
-                    selected_windows.append(es)
+            for tensor in window_tensors:
+                if offset_traversed >= last_offset:
+                    selected_windows.append(tensor)
                     continue
-                offset_traversed += es.size(1)
-            return torch.cat(selected_windows, dim=0)
+                offset_traversed += tensor.size(TIME_DIM)
+            return torch.cat(selected_windows, dim=TIME_DIM)
 
-        return (
+        next_input_windows = (
             select_unprocessed_windows(self._encoder_states),
             select_unprocessed_windows(self._ctc_posteriors)
         )
+
+        self._offset = sum(t.size(TIME_DIM) for t in self._encoder_states)
+
+        return next_input_windows
 
     def decode_with_attention_offline(self):
         """Run the attention decoder offline.
@@ -471,4 +482,25 @@ class StreamingE2E(object):
         """
         h, lpz = self._input_window_for_decoder(use_all=True)
 
-        return self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
+        self._last_recognition = self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
+        return self._last_recognition
+
+    def advance_attention_decoder(self):
+        """Run the online attention decoder for the new audio chunk (you should call accept_input before)"""
+        h, lpz = self._input_window_for_decoder()
+        self._online_decoder.advance_single_character(h, lpz)
+
+    def is_finished(self):
+        """Call this method before passing new audio.
+
+        When True is returned, it means that the decoder has already finished recognition and no
+        paths are active anymore.
+        """
+        return self._online_decoder.is_finished()
+
+    def retrieve_recognition(self):
+        """Finalize the computation and return recognition results.
+
+        Call this method either after you're sure that no more audio is available, or `is_finished()` returned True.
+        """
+        return self._online_decoder.retrieve_recognition()

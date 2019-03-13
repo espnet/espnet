@@ -642,7 +642,6 @@ class StreamingDecoder(object):
     def __init__(
             self,
             attention_decoder,
-            lpz,
             recog_args,
             char_list,
             rnnlm=None,
@@ -664,7 +663,7 @@ class StreamingDecoder(object):
         for _ in six.moves.range(1, self._decoder.dlayers):
             self._c_list.append(self._decoder.zero_state(torch.zeros(1, self._decoder.dunits)))
             self._z_list.append(self._decoder.zero_state(torch.zeros(1, self._decoder.dunits)))
-        self._decoder.att[self._decoder.att_idx].reset()  # reset pre-computation of h
+        self._decoder.att[self._att_idx].reset()  # reset pre-computation of h
 
         # search parms
         self._beam = recog_args.beam_size
@@ -675,13 +674,19 @@ class StreamingDecoder(object):
         self._y = self._decoder.sos
         self._vy = torch.zeros(1).long()
 
+        self._hyps = []
+        self._ended_hyps = []
+        self._i = 0
+        self._is_started = False
+        self._is_finished = False
+
+    def _build_initial_state(self, lpz):
         # initialize hypothesis
         hyp = {'score': 0.0, 'yseq': [self._y], 'c_prev': self._c_list,
-                   'z_prev': self._z_list, 'a_prev': None}
+               'z_prev': self._z_list, 'a_prev': None}
         if self._rnnlm:
             hyp.update({'rnnlm_prev': None})
 
-        # TODO: CTCPrefixScore seems to need to know the whole CTC activation matrix...?
         self._ctc_prefix_score = CTCPrefixScore(lpz.detach().numpy(), 0, self._decoder.eos, np)
         hyp['ctc_state_prev'] = self._ctc_prefix_score.initial_state()
         hyp['ctc_score_prev'] = 0.0
@@ -690,16 +695,19 @@ class StreamingDecoder(object):
             if self._ctc_weight != 1.0
             else lpz.shape[-1]
         )
-        self._hyps = [hyp]
-        self._ended_hyps = []
-        self._i = 0
-        self._is_finished = False
+        self._hyps.append(hyp)
+        self._is_started = True
 
     def advance_single_character(self, h, lpz):
         if self._is_finished:
             raise StreamingDecoderAlreadyFinishedException()
 
+        if not self._is_started:
+            self._build_initial_state(lpz)
+
         logging.debug('position ' + str(self._i))
+
+        self._ctc_prefix_score.append_new_ctc_posteriors(lpz)
 
         hyps_best_kept = []
         for hyp in self._hyps:
@@ -728,7 +736,7 @@ class StreamingDecoder(object):
                 local_best_scores, local_best_ids = torch.topk(
                     local_att_scores, self._ctc_beam, dim=1)
                 ctc_scores, ctc_states = self._ctc_prefix_score(
-                    hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                    y=hyp['yseq'], cs=local_best_ids[0], r_prev=hyp['ctc_state_prev'])
                 local_scores = \
                     (1.0 - self._ctc_weight) * local_att_scores[:, local_best_ids[0]] \
                     + self._ctc_weight * torch.from_numpy(ctc_scores - hyp['ctc_score_prev'])
