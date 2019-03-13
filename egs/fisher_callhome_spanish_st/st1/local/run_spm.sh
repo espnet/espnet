@@ -327,50 +327,49 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --context-residual ${context_residual}
 fi
 
-exit 1
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: Decoding"
+    nj=16
 
-# if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-#     echo "stage 5: Decoding"
-#     nj=16
-#
-#     for rtask in ${recog_set}; do
-#     (
-#         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
-#         mkdir -p ${expdir}/${decode_dir}
-#         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-#
-#         # split data
-#         splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
-#
-#         #### use CPU for decoding
-#         ngpu=0
-#
-#         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-#             asr_recog.py \
-#             --ngpu ${ngpu} \
-#             --backend ${backend} \
-#             --batchsize 0 \
-#             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
-#             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-#             --model ${expdir}/results/${recog_model} \
-#             --beam-size ${beam_size} \
-#             --penalty ${penalty} \
-#             --maxlenratio ${maxlenratio} \
-#             --minlenratio ${minlenratio} \
-#             &
-#         wait
-#
-#         # Fisher has 4 references per utterance
-#         if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
-#             for no in 1 2 3; do
-#               cp ${feat_recog_dir}/data_${bpemode}${nbpe}_${no}.json ${expdir}/${decode_dir}/data_ref${no}.json
-#             done
-#         fi
-#
-#         local/score_bleu.sh --set ${rtask} --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict}
-#
-#     ) &
-#     done
-#     wait
-#     echo "Finished"
-# fi
+    pids=() # initialize pids
+    for rtask in ${recog_set}; do
+    (
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
+        mkdir -p ${expdir}/${decode_dir}
+        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+
+        # split data
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+
+        #### use CPU for decoding
+        ngpu=0
+
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            asr_recog.py \
+            --ngpu ${ngpu} \
+            --backend ${backend} \
+            --batchsize 0 \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --result-label ${expdir}/${decode_dir}/data.JOB.json \
+            --model ${expdir}/results/${recog_model} \
+            --beam-size ${beam_size} \
+            --penalty ${penalty} \
+            --maxlenratio ${maxlenratio} \
+            --minlenratio ${minlenratio}
+
+        # Fisher has 4 references per utterance
+        if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
+            for no in 1 2 3; do
+              cp ${feat_recog_dir}/data_${bpemode}${nbpe}_${no}.json ${expdir}/${decode_dir}/data_ref${no}.json
+            done
+        fi
+
+        local/score_bleu.sh --case ${st_case} --set ${rtask} --bpe ${nbpe} --bpemodel ${bpemodel}.model ${expdir}/${decode_dir} ${dict}
+
+    ) &
+    pids+=($!) # store background pids
+    done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished"
+fi
