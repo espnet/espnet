@@ -80,11 +80,11 @@ if [ "${filetype}" == hdf5 ];then
     ext=.h5
 elif [ "${filetype}" == sound.hdf5 ];then
     ext=.flac.h5
-    opts="--format ${format} "
+    opts+="--format ${format} "
 
 elif [ "${filetype}" == sound ];then
     ext=
-    opts="--format wav "
+    opts+="--format wav "
 else
     ext=.ark
 fi
