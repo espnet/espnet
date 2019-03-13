@@ -7,7 +7,7 @@ cmd=run.pl
 evaltypes="SDR STOI ESTOI PESQ"
 permutation=true
 # Use museval.metrics.bss_eval_images or museval.metrics.bss_eval_source
-source_image=true
+bss_eval_images=true
 
 . ./path.sh
 . utils/parse_options.sh
@@ -50,7 +50,7 @@ ${cmd} JOB=1:${nj} ${logdir}/eval-enhanced-speech.JOB.log \
     --out ${logdir}/JOB \
     --evaltypes ${evaltypes} \
     --permutation ${permutation} \
-    --source-image ${source_image}
+    --bss_eval_images ${bss_eval_images}
 
 
 for t in $(echo ${evaltypes} | sed -e 's/SDR/SDR ISR SIR SAR/'); do
