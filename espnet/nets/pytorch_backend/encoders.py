@@ -32,12 +32,10 @@ class RNNP(torch.nn.Module):
                 inputdim = idim
             else:
                 inputdim = hdim
-
             rnn = torch.nn.LSTM(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=bidir,
                                 batch_first=True) if "lstm" in typ \
                 else torch.nn.GRU(inputdim, cdim, dropout=dropout, num_layers=1, bidirectional=bidir, batch_first=True)
             setattr(self, "%s%d" % ("birnn" if bidir else "rnn", i), rnn)
-
             # bottleneck layer to merge
             if bidir:
                 setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
@@ -97,8 +95,8 @@ class RNN(torch.nn.Module):
     def __init__(self, idim, elayers, cdim, hdim, dropout, typ="blstm"):
         super(RNN, self).__init__()
         bidir = typ[0] == "b"
-        self.nblstm = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
-                                    dropout=dropout, bidirectional=bidir) if "lstm" in typ \
+        self.nbrnn = torch.nn.LSTM(idim, cdim, elayers, batch_first=True,
+                                   dropout=dropout, bidirectional=bidir) if "lstm" in typ \
             else torch.nn.GRU(idim, cdim, elayers, batch_first=True, dropout=dropout,
                               bidirectional=bidir)
         if bidir:
