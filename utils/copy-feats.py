@@ -57,8 +57,7 @@ def main():
             filetype=args.out_filetype,
             write_num_frames=args.write_num_frames,
             compress=args.compress,
-            compression_method=args.compression_method,
-            ) as writer:
+            compression_method=args.compression_method) as writer:
         for utt, mat in FileReaderWrapper(args.rspecifier, args.in_filetype):
             if is_scipy_wav_style(mat):
                 # If data is sound file, then got as Tuple[int, ndarray]

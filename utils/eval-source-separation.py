@@ -5,15 +5,15 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import shutil
-import tempfile
 from collections import OrderedDict
 from distutils.util import strtobool
 import itertools
+import logging
 import os
+import shutil
 import subprocess
 import sys
-import logging
+import tempfile
 
 import museval
 import numpy as np
@@ -75,6 +75,7 @@ def eval_STOI(ref, y, fs, extended=False, compute_permutation=True):
 if PY2:
     class TemporaryDirectory(object):
         """Ported from python3 tempflie.TemporaryDirectory"""
+
         def __init__(self, suffix=None, prefix=None, dir=None):
             self.name = tempfile.mkdtemp(suffix, prefix, dir)
 
