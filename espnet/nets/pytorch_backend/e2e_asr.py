@@ -487,8 +487,32 @@ class StreamingE2E(object):
 
     def advance_attention_decoder(self):
         """Run the online attention decoder for the new audio chunk (you should call accept_input before)"""
+        BLANK = 0
+
         h, lpz = self._input_window_for_decoder()
-        self._online_decoder.advance_single_character(h, lpz)
+        _, best_path_indices = torch.topk(lpz, 1, dim=1)
+
+        # TODO(pzelasko): handle and edge case when new LPZ is lost because approx n characters == 0
+
+        approximate_n_characters = 0
+        last_new_character = -1
+        blank_encountered_since_new_character = False
+        for letter in best_path_indices.numpy().reshape(-1):
+            at_new_character = (
+                    (letter != last_new_character and letter != BLANK)
+                    or
+                    (blank_encountered_since_new_character and letter == last_new_character)
+            )
+            if at_new_character:
+                approximate_n_characters += 1
+                last_new_character = letter
+                blank_encountered_since_new_character = False
+                continue
+
+            blank_encountered_since_new_character = letter == BLANK
+
+        for i in range(approximate_n_characters):
+            self._online_decoder.advance_single_character(h, lpz)
 
     def is_finished(self):
         """Call this method before passing new audio.
