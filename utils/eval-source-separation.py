@@ -17,8 +17,8 @@ import tempfile
 
 import museval
 import numpy as np
-import soundfile
 from pystoi.stoi import stoi
+import soundfile
 
 from espnet.utils.cli_utils import get_commandline_args
 
