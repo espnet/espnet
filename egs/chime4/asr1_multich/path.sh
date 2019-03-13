@@ -26,11 +26,11 @@ if ! which sox > /dev/null; then
         echo "Error: you can install sox using conda." >&2
         echo "Error: conda install -c conda-forge sox" >&2
     fi
-    return 0
+    return 1
 fi
 if ! which PESQ > /dev/null; then
     echo "Error: it seems that PESQ is not installed." >&2
     echo "Error: please install PESQ as follows." >&2
     echo "Error: cd ${MAIN_ROOT}/tools && make pesq" >&2
-    return 0
+    return 1
 fi
