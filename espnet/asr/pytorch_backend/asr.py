@@ -25,7 +25,7 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
-# from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
@@ -35,9 +35,11 @@ from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_mt import E2E as E2E_mt
 from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
+
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+
 from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
 
@@ -121,21 +123,18 @@ class CustomUpdater(training.StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu, accum_grad):
+                 optimizer, converter, device, ngpu):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.converter = converter
         self.device = device
         self.ngpu = ngpu
-        self.count = 0
-        self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
-        self.count += 1
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
@@ -144,7 +143,8 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        loss = self.model(*x)[0].mean() / self.accum_grad
+        optimizer.zero_grad()  # Clear the parameter gradients
+        loss = self.model(*x)[0]
         if self.ngpu > 1:
             loss = loss.sum() / self.ngpu
         loss.backward()  # Backprop
@@ -155,9 +155,8 @@ class CustomUpdater(training.StandardUpdater):
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
-        elif self.count % self.accum_grad == 0:
+        else:
             optimizer.step()
-            optimizer.zero_grad()  # Clear the parameter gradients
 
 
 class CustomConverter(object):
@@ -197,10 +196,7 @@ class CustomConverter(object):
         # perform padding and convert to tensor
         xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
         ilens = torch.from_numpy(ilens).to(device)
-        if isinstance(ys[0], np.ndarray):
-            ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
-        else:
-            ys_pad = pad_list([torch.from_numpy(y[0]).long() for y in ys], self.ignore_id).to(device)
+        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -250,18 +246,14 @@ def train(args):
         mt_model = E2E_mt(idim_mt, odim_mt, train_args_mt)
         torch_load(args.mt_model, mt_model)
 
-    # specify model architecture
-    logging.info('import model module: ' + args.model_module)
-    from importlib import import_module
-    model_module = import_module(args.model_module)
-    # model = model_module.E2E(idim, odim, args)
-    model = E2E(idim, odim, args, asr_model, mt_model)
-    subsampling_factor = model.subsample[0]
-
     if args.asr_model:
         del asr_model
     if args.mt_model:
         del mt_model
+
+    # specify model architecture
+    model = E2E(idim, odim, args)
+    subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
@@ -302,10 +294,6 @@ def train(args):
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(),
                                      weight_decay=args.weight_decay)
-    elif args.opt == 'noam':
-        from espnet.nets.pytorch_backend.e2e_asr_transformer import get_std_opt
-        optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps,
-                                args.transformer_lr)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -350,8 +338,7 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter,
-        device, args.ngpu, args.accum_grad)
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -375,11 +362,6 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
-        try:
-            PlotAttentionReport = model_module.PlotAttentionReport
-            logging.info('using custom PlotAttentionReport')
-        except AttributeError:
-            from espnet.asr.asr_utils import PlotAttentionReport
         att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=device)
@@ -468,10 +450,7 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    from importlib import import_module
-    model_module = import_module(train_args.model_module)
-    model = model_module.E2E(idim, odim, train_args)
-    # model = E2E(idim, odim, train_args)
+    model = E2E(idim, odim, train_args)
     torch_load(args.model, model)
     model.recog_args = args
 
