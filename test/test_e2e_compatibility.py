@@ -49,7 +49,7 @@ def download_zip_from_google_drive(download_dir, file_id):
                         "| grep -Po \'uc-download-link\" [^>]* href=\"\K[^\"]*\' "  # NOQA
                         "| sed \'s/\&amp;/\&/g\')\" > %s" % (download_dir + "/tmp.zip"), shell=True)  # NOQA
         cmd = ["unzip", download_dir + "/tmp.zip", "-d", download_dir]
-        subprocess.run(cmd, check=True)s
+        subprocess.run(cmd, check=True)
 
     # get model file path
     cmd = ["find", download_dir, "-name", "model.*.best"]
