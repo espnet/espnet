@@ -28,34 +28,33 @@ IS_PY3 = platform.python_version_tuple()[0] == '3'
 
 
 def download_zip_from_google_drive(download_dir, file_id):
+    # directory check
     os.makedirs(download_dir, exist_ok=True)
 
-    # download zip file from google drive
+    # download zip file from google drive via wget
     cmd = ["wget", "https://drive.google.com/uc?export=download&id=%s" % file_id, "-O", download_dir + "/tmp.zip"]
     cmd_state = subprocess.run(cmd, check=True)
 
-    # check
-    if cmd_state.returncode != 0:
-        print("download failed.")
-        sys.exit(cmd_state.returncode)
-
-    # unzip downloaded files
-    cmd = ["unzip", download_dir + "/tmp.zip", "-d", download_dir]
-    cmd_state = subprocess.run(cmd, check=True)
-
-    # check
-    if cmd_state.returncode != 0:
-        print("unzip failed.")
-        sys.exit(cmd_state.returncode)
+    try:
+        # unzip downloaded files
+        cmd = ["unzip", download_dir + "/tmp.zip", "-d", download_dir]
+        cmd_state = subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError:
+        # sometimes, wget is failed due to vrius check in google drive
+        # to avoid it, we need to do some tricky processing
+        # see https://stackoverflow.com/questions/20665881/direct-download-from-google-drive-using-google-drive-api
+        subprocess.call("curl -c /tmp/cookies "
+                        "\"https://drive.google.com/uc?export=download&id=%s\" "
+                        "> /tmp/intermezzo.html" % file_id, shell=True)
+        subprocess.call("curl -L -b /tmp/cookies \"https://drive.google.com$(cat /tmp/intermezzo.html "
+                        "| grep -Po \'uc-download-link\" [^>]* href=\"\K[^\"]*\' "
+                        "| sed \'s/\&amp;/\&/g\')\" > %s" % (download_dir + "/tmp.zip"), shell=True)
+        cmd = ["unzip", download_dir + "/tmp.zip", "-d", download_dir]
+        cmd_state = subprocess.run(cmd, check=True)
 
     # get model file path
     cmd = ["find", download_dir, "-name", "model.*.best"]
     cmd_state = subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
-
-    # check
-    if cmd_state.returncode != 0:
-        print("find failed.")
-        sys.exit(cmd_state.returncode)
 
     return cmd_state.stdout.decode("utf-8").split("\n")[0]
 
