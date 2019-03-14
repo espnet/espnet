@@ -11,7 +11,6 @@ import os
 import platform
 import shutil
 import subprocess
-import sys
 import tempfile
 
 import chainer
@@ -33,12 +32,12 @@ def download_zip_from_google_drive(download_dir, file_id):
 
     # download zip file from google drive via wget
     cmd = ["wget", "https://drive.google.com/uc?export=download&id=%s" % file_id, "-O", download_dir + "/tmp.zip"]
-    cmd_state = subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True)
 
     try:
         # unzip downloaded files
         cmd = ["unzip", download_dir + "/tmp.zip", "-d", download_dir]
-        cmd_state = subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError:
         # sometimes, wget is failed due to vrius check in google drive
         # to avoid it, we need to do some tricky processing
@@ -47,10 +46,10 @@ def download_zip_from_google_drive(download_dir, file_id):
                         "\"https://drive.google.com/uc?export=download&id=%s\" "
                         "> /tmp/intermezzo.html" % file_id, shell=True)
         subprocess.call("curl -L -b /tmp/cookies \"https://drive.google.com$(cat /tmp/intermezzo.html "
-                        "| grep -Po \'uc-download-link\" [^>]* href=\"\K[^\"]*\' "
-                        "| sed \'s/\&amp;/\&/g\')\" > %s" % (download_dir + "/tmp.zip"), shell=True)
+                        "| grep -Po \'uc-download-link\" [^>]* href=\"\K[^\"]*\' "  # NOQA
+                        "| sed \'s/\&amp;/\&/g\')\" > %s" % (download_dir + "/tmp.zip"), shell=True)  # NOQA
         cmd = ["unzip", download_dir + "/tmp.zip", "-d", download_dir]
-        cmd_state = subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True)
 
     # get model file path
     cmd = ["find", download_dir, "-name", "model.*.best"]
