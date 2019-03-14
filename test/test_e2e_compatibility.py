@@ -39,8 +39,8 @@ def download_zip_from_google_drive(download_dir, file_id):
         cmd = ["unzip", download_dir + "/tmp.zip", "-d", download_dir]
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError:
-        # sometimes, wget is failed due to vrius check in google drive
-        # to avoid it, we need to do some tricky processing
+        # sometimes, wget from google drive is failed due to virus check confirmation
+        # to avoid it, we need to do some tricky processings
         # see https://stackoverflow.com/questions/20665881/direct-download-from-google-drive-using-google-drive-api
         subprocess.call("curl -c /tmp/cookies "
                         "\"https://drive.google.com/uc?export=download&id=%s\" "
