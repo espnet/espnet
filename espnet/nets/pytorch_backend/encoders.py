@@ -48,20 +48,25 @@ class RNNP(torch.nn.Module):
         self.typ = typ
         self.bidir = bidir
 
-    def forward(self, xs_pad, ilens):
+    def forward(self, xs_pad, ilens, prev_state=None):
         """RNNP forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor prev_state: batch of previous RNN states
         :return: batch of hidden state sequences (B, Tmax, hdim)
         :rtype: torch.Tensor
         """
         # logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
+        elayer_states = []
         for layer in six.moves.range(self.elayers):
             xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
             rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
             rnn.flatten_parameters()
-            ys, _ = rnn(xs_pack)
+            if prev_state is not None and rnn.bidirectional:
+                prev_state = reset_backward_rnn_state(prev_state)
+            ys, states = rnn(xs_pack, hx=prev_state)
+            elayer_states.append(states)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
             sub = self.subsample[layer + 1]
@@ -73,7 +78,7 @@ class RNNP(torch.nn.Module):
                                 )(ys_pad.contiguous().view(-1, ys_pad.size(2)))
             xs_pad = torch.tanh(projected.view(ys_pad.size(0), ys_pad.size(1), -1))
 
-        return xs_pad, ilens  # x: utt list of frame x dim
+        return xs_pad, ilens, elayer_states  # x: utt list of frame x dim
 
 
 class RNN(torch.nn.Module):
@@ -100,25 +105,40 @@ class RNN(torch.nn.Module):
             self.l_last = torch.nn.Linear(cdim, hdim)
         self.typ = typ
 
-    def forward(self, xs_pad, ilens):
+    def forward(self, xs_pad, ilens, prev_state=None):
         """RNN forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor prev_state: batch of previous RNN states
         :return: batch of hidden state sequences (B, Tmax, eprojs)
         :rtype: torch.Tensor
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
         xs_pack = pack_padded_sequence(xs_pad, ilens, batch_first=True)
         self.nbrnn.flatten_parameters()
-        ys, _ = self.nbrnn(xs_pack)
+        if prev_state is not None and self.nbrnn.bidirectional:
+            # We assume that when previous state is passed, it means that we're streaming the input
+            # and therefore cannot propagate backward BRNN state (otherwise it goes in the wrong direction)
+            prev_state = reset_backward_rnn_state(prev_state)
+        ys, states = self.nbrnn(xs_pack, hx=prev_state)
         # ys: utt list of frame x cdim x 2 (2: means bidirectional)
         ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
         # (sum _utt frame_utt) x dim
         projected = torch.tanh(self.l_last(
             ys_pad.contiguous().view(-1, ys_pad.size(2))))
         xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
-        return xs_pad, ilens  # x: utt list of frame x dim
+        return xs_pad, ilens, states  # x: utt list of frame x dim
+
+
+def reset_backward_rnn_state(states):
+    """Sets backward BRNN states to zeroes - useful in processing of sliding windows over the inputs"""
+    if isinstance(states, (list, tuple)):
+        for state in states:
+            state[1::2] = 0.
+    else:
+        states[1::2] = 0.
+    return states
 
 
 class VGG2L(torch.nn.Module):
@@ -137,7 +157,7 @@ class VGG2L(torch.nn.Module):
 
         self.in_channel = in_channel
 
-    def forward(self, xs_pad, ilens):
+    def forward(self, xs_pad, ilens, **kwargs):
         """VGG2L forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
@@ -174,7 +194,7 @@ class VGG2L(torch.nn.Module):
         xs_pad = xs_pad.transpose(1, 2)
         xs_pad = xs_pad.contiguous().view(
             xs_pad.size(0), xs_pad.size(1), xs_pad.size(2) * xs_pad.size(3))
-        return xs_pad, ilens
+        return xs_pad, ilens, None  # no state in this layer
 
 
 class Encoder(torch.nn.Module):
@@ -195,6 +215,7 @@ class Encoder(torch.nn.Module):
         typ = etype.lstrip("vgg").rstrip("p")
         if typ not in ['lstm', 'gru', 'blstm', 'bgru']:
             logging.error("Error: need to specify an appropriate encoder architecture")
+
         if etype.startswith("vgg"):
             if etype[-1] == "p":
                 self.enc = torch.nn.ModuleList([VGG2L(in_channel),
@@ -217,21 +238,28 @@ class Encoder(torch.nn.Module):
                 self.enc = torch.nn.ModuleList([RNN(idim, elayers, eunits, eprojs, dropout, typ=typ)])
                 logging.info(typ.upper() + ' without projection for encoder')
 
-    def forward(self, xs_pad, ilens):
+    def forward(self, xs_pad, ilens, prev_states=None):
         """Encoder forward
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
+        :param torch.Tensor prev_state: batch of previous encoder hidden states (?, ...)
         :return: batch of hidden state sequences (B, Tmax, eprojs)
         :rtype: torch.Tensor
         """
-        for module in self.enc:
-            xs_pad, ilens = module(xs_pad, ilens)
+        if prev_states is None:
+            prev_states = [None] * len(self.enc)
+        assert len(prev_states) == len(self.enc)
+
+        current_states = []
+        for module, prev_state in zip(self.enc, prev_states):
+            xs_pad, ilens, states = module(xs_pad, ilens, prev_state=prev_state)
+            current_states.append(states)
 
         # make mask to remove bias value in padded part
         mask = to_device(self, make_pad_mask(ilens).unsqueeze(-1))
 
-        return xs_pad.masked_fill(mask, 0.0), ilens
+        return xs_pad.masked_fill(mask, 0.0), ilens, current_states
 
 
 def encoder_for(args, idim, subsample):
