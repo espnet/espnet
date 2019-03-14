@@ -74,6 +74,9 @@ def main(args):
                         help='Word list to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
+    parser.add_argument('--streaming-window', type=int, default=False,
+                        help='Use streaming recognizer for inference - provide window size in frames. '
+                             '--batchsize must be set to 0 to enable this mode')
     args = parser.parse_args(args)
 
     # logging info
