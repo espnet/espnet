@@ -31,9 +31,14 @@ def download_zip_from_google_drive(download_dir, file_id):
     os.makedirs(download_dir, exist_ok=True)
 
     # download zip file from google drive
-    cmd = ["wget", "https://drive.google.com/uc?export=download&id=%s" % file_id, "-O", download_dir + "/tmp.zip"]
-    cmd_state = subprocess.run(cmd, check=True)
+    cmd = 'wget --save-cookies {}/cookies.txt '.format(download_dir) + \
+        '"https://docs.google.com/uc?export=download&id={}" -O- '.format(file_id) + \
+        '| sed -rn "s/.*confirm=([0-9A-Za-z_]+).*/\\1/p" > {}/confirm.txt'.format(download_dir)
+    cmd_state = subprocess.run(cmd, shell=True, check=True)
 
+    cmd = 'wget --load-cookies {0}/cookies.txt -O {0}/tmp.zip '.format(download_dir) + \
+        '"https://docs.google.com/uc?export=download&id={}&confirm="$(<{}/confirm.txt)'.format(file_id, download_dir)
+    cmd_state = subprocess.run(cmd, shell=True, check=True)
     # check
     if cmd_state.returncode != 0:
         print("download failed.")
