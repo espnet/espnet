@@ -119,8 +119,7 @@ if [ ${stage} -le 0 ]; then
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
     local/wsj_format_data.sh
     mkdir -p data/wsj
-    mv data/{dev_dt_05,local,test_dev93_5k,test_eval92_5k,test_eval93_5k,\
-             dev_dt_20,test_dev93,test_eval92,test_eval93,train_si284} data/wsj
+    mv data/{dev_dt_*,local,test_dev*,test_eval*,train_si284} data/wsj
 
     ### Or this part is for WSJ mix, which is a larger two-speaker mixture corpus created from WSJ corpus. Used in
     ### Seki H, Hori T, Watanabe S, et al. End-to-End Multi-Lingual Multi-Speaker Speech Recognition[J]. 2018. and
@@ -335,6 +334,7 @@ if [ ${stage} -le 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
@@ -368,14 +368,15 @@ if [ ${stage} -le 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --lm-weight ${lm_weight} \
-            ${recog_opts} &
-        wait
+            ${recog_opts}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} --num_spkrs 2 ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
 

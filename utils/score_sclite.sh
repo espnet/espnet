@@ -25,8 +25,6 @@ dic=$2
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
 
-set -x
-
 if [ $num_spkrs -eq 1 ]; then
   json2trn.py ${dir}/data.json ${dic} --num-spkrs ${num_spkrs} --refs ${dir}/ref.trn --hyps ${dir}/hyp.trn
 
