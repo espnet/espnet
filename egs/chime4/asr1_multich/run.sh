@@ -147,9 +147,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # Note that data/tr05_multi_noisy_multich has multi-channel wav data, while data/train_si284 has 1ch only
-    dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" --format flac data/train_si284
+    dump_pcm.sh --nj 32 --cmd "${train_cmd}" --filetype "sound.hdf5" --format flac data/train_si284
     for setname in tr05_multi_noisy ${recog_set}; do
-        dump_pcm.sh --nj 32 --cmd ${train_cmd} --filetype "sound.hdf5" --format flac data/${setname}_multich
+        dump_pcm.sh --nj 32 --cmd "${train_cmd}" --filetype "sound.hdf5" --format flac data/${setname}_multich
     done
     utils/combine_data.sh data/${train_set}_multich data/tr05_multi_noisy data/train_si284
     utils/combine_data.sh data/${train_dev}_multich data/dt05_simu_isolated_6ch_track_multich data/dt05_real_isolated_6ch_track_multich
@@ -362,7 +362,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
     echo "Decoding successfully finished"
@@ -395,7 +395,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
     for rtask in ${recog_set}; do
@@ -426,12 +426,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
             <${enhdir}/enhance.scp grep ${place} | sed -r "s/^[^_]*_(.*?)_${place}_(REAL|SIMU) /\1 /g" | sort > ${basedir}/estimated.scp
             # FIME(kamo): Should we use bss_eval_images?
-            eval_source_separation.sh --cmd ${train_cmd} --nj 100  --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
+            eval_source_separation.sh --cmd "${decode_cmd}" --nj 100  --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
         done
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
     ./local/show_enhance_results.sh ${expdir}/enhance_
@@ -454,13 +454,13 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
                 <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/estimated.scp
 
-                eval_source_separation.sh --cmd ${train_cmd} --nj 100 --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
+                eval_source_separation.sh --cmd "${decode_cmd}" --nj 100 --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
 
             done
         ) &
         pids+=($!) # store background pids
         done
-        i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+        i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
         [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
         ./local/show_enhance_results.sh eval_noisy/
