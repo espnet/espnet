@@ -23,7 +23,7 @@ def convert_score(keys, dic):
     pat = re.compile(r'\d+')
     for k in keys:
         score = dic[k]['Scores']
-        score = map(int, pat.findall(score))  # [c,s,d,i]
+        score = list(map(int, pat.findall(score)))  # [c,s,d,i]
         assert len(score) == 4
         ret[k] = score
     return ret
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     score = np.zeros((len(new_dic.keys()), 4))
     pat = re.compile(r'\d+')
     for idx, key in enumerate(new_dic.keys()):
-        tmp_score = map(int, pat.findall(new_dic[key]['Scores']))  # [c,s,d,i]
+        tmp_score = list(map(int, pat.findall(new_dic[key]['Scores'])))  # [c,s,d,i]
         score[idx] = tmp_score
     score_sum = np.sum(score, axis=0, dtype=int)
 

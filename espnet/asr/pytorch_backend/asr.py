@@ -11,19 +11,14 @@ import math
 import os
 import sys
 
-# chainer related
 from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
-
-# torch related
-import torch
-
 import numpy as np
 from tensorboardX import SummaryWriter
+import torch
 
-# espnet related
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
@@ -40,6 +35,7 @@ import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.transform.transformation import using_transform_config
@@ -503,7 +499,18 @@ def recog(args):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                if args.streaming_window:
+                    logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
+                    se2e = StreamingE2E(e2e=model, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
+                    for i in range(0, feat.shape[0], args.streaming_window):
+                        logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
+                        se2e.accept_input(feat[i:i + args.streaming_window])
+                    logging.info('Running offline attention decoder')
+                    se2e.decode_with_attention_offline()
+                    logging.info('Offline attention decoder finished')
+                    nbest_hyps = se2e.retrieve_recognition()
+                else:
+                    nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
     else:
