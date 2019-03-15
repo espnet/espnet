@@ -22,13 +22,13 @@ sdir=$1
 odir=$2
 mkdir -p ${odir}/tmp
 
-echo "remove utterances having more than $maxframes or less than $minframes frames"
+echo "extract utterances having less than $maxframes or more than $minframes frames"
 utils/data/get_utt2num_frames.sh ${sdir}
 < ${sdir}/utt2num_frames  awk -v maxframes="$maxframes" '{ if ($2 < maxframes) print }' \
     | awk -v minframes="$minframes" '{ if ($2 > minframes) print }' \
     | awk '{print $1}' > ${odir}/tmp/reclist1
 
-echo "remove utterances having more than $maxchars or less than $minchars characters"
+echo "extract utterances having less than $maxchars or more than $minchars characters"
 # counting number of chars. Use (NF -1) instead of NF to exclude the utterance ID column
 if [ -z ${nlsyms} ]; then
 text2token.py -s 1 -n 1 ${sdir}/text \
