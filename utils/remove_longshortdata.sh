@@ -8,7 +8,7 @@
 maxframes=2000
 minframes=10
 maxchars=200
-minchars=-1
+minchars=0
 nlsyms=""
 
 . utils/parse_options.sh || exit 1;
@@ -29,16 +29,16 @@ utils/data/get_utt2num_frames.sh ${sdir}
     | awk '{print $1}' > ${odir}/tmp/reclist1
 
 echo "remove utterances having more than $maxchars or less than $minchars characters"
-# counting number of chars
+# counting number of chars. Use (NF -1) instead of NF to exclude the utterance ID column
 if [ -z ${nlsyms} ]; then
 text2token.py -s 1 -n 1 ${sdir}/text \
-    | awk -v maxchars="$maxchars" '{ if (NF - 1 < maxchars + 1) print }' \
-    | awk -v minchars="$minchars" '{ if (NF - 1 > minchars + 1) print }' \
+    | awk -v maxchars="$maxchars" '{ if (NF - 1 < maxchars) print }' \
+    | awk -v minchars="$minchars" '{ if (NF - 1 > minchars) print }' \
     | awk '{print $1}' > ${odir}/tmp/reclist2
 else
 text2token.py -l ${nlsyms} -s 1 -n 1 ${sdir}/text \
-    | awk -v maxchars="$maxchars" '{ if (NF - 1 < maxchars + 1) print }' \
-    | awk -v minchars="$minchars" '{ if (NF - 1 > minchars + 1) print }' \
+    | awk -v maxchars="$maxchars" '{ if (NF - 1 < maxchars) print }' \
+    | awk -v minchars="$minchars" '{ if (NF - 1 > minchars) print }' \
     | awk '{print $1}' > ${odir}/tmp/reclist2
 fi
 
