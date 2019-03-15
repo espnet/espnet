@@ -29,9 +29,9 @@ class RNNP(chainer.Chain):
         super(RNNP, self).__init__()
         bidir = typ[0] == "b"
         if bidir:
-            linear_conn = L.NStepBiLSTM if "lstm" in typ else L.NStepBiGRU
+            rnn = L.NStepBiLSTM if "lstm" in typ else L.NStepBiGRU
         else:
-            linear_conn = L.NStepLSTM if "lstm" in typ else L.NStepGRU
+            rnn = L.NStepLSTM if "lstm" in typ else L.NStepGRU
         rnn_label = "birnn" if bidir else "rnn"
         with self.init_scope():
             for i in six.moves.range(elayers):
@@ -41,7 +41,7 @@ class RNNP(chainer.Chain):
                     inputdim = hdim
                 _cdim = 2 * cdim if bidir else cdim
                 # bottleneck layer to merge
-                setattr(self, '{}{:d}'.format(rnn_label, i), linear_conn(
+                setattr(self, '{}{:d}'.format(rnn_label, i), rnn(
                     1, inputdim, cdim, dropout))
                 setattr(self, "bt%d" % i, L.Linear(_cdim, hdim))
 
@@ -88,12 +88,12 @@ class RNN(chainer.Chain):
         super(RNN, self).__init__()
         bidir = typ[0] == "b"
         if bidir:
-            linear_conn = L.NStepBiLSTM if "lstm" in typ else L.NStepBiGRU
+            rnn = L.NStepBiLSTM if "lstm" in typ else L.NStepBiGRU
         else:
-            linear_conn = L.NStepLSTM if "lstm" in typ else L.NStepGRU
+            rnn = L.NStepLSTM if "lstm" in typ else L.NStepGRU
         _cdim = 2 * cdim if bidir else cdim
         with self.init_scope():
-            self.nbrnn = linear_conn(elayers, idim, cdim, dropout)
+            self.nbrnn = rnn(elayers, idim, cdim, dropout)
             self.l_last = L.Linear(_cdim, hdim)
         self.typ = typ
         self.bidir = bidir
