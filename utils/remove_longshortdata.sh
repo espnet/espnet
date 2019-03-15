@@ -32,13 +32,13 @@ echo "remove utterances having more than $maxchars or less than $minchars charac
 # counting number of chars
 if [ -z ${nlsyms} ]; then
 text2token.py -s 1 -n 1 ${sdir}/text \
-    | awk -v maxchars="$maxchars" '{ if (NF < maxchars + 1) print }' \
-    | awk -v minchars="$minchars" '{ if (NF > minchars + 1) print }' \
+    | awk -v maxchars="$maxchars" '{ if (NF - 1 < maxchars + 1) print }' \
+    | awk -v minchars="$minchars" '{ if (NF - 1 > minchars + 1) print }' \
     | awk '{print $1}' > ${odir}/tmp/reclist2
 else
 text2token.py -l ${nlsyms} -s 1 -n 1 ${sdir}/text \
-    | awk -v maxchars="$maxchars" '{ if (NF < maxchars + 1) print }' \
-    | awk -v minchars="$minchars" '{ if (NF > minchars + 1) print }' \
+    | awk -v maxchars="$maxchars" '{ if (NF - 1 < maxchars + 1) print }' \
+    | awk -v minchars="$minchars" '{ if (NF - 1 > minchars + 1) print }' \
     | awk '{print $1}' > ${odir}/tmp/reclist2
 fi
 
