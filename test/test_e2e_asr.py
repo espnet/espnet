@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 import torch
 
+from espnet.nets.pytorch_backend.e2e_asr import approximate_number_of_ctc_characters
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from test.utils_test import make_dummy_json
 
@@ -510,3 +511,26 @@ def test_multi_gpu_trainable(module):
 
         for loss in losses:
             loss.backward()  # trainable
+
+
+@pytest.mark.parametrize(
+    ["letter_indices", "expected_count"],
+    [
+        ([0, 0, 0, 0, 0], 0),
+        ([1, 0, 0, 0, 0], 1),
+        ([0, 0, 1, 0, 0], 1),
+        ([0, 0, 1, 1, 0], 1),
+        ([1, 1, 1, 1, 1], 1),
+        ([1, 0, 1, 0, 0], 2),
+        ([2, 0, 1, 0, 0], 2),
+        ([5, 0, 1, 1, 0], 2),
+        ([1, 0, 1, 0, 1], 3),
+        ([4, 2, 2, 4, 5], 4),
+        ([1, 2, 0, 4, 5], 4),
+        ([1, 2, 2, 4, 5], 4),
+        ([1, 2, 3, 4, 5], 5),
+    ]
+)
+def test_approximate_number_of_ctc_characters(letter_indices, expected_count):
+    ctc_greedy_path = torch.from_numpy(np.array(letter_indices))
+    assert approximate_number_of_ctc_characters(ctc_greedy_path) == expected_count
