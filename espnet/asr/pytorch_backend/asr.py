@@ -570,7 +570,7 @@ def run_offline_encoder_online_decoder(feat, e2e, rnnlm, args, train_args):
     encoder_state_window_len = int(args.streaming_window / 4)
     for i in range(0, h.shape[1], encoder_state_window_len):
         logging.info('Feeding encoder states %d - %d', i, i + encoder_state_window_len)
-        se2e.accept_encoder_state(h[i:i + encoder_state_window_len])
+        se2e.accept_encoder_state(h[:, i:i + encoder_state_window_len, :])
         logging.info('Advancing online attention decoder')
         se2e.advance_attention_decoder()
         if se2e.is_finished():

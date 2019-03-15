@@ -471,6 +471,8 @@ class StreamingE2E(object):
 
         # Only increment the offset if we found any characters in the CTC -
         # otherwise this window would never be seen by the attention decoder
+        # TODO(pzelasko): maybe these is a good approximation that there is no speech in this window
+        #                 and it can be omitted?
         if approximate_n_characters > 0:
             self._offset = sum(t.size(TIME_DIMENSION) for t in self._encoder_states)
 
