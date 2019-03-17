@@ -374,7 +374,7 @@ def train(args):
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
     if args.opt == 'noam':
         trainer.extend(model_module.VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
-                       scale=args.transformer_lr), trigger=(1, 'iteration'))
+                                                scale=args.transformer_lr), trigger=(1, 'iteration'))
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
