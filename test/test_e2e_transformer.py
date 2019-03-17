@@ -94,6 +94,7 @@ def prepare(backend):
         }))
     return model, x, torch.tensor(ilens), y, data
 
+
 @pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_transformer_mask(module):
