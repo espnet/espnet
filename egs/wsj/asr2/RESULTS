@@ -1,0 +1,2 @@
+# initial result
+$ grep -e Avg -e SPKR -m 2 Avg 
