@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
