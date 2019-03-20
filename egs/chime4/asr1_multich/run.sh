@@ -121,6 +121,23 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/real_enhan_chime4_data_prep.sh isolated_6ch_track ${chime4_data}/data/audio/16kHz/isolated_6ch_track
     local/simu_enhan_chime4_data_prep.sh isolated_6ch_track ${chime4_data}/data/audio/16kHz/isolated_6ch_track
 
+    # Fix text because local/*_noisy_chime4_data_prep.sh assumes 1ch_track originally.
+    for setname in dt05_real_isolated_6ch_track dt05_simu_isolated_6ch_track et05_real_isolated_6ch_track et05_simu_isolated_6ch_track; do
+        for ch in 0 1 2 3 4 5 6; do
+            # Skip if ch == 1 and simulation
+            [ ${ch} -eq 0 ] && echo ${setname} | grep simu &> /dev/null && continue
+
+            # e.g. F05_440C0202_BUS_SIMU -> F05_440C0202_BUS.CH1_SIMU
+             <data/${setname}/text sed -r "s/_([A-Z]*)_([A-Z]*) /_\1.CH${ch}_\2 /"
+        done | sort > data/${setname}/text.tmp
+        mv data/${setname}/text.tmp data/${setname}/text
+        ./utils/validate_data_dir.sh --no-feats data/${setname}
+    done
+
+    for setname in dt05_bth et05_bth; do
+        ./utils/validate_data_dir.sh --no-feats data/${setname}
+    done
+
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
     local/wsj_format_data.sh
