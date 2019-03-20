@@ -151,7 +151,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for setname in tr05_multi_noisy ${recog_set}; do
         dump_pcm.sh --nj 32 --cmd "${train_cmd}" --filetype "sound.hdf5" --format flac data/${setname}_multich
     done
-    utils/combine_data.sh data/${train_set}_multich data/tr05_multi_noisy data/train_si284
+    utils/combine_data.sh data/${train_set}_multich data/tr05_multi_noisy_multich data/train_si284
     utils/combine_data.sh data/${train_dev}_multich data/dt05_simu_isolated_6ch_track_multich data/dt05_real_isolated_6ch_track_multich
 
 fi

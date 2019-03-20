@@ -52,7 +52,7 @@ class MaskEstimator(torch.nn.Module):
         ilens_ = ilens[:, None].expand(-1, C).contiguous().view(-1)
 
         # xs: (B * C, T, F) -> xs: (B * C, T, D)
-        xs, _ = self.brnn(xs, ilens_)
+        xs, _, _ = self.brnn(xs, ilens_)
         # xs: (B * C, T, D) -> xs: (B, C, T, D)
         xs = xs.view(-1, C, xs.size(-2), xs.size(-1))
 
