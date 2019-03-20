@@ -218,10 +218,16 @@ def main():
     parser.add_argument('--permutation', type=strtobool, default=True,
                         help='Compute all permutations or '
                              'use the pair of input order')
+
+    # About BSS Eval v4:
+    # The 2018 Signal Separation Evaluation Campaign
+    # https://arxiv.org/abs/1804.06267
     parser.add_argument('--bss_eval_images', type=strtobool, default=True,
                         help='Use bss_eval_images or bss_eval_sources. '
-                             'Museval recommends to use bss_eval_images. '
                              'For more detail, see museval source codes.')
+    parser.add_argument('--bss-eval-version', type=str,
+                        default='v3', choices=['v3', 'v4'],
+                        help='Specify bss-eval-version: v3 or v4')
     args = parser.parse_args()
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
@@ -333,17 +339,14 @@ def main():
         # 4. Evaluates
         for evaltype in args.evaltypes:
             if evaltype == 'SDR':
-                if args.bss_eval_images:
-                    (sdr, isr, sir, sar, perm) = \
-                        museval.metrics.bss_eval_images(
-                            ref_signals, enh_signals,
-                            compute_permutation=args.permutation)
-                else:
-                    (sdr, sir, sar, perm) = \
-                        museval.metrics.bss_eval_sources(
-                            ref_signals, enh_signals,
-                            compute_permutation=args.permutation)
-                    isr = np.array([[np.nan] for _ in range(len(sdr))])
+                (sdr, isr, sir, sar, perm) = \
+                    museval.metrics.bss_eval(
+                        ref_signals, enh_signals,
+                        window=np.inf, hop=np.inf,
+                        compute_permutation=args.permutation,
+                        filters_len=512,
+                        framewise_filters=args.bss_eval_version == 'v3',
+                        bsseval_sources_version=not args.bss_eval_images)
 
                 # sdr: (Nsrc, Nframe)
                 writers['SDR'].write(
