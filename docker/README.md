@@ -14,6 +14,14 @@ Optionally, you can set the CUDA version with the arguments `--docker_cuda` resp
 By default, all GPU-based images are built with NCCL v2 and CUDNN v7. 
 The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker_user`, `--docker_gpu`, `--docker_egs`, `--docker_folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
 All docker containers are executed using the same user as your login account. If you want to run the docker in root access, set the `--docker_user` to `false`. In addition, you can pass any enviroment variable using `--docker_env` (e.g., `--docker_env "foo=path"`)
+
+Additionally, you can run any bash script implemented in the egs folder using `--docker_cmd`: 
+```sh
+$ cd docker
+$ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_cmd foo.sh --arg_1 <arg_1> --arg_2 <arg_2>
+```
+The arguments for the desired script should follow the docker arguments. `run.sh` is the default script to be executed.
+
 Multiple GPUs should be specified with the following options:
 ```sh
 $ cd docker
