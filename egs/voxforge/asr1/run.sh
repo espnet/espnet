@@ -109,7 +109,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/all_${lang} exp/make_fbank/train_${lang} ${fbankdir}
 
     # remove utt having more than 2000 frames or less than 10 frames or
-    # remove utt having more than 200 characters or no more than 0 characters
+    # remove utt having more than 200 characters or 0 characters
     remove_longshortdata.sh data/all_${lang} data/all_trim_${lang}
 
     # following split consider prompt duplication (but does not consider speaker overlap instead)
@@ -249,8 +249,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-

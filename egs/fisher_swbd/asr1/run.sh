@@ -146,7 +146,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     # remove utt having more than 3000 frames or less than 10 frames or
-    # remove utt having more than 400 characters or no more than 0 characters
+    # remove utt having more than 400 characters or 0 characters
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/train_all data/${train_set}
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/rt03 data/${train_dev}
 
@@ -335,8 +335,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-
