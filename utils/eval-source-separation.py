@@ -222,7 +222,7 @@ def main():
     # About BSS Eval v4:
     # The 2018 Signal Separation Evaluation Campaign
     # https://arxiv.org/abs/1804.06267
-    parser.add_argument('--bss_eval_images', type=strtobool, default=True,
+    parser.add_argument('--bss-eval-images', type=strtobool, default=True,
                         help='Use bss_eval_images or bss_eval_sources. '
                              'For more detail, see museval source codes.')
     parser.add_argument('--bss-eval-version', type=str,
