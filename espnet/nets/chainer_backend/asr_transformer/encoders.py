@@ -84,7 +84,7 @@ class Encoder(chainer.Chain):
                  initialW=None, initial_bias=None):
         super(Encoder, self).__init__()
         with self.init_scope():
-            channels = 64  # Based in paper 
+            channels = 64  # Based in paper
             if input_type == 'conv2d':
                 idim = int(np.ceil(np.ceil(idim / 2) / 2)) * channels
                 self.input_layer = Conv2dSubsampling(channels, idim, n_units, dropout=dropout,
