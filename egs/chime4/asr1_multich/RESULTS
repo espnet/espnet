@@ -55,6 +55,8 @@ et05_simu | 1320  21416   | 88.6    9.7    1.6    1.5   12.9  63.6  |
 
 
 ## Evaluation for ehnaced speech
+SDR, SIR, and SAR was evaluated by using museval, i.e. BSSEval V4, with bsseval_sources version and BSSEval V3 compatible mode.
+
 ### Noisy speech
 #### SDR
                               PED    CAF    STR    BUS
@@ -94,11 +96,6 @@ et05_simu_isolated_6ch_track: 2.128 2.086 2.187 2.321
 dt05_simu_isolated_6ch_track_multich: 15.35 13.52 13.26 14.23
                                       PED    CAF    STR    BUS
 et05_simu_isolated_6ch_track_multich: 16.02 15.49 14.9 16.98
-#### ISR
-                                      PED    CAF    STR    BUS
-dt05_simu_isolated_6ch_track_multich: 0 0 0 0
-                                      PED    CAF    STR    BUS
-et05_simu_isolated_6ch_track_multich: 0 0 0 0
 #### SIR
                                       PED    CAF    STR    BUS
 dt05_simu_isolated_6ch_track_multich: inf inf inf inf
