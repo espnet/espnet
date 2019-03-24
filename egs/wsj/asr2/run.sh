@@ -77,7 +77,7 @@ lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
 
 # decoding parameter
-lm_weight=0.0
+lm_weight=0
 beam_size=1
 penalty=0.0
 maxlenratio=0.0
@@ -306,7 +306,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --sampling-probability ${samp_prob} \
         --epochs ${epochs} \
         --lsm-weight ${lsm_weight} \
-        --model-module "espnet.nets.${backend}_backend.e2e_asr_transformer" \
+        --model-module "espnet.nets.${backend}_backend.asr_transformer" \
         --transformer-lr ${lr_init} \
         --transformer-warmup-steps ${warmup_steps} \
         --transformer-input-layer ${input_layer} \
