@@ -55,7 +55,7 @@ lm_layers=2
 lm_units=650
 lm_opt=sgd        # or adam
 lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-lm_batchsize=1024 # batch size in LM training
+lm_batchsize=512  # batch size in LM training
 lm_epochs=20      # if the data size is large, we can reduce this
 lm_patience=3
 lm_maxlen=150     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
@@ -118,6 +118,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in test dev train; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
     done
 
     # remove utt having > 2000 frames or < 10 frames or
