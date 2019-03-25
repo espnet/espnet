@@ -34,7 +34,7 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
-from espnet.nets.pytorch_backend.e2e_mt import E2E as E2E_mt
+from espnet.nets.pytorch_backend.e2e_mt import E2E as NMT
 
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
@@ -196,7 +196,10 @@ class CustomConverter(object):
         # perform padding and convert to tensor
         xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
         ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
+        if isinstance(ys[0], list):
+            ys_pad = pad_list([torch.from_numpy(y[0]).long() for y in ys], self.ignore_id).to(device)
+        else:
+            ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -243,7 +246,7 @@ def train(args):
     # Initialize decoder with pre-trained MT decoder
     if args.mt_model:
         idim_mt, odim_mt, train_args_mt = get_model_conf(args.mt_model)
-        mt_model = E2E_mt(idim_mt, odim_mt, train_args_mt)
+        mt_model = NMT(idim_mt, odim_mt, train_args_mt)
         torch_load(args.mt_model, mt_model)
 
     if args.asr_model:
