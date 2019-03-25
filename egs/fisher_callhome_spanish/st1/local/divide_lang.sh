@@ -5,16 +5,24 @@
 
 . ./path.sh
 
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <st-case> <asr-case> <src-dir>"
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <set>"
     echo "e.g.: $0 tc data/dev"
     exit 1
 fi
 
-st_case=$1
-asr_case=$2
-src=$3
-set=$(echo $src | awk -F"/" '{print $NF}')
+set=$1
+
+function check_sorted {
+  file=$1
+  sort -k1,1 -u <$file >$file.tmp
+  if ! cmp -s $file $file.tmp; then
+    echo "$0: file $1 is not in sorted order or not unique, sorting it"
+    mv $file.tmp $file
+  else
+    rm $file.tmp
+  fi
+}
 
 # fix the original directory at first
 cp -rf data/$set data/$set.tmp
@@ -36,8 +44,11 @@ mkdir -p data/$set.es
 for f in spk2utt utt2spk segments feats.scp wav.scp utt2num_frames spk2gender reco2file_and_channel; do
     sort data/$set/$f > data/$set.es/$f
 done
-sort data/$set/text.${asr_case}.es > data/$set.es/text
-utils/fix_data_dir.sh data/$set.es || exit 1;
+sort data/$set/text.lc.rm.es > data/$set.es/text && check_sorted data/$set.es/text; # dummy
+sort data/$set/text.tc.es > data/$set.es/text.tc && check_sorted data/$set.es/text.tc;
+sort data/$set/text.lc.es > data/$set.es/text.lc && check_sorted data/$set.es/text.lc;
+sort data/$set/text.lc.rm.es > data/$set.es/text.lc.rm && check_sorted data/$set.es/text.lc.rm;
+utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/$set.es || exit 1;
 utils/validate_data_dir.sh data/$set.es || exit 1;
 
 
@@ -46,13 +57,24 @@ mkdir -p data/$set.en
 for f in spk2utt utt2spk segments feats.scp wav.scp utt2num_frames spk2gender reco2file_and_channel; do
     sort data/$set/$f > data/$set.en/$f
 done
-if [ -f data/$set/text.${st_case}.en ]; then
-    sort data/$set/text.${st_case}.en > data/$set.en/text
+if [ -f data/$set/text.tc.en ]; then
+    sort data/$set/text.tc.en > data/$set.en/text && check_sorted data/$set.en/text;  # dummy
+    sort data/$set/text.tc.en > data/$set.en/text.tc && check_sorted data/$set.en/text.tc;
+    sort data/$set/text.lc.en > data/$set.en/text.lc && check_sorted data/$set.en/text.lc;
+    sort data/$set/text.lc.rm.en > data/$set.en/text.lc.rm && check_sorted data/$set.en/text.lc.rm;
+    utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/$set.en || exit 1;
 else
-    sort data/$set/text.${st_case}.en.0 > data/$set.en/text
-    sort data/$set/text.${st_case}.en.1 > data/$set.en/text.1
-    sort data/$set/text.${st_case}.en.2 > data/$set.en/text.2
-    sort data/$set/text.${st_case}.en.3 > data/$set.en/text.3
+    sort data/$set/text.tc.en.0 > data/$set.en/text  # dummy
+    sort data/$set/text.tc.en.0 > data/$set.en/text.tc
+    sort data/$set/text.lc.en.0 > data/$set.en/text.lc
+    sort data/$set/text.lc.rm.en.0 > data/$set.en/text.lc.rm
+    for no in 1 2 3; do
+        sort data/$set/text.tc.en.${no} > data/$set.en/text.tc.${no}
+        sort data/$set/text.lc.en.${no} > data/$set.en/text.lc.${no}
+        sort data/$set/text.lc.rm.en.${no} > data/$set.en/text.lc.rm.${no}
+    done
+    utils/fix_data_dir.sh --utt_extra_files "text.tc text.tc.1 text.tc.2 text.tc.3 \
+                                             text.lc text.lc.1 text.lc.2 text.lc.3 \
+                                             text.lc.rm text.lc.rm.1 text.lc.rm.2 text.lc.rm.3" data/$set.en || exit 1;
 fi
-utils/fix_data_dir.sh data/$set.en || exit 1;
 utils/validate_data_dir.sh data/$set.en || exit 1;
