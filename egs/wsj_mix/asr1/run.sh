@@ -139,6 +139,7 @@ if [ ${stage} -le 1 ]; then
     for x in tr cv tt; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
     done
 
     # compute global CMVN
