@@ -77,8 +77,7 @@ ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # preprocessing related
-st_case=tc  # or lc
-asr_case=lc.rm  # or tc or lc
+case=lc.rm  # tc/lc/lc.rm
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -150,9 +149,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1spm/train_${bpemode}${nbpe}_units_asr.txt
-nlsyms=data/lang_1spm/non_lang_syms_asr.txt
-bpemodel=data/lang_1spm/train_${bpemode}${nbpe}_asr
+dict=data/lang_1spm/train_${bpemode}${nbpe}_units_${case}.txt
+nlsyms=data/lang_1spm/non_lang_syms_${case}.txt
+bpemodel=data/lang_1spm/train_${bpemode}${nbpe}_${case}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -160,26 +159,26 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;|@-@' | sort | uniq > ${nlsyms}
+    cat data/train_sp.*/text.${case} | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    offset=`cat ${dict} | wc -l`
-    cat data/train_sp.*/text | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
-    spm_train --user_defined_symbols=`cat ${nlsyms} | tr "\n" ","` --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
+    offset=$(cat ${dict} | wc -l)
+    cat data/train_sp.*/text.${case} | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    spm_train --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
-    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
+    local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --bpecode ${bpemodel}.model \
+        data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json
+    local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
+        data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        local/data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
-            data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        local/data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${rtask}/text.${case} --bpecode ${bpemodel}.model \
+            data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
     done
 fi
 
@@ -187,16 +186,16 @@ fi
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
 fi
-lmexpdir=exp/${train_set}_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+lmexpdir=exp/${train_set}_${case}_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
 mkdir -p ${lmexpdir}
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_${train_set}_${bpemode}${nbpe}
     mkdir -p ${lmdatadir}
-    cat data/${train_set}/text | grep sp1.0 | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/train.txt
-    cat data/${train_dev}/text | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/valid.txt
+    cat data/${train_set}/text.${case} | grep sp1.0 | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
+        > ${lmdatadir}/train_${case}.txt
+    cat data/${train_dev}/text.${case} | cut -f 2- -d " " | spm_encode --model=${bpemodel}.model --output_format=piece \
+        > ${lmdatadir}/valid_${case}.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -207,8 +206,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
-        --train-label ${lmdatadir}/train.txt \
-        --valid-label ${lmdatadir}/valid.txt \
+        --train-label ${lmdatadir}/train_${case}.txt \
+        --valid-label ${lmdatadir}/valid_${case}.txt \
         --resume ${lm_resume} \
         --layer ${lm_layers} \
         --unit ${lm_units} \
@@ -220,7 +219,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
+    expname=${train_set}_${case}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -244,8 +243,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json \
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -285,7 +284,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
 
         #### use CPU for decoding
         ngpu=0
@@ -306,12 +305,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --rnnlm ${lmexpdir}/rnnlm.model.best \
             --lm-weight ${lm_weight}
 
-        local/score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        local/score_sclite.sh --case ${case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi

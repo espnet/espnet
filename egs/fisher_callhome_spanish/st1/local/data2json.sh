@@ -69,6 +69,8 @@ if [ -n "${feat}" ]; then
         --filetype "${filetype}" \
         --preprocess-conf "${preprocess_conf}" \
         --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
+    cp ${tmpdir}/input/shape.scp ${tmpdir}/input/shape.scp.tmp
+    sort ${tmpdir}/input/shape.scp.tmp > ${tmpdir}/input/shape.scp
 fi
 
 # 2. Create scp files for outputs
@@ -101,32 +103,34 @@ if [ -n "${lang}" ]; then
 fi
 cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
 
-# 4. Create JSON files from each scp files
-rm -f ${tmpdir}/*/*.json
-for intype in 'output' 'other'; do
-    for x in "${tmpdir}/${intype}"/*.scp; do
+
+# 4. Merge scp files into a JSON file
+opts=""
+if [ -n "${feat}" ]; then
+    intypes="input output other"
+else
+    intypes="output other"
+fi
+for intype in ${intypes}; do
+    if [ ${intype} != other ]; then
+        opts+="--${intype}-scps "
+    else
+        opts+="--scps "
+    fi
+
+    for x in ${tmpdir}/${intype}/*.scp; do
         k=$(basename ${x} .scp)
-        < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
+        if [ ${k} = shape ]; then
+            opts+="shape:${x}:shape "
+        else
+            opts+="${k}:${x} "
+        fi
     done
 done
-if [ -n "${feat}" ]; then
-  for intype in 'input'; do
-      for x in "${tmpdir}/${intype}"/*.scp; do
-          k=$(basename ${x} .scp)
-          < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
-      done
-  done
-fi
 
-# 5. Merge JSON files into one and output to stdout
 if [ -n "${out}" ]; then
-    out_opt="-O ${out}"
-else
-    out_opt=""
+    opts+="-O ${out}"
 fi
-mergejson.py --verbose ${verbose} \
-  --input-jsons ${tmpdir}/input/*.json \
-  --output-jsons ${tmpdir}/output/*.json \
-  --jsons ${tmpdir}/other/*.json ${out_opt}
 
+merge_scp2json.py --verbose ${verbose} ${opts}
 rm -fr ${tmpdir}
