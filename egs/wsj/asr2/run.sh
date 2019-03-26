@@ -128,8 +128,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in train_si284 test_dev93 test_eval92; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+        steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 10 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
     done
 
     # compute global CMVN
@@ -287,6 +288,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
+        --seed ${seed} \
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json \
         --elayers ${elayers} \
@@ -305,6 +307,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --grad-clip ${grad_clip} \
         --sampling-probability ${samp_prob} \
         --epochs ${epochs} \
+        --sortagrad ${sortagrad} \
         --lsm-weight ${lsm_weight} \
         --model-module "espnet.nets.${backend}_backend.asr_transformer" \
         --transformer-lr ${lr_init} \
