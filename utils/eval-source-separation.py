@@ -94,7 +94,7 @@ else:
     from tempfile import TemporaryDirectory
 
 
-def eval_PESQ(ref, enh, fs, compute_permutation):
+def eval_PESQ(ref, enh, fs, compute_permutation=True):
     """Evaluate PESQ
 
     PESQ program can be downloaded from here:
@@ -166,10 +166,10 @@ def eval_PESQ(ref, enh, fs, compute_permutation):
                 for imic in range(n_mic):
                     # PESQ +<8000|16000> <ref.wav> <enh.wav> [smos] [cond]
                     commands = ['PESQ', '+{}'.format(fs),
-                                ref_files[i][imic], enh_files[j][imic],
-                                '/dev/null', '/dev/null']
+                                ref_files[i][imic], enh_files[j][imic]]
+                    # Change cwd because PESQ writes the result in the cwd
                     with subprocess.Popen(
-                            commands, stdout=subprocess.PIPE) as p:
+                            commands, stdout=subprocess.PIPE, cwd=d) as p:
                         stdout, _ = p.communicate()
 
                     # Get the PESQ value from the stdout
@@ -178,6 +178,11 @@ def eval_PESQ(ref, enh, fs, compute_permutation):
                         value = last_line.replace(
                             'Prediction : PESQ_MOS = ', '')
                         lis.append(float(value))
+                    elif 'Processing error!' in last_line:
+                        warnings.warn('Processing error is found.')
+                        # Note(kamo):
+                        # Sometimes PESQ is failed. I don't know why.
+                        lis.append(1.)
                     else:
                         raise RuntimeError(
                             'Failed: {}\n{}'.format(' '.join(commands),
