@@ -38,7 +38,6 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
-from espnet.transform.transformation import using_transform_config
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -92,7 +91,7 @@ class CustomEvaluator(extensions.Evaluator):
         summary = reporter_module.DictSummary()
 
         self.model.eval()
-        with torch.no_grad(), using_transform_config({'train': False}):
+        with torch.no_grad():
             for batch in it:
                 observation = {}
                 with reporter_module.report_scope(observation):
@@ -162,14 +161,9 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1, preprocess_conf=None):
+    def __init__(self, subsampling_factor=1):
         self.subsampling_factor = subsampling_factor
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
         self.ignore_id = -1
-
-    def transform(self, item):
-        return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         """Transforms a batch and send it to a device
@@ -292,8 +286,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor,
-                                preprocess_conf=args.preprocess_conf)
+    converter = CustomConverter(subsampling_factor=subsampling_factor)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -309,23 +302,32 @@ def train(args):
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+
+    load_tr = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': True}  # Switch the mode of preprocessing
+        )
+    load_cv = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+        )
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
         train_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(train, converter.transform),
+            TransformDataset(train, load_tr),
             batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
             shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(valid, converter.transform),
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
         train_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(train, converter.transform),
+            TransformDataset(train, load_tr),
             batch_size=1, shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(valid, converter.transform),
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
@@ -356,7 +358,7 @@ def train(args):
             att_vis_fn = model.calculate_all_attentions
         att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=device)
+            converter=converter, transform=load_cv, device=device)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
         att_reporter = None
@@ -491,10 +493,11 @@ def recog(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf)
+        if args.preprocess_conf is None else args.preprocess_conf,
+        preprocess_args={'train': False})
 
     if args.batchsize == 0:
-        with torch.no_grad(), using_transform_config({'train': False}):
+        with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
@@ -524,7 +527,7 @@ def recog(args):
         sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
         keys = [keys[i] for i in sorted_index]
 
-        with torch.no_grad(), using_transform_config({'train': False}):
+        with torch.no_grad():
             for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
@@ -643,9 +646,8 @@ def enhance(args):
         # May be in time region: (Batch, [Time, Channel])
         org_feats = load_inputs_and_targets(batch)[0]
         if transform is not None:
-            with using_transform_config({'train': False}):
-                # May be in time-freq region: : (Batch, [Time, Channel, Freq])
-                feats = transform(org_feats)
+            # May be in time-freq region: : (Batch, [Time, Channel, Freq])
+            feats = transform(org_feats, train=False)
         else:
             feats = org_feats
 

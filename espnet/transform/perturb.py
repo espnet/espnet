@@ -3,7 +3,6 @@ import numpy
 import scipy
 import soundfile
 
-from espnet.transform.transformation import transform_config
 from espnet.utils.io_utils import SoundHDF5File
 
 
@@ -21,9 +20,6 @@ class SpeedPerturbation(object):
         This function is very slow because of resampling.
         I recommmend to apply speed-perturb outside the training using sox.
     """
-    # The marker used by "Transformation"
-    accept_uttid = False
-
     def __init__(self, lower=0.9, upper=1.1, utt2ratio=None,
                  keep_length=True, res_type='kaiser_best', seed=None):
         self.res_type = res_type
@@ -60,8 +56,8 @@ class SpeedPerturbation(object):
                                                 self.utt2ratio_file,
                                                 self.res_type)
 
-    def __call__(self, x, uttid=None):
-        if not transform_config['train']:
+    def __call__(self, x, uttid=None, train=True):
+        if not train:
             return x
 
         x = x.astype(numpy.float32)
@@ -101,9 +97,6 @@ class BandpassPerturbation(object):
          http://spandh.dcs.shef.ac.uk/chime_workshop/papers/CHiME_2018_paper_kanda.pdf)
 
     """
-    # The marker used by "Transformation"
-    accept_uttid = False
-
     def __init__(self, lower=0.0, upper=0.75, seed=None,
                  axes=(-1,)):
         self.lower = lower
@@ -116,8 +109,8 @@ class BandpassPerturbation(object):
         return '{}(lower={}, upper={})'.format(
             self.__class__.__name__, self.lower, self.upper)
 
-    def __call__(self, x_stft):
-        if not transform_config['train']:
+    def __call__(self, x_stft, uttid=None, train=True):
+        if not train:
             return x_stft
 
         if x_stft.ndim == 1:
@@ -134,9 +127,6 @@ class BandpassPerturbation(object):
 
 
 class VolumePerturbation(object):
-    # The marker used by "Transformation"
-    accept_uttid = False
-
     def __init__(self, lower=-1.6, upper=1.6, utt2ratio=None, dbunit=True,
                  seed=None):
         self.dbunit = dbunit
@@ -170,8 +160,8 @@ class VolumePerturbation(object):
                                                 self.utt2ratio_file,
                                                 self.dbunit)
 
-    def __call__(self, x, uttid=None):
-        if not transform_config['train']:
+    def __call__(self, x, uttid=None, train=True):
+        if not train:
             return x
 
         x = x.astype(numpy.float32)
@@ -187,8 +177,6 @@ class VolumePerturbation(object):
 
 class NoiseInjection(object):
     """Add isotropic noise"""
-    # The marker used by "Transformation"
-    accept_uttid = True
 
     def __init__(self, utt2noise=None, lower=-20, upper=-5, utt2ratio=None,
                  filetype='list', dbunit=True, seed=None):
@@ -243,8 +231,8 @@ class NoiseInjection(object):
                                                 self.utt2ratio_file,
                                                 self.dbunit)
 
-    def __call__(self, x, uttid=None):
-        if not transform_config['train']:
+    def __call__(self, x, uttid=None, train=True):
+        if not train:
             return x
         x = x.astype(numpy.float32)
 
@@ -288,9 +276,6 @@ class NoiseInjection(object):
 
 
 class RIRConvolve(object):
-    # The marker used by "Transformation"
-    accept_uttid = True
-
     def __init__(self, utt2rir, filetype='list'):
         self.utt2rir_file = utt2rir
         self.filetype = filetype
@@ -312,8 +297,8 @@ class RIRConvolve(object):
         return '{}("{}")'.format(self.__class__.__name__,
                                  self.utt2rir_file)
 
-    def __call__(self, x, uttid):
-        if not transform_config['train']:
+    def __call__(self, x, uttid=None, train=True):
+        if not train:
             return x
 
         x = x.astype(numpy.float32)

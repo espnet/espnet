@@ -36,7 +36,6 @@ from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.chainer_backend.e2e_asr import E2E
-from espnet.transform.transformation import using_transform_config
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.training.iterators import ShufflingEnabler
@@ -169,17 +168,8 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1, preprocess_conf=None):
+    def __init__(self, subsampling_factor=1):
         self.subsampling_factor = subsampling_factor
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
-
-    def transform(self, item):
-        return self.load_inputs_and_targets(item)
-
-    def transform_eval(self, item):
-        with using_transform_config({'train': False}):
-            return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         # set device
@@ -288,6 +278,9 @@ def train(args):
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
+    # Setup a converter
+    converter = CustomConverter(subsampling_factor=model.subsample[0])
+
     # read json data
     with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
@@ -295,8 +288,15 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
-    converter = CustomConverter(subsampling_factor=model.subsample[0],
-                                preprocess_conf=args.preprocess_conf)
+    load_tr = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': True}  # Switch the mode of preprocessing
+    )
+    load_cv = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
+
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     if ngpu <= 1:
         # make minibatch list (variable length)
@@ -306,12 +306,12 @@ def train(args):
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
             train_iters = [ToggleableShufflingMultiprocessIterator(
-                TransformDataset(train, converter.transform),
+                TransformDataset(train, load_tr),
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
                 shuffle=not use_sortagrad)]
         else:
             train_iters = [ToggleableShufflingSerialIterator(
-                TransformDataset(train, converter.transform),
+                TransformDataset(train, load_tr),
                 batch_size=1, shuffle=not use_sortagrad)]
 
         # set up updater
@@ -339,13 +339,13 @@ def train(args):
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
             train_iters = [ToggleableShufflingMultiprocessIterator(
-                TransformDataset(train_subsets[gid], converter.transform),
+                TransformDataset(train_subsets[gid], load_tr),
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
                 shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
         else:
             train_iters = [ToggleableShufflingSerialIterator(
-                TransformDataset(train_subsets[gid], converter.transform),
+                TransformDataset(train_subsets[gid], load_tr),
                 batch_size=1, shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
 
@@ -370,12 +370,12 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     if args.n_iter_processes > 0:
         valid_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(valid, converter.transform_eval),
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
         valid_iter = chainer.iterators.SerialIterator(
-            TransformDataset(valid, converter.transform_eval),
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
@@ -392,7 +392,7 @@ def train(args):
             att_vis_fn = model.calculate_all_attentions
         att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=gpu_id)
+            converter=converter, transform=load_cv, device=gpu_id)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
         att_reporter = None
@@ -515,11 +515,13 @@ def recog(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf)
+        if args.preprocess_conf is None else args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
 
     # decode each utterance
     new_js = {}
-    with chainer.no_backprop_mode(), using_transform_config({'train': False}):
+    with chainer.no_backprop_mode():
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             batch = [(name, js[name])]

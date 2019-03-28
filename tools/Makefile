@@ -88,10 +88,15 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
 
+ifeq ($(PYTHON_VERSION),2.7)
+# Nothing to do
+pytorch_complex.done:
+else
 pytorch_complex.done: venv
 	# Require python>=3.6, pytorch>=1.0
 	. venv/bin/activate; pip install git+https://github.com/kamo-naoyuki/pytorch_complex
 	touch pytorch_complex.done
+endif
 
 nkf.done:
 	rm -rf nkf
