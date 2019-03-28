@@ -6,9 +6,6 @@ import numpy as np
 
 
 class CMVN(object):
-    # The marker used by "Transformation"
-    accept_uttid = False
-
     def __init__(self, stats, norm_means=True, norm_vars=False,
                  filetype='mat', utt2spk=None, spk2utt=None,
                  reverse=False, std_floor=1.0e-20):

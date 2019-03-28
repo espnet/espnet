@@ -199,11 +199,12 @@ class PlotAttentionReport(extension.Extension):
     :param bool reverse: If True, input and output length are reversed
     """
 
-    def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
+    def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False):
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
         self.converter = converter
+        self.transform = transform
         self.device = device
         self.reverse = reverse
         if not os.path.exists(self.outdir):
@@ -226,7 +227,7 @@ class PlotAttentionReport(extension.Extension):
             plot.clf()
 
     def get_attention_weights(self):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
+        batch = self.converter([self.transform(self.data)], self.device)
         att_ws = self.att_vis_fn(*batch)
         return att_ws
 
@@ -546,20 +547,20 @@ def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
                      labeltop=False, cmap='inferno'):
     """Plot spectrogram using matplotlib
 
-    :param plt:
-    :param spec: (Freq, Time)
-    :param mode:
-    :param fs:
-    :param frame_shift:
-    :param bottom:
-    :param left:
-    :param right:
-    :param top:
-    :param labelbottom:
-    :param labelleft:
-    :param labelright:
-    :param labeltop:
-    :param cmap:
+    :param matplotlib.pyplot plt:
+    :param np.ndarray spec: Input stft (Freq, Time)
+    :param str mode: db or linear.
+    :param int fs: Sample frequency. To convert y-axis to kHz unit.
+    :param int frame_shift: The frame shift of stft. To convert x-axis to second unit.
+    :param bool bottom:
+    :param bool left:
+    :param bool right:
+    :param bool top:
+    :param bool labelbottom:
+    :param bool labelleft:
+    :param bool labelright:
+    :param bool labeltop:
+    :param str cmap: colormap defined in matplotlib
 
     """
     spec = np.abs(spec)

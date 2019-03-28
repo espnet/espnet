@@ -33,7 +33,8 @@ class LoadInputsAndTargets(object):
         of the input length
     :param: bool use_speaker_embedding: Used for tts mode only
     :param: bool use_second_target: Used for tts mode only
-    :param: Optional[dict] transform_config: Used for tts mode only
+    :param: dict preprocess_args: Set some optional arguments for preprocessing
+    :param: Optional[dict] preprocess_args: Used for tts mode only
     """
 
     def __init__(self, mode='asr',
@@ -43,6 +44,7 @@ class LoadInputsAndTargets(object):
                  sort_in_input_length=True,
                  use_speaker_embedding=False,
                  use_second_target=False,
+                 preprocess_args=None
                  ):
         self._loaders = {}
         if mode not in ['asr', 'tts']:
@@ -72,6 +74,11 @@ class LoadInputsAndTargets(object):
         self.sort_in_input_length = sort_in_input_length
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
+        if preprocess_args is None:
+            self.preprocess_args = {}
+        else:
+            assert isinstance(preprocess_args, dict), type(preprocess_args)
+            self.preprocess_args = dict(preprocess_args)
 
     def __call__(self, batch):
         """Function to load inputs and targets from list of dicts
@@ -151,7 +158,8 @@ class LoadInputsAndTargets(object):
             # Apply pre-processing only to input1 feature, now
             if 'input1' in return_batch:
                 return_batch['input1'] = \
-                    self.preprocessing(return_batch['input1'], uttid_list)
+                    self.preprocessing(return_batch['input1'], uttid_list,
+                                       **self.preprocess_args)
 
         # Doesn't return the names now.
         return tuple(return_batch.values())

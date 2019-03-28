@@ -28,7 +28,7 @@ from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.decoders import decoder_for
 from espnet.nets.pytorch_backend.encoders import encoder_for
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet.nets.pytorch_backend.nets_utils import pad_list, to_torch_tensor
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
 CTC_LOSS_THRESHOLD = 10000
@@ -199,7 +199,7 @@ class E2E(torch.nn.Module):
         """
         # 0. Frontend
         if self.frontend is not None:
-            hs_pad, hlens, mask = self.frontend(_to_torch_tensor(xs_pad), ilens)
+            hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
             hs_pad, hlens = self.feature_transform(hs_pad, hlens)
         else:
             hs_pad, hlens = xs_pad, ilens
@@ -325,7 +325,7 @@ class E2E(torch.nn.Module):
 
         # subsample frame
         x = x[::self.subsample[0], :]
-        h = to_device(self, _to_torch_tensor(x).float())
+        h = to_device(self, to_torch_tensor(x).float())
         # make a utt list (1) to use the same interface for encoder
         hs = h.contiguous().unsqueeze(0)
 
@@ -370,7 +370,7 @@ class E2E(torch.nn.Module):
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
-        xs = [to_device(self, _to_torch_tensor(xx).float()) for xx in xs]
+        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
         xs_pad = pad_list(xs, 0.0)
 
         # 0. Frontend
@@ -410,7 +410,7 @@ class E2E(torch.nn.Module):
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
-        xs = [to_device(self, _to_torch_tensor(xx).float()) for xx in xs]
+        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
         xs_pad = pad_list(xs, 0.0)
         enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
         if prev:
@@ -431,7 +431,7 @@ class E2E(torch.nn.Module):
         with torch.no_grad():
             # 0. Frontend
             if self.frontend is not None:
-                hs_pad, hlens, mask = self.frontend(_to_torch_tensor(xs_pad), ilens)
+                hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
                 hs_pad, hlens = self.feature_transform(hs_pad, hlens)
             else:
                 hs_pad, hlens = xs_pad, ilens
@@ -452,67 +452,6 @@ class E2E(torch.nn.Module):
             np.array(x, dtype=np.float32)))
         h.contiguous()
         return h, ilen
-
-
-def _to_torch_tensor(x):
-    """Change to torch.Tensor or ComplexTensor from numpy.ndarray
-
-    :param: Union[np.ndarray, torch.Tensor, ComplexTensor, dict] x:
-    :rtype: Union[torch.Tensor, ComplexTensor]:
-
-        >>> xs = np.ones(3, dtype=np.float32)
-        >>> xs = _to_torch_tensor(xs)
-        tensor([1., 1., 1.])
-        >>> xs = torch.ones(3, 4, 5)
-        >>> assert _to_torch_tensor(xs) is xs
-        >>> xs = {'real': xs, 'imag': xs}
-        >>> _to_torch_tensor(xs)
-        ComplexTensor(
-        Real:
-        tensor([1., 1., 1.])
-        Imag;
-        tensor([1., 1., 1.])
-        )
-    """
-
-    # If numpy, change to torch tensor
-    if isinstance(x, np.ndarray):
-        if x.dtype.kind == 'c':
-            # Dynamically importing because torch_complex requires python3
-            from torch_complex.tensor import ComplexTensor
-            return ComplexTensor(x)
-        else:
-            return torch.from_numpy(x)
-
-    # If {'real': ..., 'imag': ...}, convert to ComplexTensor
-    elif isinstance(x, dict):
-        # Dynamically importing because torch_complex requires python3
-        from torch_complex.tensor import ComplexTensor
-
-        if 'real' not in x or 'imag' not in x:
-            raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
-        # Relative importing because of using python3 syntax
-        return ComplexTensor(x['real'], x['imag'])
-
-    # If torch.Tensor, as it is
-    elif isinstance(x, torch.Tensor):
-        return x
-
-    else:
-        error = ("x must be numpy.ndarray, torch.Tensor or a dict like "
-                 "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
-                 "but got {}".format(type(x)))
-        try:
-            from torch_complex.tensor import ComplexTensor
-        except Exception:
-            # If PY2
-            raise ValueError(error)
-        else:
-            # If PY3
-            if isinstance(x, ComplexTensor):
-                return x
-            else:
-                raise ValueError(error)
 
 
 # TODO(pzelasko): Currently allows half-streaming only; needs streaming attention decoder implementation

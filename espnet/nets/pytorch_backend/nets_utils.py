@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 
@@ -144,3 +145,64 @@ def index_select_lm_state(rnnlm_state, dim, vidx):
         for i in vidx:
             new_state.append(rnnlm_state[int(i)][:])
     return new_state
+
+
+def to_torch_tensor(x):
+    """Change to torch.Tensor or ComplexTensor from numpy.ndarray
+
+    :param: Union[np.ndarray, torch.Tensor, ComplexTensor, dict] x:
+    :rtype: Union[torch.Tensor, ComplexTensor]:
+
+        >>> xs = np.ones(3, dtype=np.float32)
+        >>> xs = to_torch_tensor(xs)
+        tensor([1., 1., 1.])
+        >>> xs = torch.ones(3, 4, 5)
+        >>> assert to_torch_tensor(xs) is xs
+        >>> xs = {'real': xs, 'imag': xs}
+        >>> to_torch_tensor(xs)
+        ComplexTensor(
+        Real:
+        tensor([1., 1., 1.])
+        Imag;
+        tensor([1., 1., 1.])
+        )
+    """
+
+    # If numpy, change to torch tensor
+    if isinstance(x, np.ndarray):
+        if x.dtype.kind == 'c':
+            # Dynamically importing because torch_complex requires python3
+            from torch_complex.tensor import ComplexTensor
+            return ComplexTensor(x)
+        else:
+            return torch.from_numpy(x)
+
+    # If {'real': ..., 'imag': ...}, convert to ComplexTensor
+    elif isinstance(x, dict):
+        # Dynamically importing because torch_complex requires python3
+        from torch_complex.tensor import ComplexTensor
+
+        if 'real' not in x or 'imag' not in x:
+            raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
+        # Relative importing because of using python3 syntax
+        return ComplexTensor(x['real'], x['imag'])
+
+    # If torch.Tensor, as it is
+    elif isinstance(x, torch.Tensor):
+        return x
+
+    else:
+        error = ("x must be numpy.ndarray, torch.Tensor or a dict like "
+                 "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
+                 "but got {}".format(type(x)))
+        try:
+            from torch_complex.tensor import ComplexTensor
+        except Exception:
+            # If PY2
+            raise ValueError(error)
+        else:
+            # If PY3
+            if isinstance(x, ComplexTensor):
+                return x
+            else:
+                raise ValueError(error)

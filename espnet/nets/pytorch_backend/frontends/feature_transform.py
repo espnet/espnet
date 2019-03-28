@@ -76,21 +76,42 @@ class FeatureTransform(torch.nn.Module):
 
 
 class LogMel(torch.nn.Module):
+    """
+
+    The arguments is same as librosa.filters.mel
+
+    Args:
+        fs: number > 0 [scalar] sampling rate of the incoming signal
+        n_fft: int > 0 [scalar] number of FFT components
+        n_mels: int > 0 [scalar] number of Mel bands to generate
+        fmin: float >= 0 [scalar] lowest frequency (in Hz)
+        fmax: float >= 0 [scalar] highest frequency (in Hz).
+            If `None`, use `fmax = fs / 2.0`
+        htk: use HTK formula instead of Slaney
+        norm: {None, 1, np.inf} [scalar]
+            if 1, divide the triangular mel weights by the width of the mel band
+            (area normalization).  Otherwise, leave all the triangles aiming for
+            a peak value of 1.0
+
+    """
     def __init__(self, fs: int = 16000, n_fft: int = 512, n_mels: int = 80,
-                 fmin: float = None, fmax: float = None):
+                 fmin: float = None, fmax: float = None,
+                 htk: bool = False, norm=1):
         super().__init__()
 
         _mel_options = dict(sr=fs,
                             n_fft=n_fft,
                             n_mels=n_mels,
                             fmin=fmin,
-                            fmax=fmax)
+                            fmax=fmax,
+                            htk=htk,
+                            norm=norm)
         self.mel_options = _mel_options
 
-        # melmat: (D2, D1) -> (D1, D2)
+        # Note(kamo): The mel matrix of librosa is different from kaldi.
         melmat = librosa.filters.mel(**_mel_options)
-        self.register_buffer(
-            'melmat', torch.from_numpy(melmat.T).float())
+        # melmat: (D2, D1) -> (D1, D2)
+        self.register_buffer('melmat', torch.from_numpy(melmat.T).float())
 
     def extra_repr(self):
         return ', '.join(f'{k}={v}' for k, v in self.mel_options.items())
