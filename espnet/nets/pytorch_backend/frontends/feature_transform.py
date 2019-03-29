@@ -76,7 +76,7 @@ class FeatureTransform(torch.nn.Module):
 
 
 class LogMel(torch.nn.Module):
-    """
+    """Convert STFT to fbank feats
 
     The arguments is same as librosa.filters.mel
 
