@@ -271,11 +271,11 @@ def train(args):
                                    args.minibatches, args.batch_sort_key,
                                    min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
     load_tr = LoadInputsAndTargets(
-            mode='tts',
-            use_speaker_embedding=args.use_speaker_embedding,
-            use_second_target=args.use_cbhg,
-            preprocess_conf=args.preprocess_conf,
-            preprocess_args={'train': True}  # Switch the mode of preprocessing
+        mode='tts',
+        use_speaker_embedding=args.use_speaker_embedding,
+        use_second_target=args.use_cbhg,
+        preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': True}  # Switch the mode of preprocessing
     )
 
     load_cv = LoadInputsAndTargets(

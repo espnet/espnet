@@ -59,4 +59,3 @@ def test_optional_args():
     preprocessing = Transformation(kwargs)
     assert preprocessing(np.array([100, 200]), train=True) == 100
     assert preprocessing(np.array([100, 200]), train=False) == 200
-
