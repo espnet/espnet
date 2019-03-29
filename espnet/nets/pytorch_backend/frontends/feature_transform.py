@@ -94,6 +94,7 @@ class LogMel(torch.nn.Module):
             a peak value of 1.0
 
     """
+
     def __init__(self, fs: int = 16000, n_fft: int = 512, n_mels: int = 80,
                  fmin: float = None, fmax: float = None,
                  htk: bool = False, norm=1):

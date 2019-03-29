@@ -19,7 +19,9 @@ class SpeedPerturbation(object):
     Warning:
         This function is very slow because of resampling.
         I recommmend to apply speed-perturb outside the training using sox.
+
     """
+
     def __init__(self, lower=0.9, upper=1.1, utt2ratio=None,
                  keep_length=True, res_type='kaiser_best', seed=None):
         self.res_type = res_type
@@ -97,6 +99,7 @@ class BandpassPerturbation(object):
          http://spandh.dcs.shef.ac.uk/chime_workshop/papers/CHiME_2018_paper_kanda.pdf)
 
     """
+
     def __init__(self, lower=0.0, upper=0.75, seed=None,
                  axes=(-1,)):
         self.lower = lower
