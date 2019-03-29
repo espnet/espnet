@@ -28,8 +28,9 @@ from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.decoders import decoder_for
 from espnet.nets.pytorch_backend.encoders import encoder_for
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list, to_torch_tensor
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 
 CTC_LOSS_THRESHOLD = 10000
 
