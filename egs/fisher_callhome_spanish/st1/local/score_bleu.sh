@@ -11,7 +11,7 @@ nlsyms=""
 bpe=""
 bpemodel=""
 filter=""
-case=tc
+case=lc.rm
 set=""
 
 . utils/parse_options.sh
@@ -92,13 +92,13 @@ else
 fi
 
 # detokenize
-detokenizer.perl -l en -q < ${dir}/ref.wrd.trn | local/remove_punctuation.pl > ${dir}/ref.wrd.trn.detok
-detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn | local/remove_punctuation.pl > ${dir}/hyp.wrd.trn.detok
-detokenizer.perl -l en -q < ${dir}/src.wrd.trn | local/remove_punctuation.pl > ${dir}/src.wrd.trn.detok
+detokenizer.perl -l en -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
+detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
+detokenizer.perl -l en -q < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-    detokenizer.perl -l en -q < ${dir}/ref1.wrd.trn | local/remove_punctuation.pl > ${dir}/ref1.wrd.trn.detok
-    detokenizer.perl -l en -q < ${dir}/ref2.wrd.trn | local/remove_punctuation.pl > ${dir}/ref2.wrd.trn.detok
-    detokenizer.perl -l en -q < ${dir}/ref3.wrd.trn | local/remove_punctuation.pl > ${dir}/ref3.wrd.trn.detok
+    detokenizer.perl -l en -q < ${dir}/ref1.wrd.trn > ${dir}/ref1.wrd.trn.detok
+    detokenizer.perl -l en -q < ${dir}/ref2.wrd.trn > ${dir}/ref2.wrd.trn.detok
+    detokenizer.perl -l en -q < ${dir}/ref3.wrd.trn > ${dir}/ref3.wrd.trn.detok
 fi
 
 if [ ${case} = tc ]; then
@@ -114,13 +114,26 @@ if [ ${case} = tc ]; then
     cat ${dir}/result.tc.txt
 fi
 
+# detokenize
+cat ${dir}/ref.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref.wrd.trn.detok.lc.rm
+cat ${dir}/hyp.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/hyp.wrd.trn.detok.lc.rm
+cat ${dir}/src.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/src.wrd.trn.detok.lc.rm
+if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
+    cat ${dir}/ref1.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref1.wrd.trn.detok.lc.rm
+    cat ${dir}/ref2.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref2.wrd.trn.detok.lc.rm
+    cat ${dir}/ref3.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref3.wrd.trn.detok.lc.rm
+fi
+
 echo ${set} > ${dir}/result.lc.txt
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     # 4 references
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.lc.txt
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm \
+                              ${dir}/ref1.wrd.trn.detok.lc.rm \
+                              ${dir}/ref2.wrd.trn.detok.lc.rm \
+                              ${dir}/ref3.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt
 else
     # 1 reference
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.lc.txt
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt
 fi
 echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
 cat ${dir}/result.lc.txt
