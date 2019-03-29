@@ -34,7 +34,9 @@ requirements = {
         'nara_wpe',
         'museval',
         'pystoi',
-        'kaldiio'
+        'kaldiio',
+        # A backport of inspect.signature for python2
+        'funcsigs'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [

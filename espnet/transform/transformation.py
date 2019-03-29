@@ -1,19 +1,21 @@
 from collections import OrderedDict
 import copy
 import importlib
-import inspect
 import io
 import json
 import logging
 import sys
 
+
 PY2 = sys.version_info[0] == 2
 
 if PY2:
     from collections import Sequence
+    from funcsigs import signature
 else:
     # The ABCs from 'collections' will stop working in 3.8
     from collections.abc import Sequence
+    from inspect import signature
 
 
 def dynamic_import(import_path):
@@ -86,9 +88,14 @@ class Transformation(object):
                 try:
                     self.functions[idx] = class_obj(**opts)
                 except TypeError:
-                    signa = inspect.signature(class_obj)
-                    logging.error('Expected signature: {}({})'
-                                  .format(class_obj.__name__, signa))
+                    try:
+                        signa = signature(class_obj)
+                    except ValueError:
+                        # Some function, e.g. built-in function, are failed
+                        pass
+                    else:
+                        logging.error('Expected signature: {}({})'
+                                      .format(class_obj.__name__, signa))
                     raise
         else:
             raise NotImplementedError(
@@ -121,7 +128,11 @@ class Transformation(object):
                 func = self.functions[idx]
 
                 # Derive only the args which the func has
-                param = inspect.signature(func).parameters
+                try:
+                    param = signature(func).parameters
+                except ValueError:
+                    # Some function, e.g. built-in function, are failed
+                    param = {}
                 _kwargs = {k: v for k, v in kwargs.items()
                            if k in param}
                 try:

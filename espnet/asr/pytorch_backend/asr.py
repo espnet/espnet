@@ -306,11 +306,11 @@ def train(args):
     load_tr = LoadInputsAndTargets(
         mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': True}  # Switch the mode of preprocessing
-        )
+    )
     load_cv = LoadInputsAndTargets(
         mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': False}  # Switch the mode of preprocessing
-        )
+    )
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
