@@ -21,7 +21,6 @@ preprocess_conf=""
 out="" # If omitted, write in stdout
 
 text=""
-filter_speed_perturbation=false
 
 . utils/parse_options.sh
 
@@ -73,6 +72,11 @@ if [ -n "${feat}" ]; then
     sort ${tmpdir}/input/shape.scp.tmp > ${tmpdir}/input/shape.scp
 fi
 
+if [ ! -n "${feat}" ] && grep sp1.0 ${text} > /dev/null; then
+    grep sp1.0 ${text} > ${text}.tmp
+    mv ${text}.tmp ${text}
+fi
+
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
 if [ -n "${bpecode}" ]; then
@@ -90,19 +94,16 @@ vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
 < ${tmpdir}/output/tokenid.scp awk -v odim=${odim} '{print $1 " " NF-1 "," odim}' > ${tmpdir}/output/shape.scp
 
-if ${filter_speed_perturbation}; then
-    cat ${text} | grep sp1.0 > ${tmpdir}/output/text.scp
-else
-    cat ${text} > ${tmpdir}/output/text.scp
-fi
-
 # 3. Create scp files for the others
 mkdir -p ${tmpdir}/other
 if [ -n "${lang}" ]; then
     awk -v lang=${lang} '{print $1 " " lang}' ${text} > ${tmpdir}/other/lang.scp
 fi
-cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
-
+if grep sp1.0 ${dir}/utt2spk > /dev/null; then
+    cat ${dir}/utt2spk | grep sp1.0 > ${tmpdir}/other/utt2spk.scp
+else
+    cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
+fi
 
 # 4. Merge scp files into a JSON file
 opts=""
