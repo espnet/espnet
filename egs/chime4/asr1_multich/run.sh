@@ -280,15 +280,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
-                --resume ${lm_resume} \
-                --layer ${lm_layers} \
-                --unit ${lm_units} \
-                --opt ${lm_opt} \
-                --sortagrad ${lm_sortagrad} \
-                --batchsize ${lm_batchsize} \
-                --epoch ${lm_epochs} \
-                --patience ${lm_patience} \
-                --maxlen ${lm_maxlen} \
+        --resume ${lm_resume} \
+        --layer ${lm_layers} \
+        --unit ${lm_units} \
+        --opt ${lm_opt} \
+        --sortagrad ${lm_sortagrad} \
+        --batchsize ${lm_batchsize} \
+        --epoch ${lm_epochs} \
+        --patience ${lm_patience} \
+        --maxlen ${lm_maxlen} \
         --dict ${lmdict}
 fi
 
@@ -340,7 +340,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=200
+    nj=32
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
@@ -387,7 +387,7 @@ fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Enhance speech"
-    nj=200
+    nj=32
     ngpu=0
 
     pids=() # initialize pids
@@ -415,6 +415,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
+    # Reduce all scp files from each jobs to one
     for rtask in ${recog_set}; do
         enhdir=${expdir}/enhance_${rtask}
         for i in $(seq 1 ${nj}); do
@@ -426,6 +427,7 @@ fi
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "stage 7: Evaluate enhanced speech"
+    nj=32
 
     mkdir -p ${expdir}/eval_enhance
     pids=() # initialize pids
@@ -440,10 +442,11 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             bth=$(echo ${rtask} | sed -r "s/(dt05|et05).*/\1_bth/")
             mkdir -p ${basedir}
 
+            # CH0 is worn mic
             <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
             <${enhdir}/enhance.scp grep ${place} | sed -r "s/^[^_]*_(.*?)_${place}_(REAL|SIMU) /\1 /g" | sort > ${basedir}/estimated.scp
             # FIME(kamo): Should we use bss_eval_images?
-            eval_source_separation.sh --cmd "${decode_cmd}" --nj 100  --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
+            eval_source_separation.sh --cmd "${decode_cmd}" --nj ${nj} --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
         done
     ) &
     pids+=($!) # store background pids
@@ -451,7 +454,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
-    ./local/show_enhance_results.sh ${expdir}/enhance_
+    local/show_enhance_results.sh ${expdir}/enhance_
 
     # Computes SDR/STOI/PESQ, etc., between noisy and clean signals.
     # The resutl can be seen in ./RESULT, so you don't need to run this block.
@@ -468,10 +471,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
                 bth=$(echo ${rtask} | sed -r "s/(dt05|et05).*/\1_bth/")
                 mkdir -p ${basedir}
 
+                # CH0 is worn mic
                 <data/${bth}/wav.scp grep CH0 | sed -r "s/^[^_]*_(.*?)_BTH.CH[0-9] /\1 /g" | sort > ${basedir}/reference.scp
+                # Use CH5 as reference
                 <data/${rtask}/wav.scp grep CH5 | grep ${place} | sed -r "s/^[^_]*_([^_]*?)_${place}.CH5_[A-Z]... /\1 /" | sort > ${basedir}/estimated.scp
 
-                eval_source_separation.sh --cmd "${decode_cmd}" --nj 100 --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
+                eval_source_separation.sh --cmd "${decode_cmd}" --nj ${nj} --bss-eval-images false ${basedir}/reference.scp ${basedir}/estimated.scp ${basedir}
 
             done
         ) &
@@ -480,6 +485,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
         [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
-        ./local/show_enhance_results.sh eval_noisy/
+        local/show_enhance_results.sh eval_noisy/
     fi
 fi
