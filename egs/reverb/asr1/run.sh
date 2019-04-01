@@ -144,6 +144,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/copy_data_dir.sh data/${x} data-fbank/${x}
         steps/make_fbank_pitch.sh --nj 32 --cmd "${train_cmd}" --write_utt2num_frames true \
             data-fbank/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data-fbank/${x}
     done
 
     echo "combine reverb simulation and wsj clean training data"
