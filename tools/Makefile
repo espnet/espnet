@@ -18,7 +18,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 all: kaldi.done python check_install
 
-python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv chainer_patch.done cupy.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
 
@@ -42,7 +42,7 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==$(CUPY_VERSION) torch==$(TH_VERSION) matplotlib
+	. venv/bin/activate; pip install torch==$(TH_VERSION) matplotlib
 	touch espnet.done
 else
 miniconda.sh:
@@ -56,8 +56,16 @@ espnet.done: venv
 	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
-	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
 	touch espnet.done
+endif
+
+ifneq ($(strip $(CUPY_VERSION)),)
+cupy.done: venv
+	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
+	touch cupy.done
+else
+cupy.done: venv
+	touch cupy.done
 endif
 
 chainer_patch.done: espnet.done
@@ -132,8 +140,13 @@ moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
+ifneq ($(strip $(CUPY_VERSION)),)
 check_install: kaldi.done python
 	. venv/bin/activate; python check_install.py
+else
+check_install: kaldi.done python
+	. venv/bin/activate; python check_install.py --no-cupy
+endif
 
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
