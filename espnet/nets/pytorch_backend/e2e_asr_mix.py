@@ -283,7 +283,7 @@ class E2E(torch.nn.Module):
             else:
                 lpz_sd = None
 
-            wers, cers = [], []
+            word_eds, char_eds, word_ref_lens, char_ref_lens = [], [], [], []
             nbest_hyps_sd = [self.dec.recognize_beam_batch(hs_pad_sd[i], torch.tensor(hlens), lpz_sd[i],
                                                            self.recog_args, self.char_list, self.rnnlm, strm_idx=i)
                              for i in range(self.num_spkrs)]
@@ -309,16 +309,18 @@ class E2E(torch.nn.Module):
                     hyp_chars.append(seq_hat_text.replace(' ', ''))
                     ref_chars.append(seq_true_text.replace(' ', ''))
 
-                tmp_wers = [editdistance.eval(hyp_words[ns // self.num_spkrs], ref_words[ns % self.num_spkrs])
-                            for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
-                tmp_cers = [editdistance.eval(hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs])
-                            for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
+                tmp_word_ed = [editdistance.eval(hyp_words[ns // self.num_spkrs], ref_words[ns % self.num_spkrs])
+                               for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
+                tmp_char_ed = [editdistance.eval(hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs])
+                               for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
 
-                wers.append(self.pit.min_pit_sample(torch.tensor(tmp_wers))[0] / len(sum(ref_words, [])))
-                cers.append(self.pit.min_pit_sample(torch.tensor(tmp_cers))[0] / len(sum(ref_words, [])))
+                word_eds.append(self.pit.min_pit_sample(torch.tensor(tmp_word_ed))[0])
+                word_ref_lens.append(len(sum(ref_words, [])))
+                char_eds.append(self.pit.min_pit_sample(torch.tensor(tmp_char_ed))[0])
+                char_ref_lens.append(len(''.join(ref_chars)))
 
-            wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
-            cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
+            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         alpha = self.mtlalpha
         if alpha == 0:
