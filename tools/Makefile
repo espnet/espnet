@@ -42,7 +42,13 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==$(CUPY_VERSION) torch==$(TH_VERSION) matplotlib
+	# NOTE(kan-bayashi): matplotlib>=3.0.0 does not support python2
+	if . venv/bin/activate && python -c 'import sys; sys.version_info[0] != 3' &> /dev/null; then \
+		. venv/bin/activate; pip install matplotlib==2.2.4; \
+	else \
+		. venv/bin/activate; pip install matplotlib; \
+	fi
+	. venv/bin/activate; pip install cupy==$(CUPY_VERSION) torch==$(TH_VERSION)
 	touch espnet.done
 else
 miniconda.sh:
