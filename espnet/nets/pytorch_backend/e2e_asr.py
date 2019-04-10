@@ -230,8 +230,8 @@ class E2E(torch.nn.Module):
                 char_eds.append(editdistance.eval(hyp_chars, ref_chars))
                 char_ref_lens.append(len(ref_chars))
 
-            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / len(word_ref_lens)
-            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / len(char_ref_lens)
+            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         alpha = self.mtlalpha
         if alpha == 0:
