@@ -354,6 +354,7 @@ class E2E(torch.nn.Module):
             lpz = None
 
         # 2. decoder
+        hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
         y = self.dec.recognize_beam_batch(hpad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
