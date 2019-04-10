@@ -1,7 +1,5 @@
 # encoding: utf-8
 
-from distutils.util import strtobool
-
 import chainer
 
 import chainer.functions as F
@@ -11,42 +9,6 @@ from espnet.asr import asr_utils
 
 import logging
 import numpy as np
-
-
-def get_topk(xp, x, k=5, axis=1):
-    ids_list = []
-    scores_list = []
-    for i in range(k):
-        ids = xp.argmax(x, axis=axis).astype('i')
-        if axis == 0:
-            scores = x[ids]
-            x[ids] = - float('inf')
-        else:
-            scores = x[xp.arange(ids.shape[0]), ids]
-            x[xp.arange(ids.shape[0]), ids] = - float('inf')
-        ids_list.append(ids)
-        scores_list.append(scores)
-    return xp.stack(scores_list, axis=1), xp.stack(ids_list, axis=1)
-
-
-def add_arguments(parser):
-    group = parser.add_argument_group("transformer model setting")
-    group.add_argument("--transformer-init", type=str, default="pytorch",
-                       choices=["pytorch", "xavier_uniform", "xavier_normal",
-                                "kaiming_uniform", "kaiming_normal"],
-                       help='how to initialize transformer parameters')
-    group.add_argument("--transformer-input-layer", type=str, default="conv2d",
-                       choices=["conv2d", "linear", "embed"],
-                       help='transformer input layer type')
-    group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
-                       help='dropout in transformer attention. use --dropout-rate if None is set')
-    group.add_argument('--transformer-lr', default=10.0, type=float,
-                       help='Initial value of learning rate')
-    group.add_argument('--transformer-warmup-steps', default=25000, type=int,
-                       help='optimizer warmup steps')
-    group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
-                       help='normalize loss by length')
-    return parser
 
 
 class PositionalEncoding(chainer.Chain):
@@ -62,24 +24,6 @@ class PositionalEncoding(chainer.Chain):
         self.pe[:, ::2] = np.sin(posi_block * unit_block)
         self.pe[:, 1::2] = np.cos(posi_block * unit_block)
         self.scale = np.sqrt(n_units)
-        """
-
-        # Implementation in the Google tensor2tensor repo
-        channels = n_units
-        position = xp.arange(length, dtype='f')
-        num_timescales = channels // 2
-        log_timescale_increment = (
-            xp.log(10000. / 1.) / (float(num_timescales) - 1))
-        inv_timescales = 1. * xp.exp(
-            xp.arange(num_timescales).astype('f') * -log_timescale_increment)
-        scaled_time = \
-            xp.expand_dims(position, 1) * \
-            xp.expand_dims(inv_timescales, 0)
-        signal = xp.concatenate(
-            [xp.sin(scaled_time), xp.cos(scaled_time)], axis=1)
-        signal = xp.reshape(signal, [1, length, channels])
-        self.position_encoding_block = xp.transpose(signal, (0, 2, 1))
-        """
 
     def __call__(self, e):
         length = e.shape[1]
@@ -87,16 +31,12 @@ class PositionalEncoding(chainer.Chain):
         return F.dropout(e, self.dropout)
 
 
-class LayerNorm(chainer.Chain):
-    def __init__(self, dims, axis=-1):
-        super(LayerNorm, self).__init__()
-        with self.init_scope():
-            self.norm = L.LayerNormalization(dims, eps=1e-12)
-        self.axis = axis
-        self.dims = dims
+class LayerNorm(L.LayerNormalization):
+    def __init__(self, dims, eps=1e-12):
+        super(LayerNorm, self).__init__(size=dims, eps=eps)
 
     def __call__(self, e):
-        return self.norm(e)
+        return super(LayerNorm, self).__call__(e)
 
 
 class FeedForwardLayer(chainer.Chain):
@@ -113,7 +53,6 @@ class FeedForwardLayer(chainer.Chain):
                                 initialW=initialW(scale=stvd),
                                 initial_bias=initial_bias(scale=stvd))
             self.act = F.relu
-            # self.act = F.leaky_relu
         self.dropout = dropout
 
     def __call__(self, e):

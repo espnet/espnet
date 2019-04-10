@@ -198,6 +198,8 @@ def main(cmd_args):
     args = parser.parse_args(cmd_args)
     if args.model_module is None:
         args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr"
+    else:
+        args.backend = "chainer" if "chainer" in args.model_module else "pytorch"
 
     # logging info
     if args.verbose > 0:
