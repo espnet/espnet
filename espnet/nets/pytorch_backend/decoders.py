@@ -513,11 +513,7 @@ class Decoder(torch.nn.Module):
             vidx = to_device(self, torch.LongTensor(accum_padded_beam_ids))
 
             if isinstance(att_w, torch.Tensor):
-                if len(att_w.shape) == 2:
-                    a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
-                else:
-                    # handle the case of 2d location-aware attention
-                    a_prev = torch.index_select(att_w.view(n_bb, att_w.shape[1], -1), 0, vidx)
+                a_prev = torch.index_select(att_w.view(n_bb, *att_w.shape[1:]), 0, vidx)
             elif isinstance(att_w, list):
                 # handle the case of multi-head attention
                 a_prev = [torch.index_select(att_w_one.view(n_bb, -1), 0, vidx) for att_w_one in att_w]
