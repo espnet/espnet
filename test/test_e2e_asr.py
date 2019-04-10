@@ -181,6 +181,9 @@ def test_model_trainable_and_decodable(module, etype, atype, dtype):
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(100, 40)
         model.recognize(in_data, args, args.char_list)  # decodable
+        if "pytorch" in module:
+            batch_in_data = [np.random.randn(100, 40), np.random.randn(50, 40)]
+            model.recognize_batch(batch_in_data, args, args.char_list)  # batch decodable
 
 
 def test_streaming_e2e_encoder_and_ctc_with_offline_attention():
