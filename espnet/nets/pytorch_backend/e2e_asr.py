@@ -328,7 +328,7 @@ class E2E(torch.nn.Module):
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
         """E2E beam search
 
-        :param ndarray xs: input acoustic feature (T, D)
+        :param list xs: list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
         :param Namespace recog_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
