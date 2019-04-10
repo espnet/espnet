@@ -23,13 +23,11 @@ do_delta=false
 
 # network architecture
 ninit=pytorch
-ntype=transformer
 
 # encoder related
 input_layer=conv2d     # encoder architecture type
 elayers=6
 eunits=1024
-subsample=0
 # decoder related
 dlayers=6
 dunits=1024
@@ -260,7 +258,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${ntype}_${input_layer}_e${elayers}_unit${eunits}_d${dlayers}_unit${dunits}_aheads${aheads}_dim${adim}_mtlalpha${mtlalpha}_${opt}_clip${grad_clip}_sampprob${samp_prob}_ngpu${ngpu}_bs${batchsize}_lr${lr_init}_warmup${warmup_steps}_dropout${dropout}_attndropout${attn_dropout}_mli${maxlen_in}_mlo${maxlen_out}_ninit_${ninit}_epochs${epochs}_accum${accum_grad}_lennorm${len_norm}
+    expname=${train_set}_${backend}_transformer_${input_layer}_e${elayers}_unit${eunits}_d${dlayers}_unit${dunits}_aheads${aheads}_dim${adim}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_ngpu${ngpu}_bs${batchsize}_lr${lr_init}_warmup${warmup_steps}_mli${maxlen_in}_mlo${maxlen_out}_epochs${epochs}_accum${accum_grad}_lennorm${len_norm}
     if [ "${lsm_type}" != "" ]; then
         expname=${expname}_lsm${lsm_type}${lsm_weight}
     fi
@@ -280,7 +278,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         asr_train.py \
         --accum-grad ${accum_grad} \
         --ngpu ${ngpu} \
-        --backend ${backend} \
         --outdir ${expdir}/results \
         --debugmode ${debugmode} \
         --dict ${dict} \
@@ -293,7 +290,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --valid-json ${feat_dt_dir}/data.json \
         --elayers ${elayers} \
         --eunits ${eunits} \
-        --subsample ${subsample} \
         --dlayers ${dlayers} \
         --dunits ${dunits} \
         --aheads ${aheads} \
@@ -309,7 +305,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --epochs ${epochs} \
         --sortagrad ${sortagrad} \
         --lsm-weight ${lsm_weight} \
-        --model-module "espnet.nets.${backend}_backend.asr_transformer" \
+        --model-module "espnet.nets.${backend}_backend.e2e_asr_transformer" \
         --transformer-lr ${lr_init} \
         --transformer-warmup-steps ${warmup_steps} \
         --transformer-input-layer ${input_layer} \
