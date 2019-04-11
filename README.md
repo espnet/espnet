@@ -33,18 +33,21 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 ## Requirements
 
 - Python 2.7+, 3.7+ (mainly support Python3.7+)
-- Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library (for the use of GPU)
-- Cudnn 6+ (for the use of GPU)
-- NCCL 2.0+ (for the use of multi-GPUs)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.1, 1.0.0
 - gcc>=4.9 for PyTorch1.0.0
 - Chainer 5.0.0
 
+Optionally, GPU environment requires the following libraries:
+
+- Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library
+- Cudnn 6+
+- NCCL 2.0+ (for the use of multi-GPUs)
+
 ## Installation
 
-### Step 1) setting of the environment
+### Step 1) setting of the environment for GPU support
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
 ```
@@ -111,6 +114,17 @@ $ cd tools
 $ make PYTHON_VERSION=3.6
 ```
 
+### Step 2-C) installation for CPU-only
+
+To install in a Terminal with that does not have a GPU installed, just clean the version of `CUPY` as follows:
+
+```sh
+$ cd tools
+$ make CUPY_VERSION='' -j 10 
+```
+
+This option is enabled for any of the install configuration. 
+
 ### Step 3) installation check
 
 You can check whether the install is succeeded via the following commands
@@ -118,6 +132,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ make check_install
 ```
+or `make check_install --no-cupy` if you do not have a GPU on your terminal. 
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
