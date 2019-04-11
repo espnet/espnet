@@ -116,7 +116,7 @@ $ make PYTHON_VERSION=3.6
 
 ### Step 2-C) installation for CPU-only
 
-To install in a Terminal with that does not have a GPU installed, just clean the version of `CUPY` as follows:
+To install in a terminal that does not have a GPU installed, just clear the version of `CUPY` as follows:
 
 ```sh
 $ cd tools
