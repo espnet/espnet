@@ -48,7 +48,7 @@ espnet.done: venv
 	else \
 		. venv/bin/activate; pip install matplotlib; \
 	fi
-	. venv/bin/activate; pip install cupy==$(CUPY_VERSION) torch==$(TH_VERSION)
+	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	touch espnet.done
 else
 miniconda.sh:
