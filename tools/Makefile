@@ -18,7 +18,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 all: kaldi.done python check_install
 
-python: venv chainer_patch.done cupy.done warp-ctc.done chainer_ctc.done
+python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
 
@@ -65,16 +65,10 @@ espnet.done: venv
 	touch espnet.done
 endif
 
-ifneq ($(strip $(CUPY_VERSION)),)
-cupy.done: venv
-	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
-	touch cupy.done
-else
-cupy.done: venv
-	touch cupy.done
-endif
-
 chainer_patch.done: espnet.done
+ifneq ($(strip $(CUPY_VERSION)),)
+	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
+endif
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
 	patch $(FILENAME) < prefetch.patch
 	touch chainer_patch.done
@@ -146,11 +140,10 @@ moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
-ifneq ($(strip $(CUPY_VERSION)),)
 check_install: kaldi.done python
+ifneq ($(strip $(CUPY_VERSION)),)
 	. venv/bin/activate; python check_install.py
 else
-check_install: kaldi.done python
 	. venv/bin/activate; python check_install.py --no-cupy
 endif
 
