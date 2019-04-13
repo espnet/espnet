@@ -12,7 +12,7 @@ import sys
 def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-cupy', action='store_true', default=False,
-                        help='Number of GPUs')
+                        help='Disable CUPY tests')
     args = parser.parse_args(args)                
 
     # you should add the libraries which are not included in setup.py
