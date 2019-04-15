@@ -99,6 +99,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # Feature extraction
     for x in train_yesno test_yesno; do
         steps/make_fbank_pitch.sh --nj 1 --write_utt2num_frames true data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
         steps/compute_cmvn_stats.sh data/${x} exp/make_fbank/${x} ${fbankdir}
     done
 
@@ -232,8 +233,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-

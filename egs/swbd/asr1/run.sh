@@ -121,6 +121,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in train eval2000 rt03; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
     done
 
     utils/subset_data_dir.sh --first data/train 4000 data/${train_dev} # 5hr 6min
@@ -269,8 +270,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-
