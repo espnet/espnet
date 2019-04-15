@@ -147,6 +147,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/copy_data_dir.sh data/${x} data-stft/${x}
         steps/make_fbank_pitch.sh --nj 8 --cmd "${train_cmd}" --write_utt2num_frames true \
             data-fbank/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data-fbank/${x}
     done
 
     echo "combine real and simulation data"
@@ -363,8 +364,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-

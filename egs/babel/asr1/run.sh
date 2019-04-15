@@ -133,12 +133,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   for x in ${train_set} ${train_dev} ${recog_set}; do
       steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 20 --write_utt2num_frames true \
           data/${x} exp/make_fbank/${x} ${fbankdir}
-      ./utils/fix_data_dir.sh data/${x}
+      utils/fix_data_dir.sh data/${x}
   done
 
   # compute global CMVN
   compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
-  ./utils/fix_data_dir.sh data/${train_set}
+  utils/fix_data_dir.sh data/${train_set}
 
   exp_name=$(basename $PWD)
   # dump features for training
@@ -338,8 +338,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-

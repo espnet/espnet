@@ -125,8 +125,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
         data/train exp/make_fbank/train ${fbankdir}
+    utils/fix_data_dir.sh data/train
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
         data/dev exp/make_fbank/dev ${fbankdir}
+    utils/fix_data_dir.sh data/dev
 
     # make a dev set
     utils/subset_data_dir.sh --first data/train 4000 data/${train_dev}
@@ -145,6 +147,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     rm -r data/temp1 data/temp2 data/temp3
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
         data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    utils/fix_data_dir.sh data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -330,8 +333,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     ) &
     pids+=($!) # store background pids
     done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-
