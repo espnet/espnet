@@ -30,7 +30,7 @@ class DNN_Beamformer(torch.nn.Module):
                  bprojs=320,
                  dropout_rate=0.0,
                  badim=320,
-                 ref_channel: int = None,
+                 ref_channel: int = -1,
                  beamformer_type='mvdr'):
         super().__init__()
         self.mask = MaskEstimator(btype, bidim, blayers, bunits, bprojs,
@@ -71,7 +71,7 @@ class DNN_Beamformer(torch.nn.Module):
         psd_noise = get_power_spectral_density_matrix(data, mask_noise)
 
         # u: (B, C)
-        if self.ref_channel is None:
+        if self.ref_channel < 0:
             u, _ = self.ref(psd_speech, ilens)
         else:
             # (optional) Create onehot vector for fixed reference microphone
