@@ -51,16 +51,18 @@ epochs=15
 patience=3
 
 # rnnlm related
-lm_layers=2
-lm_units=650
-lm_opt=sgd        # or adam
-lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-lm_batchsize=512  # batch size in LM training
-lm_epochs=20      # if the data size is large, we can reduce this
+use_wordlm=true     # false means to train/use a character LM
+lm_vocabsize=65000  # effective only for word LMs
+lm_layers=1         # 2 for character LMs
+lm_units=1000       # 650 for character LMs
+lm_opt=sgd          # adam for character LMs
+lm_sortagrad=0      # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+lm_batchsize=300    # 1024 for character LMs
+lm_epochs=20        # if the data size is large, we can reduce this
 lm_patience=3
-lm_maxlen=150     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
-lm_resume=        # specify a snapshot file to resume LM training
-lmtag=            # tag for managing LMs
+lm_maxlen=40        # 150 for character LMs
+lm_resume=          # specify a snapshot file to resume LM training
+lmtag=              # tag for managing LMs
 
 # decoding parameter
 lm_weight=1.0
@@ -180,6 +182,9 @@ mkdir -p ${expdir}
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+    if [ ${use_wordlm} = true ]; then
+        lmtag=${lmtag}_word${lm_vocabsize}
+    fi
 fi
 lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
@@ -187,13 +192,25 @@ mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train
-    [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
-    gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py \
-        | text2token.py -n 1 \
-        > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 data/dev/text | cut -f 2- -d" " \
-        > ${lmdatadir}/valid.txt
+    if [ ${use_wordlm} = true ]; then
+       lmdatadir=data/local/wordlm_train
+       lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
+       [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
+       gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py \
+          > ${lmdatadir}/train.txt
+       cut -f 2- -d" " data/dev/text \
+          > ${lmdatadir}/valid.txt
+       text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+    else
+       lmdatadir=data/local/lm_train
+       lmdict=${dict}
+       [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
+       gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py \
+          | text2token.py -n 1 \
+          > ${lmdatadir}/train.txt
+       text2token.py -s 1 -n 1 data/dev/text | cut -f 2- -d" " \
+          > ${lmdatadir}/valid.txt
+    fi
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
@@ -216,7 +233,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --epoch ${lm_epochs} \
         --patience ${lm_patience} \
         --maxlen ${lm_maxlen} \
-        --dict ${dict}
+        --dict ${lmdict}
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
@@ -265,6 +282,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        if [ ${use_wordlm} = true ]; then
+            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+        else
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
+        if [ ${lm_weight} == 0 ]; then
+            recog_opts=""
+        fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -288,7 +313,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight}
+            --lm-weight ${lm_weight} \
+            ${recog_opts}
 
         score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
 

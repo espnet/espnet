@@ -234,7 +234,7 @@ class E2E(torch.nn.Module):
             else:
                 lpz = None
 
-            wers, cers = [], []
+            word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
             nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), lpz,
                                                        self.recog_args, self.char_list,
                                                        self.rnnlm)
@@ -251,13 +251,15 @@ class E2E(torch.nn.Module):
 
                 hyp_words = seq_hat_text.split()
                 ref_words = seq_true_text.split()
-                wers.append(editdistance.eval(hyp_words, ref_words) / len(ref_words))
+                word_eds.append(editdistance.eval(hyp_words, ref_words))
+                word_ref_lens.append(len(ref_words))
                 hyp_chars = seq_hat_text.replace(' ', '')
                 ref_chars = seq_true_text.replace(' ', '')
-                cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+                char_eds.append(editdistance.eval(hyp_chars, ref_chars))
+                char_ref_lens.append(len(ref_chars))
 
-            wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
-            cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
+            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         alpha = self.mtlalpha
         if alpha == 0:
@@ -326,7 +328,7 @@ class E2E(torch.nn.Module):
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
         """E2E beam search
 
-        :param ndarray xs: input acoustic feature (T, D)
+        :param list xs: list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
         :param Namespace recog_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
@@ -352,6 +354,7 @@ class E2E(torch.nn.Module):
             lpz = None
 
         # 2. decoder
+        hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
         y = self.dec.recognize_beam_batch(hpad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
