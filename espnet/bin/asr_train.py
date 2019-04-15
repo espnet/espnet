@@ -235,7 +235,7 @@ def main(args):
                         help='')
     parser.add_argument('--badim', type=int, default=320,
                         help='')
-    parser.add_argument('--ref-channel', type=int, default=None,
+    parser.add_argument('--ref-channel', type=int, default=-1,
                         help='The reference channel used for beamformer. '
                              'By default, the channel is estimated by DNN.')
     parser.add_argument('--bdropout-rate', type=float, default=0.0,

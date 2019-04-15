@@ -33,7 +33,7 @@ class Frontend(nn.Module):
                  bunits: int = 300,
                  bprojs: int = 320,
                  badim: int = 320,
-                 ref_channel: int = None,
+                 ref_channel: int = -1,
                  bdropout_rate=0.0):
         super().__init__()
 

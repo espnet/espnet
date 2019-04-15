@@ -20,10 +20,12 @@ resume=        # Resume the training from snapshot
 preprocess_conf=conf/preprocess.json
 
 # network architecture
+# beamformer related
 use_beamformer=true
 blayers=3
 bunits=300
 bprojs=300
+ref_channel=-1  # Specified ref mic for beamformer. If <0, use attention dnn
 
 # encoder related
 etype=vggblstmp     # encoder architecture type
@@ -303,6 +305,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --blayers ${blayers} \
         --bunits ${bunits} \
         --bprojs ${bprojs} \
+        --ref-channel ${ref_channel} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
