@@ -18,6 +18,10 @@ RUN if [ -z "$( nvcc -V )" ];then \
         sed -i '\|. venv/bin/activate && pip install cupy==$(CUPY_VERSION)|d' Makefile; \
     fi 
 
+# Delete cupy test
+# Docker build does not load libcuda.so.1
+RUN sed -i "/cupy'/d" check_install.py; 
+
 RUN make KALDI=/kaldi && \
     rm -rf ../espnet
 
