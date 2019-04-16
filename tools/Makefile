@@ -18,7 +18,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 all: kaldi.done python check_install
 
-python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv cupy.done chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
 
@@ -65,10 +65,13 @@ espnet.done: venv
 	touch espnet.done
 endif
 
-chainer_patch.done: espnet.done
+cupy.done: espnet.done
 ifneq ($(strip $(CUPY_VERSION)),)
 	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
+	touch cupy.done
 endif
+
+chainer_patch.done: espnet.done
 	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
 	patch $(FILENAME) < prefetch.patch
 	touch chainer_patch.done
