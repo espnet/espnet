@@ -23,6 +23,11 @@ python: venv cupy.done chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
 
+ifeq (($shell which nvidia-smi),) # No 'nvcc' found
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
+else
+CONDA_PYTORCH := pytorch-cpu=$(TH_VERSION)
+endif
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -60,7 +65,7 @@ venv: miniconda.sh
 	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
 	. venv/bin/activate && conda info -a
 espnet.done: venv
-	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) -c pytorch
+	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	touch espnet.done
