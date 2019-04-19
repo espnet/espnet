@@ -16,7 +16,7 @@ import sys
 import numpy as np
 
 
-def main(args):
+def get_parser():
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -184,7 +184,10 @@ def main(args):
                         help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
-    args = parser.parse_args(args)
+    return parser
+
+def main(args):
+    args = get_parser().parse_args(args)
 
     # logging info
     if args.verbose > 0:
