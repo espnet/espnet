@@ -216,7 +216,7 @@ fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
-    nj=32
+    nj=16
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
