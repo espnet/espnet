@@ -18,7 +18,7 @@ GCC_VERSION := $(shell gcc -dumpversion)
 
 all: kaldi.done python check_install
 
-python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv cupy.done chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
 
@@ -42,7 +42,13 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==$(CUPY_VERSION) torch==$(TH_VERSION) matplotlib
+	# NOTE(kan-bayashi): matplotlib>=3.0.0 does not support python2
+	if . venv/bin/activate && python -c 'import sys; sys.version_info[0] != 3' &> /dev/null; then \
+		. venv/bin/activate; pip install matplotlib==2.2.4; \
+	else \
+		. venv/bin/activate; pip install matplotlib; \
+	fi
+	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	touch espnet.done
 else
 miniconda.sh:
@@ -56,8 +62,13 @@ espnet.done: venv
 	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
-	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
 	touch espnet.done
+endif
+
+cupy.done: espnet.done
+ifneq ($(strip $(CUPY_VERSION)),)
+	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
+	touch cupy.done
 endif
 
 chainer_patch.done: espnet.done
@@ -133,7 +144,11 @@ moses.done:
 	touch moses.done
 
 check_install: kaldi.done python
+ifneq ($(strip $(CUPY_VERSION)),)
 	. venv/bin/activate; python check_install.py
+else
+	. venv/bin/activate; python check_install.py --no-cupy
+endif
 
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc

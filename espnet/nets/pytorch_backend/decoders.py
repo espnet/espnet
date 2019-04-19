@@ -512,11 +512,17 @@ class Decoder(torch.nn.Module):
             vscores = accum_best_scores
             vidx = to_device(self, torch.LongTensor(accum_padded_beam_ids))
 
-            if not isinstance(a_prev, list):
-                a_prev = torch.index_select(att_w.view(n_bb, -1), 0, vidx)
-            else:
-                # adapt for multi-head attention
+            if isinstance(att_w, torch.Tensor):
+                a_prev = torch.index_select(att_w.view(n_bb, *att_w.shape[1:]), 0, vidx)
+            elif isinstance(att_w, list):
+                # handle the case of multi-head attention
                 a_prev = [torch.index_select(att_w_one.view(n_bb, -1), 0, vidx) for att_w_one in att_w]
+            else:
+                # handle the case of location_recurrent when return is a tuple
+                a_prev_ = torch.index_select(att_w[0].view(n_bb, -1), 0, vidx)
+                h_prev_ = torch.index_select(att_w[1][0].view(n_bb, -1), 0, vidx)
+                c_prev_ = torch.index_select(att_w[1][1].view(n_bb, -1), 0, vidx)
+                a_prev = (a_prev_, (h_prev_, c_prev_))
             z_prev = [torch.index_select(z_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
             c_prev = [torch.index_select(c_list[li].view(n_bb, -1), 0, vidx) for li in range(self.dlayers)]
 
