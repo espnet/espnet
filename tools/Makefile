@@ -15,19 +15,23 @@ CONDA_URL := https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.
 # PyTorch>=1.0.0 requires gcc>=4.9 when buliding the extensions
 GCC_VERSION := $(shell gcc -dumpversion)
 
+
+ifeq (($shell which nvidia-smi),) # No 'nvcc' found
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
+CUDA_DEPS := cupy.done
+else
+CONDA_PYTORCH := pytorch-cpu=$(TH_VERSION)
+CUDA_DEPS :=
+endif
+
+
 .PHONY: all clean
 
 all: kaldi.done python check_install
 
-python: venv cupy.done chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
-
-ifeq (($shell which nvidia-smi),) # No 'nvcc' found
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
-else
-CONDA_PYTORCH := pytorch-cpu=$(TH_VERSION)
-endif
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
