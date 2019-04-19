@@ -4,6 +4,7 @@ PYTHON :=
 # The python version installed in the conda setup
 PYTHON_VERSION := 3.7
 CUPY_VERSION := 5.0.0
+CUDA_VERSION := 10.0
 # PyTorch version: 0.4.1 or 1.0.0
 TH_VERSION := 1.0.0
 # Use a prebuild Kaldi to omit the installation
@@ -59,7 +60,7 @@ venv: miniconda.sh
 	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
 	. venv/bin/activate && conda info -a
 espnet.done: venv
-	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
+	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) -c pytorch
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	touch espnet.done

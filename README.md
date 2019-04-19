@@ -86,10 +86,10 @@ $ cd tools
 $ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
 ```
 
-Or install specific Python version with miniconda
+Or install specific Python and CUDA versions with miniconda
 ```sh
 $ cd tools
-$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
+$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 CUDA_VERSION=9.0
 ```
 
 v0.3.0: Changed to use miniconda by default installation.
