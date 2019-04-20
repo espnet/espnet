@@ -4,6 +4,7 @@ PYTHON :=
 # The python version installed in the conda setup
 PYTHON_VERSION := 3.7
 CUPY_VERSION := 5.0.0
+CUDA_VERSION := 10.0
 # PyTorch version: 0.4.1 or 1.0.0
 TH_VERSION := 1.0.0
 # Use a prebuild Kaldi to omit the installation
@@ -14,14 +15,23 @@ CONDA_URL := https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.
 # PyTorch>=1.0.0 requires gcc>=4.9 when buliding the extensions
 GCC_VERSION := $(shell gcc -dumpversion)
 
+
+ifeq (($shell which nvidia-smi),) # No 'nvcc' found
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
+CUDA_DEPS := cupy.done
+else
+CONDA_PYTORCH := pytorch-cpu=$(TH_VERSION)
+CUDA_DEPS :=
+endif
+
+
 .PHONY: all clean
 
 all: kaldi.done python check_install
 
-python: venv cupy.done chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done
-
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -59,7 +69,7 @@ venv: miniconda.sh
 	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
 	. venv/bin/activate && conda info -a
 espnet.done: venv
-	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
+	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	touch espnet.done
