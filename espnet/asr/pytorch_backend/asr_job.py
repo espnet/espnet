@@ -1,3 +1,5 @@
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 import logging
 
 import torch
@@ -16,7 +18,8 @@ class TrainingJob(Job):
     :param espnet.nets.pytorch_backend.e2e_asr.E2E model: model to be trained
     :param torch.optim.Optimizer optimizer: optimizer for training
     :param iterable loader: dataset loader
-    :param int max_epoch: max epoch for training
+    :param float grad_clip: gradient clipping threshold
+    :param int accum_grad: the number of gradient accumulation to emulate large minibatch
     '''
 
     def __init__(self, model, optimizer, loader,
@@ -50,7 +53,6 @@ class TrainingJob(Job):
                     else:
                         self.optimizer.step()
                         self.model.zero_grad()
-                        train_stat.report
 
     def state_dict(self):
         return dict(model=self.model.state_dict(),
@@ -117,7 +119,6 @@ class ValidationJob(Job):
                 for i, data in enumerate(self.loader):
                     self.model(*squeeze(data))
 
-        # TODO(karita) summary report, user-defined criterion
         curr = valid_stat.average()[self.criterion]
         if self.compare_fn(self.best, curr):
             self.best = curr
@@ -131,8 +132,7 @@ class ValidationJob(Job):
         return self.patience < self.no_improve
 
     def state_dict(self):
-        return dict(patience=self.patience,
-                    best=self.best,
+        return dict(best=self.best,
                     no_improve=self.no_improve)
 
 
@@ -143,13 +143,19 @@ class PlotAttentionJob(Job):
     :param function att_viz_fn: function to visualize attention
     :param str outdir: output dir of plots
     :param int num_save_attention: the number of saving attention plots
-    :param int subsampling_factor: preprocessing parameter (TODO(karita) remove this)
+    :param int subsampling_factor: preprocessing parameter
     :param str preprocess_conf: path to preproces conf file
     '''
 
-    def __init__(self, valid_json, att_vis_fn, outdir, num_save_attention,
+    def __init__(self, json_path, att_vis_fn, outdir, num_save_attention,
                  subsampling_factor=0, preprocess_conf=None, reverse=False):
+        import json
         import os
+
+        from espnet.asr.pytorch_backend.dataset import ASRDataset
+
+        with open(json_path, 'rb') as f:
+            valid_json = json.load(f)['utts']
 
         self.att_vis_fn = att_vis_fn
         self.outdir = outdir
@@ -183,8 +189,12 @@ class PlotAttentionJob(Job):
             att_w = att_w[:dec_len, :enc_len]
         return att_w
 
-    def draw_attention_plot(self, att_w):
+    def _plot_and_save_attention(self, att_w, filename):
+        import matplotlib
+        matplotlib.use('Agg')
+
         import matplotlib.pyplot as plt
+
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
                 plt.subplot(1, len(att_w), h)
@@ -196,43 +206,5 @@ class PlotAttentionJob(Job):
             plt.xlabel("Encoder Index")
             plt.ylabel("Decoder Index")
         plt.tight_layout()
-        return plt
-
-    def _plot_and_save_attention(self, att_w, filename):
-        plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
-
-
-class ASRDataset(torch.utils.data.Dataset):
-    def __init__(self, batchset, subsampling_factor=0, preprocess_conf=None):
-        from espnet.utils.io_utils import LoadInputsAndTargets
-
-        self.batchset = batchset
-        self.subsampling_factor = subsampling_factor
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
-        self.ignore_id = -1
-
-    def __getitem__(self, index):
-        from torch.nn.utils.rnn import pad_sequence
-
-        xs, ys = self.load_inputs_and_targets(self.batchset[index])
-
-        # TODO(karita) make this subsampling inside model
-        # perform subsampling
-        if self.subsampling_factor > 1:
-            xs = [x[::self.subsampling_factor, :] for x in xs]
-
-        # get batch of lengths of input sequences
-        ilens = torch.tensor([x.shape[0] for x in xs])
-
-        # perform padding and convert to tensor
-        xs_pad = pad_sequence([torch.tensor(x).float() for x in xs],
-                              batch_first=True, padding_value=0)
-        ys_pad = pad_sequence([torch.tensor(y).long() for y in ys],
-                              batch_first=True, padding_value=self.ignore_id)
-        return xs_pad, ilens, ys_pad
-
-    def __len__(self):
-        return len(self.batchset)

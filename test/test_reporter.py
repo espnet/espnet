@@ -1,3 +1,5 @@
+# Copyright 2019 Shigeki Karita
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 from espnet.bin.asr_train import get_parser
 from espnet.bin.asr_train import init_env
 
