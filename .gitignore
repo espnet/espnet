@@ -12,6 +12,7 @@ tmp*
 .hypothesis/
 .idea
 .pytest_cache/
+check_autopep8
 
 # recipe related
 egs/*/*/data*
