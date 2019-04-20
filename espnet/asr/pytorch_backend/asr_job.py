@@ -102,11 +102,11 @@ class ValidationJob(Job):
             return compare_fn, init_criterion
 
         if self.criterion.startswith('acc'):
-            return less, -float('inf')
+            return greater, -float('inf')
         else:
             for prefix in ('loss', 'cer', 'wer'):
                 if self.criterion.startswith(prefix):
-                    return greater, float('inf')
+                    return less, float('inf')
         assert False, 'manually set compare_fn and init_criterion for ' + self.criterion
 
     def run(self, stats):

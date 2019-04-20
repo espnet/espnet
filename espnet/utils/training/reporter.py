@@ -18,6 +18,7 @@ def plot_seq(group, path):
 
     leg = ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     ax.grid()
+    pyplot.xlabel('epoch')
     fig.savefig(path, bbox_extra_artists=(leg,), bbox_inches='tight')
     pyplot.close()
 
@@ -77,7 +78,6 @@ class Stats(object):
                     # gather prefix e.g., loss_ctc -> loss
                     gk = k.split('_')[0]
                     groups[gk].append((k, self.plot_dict[k]))
-                    print("plot " + k + " into " + gk)
 
                 for gk, gv in groups.items():
                     plot_seq(gv, self.outdir + "/" + gk + ".png")
