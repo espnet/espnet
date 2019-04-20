@@ -40,7 +40,8 @@ def get_parser():
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
-    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
+    parser.add_argument('--tensorboard-dir', default=None,
+                        type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-json', type=str, default=None,
                         help='Filename of train label data (json)')
@@ -186,6 +187,7 @@ def get_parser():
                         help='Pre-trained MT model')
     return parser
 
+
 def main(args):
     args = get_parser().parse_args(args)
 
@@ -203,13 +205,15 @@ def main(args):
         # python 2 case
         if platform.python_version_tuple()[0] == '2':
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]):
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
+                cvd = subprocess.check_output(
+                    ["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
-                cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
+                cvd = subprocess.check_output(
+                    ["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
@@ -246,7 +250,7 @@ def main(args):
             from espnet.asr.chainer_backend.asr import train
             train(args)
         elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import train
+            from espnet.asr.pytorch_backend.train import train
             train(args)
         else:
             raise ValueError("Only chainer and pytorch are supported.")

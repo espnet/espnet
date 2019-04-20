@@ -18,7 +18,6 @@ from chainer.training import extensions
 
 # torch related
 import torch
-import torch.utils.data
 
 # espnet related
 from espnet.asr.asr_utils import adadelta_eps_decay
@@ -57,46 +56,10 @@ from tensorboardX import SummaryWriter
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-from espnet.utils.training.trainer import Job
-from espnet.utils.training.trainer import Trainer
 
 matplotlib.use('Agg')
 
 REPORT_INTERVAL = 100
-
-
-class Evalution(Job):
-    def __init__(self, model, loader, improve_hook, no_improve_hook, args):
-        self.model = model
-        self.loader = loader
-        self.args = args
-        self.best_acc = -float("inf")
-        self.current_acc = 0.0
-        self.no_improve = 0
-        self.no_improve_hook = no_improve_hook
-
-    def iterator(self):
-        return self.loader
-
-    def begin_epoch(self):
-        self.model.eval()
-
-    def process(self, data):
-        with torch.no_grad():
-            # TODO report
-            result = self.model(data)
-
-    def end_epoch(self):
-        # TODO summary
-        if self.current_acc > self.best_acc:
-            self.best_acc = self.current_acc
-        else:
-            self.no_improve += 1
-            self.no_improve_hook()
-
-
-    def terminate(self):
-        return self.args.patience < self.no_improve
 
 
 class CustomEvaluator(extensions.Evaluator):
@@ -195,47 +158,6 @@ class CustomUpdater(training.StandardUpdater):
             optimizer.step()
 
 
-def debug_args():
-    from espnet.bin.asr_train import get_parser
-    s = "--ngpu 1 --backend pytorch --outdir exp/train_nodev_pytorch_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs30_mli800_mlo150/results --tensorboard-dir tensorboard/train_nodev_pytorch_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs30_mli800_mlo150 --debugmode 1 --dict data/lang_1char/train_nodev_units.txt --debugdir exp/train_nodev_pytorch_blstmp_e4_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs30_mli800_mlo150 --minibatches 0 --verbose 0 --resume --train-json dump/train_nodev/deltafalse/data.json --valid-json dump/train_dev/deltafalse/data.json --etype blstmp --elayers 4 --eunits 320 --eprojs 320 --subsample 1_2_2_1_1 --dlayers 1 --dunits 300 --atype location --adim 320 --aconv-chans 10 --aconv-filts 100 --mtlalpha 0.5 --batch-size 30 --maxlen-in 800 --maxlen-out 150 --sampling-probability 0.0 --opt adadelta --sortagrad 0 --epochs 20 --patience 3"
-    return get_parser().parse_args(s.split())
-
-
-class ASRDataset(torch.utils.data.Dataset):
-    def __init__(self, json_path, args, subsampling_factor, preprocess_conf=None):
-        with open(json_path, 'rb') as f:
-            self.utts = json.load(f)['utts']
-
-        self.batchset = make_batchset(
-            self.utts, args.batch_size,
-            args.maxlen_in, args.maxlen_out, args.minibatches,
-            min_batch_size=args.ngpu if args.ngpu > 1 else 1,
-            shortest_first=args.sortagrad == -1 or args.sortagrad > 0)
-        self.subsampling_factor = subsampling_factor
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
-        self.ignore_id = -1
-
-    def __getitem__(self, index):
-        xs, ys = self.load_inputs_and_targets(self.batchset[index])
-
-        # perform subsampling
-        if self.subsampling_factor > 1:
-            xs = [x[::self.subsampling_factor, :] for x in xs]
-
-        # get batch of lengths of input sequences
-        ilens = np.array([x.shape[0] for x in xs])
-
-        # perform padding and convert to tensor
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
-        ilens = torch.from_numpy(ilens)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id)
-        return xs_pad, ilens, ys_pad
-
-    def __len__(self):
-        return len(self.batchset)
-
-
 class CustomConverter(object):
     """Custom batch converter for Pytorch
 
@@ -271,9 +193,11 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+        xs_pad = pad_list([torch.from_numpy(x).float()
+                           for x in xs], 0).to(device)
         ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
+        ys_pad = pad_list([torch.from_numpy(y).long()
+                           for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -327,7 +251,8 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim, odim, vars(args)),
+                           indent=4, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -352,14 +277,6 @@ def train(args):
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(),
                                      weight_decay=args.weight_decay)
-
-    ## NOTE: refactoring started
-    train_dataset = ASRDataset(args.train_json, args, subsampling_factor)
-    valid_dataset = ASRDataset(args.valid_json, args, subsampling_factor)
-
-
-    ## NOTE: refactoring ended
-    ## TODO: remove following lines
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -418,7 +335,8 @@ def train(args):
         torch_resume(args.resume, trainer)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
+    trainer.extend(CustomEvaluator(
+        model, valid_iter, reporter, converter, device))
 
     # Save attention weight each epoch
     if args.num_save_attention > 0 and args.mtlalpha != 1.0:
@@ -477,7 +395,8 @@ def train(args):
                                lambda best_value, current_value: best_value < current_value))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.LogReport(
+        trigger=(REPORT_INTERVAL, 'iteration')))
     report_keys = ['epoch', 'iteration', 'main/loss', 'main/loss_ctc', 'main/loss_att',
                    'validation/main/loss', 'validation/main/loss_ctc', 'validation/main/loss_att',
                    'main/acc', 'validation/main/acc', 'main/cer_ctc', 'validation/main/cer_ctc',
@@ -575,18 +494,23 @@ def recog(args):
                 with using_transform_config({'train': True}):
                     feat = load_inputs_and_targets(batch)[0][0]
                 if args.streaming_window:
-                    logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
-                    se2e = StreamingE2E(e2e=model, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
+                    logging.info(
+                        'Using streaming recognizer with window size %d frames', args.streaming_window)
+                    se2e = StreamingE2E(
+                        e2e=model, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
                     for i in range(0, feat.shape[0], args.streaming_window):
-                        logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
+                        logging.info('Feeding frames %d - %d', i,
+                                     i + args.streaming_window)
                         se2e.accept_input(feat[i:i + args.streaming_window])
                     logging.info('Running offline attention decoder')
                     se2e.decode_with_attention_offline()
                     logging.info('Offline attention decoder finished')
                     nbest_hyps = se2e.retrieve_recognition()
                 else:
-                    nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
-                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
+                    nbest_hyps = model.recognize(
+                        feat, args, train_args.char_list, rnnlm)
+                new_js[name] = add_results_to_json(
+                    js[name], nbest_hyps, train_args.char_list)
     else:
         try:
             from itertools import zip_longest as zip_longest
@@ -600,7 +524,8 @@ def recog(args):
         # sort data
         keys = list(js.keys())
         feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
-        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+        sorted_index = sorted(range(len(feat_lens)),
+                              key=lambda i: -feat_lens[i])
         keys = [keys[i] for i in sorted_index]
 
         with torch.no_grad():
@@ -609,11 +534,14 @@ def recog(args):
                 batch = [(name, js[name]) for name in names]
                 with using_transform_config({'train': False}):
                     feats = load_inputs_and_targets(batch)[0]
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                nbest_hyps = model.recognize_batch(
+                    feats, args, train_args.char_list, rnnlm=rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
-                    new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
+                    new_js[name] = add_results_to_json(
+                        js[name], nbest_hyp, train_args.char_list)
 
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps({'utts': new_js}, indent=4,
+                           sort_keys=True).encode('utf_8'))
