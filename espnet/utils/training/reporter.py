@@ -1,18 +1,20 @@
 from __future__ import print_function
 
 import contextlib
+from collections import defaultdict
 import json
 import time
 
 
-def plot_seq(d, path):
+def plot_seq(group, path):
     import matplotlib
     matplotlib.use('Agg')
     from matplotlib import pyplot
 
     fig, ax = pyplot.subplots()
-    for k, xs in d.items():
-        ax.plot(range(len(xs)), xs, label=k, marker="x")
+    for legend, d in group:
+        for k, xs in d.items():
+            ax.plot(range(len(xs)), xs, label=k + "/" + legend, marker="x")
 
     leg = ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     ax.grid()
@@ -65,13 +67,20 @@ class Stats(object):
 
             if self.outdir is not None:
                 avg = e_result.average()
+                groups = defaultdict(list)
                 for k, v in avg.items():
                     if k not in self.plot_dict.keys():
                         self.plot_dict[k] = dict()
                     if prefix not in self.plot_dict[k].keys():
                         self.plot_dict[k][prefix] = []
                     self.plot_dict[k][prefix].append(avg[k])
-                    plot_seq(self.plot_dict[k], self.outdir + "/" + k + ".png")
+                    # gather prefix e.g., loss_ctc -> loss
+                    gk = k.split('_')[0]
+                    groups[gk].append((k, self.plot_dict[k]))
+                    print("plot " + k + " into " + gk)
+
+                for gk, gv in groups.items():
+                    plot_seq(gv, self.outdir + "/" + gk + ".png")
 
 
 class EpochStats(object):

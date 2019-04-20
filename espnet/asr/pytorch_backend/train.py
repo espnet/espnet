@@ -66,7 +66,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model = E2E(idim, odim, args, use_chainer_reporter=False)
     subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:

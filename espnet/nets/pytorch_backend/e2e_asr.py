@@ -11,15 +11,11 @@ import logging
 import math
 
 import editdistance
-
-import chainer
 import numpy as np
 import six
 import torch
 
 from itertools import groupby
-
-from chainer import reporter
 
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
@@ -34,20 +30,6 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 CTC_LOSS_THRESHOLD = 10000
 
 
-class Reporter(chainer.Chain):
-    """A chainer reporter wrapper"""
-
-    def report(self, loss_ctc, loss_att, acc, cer_ctc, cer, wer, loss):
-        reporter.report({'loss_ctc': loss_ctc}, self)
-        reporter.report({'loss_att': loss_att}, self)
-        reporter.report({'acc': acc}, self)
-        reporter.report({'cer_ctc': cer_ctc}, self)
-        reporter.report({'cer': cer}, self)
-        reporter.report({'wer': wer}, self)
-        logging.info('mtl loss:' + str(loss))
-        reporter.report({'loss': loss}, self)
-
-
 class E2E(torch.nn.Module):
     """E2E module
 
@@ -56,7 +38,8 @@ class E2E(torch.nn.Module):
     :param Namespace args: argument Namespace containing options
     """
 
-    def __init__(self, idim, odim, args):
+    # TODO(karita) remove `use_chainer_reporter` option
+    def __init__(self, idim, odim, args, use_chainer_reporter=True):
         super(E2E, self).__init__()
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
@@ -66,7 +49,11 @@ class E2E(torch.nn.Module):
         self.outdir = args.outdir
         self.space = args.sym_space
         self.blank = args.sym_blank
-        self.reporter = Reporter()
+        self.use_chainer_reporter = use_chainer_reporter
+        self.reporter = None
+        if use_chainer_reporter:
+            from espnet.nets.pytorch_backend.reporter import Reporter
+            self.reporter = Reporter()
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -226,8 +213,7 @@ class E2E(torch.nn.Module):
 
         # 5. compute cer/wer
         if self.training or not (self.report_cer or self.report_wer):
-            cer, wer = 0.0, 0.0
-            # oracle_cer, oracle_wer = 0.0, 0.0
+            cer, wer = None, None
         else:
             if self.recog_args.ctc_weight > 0.0:
                 lpz = self.ctc.log_softmax(hs_pad).data
@@ -258,8 +244,8 @@ class E2E(torch.nn.Module):
                 char_eds.append(editdistance.eval(hyp_chars, ref_chars))
                 char_ref_lens.append(len(ref_chars))
 
-            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
-            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
+            wer = None if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = None if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         alpha = self.mtlalpha
         if alpha == 0:
@@ -290,10 +276,11 @@ class E2E(torch.nn.Module):
         # because NCCL communicates between GPU devices.
         device = next(self.parameters()).device
 
-        acc = torch.tensor([acc], device=device) if acc is not None else None
-        cer = torch.tensor([cer], device=device)
-        wer = torch.tensor([wer], device=device)
-        return self.loss, loss_ctc, loss_att, acc, cer, wer
+        def to_tensor(x):
+            if x is None:
+                return None
+            return torch.tensor([x], device=device)
+        return self.loss, loss_ctc, loss_att, to_tensor(acc), to_tensor(cer), to_tensor(wer)
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
