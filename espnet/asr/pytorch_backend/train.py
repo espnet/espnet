@@ -129,7 +129,7 @@ def train(args):
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=1, shuffle=False, num_workers=args.n_iter_processes, pin_memory=True)
 
-    train_job = TrainingJob(model, optimizer, train_loader, grad_clip=args.grad_clip)
+    train_job = TrainingJob(model, optimizer, train_loader, device=device, grad_clip=args.grad_clip)
 
     def save_model():
         m = model.module if hasattr(model, "module") else model
@@ -143,7 +143,7 @@ def train(args):
 
     valid_job = ValidationJob(model=model, loader=valid_loader, outdir=args.outdir,
                               patience=args.patience, criterion=args.criterion,
-                              improve_hook=save_model,
+                              improve_hook=save_model, device=device,
                               no_improve_hook=adjust_optimizer)
 
     plot_job = None
@@ -153,8 +153,8 @@ def train(args):
         else:
             att_vis_fn = model.calculate_all_attentions
         plot_job = PlotAttentionJob(args.valid_json, att_vis_fn, args.outdir + "/att_ws",
-                                    args.num_save_attention, subsampling_factor,
-                                    args.preprocess_conf)
+                                    args.num_save_attention, device,
+                                    subsampling_factor, args.preprocess_conf)
 
     runner = JobRunner([train_job, valid_job, plot_job], args.outdir, args.epochs)
     if args.resume:

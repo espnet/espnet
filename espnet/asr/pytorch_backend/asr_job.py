@@ -8,8 +8,8 @@ import torch.utils.data
 from espnet.utils.training.job import Job
 
 
-def squeeze(data):
-    return [d.squeeze(0) for d in data]
+def squeeze(data, device):
+    return [d.squeeze(0).to(device, non_blocking=True) for d in data]
 
 
 class TrainingJob(Job):
@@ -18,15 +18,17 @@ class TrainingJob(Job):
     :param espnet.nets.pytorch_backend.e2e_asr.E2E model: model to be trained
     :param torch.optim.Optimizer optimizer: optimizer for training
     :param iterable loader: dataset loader
+    :param torch.device device: tensor device
     :param float grad_clip: gradient clipping threshold
     :param int accum_grad: the number of gradient accumulation to emulate large minibatch
     '''
 
-    def __init__(self, model, optimizer, loader,
+    def __init__(self, model, optimizer, loader, device,
                  grad_clip=float('inf'), accum_grad=1):
         self.model = model
         self.optimizer = optimizer
         self.loader = loader
+        self.device = device
         self.accum_grad = accum_grad
         self.grad_clip = grad_clip
 
@@ -38,7 +40,7 @@ class TrainingJob(Job):
         with stats.epoch("main") as train_stat:
             self.model.reporter = train_stat
             for i, data in enumerate(self.loader):
-                loss = self.model(*squeeze(data))[0]
+                loss = self.model(*squeeze(data, self.device))[0]
                 loss.mean().backward()
                 n_accum += 1
                 if n_accum == self.accum_grad:
@@ -73,6 +75,7 @@ class ValidationJob(Job):
     :param espnet.nets.pytorch_backend.e2e_asr.E2E model:
     model to be evaluated
     :param iterable loader: dataset loader
+    :param torch.device device: tensor device
     :param int patience: max count for no improvement until termination
     :param str criterion: criterion to measure improvement
     :param function compare_fn: compare best and current criteria to check improvement:
@@ -81,11 +84,12 @@ class ValidationJob(Job):
     :param function no_improve_hook: hook called on no improvement
     '''
 
-    def __init__(self, model, loader, outdir, patience,
+    def __init__(self, model, loader, device, outdir, patience,
                  criterion='acc', init_criterion=None, compare_fn=None,
                  improve_hook=lambda: None, no_improve_hook=lambda: None):
         self.model = model
         self.loader = loader
+        self.device = device
         self.outdir = outdir
         self.patience = patience
         self.criterion = criterion
@@ -117,7 +121,7 @@ class ValidationJob(Job):
             self.model.reporter = valid_stat
             with torch.no_grad():
                 for i, data in enumerate(self.loader):
-                    self.model(*squeeze(data))
+                    self.model(*squeeze(data, self.device))
 
         curr = valid_stat.average()[self.criterion]
         if self.compare_fn(self.best, curr):
@@ -143,11 +147,12 @@ class PlotAttentionJob(Job):
     :param function att_viz_fn: function to visualize attention
     :param str outdir: output dir of plots
     :param int num_save_attention: the number of saving attention plots
+    :param torch.device device: tensor device
     :param int subsampling_factor: preprocessing parameter
     :param str preprocess_conf: path to preproces conf file
     '''
 
-    def __init__(self, json_path, att_vis_fn, outdir, num_save_attention,
+    def __init__(self, json_path, att_vis_fn, outdir, num_save_attention, device,
                  subsampling_factor=0, preprocess_conf=None, reverse=False):
         import json
         import os
@@ -162,14 +167,15 @@ class PlotAttentionJob(Job):
         self.data = sorted(list(valid_json.items())[:num_save_attention],
                            key=lambda x: int(x[1]['input'][0]['shape'][1]),
                            reverse=True)
-        self.dataset = ASRDataset([self.data], subsampling_factor, preprocess_conf)
+        dataset = ASRDataset([self.data], subsampling_factor, preprocess_conf)
+        self.batch = [d.to(device, non_blocking=True) for d in dataset[0]]
         self.reverse = reverse
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
     def run(self, stats):
         # TODO(karita) support tensorboard without chainer
-        att_ws = self.att_vis_fn(*self.dataset[0])
+        att_ws = self.att_vis_fn(*self.batch)
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.%d.png" % (
                 self.outdir, self.data[idx][0], stats.current_epoch)
