@@ -3,7 +3,7 @@
     "fash-an251-b": {
       "input": [
         {
-          "feat": "an4sub.ark:13",
+          "feat": "test/an4sub.ark:13",
           "name": "input1",
           "shape": [
             98,
@@ -28,7 +28,7 @@
     "fash-an253-b": {
       "input": [
         {
-          "feat": "an4sub.ark:8845",
+          "feat": "test/an4sub.ark:8845",
           "name": "input1",
           "shape": [
             68,
@@ -53,7 +53,7 @@
     "fash-an254-b": {
       "input": [
         {
-          "feat": "an4sub.ark:15187",
+          "feat": "test/an4sub.ark:15187",
           "name": "input1",
           "shape": [
             88,
@@ -78,7 +78,7 @@
     "fash-an255-b": {
       "input": [
         {
-          "feat": "an4sub.ark:23189",
+          "feat": "test/an4sub.ark:23189",
           "name": "input1",
           "shape": [
             258,
@@ -103,7 +103,7 @@
     "fash-cen1-b": {
       "input": [
         {
-          "feat": "an4sub.ark:45300",
+          "feat": "test/an4sub.ark:45300",
           "name": "input1",
           "shape": [
             348,
@@ -128,7 +128,7 @@
     "fash-cen2-b": {
       "input": [
         {
-          "feat": "an4sub.ark:74881",
+          "feat": "test/an4sub.ark:74881",
           "name": "input1",
           "shape": [
             128,
@@ -153,7 +153,7 @@
     "fash-cen4-b": {
       "input": [
         {
-          "feat": "an4sub.ark:86202",
+          "feat": "test/an4sub.ark:86202",
           "name": "input1",
           "shape": [
             358,
@@ -178,7 +178,7 @@
     "fash-cen5-b": {
       "input": [
         {
-          "feat": "an4sub.ark:116613",
+          "feat": "test/an4sub.ark:116613",
           "name": "input1",
           "shape": [
             448,
@@ -203,7 +203,7 @@
     "fash-cen7-b": {
       "input": [
         {
-          "feat": "an4sub.ark:154494",
+          "feat": "test/an4sub.ark:154494",
           "name": "input1",
           "shape": [
             248,
@@ -228,7 +228,7 @@
     "fbbh-an86-b": {
       "input": [
         {
-          "feat": "an4sub.ark:175775",
+          "feat": "test/an4sub.ark:175775",
           "name": "input1",
           "shape": [
             328,
@@ -253,7 +253,7 @@
     "fbbh-an87-b": {
       "input": [
         {
-          "feat": "an4sub.ark:203696",
+          "feat": "test/an4sub.ark:203696",
           "name": "input1",
           "shape": [
             168,
@@ -278,7 +278,7 @@
     "fbbh-an88-b": {
       "input": [
         {
-          "feat": "an4sub.ark:218337",
+          "feat": "test/an4sub.ark:218337",
           "name": "input1",
           "shape": [
             468,
@@ -303,7 +303,7 @@
     "fbbh-an89-b": {
       "input": [
         {
-          "feat": "an4sub.ark:257878",
+          "feat": "test/an4sub.ark:257878",
           "name": "input1",
           "shape": [
             638,

@@ -13,7 +13,7 @@ with open(dumpdir + "data.json") as f:
 ark1 = {k: v for k, v in utts.items() if ".1.ark" in v["input"][0]["feat"]}
 
 for k, v in ark1.items():
-    v["input"][0]["feat"] = "an4sub.ark:" + \
+    v["input"][0]["feat"] = "test/an4sub.ark:" + \
         v["input"][0]["feat"].split(":")[-1]
 
 json.dump({"utts": ark1}, open(cwd + "an4sub.json", "w"), indent=2)

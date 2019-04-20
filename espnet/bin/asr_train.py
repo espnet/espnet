@@ -188,9 +188,7 @@ def get_parser():
     return parser
 
 
-def main(args):
-    args = get_parser().parse_args(args)
-
+def init_env(args):
     # logging info
     if args.verbose > 0:
         logging.basicConfig(
@@ -242,6 +240,12 @@ def main(args):
         args.char_list = char_list
     else:
         args.char_list = None
+    return args
+
+
+def main(cmd_args):
+    args = get_parser().parse_args(cmd_args)
+    init_env(args)
 
     # train
     logging.info('backend = ' + args.backend)

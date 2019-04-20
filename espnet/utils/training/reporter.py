@@ -1,33 +1,22 @@
 from __future__ import print_function
-import os
+
 import contextlib
 import json
 import time
 
-import torch
-import matplotlib
-from matplotlib import pyplot
-
-
-def to_float(x, name):
-    if isinstance(x, float):
-        return x
-    if isinstance(x, int):
-        return float(x)
-    elif isinstance(x, torch.autograd.Variable):
-        return x.data[0]
-    else:
-        raise NotImplementedError("{} is unknown-type: {} of {}".format(name, x, type(x)))
-
 
 def plot_seq(d, path):
+    import matplotlib
+    matplotlib.use('Agg')
+    from matplotlib import pyplot
+
     fig, ax = pyplot.subplots()
     for k, xs in d.items():
         ax.plot(range(len(xs)), xs, label=k, marker="x")
 
-    l = ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    leg = ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     ax.grid()
-    fig.savefig(path, bbox_extra_artists=(l,), bbox_inches='tight')
+    fig.savefig(path, bbox_extra_artists=(leg,), bbox_inches='tight')
     pyplot.close()
 
 
@@ -35,7 +24,7 @@ def default_print(*args, **kwargs):
     print(*args, flush=True, **kwargs)
 
 
-class ExperimentReporter(object):
+class Stats(object):
     def __init__(self, max_epoch, outdir=None, float_fmt="{}",
                  report_every=100, logfun=default_print, optional=dict()):
         self.outdir = outdir
@@ -53,20 +42,25 @@ class ExperimentReporter(object):
         self.current_epoch = 0
         self.plot_dict = dict()
 
+    def state_dict(self):
+        return dict(current_epoch=self.current_epoch,
+                    plot_dict=self.plot_dict)
+
+    def load_state_dict(self, states):
+        self.current_epoch = states["current_epoch"]
+        self.plot_dict = states["plot_dict"]
+
     def elapsed_time(self):
         return time.time() - self.start_time
 
     @contextlib.contextmanager
-    def epoch(self, prefix, train):
+    def epoch(self, prefix):
         try:
-            if train:
-                self.current_epoch += 1
-            e_result = EpochResult(self, prefix, train)
+            e_result = EpochStats(self, prefix)
             yield e_result
         finally:
-            self.logfun("[{}] {}-epoch: {}\t{}".format(
-                prefix, "train" if train else "valid",
-                self.current_epoch, e_result.summary()))
+            self.logfun("[{}] epoch: {}\t{}".format(
+                prefix, self.current_epoch, e_result.summary()))
             e_result.dump()
 
             if self.outdir is not None:
@@ -80,10 +74,9 @@ class ExperimentReporter(object):
                     plot_seq(self.plot_dict[k], self.outdir + "/" + k + ".png")
 
 
-class EpochReporter(object):
-    def __init__(self, global_result, prefix, train):
+class EpochStats(object):
+    def __init__(self, global_result, prefix):
         self.global_result = global_result
-        self.train = train
         self.sum_dict = dict()
         self.iteration = 0
         self.logfun = global_result.logfun
@@ -96,7 +89,8 @@ class EpochReporter(object):
         fmt = "{}: " + self.float_fmt + "\t"
         for k, v in self.average().items():
             s += fmt.format(k, v)
-        s += "elapsed: " + time.strftime("%X", time.gmtime(self.global_result.elapsed_time()))
+        s += "elapsed: " + \
+            time.strftime("%X", time.gmtime(self.global_result.elapsed_time()))
         return s
 
     def dump(self):
@@ -119,15 +113,18 @@ class EpochReporter(object):
         with open(self.log_path, "w") as f:
             json.dump(d, f, indent=4)
 
-    def report(self, d):
-        for k, v in d.items():
+    def report(self, **kwargs):
+        for k, v in kwargs.items():
+            if v is None:
+                continue
             if k not in self.sum_dict.keys():
-                self.sum_dict[k] = to_float(v, k)
+                self.sum_dict[k] = float(v)
             else:
-                self.sum_dict[k] += to_float(v, k)
+                self.sum_dict[k] += float(v)
         self.iteration += 1
-        if self.train and self.iteration % self.global_result.report_every == 0:
-            self.logfun("train-iter: {}\t{}".format(self.iteration, self.summary()))
+        if self.iteration % self.global_result.report_every == 0:
+            self.logfun(
+                "iter: {}\t{}".format(self.iteration, self.summary()))
             self.dump()
 
     def average(self):

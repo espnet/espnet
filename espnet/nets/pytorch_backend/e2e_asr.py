@@ -37,15 +37,15 @@ CTC_LOSS_THRESHOLD = 10000
 class Reporter(chainer.Chain):
     """A chainer reporter wrapper"""
 
-    def report(self, loss_ctc, loss_att, acc, cer_ctc, cer, wer, mtl_loss):
+    def report(self, loss_ctc, loss_att, acc, cer_ctc, cer, wer, loss):
         reporter.report({'loss_ctc': loss_ctc}, self)
         reporter.report({'loss_att': loss_att}, self)
         reporter.report({'acc': acc}, self)
         reporter.report({'cer_ctc': cer_ctc}, self)
         reporter.report({'cer': cer}, self)
         reporter.report({'wer': wer}, self)
-        logging.info('mtl loss:' + str(mtl_loss))
-        reporter.report({'loss': mtl_loss}, self)
+        logging.info('mtl loss:' + str(loss))
+        reporter.report({'loss': loss}, self)
 
 
 class E2E(torch.nn.Module):
@@ -277,7 +277,10 @@ class E2E(torch.nn.Module):
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer_ctc, cer, wer, loss_data)
+            # self.reporter.report(loss_ctc_data, loss_att_data, acc, cer_ctc, cer, wer, loss_data)
+            self.reporter.report(loss_ctc=loss_ctc_data,
+                                 loss_att=loss_att_data,
+                                 acc=acc, cer_ctc=cer_ctc, cer=cer, wer=wer, loss=loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
 
