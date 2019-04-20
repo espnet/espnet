@@ -82,10 +82,10 @@ $ cd tools
 $ make KALDI=/path/to/kaldi
 ```
 
-You can also specify the Python (default 3.7), PyTorch (default 1.0.0) and CUDA versions (default 10.0), for example:
+You can also specify the Python (`PYTHON_VERSION` default 3.7), PyTorch (`TH_VERSION` default 1.0.0) and CUDA versions (`CUDA_VERSION` default 10.0), for example:
 ```sh
 $ cd tools
-$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 CUDA_VERSION=9.0 TH_VERSION=0.4.1
+$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 
 #### using existing python
@@ -108,7 +108,7 @@ $ make -j 10
 As seen above, you can also specify the Python and CUDA versions, and Python path (based on `virtualenv`), for example:
 ```sh
 $ cd tools
-$ make -j 10 PYTHON_VERSION=3.6 CUDA_VERSION=9.0
+$ make -j 10 PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 ```sh
 $ cd tools
@@ -134,7 +134,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ make check_install
 ```
-or `make check_install --no-cupy` if you do not have a GPU on your terminal. 
+or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal. 
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
