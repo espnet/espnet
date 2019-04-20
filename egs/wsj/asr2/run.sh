@@ -82,6 +82,7 @@ maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
 
 # scheduled sampling option
 samp_prob=0.0
@@ -318,18 +319,26 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-
+    if [ ${n_average} -gt 1 ]; then
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+                               --snapshots ${expdir}/results/snapshot.ep.* \
+                               --out ${expdir}/results/${recog_model} \
+                               --num ${n_average}
+    fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
-        if [ ${use_wordlm} = true ]; then
-            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
-        else
-            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
-        fi
+        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
         if [ ${lm_weight} == 0 ]; then
             recog_opts=""
+        else
+            decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
+            if [ ${use_wordlm} = true ]; then
+                recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+            else
+                recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+            fi
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 

@@ -81,7 +81,6 @@ class CustomUpdater(training.StandardUpdater):
             train_iter, optimizer, converter=converter, device=device)
         self.count = 0
         self.accum_grad = accum_grad
-        self.clean = True
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -94,12 +93,11 @@ class CustomUpdater(training.StandardUpdater):
         # Get batch and convert into variables
         batch = train_iter.next()
         x = self.converter(batch, self.device)
+        if self.count == 1:
+            optimizer.target.cleargrads()
 
         # Compute the loss at this time step and accumulate it
         loss = optimizer.target(*x) / self.accum_grad
-        if self.clean:
-            optimizer.target.cleargrads()  # Clear the parameter gradients
-            self.clean = False
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
@@ -110,7 +108,7 @@ class CustomUpdater(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         elif self.count % self.accum_grad == 0:
             optimizer.update()
-            self.clean = True
+            optimizer.target.cleargrads()  # Clear the parameter gradients
 
 
 class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
@@ -121,7 +119,6 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             train_iters, optimizer, converter=converter, devices=devices)
         self.count = 0
         self.accum_grad = accum_grad
-        self.clean = True
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -132,18 +129,12 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
         with cuda.Device(self._devices[0]):
             from cupy.cuda import nccl
             # For reducing memory
-            if self.clean:
-                self._master.cleargrads()
 
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
             x = self.converter(batch, self._devices[0])
 
             loss = self._master(*x) / self.accum_grad
-
-            if self.clean:
-                self._master.cleargrads()
-                self.clean = False
             loss.backward()
             loss.unchain_backward()
 
@@ -168,7 +159,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
                 logging.warning('grad norm is nan. Do not update model.')
             elif self.count % self.accum_grad == 0:
                 optimizer.update()
-                self.clean = True
+                self._master.cleargrads()
 
             if self.comm is not None:
                 gp = gather_params(self._master)

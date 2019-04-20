@@ -8,9 +8,11 @@ from chainer.training import extension
 
 from distutils.util import strtobool
 
+from espnet.asr import asr_utils
 from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttention
 from espnet.nets.chainer_backend.decoders_transformer import Decoder
 from espnet.nets.chainer_backend.encoders_transformer import Encoder
+from espnet.nets.chainer_backend.nets_utils_transformer import plot_multi_head_attention
 
 import logging
 import math
@@ -99,7 +101,7 @@ class VaswaniRule(extension.Extension):
 
 
 class E2E(chainer.Chain):
-    def __init__(self, idim, odim, args, flag_return=True):
+    def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
         super(E2E, self).__init__()
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
@@ -114,7 +116,8 @@ class E2E(chainer.Chain):
         self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = [0]
-        self.verbose = args.verbose
+        self.verbose = 0 if 'verbose' not in args else args.verbose
+        self.ignore_id = ignore_id
         self.reset_parameters(args)
         with self.init_scope():
             self.encoder = Encoder(args.transformer_input_layer, idim, args.elayers, args.adim,
@@ -282,7 +285,7 @@ class E2E(chainer.Chain):
         else:
             return self.loss
 
-    def recognize(self, x_block, recog_args, char_list, rnnlm=None):
+    def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
         '''E2E beam search
 
         :param ndarray x: input acouctic feature (B, T, D) or (T, D)
@@ -343,3 +346,11 @@ class E2E(chainer.Chain):
                 _name = name[1:].replace('/', '_')
                 ret[_name] = var.data
         return ret
+
+
+class PlotAttentionReport(asr_utils.PlotAttentionReport):
+    def __call__(self, trainer):
+        batch = self.converter([self.converter.transform(self.data)], self.device)
+        attn_dict = self.att_vis_fn(*batch)
+        suffix = "ep.{.updater.epoch}.png".format(trainer)
+        plot_multi_head_attention(self.data, attn_dict, self.outdir, suffix)
