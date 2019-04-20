@@ -74,25 +74,28 @@ export CUDA_PATH=$CUDAROOT
 
 ### Step 2-A) installation with compiled Kaldi
 
+#### using miniconda (default)
+
 Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi
 ```
 
-Or using specified python and virtualenv
+You can also specify the Python (`PYTHON_VERSION` default 3.7), PyTorch (`TH_VERSION` default 1.0.0) and CUDA versions (`CUDA_VERSION` default 10.0), for example:
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
+```
+
+#### using existing python
+
+If you do not want to use miniconda, you need to specify your python interpreter to setup `virtualenv`
+
 ```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
 ```
-
-Or install specific Python version with miniconda
-```sh
-$ cd tools
-$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
-```
-
-v0.3.0: Changed to use miniconda by default installation.
 
 ### Step 2-B) installation including Kaldi installation
 
@@ -102,17 +105,16 @@ $ cd tools
 $ make -j 10
 ```
 
-Or using specified python and virtualenv
+As seen above, you can also specify the Python and CUDA versions, and Python path (based on `virtualenv`), for example:
+```sh
+$ cd tools
+$ make -j 10 PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
+```
 ```sh
 $ cd tools
 $ make -j 10 PYTHON=/usr/bin/python2.7
 ```
 
-Or install specific Python version with miniconda
-```sh
-$ cd tools
-$ make PYTHON_VERSION=3.6
-```
 
 ### Step 2-C) installation for CPU-only
 
@@ -132,7 +134,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ make check_install
 ```
-or `make check_install --no-cupy` if you do not have a GPU on your terminal. 
+or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal. 
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
