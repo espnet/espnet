@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import contextlib
-from collections import defaultdict
 import json
 import time
 
@@ -58,6 +57,8 @@ class Stats(object):
 
     @contextlib.contextmanager
     def epoch(self, prefix):
+        from collections import defaultdict
+
         try:
             e_result = EpochStats(self, prefix)
             yield e_result

@@ -7,6 +7,7 @@ REPORT_INTERVAL = 100
 
 def load_batchset(json_path, args):
     import json
+
     from espnet.asr.asr_utils import make_batchset
 
     with open(json_path, 'rb') as f:
@@ -24,20 +25,20 @@ def train(args):
     :param Namespace args: The program arguments
     """
     import json
-    import os
-    import torch
     import logging
+    import os
+
+    import torch
 
     from espnet.asr.asr_utils import get_model_conf
     from espnet.asr.pytorch_backend.asr_job import ASRDataset
     from espnet.asr.pytorch_backend.asr_job import PlotAttentionJob
     from espnet.asr.pytorch_backend.asr_job import TrainingJob
     from espnet.asr.pytorch_backend.asr_job import ValidationJob
-    from espnet.nets.pytorch_backend.e2e_asr import E2E
-    from espnet.utils.training.job import JobRunner
-    from espnet.utils.deterministic_utils import set_deterministic_pytorch
-
     import espnet.lm.pytorch_backend.lm as lm_pytorch
+    from espnet.nets.pytorch_backend.e2e_asr import E2E
+    from espnet.utils.deterministic_utils import set_deterministic_pytorch
+    from espnet.utils.training.job import JobRunner
 
     set_deterministic_pytorch(args)
 
@@ -53,17 +54,6 @@ def train(args):
     odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
-
-    # specify attention, CTC, hybrid mode
-    if args.mtlalpha == 1.0:
-        mtl_mode = 'ctc'
-        logging.info('Pure CTC mode')
-    elif args.mtlalpha == 0.0:
-        mtl_mode = 'att'
-        logging.info('Pure attention mode')
-    else:
-        mtl_mode = 'mtl'
-        logging.info('Multitask learning mode')
 
     # specify model architecture
     model = E2E(idim, odim, args, use_chainer_reporter=False)

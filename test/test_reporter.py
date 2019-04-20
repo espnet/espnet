@@ -15,8 +15,8 @@ def debug_args(tmpdir):
 
 
 def run_reporter():
-    import espnet.asr.pytorch_backend.train as new_reporter
     import espnet.asr.pytorch_backend.asr as chainer_reporter
+    import espnet.asr.pytorch_backend.train as new_reporter
 
     args_new = debug_args("tmp-new-report")
     args_chainer = debug_args("tmp-chainer-report")
