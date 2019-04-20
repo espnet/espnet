@@ -51,6 +51,25 @@ class Conv2dSubsampling(chainer.Chain):
         return xs, ilens
 
 
+class LinearSampling(chainer.Chain):
+    def __init__(self, idim, dims, dropout=0.1,
+                 initialW=None, initial_bias=None):
+        super(LinearSampling, self).__init__()
+        stvd = 1. / np.sqrt(dims)
+        self.dropout = dropout
+        with self.init_scope():
+            self.linear = L.Linear(idim, dims, initialW=initialW(scale=stvd),
+                                   initial_bias=initial_bias(scale=stvd))
+            self.pe = PositionalEncoding(dims, dropout)
+
+    def __call__(self, xs, ilens):
+        logging.info(xs.shape)
+        xs = self.linear(xs, n_batch_axes=2)
+        logging.info(xs.shape)
+        xs = self.pe(xs)
+        return xs, ilens
+
+
 class EncoderLayer(chainer.Chain):
     def __init__(self, n_units, d_units=0, h=8, dropout=0.1,
                  initialW=None, initial_bias=None):
@@ -90,7 +109,7 @@ class Encoder(chainer.Chain):
                 self.input_layer = Conv2dSubsampling(channels, idim, n_units, dropout=dropout,
                                                      initialW=initialW, initial_bias=initial_bias)
             elif input_type == 'linear':
-                self.input_layer = F.Linear(idim, n_units, initialW=initialW, initial_bias=initial_bias)
+                self.input_layer = LinearSampling(idim, n_units, initialW=initialW, initial_bias=initial_bias)
             else:
                 raise ValueError('Incorrect type of input layer')
             self.norm = LayerNorm(n_units)

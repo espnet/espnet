@@ -1,4 +1,5 @@
 from argparse import Namespace
+import chainer
 import importlib
 import logging
 import numpy
@@ -69,30 +70,40 @@ def prepare(backend):
         transformer_input_layer="linear",
         transformer_length_normalized_loss=True,
         mtlalpha=0.0,
-        lsm_weight=0.001
+        lsm_weight=0.001,
+        char_list=['a', 'e', 'i', 'o', 'u']
     )
     idim = 83
     odim = 5
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(backend))
 
     model = T.E2E(idim, odim, args)
-
-    x = torch.randn(5, 70, idim)
+    batchsize = 5
+    if backend == 'pytorch':
+        x = torch.randn(batchsize, 70, idim)
+    else:
+        x = numpy.random.randn(batchsize, 70, idim).astype(numpy.float32)
     ilens = [70, 50, 30, 30, 20]
     n_token = odim - 1
-    y = (torch.rand(5, 10) * n_token % n_token).long()
+    if backend == 'pytorch':
+        y = (torch.rand(batchsize, 10) * n_token % n_token).long()
+    else:
+        y = (numpy.random.rand(batchsize, 10) * n_token % n_token).astype(numpy.int32)
     olens = [3, 9, 10, 2, 3]
-    for i in range(x.size(0)):
-        x[i, ilens[i]:] = float("nan")
+    for i in range(batchsize):
+        x[i, ilens[i]:] = -1
         y[i, olens[i]:] = model.ignore_id
 
     data = []
-    for i in range(x.size(0)):
+    for i in range(batchsize):
         data.append(("utt%d" % i, {
             "input": [{"shape": [ilens[i], idim]}],
             "output": [{"shape": [olens[i]]}]
         }))
-    return model, x, torch.tensor(ilens), y, data
+    if backend == 'pytorch':
+        return model, x, torch.tensor(ilens), y, data
+    else:
+        return model, x, ilens, y, data
 
 
 @pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
@@ -108,26 +119,12 @@ def test_transformer_mask(module):
     assert not numpy.isnan(a.attn[0, :, :3, :3].detach().numpy()).any()
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
-def test_transformer_synth():
-    T = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr_transformer')
-    model, x, ilens, y, data = prepare()
-
-    # test acc is almost 100%
-    optim = torch.optim.Adam(model.parameters(), 0.01)
-    max_acc = 0
-    for i in range(40):
-        loss, loss_ctc, loss_att, acc, cer, wer = model(x, ilens, y)
-        optim.zero_grad()
-        loss.backward()
-        optim.step()
-        print(loss_att, acc)
-        max_acc = max(acc, max_acc)
-    assert max_acc > 0.8
-
-    # test attention plot
-    attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-    T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+@pytest.mark.parametrize("module", ["pytorch", "chainer"])
+def test_transformer_synth(module):
+    if module == "pytorch":
+        pytest.skip()
+    T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(module))
+    model, x, ilens, y, data = prepare(module)
 
     # test beam search
     recog_args = Namespace(
@@ -138,10 +135,47 @@ def test_transformer_synth():
         minlenratio=0,
         nbest=1
     )
-    with torch.no_grad():
-        nbest = model.recognize(x[0, :ilens[0]].numpy(), recog_args)
-        print(y[0])
-        print(nbest[0]["yseq"][1:-1])
+    # test acc is almost 100%
+    if module == "pytorch":
+        optim = torch.optim.Adam(model.parameters(), 0.01)
+        max_acc = 0
+        for i in range(40):
+            loss, loss_ctc, loss_att, acc, cer, wer = model(x, ilens, y)
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+            print(loss_att, acc)
+            max_acc = max(acc, max_acc)
+        assert max_acc > 0.8
+
+        # test attention plot
+        attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
+        T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+        with torch.no_grad():
+            nbest = model.recognize(x[0, :ilens[0]].numpy(), recog_args)
+            print(y[0])
+            print(nbest[0]["yseq"][1:-1])
+    else:
+        optim = chainer.optimizers.Adam(0.01)
+        optim.setup(model)
+        max_acc = 0
+        for i in range(40):
+            loss, loss_ctc, loss_att, acc = model(x, ilens, y)
+            model.cleargrads()
+            loss.backward()
+            optim.update()
+            print(loss_att, acc)
+            max_acc = max(acc.data, max_acc)
+        assert max_acc > 0.8
+
+        # test attention plot
+        attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
+        T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+
+        with chainer.no_backprop_mode():
+            nbest = model.recognize(x[0, :ilens[0]], recog_args)
+            print(y[0])
+            print(nbest[0]["yseq"][1:-1])
 
 
 def prepare_copy_task(d_model, d_ff=64, n=1):
