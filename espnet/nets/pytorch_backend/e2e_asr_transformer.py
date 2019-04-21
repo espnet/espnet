@@ -207,7 +207,7 @@ class E2E(ASRInterface, torch.nn.Module):
     def recognize(self, feat, recog_args, char_list=None, rnnlm=None):
         '''recognize feat
 
-        :param ndarray x: input acouctic feature (B, T, D) or (T, D)
+        :param ndnarray x: input acouctic feature (B, T, D) or (T, D)
         :param namespace recog_args: argment namespace contraining options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
@@ -326,8 +326,9 @@ class E2E(ASRInterface, torch.nn.Module):
             # sort and get nbest
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothes: ' + str(len(hyps)))
-            logging.debug(
-                'best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]))
+            if char_list is not None:
+                logging.debug(
+                    'best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -364,9 +365,10 @@ class E2E(ASRInterface, torch.nn.Module):
                 logging.info('no hypothesis. Finish decoding.')
                 break
 
-            for hyp in hyps:
-                logging.debug(
-                    'hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
+            if char_list is not None:
+                for hyp in hyps:
+                    logging.debug(
+                        'hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
@@ -379,7 +381,7 @@ class E2E(ASRInterface, torch.nn.Module):
             # should copy becasuse Namespace will be overwritten globally
             recog_args = Namespace(**vars(recog_args))
             recog_args.minlenratio = max(0.0, recog_args.minlenratio - 0.1)
-            return self.recognize_beam(h, lpz, recog_args, char_list, rnnlm)
+            return self.recognize(feat, recog_args, char_list, rnnlm)
 
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))

@@ -202,7 +202,7 @@ def prepare_copy_task(d_model, d_ff=64, n=1):
     return model, x, ilens, x, data
 
 
-def test_transformer_copy():
+def run_transformer_copy():
     # copy task defined in http://nlp.seas.harvard.edu/2018/04/03/attention.html#results
     d_model = 32
     model, x, ilens, y, data = prepare_copy_task(d_model)
@@ -293,4 +293,4 @@ def test_transformer_parallel():
 
 
 if __name__ == "__main__":
-    test_transformer_copy()
+    run_transformer_copy()
