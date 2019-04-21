@@ -306,7 +306,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --epochs ${epochs} \
         --sortagrad ${sortagrad} \
         --lsm-weight ${lsm_weight} \
-        --model-module "espnet.nets.${backend}_backend.e2e_asr_transformer" \
+        --model-module "espnet.nets.${backend}_backend.e2e_asr_transformer:E2E" \
         --transformer-lr ${lr_init} \
         --transformer-warmup-steps ${warmup_steps} \
         --transformer-input-layer ${input_layer} \

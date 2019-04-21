@@ -1,4 +1,8 @@
 # encoding: utf-8
+from distutils.util import strtobool
+import logging
+import math
+import numpy as np
 
 import chainer
 from chainer import reporter
@@ -6,38 +10,16 @@ from chainer import reporter
 import chainer.functions as F
 from chainer.training import extension
 
-from distutils.util import strtobool
-
 from espnet.asr import asr_utils
 from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttention
 from espnet.nets.chainer_backend.decoders_transformer import Decoder
 from espnet.nets.chainer_backend.encoders_transformer import Encoder
 from espnet.nets.chainer_backend.nets_utils_transformer import plot_multi_head_attention
+from espnet.nets.e2e_asr_common import ASRInterface
 
-import logging
-import math
-import numpy as np
 
 MAX_DECODER_OUTPUT = 5
 MIN_VALUE = float(np.finfo(np.float32).min)
-
-
-def add_arguments(parser):
-    group = parser.add_argument_group("transformer model setting")
-    group.add_argument("--transformer-init", type=str, default="pytorch",
-                       help='how to initialize transformer parameters')
-    group.add_argument("--transformer-input-layer", type=str, default="conv2d",
-                       choices=["conv2d", "linear", "embed"],
-                       help='transformer input layer type')
-    group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
-                       help='dropout in transformer attention. use --dropout-rate if None is set')
-    group.add_argument('--transformer-lr', default=10.0, type=float,
-                       help='Initial value of learning rate')
-    group.add_argument('--transformer-warmup-steps', default=25000, type=int,
-                       help='optimizer warmup steps')
-    group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
-                       help='normalize loss by length')
-    return parser
 
 
 class VaswaniRule(extension.Extension):
@@ -100,9 +82,27 @@ class VaswaniRule(extension.Extension):
         self._last_value = value
 
 
-class E2E(chainer.Chain):
+class E2E(ASRInterface, chainer.Chain):
+    @staticmethod
+    def add_arguments(parser):
+        group = parser.add_argument_group("transformer model setting")
+        group.add_argument("--transformer-init", type=str, default="pytorch",
+                           help='how to initialize transformer parameters')
+        group.add_argument("--transformer-input-layer", type=str, default="conv2d",
+                           choices=["conv2d", "linear", "embed"],
+                           help='transformer input layer type')
+        group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
+                           help='dropout in transformer attention. use --dropout-rate if None is set')
+        group.add_argument('--transformer-lr', default=10.0, type=float,
+                           help='Initial value of learning rate')
+        group.add_argument('--transformer-warmup-steps', default=25000, type=int,
+                           help='optimizer warmup steps')
+        group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
+                           help='normalize loss by length')
+        return parser
+
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
-        super(E2E, self).__init__()
+        chainer.Chain.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
         if args.transformer_attn_dropout_rate is None:
@@ -346,6 +346,10 @@ class E2E(chainer.Chain):
                 _name = name[1:].replace('/', '_')
                 ret[_name] = var.data
         return ret
+
+    @property
+    def attention_plot_class(self):
+        return PlotAttentionReport
 
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
