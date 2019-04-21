@@ -9,18 +9,25 @@ MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 
 
 class MultiHeadedAttention(nn.Module):
-    def __init__(self, h, d_model, dropout):
+    """Multi-Head Attention layer
+
+    :param int n_head: the number of head s
+    :param int n_feat: the number of features
+    :param float dropout_rate: dropout rate
+    """
+
+    def __init__(self, n_head, n_feat, dropout_rate):
         super(MultiHeadedAttention, self).__init__()
-        assert d_model % h == 0
+        assert n_feat % n_head == 0
         # We assume d_v always equals d_k
-        self.d_k = d_model // h
-        self.h = h
-        self.linear_q = nn.Linear(d_model, d_model)
-        self.linear_k = nn.Linear(d_model, d_model)
-        self.linear_v = nn.Linear(d_model, d_model)
-        self.linear_out = nn.Linear(d_model, d_model)
+        self.d_k = n_feat // n_head
+        self.h = n_head
+        self.linear_q = nn.Linear(n_feat, n_feat)
+        self.linear_k = nn.Linear(n_feat, n_feat)
+        self.linear_v = nn.Linear(n_feat, n_feat)
+        self.linear_out = nn.Linear(n_feat, n_feat)
         self.attn = None
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout = nn.Dropout(p=dropout_rate)
 
     def forward(self, query, key, value, mask):
         """Compute 'Scaled Dot Product Attention'

@@ -1,14 +1,20 @@
 import torch
 
-from .attention import MultiHeadedAttention
-from .decoder_layer import DecoderLayer
-from .embedding import PositionalEncoding
-from .feedforward import PositionwiseFeedForward
-from .layer_norm import LayerNorm
-from .sequential import repeat
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
+from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
 class Decoder(torch.nn.Module):
+    """Decoder layer
+
+    :param int odim: output dim
+    :param argparse.Namespace args:  experiment setting
+    """
+
     def __init__(self, odim, args):
         super(Decoder, self).__init__()
         self.embed = torch.nn.Sequential(

@@ -12,12 +12,12 @@ from espnet.nets.pytorch_backend.e2e_asr import Reporter
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
-from .transformer.attention import MIN_VALUE
-from .transformer.attention import MultiHeadedAttention
-from .transformer.decoder import Decoder
-from .transformer.encoder import Encoder
-from .transformer.layer_norm import LayerNorm
-from .transformer.loss import LabelSmoothing
+from espnet.nets.pytorch_backend.transformer.attention import MIN_VALUE
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.decoder import Decoder
+from espnet.nets.pytorch_backend.transformer.encoder import Encoder
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 def add_arguments(parser):
@@ -71,8 +71,8 @@ class E2E(torch.nn.Module):
         self.reporter = Reporter()
 
         # self.lsm_weight = a
-        self.criterion = LabelSmoothing(self.odim, self.ignore_id, args.lsm_weight,
-                                        args.transformer_length_normalized_loss)
+        self.criterion = LabelSmoothingLoss(self.odim, self.ignore_id, args.lsm_weight,
+                                            args.transformer_length_normalized_loss)
         # self.char_list = args.char_list
         # self.verbose = args.verbose
         self.reset_parameters(args)

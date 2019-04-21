@@ -2,10 +2,19 @@ import torch
 from torch import nn
 
 
-class LabelSmoothing(nn.Module):
-    def __init__(self, size, padding_idx, smoothing, normalize_length=False):
-        super(LabelSmoothing, self).__init__()
-        self.criterion = nn.KLDivLoss(reduce=False)
+class LabelSmoothingLoss(nn.Module):
+    """Label-smoothing loss
+
+    :param int size: the number of class
+    :param int padding_idx: ignored class id
+    :param float smoothing: smoothing rate (0.0 means the conventional CE)
+    :param bool normalize_length: normalize loss by sequence length if True
+    :param torch.nn.Module criterion: loss function to be smoothed
+    """
+
+    def __init__(self, size, padding_idx, smoothing, normalize_length=False, criterion=nn.KLDivLoss(reduce=False)):
+        super(LabelSmoothingLoss, self).__init__()
+        self.criterion = criterion
         self.padding_idx = padding_idx
         self.confidence = 1.0 - smoothing
         self.smoothing = smoothing
@@ -14,6 +23,13 @@ class LabelSmoothing(nn.Module):
         self.normalize_length = normalize_length
 
     def forward(self, x, target):
+        """Compute loss between x and target
+
+        :param torch.Tensor x: prediction (batch, seqlen, class)
+        :param torch.Tensor target: target signal masked with self.padding_id (batch, seqlen)
+        :return: scalar float value
+        :rtype torch.Tensor
+        """
         assert x.size(2) == self.size
         batch_size = x.size(0)
         x = x.view(-1, self.size)
