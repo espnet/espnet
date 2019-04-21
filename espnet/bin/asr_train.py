@@ -50,6 +50,8 @@ def main(args):
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network architecture
+    parser.add_argument('--model-module', type=str, default=None,
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr)')
     # encoder
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
@@ -159,8 +161,10 @@ def main(args):
                         help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam'],
+                        choices=['adadelta', 'adam', 'noam'],
                         help='Optimizer')
+    parser.add_argument('--accum-grad', default=1, type=int,
+                        help='Number of gradient accumuration')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
@@ -188,7 +192,6 @@ def main(args):
                         help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
-
     parser.add_argument(
         '--use-frontend', type=strtobool, default=False,
         help='The flag to switch to use frontend system.')
@@ -263,7 +266,18 @@ def main(args):
     parser.add_argument('--fbank-fmax', type=float, default=None,
                         help='')
 
-    args = parser.parse_args(args)
+    args, _ = parser.parse_known_args(cmd_args)
+    from importlib import import_module
+    if args.model_module is not None:
+        model_module = import_module(args.model_module)
+        assert hasattr(model_module, "E2E")
+        if hasattr(model_module, "add_arguments"):
+            model_module.add_arguments(parser)
+    args = parser.parse_args(cmd_args)
+    if args.model_module is None:
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr"
+    else:
+        args.backend = "chainer" if "chainer" in args.model_module else "pytorch"
 
     # logging info
     if args.verbose > 0:

@@ -33,9 +33,7 @@ from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
-from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
-from espnet.nets.chainer_backend.e2e_asr import E2E
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.training.iterators import ShufflingEnabler
@@ -77,24 +75,28 @@ def sum_sqnorm(arr):
 class CustomUpdater(training.StandardUpdater):
     """Custom updater for chainer"""
 
-    def __init__(self, train_iter, optimizer, converter, device):
+    def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
         super(CustomUpdater, self).__init__(
             train_iter, optimizer, converter=converter, device=device)
+        self.count = 0
+        self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
         # When we pass one iterator and optimizer to StandardUpdater.__init__,
         # they are automatically named 'main'.
+        self.count += 1
         train_iter = self.get_iterator('main')
         optimizer = self.get_optimizer('main')
 
         # Get batch and convert into variables
         batch = train_iter.next()
         x = self.converter(batch, self.device)
+        if self.count == 1:
+            optimizer.target.cleargrads()
 
         # Compute the loss at this time step and accumulate it
-        loss = optimizer.target(*x)
-        optimizer.target.cleargrads()  # Clear the parameter gradients
+        loss = optimizer.target(*x) / self.accum_grad
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
@@ -103,34 +105,35 @@ class CustomUpdater(training.StandardUpdater):
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
-        else:
+        elif self.count % self.accum_grad == 0:
             optimizer.update()
+            optimizer.target.cleargrads()  # Clear the parameter gradients
 
 
 class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     """Custom parallel updater for chainer"""
 
-    def __init__(self, train_iters, optimizer, converter, devices):
+    def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
         super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices)
+        self.count = 0
+        self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
+        self.count += 1
         self.setup_workers()
 
         self._send_message(('update', None))
         with cuda.Device(self._devices[0]):
             from cupy.cuda import nccl
             # For reducing memory
-            self._master.cleargrads()
 
             optimizer = self.get_optimizer('main')
             batch = self.get_iterator('main').next()
             x = self.converter(batch, self._devices[0])
 
-            loss = self._master(*x)
-
-            self._master.cleargrads()
+            loss = self._master(*x) / self.accum_grad
             loss.backward()
             loss.unchain_backward()
 
@@ -153,8 +156,9 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
             # update
             if math.isnan(grad_norm):
                 logging.warning('grad norm is nan. Do not update model.')
-            else:
+            elif self.count % self.accum_grad == 0:
                 optimizer.update()
+                self._master.cleargrads()
 
             if self.comm is not None:
                 gp = gather_params(self._master)
@@ -235,7 +239,10 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model = E2E(idim, odim, args, flag_return=False)
+    logging.info('import model module: ' + args.model_module)
+    from importlib import import_module
+    model_module = import_module(args.model_module)
+    model = model_module.E2E(idim, odim, args, flag_return=False)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -272,6 +279,8 @@ def train(args):
         optimizer = chainer.optimizers.AdaDelta(eps=args.eps)
     elif args.opt == 'adam':
         optimizer = chainer.optimizers.Adam()
+    elif args.opt == 'noam':
+        optimizer = chainer.optimizers.Adam(alpha=0, beta1=0.9, beta2=0.98, eps=1e-9)
     else:
         raise NotImplementedError('args.opt={}'.format(args.opt))
 
@@ -298,6 +307,7 @@ def train(args):
     )
 
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
+    accum_grad = args.accum_grad
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
@@ -316,7 +326,7 @@ def train(args):
 
         # set up updater
         updater = CustomUpdater(
-            train_iters[0], optimizer, converter=converter, device=gpu_id)
+            train_iters[0], optimizer, converter=converter, device=gpu_id, accum_grad=accum_grad)
     else:
         # set up minibatches
         train_subsets = []
@@ -360,7 +370,9 @@ def train(args):
     if use_sortagrad:
         trainer.extend(ShufflingEnabler(train_iters),
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
-
+    if args.opt == 'noam':
+        trainer.extend(model_module.VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
+                                                scale=args.transformer_lr), trigger=(1, 'iteration'))
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
@@ -390,6 +402,11 @@ def train(args):
             att_vis_fn = model.module.calculate_all_attentions
         else:
             att_vis_fn = model.calculate_all_attentions
+        try:
+            PlotAttentionReport = model_module.PlotAttentionReport
+            logging.info('Using custom PlotAttentionReport')
+        except AttributeError:
+            from espnet.asr.asr_utils import PlotAttentionReport
         att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, transform=load_cv, device=gpu_id)
@@ -479,7 +496,9 @@ def recog(args):
 
     # specify model architecture
     logging.info('reading model parameters from ' + args.model)
-    model = E2E(idim, odim, train_args)
+    from importlib import import_module
+    model_module = import_module(train_args.model_module)
+    model = model_module.E2E(idim, odim, train_args)
     chainer_load(args.model, model)
 
     # read rnnlm
