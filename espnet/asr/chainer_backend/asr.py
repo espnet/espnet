@@ -34,7 +34,7 @@ from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import restore_snapshot
-from espnet.nets.e2e_asr_common import ASRInterface
+from espnet.nets.asr_interface import ASRInterface
 from espnet.transform.transformation import using_transform_config
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets

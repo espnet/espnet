@@ -18,7 +18,7 @@ import numpy as np
 import six
 import torch
 
-from espnet.nets.e2e_asr_common import ASRInterface
+from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.attentions import att_for

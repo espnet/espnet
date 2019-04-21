@@ -21,7 +21,7 @@ from itertools import groupby
 
 from chainer import reporter
 
-from espnet.nets.e2e_asr_common import ASRInterface
+from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for

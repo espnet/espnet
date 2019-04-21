@@ -11,12 +11,11 @@ import chainer.functions as F
 from chainer.training import extension
 
 from espnet.asr import asr_utils
+from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttention
 from espnet.nets.chainer_backend.decoders_transformer import Decoder
 from espnet.nets.chainer_backend.encoders_transformer import Encoder
 from espnet.nets.chainer_backend.nets_utils_transformer import plot_multi_head_attention
-from espnet.nets.e2e_asr_common import ASRInterface
-
 
 MAX_DECODER_OUTPUT = 5
 MIN_VALUE = float(np.finfo(np.float32).min)
