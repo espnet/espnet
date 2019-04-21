@@ -15,8 +15,8 @@ def test_sequential():
     class Masked(torch.nn.Module):
         def forward(self, x, m):
             return x, m
-    import espnet.nets.pytorch_backend.e2e_asr_transformer as T
-    f = T.MultiSequential(Masked(), Masked())
+    from espnet.nets.pytorch_backend.transformer.sequential import MultiSequential
+    f = MultiSequential(Masked(), Masked())
     x = torch.randn(2, 3)
     m = torch.randn(2, 3) > 0
     assert len(f(x, m)) == 2
@@ -137,7 +137,8 @@ def test_transformer_synth(module):
 
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-        T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+        from espnet.nets.pytorch_backend.transformer import plot
+        plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
         with torch.no_grad():
             nbest = model.recognize(x[0, :ilens[0]].numpy(), recog_args)
             print(y[0])
