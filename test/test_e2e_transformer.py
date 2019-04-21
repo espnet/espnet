@@ -7,24 +7,15 @@ import pytest
 import torch
 
 
-try:
-    import espnet.nets.pytorch_backend.e2e_transformer  # NOQA
-    pytorch_T = True
-except Exception as e:
-    pytorch_T = False
-    pass
-
-
 logging.basicConfig(
     level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 def test_sequential():
     class Masked(torch.nn.Module):
         def forward(self, x, m):
             return x, m
-    import espnet.nets.pytorch_backend.e2e_transformer as T
+    import espnet.nets.pytorch_backend.e2e_asr_transformer as T
     f = T.MultiSequential(Masked(), Masked())
     x = torch.randn(2, 3)
     m = torch.randn(2, 3) > 0
@@ -46,7 +37,6 @@ def subsequent_mask(size, backend='pytorch'):
         return subsequent_mask == 0
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_mask(module):
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(module))
@@ -106,10 +96,9 @@ def prepare(backend):
         return model, x, ilens, y, data
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_transformer_mask(module):
-    model, x, ilens, y, data = prepare()
+    model, x, ilens, y, data = prepare(module)
     yi, yo = model.add_sos_eos(y)
     y_mask = model.target_mask(yi)
     y = model.decoder.embed(yi)
@@ -121,8 +110,6 @@ def test_transformer_mask(module):
 
 @pytest.mark.parametrize("module", ["pytorch", "chainer"])
 def test_transformer_synth(module):
-    if module == "pytorch":
-        pytest.skip()
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(module))
     model, x, ilens, y, data = prepare(module)
 
@@ -214,7 +201,6 @@ def prepare_copy_task(d_model, d_ff=64, n=1):
     return model, x, ilens, x, data
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 def test_transformer_copy():
     # copy task defined in http://nlp.seas.harvard.edu/2018/04/03/attention.html#results
     d_model = 32
@@ -273,7 +259,6 @@ def test_transformer_copy():
     # assert(False)
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 def test_transformer_parallel():
     if not torch.cuda.is_available():
         return
