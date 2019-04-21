@@ -70,7 +70,7 @@ class E2E(ASRInterface, chainer.Chain):
         self.loss = None
         self.flag_return = flag_return
 
-    def __call__(self, xs, ilens, ys):
+    def forward(self, xs, ilens, ys):
         """E2E forward
 
         :param xs:

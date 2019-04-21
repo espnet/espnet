@@ -127,12 +127,11 @@ def test_transformer_synth(module):
         optim = torch.optim.Adam(model.parameters(), 0.01)
         max_acc = 0
         for i in range(40):
-            loss, loss_ctc, loss_att, acc, cer, wer = model(x, ilens, y)
+            loss = model(x, ilens, y)
             optim.zero_grad()
             loss.backward()
             optim.step()
-            print(loss_att, acc)
-            max_acc = max(acc, max_acc)
+            max_acc = max(model.acc, max_acc)
         assert max_acc > 0.8
 
         # test attention plot
@@ -216,11 +215,12 @@ def run_transformer_copy():
         if torch.cuda.is_available():
             x = x.cuda()
             y = y.cuda()
-        loss, loss_ctc, loss_att, acc, cer, wer = model(x, ilens, y)
+        loss = model(x, ilens, y)
         optim.zero_grad()
         loss.backward()
         optim.step()
-        print(i, loss_att.item(), acc)
+        acc = model.acc
+        print(i, loss.item(), acc)
         max_acc = max(acc, max_acc)
         # attn_dict = model.calculate_all_attentions(x, ilens, y)
         # T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test", "iter%d.png" % i)
@@ -264,29 +264,20 @@ def test_transformer_parallel():
     if not torch.cuda.is_available():
         return
 
-    class LossAcc(torch.nn.Module):
-        def __init__(self, model):
-            super(LossAcc, self).__init__()
-            self.model = model
-
-        def forward(self, *args):
-            loss, loss_ctc, loss_att, acc, cer, wer = self.model(*args)
-            return loss_att, torch.as_tensor(acc).to(loss_att.device)
-
-    model, x, ilens, y, data = prepare()
+    model, x, ilens, y, data = prepare("pytorch")
     model = torch.nn.DataParallel(model).cuda()
     logging.debug(ilens)
     # test acc is almost 100%
     optim = torch.optim.Adam(model.parameters(), 0.02)
     max_acc = 0.0
     for i in range(40):
-        loss, loss_ctc, loss_att, acc, cer, wer = model(x, torch.as_tensor(ilens), y)
+        loss = model(x, torch.as_tensor(ilens), y)
         optim.zero_grad()
-        acc = float(acc.mean())
+        acc = float(model.module.acc)
         max_acc = max(acc, max_acc)
-        loss_att.mean().backward()
+        loss.mean().backward()
         optim.step()
-        print(loss_att, acc)
+        print(loss, acc)
         # attn_dict = model.calculate_all_attentions(x, ilens, y)
         # T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test", "iter%d.png" % i)
     assert max_acc > 0.8

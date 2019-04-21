@@ -9,6 +9,22 @@ class ASRInterface(object):
     def add_arguments(parser):
         return parser
 
+    def forward(self, xs, ilens, ys):
+        '''compute loss for training
+
+        :param xs:
+            For pytorch, batch of padded source sequences torch.Tensor (B, Tmax, idim)
+            For chainer, list of source sequences chainer.Variable
+        :param ilens: batch of lengths of source sequences (B)
+            For pytorch, torch.Tensor
+            For chainer, list of int
+        :param ys:
+            For pytorch, batch of padded source sequences torch.Tensor (B, Lmax)
+            For chainer, list of source sequences chainer.Variable
+        :return: loss value
+        :rtype: torch.Tensor for pytorch, chainer.Variable for chainer
+        '''
+
     def recognize(self, x, recog_args, char_list=None, rnnlm=None):
         '''recognize x
 

@@ -39,7 +39,7 @@ class Decoder(torch.nn.Module):
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
         :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
-        :param torch.Tensor memory_mask: encoded memory, float32  (batch, maxlen_in, feat)
+        :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
         :param torch.Tensor memory_mask: encoded memory mask, uint8  (batch, maxlen_in)
         :return x: decoded token score before softmax (batch, maxlen_out, token)
         :rtype: torch.Tensor
@@ -50,3 +50,16 @@ class Decoder(torch.nn.Module):
         x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, memory_mask)
         x = self.output_layer(self.output_norm(x))
         return x, tgt_mask
+
+    def recognize(self, tgt, tgt_mask, memory):
+        """forward decoder
+
+        :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
+        :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
+        :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
+        :return x: decoded token score before softmax (batch, maxlen_out, token)
+        :rtype: torch.Tensor
+        """
+        x = self.embed(tgt)
+        x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, None)
+        return torch.log_softmax(self.output_layer(self.output_norm(x[:, -1])), dim=-1)

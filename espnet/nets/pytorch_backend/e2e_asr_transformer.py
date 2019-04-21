@@ -129,7 +129,7 @@ class E2E(ASRInterface, torch.nn.Module):
         m = subsequent_mask(ys_mask.size(-1), device=ys_mask.device).unsqueeze(0)
         return ys_mask.unsqueeze(-2) & m
 
-    def forward(self, xs_pad, ilens, ys_pad, dec_in=None):
+    def forward(self, xs_pad, ilens, ys_pad):
         '''E2E forward
 
         :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)
@@ -149,19 +149,15 @@ class E2E(ASRInterface, torch.nn.Module):
         self.hs_pad = hs_pad
 
         # forward decoder
-        if dec_in is None:
-            ys_in_pad, ys_out_pad = self.add_sos_eos(ys_pad)
-        else:
-            ys_in_pad = dec_in
-            ys_out_pad = ys_pad
+        ys_in_pad, ys_out_pad = self.add_sos_eos(ys_pad)
         ys_mask = self.target_mask(ys_in_pad)
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
 
         # compute loss
         loss_att = self.criterion(pred_pad, ys_out_pad)
-        acc = th_accuracy(pred_pad.view(-1, self.odim), ys_out_pad,
-                          ignore_label=self.ignore_id)
+        self.acc = th_accuracy(pred_pad.view(-1, self.odim), ys_out_pad,
+                               ignore_label=self.ignore_id)
 
         # TODO(karita) show predected text
         # TODO(karita) calculate these stats
@@ -190,21 +186,12 @@ class E2E(ASRInterface, torch.nn.Module):
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
-            self.reporter.report(loss_ctc_data, loss_att_data, acc, cer_ctc, cer, wer, loss_data)
+            self.reporter.report(loss_ctc_data, loss_att_data, self.acc, cer_ctc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
+        return self.loss
 
-        # Note(kamo): In order to work with DataParallel, on pytorch==0.4,
-        # the return value must be torch.CudaTensor, or tuple/list/dict of it.
-        # Neither CPUTensor nor float/int value can be used
-        # because NCCL communicates between GPU devices.
-        device = next(self.parameters()).device
-        acc = torch.tensor([acc], device=device)
-        cer = torch.tensor([cer], device=device)
-        wer = torch.tensor([wer], device=device)
-        return self.loss, loss_ctc, loss_att, acc, cer, wer
-
-    def recognize(self, feat, recog_args, char_list=None, rnnlm=None):
+    def recognize(self, feat, recog_args, char_list=None, rnnlm=None, use_jit=False):
         '''recognize feat
 
         :param ndnarray x: input acouctic feature (B, T, D) or (T, D)
@@ -218,9 +205,7 @@ class E2E(ASRInterface, torch.nn.Module):
         '''
         self.eval()
         feat = torch.as_tensor(feat).unsqueeze(0)
-        feat_len = [feat.size(1)]
-        mask = (~make_pad_mask(feat_len)).to(feat.device).unsqueeze(-2)
-        enc_output, mask = self.encoder(feat, mask)
+        enc_output, _ = self.encoder(feat, None)
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(enc_output)
             lpz = lpz.squeeze(0)
@@ -271,6 +256,7 @@ class E2E(ASRInterface, torch.nn.Module):
         ended_hyps = []
 
         import six
+        traced_decoder = None
         for i in six.moves.range(maxlen):
             logging.debug('position ' + str(i))
 
@@ -282,8 +268,13 @@ class E2E(ASRInterface, torch.nn.Module):
                 # get nbest local scores and their ids
                 ys_mask = subsequent_mask(i + 1).unsqueeze(0)
                 ys = torch.tensor(hyp['yseq']).unsqueeze(0)
-                out, _ = self.decoder(ys, ys_mask, enc_output, mask)
-                local_att_scores = torch.log_softmax(out[:, -1], dim=-1)
+                # FIXME: jit does not match non-jit result
+                if use_jit:
+                    if traced_decoder is None:
+                        traced_decoder = torch.jit.trace(self.decoder.recognize, (ys, ys_mask, enc_output))
+                    local_att_scores = traced_decoder(ys, ys_mask, enc_output)
+                else:
+                    local_att_scores = self.decoder.recognize(ys, ys_mask, enc_output)
 
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
