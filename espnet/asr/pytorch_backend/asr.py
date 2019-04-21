@@ -25,16 +25,16 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
-from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.nets.pytorch_backend.e2e_asr import E2E
+from espnet.nets.e2e_asr_common import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
 
+from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -122,13 +122,14 @@ class CustomUpdater(training.StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu):
+                 optimizer, converter, device, ngpu, accum_grad=1):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.converter = converter
         self.device = device
         self.ngpu = ngpu
+        self.accum_grad = accum_grad
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -143,9 +144,7 @@ class CustomUpdater(training.StandardUpdater):
 
         # Compute the loss at this time step and accumulate it
         optimizer.zero_grad()  # Clear the parameter gradients
-        loss = self.model(*x)[0]
-        if self.ngpu > 1:
-            loss = loss.sum() / self.ngpu
+        loss = self.model(*x)[0].mean() / self.accum_grad
         loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
         # compute the gradient norm to check if it is normal or not
@@ -156,6 +155,7 @@ class CustomUpdater(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
+            optimizer.zero_grad()
 
 
 class CustomConverter(object):
@@ -232,7 +232,9 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model_class = dynamic_import(args.model_module)
+    model = model_class(idim, odim, args)
+    assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:
@@ -274,6 +276,11 @@ def train(args):
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(),
                                      weight_decay=args.weight_decay)
+    elif args.opt == 'noam':
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+        optimizer = optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
+    else:
+        raise NotImplementedError("unknown optimizer: " + args.opt)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
@@ -318,7 +325,7 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.accum_grad)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -340,9 +347,11 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         if hasattr(model, "module"):
             att_vis_fn = model.module.calculate_all_attentions
+            plot_class = model.module.attention_plot_class
         else:
             att_vis_fn = model.calculate_all_attentions
-        att_reporter = PlotAttentionReport(
+            plot_class = model.attention_plot_class
+        att_reporter = plot_class(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, device=device)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
@@ -430,7 +439,9 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    model = E2E(idim, odim, train_args)
+    model_class = dynamic_import(train_args.model_module)
+    model = model_class(idim, odim, train_args)
+    assert isinstance(model, ASRInterface)
     torch_load(args.model, model)
     model.recog_args = args
 

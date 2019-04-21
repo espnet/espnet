@@ -11,24 +11,21 @@ import logging
 import math
 import sys
 
-import editdistance
-
 import chainer
+from chainer import reporter
+import editdistance
 import numpy as np
 import six
 import torch
 
-from chainer import reporter
-
+from espnet.nets.e2e_asr_common import ASRInterface
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
-
 from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.decoders import decoder_for
 from espnet.nets.pytorch_backend.encoders import RNNP
 from espnet.nets.pytorch_backend.encoders import VGG2L
-
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
@@ -110,7 +107,7 @@ class PIT(object):
         return torch.mean(loss_perm), permutation
 
 
-class E2E(torch.nn.Module):
+class E2E(ASRInterface, torch.nn.Module):
     """E2E module
 
     :param int idim: dimension of inputs
@@ -119,7 +116,7 @@ class E2E(torch.nn.Module):
     """
 
     def __init__(self, idim, odim, args):
-        super(E2E, self).__init__()
+        torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype

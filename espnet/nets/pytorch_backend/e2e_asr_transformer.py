@@ -6,38 +6,19 @@ import math
 
 import torch
 
+from espnet.nets.e2e_asr_common import ASRInterface
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr import Reporter
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-
 from espnet.nets.pytorch_backend.transformer.attention import MIN_VALUE
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-
-
-def add_arguments(parser):
-    group = parser.add_argument_group("transformer model setting")
-    group.add_argument("--transformer-init", type=str, default="pytorch",
-                       choices=["pytorch", "xavier_uniform", "xavier_normal",
-                                "kaiming_uniform", "kaiming_normal"],
-                       help='how to initialize transformer parameters')
-    group.add_argument("--transformer-input-layer", type=str, default="conv2d",
-                       choices=["conv2d", "linear", "embed"],
-                       help='transformer input layer type')
-    group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
-                       help='dropout in transformer attention. use --dropout-rate if None is set')
-    group.add_argument('--transformer-lr', default=10.0, type=float,
-                       help='Initial value of learning rate')
-    group.add_argument('--transformer-warmup-steps', default=25000, type=int,
-                       help='optimizer warmup steps')
-    group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
-                       help='normalize loss by length')
-    return parser
+from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 
 
 def subsequent_mask(size, device="cpu", dtype=torch.uint8):
@@ -56,9 +37,34 @@ def subsequent_mask(size, device="cpu", dtype=torch.uint8):
     return torch.tril(ret, out=ret)
 
 
-class E2E(torch.nn.Module):
+class E2E(ASRInterface, torch.nn.Module):
+
+    @staticmethod
+    def add_arguments(parser):
+        group = parser.add_argument_group("transformer model setting")
+        group.add_argument("--transformer-init", type=str, default="pytorch",
+                           choices=["pytorch", "xavier_uniform", "xavier_normal",
+                                    "kaiming_uniform", "kaiming_normal"],
+                           help='how to initialize transformer parameters')
+        group.add_argument("--transformer-input-layer", type=str, default="conv2d",
+                           choices=["conv2d", "linear", "embed"],
+                           help='transformer input layer type')
+        group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
+                           help='dropout in transformer attention. use --dropout-rate if None is set')
+        group.add_argument('--transformer-lr', default=10.0, type=float,
+                           help='Initial value of learning rate')
+        group.add_argument('--transformer-warmup-steps', default=25000, type=int,
+                           help='optimizer warmup steps')
+        group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
+                           help='normalize loss by length')
+        return parser
+
+    @property
+    def attention_plot_class(self):
+        return PlotAttentionReport
+
     def __init__(self, idim, odim, args, ignore_id=-1):
-        super(E2E, self).__init__()
+        torch.nn.Module.__init__(self)
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
         self.encoder = Encoder(idim, args)
