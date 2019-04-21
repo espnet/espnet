@@ -28,6 +28,14 @@ def _plot_and_save_attention(att_w, filename):
 
 
 def plot_multi_head_attention(data, attn_dict, outdir, suffix="png"):
+    """Plot multi head attentions
+
+    :param dict data: utts info from json file
+    :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
+        values should be torch.Tensor (head, input_length, output_length)
+    :param str outdir: dir to save fig
+    :param str suffix: filename suffix including image type (e.g., png)
+    """
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (

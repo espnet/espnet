@@ -15,7 +15,7 @@ def test_sequential():
     class Masked(torch.nn.Module):
         def forward(self, x, m):
             return x, m
-    from espnet.nets.pytorch_backend.transformer.sequential import MultiSequential
+    from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
     f = MultiSequential(Masked(), Masked())
     x = torch.randn(2, 3)
     m = torch.randn(2, 3) > 0

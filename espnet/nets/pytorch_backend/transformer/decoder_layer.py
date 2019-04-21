@@ -1,10 +1,20 @@
 from torch import nn
 
-from .layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class DecoderLayer(nn.Module):
-    def __init__(self, size, self_attn, src_attn, feed_forward, dropout):
+    """Single decoder layer module
+
+    :param int size: input dim
+    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention self_attn: self attention module
+    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention src_attn: source attention module
+    :param espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.PositionwiseFeedForward feed_forward:
+        feed forward layer module
+    :param float dropout_rate: dropout rate
+    """
+
+    def __init__(self, size, self_attn, src_attn, feed_forward, dropout_rate):
         super(DecoderLayer, self).__init__()
         self.size = size
         self.self_attn = self_attn
@@ -13,7 +23,7 @@ class DecoderLayer(nn.Module):
         self.norm1 = LayerNorm(size)
         self.norm2 = LayerNorm(size)
         self.norm3 = LayerNorm(size)
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, tgt, tgt_mask, memory, memory_mask):
         """Compute decoded features

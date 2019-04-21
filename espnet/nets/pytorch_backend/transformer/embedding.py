@@ -4,9 +4,16 @@ import torch
 
 
 class PositionalEncoding(torch.nn.Module):
-    def __init__(self, d_model, dropout, max_len=5000):
+    """Positional encoding module
+
+    :param int d_model: embedding dim
+    :param float dropout_rate: dropout rate
+    :param int max_len: maximum input length
+    """
+
+    def __init__(self, d_model, dropout_rate, max_len=5000):
         super(PositionalEncoding, self).__init__()
-        self.dropout = torch.nn.Dropout(p=dropout)
+        self.dropout = torch.nn.Dropout(p=dropout_rate)
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)

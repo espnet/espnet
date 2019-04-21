@@ -4,20 +4,34 @@ from .embedding import PositionalEncoding
 
 
 class Conv2dSubsampling(torch.nn.Module):
-    def __init__(self, idim, dim, dropout):
+    """Convolutional 2D subsampling (to 1/4 length)
+
+    :param int idim: input dim
+    :param int odim: output dim
+    :param flaot dropout_rate: dropout rate
+    """
+
+    def __init__(self, idim, odim, dropout_rate):
         super(Conv2dSubsampling, self).__init__()
         self.conv = torch.nn.Sequential(
-            torch.nn.Conv2d(1, dim, 3, 2),
+            torch.nn.Conv2d(1, odim, 3, 2),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(dim, dim, 3, 2),
+            torch.nn.Conv2d(odim, odim, 3, 2),
             torch.nn.ReLU()
         )
         self.out = torch.nn.Sequential(
-            torch.nn.Linear(dim * (idim // 4), dim),
-            PositionalEncoding(dim, dropout)
+            torch.nn.Linear(odim * (idim // 4), odim),
+            PositionalEncoding(odim, dropout_rate)
         )
 
     def forward(self, x, x_mask):
+        """Subsample x
+
+        :param torch.Tensor x: input tensor
+        :param torch.Tensor x_mask: input mask
+        :return: subsampled x and mask
+        :rtype Tuple[torch.Tensor, torch.Tensor]
+        """
         x = x.unsqueeze(1)  # (b, c, t, f)
         x = self.conv(x)
         b, c, t, f = x.size()
