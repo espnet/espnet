@@ -1,6 +1,6 @@
 import torch
 
-from .embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class Conv2dSubsampling(torch.nn.Module):
