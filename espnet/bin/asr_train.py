@@ -18,7 +18,7 @@ import numpy as np
 from espnet.utils.cli_utils import strtobool
 
 
-def main(args):
+def main(cmd_args):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # general configuration
