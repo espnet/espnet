@@ -24,9 +24,10 @@ class ASRInterface(object):
         :return: loss value
         :rtype: torch.Tensor for pytorch, chainer.Variable for chainer
         '''
+        raise NotImplementedError("forward method is not implemented")
 
     def recognize(self, x, recog_args, char_list=None, rnnlm=None):
-        '''recognize x
+        '''recognize x for evaluation
 
         :param ndarray x: input acouctic feature (B, T, D) or (T, D)
         :param namespace recog_args: argment namespace contraining options
@@ -35,7 +36,7 @@ class ASRInterface(object):
         :return: N-best decoding results
         :rtype: list
         '''
-        pass
+        raise NotImplementedError("recognize method is not implemented")
 
     def calculate_all_attentions(self, xs, ilens, ys):
         '''attention calculation
@@ -46,6 +47,7 @@ class ASRInterface(object):
         :return: attention weights (B, Lmax, Tmax)
         :rtype: float ndarray
         '''
+        raise NotImplementedError("calculate_all_attentions method is not implemented")
 
     @property
     def attention_plot_class(self):
