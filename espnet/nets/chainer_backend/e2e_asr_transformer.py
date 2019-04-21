@@ -225,7 +225,7 @@ class E2E(ASRInterface, chainer.Chain):
                     logging.info("prediction [%d]: " % i + seq_hat)
         return loss, accuracy
 
-    def __call__(self, xs, ilens, ys, calculate_attentions=False):
+    def forward(self, xs, ilens, ys, calculate_attentions=False):
         xp = self.xp
         ilens = np.array([int(x) for x in ilens])
 

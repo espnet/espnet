@@ -36,4 +36,6 @@ class Conv2dSubsampling(torch.nn.Module):
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+        if x_mask is None:
+            return x, None
         return x, x_mask[:, :, :-2:2][:, :, :-2:2]
