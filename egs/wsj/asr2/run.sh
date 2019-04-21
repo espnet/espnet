@@ -7,7 +7,7 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
@@ -36,20 +36,20 @@ adim=256
 aheads=4
 
 # hybrid CTC/attention
-mtlalpha=0.0
+mtlalpha=0.3
 
 # label smoothing
 lsm_type=unigram
 lsm_weight=0.1
 
 # minibatch related
-batchsize=16
+batchsize=32
 maxlen_in=512  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
 sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-len_norm=True
+len_norm=False
 opt=noam
 epochs=100
 lr_init=10.0
@@ -75,12 +75,12 @@ lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
 
 # decoding parameter
-lm_weight=0
-beam_size=1
+lm_weight=1.0
+beam_size=10
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.0
+ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
 
@@ -318,7 +318,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=4
     if [ ${n_average} -gt 1 ]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
@@ -351,6 +351,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
+            --batchsize 0 \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
@@ -361,6 +362,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --lm-weight ${lm_weight} \
+            --verbose ${verbose} \
             ${recog_opts}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
