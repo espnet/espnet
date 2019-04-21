@@ -83,7 +83,7 @@ minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
-
+n_decode_job=32
 # scheduled sampling option
 samp_prob=0.0
 
@@ -318,7 +318,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=4
+    nj=${n_decode_job}
     if [ ${n_average} -gt 1 ]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
