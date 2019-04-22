@@ -151,6 +151,7 @@ class CustomUpdater(training.StandardUpdater):
         self.forward_count += 1
         if self.forward_count != self.accum_grad:
             return
+        self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
