@@ -130,6 +130,7 @@ class CustomUpdater(training.StandardUpdater):
         self.device = device
         self.ngpu = ngpu
         self.accum_grad = accum_grad
+        self.forward_count = 0
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -147,6 +148,9 @@ class CustomUpdater(training.StandardUpdater):
         loss = self.model(*x).mean() / self.accum_grad
         loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
+        self.forward_count += 1
+        if self.forward_count != self.accum_grad:
+            return
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
