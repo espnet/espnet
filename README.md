@@ -264,17 +264,18 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 | 3.2 | 7.0 |
-| WSJ eval92| 2.1 | 4.7 |
+| Aishell dev | 6.8 | N/A |
+| Aishell test | 8.0 | N/A |
 | CSJ eval1 | 6.6 | N/A  |
 | CSJ eval2 | 4.8 | N/A  |
 | CSJ eval3 | 5.0 | N/A  |
-| Aishell dev | 6.8 | N/A |
-| Aishell test | 8.0 | N/A |
-| HKUST train_dev | 28.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 4.0 |
 | Librispeech test_clean | N/A | 4.0 |
+| TEDLIUM2 dev  | N/A | 12.8 |
+| TEDLIUM2 test | N/A | 12.6 |
+| WSJ dev93 | 3.2 | 7.0 |
+| WSJ eval92| 2.1 | 4.7 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
