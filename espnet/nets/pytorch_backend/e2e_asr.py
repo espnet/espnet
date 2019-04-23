@@ -302,7 +302,6 @@ class E2E(ASRInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
 

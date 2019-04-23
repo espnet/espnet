@@ -25,7 +25,6 @@ from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import plot_spectrogram
-from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
@@ -571,7 +570,9 @@ def enhance(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    model = E2E(idim, odim, train_args)
+    model_class = dynamic_import(train_args.model_module)
+    model = model_class(idim, odim, train_args)
+    assert isinstance(model, ASRInterface)
     torch_load(args.model, model)
     model.recog_args = args
 
