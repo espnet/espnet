@@ -26,11 +26,11 @@ ninit=pytorch
 
 # encoder related
 input_layer=conv2d     # encoder architecture type
-elayers=6
-eunits=1024
+elayers=12
+eunits=2048
 # decoder related
 dlayers=6
-dunits=1024
+dunits=2048
 # attention related
 adim=256
 aheads=4
@@ -55,7 +55,7 @@ epochs=100
 lr_init=10.0
 warmup_steps=25000
 dropout=0.1
-attn_dropout=0.1
+attn_dropout=0.0
 accum_grad=2
 grad_clip=5
 patience=3
@@ -319,7 +319,7 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=${n_decode_job}
-    if [ ${n_average} -gt 1 ]; then
+    if [ ${n_average} -gt 1 ] && [ ! -e ${expdir}/results/model.last${n_average}.avg.best ]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
                                --snapshots ${expdir}/results/snapshot.ep.* \
