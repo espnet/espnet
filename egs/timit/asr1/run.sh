@@ -156,7 +156,7 @@ else
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-exit 0;
+
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
