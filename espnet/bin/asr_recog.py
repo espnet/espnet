@@ -73,9 +73,14 @@ def main(args):
                         help='Word list to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
-    parser.add_argument('--streaming-window', type=int, default=False,
-                        help='Use streaming recognizer for inference - provide window size in frames. '
-                             '--batchsize must be set to 0 to enable this mode')
+
+    # streaming recognition related
+    parser.add_argument('--online-encoder', type=bool, default=False,
+                        help='Use online encoder instead of online encoder')
+    parser.add_argument('--online-decoder', type=bool, default=False,
+                        help='Use online decoder instead of offline encoder')
+    parser.add_argument('--streaming-window', type=int, default=80,
+                        help='Use streaming recognizer for inference - provide window size in frames.')
     args = parser.parse_args(args)
 
     # logging info

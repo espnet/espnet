@@ -133,10 +133,18 @@ class CTCPrefixScore(object):
         # r_t^n(<sos>) and r_t^b(<sos>), where 0 and 1 of axis=1 represent
         # superscripts n and b (non-blank and blank), respectively.
         r = self.xp.full((self.input_length, 2), self.logzero, dtype=np.float32)
-        r[0, 1] = self.x[0, self.blank]
-        for i in six.moves.range(1, self.input_length):
-            r[i, 1] = r[i - 1, 1] + self.x[i, self.blank]
+        r[:, 1] = self.x[:, self.blank].cumsum()
         return r
+
+    def append_new_ctc_posteriors(self, lpz=None):
+        """Accept CTC posteriors for the incoming frame (use only when streaming)
+
+        :param lpz: optional increment of lpz (used in streaming processing)
+        """
+        # Extend CTC scores with the incoming frame
+        self.x = self.xp.concatenate([self.x, lpz.detach().numpy()], axis=0)
+        # Update input length
+        self.input_length = len(self.x)
 
     def __call__(self, y, cs, r_prev):
         """Compute CTC prefix scores for next labels
@@ -144,8 +152,21 @@ class CTCPrefixScore(object):
         :param y     : prefix label sequence
         :param cs    : array of next labels
         :param r_prev: previous CTC state
+        :param output_frame_number: needed to keep track of lpz updates when performing streaming recognition
         :return ctc_scores, ctc_states
         """
+        r_prev_len = r_prev.shape[0]
+        # When streaming
+        if r_prev_len < self.input_length:
+            # TODO(pzelasko): this computation is likely redundant among competing n-best paths - may be optimized
+            # Compute r for the new part of CTC posteriors
+            r_prev_increment = np.full((self.input_length - r_prev_len, 2), self.logzero, dtype=r_prev.dtype)
+            r_prev_increment[:, 1] = self.x[:, self.blank].cumsum()[r_prev_len:]
+            r_prev = self.xp.concatenate([
+                r_prev,
+                r_prev_increment
+            ])
+
         # initialize CTC states
         output_length = len(y) - 1  # ignore sos
         # new CTC states are prepared as a frame x (n or b) x n_labels tensor

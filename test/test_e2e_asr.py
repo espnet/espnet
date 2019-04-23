@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 import torch
 
+from espnet.nets.pytorch_backend.e2e_asr import approximate_number_of_ctc_characters
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from test.utils_test import make_dummy_json
 
@@ -194,6 +195,27 @@ def test_streaming_e2e_encoder_and_ctc_with_offline_attention():
         asr.accept_input(in_data)
 
     asr.decode_with_attention_offline()
+
+
+def test_streaming_e2e_encoder_ctc_and_attention_online():
+    m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
+    args = make_arg()
+    model = m.E2E(40, 5, args)
+    asr = m.StreamingE2E(model, args, args.char_list, minlen=2)
+
+    recognitions = []
+
+    in_data = np.random.randn(100, 40)
+    for i in range(10):
+        asr.accept_input(in_data)
+        asr.advance_attention_decoder()
+        if asr.is_finished():
+            recognitions.append(asr.retrieve_recognition())
+            asr.reset()
+
+    recognitions.append(asr.retrieve_recognition())
+
+    assert len(recognitions) > 0
 
 
 @pytest.mark.parametrize(
@@ -494,3 +516,26 @@ def test_multi_gpu_trainable(module):
 
         for loss in losses:
             loss.backward()  # trainable
+
+
+@pytest.mark.parametrize(
+    ["letter_indices", "expected_count"],
+    [
+        ([0, 0, 0, 0, 0], 0),
+        ([1, 0, 0, 0, 0], 1),
+        ([0, 0, 1, 0, 0], 1),
+        ([0, 0, 1, 1, 0], 1),
+        ([1, 1, 1, 1, 1], 1),
+        ([1, 0, 1, 0, 0], 2),
+        ([2, 0, 1, 0, 0], 2),
+        ([5, 0, 1, 1, 0], 2),
+        ([1, 0, 1, 0, 1], 3),
+        ([4, 2, 2, 4, 5], 4),
+        ([1, 2, 0, 4, 5], 4),
+        ([1, 2, 2, 4, 5], 4),
+        ([1, 2, 3, 4, 5], 5),
+    ]
+)
+def test_approximate_number_of_ctc_characters(letter_indices, expected_count):
+    ctc_greedy_path = torch.from_numpy(np.array(letter_indices))
+    assert approximate_number_of_ctc_characters(ctc_greedy_path) == expected_count
