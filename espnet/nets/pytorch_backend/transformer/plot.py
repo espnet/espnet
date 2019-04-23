@@ -56,7 +56,7 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png"):
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def __call__(self, trainer):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
+        batch = self.converter([self.transform(self.data)], self.device)
         attn_dict = self.att_vis_fn(*batch)
         suffix = "ep.{.updater.epoch}.png".format(trainer)
         plot_multi_head_attention(self.data, attn_dict, self.outdir, suffix)
