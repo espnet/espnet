@@ -35,15 +35,12 @@ from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.asr_interface import ASRInterface
-from espnet.transform.transformation import using_transform_config
+from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
-
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
-
-from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
@@ -175,13 +172,8 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1, preprocess_conf=None):
+    def __init__(self, subsampling_factor=1):
         self.subsampling_factor = subsampling_factor
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
-
-    def transform(self, item):
-        return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         # set device
@@ -289,8 +281,14 @@ def train(args):
         optimizer = chainer.optimizers.Adam()
     elif args.opt == 'noam':
         optimizer = chainer.optimizers.Adam(alpha=0, beta1=0.9, beta2=0.98, eps=1e-9)
+    else:
+        raise NotImplementedError('args.opt={}'.format(args.opt))
+
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
+
+    # Setup a converter
+    converter = CustomConverter(subsampling_factor=model.subsample[0])
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -299,8 +297,15 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
-    converter = CustomConverter(subsampling_factor=model.subsample[0],
-                                preprocess_conf=args.preprocess_conf)
+    load_tr = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': True}  # Switch the mode of preprocessing
+    )
+    load_cv = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
+
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     accum_grad = args.accum_grad
     if ngpu <= 1:
@@ -311,12 +316,12 @@ def train(args):
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
             train_iters = [ToggleableShufflingMultiprocessIterator(
-                TransformDataset(train, converter.transform),
+                TransformDataset(train, load_tr),
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
                 shuffle=not use_sortagrad)]
         else:
             train_iters = [ToggleableShufflingSerialIterator(
-                TransformDataset(train, converter.transform),
+                TransformDataset(train, load_tr),
                 batch_size=1, shuffle=not use_sortagrad)]
 
         # set up updater
@@ -344,13 +349,13 @@ def train(args):
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
             train_iters = [ToggleableShufflingMultiprocessIterator(
-                TransformDataset(train_subsets[gid], converter.transform),
+                TransformDataset(train_subsets[gid], load_tr),
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
                 shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
         else:
             train_iters = [ToggleableShufflingSerialIterator(
-                TransformDataset(train_subsets[gid], converter.transform),
+                TransformDataset(train_subsets[gid], load_tr),
                 batch_size=1, shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
 
@@ -378,12 +383,12 @@ def train(args):
                           args.maxlen_in, args.maxlen_out, args.minibatches)
     if args.n_iter_processes > 0:
         valid_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(valid, converter.transform),
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
         valid_iter = chainer.iterators.SerialIterator(
-            TransformDataset(valid, converter.transform),
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False)
 
     # Evaluate the model with the test dataset for each epoch
@@ -403,7 +408,7 @@ def train(args):
         logging.info('Using custom PlotAttentionReport')
         att_reporter = plot_class(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=gpu_id)
+            converter=converter, transform=load_cv, device=gpu_id)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
         att_reporter = None
@@ -422,13 +427,13 @@ def train(args):
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    if mtl_mode is not 'ctc':
+    if mtl_mode != 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best'),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+        if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best'),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -528,7 +533,9 @@ def recog(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf)
+        if args.preprocess_conf is None else args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
 
     # decode each utterance
     new_js = {}
@@ -536,8 +543,7 @@ def recog(args):
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             batch = [(name, js[name])]
-            with using_transform_config({'train': False}):
-                feat = load_inputs_and_targets(batch)[0][0]
+            feat = load_inputs_and_targets(batch)[0][0]
             nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
