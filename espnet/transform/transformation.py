@@ -20,21 +20,21 @@ else:
 
 
 import_alias = dict(
-        speed_perturbation='espnet.transform.perturb:SpeedPerturbation',
-        volume_perturbation='espnet.transform.perturb:VolumePerturbation',
-        noise_injection='espnet.transform.perturb:NoiseInjection',
-        bandpass_perturbation='espnet.transform.perturb:BandpassPerturbation',
-        rir_convolve='espnet.transform.perturb:RIRConvolve',
-        delta='espnet.transform.add_deltas:AddDeltas',
-        cmvn='espnet.transform.cmvn:CMVN',
-        utterance_cmvn='espnet.transform.cmvn:UtteranceCMVN',
-        fbank='espnet.transform.spectrogram:LogMelSpectrogram',
-        spectrogram='espnet.transform.spectrogram:Spectrogram',
-        stft='espnet.transform.spectrogram:Stft',
-        istft='espnet.transform.spectrogram:IStft',
-        stft2fbank='espnet.transform.spectrogram:Stft2LogMelSpectrogram',
-        wpe='espnet.transform.wpe:WPE',
-        channel_selector='espnet.transform.channel_selector:ChannelSelector')
+    speed_perturbation='espnet.transform.perturb:SpeedPerturbation',
+    volume_perturbation='espnet.transform.perturb:VolumePerturbation',
+    noise_injection='espnet.transform.perturb:NoiseInjection',
+    bandpass_perturbation='espnet.transform.perturb:BandpassPerturbation',
+    rir_convolve='espnet.transform.perturb:RIRConvolve',
+    delta='espnet.transform.add_deltas:AddDeltas',
+    cmvn='espnet.transform.cmvn:CMVN',
+    utterance_cmvn='espnet.transform.cmvn:UtteranceCMVN',
+    fbank='espnet.transform.spectrogram:LogMelSpectrogram',
+    spectrogram='espnet.transform.spectrogram:Spectrogram',
+    stft='espnet.transform.spectrogram:Stft',
+    istft='espnet.transform.spectrogram:IStft',
+    stft2fbank='espnet.transform.spectrogram:Stft2LogMelSpectrogram',
+    wpe='espnet.transform.wpe:WPE',
+    channel_selector='espnet.transform.channel_selector:ChannelSelector')
 
 
 class Transformation(object):
