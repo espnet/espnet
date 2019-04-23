@@ -679,29 +679,6 @@ def enhance(args):
             mas = mask[idx][:ilens[idx]]
             feat = feats[idx]
 
-            # Write enhanced wave files
-            if enh_writer is not None:
-                if istft is not None:
-                    enh = istft(enh)
-                else:
-                    enh = enh
-
-                if args.keep_length:
-                    if len(org_feats[idx]) < len(enh):
-                        # Truncate the frames added by stft padding
-                        enh = enh[:len(org_feats[idx])]
-                    elif len(org_feats) > len(enh):
-                        padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
-                            + [(0, 0)] * (enh.ndim - 1)
-                        enh = np.pad(enh, padwidth, mode='constant')
-
-                if args.enh_filetype in ('sound', 'sound.hdf5'):
-                    enh_writer[name] = (args.fs, enh)
-                else:
-                    # Hint: To dump stft_signal, mask or etc,
-                    # enh_filetype='hdf5' might be convenient.
-                    enh_writer[name] = enh
-
             # Plot spectrogram
             if args.image_dir is not None and num_images < args.num_images:
                 import matplotlib.pyplot as plt
@@ -735,6 +712,29 @@ def enhance(args):
 
                 plt.savefig(os.path.join(args.image_dir, name + '.png'))
                 plt.clf()
+
+            # Write enhanced wave files
+            if enh_writer is not None:
+                if istft is not None:
+                    enh = istft(enh)
+                else:
+                    enh = enh
+
+                if args.keep_length:
+                    if len(org_feats[idx]) < len(enh):
+                        # Truncate the frames added by stft padding
+                        enh = enh[:len(org_feats[idx])]
+                    elif len(org_feats) > len(enh):
+                        padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
+                            + [(0, 0)] * (enh.ndim - 1)
+                        enh = np.pad(enh, padwidth, mode='constant')
+
+                if args.enh_filetype in ('sound', 'sound.hdf5'):
+                    enh_writer[name] = (args.fs, enh)
+                else:
+                    # Hint: To dump stft_signal, mask or etc,
+                    # enh_filetype='hdf5' might be convenient.
+                    enh_writer[name] = enh
 
             if num_images >= args.num_images and enh_writer is None:
                 logging.info('Breaking the process.')
