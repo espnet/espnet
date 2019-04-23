@@ -9,55 +9,53 @@ import json
 import logging
 import math
 import os
+import sys
 
-# chainer related
 from chainer.datasets import TransformDataset
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
-
-# torch related
+import numpy as np
+from tensorboardX import SummaryWriter
 import torch
 
-# espnet related
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import plot_spectrogram
+from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
+import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
-
+from espnet.transform.spectrogram import IStft
+from espnet.transform.transformation import Transformation
+from espnet.utils.cli_utils import FileWriterWrapper
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
+from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
-
-from espnet.transform.transformation import using_transform_config
-from espnet.utils.io_utils import LoadInputsAndTargets
-
-# rnnlm
-import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-import espnet.lm.pytorch_backend.lm as lm_pytorch
-
-# matplotlib related
-import matplotlib
-import numpy as np
-
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
-from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
+import matplotlib
 matplotlib.use('Agg')
+
+if sys.version_info[0] == 2:
+    from itertools import izip_longest as zip_longest
+else:
+    from itertools import zip_longest as zip_longest
 
 REPORT_INTERVAL = 100
 
@@ -169,14 +167,9 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1, preprocess_conf=None):
+    def __init__(self, subsampling_factor=1):
         self.subsampling_factor = subsampling_factor
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
         self.ignore_id = -1
-
-    def transform(self, item):
-        return self.load_inputs_and_targets(item)
 
     def __call__(self, batch, device):
         """Transforms a batch and send it to a device
@@ -198,9 +191,23 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
-        xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+        if xs[0].dtype.kind == 'c':
+            xs_pad_real = pad_list(
+                [torch.from_numpy(x.real).float() for x in xs], 0).to(device)
+            xs_pad_imag = pad_list(
+                [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
+            # Note(kamo):
+            # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
+            # Don't create ComplexTensor and give it E2E here
+            # because torch.nn.DataParellel can't handle it.
+            xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
+        else:
+            xs_pad = pad_list(
+                [torch.from_numpy(x).float() for x in xs], 0).to(device)
+
         ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], self.ignore_id).to(device)
+        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys],
+                          self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -220,8 +227,8 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
     utts = list(valid_json.keys())
-    idim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
+    idim = int(valid_json[utts[0]]['input'][0]['shape'][-1])
+    odim = int(valid_json[utts[0]]['output'][0]['shape'][-1])
     logging.info('#input dims : ' + str(idim))
     logging.info('#output dims: ' + str(odim))
 
@@ -292,8 +299,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor,
-                                preprocess_conf=args.preprocess_conf)
+    converter = CustomConverter(subsampling_factor=subsampling_factor)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -309,23 +315,32 @@ def train(args):
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+
+    load_tr = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': True}  # Switch the mode of preprocessing
+    )
+    load_cv = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
         train_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(train, converter.transform),
+            TransformDataset(train, load_tr),
             batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
             shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(valid, converter.transform),
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
         train_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(train, converter.transform),
+            TransformDataset(train, load_tr),
             batch_size=1, shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(valid, converter.transform),
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
@@ -358,7 +373,7 @@ def train(args):
             plot_class = model.attention_plot_class
         att_reporter = plot_class(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=device)
+            converter=converter, transform=load_cv, device=device)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
         att_reporter = None
@@ -376,7 +391,7 @@ def train(args):
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    if mtl_mode is not 'ctc':
+    if mtl_mode != 'ctc':
         trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
@@ -385,7 +400,7 @@ def train(args):
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+        if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -481,7 +496,7 @@ def recog(args):
 
     # gpu
     if args.ngpu == 1:
-        gpu_id = range(args.ngpu)
+        gpu_id = list(range(args.ngpu))
         logging.info('gpu id: ' + str(gpu_id))
         model.cuda()
         if rnnlm:
@@ -495,15 +510,15 @@ def recog(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf)
+        if args.preprocess_conf is None else args.preprocess_conf,
+        preprocess_args={'train': False})
 
     if args.batchsize == 0:
         with torch.no_grad():
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
-                with using_transform_config({'train': True}):
-                    feat = load_inputs_and_targets(batch)[0][0]
+                feat = load_inputs_and_targets(batch)[0][0]
                 if args.streaming_window:
                     logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
                     se2e = StreamingE2E(e2e=model, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
@@ -517,12 +532,8 @@ def recog(args):
                 else:
                     nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
-    else:
-        try:
-            from itertools import zip_longest as zip_longest
-        except Exception:
-            from itertools import izip_longest as zip_longest
 
+    else:
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
             return zip_longest(*kargs, fillvalue=fillvalue)
@@ -537,9 +548,9 @@ def recog(args):
             for names in grouper(args.batchsize, keys, None):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
-                with using_transform_config({'train': False}):
-                    feats = load_inputs_and_targets(batch)[0]
+                feats = load_inputs_and_targets(batch)[0]
                 nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
@@ -547,3 +558,183 @@ def recog(args):
     # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+
+
+def enhance(args):
+    """Dumping enhanced speech and mask
+
+    :param Namespace args: The program arguments
+    """
+    set_deterministic_pytorch(args)
+    # read training config
+    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
+
+    # load trained model parameters
+    logging.info('reading model parameters from ' + args.model)
+    model = E2E(idim, odim, train_args)
+    torch_load(args.model, model)
+    model.recog_args = args
+
+    # gpu
+    if args.ngpu == 1:
+        gpu_id = list(range(args.ngpu))
+        logging.info('gpu id: ' + str(gpu_id))
+        model.cuda()
+
+    # read json data
+    with open(args.recog_json, 'rb') as f:
+        js = json.load(f)['utts']
+
+    load_inputs_and_targets = LoadInputsAndTargets(
+        mode='asr', load_output=False, sort_in_input_length=False,
+        preprocess_conf=None  # Apply pre_process in outer func
+    )
+    if args.batchsize == 0:
+        args.batchsize = 1
+
+    # Creates writers for outputs from the network
+    if args.enh_wspecifier is not None:
+        enh_writer = FileWriterWrapper(args.enh_wspecifier,
+                                       filetype=args.enh_filetype)
+    else:
+        enh_writer = None
+
+    # Creates a Transformation instance
+    preprocess_conf = (
+        train_args.preprocess_conf if args.preprocess_conf is None
+        else args.preprocess_conf)
+    if preprocess_conf is not None:
+        logging.info('Use preprocessing'.format(preprocess_conf))
+        transform = Transformation(preprocess_conf)
+    else:
+        transform = None
+
+    # Creates a IStft instance
+    istft = None
+    frame_shift = args.istft_n_shift  # Used for plot the spectrogram
+    if args.apply_istft:
+        if preprocess_conf is not None:
+            # Read the conffile and find stft setting
+            with open(preprocess_conf) as f:
+                # Json format: e.g.
+                #    {"process": [{"type": "stft",
+                #                  "win_length": 400,
+                #                  "n_fft": 512, "n_shift": 160,
+                #                  "window": "han"},
+                #                 {"type": "foo", ...}, ...]}
+                conf = json.load(f)
+                assert 'process' in conf, conf
+                # Find stft setting
+                for p in conf['process']:
+                    if p['type'] == 'stft':
+                        istft = IStft(win_length=p['win_length'],
+                                      n_shift=p['n_shift'],
+                                      window=p.get('window', 'hann'))
+                        logging.info('stft is found in {}. '
+                                     'Setting istft config from it\n{}'
+                                     .format(preprocess_conf, istft))
+                        frame_shift = p['n_shift']
+                        break
+        if istft is None:
+            # Set from command line arguments
+            istft = IStft(win_length=args.istft_win_length,
+                          n_shift=args.istft_n_shift,
+                          window=args.istft_window)
+            logging.info('Setting istft config from the command line args\n{}'
+                         .format(istft))
+
+    # sort data
+    keys = list(js.keys())
+    feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
+    sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
+    keys = [keys[i] for i in sorted_index]
+
+    def grouper(n, iterable, fillvalue=None):
+        kargs = [iter(iterable)] * n
+        return zip_longest(*kargs, fillvalue=fillvalue)
+
+    num_images = 0
+    if not os.path.exists(args.image_dir):
+        os.makedirs(args.image_dir)
+
+    for names in grouper(args.batchsize, keys, None):
+        batch = [(name, js[name]) for name in names]
+
+        # May be in time region: (Batch, [Time, Channel])
+        org_feats = load_inputs_and_targets(batch)[0]
+        if transform is not None:
+            # May be in time-freq region: : (Batch, [Time, Channel, Freq])
+            feats = transform(org_feats, train=False)
+        else:
+            feats = org_feats
+
+        with torch.no_grad():
+            enhanced, mask, ilens = model.enhance(feats)
+
+        for idx, name in enumerate(names):
+            # Assuming mask, feats : [Batch, Time, Channel. Freq]
+            #          enhanced    : [Batch, Time, Freq]
+            enh = enhanced[idx][:ilens[idx]]
+            mas = mask[idx][:ilens[idx]]
+            feat = feats[idx]
+
+            # Write enhanced wave files
+            if enh_writer is not None:
+                if istft is not None:
+                    enh = istft(enh)
+                else:
+                    enh = enh
+
+                if args.keep_length:
+                    if len(org_feats[idx]) < len(enh):
+                        # Truncate the frames added by stft padding
+                        enh = enh[:len(org_feats[idx])]
+                    elif len(org_feats) > len(enh):
+                        padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
+                            + [(0, 0)] * (enh.ndim - 1)
+                        enh = np.pad(enh, padwidth, mode='constant')
+
+                if args.enh_filetype in ('sound', 'sound.hdf5'):
+                    enh_writer[name] = (args.fs, enh)
+                else:
+                    # Hint: To dump stft_signal, mask or etc,
+                    # enh_filetype='hdf5' might be convenient.
+                    enh_writer[name] = enh
+
+            # Plot spectrogram
+            if args.image_dir is not None and num_images < args.num_images:
+                import matplotlib.pyplot as plt
+                num_images += 1
+                ref_ch = 0
+
+                plt.figure(figsize=(20, 10))
+                plt.subplot(4, 1, 1)
+                plt.title('Mask [ref={}ch]'.format(ref_ch))
+                plot_spectrogram(plt, mas[:, ref_ch].T, fs=args.fs,
+                                 mode='linear', frame_shift=frame_shift,
+                                 bottom=False, labelbottom=False)
+
+                plt.subplot(4, 1, 2)
+                plt.title('Noisy speech [ref={}ch]'.format(ref_ch))
+                plot_spectrogram(plt, feat[:, ref_ch].T, fs=args.fs,
+                                 mode='db', frame_shift=frame_shift,
+                                 bottom=False, labelbottom=False)
+
+                plt.subplot(4, 1, 3)
+                plt.title('Masked speech [ref={}ch]'.format(ref_ch))
+                plot_spectrogram(
+                    plt, (feat[:, ref_ch] * mas[:, ref_ch]).T,
+                    frame_shift=frame_shift,
+                    fs=args.fs, mode='db', bottom=False, labelbottom=False)
+
+                plt.subplot(4, 1, 4)
+                plt.title('Enhanced speech')
+                plot_spectrogram(plt, enh.T, fs=args.fs,
+                                 mode='db', frame_shift=frame_shift)
+
+                plt.savefig(os.path.join(args.image_dir, name + '.png'))
+                plt.clf()
+
+            if num_images >= args.num_images and enh_writer is None:
+                logging.info('Breaking the process.')
+                break
