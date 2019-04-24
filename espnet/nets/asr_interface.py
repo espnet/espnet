@@ -1,9 +1,5 @@
 class ASRInterface(object):
-    """ASR Interface for ESPnet model implementation
-
-    For chainer backend, __call__ method is needed.
-    For pytorch backend, forward method is needed.
-    """
+    """ASR Interface for ESPnet model implementation"""
 
     @staticmethod
     def add_arguments(parser):
