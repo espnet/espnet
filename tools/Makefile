@@ -16,7 +16,7 @@ CONDA_URL := https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.
 GCC_VERSION := $(shell gcc -dumpversion)
 
 
-ifeq (($shell which nvidia-smi),) # No 'nvcc' found
+ifneq ($(shell which nvidia-smi),) # 'nvcc' found
 CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
 CUDA_DEPS := cupy.done
 else
