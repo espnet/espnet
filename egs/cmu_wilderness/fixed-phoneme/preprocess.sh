@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Johns Hopkins University (Matthew Wiesner)
+# Copyright 2018 Johns Hopkins University (Matthew Wiesner, Oliver Adams)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -68,7 +68,7 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 use_lm=false
 decode_nj=32
 
-datasets=/export/b15/oadams/datasets-CMU_Wilderness
+datasets=/export/fs02/oadams/datasets-CMU_Wilderness
 
 all_eval_langs_fn=conf/langs/eval_langs
 eval_readings_fn=conf/langs/eval_readings
@@ -154,37 +154,41 @@ function prepare_phn_dict {
 
 }
 
-for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
-    if [[ ! -e data/lang_1char/${reading}_train_units.txt ]]; then
-        echo $reading
-        reading_fn="conf/langs/${reading}"
-        prepare_dict ${reading}_train
-        prepare_phn_dict ${reading}_train
-    fi
-done
+if [ $stage -le 1 ]; then
+    # Preparing dictionaries
+    for reading in `cat ${all_eval_langs_fn} | tr "\n" " "`; do
+        if [[ ! -e data/lang_1char/${reading}_train_units.txt ]]; then
+            echo $reading
+            reading_fn="conf/langs/${reading}"
+            prepare_dict ${reading}_train
+            prepare_phn_dict ${reading}_train
+        fi
+    done
 
-for train_group in ${train_groups}; do
-    if [[ ! -e data/lang_1char/${train_group}_train_units.txt ]]; then
-        echo ${train_group}
-        train_group_fn="conf/langs/${train_group}"
-        prepare_dict ${train_group}_train
-        prepare_phn_dict ${train_group}_train
-    fi
-done
+    for train_group in ${train_groups}; do
+        if [[ ! -e data/lang_1char/${train_group}_train_units.txt ]]; then
+            echo ${train_group}
+            train_group_fn="conf/langs/${train_group}"
+            prepare_dict ${train_group}_train
+            prepare_phn_dict ${train_group}_train
+        fi
+    done
 
-if [[ ! -e data/lang_1char/${all_eval_langs_train}_units.txt ]]; then
-    prepare_dict ${all_eval_langs_train}
-    prepare_phn_dict ${all_eval_langs_train}
+    if [[ ! -e data/lang_1char/${all_eval_langs_train}_units.txt ]]; then
+        prepare_dict ${all_eval_langs_train}
+        prepare_phn_dict ${all_eval_langs_train}
+    fi
 fi
 
-# Now preparing fbank feats
-
-for dir in data/*_train data/*_dev data/*_eval; do
-    split="${dir#"data/"}"
-    if [[ ! -e data/${split}/feats.scp ]]; then
-        echo "$split"
-        steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 50 \
-            --write_utt2num_frames true data/${split} exp/make_fbank/${split} \
-            ${fbankdir}
-    fi
-done
+if [ $stage -le 2 ]; then
+    # Now preparing fbank feats
+    for dir in data/*_train data/*_dev data/*_eval; do
+        split="${dir#"data/"}"
+        if [[ ! -e data/${split}/feats.scp ]]; then
+            echo "$split"
+            steps/make_fbank_pitch.sh --cmd "${train_cmd}" --nj 50 \
+                --write_utt2num_frames true data/${split} exp/make_fbank/${split} \
+                ${fbankdir}
+        fi
+    done
+fi

@@ -90,7 +90,7 @@ per_frame_ali="/export/b13/oadams/espnet-merge3/egs/cmu_wilderness/fixed-phoneme
 
 . ./utils/parse_options.sh || exit 1;
 
-datasets=/export/b15/oadams/datasets-CMU_Wilderness
+datasets=/export/fs02/oadams/datasets-CMU_Wilderness
 
 
 if [[ ${adapt_langs} ]]; then
