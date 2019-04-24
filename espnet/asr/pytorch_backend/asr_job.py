@@ -24,21 +24,25 @@ class TrainingJob(Job):
     '''
 
     def __init__(self, model, optimizer, loader, device,
-                 grad_clip=float('inf'), accum_grad=1):
+                 grad_clip=float('inf'), accum_grad=1, dump=True):
         self.model = model
         self.optimizer = optimizer
         self.loader = loader
         self.device = device
         self.accum_grad = accum_grad
         self.grad_clip = grad_clip
+        self.dump = dump
 
     def run(self, stats):
         import math
 
         self.model.train()
         n_accum = 0
-        with stats.epoch("main") as train_stat:
-            self.model.reporter = train_stat
+        with stats.epoch("main", self.dump) as train_stat:
+            if hasattr(self.model, "module"):
+                self.model.module.reporter = train_stat
+            else:
+                self.model.reporter = train_stat
             for i, data in enumerate(self.loader):
                 loss = self.model(*squeeze(data, self.device))[0]
                 loss.mean().backward()
@@ -118,7 +122,10 @@ class ValidationJob(Job):
     def run(self, stats):
         self.model.eval()
         with stats.epoch("validation/main") as valid_stat:
-            self.model.reporter = valid_stat
+            if hasattr(self.model, "module"):
+                self.model.module.reporter = valid_stat
+            else:
+                self.model.reporter = valid_stat
             with torch.no_grad():
                 for i, data in enumerate(self.loader):
                     self.model(*squeeze(data, self.device))

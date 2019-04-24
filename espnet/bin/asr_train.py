@@ -22,7 +22,7 @@ def get_parser():
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
-                        choices=['chainer', 'pytorch'],
+                        choices=['chainer', 'pytorch', 'pytorch_v2'],
                         help='Backend library')
     parser.add_argument('--outdir', type=str, required=True,
                         help='Output directory')
@@ -185,6 +185,13 @@ def get_parser():
                         help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
+    # distributed training related
+    parser.add_argument('--dist-backend', default='nccl')
+    parser.add_argument('--dist-url', default=None)
+    parser.add_argument('--dist-file', default="dist_file")
+    parser.add_argument('--world-size', default=0, type=int)
+    parser.add_argument('--rank', default=0, type=int)
+
     return parser
 
 
@@ -216,7 +223,7 @@ def init_env(args):
         if cvd is None:
             logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
-            logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
+            logging.error("#gpus={} is not matched with CUDA_VISIBLE_DEVICES={}.".format(args.ngpu, cvd))
             sys.exit(1)
 
     # display PYTHONPATH
@@ -252,10 +259,14 @@ def main(cmd_args):
             from espnet.asr.chainer_backend.asr import train
             train(args)
         elif args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr import train
+            train(args)
+        elif args.backend == "pytorch_v2":
             from espnet.asr.pytorch_backend.train import train
+            args.backend = "pytorch"
             train(args)
         else:
-            raise ValueError("Only chainer and pytorch are supported.")
+            raise ValueError("Only chainer and pytorch[_v2] are supported.")
     elif args.num_spkrs > 1:
         if args.backend == "pytorch":
             from espnet.asr.pytorch_backend.asr_mix import train

@@ -11,6 +11,7 @@ backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+nnode=0        # nnode=0 uses non-distributed data parallel in 1 node. even nnode=1 uses distributed parallelism using multi processing impl
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -170,7 +171,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_node${nnode}_gpu${ngpu}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -182,7 +183,10 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Network Training"
-    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+    nprocs=$((${ngpu} * ${nnode}))
+    # TODO maybe wrap
+    slurm_distributed.sh --gpu ${ngpu} --node ${nnode} \
+        ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
@@ -215,7 +219,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --opt ${opt} \
         --sortagrad ${sortagrad} \
         --epochs ${epochs} \
-        --patience ${patience}
+        --patience ${patience} \
+        --world-size ${nnode}
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then

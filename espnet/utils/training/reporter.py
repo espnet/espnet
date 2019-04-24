@@ -58,7 +58,7 @@ class Stats(object):
         return time.time() - self.start_time
 
     @contextlib.contextmanager
-    def epoch(self, prefix):
+    def epoch(self, prefix, dump=True):
         from collections import defaultdict
 
         try:
@@ -67,6 +67,8 @@ class Stats(object):
         finally:
             self.logfun("[{}] epoch: {}\t{}".format(
                 prefix, self.current_epoch, e_result.summary()))
+            if not dump:
+                return
             e_result.dump()
 
             if self.outdir is not None:

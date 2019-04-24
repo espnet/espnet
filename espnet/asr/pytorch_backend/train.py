@@ -5,6 +5,12 @@ import logging
 import os
 
 import torch
+import torch.distributed
+import torch.multiprocessing
+import torch.utils.data
+import torch.utils.data.distributed
+
+from espnet.utils.deterministic_utils import set_deterministic_pytorch
 
 
 def load_batchset(json_path, args):
@@ -77,6 +83,32 @@ def build_optimizer(args, model):
 
 
 def train(args):
+    set_deterministic_pytorch(args)
+
+    # slurm available
+    import os
+    if args.world_size != 0 and "SLURM_NPROCS" in os.environ:
+        args.world_size = int(os.environ["SLURM_NPROCS"])
+        args.rank = int(os.environ["SLURM_PROCID"])
+        jobid = os.environ["SLURM_JOBID"]
+        args.dist_url = "file://{}.{}".format(os.path.realpath(args.outdir + "/" + args.dist_file), jobid)
+        logging.info("dist-url:{} at PROCID {} / {}".format(args.dist_url, args.rank, args.world_size))
+    if args.world_size > 0:
+        assert args.dist_url is not None, "you need to set --dist-url manually"
+
+    # args.ngpu = torch.cuda.device_count()
+    setattr(args, "distributed", args.world_size > 0)
+    if args.distributed:
+        args.world_size = args.ngpu * args.world_size
+        # Use torch.multiprocessing.spawn to launch distributed processes: the
+        # main_worker process function
+        torch.multiprocessing.spawn(main_worker, nprocs=args.ngpu, args=(args,))
+    else:
+        # Simply call main_worker function
+        main_worker(0, args)
+
+
+def main_worker(gpuid, args):
     """Train with the given args
 
     :param Namespace args: The program arguments
@@ -88,7 +120,13 @@ def train(args):
     from espnet.utils.deterministic_utils import set_deterministic_pytorch
     from espnet.utils.training.job import JobRunner
 
-    set_deterministic_pytorch(args)
+    if args.distributed:
+        logging.info('use GPU {} for training'.format(gpuid))
+        # For multiprocessing distributed training, rank needs to be the
+        # global rank among all the processes
+        args.rank = args.rank * args.ngpu + gpuid
+        torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                                             world_size=args.world_size, rank=args.rank)
 
     # check cuda availability
     if not torch.cuda.is_available():
@@ -97,12 +135,23 @@ def train(args):
     model = build_model(args)
     subsampling_factor = model.subsample[0]
 
-    # TODO(karita) support distributed data parallel
-    # check the use of multi-gpu
-    if args.ngpu > 1:
-        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
+    if args.distributed:
+        # For multiprocessing distributed, DistributedDataParallel constructor
+        # should always set the single device scope, otherwise,
+        # DistributedDataParallel will use all available devices.
+        logging.info('batch size is automatically increased (%d -> %d)' % (
+            args.batch_size, args.batch_size * args.world_size))
+        torch.cuda.set_device(gpuid)
+        model.cuda(gpuid)
+        # When using a single GPU per process and per
+        # DistributedDataParallel, we need to divide the batch size
+        # ourselves based on the total number of GPUs we have
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[gpuid])
+    elif args.ngpu > 1:
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
+        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
+        model.cuda()
         args.batch_size *= args.ngpu
 
     # set torch device
@@ -117,19 +166,21 @@ def train(args):
     valid_dataset = ASRDataset(load_batchset(args.valid_json, args),
                                subsampling_factor, args.preprocess_conf)
 
-    # TODO(karita) support distributed sampler & loader
-    # see also: https://github.com/pytorch/examples/blob/master/imagenet/main.py
-
-    # if distributed:
-    #      sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-    sampler = None
+    if args.distributed:
+        sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+    else:
+        sampler = None
     # batch_size=1 because minibatch is already made in dataset
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=1, shuffle=sampler, num_workers=args.n_iter_processes, pin_memory=True)
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=1, shuffle=False, num_workers=args.n_iter_processes, pin_memory=True)
 
-    train_job = TrainingJob(model, optimizer, train_loader, device=device, grad_clip=args.grad_clip)
+
+    # define jobs if rank != 0, we skip training plot and validation to avoid multi-processing data race
+    jobs = []
+    jobs.append(TrainingJob(model, optimizer, train_loader, device=device,
+                            grad_clip=args.grad_clip, dump=args.rank == 0))
 
     def save_model():
         m = model.module if hasattr(model, "module") else model
@@ -141,22 +192,22 @@ def train(args):
                 p['eps'] *= args.eps_decay
                 logging.info('adadelta eps decayed to ' + str(p['eps']))
 
-    valid_job = ValidationJob(model=model, loader=valid_loader, outdir=args.outdir,
-                              patience=args.patience, criterion=args.criterion,
-                              improve_hook=save_model, device=device,
-                              no_improve_hook=adjust_optimizer)
+    if args.rank == 0:
+        jobs.append(ValidationJob(model=model, loader=valid_loader, outdir=args.outdir,
+                                  patience=args.patience, criterion=args.criterion,
+                                  improve_hook=save_model, device=device,
+                                  no_improve_hook=adjust_optimizer))
 
-    plot_job = None
-    if args.num_save_attention > 0 and args.mtlalpha != 1.0:
-        if hasattr(model, "module"):
-            att_vis_fn = model.module.calculate_all_attentions
-        else:
-            att_vis_fn = model.calculate_all_attentions
-        plot_job = PlotAttentionJob(args.valid_json, att_vis_fn, args.outdir + "/att_ws",
-                                    args.num_save_attention, device,
-                                    subsampling_factor, args.preprocess_conf)
+        if args.num_save_attention > 0 and args.mtlalpha != 1.0:
+            if hasattr(model, "module"):
+                att_vis_fn = model.module.calculate_all_attentions
+            else:
+                att_vis_fn = model.calculate_all_attentions
+            jobs.append(PlotAttentionJob(args.valid_json, att_vis_fn, args.outdir + "/att_ws",
+                                         args.num_save_attention, device,
+                                         subsampling_factor, args.preprocess_conf))
 
-    runner = JobRunner([train_job, valid_job, plot_job], args.outdir, args.epochs)
+    runner = JobRunner(jobs, args.outdir, args.epochs)
     if args.resume:
         runner.load_state_dict(torch.load(args.resume))
     runner.run()
