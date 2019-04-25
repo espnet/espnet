@@ -128,6 +128,14 @@ mecab.done: espnet.done
 	fi
 	touch mecab.done
 
+dcase.done: venv
+	. venv/bin/activate && conda install -y pandas h5py scipy
+	. venv/bin/activate && conda install -y pytorch torchvision cudatoolkit=9.0 -c pytorch # for gpu install
+	. venv/bin/activate && conda install -y pysoundfile librosa youtube-dl tqdm -c conda-forge
+	. venv/bin/activate && conda install -y ffmpeg -c conda-forge
+	. venv/bin/activate &&pip install dcase_util
+	. venv/bin/activate &&pip install sed-eval
+
 moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
