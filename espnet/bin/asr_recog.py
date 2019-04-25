@@ -73,9 +73,16 @@ def main(args):
                         help='Word list to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
+    # streaming related
     parser.add_argument('--streaming-window', type=int, default=False,
                         help='Use streaming recognizer for inference - provide window size in frames. '
                              '--batchsize must be set to 0 to enable this mode')
+    parser.add_argument('--min-blank-dur', default=10, type=int,
+                        help='Minimum blank duration threshold')
+    parser.add_argument('--onset-margin', default=1, type=int,
+                        help='Onset margin')
+    parser.add_argument('--offset-margin', default=1, type=int,
+                        help='Offset margin.')
     args = parser.parse_args(args)
 
     # logging info
