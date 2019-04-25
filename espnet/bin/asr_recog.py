@@ -20,7 +20,7 @@ def main(args):
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
-                        choices=['chainer', 'pytorch'],
+                        choices=['chainer', 'pytorch', 'pytorch_v2'],
                         help='Backend library')
     parser.add_argument('--debugmode', default=1, type=int,
                         help='Debugmode')
@@ -118,7 +118,7 @@ def main(args):
         if args.backend == "chainer":
             from espnet.asr.chainer_backend.asr import recog
             recog(args)
-        elif args.backend == "pytorch":
+        elif args.backend == "pytorch" or args.backend == "pytorch_v2":
             from espnet.asr.pytorch_backend.recog import recog
             recog(args)
         else:

@@ -4,6 +4,7 @@ import logging
 
 import torch
 import torch.utils.data
+from torch.utils.data.distributed import DistributedSampler
 
 from espnet.utils.training.job import Job
 
@@ -38,6 +39,8 @@ class TrainingJob(Job):
 
         self.model.train()
         n_accum = 0
+        if isinstance(self.loader.sampler, DistributedSampler):
+            self.loader.sampler.set_epoch(stats.current_epoch)
         with stats.epoch("main", self.dump) as train_stat:
             if hasattr(self.model, "module"):
                 self.model.module.reporter = train_stat

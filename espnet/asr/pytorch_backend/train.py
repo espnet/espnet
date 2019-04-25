@@ -185,7 +185,7 @@ def main_worker(gpuid, args):
 
     def save_model():
         m = model.module if hasattr(model, "module") else model
-        torch.save(m, args.outdir + "/model." + args.criterion + ".best")
+        torch.save(m.state_dict(), args.outdir + "/model." + args.criterion + ".best")
 
     def adjust_optimizer():
         if args.opt == 'adadelta':
