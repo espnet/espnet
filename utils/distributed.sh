@@ -7,7 +7,7 @@
 
 gpu=0
 node=0
-uniform=true
+exact=true
 cmd=${cuda_cmd}
 
 . utils/parse_options.sh || exit 1;
@@ -33,9 +33,9 @@ if [ ${gpu} -eq 0 ]; then
     exit 0
 fi
 
-if ${uniform}; then
+if ${exact}; then
     if [ ${cmd} = "slurm.pl" ]; then
-        echo "[INFO]: multi node job with uniform distributed GPUs using SLURM"
+        echo "[INFO]: multi node job with the exact number of nodes using SLURM"
         ${cmd} --gpu ${gpu} --num_nodes ${node} $1 srun -N${node} --gres gpu:${gpu} ${@:2}
         exit 0
     fi
