@@ -26,7 +26,6 @@ elayers=4
 eunits=320
 eprojs=320
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# subsample=1_1_1_1_1
 # decoder related
 dlayers=1
 dunits=300
@@ -61,8 +60,8 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 samp_prob=0.0
 
 # data
-timit=/home/neo/MS/TIMIT_kaldi
-trans_type=wrd
+timit=/home/shree/TIMIT
+trans_type=char
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -102,11 +101,12 @@ if [ ${stage} -le 1 ]; then
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 8 --write_utt2num_frames true \
         data/${x} exp/make_fbank/${x} ${fbankdir}
     done
-    
-    # make a dev set
-    
+   
+    # make a dev set 
+    # Move train and dev folders (kaldi style naming) to train_nodev and train_dev
     mv data/train data/${train_set}
     mv data/dev data/${train_dev}
+    
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
     
@@ -156,7 +156,7 @@ else
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-
+exit 0;
 if [ ${stage} -le 3 ]; then
     echo "stage 3: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
