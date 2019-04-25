@@ -66,7 +66,8 @@ def build_model(args):
     # specify model architecture
     model = E2E(idim, odim, args, use_chainer_reporter=False)
     model.rnnlm = load_rnnlm(args)
-    save_config(args, idim, odim)
+    if args.rank == 0:
+        save_config(args, idim, odim)
     return model
 
 
