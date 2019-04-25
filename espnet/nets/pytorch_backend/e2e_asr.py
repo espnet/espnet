@@ -429,6 +429,7 @@ class StreamingE2E(object):
         self._ctc_posteriors = []
 
         assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attention decoders."
+        assert not "b" in self._e2e.etype, "StreamingE2E works only with uni-directional encoders"
 
     def accept_input(self, x):
         """Call this method each time a new batch of input is available."""
