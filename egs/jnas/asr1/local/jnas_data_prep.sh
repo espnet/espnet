@@ -107,10 +107,10 @@ for s in all; do
 	
 	PYTHONIOENCODING=utf-8 \
 	local/make_trans.py \
-	  ${loctmp}/char_tmp/$id.utf8 \
-	  ${spkname}_${ifNP} \
-	  "${all_wavs[@]}" \
-	  2>>${logdir}/make_trans.log >> ${loctmp}/${s}_trans.txt.unsorted
+	${loctmp}/char_tmp/$id.utf8 \
+	${spkname}_${ifNP} \
+	"${all_wavs[@]}" \
+	2>>${logdir}/make_trans.log >> ${loctmp}/${s}_trans.txt.unsorted
     done
 
     # filter out the audio for which there is no proper transcript

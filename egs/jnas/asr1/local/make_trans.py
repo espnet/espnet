@@ -26,9 +26,8 @@ if len(sys.argv) < 3:
 id_prefix = sys.argv[2]
 utt_ids = sys.argv[3:]
 utt2trans = dict()
-data = open(sys.argv[1], 'r', encoding='utf-8').readlines()
 
-for l in data:
+for l in open(sys.argv[1], 'r', encoding='utf-8'):
     u, trans = l.split(None, 1)
     utt2trans[u] = trans.strip('\n')
 
