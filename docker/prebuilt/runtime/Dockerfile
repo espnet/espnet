@@ -1,7 +1,7 @@
 FROM ubuntu:16.04
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
-ENV DOCKER_BUILT_VER 18.06.0-ce
+ENV DOCKER_BUILT_VER 18.09.1-ce
 
 ARG NUM_BUILD_CORES=8
 ENV NUM_BUILD_CORES ${NUM_BUILD_CORES}
@@ -21,6 +21,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
         libatlas3-base \
         libcurl3-dev \
         libfreetype6-dev \
+        libhdf5-dev \
         libperl-dev \ 
         libpng12-dev \
         libprotobuf-dev \
@@ -40,8 +41,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install --no-ins
         software-properties-common \
         sox \
         subversion \
-        wget \ 
         swig \
+        unzip \
+        wget \ 
         zip \
         zlib1g-dev \
         && \

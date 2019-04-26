@@ -1,11 +1,17 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import sys
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
+import codecs
 import re
+import sys
+
+is_python2 = sys.version_info[0] == 2
 
 
 def exist_or_not(i, match_pos):
@@ -21,7 +27,8 @@ def exist_or_not(i, match_pos):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--nchar', '-n', default=1, type=int,
                         help='number of characters to split, i.e., \
                         aabb -> a a b b with -n 1 and aa bb with -n 2')
@@ -37,19 +44,21 @@ def main():
 
     rs = []
     if args.non_lang_syms is not None:
-        with open(args.non_lang_syms, 'r') as f:
-            nls = [unicode(x.rstrip(), 'utf_8') for x in f.readlines()]
+        with codecs.open(args.non_lang_syms, 'r', encoding="utf-8") as f:
+            nls = [x.rstrip() for x in f.readlines()]
             rs = [re.compile(re.escape(x)) for x in nls]
 
     if args.text:
-        f = open(args.text)
+        f = codecs.open(args.text, encoding="utf-8")
     else:
-        f = sys.stdin
+        f = codecs.getreader("utf-8")(sys.stdin if is_python2 else sys.stdin.buffer)
+
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
     line = f.readline()
     n = args.nchar
     while line:
-        x = unicode(line, 'utf_8').split()
-        print ' '.join(x[:args.skip_ncols]).encode('utf_8'),
+        x = line.split()
+        print(' '.join(x[:args.skip_ncols]), end=" ")
         a = ' '.join(x[args.skip_ncols:])
 
         # get all matched positions
@@ -77,14 +86,14 @@ def main():
                     i += 1
             a = chars
 
-        a = [a[i:i + n] for i in range(0, len(a), n)]
+        a = [a[j:j + n] for j in range(0, len(a), n)]
 
         a_flat = []
         for z in a:
             a_flat.append("".join(z))
 
         a_chars = [z.replace(' ', args.space) for z in a_flat]
-        print ' '.join(a_chars).encode('utf_8')
+        print(' '.join(a_chars))
         line = f.readline()
 
 

@@ -1,0 +1,20 @@
+#!/bin/bash
+cd /mnt/matylda6/baskar/espnet_v3/egs/librispeech/asr1
+. ./path.sh
+( echo '#' Running on `hostname`
+  echo '#' Started at `date`
+  echo -n '# '; cat <<EOF
+asr_train.py --ngpu 1 --backend pytorch --outdir exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/results --debugmode 1 --dict data/lang_1char/train_100_units.txt --debugdir exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150 --minibatches 0 --verbose 0 --resume exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/results/snapshot.ep.9 --train-json dump/train_100/deltafalse/data.json --valid-json dump/dev/deltafalse/data.json --etype blstmp --elayers 8 --eunits 320 --eprojs 320 --subsample 1_2_2_1_1 --dlayers 1 --dunits 300 --atype location --adim 100 --aconv-chans 10 --aconv-filts 100 --mtlalpha 0.0 --batch-size 40 --maxlen-in 800 --maxlen-out 150 --sampling-probability 0.0 --opt adadelta --epochs 30 
+EOF
+) >exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/train.log
+time1=`date +"%s"`
+ ( asr_train.py --ngpu 1 --backend pytorch --outdir exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/results --debugmode 1 --dict data/lang_1char/train_100_units.txt --debugdir exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150 --minibatches 0 --verbose 0 --resume exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/results/snapshot.ep.9 --train-json dump/train_100/deltafalse/data.json --valid-json dump/dev/deltafalse/data.json --etype blstmp --elayers 8 --eunits 320 --eprojs 320 --subsample 1_2_2_1_1 --dlayers 1 --dunits 300 --atype location --adim 100 --aconv-chans 10 --aconv-filts 100 --mtlalpha 0.0 --batch-size 40 --maxlen-in 800 --maxlen-out 150 --sampling-probability 0.0 --opt adadelta --epochs 30  ) 2>>exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/train.log >>exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/train.log
+ret=$?
+time2=`date +"%s"`
+echo '#' Accounting: time=$(($time2-$time1)) threads=1 >>exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/train.log
+echo '#' Finished at `date` with status $ret >>exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/train.log
+[ $ret -eq 137 ] && exit 100;
+touch exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/q/sync/done.29995
+exit $[$ret ? 1 : 0]
+## submitted with:
+# qsub -v PATH -cwd -S /bin/bash -j y -l arch=*64* -o exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/q/train.log -V -l 'gpu=1', -q long.q@facegpu*   /mnt/matylda6/baskar/espnet_v3/egs/librispeech/asr1/exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/q/train.sh >>exp/train_100_pytorch_blstmp_e8_subsample1_2_2_1_1_unit320_proj320_d1_unit300_location_aconvc10_aconvf100_mtlalpha0.0_adadelta_sampprob0.0_bs40_mli800_mlo150/q/train.log 2>&1

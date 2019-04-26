@@ -3,23 +3,42 @@
 # Copyright 2017 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from distutils.version import LooseVersion
 
 import chainer.functions as F
 import numpy
 import pytest
+import torch
+
+from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
 
-def test_ctc_loss():
+@pytest.mark.parametrize('use_warpctc', [True, False])
+@pytest.mark.parametrize('in_length,out_length',
+                         [([11, 17, 15], [4, 2, 3]),
+                          ([4], [1])])
+def test_ctc_loss(in_length, out_length, use_warpctc):
     pytest.importorskip("torch")
-    pytest.importorskip("warpctc_pytorch")
-    import torch
-    import warpctc_pytorch
+    if use_warpctc:
+        pytest.importorskip("warpctc_pytorch")
+        import warpctc_pytorch
+        torch_ctcloss = warpctc_pytorch.CTCLoss(size_average=True)
+    else:
+        if LooseVersion(torch.__version__) < LooseVersion('1.0'):
+            pytest.skip("pytorch < 1.0 doesn't support CTCLoss")
+        _ctcloss_sum = torch.nn.CTCLoss(reduction='sum')
 
-    from espnet.nets.e2e_asr_th import pad_list
+        def torch_ctcloss(th_pred, th_target, th_ilen, th_olen):
+            th_pred = th_pred.log_softmax(2)
+            loss = _ctcloss_sum(th_pred, th_target, th_ilen, th_olen)
+            # Batch-size average
+            loss = loss / th_pred.size(1)
+            return loss
 
     n_out = 7
-    input_length = numpy.array([11, 17, 15], dtype=numpy.int32)
-    label_length = numpy.array([4, 2, 3], dtype=numpy.int32)
+    input_length = numpy.array(in_length, dtype=numpy.int32)
+    label_length = numpy.array(out_length, dtype=numpy.int32)
     np_pred = [numpy.random.rand(il, n_out).astype(
         numpy.float32) for il in input_length]
     np_target = [numpy.random.randint(
@@ -36,17 +55,11 @@ def test_ctc_loss():
     th_target = torch.from_numpy(numpy.concatenate(np_target))
     th_ilen = torch.from_numpy(input_length)
     th_olen = torch.from_numpy(label_length)
-    th_loss = warpctc_pytorch.CTCLoss(size_average=True)(
-        th_pred, th_target, th_ilen, th_olen).data.numpy()[0]
+    th_loss = torch_ctcloss(th_pred, th_target, th_ilen, th_olen).numpy()
     numpy.testing.assert_allclose(th_loss, ch_loss, 0.05)
 
 
 def test_attn_loss():
-    pytest.importorskip("torch")
-    import torch
-
-    from espnet.nets.e2e_asr_th import pad_list
-
     n_out = 7
     _eos = n_out - 1
     n_batch = 3
@@ -73,23 +86,23 @@ def test_attn_loss():
     th_pred = torch.from_numpy(y_all.data)
     th_target = pad_list([torch.from_numpy(t.data).long()
                           for t in ys_out], th_ignore)
+    if LooseVersion(torch.__version__) < LooseVersion('1.0'):
+        reduction_str = 'elementwise_mean'
+    else:
+        reduction_str = 'mean'
     th_loss = torch.nn.functional.cross_entropy(th_pred, th_target.view(-1),
-                                                ignore_index=th_ignore, size_average=True)
+                                                ignore_index=th_ignore,
+                                                reduction=reduction_str)
     print(ch_loss)
     print(th_loss)
 
-    # NOTE: warpctc_pytorch.CTCLoss does not normalize itself by batch-size while chainer's default setting does
+    # NOTE: warpctc_pytorch.CTCLoss does not normalize itself by batch-size
+    # while chainer's default setting does
     loss_data = float(th_loss)
     numpy.testing.assert_allclose(loss_data, ch_loss.data, 0.05)
 
 
 def test_train_acc():
-    pytest.importorskip("torch")
-    import torch
-
-    from espnet.nets.e2e_asr_th import pad_list
-    from espnet.nets.e2e_asr_th import th_accuracy
-
     n_out = 7
     _eos = n_out - 1
     n_batch = 3
