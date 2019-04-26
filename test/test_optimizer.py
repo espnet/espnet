@@ -59,10 +59,10 @@ def test_optimizer(ch_opt_t, th_opt_t):
     th_loss = th_model(torch.from_numpy(data))
     chainer.functions.sum(ch_loss).backward()
     th_loss.backward()
-    numpy.testing.assert_allclose(ch_loss.data, th_loss.item())
+    numpy.testing.assert_allclose(ch_loss.data, th_loss.item(), rtol=1e-6)
     ch_opt.update()
     th_opt.step()
     numpy.testing.assert_allclose(
-        ch_model.a.W.data, th_model.a.weight.data.numpy())
+        ch_model.a.W.data, th_model.a.weight.data.numpy(), rtol=1e-6)
     numpy.testing.assert_allclose(
         ch_model.a.b.data, th_model.a.bias.data.numpy(), rtol=1e-6)

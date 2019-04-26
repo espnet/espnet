@@ -3,7 +3,6 @@ LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 ## FROM CUDA 9.1 base
 
-
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates apt-transport-https gnupg-curl && \
     rm -rf /var/lib/apt/lists/* && \
     NVIDIA_GPGKEY_SUM=d1be581509378368edeec8c1eb2958702feedf3bc3d17011adbf24efacce4ab5 && \
@@ -31,7 +30,7 @@ RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
 
 ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
-ENV CUDA_HOME /usr/lib/nvidia
+ENV CUDA_HOME /usr/local/cuda
 
 # nvidia-container-runtime
 ENV NVIDIA_VISIBLE_DEVICES all
