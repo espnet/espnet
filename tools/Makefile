@@ -135,6 +135,7 @@ dcase.done: venv
 	. venv/bin/activate && conda install -y ffmpeg -c conda-forge
 	. venv/bin/activate &&pip install dcase_util
 	. venv/bin/activate &&pip install sed-eval
+	touch dcase.done
 
 moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
