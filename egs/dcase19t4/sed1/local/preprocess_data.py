@@ -1,8 +1,23 @@
 import os
+import pandas as pd
+import numpy as np
 
 # work_dir = espnet/egs/dcase19t4/sed1
 DATA_DIR = './DCASE2019_task4/dataset/metadata'
+AUDIO_DIR = os.path.join(os.getcwd(), 'DCASE2019_task4/dataset/audio')
 
+def make_scps(scp_dir: str, filenames: np.ndarray, dataset: str, att: str) -> None:
+    with open(os.path.join(scp_dir, 'text'), 'a') as text_f, \
+         open(os.path.join(scp_dir, 'wav.scp'), 'a') as wav_scp_f, \
+         open(os.path.join(scp_dir, 'utt2spk'), 'a') as utt2spk_f:
+
+        for filename in filenames:
+            if not os.path.exists(os.path.join(AUDIO_DIR, dataset, att, filename)):
+                continue
+            wav_id = os.path.splitext(filename)[0]
+            wav_scp_f.write(f'{att}-{wav_id} {os.path.join(AUDIO_DIR, dataset, att, filename)}\n')
+            utt2spk_f.write(f'{att}-{wav_id} {att}\n')
+            text_f.write(f'{att}-{wav_id} {wav_id}.json\n')
 
 def main():
 
@@ -18,71 +33,24 @@ def main():
             wav_scp_f.truncate()
             utt2spk_f.truncate()
 
-            if x == 'train':
-                with open(os.path.join(DATA_DIR, x, 'synthetic.csv')) as synthetic, \
-                     open(os.path.join(DATA_DIR, x, 'unlabel_in_domain.csv')) as unlabel, \
-                     open(os.path.join(DATA_DIR, x, 'weak.csv')) as weak:
+        if x == 'train':
 
-                    synthetic.readline()
-                    unlabel.readline()
-                    weak.readline()
+            df_synthetic = pd.read_csv(os.path.join(DATA_DIR, x, 'synthetic.csv'), delimiter='\t')
+            df_unlabel = pd.read_csv(os.path.join(DATA_DIR, x, 'unlabel_in_domain.csv'), delimiter='\t')
+            df_weak = pd.read_csv(os.path.join(DATA_DIR, x, 'weak.csv'), delimiter='\t')
 
-                    for line in synthetic.readlines():
-                        filename, onset, offset, label = line.strip().split('\t')
-                        wav_id = os.path.splitext(filename)[0]
-                        wav_scp_f.write(wav_id + ' ' + filename + '\n')
-                        utt2spk_f.write(wav_id + ' ' + 'synthetic\n')
-                        text_f.write(wav_id + ' ' + wav_id + '.json\n')
+            make_scps(os.path.join('data', x), df_synthetic.dropna()['filename'].unique(), x, 'synthetic')
+            make_scps(os.path.join('data', x), df_unlabel.dropna()['filename'].unique(), x, 'unlabel_in_domain')
+            make_scps(os.path.join('data', x), df_weak.dropna()['filename'].unique(), x, 'weak')
 
-                    for line in unlabel.readlines():
-                        filename = line.strip()
-                        wav_id = os.path.splitext(filename)[0]
-                        wav_scp_f.write(wav_id + ' ' + filename + '\n')
-                        utt2spk_f.write(wav_id + ' ' + 'unlabel\n')
-                        text_f.write(wav_id + ' ' + wav_id + '.json\n')
-
-                    for line in weak.readlines():
-                        filename, label = line.strip().split('\t')
-                        wav_id = os.path.splitext(filename)[0]
-                        wav_scp_f.write(wav_id + ' ' + filename + '\n')
-                        utt2spk_f.write(wav_id + ' ' + 'weak\n')
-                        text_f.write(wav_id + ' ' + wav_id + '.json\n')
-
-            elif x == 'validation':
-                with open(os.path.join(DATA_DIR, x, 'validation.csv')) as validation, \
-                     open(os.path.join(DATA_DIR, x, 'eval_dcase2018.csv')) as eval, \
-                     open(os.path.join(DATA_DIR, x, 'test_dcase2018.csv')) as test:
-
-                    validation.readline()
-                    eval.readline()
-                    test.readline()
-
-                    for line in validation.readlines():
-                        if len(line.strip().split('\t')) != 4:
-                            continue
-                        filename, onset, offset, label = line.strip().split('\t')
-                        wav_id = os.path.splitext(filename)[0]
-                        wav_scp_f.write(wav_id + ' ' + filename + '\n')
-                        utt2spk_f.write(wav_id + ' ' + 'validation\n')
-                        text_f.write(wav_id + ' ' + wav_id + '.json\n')
-
-                    for line in eval.readlines():
-                        if len(line.strip().split('\t')) != 4:
-                            continue
-                        filename, onset, offset, label = line.strip().split('\t')
-                        wav_id = os.path.splitext(filename)[0]
-                        wav_scp_f.write(wav_id + ' ' + filename + '\n')
-                        utt2spk_f.write(wav_id + ' ' + 'eval2018\n')
-                        text_f.write(wav_id + ' ' + wav_id + '.json\n')
-
-                    for line in test.readlines():
-                        if len(line.strip().split('\t')) != 4:
-                            continue
-                        filename, onset, offset, label = line.strip().split('\t')
-                        wav_id = os.path.splitext(filename)[0]
-                        wav_scp_f.write(wav_id + ' ' + filename + '\n')
-                        utt2spk_f.write(wav_id + ' ' + 'test2018\n')
-                        text_f.write(wav_id + ' ' + wav_id + '.json\n')
+        # elif x == 'validation':
+        #     df_validation = pd.read_csv(os.path.join(DATA_DIR, x, 'validation.csv'), delimiter='\t')
+        #     df_eval = pd.read_csv(os.path.join(DATA_DIR, x, 'eval_dcase2018.csv'), delimiter='\t')
+        #     df_test = pd.read_csv(os.path.join(DATA_DIR, x, 'test_dcase2018.csv'), delimiter='\t')
+        #
+        #     make_scps(os.path.join('data', x), df_validation.dropna()['filename'].unique(), x, 'validation')
+        #     make_scps(os.path.join('data', x), df_eval.dropna()['filename'].unique(), x, 'eval2018')
+        #     make_scps(os.path.join('data', x), df_test.dropna()['filename'].unique(), x, 'test2018')
 
 
 if __name__ == '__main__':

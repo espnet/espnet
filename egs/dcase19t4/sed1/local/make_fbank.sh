@@ -13,6 +13,7 @@ n_fft=2048
 n_shift=511
 win_length=
 window=hann
+mono=true
 write_utt2num_frames=true
 cmd=run.pl
 compress=true
@@ -123,7 +124,7 @@ else
   utils/split_scp.pl ${scp} ${split_scps}
 
   ${cmd} JOB=1:${nj} ${logdir}/make_fbank_${name}.JOB.log \
-      compute-fbank-feats.py \
+      ./local/compute-fbank-feats.py \
           --fs ${fs} \
           --fmax ${fmax} \
           --fmin ${fmin} \
@@ -133,6 +134,7 @@ else
           --window ${window} \
           --n_mels ${n_mels} \
           ${write_num_frames_opt} \
+          --mono True \
           --compress=${compress} \
           --filetype ${filetype} \
           --normalize ${normalize} \

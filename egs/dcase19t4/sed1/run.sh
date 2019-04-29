@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch # pytorch only
-stage=3         # start from 0 if you need to start from data preparation
+stage=2         # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 
@@ -24,14 +24,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     ### Note: It may not work on python3.7
     echo "stage 0: Data Preparation"
-#    git clone https://github.com/turpaultn/DCASE2019_task4.git
+    git clone https://github.com/turpaultn/DCASE2019_task4.git
+    patch -p1 < sorted_label_index.patch
     # TODO: run in shell script. fix relative path problem
     #    cd DCASE2019_task4/baseline
     #    python ./download_data.py
     #    patch label_index.patch
     wget https://zenodo.org/record/2583796/files/Synthetic_dataset.zip -O ./DCASE2019_task4/dataset/Synthetic_dataset.zip
     unzip ./DCASE2019_task4/dataset/Synthetic_dataset.zip -d ./DCASE2019_task4/dataset
-    rm ./DCASE2019_task4/dataset/Synthetic_dataset.zip
+    rm ./DCASE2019_task4/dataset/Synthetic_dataset.ziprun
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -44,7 +45,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             sort data/${x}/${f} -o data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
-        . ./local/make_fbank.sh data/${x} exp/make_fbank/train fbank
+        . ./local/make_fbank.sh data/${x} exp/make_fbank/${x} fbank
     done
 fi
 

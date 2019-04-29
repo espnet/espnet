@@ -1,0 +1,26 @@
+diff --git a/DCASE2019_task4/baseline/DatasetDcase2019Task4.py b/DCASE2019_task4/baseline/DatasetDcase2019Task4.py
+index f3f2d0e..52259bd 100644
+--- a/DCASE2019_task4/baseline/DatasetDcase2019Task4.py
++++ b/DCASE2019_task4/baseline/DatasetDcase2019Task4.py
+@@ -116,7 +116,7 @@ class DatasetDcase2019Task4:
+                 classes.extend(df["event_label"].dropna().unique())  # dropna avoid the issue between string and float
+             elif "event_labels" in df.columns:
+                 classes.extend(df.event_labels.str.split(',', expand=True).unstack().dropna().unique())
+-        return list(set(classes))
++        return sorted(list(set(classes)))
+ 
+     @staticmethod
+     def get_subpart_data(df, subpart_data):
+diff --git a/DCASE2019_task4/baseline/evaluation_measures.py b/DCASE2019_task4/baseline/evaluation_measures.py
+index 0aa4d90..21fc774 100644
+--- a/DCASE2019_task4/baseline/evaluation_measures.py
++++ b/DCASE2019_task4/baseline/evaluation_measures.py
+@@ -136,7 +136,7 @@ def event_based_evaluation_df(reference, estimated, t_collar=0.200, percentage_o
+     classes = []
+     classes.extend(reference.event_label.dropna().unique())
+     classes.extend(estimated.event_label.dropna().unique())
+-    classes = list(set(classes))
++    classes = sorted(list(set(classes)))
+ 
+     event_based_metric = sed_eval.sound_event.EventBasedMetrics(
+         event_label_list=classes,
