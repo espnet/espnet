@@ -10,7 +10,7 @@
 
 # general configuration
 backend=pytorch
-stage=-1       # start from -1 if you need to start from data download
+stage=0       # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -100,37 +100,42 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
-        data/all_jnas exp/make_fbank/train_jnas ${fbankdir}
-    utils/fix_data_dir.sh data/all_jnas
-
+        data/local/all exp/make_fbank/$train_set ${fbankdir}
+    utils/fix_data_dir.sh data/local/all
+    
     # remove utt having more than 2000 frames or less than 10 frames or
     # remove utt having more than 200 characters or 0 characters
-    remove_longshortdata.sh data/all_jnas data/all_trim_jnas
+    remove_longshortdata.sh data/local/all data/all_trim_jnas
 
     # following split consider prompt duplication (but does not consider speaker overlap instead)
-    local/split_tr_dt_et.sh data/all_trim_jnas data/tr_jnas data/dt_jnas data/et_jnas
+    local/split_tr_dt_et.sh data/all_trim_jnas data/$train_set data/$train_dev data/$recog_set
     rm -r data/all_trim_jnas
 
     # compute global CMVN
-    compute-cmvn-stats scp:data/tr_jnas/feats.scp data/tr_jnas/cmvn.ark
+    compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/jnas/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
+
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{14,15,16,17}/${USER}/espnet-data/egs/voxforge/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{14,15,16,17}/${USER}/espnet-data/egs/jnas/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
+
     dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
-        data/tr_jnas/feats.scp data/tr_jnas/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+        data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
+
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
-        data/dt_jnas/feats.scp data/tr_jnas/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+        data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
+
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+	echo $feat_recog_dir
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
@@ -144,15 +149,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/tr_jnas/text | cut -f 2- -d" " | tr " " "\n" \
+    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
     data2json.sh --lang jnas --feat ${feat_tr_dir}/feats.scp \
-         data/tr_jnas ${dict} > ${feat_tr_dir}/data.json
+         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
     data2json.sh --lang jnas --feat ${feat_dt_dir}/feats.scp \
-         data/dt_jnas ${dict} > ${feat_dt_dir}/data.json
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp \
