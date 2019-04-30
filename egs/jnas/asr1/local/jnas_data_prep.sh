@@ -47,8 +47,9 @@ fi
 logdir=exp/jnas_data_prep
 mkdir -p $logdir
 echo -n > $logdir/make_trans.log
+mkdir ${locdata}/all
 for s in all; do
-    echo "--- Preparing ${s}_wav.scp, ${s}_trans.txt and ${s}.utt2spk ..."
+    echo "--- Preparing ${s}/wav.scp, ${s}/trans.txt and ${s}/utt2spk ..."
 
     for spkname in $(cat $loctmp/speakers_${s}.txt); do
   scrdir=${DATA}/${trans}/${type}/${ifNP}
@@ -116,20 +117,20 @@ for s in all; do
     # filter out the audio for which there is no proper transcript
     awk 'NR==FNR{trans[$1]; next} ($1 in trans)' FS=" " \
 	${loctmp}/${s}_trans.txt.unsorted ${loctmp}/${s}_wav.scp.unsorted |\
-	sort -k1 > ${locdata}/${s}_wav.scp
+	sort -k1 > ${locdata}/${s}/wav.scp
 
     awk 'NR==FNR{trans[$1]; next} ($1 in trans)' FS=" " \
 	${loctmp}/${s}_trans.txt.unsorted $loctmp/${s}.utt2spk.unsorted |\
-	sort -k1 > ${locdata}/${s}.utt2spk
+	sort -k1 > ${locdata}/${s}/utt2spk
 
-    sort -k1 < ${loctmp}/${s}_trans.txt.unsorted > ${locdata}/${s}_trans.txt
+    sort -k1 < ${loctmp}/${s}_trans.txt.unsorted > ${locdata}/${s}/text
 
     echo "--- Preparing ${s}.spk2utt ..."
-    cat $locdata/${s}_trans.txt |\
+    cat $locdata/${s}/text |\
 	cut -f1 -d' ' |\
 	  awk 'BEGIN {FS="_"}
         {names[$1]=names[$1] " " $0;}
-        END {for (k in names) {print k, names[k];}}' | sort -k1 > $locdata/${s}.spk2utt
+        END {for (k in names) {print k, names[k];}}' | sort -k1 > $locdata/${s}/spk2utt
 done;
 
 trans_err=$(wc -l <${logdir}/make_trans.log)
