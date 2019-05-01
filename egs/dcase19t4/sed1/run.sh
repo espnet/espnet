@@ -14,15 +14,14 @@ ngpu=0          # number of gpus ("0" uses cpu, otherwise use gpu)
 
 model=baseline
 
-
-set -e
-set -u
+# FIXME: conda warning; unbound variable
+#set -e
+#set -u
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    ### Note: It may not work on python3.7
     echo "stage 0: Data Preparation"
     git clone https://github.com/turpaultn/DCASE2019_task4.git
     patch -p1 < sorted_label_index.patch
@@ -31,8 +30,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     #    python ./download_data.py
     #    patch label_index.patch
     wget https://zenodo.org/record/2583796/files/Synthetic_dataset.zip -O ./DCASE2019_task4/dataset/Synthetic_dataset.zip
-    unzip ./DCASE2019_task4/dataset/Synthetic_dataset.zip -d ./DCASE2019_task4/dataset
-    rm ./DCASE2019_task4/dataset/Synthetic_dataset.ziprun
+    unzip ./DCASE2019_task4/datasetvaliSynthetic_dataset.zip -d ./DCASE2019_task4/dataset
+    rm ./DCASE2019_task4/dataset/Synthetic_dataset.zip
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -47,6 +46,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
         . ./local/make_fbank.sh data/${x} exp/make_fbank/${x} fbank
     done
+    . ./local/data2json.sh --train_feat ./data/train/feats.scp \
+                           --validation_feat ./data/validation/feats.scp \
+                           --label ./DCASE2019_task4/dataset/metadata \
+                           ./data
 fi
 
 # TODO: modify data loader
