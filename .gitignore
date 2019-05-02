@@ -40,4 +40,8 @@ tools/sentencepiece/
 tools/swig/
 tools/warp-ctc/
 tools/*.done
+<<<<<<< HEAD
 
+=======
+tools/PESQ*
+>>>>>>> upstream/v.0.4.0

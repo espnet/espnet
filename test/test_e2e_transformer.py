@@ -10,7 +10,7 @@ import torch
 try:
     import espnet.nets.pytorch_backend.e2e_transformer  # NOQA
     pytorch_T = True
-except Exception as e:
+except Exception:
     pytorch_T = False
     pass
 
