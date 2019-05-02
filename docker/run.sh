@@ -6,6 +6,7 @@ docker_folders=
 docker_cuda=9.1
 docker_user=true
 docker_env=
+docker_cmd=
 
 
 while test $# -gt 0
@@ -18,15 +19,15 @@ do
         --docker*) ext=${1#--}
               frombreak=true
               for i in _ {a..z} {A..Z}; do
-                for var in `eval echo "\\${!$i@}"`; do
+                for var in `eval echo "\\${!${i}@}"`; do
                   if [ "$var" == "$ext" ]; then
-                    eval $ext=$2
+                    eval ${ext}=$2
                     frombreak=false
                     break 2
                   fi 
                 done 
               done
-              if $frombreak ; then
+              if ${frombreak} ; then
                 echo "bad option $1" 
                 exit 1
               fi
@@ -108,7 +109,12 @@ if [ ! -z "${docker_folders}" ]; then
 fi
 
 cmd1="cd /espnet/egs/${docker_egs}"
-cmd2="./run.sh $@"
+if [ ! -z "${docker_cmd}" ]; then
+  cmd2="./${docker_cmd} $@"
+else
+  cmd2="./run.sh $@"
+fi
+
 if [ ${docker_user} = false ]; then
   # Required to access to the folder once the training if finished in root access
   cmd2="${cmd2}; chmod -R 777 /espnet/egs/${docker_egs}"
