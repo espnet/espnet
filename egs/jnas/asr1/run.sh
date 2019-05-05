@@ -1,8 +1,6 @@
 #!/bin/bash
-#!/bin/bash/env python3
 
-
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2017 Johns Hopkins University (Shinji Watanabe) and Nagoya University (Someki Masao)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh

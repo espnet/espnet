@@ -1,11 +1,9 @@
 #!/bin/bash
 
-# Copyright 2012  Vassil Panayotov
-#           2014  Johns Hopkins University (author: Daniel Povey)
-#           2017  Johns Hopkins University (author: Shinji Watanabe)
-# Apache 2.0
+# Copyright 2017 Nagoya University (Someki Masao)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# Makes train/test splits
+# Prepare JNAS dataset
 
 . ./path.sh
 
