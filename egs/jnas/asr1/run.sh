@@ -106,12 +106,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     remove_longshortdata.sh data/all data/all_trim
 
     # following split consider prompt duplication (but does not consider speaker overlap instead)
-    local/split_tr_dt_et.sh data/all_trim data/${train_set} data/${train_dev} data/${recog_set}
+    local/split_tr_dt_et.sh --perdt 5 --peret 5 \
+        data/all_trim data/${train_set} data/${train_dev} data/${recog_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
-    dump.sh --cmd "$train_cmd" --nj 10 --do_delta ${do_delta} \
+    dump.sh --cmd "$train_cmd" --nj 16 --do_delta ${do_delta} \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
 
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
