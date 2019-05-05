@@ -199,7 +199,7 @@ fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
-    nj=16
+    nj=32
 
     pids=() # initialize pids
     for rtask in ${train_dev} ${recog_set}; do
@@ -229,7 +229,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight}
 
-        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
