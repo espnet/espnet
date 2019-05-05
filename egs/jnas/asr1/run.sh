@@ -202,7 +202,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     nj=16
 
     pids=() # initialize pids
-    for rtask in ${recog_set}; do
+    for rtask in ${train_dev} ${recog_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
