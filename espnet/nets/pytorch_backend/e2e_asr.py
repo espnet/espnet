@@ -532,3 +532,4 @@ class StreamingE2E(object):
         h, lpz = self._input_window_for_decoder(use_all=True)
 
         return self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
+

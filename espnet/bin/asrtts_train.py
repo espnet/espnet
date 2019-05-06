@@ -44,10 +44,11 @@ def main():
                         help='Filenames of train label data (json)')
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
-    # network archtecture
+    # network architecture
     # encoder
     parser.add_argument('--etype', default='blstmp', type=str,
-                        choices=['blstm', 'blstmp', 'vggblstmp', 'vggblstm'],
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
                         help='Type of encoder network architecture')
     parser.add_argument('--elayers', default=4, type=int,
                         help='Number of encoder layers')
@@ -60,7 +61,7 @@ def main():
                              'every y frame at 2nd layer etc.')
     # loss
     parser.add_argument('--ctc_type', default='warpctc', type=str,
-                        choices=['chainer', 'warpctc'],
+                        choices=['builtin', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
     # attention
     parser.add_argument('--atype', default='dot', type=str,
@@ -83,7 +84,7 @@ def main():
                         (negative value indicates no location-aware attention)')
     # decoder
     parser.add_argument('--dtype', default='lstm', type=str,
-                        choices=['lstm'],
+                        choices=['lstm', 'gru'],
                         help='Type of decoder network architecture')
     parser.add_argument('--dlayers', default=1, type=int,
                         help='Number of decoder layers')
@@ -131,35 +132,59 @@ def main():
                         help='Blank symbol')
     # model (parameter) related
     parser.add_argument('--dropout-rate', default=0.0, type=float,
-                        help='Dropout rate')
+                        help='Dropout rate for the encoder')
+    parser.add_argument('--dropout-rate-decoder', default=0.0, type=float,
+                        help='Dropout rate for the decoder')
     # minibatch related
+    parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
+                        help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batch-size', '-b', default=50, type=int,
                         help='Batch size')
     parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
                         help='Batch size is reduced if the input sequence length > ML')
     parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
-    parser.add_argument('--n_iter_processes', default=0, type=int,
+    parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam'],
+                        choices=['adadelta', 'adam', 'noam'],
                         help='Optimizer')
+    parser.add_argument('--accum-grad', default=1, type=int,
+                        help='Number of gradient accumulation')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
                         help='Decaying ratio of epsilon')
+    parser.add_argument('--weight-decay', default=0.0, type=float,
+                        help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
                         choices=['loss', 'acc'],
                         help='Criterion to perform epsilon decay')
     parser.add_argument('--threshold', default=1e-4, type=float,
                         help='Threshold to stop iteration')
     parser.add_argument('--epochs', '-e', default=30, type=int,
-                        help='Number of maximum epochs')
+                        help='Maximum number of epochs')
+    parser.add_argument('--early-stop-criterion', default='validation/main/acc', type=str, nargs='?',
+                        help="Value to monitor to trigger an early stopping of the training")
+    parser.add_argument('--patience', default=3, type=int, nargs='?',
+                        help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--grad-clip', default=5, type=float,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+
+    # transfer learning related
+    parser.add_argument('--asr-model', default=False, nargs='?',
+                        help='Pre-trained ASR model')
+    parser.add_argument('--mt-model', default=False, nargs='?',
+                        help='Pre-trained MT model')
+    parser.add_argument(
+        '--use-frontend', type=strtobool, default=False,
+        help='The flag to switch to use frontend system.')
+
     # cycle-consistency related
     parser.add_argument('--asr-model', default='',
                         help='ASR initial model')
@@ -177,7 +202,7 @@ def main():
                         help='Type of generator (tts, tte, ...)')
     parser.add_argument('--rnnloss', default='ce', type=str,
                         choices=['ce', 'kl', 'kld', 'mmd'],
-                        help='Type of generator (tts, tte, ...)')
+                        help='RNNLM loss function')
     parser.add_argument('--n-samples-per-input', default=5, type=int,
                         help='Number of samples per input generated from model')
     parser.add_argument('--sample-maxlenratio', default=0.8, type=float,
@@ -244,7 +269,6 @@ def main():
                     os.environ['CUDA_VISIBLE_DEVICES'] = cvd
                 except subprocess.CalledProcessError:
                     logging.info("No GPU seems to be available")
-
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
@@ -265,7 +289,7 @@ def main():
                     logging.info("No GPU seems to be available")
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -293,7 +317,7 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "pytorch":
-        from espnet.asr.asr_dual_pytorch import train
+        from espnet.asr.asrtts_pytorch import train
         train(args)
     else:
         raise ValueError("pytorch is only supported.")
