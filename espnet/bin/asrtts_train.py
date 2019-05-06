@@ -179,8 +179,6 @@ def main():
                         help='Number of samples of attention to be saved')
 
     # transfer learning related
-    parser.add_argument('--asr-model', default=False, nargs='?',
-                        help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
     parser.add_argument(
@@ -188,13 +186,13 @@ def main():
         help='The flag to switch to use frontend system.')
 
     # cycle-consistency related
-    parser.add_argument('--asr-model', default='',
+    parser.add_argument('--asr-model', default='model.acc.best', type=str,
                         help='ASR initial model')
-    parser.add_argument('--asr-model-conf', default='',
+    parser.add_argument('--asr-model-conf', default='model.json', type=str,
                         help='ASR initial model conf')
-    parser.add_argument('--tts-model',
+    parser.add_argument('--tts-model', default='', type=str,
                         help='TTS model for cycle-consistency loss')
-    parser.add_argument('--tts-model-conf',
+    parser.add_argument('--tts-model-conf', default='', type=str,
                         help='TTS model conf for cycle-consistency loss')
     parser.add_argument('--expected-loss', default='', type=str,
                         choices=['tts', 'none', 'wer'],
@@ -319,7 +317,7 @@ def main():
     # train
     logging.info('backend = ' + args.backend)
     if args.backend == "pytorch":
-        from espnet.asr.asrtts_pytorch import train
+        from espnet.asr.pytorch_backend.asrtts import train
         train(args)
     else:
         raise ValueError("pytorch is only supported.")
