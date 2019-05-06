@@ -161,7 +161,7 @@ fi
 if [ $asrtts_train == 'true' ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-        asr_dual_train.py \
+        asrtts_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \

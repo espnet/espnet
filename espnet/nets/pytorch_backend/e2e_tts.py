@@ -423,6 +423,32 @@ class Tacotron2(torch.nn.Module):
         else:
             return outs, probs, att_ws
 
+    def generate(self, xs, ilens, spembs=None, softargmax=False):
+        """TACOTRON2 FEATURE GENERATION
+
+        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
+        :param list ilens: list of lengths of each input batch (B)
+        :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
+        :return: outputs with postnets (B, Lmax, odim)
+        :rtype: torch.Tensor
+        :return: outputs without postnets (B, Lmax, odim)
+        :rtype: torch.Tensor
+        :return: stop logits (B, Lmax)
+        :rtype: torch.Tensor
+        :return: attetion weights (B, Lmax, Tmax)
+        :rtype: torch.Tensor
+        """
+        # check ilens type (should be list of int)
+        if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
+            ilens = list(map(int, ilens))
+        hs, hlens = self.enc(xs, ilens, softargmax=softargmax)
+        if self.spk_embed_dim is not None:
+            spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
+            hs = torch.cat([hs, spembs], dim=-1)
+        outs, logits, ylens = self.dec.generate(hs, hlens)
+
+        return outs, logits, ylens
+
     def calculate_all_attentions(self, xs, ilens, ys, spembs=None):
         """Tacotron2 forward computation
 
