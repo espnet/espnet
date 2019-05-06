@@ -128,7 +128,7 @@ class CustomUpdater(training.StandardUpdater):
         loss = 0.0
         batch = train_iter.next()
         if len(batch[0]) == 3:
-                utt_type = 'unpaired'
+            utt_type = 'unpaired'
         elif len(batch[0]) == 2:
             utt_type = 'paired'
         else:
@@ -331,7 +331,7 @@ def train(args):
         else:
             asr_model.load_state_dict(torch.load(args.asr_model))
 
-    if args.rnnlm is not None:
+    if args.rnnlm != None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
@@ -374,7 +374,7 @@ def train(args):
     elif args.expected_loss == 'none':
         loss_fn = None
     else:
-        raise NotImplemented(
+        raise NotImplementedError(
             'Unknown expected loss: %s' % args.expected_loss
         )
     asr2tts_model = E2E(args, predictor=asr_model.predictor,
@@ -382,7 +382,7 @@ def train(args):
                         reporter=asr_model.reporter,
                         rnnlm=rnnlm, lm_loss_weight=args.lm_loss_weight)
 
-    if loss_fn is not None:
+    if loss_fn != None:
         tts_model = loss_fn.model
         tts2asr_model = Tacotron2ASRLoss(loss_fn.model, asr_model.predictor, args,
                                          reporter=asr_model.reporter,
@@ -513,7 +513,7 @@ def train(args):
     # Save best models
     trainer.extend(extensions.snapshot_object(asr2tts_model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
-    if mtl_mode is not 'ctc':
+    if mtl_mode != 'ctc':
         trainer.extend(extensions.snapshot_object(asr2tts_model, 'model.acc.best', savefun=torch_save),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
         trainer.extend(extensions.snapshot_object(asr_model, 'model.acc.asr.best', savefun=torch_save),
@@ -524,7 +524,7 @@ def train(args):
 
     # epsilon decay in the optimizer
     if args.opt == 'adadelta':
-        if args.criterion == 'acc' and mtl_mode is not 'ctc':
+        if args.criterion == 'acc' and mtl_mode != 'ctc':
             trainer.extend(restore_snapshot(asr2tts_model, args.outdir + '/model.acc.best', load_fn=torch_load),
                            trigger=CompareValueTrigger(
                                'validation/main/acc',
@@ -599,7 +599,7 @@ def recog(args):
         torch_load(args.word_rnnlm, word_rnnlm)
         word_rnnlm.eval()
 
-        if rnnlm is not None:
+        if rnnlm != None:
             rnnlm = lm_pytorch.ClassifierWithState(
                 extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
                                            rnnlm.predictor, word_dict, char_dict))
