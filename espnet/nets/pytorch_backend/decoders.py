@@ -737,6 +737,7 @@ class Decoder(torch.nn.Module):
 
         return sample_loss, y_list, y_gen, y_lens, y_all
 
+
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
