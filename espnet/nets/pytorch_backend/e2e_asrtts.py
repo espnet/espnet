@@ -109,6 +109,7 @@ def load_tacotron_loss(tts_model_conf, tts_model_file, reporter, args):
 
 class Tacotron2ASRLoss(torch.nn.Module):
     """TACOTRON2 ASR-LOSS FUNCTION
+
     :param torch.nn.Module model: tacotron2 model
     :param bool use_masking: whether to mask padded part in loss calculation
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
@@ -126,6 +127,7 @@ class Tacotron2ASRLoss(torch.nn.Module):
 
     def forward(self, xs, ilens, ys, labels, olens=None, spembs=None):
         """TACOTRON2 LOSS FORWARD CALCULATION
+
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
@@ -135,6 +137,7 @@ class Tacotron2ASRLoss(torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
+
         # generate feature sequences for a batch
         torch.set_grad_enabled(self.training)
         set_requires_grad(self.tts_model, True)
@@ -316,6 +319,7 @@ class E2E(torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
+
         if self.asr2tts:
             # sample output sequence with the current model
             gen_out = self.predictor.generate(xs_pad, ys_pad,
@@ -473,6 +477,7 @@ class E2E(torch.nn.Module):
         :param data:
         :return:
         '''
+
         torch.set_grad_enabled(self.training)
 
         # utt list of frame x dim
@@ -550,6 +555,7 @@ class E2E(torch.nn.Module):
         :return: N-best decoding results
         :rtype: list
         """
+
         prev = self.training
         self.eval()
         ilens = [x.shape[0]]
@@ -585,6 +591,7 @@ class E2E(torch.nn.Module):
         :return: N-best decoding results
         :rtype: list
         """
+
         prev = self.training
         self.eval()
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
@@ -619,6 +626,7 @@ class E2E(torch.nn.Module):
             2) other case => attention weights (B, Lmax, Tmax).
         :rtype: float ndarray
         """
+
         with torch.no_grad():
             # 0. Frontend
             if self.frontend is not None:
