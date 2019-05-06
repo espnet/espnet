@@ -19,8 +19,6 @@ import six
 import torch
 import torch.nn.functional as F
 
-from itertools import groupby
-
 from chainer import reporter
 
 from espnet.asr.asr_utils import torch_load
@@ -108,9 +106,9 @@ def load_tacotron_loss(tts_model_conf, tts_model_file, reporter, args):
         reporter=reporter
     )
 
+
 class Tacotron2ASRLoss(torch.nn.Module):
     """TACOTRON2 ASR-LOSS FUNCTION
-
     :param torch.nn.Module model: tacotron2 model
     :param bool use_masking: whether to mask padded part in loss calculation
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
@@ -128,7 +126,6 @@ class Tacotron2ASRLoss(torch.nn.Module):
 
     def forward(self, xs, ilens, ys, labels, olens=None, spembs=None):
         """TACOTRON2 LOSS FORWARD CALCULATION
-
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param list ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
@@ -143,11 +140,9 @@ class Tacotron2ASRLoss(torch.nn.Module):
         set_requires_grad(self.tts_model, True)
         outs, logits, flens = self.tts_model.generate(xs, ilens, spembs)
 
-
         if self.generator == 'tts':
             flens = sorted(flens, reverse=True)
             enc_outs, enc_flens = self.asr_model.enc(outs, flens)
-
         # asr loss
         xslst = [xs[i, :ilens[i] - 1] for i in six.moves.range(enc_outs.size(0))]
         asr_loss, acc = self.asr_model.dec(enc_outs, enc_flens, xslst)
@@ -323,24 +318,29 @@ class E2E(torch.nn.Module):
         """
         if self.asr2tts:
             # sample output sequence with the current model
-            loss_ctc, loss_att, ys, ygen, y_all, ylens, hpad, hlens = self.predictor.generate(xs_pad, ys_pad, n_samples_per_input=self.n_samples_per_input,
-                                    topk=self.topk, maxlenratio=self.maxlenratio,
-                                    minlenratio=self.minlenratio,
-                                    freeze_encoder=False,
-                                    return_encoder_states=True,
-                                    oracle=self.oracle)
+            gen_out = self.predictor.generate(xs_pad, ys_pad,
+                                              n_samples_per_input=self.n_samples_per_input,
+                                              topk=self.topk, maxlenratio=self.maxlenratio,
+                                              minlenratio=self.minlenratio,
+                                              freeze_encoder=False,
+                                              return_encoder_states=True,
+                                              oracle=self.oracle)
+            loss_ctc, loss_att, ys, ygen, y_all, ylens, hpad, hlens = gen_out
             if self.generator == 'tts':
                 hpad = xs_pad
                 ilens = np.fromiter((xx.shape[0] for xx in xs_pad), dtype=np.int64)
-                hpad, hlens = mask_by_length_and_multiply(hpad, torch.tensor(ilens), 0, self.n_samples_per_input)
+                hpad, hlens = mask_by_length_and_multiply(hpad, torch.tensor(ilens),
+                                                          0, self.n_samples_per_input)
                 if self.use_speaker_embedding:
                     onelens = np.fromiter((1 for xx in spembs), dtype=np.int64)
-                    spembs, _ = mask_by_length_and_multiply(spembs.unsqueeze(1), torch.tensor(onelens), 0, self.n_samples_per_input)
+                    spembs, _ = mask_by_length_and_multiply(spembs.unsqueeze(1),
+                                                            torch.tensor(onelens), 0, self.n_samples_per_input)
                     spembs = spembs.squeeze(1)
             if self.policy_gradient:  # use log posterior probs
                 weight = self.sample_scaling * -loss_att
             else:  # use posterior probs
-                weight = (self.sample_scaling * -loss_att).view(len(xs_pad), self.n_samples_per_input)
+                weight = (self.sample_scaling * -loss_att).view(len(xs_pad),
+                                                                self.n_samples_per_input)
                 weight = torch.nn.Softmax(dim=1)(weight)
                 weight = weight.view(-1)
             ylens, indices = torch.sort(ylens, descending=True)
@@ -357,6 +357,7 @@ class E2E(torch.nn.Module):
                         rnnlm_state, lmz = self.rnnlm.predictor(rnnlm_state, ygen[:, i - 1])
                         if self.rnnloss == 'ce':
                             loss_i = F.cross_entropy(lmz, ygen[:, i], reduction='none')
+                        lm_loss += loss_i
                     lm_loss = lm_loss / ylens.sum().type_as(lm_loss)
             # Weighted loss
             if self.loss_fn is not None:
@@ -368,10 +369,10 @@ class E2E(torch.nn.Module):
                 # compute taco loss
                 if self.softargmax:
                     y_all = torch.stack(y_all).reshape(hpad.size(0), len(y_all), -1)
-                    #x_taco = (y_all, ylens, hpad, labels, None)
+                    # x_taco = (y_all, ylens, hpad, labels, None)
                     x_taco = (y_all, ylens, hpad, labels, hlens)
                 else:
-                    #x_taco = (ygen, ylens, hpad, labels, None)
+                    # x_taco = (ygen, ylens, hpad, labels, None)
                     x_taco = (ygen, ylens, hpad, labels, hlens)
                 self.loss_fn.eval()
                 with torch.no_grad():
@@ -382,7 +383,7 @@ class E2E(torch.nn.Module):
                 if lm_loss is not None:
                     taco_loss += lm_loss * self.lm_loss_weight
                 loss = ((taco_loss - taco_loss.mean()) * weight).mean()
-                #self.loss = (taco_loss).mean()
+                # self.loss = (taco_loss).mean()
             else:
                 if lm_loss is not None:
                     loss = (-weight + lm_loss * self.lm_loss_weight).mean()
@@ -396,9 +397,11 @@ class E2E(torch.nn.Module):
                         y_str = "".join([self.char_list[int(ygen[k, l])] for l in range(ylens[k])])
                         if self.loss_fn is not None:
                             # logging.info("generation[%d]: %.4f %.4f " % (k, weight[k], taco_loss[k]) + y_str)
-                            logging.info("generation[%d]: %.4f %.4f " % (k, weight[k].item(), taco_loss[k].item()) + y_str)
+                            logging.info("generation[%d]: %.4f %.4f " % (k,
+                                                                         weight[k].item(), taco_loss[k].item()) + y_str)
                         else:
-                            logging.info("generation[%d]: %.4f " % (k, weight[k].item()) + y_str)
+                            logging.info("generation[%d]: %.4f " % (k,
+                                                                    weight[k].item()) + y_str)
             loss_att = loss
             self.acc = 0.0
 
@@ -507,7 +510,7 @@ class E2E(torch.nn.Module):
         if self.mtlalpha == 1:
             raise Exception('CTC-only mode (mtlalpha=1) is not supported.')
 
-        #set_requires_grad(self.dec, False)
+        # set_requires_grad(self.dec, False)
         if oracle:
             # utt list of olen
             # tids = [d[1]['output'][0]['tokenid'].split() for d in data]
@@ -640,6 +643,3 @@ class E2E(torch.nn.Module):
             np.array(x, dtype=np.float32)))
         h.contiguous()
         return h, ilen
-
-
-

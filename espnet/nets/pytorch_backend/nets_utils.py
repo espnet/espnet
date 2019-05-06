@@ -98,6 +98,7 @@ def mask_by_length_and_multiply(xs, length, fill=0, msize=1):
 
 def set_requires_grad(nets, requires_grad=False):
     """Set requies_grad=Fasle for all the networks to avoid unnecessary computations
+
     Parameters:
     nets (network list)   -- a list of networks
     requires_grad (bool)  -- whether the networks require gradients or not
@@ -108,6 +109,7 @@ def set_requires_grad(nets, requires_grad=False):
             if net is not None:
                 for param in net.parameters():
                     param.requires_grad = requires_grad
+
 
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
     """Function to calculate accuracy
