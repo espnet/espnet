@@ -110,7 +110,11 @@ awk 'NR==FNR{trans[$1]; next} ($1 in trans)' FS=" " \
 ${loctmp}/all_trans.txt.unsorted $loctmp/all.utt2spk.unsorted |\
 sort -k1 > ${locdata}/all/utt2spk
 
-sort -k1 < ${loctmp}/all_trans.txt.unsorted > ${locdata}/all/text
+sort -k1 < ${loctmp}/all_trans.txt.unsorted > ${locdata}/all/text.tmp
+
+# remove spaces
+paste -d " " <(cut -f 1 -d" " ${locdata}/all/text.tmp) <(cut -f 2- -d" " ${locdata}/all/text.tmp | tr -d " ") > ${locdata}/all/text
+rm ${locdata}/all/text.tmp
 
 echo "--- Preparing all.spk2utt ..."
 cat $locdata/all/text |\
