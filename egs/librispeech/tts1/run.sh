@@ -92,6 +92,7 @@ set -u
 set -o pipefail
 
 train_set=train_clean_460
+train_set=train_clean_100
 dev_set=dev
 eval_set=test_clean
 
