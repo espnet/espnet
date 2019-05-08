@@ -20,6 +20,55 @@ sys.stdin = codecs.getreader('utf-8')(sys.stdin if PY2 else sys.stdin.buffer)
 sys.stdout = codecs.getwriter('utf-8')(
     sys.stdout if PY2 else sys.stdout.buffer)
 
+LABELS = {
+    'Alarm_bell_ringing'        : 0,
+    'Blender'                   : 1,
+    'Cat'                       : 2,
+    'Dog'                       : 3,
+    'Dishes'                    : 4,
+    'Electric_shaver_toothbrush': 5,
+    'Frying'                    : 6,
+    'Running_water'             : 7,
+    'Speech'                    : 8,
+    'Vacuum_cleaner'            : 9
+}
+
+
+# FIXME: remove magic number.
+def make_strong_label_dict(labels: list, n_frames: int=864) -> list:
+    label = np.zeros((len(LABELS), n_frames), dtype=int)
+    for metadata in labels:
+        onset, offset, event_class = metadata
+        onset = int(float(onset[0]) / 10 * n_frames)
+        offset = int(float(offset[0]) / 10 * n_frames)
+        logging.info(f'{onset} {offset}, {event_class}')
+        label[LABELS[event_class]][onset:offset] = 1
+    strong_labels = []
+    for k, v in LABELS.items():
+        strong_label = {
+            'name'   : k,
+            'shape'  : [2, n_frames],
+            'text'   : '<dummy>',
+            'token'  : '<dummy>',
+            'tokenid': label[v].tolist()
+        }
+        strong_labels.append(strong_label)
+    return strong_labels
+
+
+def make_weak_label_dict(label) -> dict:
+    tokenid = [0] * len(LABELS)
+    for l in label[0].strip().split(','):
+        tokenid[LABELS[l]] = 1
+    weak_label = {
+        'name'   : label,
+        'shape'  : [2, len(LABELS)],
+        'text'   : '<dummy>',
+        'token'  : '<dummy>',
+        'tokenid': tokenid
+    }
+    return weak_label
+
 
 # Special types:
 def shape(x):
@@ -229,10 +278,15 @@ if __name__ == '__main__':
                                           .format(info[4], nutt, info[1], line))
                             raise
 
-                    value = value.split(" ")
-                    # For strong label
-                    if re.match(r'([0-9]+\.?[0-9]*$)', value[0]):
-                        value = np.array(value).reshape(-1, 3).tolist()
+                    if inout == 'output':
+                        # For strong label
+                        value = value.split(" ")
+                        if re.match(r'([0-9]+\.?[0-9]*$)', value[0]):
+                            value = np.array(value).reshape(-1, 3).tolist()
+                            value = make_strong_label_dict(value)
+                        # For weak label
+                        else:
+                            value = make_weak_label_dict(value)
                     d[key] = value
                 lis.append(d)
 

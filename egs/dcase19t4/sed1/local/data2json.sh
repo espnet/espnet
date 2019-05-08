@@ -11,7 +11,11 @@ train_feat="" # feat.scp for training
 validation_feat="" # feat.scp for validation
 label="" # metadata directory e.g. ./DCASE2019_task4/dataset/metadata
 verbose=0
+filetype=""
+preprocess_conf=""
+
 . utils/parse_options.sh
+
 if [ $# != 1 ]; then
     cat << EOF 1>&2
 Usage: $0 <data-dir>
@@ -19,7 +23,9 @@ e.g. $0 data/train data/lang_1char/train_units.txt
 Options:
   --nj <nj>                                        # number of parallel jobs
   --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
-  --feat <feat-scp>                                # feat.scp
+  --train_feat <feat-scp>                          # feat.scp for training
+  --validation_feat <feat-scp>                     # feat.scp for validation
+  --label                                          # metadata directory
   --oov <oov-word>                                 # Default: <unk>
   --out <outputfile>                               # If omitted, write in stdout
   --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
@@ -42,14 +48,23 @@ mkdir -p ${tmpdir}/input
 if [ -n "${train_feat}" ]; then
     for label_type in synthetic unlabel_in_domain weak; do
         grep ^${label_type} ${train_feat} > ${tmpdir}/input/feats_${label_type}.scp
+        feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
+                         --filetype "${filetype}" \
+                         --preprocess-conf "${preprocess_conf}" \
+                         --verbose ${verbose} ${tmpdir}/input/feats_${label_type}.scp ${tmpdir}/input/shape_${label_type}.scp
     done
 fi
 
 if [ -n "${validation_feat}" ]; then
     for label_type in eval_dcase2018 test_dcase2018 validation; do
         grep ^${label_type} ${validation_feat} > ${tmpdir}/input/feats_${label_type}.scp
+        feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
+                         --filetype "${filetype}" \
+                         --preprocess-conf "${preprocess_conf}" \
+                         --verbose ${verbose} ${tmpdir}/input/feats_${label_type}.scp ${tmpdir}/input/shape_${label_type}.scp
     done
 fi
+
 
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
@@ -70,7 +85,7 @@ if [ -n "${label}" ]; then
                         echo -n ${label_type}-$(basename $id .wav)
                         cat $csv | grep ^${id} | awk '{printf " %s", $2}'
                         echo ""
-                    done > data/label_${label_type}.scp
+                    done > ${tmpdir}/output/label_${label_type}.scp
                 fi
             done
         elif [ ${x} = validation ]; then
@@ -86,13 +101,16 @@ if [ -n "${label}" ]; then
     done
 fi
 
+echo "output done"
+
 # 3. Merge scp files into a JSON file
 for x in train validation; do
     if [ ${x} = train ]; then
-        for label_type in synthetic unlabel_in_domain; do
+        for label_type in synthetic unlabel_in_domain weak; do
             opts=""
             opts+="--input-scps "
             opts+="feats:${tmpdir}/input/feats_${label_type}.scp "
+            opts+="shape:${tmpdir}/input/shape_${label_type}.scp:shape "
             if [ ${label_type} != unlabel_in_domain ]; then
                 sort ${tmpdir}/input/feats_${label_type}.scp -o ${tmpdir}/input/feats_${label_type}.scp
                 sort ${tmpdir}/output/label_${label_type}.scp -o ${tmpdir}/output/label_${label_type}.scp
@@ -106,6 +124,7 @@ for x in train validation; do
             opts=""
             opts+="--input-scps "
             opts+="feats:${tmpdir}/input/feats_${label_type}.scp "
+            opts+="shape:${tmpdir}/input/shape_${label_type}.scp:shape "
             if [ ${label_type} != unlabel_in_domain ]; then
                 sort ${tmpdir}/input/feats_${label_type}.scp -o ${tmpdir}/input/feats_${label_type}.scp
                 sort ${tmpdir}/output/label_${label_type}.scp -o ${tmpdir}/output/label_${label_type}.scp

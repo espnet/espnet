@@ -82,7 +82,7 @@ def main():
             array = array.astype(numpy.float32)
 
             if args.mono and array.ndim > 1:
-                array = numpy.mean(array, axis=0)
+                array = numpy.mean(array, axis=1)
 
             if args.normalize is not None and args.normalize != 1:
                 array = array / (1 << (args.normalize - 1))
