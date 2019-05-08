@@ -16,7 +16,7 @@ There are going to be two forms of this recipe:
 First we need to checking out a specific git commit that restores the code to
 the state it was in when the models were trained. Start with:
 
-	git checkout <some git hash>
+	git checkout naacl19_adams
 
 You may want to make sure Kaldi and the right python virtual environment is
 installed for the now-checked-out version of Kaldi, since things might have
