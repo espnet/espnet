@@ -40,7 +40,7 @@ aconv_filts=100
 mtlalpha=0.5
 
 # minibatch related
-batchsize=40
+batchsize=35
 maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
