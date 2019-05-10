@@ -12,7 +12,8 @@ import sys
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
