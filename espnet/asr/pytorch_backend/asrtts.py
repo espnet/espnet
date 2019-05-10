@@ -156,8 +156,7 @@ class CustomUpdater(training.StandardUpdater):
             self.asr_model.train()
             x = self.asr_converter(batch, self.device)
             logging.info("paired data training")
-            #loss = 1. / self.ngpu * self.asr_model(*x)
-            loss = torch.zeros(1,requires_grad=True)
+            loss = 1. / self.ngpu * self.asr_model(*x)
 
         optimizer.zero_grad()
         if self.ngpu > 1:
@@ -373,7 +372,6 @@ def train(args):
         from espnet.nets.pytorch_backend.e2e_asrtts import load_tacotron_loss
         # assert args.tts_model, "Need to provide --tts-model and set --expected-loss tts"
         loss_fn = load_tacotron_loss(args.tts_model_conf, args.tts_model, args)
-                                     #asr_model.reporter.report(), args)
     elif args.expected_loss == 'none':
         loss_fn = None
     else:
@@ -381,8 +379,7 @@ def train(args):
             'Unknown expected loss: %s' % args.expected_loss
         )
     asr2tts_model = asrtts(idim, odim, args, predictor=asr_model,
-                        loss_fn=loss_fn,
-                        rnnlm=rnnlm) #, lm_loss_weight=args.lm_loss_weight)
+                           loss_fn=loss_fn, rnnlm=rnnlm)
 
     if loss_fn is not None:
         tts_model = loss_fn.model
