@@ -39,8 +39,8 @@ from espnet.asr.asrtts_utils import make_batchset
 from espnet.asr.asrtts_utils import merge_batchsets
 from espnet.asr.asrtts_utils import remove_output_layer
 from espnet.nets.pytorch_backend.e2e_asr import E2E
-from espnet.nets.pytorch_backend.e2e_asrtts import E2E as asrtts
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.pytorch_backend.e2e_asrtts import E2E as asrtts
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.nets.pytorch_backend.e2e_asrtts import Tacotron2ASRLoss

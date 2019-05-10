@@ -104,6 +104,11 @@ tts_train=true
 tts_decode=true
 asrtts_train=true
 asrtts_decode=true
+unpair=dualp
+policy_gradient=true
+rnnlm_loss=ce
+embed_dim=512
+
 # exp tag
 tag="" # tag for managing experiments.
 asr_model_conf=$PWD/pretrained_models/librispeech_100/asr/results/model.json
@@ -112,7 +117,7 @@ rnnlm_model=$PWD/rnnlm_models/librispeech_360/rnnlm.model.best
 rnnlm_model_conf=$PWD/rnnlm_models/librispeech_360/model.json
 tts_model=$PWD/pretrained_models/librispeech_100/tts/results/model.loss.best
 tts_model_conf=$PWD/pretrained_models/librispeech_100/tts/results/model.json
-spk_vectors=exp/xvector_nnet_1a
+spk_vector=exp/xvector_nnet_1a
 
 . utils/parse_options.sh || exit 1;
 
@@ -151,7 +156,8 @@ eval_set=test_clean
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
 feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
-dict=data/lang_1char/${train_set}_units.txt
+dict=data/lang_char/${train_set}_units.txt
+bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Feature extraction for TTS and ASR"
@@ -187,7 +193,7 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
     echo "dictionary: ${dict}"
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
-    mkdir -p data/lang_1char/
+    mkdir -p data/lang_char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
     | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
@@ -280,8 +286,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    expdir=exp/asr_train
-    expname=asr_train
+    expdir=exp/asr_${tag}
+    expname=asr_${tag}
     if [ $asr_train == 'true' ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
@@ -328,13 +334,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
-
         #### use CPU for decoding
         ngpu=0
-
         # set batchsize 0 to disable batch decoding
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
@@ -365,7 +368,56 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: TTS training, decode and synthesize"
-    ttsexpdir=exp/tts_train_decode
+    ttsexpdir=exp/tts_${tag}
+    tr_json=$feat_tr_dir/data.json
+    dt_json=$feat_dt_dir/data.json
+    # encoder related
+    embed_dim=512
+    elayers=1
+    eunits=512
+    econv_layers=3 # if set 0, no conv layer is used
+    econv_chans=512
+    econv_filts=5
+    # decoder related
+    dlayers=2
+    dunits=1024
+    prenet_layers=2  # if set 0, no prenet is used
+    prenet_units=256
+    postnet_layers=5 # if set 0, no postnet is used
+    postnet_chans=512
+    postnet_filts=5
+    use_speaker_embedding=true
+    # attention related
+    atype=forward_ta
+    adim=128
+    aconv_chans=32
+    aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
+    cumulate_att_w=true # whether to cumulate attetion weight
+    use_batch_norm=true # whether to use batch normalization in conv layer
+    use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
+    use_residual=false  # whether to use residual connection in encoder convolution
+    use_masking=true    # whether to mask the padded part in loss calculation
+    bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
+    reduction_factor=2
+    # minibatch related
+    batchsize=64
+    sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+    batch_sort_key=output # empty or input or output (if empty, shuffled batch will be used)
+    maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
+    maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
+    # optimization related
+    lr=1e-3
+    eps=1e-6
+    weight_decay=0.0
+    dropout=0.5
+    zoneout=0.1
+    epochs=30
+    patience=5
+    # decoding related
+    model=model.loss.best
+    threshold=0.5    # threshold to stop the generation
+    maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
+    minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
     if [ $tts_train == 'true' ]; then
     ${cuda_cmd} --gpu ${ngpu} ${ttsexpdir}/train.log \
         tts_train.py \
@@ -461,15 +513,15 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 1: TTS training, decode and synthesize"
-    scripts/asrtts_train.sh $train_set $train_set ${spk_vector}/xvectors_$train_set \
-        $train_set $train_unpaired_set $train_dev $recog_set \
-        $asrttsexpdir "dualp" "ce"
+    #scripts/asrtts_train.sh $train_set $train_set ${spk_vector}/xvectors_$train_set \
+    #    $train_set $train_unpaired_set $train_dev $recog_set \
+    #    $asrttsexpdir "dualp" "ce"
 
     feat_tr_paired_dir=dump/$train_paired_set/deltafalse
     feat_tr_unpaired_dir=dump/$train_unpaired_set/deltafalse
 
     if [ ! -s  ${feat_tr_unpaired_set}/data_rnd.json ]; then
-        local/rand_datagen.sh --jsonout "data_rnd.json" --xvec ${spk_vector} dump/$train_speech_set/deltafalse dump/$train_text_set/deltafalse $feat_tr_unpaired_dir
+        local/rand_datagen.sh --jsonout "data_rnd.json" --xvec ${spk_vector}/xvectors_$train_set/xvector.scp dump/$train_unpaired_set/deltafalse dump/$train_unpaired_set/deltafalse $feat_tr_unpaired_dir
     fi
 
     if [ $unpair == 'dual' ]; then
