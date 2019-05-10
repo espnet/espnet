@@ -334,7 +334,7 @@ def freeze_parameters(model, elayers, *freeze_layer):
         logging.info(str(type(child)))
         for name, module in child.named_children():
             logging.info(str(type(module)))
-            if name not in freeze_layer and name is 'enc':
+            if name not in freeze_layer and name == 'enc':
                 for enc_name, enc_module in module.named_children():
                     for enc_layer_name, enc_layer_module in enc_module.named_children():
                         count += 1
@@ -345,7 +345,7 @@ def freeze_parameters(model, elayers, *freeze_layer):
                                 size += param.numel()
                         else:
                             logging.info(str(enc_layer_name) + " components is not frozen")
-            elif name not in freeze_layer and name is not 'enc':
+            elif name not in freeze_layer and name != 'enc':
                 for mname, param in module.named_parameters():
                     logging.info(str(mname) + " components is frozen")
                     logging.info(str(mname) + " >> params after re-init")

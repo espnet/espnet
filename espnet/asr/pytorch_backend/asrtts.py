@@ -25,19 +25,19 @@ import torch
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
-from espnet.asr.asrtts_utils import freeze_parameters
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asrtts_utils import load_inputs_and_targets
-from espnet.asr.asrtts_utils import load_inputs_spk_and_targets
-from espnet.asr.asrtts_utils import make_batchset
-from espnet.asr.asrtts_utils import merge_batchsets
 from espnet.asr.asr_utils import PlotAttentionReport
-from espnet.asr.asrtts_utils import remove_output_layer
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.asrtts_utils import freeze_parameters
+from espnet.asr.asrtts_utils import load_inputs_and_targets
+from espnet.asr.asrtts_utils import load_inputs_spk_and_targets
+from espnet.asr.asrtts_utils import make_batchset
+from espnet.asr.asrtts_utils import merge_batchsets
+from espnet.asr.asrtts_utils import remove_output_layer
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asrtts import E2E as asrtts
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
