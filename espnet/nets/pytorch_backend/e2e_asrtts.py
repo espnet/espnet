@@ -504,7 +504,6 @@ class E2E(torch.nn.Module):
         # set_requires_grad(self.dec, False)
         if oracle:
             ys = [to_device(self, torch.from_numpy(y)) for y in ys for id in range(n_samples_per_input)]
-
             loss_att, y_gen, ylens = self.dec.gen_oracle(hpad, hlens, ys)
         else:
             loss_att, ys, y_gen, ylens, y_all = self.dec.generate(hpad, hlens,
