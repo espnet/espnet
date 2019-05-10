@@ -120,7 +120,7 @@ class Tacotron2Loss(torch.nn.Module):
             self.reduction_factor = model.reduction_factor
         self.reporter = Reporter()
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, softargmax=False):
         """Tacotron2 loss forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -138,7 +138,7 @@ class Tacotron2Loss(torch.nn.Module):
         if self.use_cbhg:
             cbhg_outs, after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
         else:
-            after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
+            after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs, softargmax)
 
         # remove mod part
         if self.reduction_factor > 1:
@@ -354,7 +354,7 @@ class Tacotron2(torch.nn.Module):
         self.enc.apply(encoder_init)
         self.dec.apply(decoder_init)
 
-    def forward(self, xs, ilens, ys, olens=None, spembs=None):
+    def forward(self, xs, ilens, ys, olens=None, spembs=None, softargmax=False):
         """Tacotron2 forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -375,7 +375,7 @@ class Tacotron2(torch.nn.Module):
         if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
             ilens = list(map(int, ilens))
 
-        hs, hlens = self.enc(xs, ilens)
+        hs, hlens = self.enc(xs, ilens, softargmax=softargmax)
         if self.spk_embed_dim is not None:
             spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
             hs = torch.cat([hs, spembs], dim=-1)
@@ -542,7 +542,7 @@ class Encoder(torch.nn.Module):
             batch_first=True,
             bidirectional=True)
 
-    def forward(self, xs, ilens):
+    def forward(self, xs, ilens, softargmax=False):
         """Character encoding forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -552,7 +552,15 @@ class Encoder(torch.nn.Module):
         :return: batch of lengths of each encoder states (B)
         :rtype: list
         """
-        xs = self.embed(xs).transpose(1, 2)
+        if softargmax:
+            # soft-argmax over embeddings
+            y_one_hot = torch.log_softmax(xs * 100, dim=-1)
+            embeddings = self.embed.weight
+            y_embed = torch.matmul(torch.exp(y_one_hot), embeddings)
+            y_embed = y_embed.view(len(xs), -1, len(xs[0]))
+            xs = y_embed
+        else:
+            xs = self.embed(xs).transpose(1, 2)
         for l in six.moves.range(self.econv_layers):
             if self.use_residual:
                 xs += self.convs[l](xs)

@@ -190,14 +190,14 @@ def main():
                         help='ASR initial model')
     parser.add_argument('--asr-model-conf', default='model.json', type=str,
                         help='ASR initial model conf')
-    parser.add_argument('--tts-model', default='', type=str,
+    parser.add_argument('--tts-model', default='model.loss.best', type=str,
                         help='TTS model for cycle-consistency loss')
-    parser.add_argument('--tts-model-conf', default='', type=str,
+    parser.add_argument('--tts-model-conf', default='model.json', type=str,
                         help='TTS model conf for cycle-consistency loss')
-    parser.add_argument('--expected-loss', default='', type=str,
+    parser.add_argument('--expected-loss', default='tts', type=str,
                         choices=['tts', 'none', 'wer'],
                         help='Type of expected loss (tts, wer, ...)')
-    parser.add_argument('--generator', default='tte', type=str,
+    parser.add_argument('--generator', default='tts', type=str,
                         choices=['tts', 'tte'],
                         help='Type of generator (tts, tte, ...)')
     parser.add_argument('--rnnloss', default='ce', type=str,

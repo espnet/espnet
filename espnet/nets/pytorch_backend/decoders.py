@@ -641,8 +641,10 @@ class Decoder(torch.nn.Module):
         :param hs:
         :return:
         '''
+
         # get dim, length info
         # initialization
+        strm_idx = 0
         self.loss = None
         logzero = -1.0e+10
         n_samples = len(hlen)
@@ -652,7 +654,8 @@ class Decoder(torch.nn.Module):
             c_list.append(self.zero_state(hpad))
             z_list.append(self.zero_state(hpad))
         att_w = None
-        self.att.reset()  # reset pre-computation of h
+        att_idx = min(strm_idx, len(self.att) - 1)
+        self.att[att_idx].reset()  # reset pre-computation of h
 
         # preprate sos
         if maxlenratio == 0:
@@ -682,7 +685,7 @@ class Decoder(torch.nn.Module):
                 yg[yg == -1] = 0
                 y = to_device(self, torch.from_numpy(yg))
             ey = self.embed(y)  # utt x zdim
-            att_c, att_w = self.att(hpad, hlen, z_list[0], att_w)
+            att_c, att_w = self.att[att_idx](hpad, hlen, z_list[0], att_w)
             ey = torch.cat((ey, att_c), dim=1)  # n_samples x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
