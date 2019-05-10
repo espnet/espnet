@@ -28,10 +28,10 @@ uttid4 c4.wav
 EOF
 
     cat << EOF > ${tmpdir}/valid.scp
-uttid1 gather-wav.py "a1.wav" "b1.wav" "c1.wav" |
-uttid2 gather-wav.py "a2.wav" "b2.wav" "c2.wav" |
-uttid3 gather-wav.py "a3.wav" "b3.wav" "c3.wav" |
-uttid4 gather-wav.py "a4.wav" "b4.wav" "c4.wav" |
+uttid1 sox -M a1.wav b1.wav c1.wav -c 3 -t wav - |
+uttid2 sox -M a2.wav b2.wav c2.wav -c 3 -t wav - |
+uttid3 sox -M a3.wav b3.wav c3.wav -c 3 -t wav - |
+uttid4 sox -M a4.wav b4.wav c4.wav -c 3 -t wav - |
 EOF
 
 
@@ -41,8 +41,8 @@ teardown() {
     rm -rf $tmpdir
 }
 
-@test "gather-wav-scp.py" {
-    python $utils/gather-wav-scp.py ${tmpdir}/a.scp ${tmpdir}/b.scp ${tmpdir}/c.scp > ${tmpdir}/out.scp
+@test "mix-mono-wav-scp.py" {
+    python $utils/mix-mono-wav-scp.py ${tmpdir}/a.scp ${tmpdir}/b.scp ${tmpdir}/c.scp > ${tmpdir}/out.scp
     diff ${tmpdir}/out.scp ${tmpdir}/valid.scp
 }
 

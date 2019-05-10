@@ -15,9 +15,12 @@ import sys
 
 import numpy as np
 
+from espnet.utils.cli_utils import strtobool
 
-def main(args):
-    parser = argparse.ArgumentParser()
+
+def main(cmd_args):
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
@@ -47,6 +50,8 @@ def main(args):
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network architecture
+    parser.add_argument('--model-module', type=str, default=None,
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr)')
     # encoder
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
@@ -150,14 +155,16 @@ def main(args):
                         help='Batch size is reduced if the input sequence length > ML')
     parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
-    parser.add_argument('--n_iter_processes', default=0, type=int,
+    parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam'],
+                        choices=['adadelta', 'adam', 'noam'],
                         help='Optimizer')
+    parser.add_argument('--accum-grad', default=1, type=int,
+                        help='Number of gradient accumuration')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
@@ -179,12 +186,98 @@ def main(args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+
     # transfer learning related
     parser.add_argument('--asr-model', default=False, nargs='?',
                         help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
-    args = parser.parse_args(args)
+    parser.add_argument(
+        '--use-frontend', type=strtobool, default=False,
+        help='The flag to switch to use frontend system.')
+
+    # WPE related
+    parser.add_argument('--use-wpe', type=strtobool, default=False,
+                        help='Apply Weighted Prediction Error')
+    parser.add_argument('--wtype', default='blstmp', type=str,
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                        help='Type of encoder network architecture '
+                             'of the mask estimator for WPE. '
+                             '')
+    parser.add_argument('--wlayers', type=int, default=2,
+                        help='')
+    parser.add_argument('--wunits', type=int, default=300,
+                        help='')
+    parser.add_argument('--wprojs', type=int, default=300,
+                        help='')
+    parser.add_argument('--wdropout-rate', type=float, default=0.0,
+                        help='')
+    parser.add_argument('--wpe-taps', type=int, default=5,
+                        help='')
+    parser.add_argument('--wpe-delay', type=int, default=3,
+                        help='')
+    parser.add_argument('--use-dnn-mask-for-wpe', type=strtobool,
+                        default=False,
+                        help='Use DNN to estimate the power spectrogram. '
+                             'This option is experimental.')
+
+    # Beamformer related
+    parser.add_argument('--use-beamformer', type=strtobool,
+                        default=True, help='')
+    parser.add_argument('--btype', default='blstmp', type=str,
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                        help='Type of encoder network architecture '
+                             'of the mask estimator for Beamformer.')
+    parser.add_argument('--blayers', type=int, default=2,
+                        help='')
+    parser.add_argument('--bunits', type=int, default=300,
+                        help='')
+    parser.add_argument('--bprojs', type=int, default=300,
+                        help='')
+    parser.add_argument('--badim', type=int, default=320,
+                        help='')
+    parser.add_argument('--ref-channel', type=int, default=-1,
+                        help='The reference channel used for beamformer. '
+                             'By default, the channel is estimated by DNN.')
+    parser.add_argument('--bdropout-rate', type=float, default=0.0,
+                        help='')
+
+    # Feature transform: Normalization
+    parser.add_argument('--stats-file', type=str, default=None,
+                        help='The stats file for the feature normalization')
+    parser.add_argument('--apply-uttmvn', type=strtobool, default=True,
+                        help='Apply utterance level mean '
+                             'variance normalization.')
+    parser.add_argument('--uttmvn-norm-means', type=strtobool,
+                        default=True, help='')
+    parser.add_argument('--uttmvn-norm-vars', type=strtobool, default=False,
+                        help='')
+
+    # Feature transform: Fbank
+    parser.add_argument('--fbank-fs', type=int, default=16000,
+                        help='The sample frequency used for '
+                             'the mel-fbank creation.')
+    parser.add_argument('--n-mels', type=int, default=80,
+                        help='The number of mel-frequency bins.')
+    parser.add_argument('--fbank-fmin', type=float, default=0.,
+                        help='')
+    parser.add_argument('--fbank-fmax', type=float, default=None,
+                        help='')
+
+    args, _ = parser.parse_known_args(cmd_args)
+    from importlib import import_module
+    if args.model_module is not None:
+        model_module = import_module(args.model_module)
+        assert hasattr(model_module, "E2E")
+        if hasattr(model_module, "add_arguments"):
+            model_module.add_arguments(parser)
+    args = parser.parse_args(cmd_args)
+    if args.model_module is None:
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr"
+    else:
+        args.backend = "chainer" if "chainer" in args.model_module else "pytorch"
 
     # logging info
     if args.verbose > 0:
