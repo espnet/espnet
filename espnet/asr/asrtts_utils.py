@@ -220,7 +220,7 @@ def load_inputs_spk_and_targets(batch, use_speaker_embedding=False):
             spembs = [kaldi_io_py.read_vec_flt(b[1]['output'][1]['feat']) for b in batch]
             spembs = [spembs[i] for i in nonzero_sorted_idx]
         else:
-            spembs=None
+            spembs = None
         return ys, ys, spembs
 
     if 'output' not in batch[0][1].keys():
@@ -241,8 +241,9 @@ def load_inputs_spk_and_targets(batch, use_speaker_embedding=False):
             spembs = [kaldi_io_py.read_vec_flt(b[1]['input'][1]['feat']) for b in batch]
             spembs = [spembs[i] for i in nonzero_sorted_idx]
         else:
-            spembs=None
+            spembs = None
         return xs, xs, spembs
+
 
 def load_inputs_and_targets(batch):
     """Function to load inputs and targets from list of dicts
@@ -308,13 +309,13 @@ def remove_output_layer(pretrained_model, odim, eprojs, dunits, model_type):
     stdv_weight = 1. / math.sqrt(dunits)
     stdv_cweight = 1. / math.sqrt(eprojs)
     wt = torch.nn.init.uniform_(torch.FloatTensor(odim, eprojs).cuda(),
-                               -stdv_cweight, stdv_cweight)
+                                -stdv_cweight, stdv_cweight)
     ewt = torch.nn.init.uniform_(torch.FloatTensor(odim, dunits).cuda(),
-                                -stdv_weight, stdv_weight)
+                                 -stdv_weight, stdv_weight)
     eot = torch.nn.init.uniform_(torch.FloatTensor(odim, dunits).cuda(),
-                                -stdv_weight, stdv_weight)
+                                 -stdv_weight, stdv_weight)
     bs = torch.nn.init.uniform_(torch.FloatTensor(odim).cuda(),
-                               -stdv_bias, stdv_bias)
+                                -stdv_bias, stdv_bias)
     if model_type == 'asr':
         pretrained_model['ctc.ctc_lo.weight'] = wt
         pretrained_model['ctc.ctc_lo.bias'] = bs
@@ -353,6 +354,7 @@ def freeze_parameters(model, elayers, *freeze_layer):
             else:
                 logging.info(str(name) + " components is not frozen")
     return model, size
+
 
 class CompareValueTrigger(object):
     """Trigger invoked when key value getting bigger or lower than before
@@ -512,12 +514,14 @@ def _adadelta_eps_decay(trainer, eps_decay):
             p["eps"] *= eps_decay
             logging.info('adadelta eps decayed to ' + str(p["eps"]))
 
+
 def sgd_lr_decay(lr_decay):
     '''Extension to perform sgd lr decay'''
     @training.make_extension(trigger=(1, 'epoch'))
     def sgd_lr_decay(trainer):
         _sgd_lr_decay(trainer, lr_decay)
     return sgd_lr_decay
+
 
 def _sgd_lr_decay(trainer, lr_decay):
     optimizer = trainer.updater.get_optimizer('main')
