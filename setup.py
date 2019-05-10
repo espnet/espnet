@@ -35,6 +35,7 @@ requirements = {
         'museval',
         'pystoi',
         'kaldiio',
+        'scikit-learn==0.20',
         # A backport of inspect.signature for python2
         'funcsigs'
     ],
