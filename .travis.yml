@@ -1,7 +1,7 @@
 language: python
 
 python:
-  - 2.7
+  - 3.7
 
 cache:
   - pip
@@ -22,9 +22,6 @@ env:
     - CC=gcc-7
     - CXX=g++-7
   matrix:
-    - USE_CONDA=false ESPNET_PYTHON_VERSION=2.7 TH_VERSION=0.4.1
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=2.7 TH_VERSION=0.4.1
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=2.7 TH_VERSION=1.0.0
     - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=0.4.1
     - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.0
 
@@ -73,11 +70,7 @@ install:
 
 script:
   # TODO test coding style?
-  - if [[ "${ESPNET_PYTHON_VERSION}" == 2.7 ]]; then
-        flake8 --exclude espnet/nets/pytorch_backend/frontends espnet test utils;
-    else
-        flake8 espnet test utils;
-    fi
+  - flake8 espnet test utils;
   - autopep8 -r espnet test utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
   - pytest
