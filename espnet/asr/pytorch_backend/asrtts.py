@@ -25,23 +25,25 @@ import torch
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
-from espnet.asr.asr_utils import freeze_parameters
+from espnet.asr.asrtts_utils import freeze_parameters
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import load_inputs_and_targets
-from espnet.asr.asr_utils import load_inputs_spk_and_targets
-from espnet.asr.asr_utils import make_batchset
-from espnet.asr.asr_utils import merge_batchsets
+from espnet.asr.asrtts_utils import load_inputs_and_targets
+from espnet.asr.asrtts_utils import load_inputs_spk_and_targets
+from espnet.asr.asrtts_utils import make_batchset
+from espnet.asr.asrtts_utils import merge_batchsets
 from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.asr.asrtts_utils import remove_output_layer
 from espnet.asr.asr_utils import restore_snapshot
-from espnet.asr.asr_utils import remove_output_layer
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import E2E
+from espnet.nets.pytorch_backend.e2e_asrtts import E2E as asrtts
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.utils.io_utils import LoadInputsAndTargets
 
-from espnet.nets.e2e_tts_dual_th import Tacotron2ASRLoss
+from espnet.nets.pytorch_backend.e2e_asrtts import Tacotron2ASRLoss
 
 from espnet.asr.pytorch_backend.asr import CustomConverter as ASRConverter
 
@@ -126,6 +128,7 @@ class CustomUpdater(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
         # Get the next batch ( a list of json files)
         loss = 0.0
+
         batch = train_iter.next()
         if len(batch[0]) == 3:
             utt_type = 'unpaired'
@@ -133,11 +136,10 @@ class CustomUpdater(training.StandardUpdater):
             utt_type = 'paired'
         else:
             raise NotImplementedError
-
         if utt_type == 'unpaired':
             # Compute the loss at this time step and accumulate it
             xs_asr, ilens_asr, ys_asr, xs_tts, ys_tts, ilens_tts, labels, \
-                olens_tts, spembs = self.cyc_converter(batch, self.device)
+                olens_tts, spembs = self.asrtts_converter(batch, self.device)
             self.asr_model.train()
             self.tts_model.train()
             logging.info("unpaired speech training")
@@ -154,7 +156,8 @@ class CustomUpdater(training.StandardUpdater):
             self.asr_model.train()
             x = self.asr_converter(batch, self.device)
             logging.info("paired data training")
-            loss = 1. / self.ngpu * self.asr_model(*x)
+            #loss = 1. / self.ngpu * self.asr_model(*x)
+            loss = torch.zeros(1,requires_grad=True)
 
         optimizer.zero_grad()
         if self.ngpu > 1:
@@ -315,23 +318,23 @@ def train(args):
         elif 'json' in args.asr_model_conf:
             idim, odim, train_args = get_model_conf(args.asr_model,
                                                     conf_path=args.asr_model_conf)
-        asr_model = E2E(idim, odim, train_args)
+        asr_model = asrtts(idim, odim, train_args)
     else:
-        asr_model = E2E(idim, odim, args)
+        asr_model = asrtts(idim, odim, args)
     if args.asr_model:
         if args.modify_output:
             odim = int(valid_json[utts[0]]['output'][0]['shape'][1])
             if args.asr_model_conf:
-                asr_model = E2E(idim, odim, args)
+                asr_model = asrtts(idim, odim, args)
             else:
-                asr_model = E2E(idim, odim, args)
+                asr_model = asrtts(idim, odim, args)
             asr_model.load_state_dict(remove_output_layer(torch.load(args.asr_model),
                                                           odim, args.eprojs,
-                                                          args.dunits, 'asr'))
+                                                          args.dunits, 'asr'), strict=False)
         else:
-            asr_model.load_state_dict(torch.load(args.asr_model))
+            asr_model.load_state_dict(torch.load(args.asr_model), strict=False)
 
-    if args.rnnlm != None:
+    if args.rnnlm is not None:
         rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
         rnnlm = lm_pytorch.ClassifierWithState(
             lm_pytorch.RNNLM(
@@ -367,24 +370,23 @@ def train(args):
     # need to specify a loss function (loss_fn) to compute the expected
     # loss
     if args.expected_loss == 'tts':
-        from espnet.tts.taco_mixed_consistency import load_tacotron_loss
+        from espnet.nets.pytorch_backend.e2e_asrtts import load_tacotron_loss
         # assert args.tts_model, "Need to provide --tts-model and set --expected-loss tts"
-        loss_fn = load_tacotron_loss(args.tts_model_conf, args.tts_model,
-                                     asr_model.reporter, args)
+        loss_fn = load_tacotron_loss(args.tts_model_conf, args.tts_model, args)
+                                     #asr_model.reporter.report(), args)
     elif args.expected_loss == 'none':
         loss_fn = None
     else:
         raise NotImplementedError(
             'Unknown expected loss: %s' % args.expected_loss
         )
-    asr2tts_model = E2E(args, predictor=asr_model.predictor,
+    asr2tts_model = asrtts(idim, odim, args, predictor=asr_model,
                         loss_fn=loss_fn,
-                        reporter=asr_model.reporter,
-                        rnnlm=rnnlm, lm_loss_weight=args.lm_loss_weight)
+                        rnnlm=rnnlm) #, lm_loss_weight=args.lm_loss_weight)
 
-    if loss_fn != None:
+    if loss_fn is not None:
         tts_model = loss_fn.model
-        tts2asr_model = Tacotron2ASRLoss(loss_fn.model, asr_model.predictor, args,
+        tts2asr_model = Tacotron2ASRLoss(loss_fn.model, asr_model, args,
                                          reporter=asr_model.reporter,
                                          weight=args.teacher_weight)
     else:
@@ -445,7 +447,10 @@ def train(args):
     train = merge_batchsets(train_subsets, shuffle=True)
     valid = make_batchset(valid_json, args.batch_size, args.maxlen_in, args.maxlen_out,
                           args.minibatches, min_batch_size=args.ngpu if args.ngpu > 1 else 1)
-
+    load_cv = LoadInputsAndTargets(
+        mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
     # hack to make batchsze argument as 1
     # actual batchsize is included in a list
     if args.n_iter_processes > 0:
@@ -495,12 +500,13 @@ def train(args):
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         if hasattr(asr_model, "module"):
-            att_vis_fn = asr_model.module.predictor.calculate_all_attentions
+            att_vis_fn = asr_model.module.calculate_all_attentions
         else:
-            att_vis_fn = asr_model.predictor.calculate_all_attentions
+            att_vis_fn = asr_model.calculate_all_attentions
         trainer.extend(PlotAttentionReport(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, device=device), trigger=(1, 'epoch'))
+            converter=converter, transform=load_cv, device=device),
+            trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
     trainer.extend(extensions.PlotReport(['main/loss', 'main/loss_cyc', 'main/loss_att',
@@ -599,7 +605,7 @@ def recog(args):
         torch_load(args.word_rnnlm, word_rnnlm)
         word_rnnlm.eval()
 
-        if rnnlm != None:
+        if rnnlm is not None:
             rnnlm = lm_pytorch.ClassifierWithState(
                 extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
                                            rnnlm.predictor, word_dict, char_dict))

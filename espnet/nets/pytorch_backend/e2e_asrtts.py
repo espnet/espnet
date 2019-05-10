@@ -66,7 +66,7 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
         model=tacotron2,
         use_masking=use_masking,
         bce_pos_weight=bce_pos_weight,
-        reporter=reporter
+        #reporter=reporter
         # These two are needed together
         # reduce_loss=False,
         # use_bce_loss=False
@@ -77,13 +77,13 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
     return loss
 
 
-def load_tacotron_loss(tts_model_conf, tts_model_file, reporter, args):
+def load_tacotron_loss(tts_model_conf, tts_model_file, args):
     # Read model
     if 'conf' in tts_model_conf:
         with open(tts_model_conf, 'rb') as f:
             idim_taco, odim_taco, train_args_taco = pickle.load(f)
     elif 'json' in tts_model_conf:
-        from espnet.asr.asr_utils import get_model_conf
+        from espnet.asr.asrtts_utils import get_model_conf
         idim_taco, odim_taco, train_args_taco = get_model_conf(tts_model_file, conf_path=tts_model_conf)
     if args.modify_output:
         import json
@@ -91,7 +91,7 @@ def load_tacotron_loss(tts_model_conf, tts_model_file, reporter, args):
             valid_json = json.load(f)['utts']
         utts = list(valid_json.keys())
         idim_taco = int(valid_json[utts[0]]['output'][0]['shape'][1])
-        from espnet.asr.asr_utils import remove_output_layer
+        from espnet.asr.asrtts_utils import remove_output_layer
         pretrained_model = remove_output_layer(torch.load(tts_model_file),
                                                idim_taco, args.eprojs, train_args_taco.embed_dim, 'tts')
 
@@ -103,7 +103,7 @@ def load_tacotron_loss(tts_model_conf, tts_model_file, reporter, args):
         idim=idim_taco,
         odim=odim_taco,
         train_args=train_args_taco,
-        reporter=reporter
+        ##reporter=reporter
     )
 
 
@@ -198,9 +198,12 @@ class E2E(torch.nn.Module):
         self.predictor = predictor
         self.loss_fn = loss_fn
         self.use_speaker_embedding = args.use_speaker_embedding
+        self.n_samples_per_input = args.n_samples_per_input
+        self.policy_gradient = args.policy_gradient
+        self.sample_scaling = args.sample_scaling
         self.softargmax = softargmax
         self.generator = args.generator
-        self.asr2tts = False
+        self.asr2tts = True
         self.rnnlm = rnnlm
         self.rnnloss = args.rnnloss
         self.reporter = Reporter()
@@ -319,17 +322,11 @@ class E2E(torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
-
         if self.asr2tts:
             # sample output sequence with the current model
             gen_out = self.predictor.generate(xs_pad, ys_pad,
-                                              n_samples_per_input=self.n_samples_per_input,
-                                              topk=self.topk, maxlenratio=self.maxlenratio,
-                                              minlenratio=self.minlenratio,
-                                              freeze_encoder=False,
-                                              return_encoder_states=True,
-                                              oracle=self.oracle)
-            loss_ctc, loss_att, ys, ygen, y_all, ylens, hpad, hlens = gen_out
+                                              n_samples_per_input=self.n_samples_per_input)
+            loss_ctc, loss_att, ys, ygen, y_all, ylens, _, _ = gen_out
             if self.generator == 'tts':
                 hpad = xs_pad
                 ilens = np.fromiter((xx.shape[0] for xx in xs_pad), dtype=np.int64)
@@ -470,14 +467,13 @@ class E2E(torch.nn.Module):
         return self.loss, loss_att, acc, cer, wer
 
     def generate(self, xs, ys, n_samples_per_input=10, topk=0, maxlenratio=1.0,
-                 minlenratio=0.3, freeze_encoder=True, return_encoder_states=False,
+                 minlenratio=0.3, freeze_encoder=False, return_encoder_states=False,
                  oracle=False):
         '''E2E generate
 
         :param data:
         :return:
         '''
-
         torch.set_grad_enabled(self.training)
 
         # utt list of frame x dim
@@ -503,7 +499,7 @@ class E2E(torch.nn.Module):
 
         # 1. encoder
         xpad = pad_list(hs, 0)
-        hpad, hlens = self.enc(xpad, ilens)
+        hpad, hlens, _ = self.enc(xpad, ilens)
         # expand encoder states by n_sample_per_input
         hpad, hlens = mask_by_length_and_multiply(hpad, hlens, 0, n_samples_per_input)
         if freeze_encoder:
@@ -511,9 +507,6 @@ class E2E(torch.nn.Module):
             new_hpad = hpad.detach()
             del hpad
             hpad = new_hpad
-        # 2. attention-based generation
-        if self.mtlalpha == 1:
-            raise Exception('CTC-only mode (mtlalpha=1) is not supported.')
 
         # set_requires_grad(self.dec, False)
         if oracle:
@@ -533,17 +526,10 @@ class E2E(torch.nn.Module):
             ys = [to_device(self, torch.from_numpy(y)) for y in ys]
 
         loss_ctc = None
-        if self.mtlalpha == 0:
-            loss_ctc = None
-        else:
-            loss_ctc = self.ctc(hpad, hlens, ys, reduce=False)
 
-        if return_encoder_states:
-            y_gen = to_device(self, torch.from_numpy(y_gen))
-            ylens = to_device(self, torch.from_numpy(ylens))
-            return loss_ctc, loss_att, ys, y_gen, y_all, ylens, hpad, hlens
-        else:
-            return loss_ctc, loss_att, ys
+        y_gen = to_device(self, torch.from_numpy(y_gen))
+        ylens = to_device(self, torch.from_numpy(ylens))
+        return loss_ctc, loss_att, ys, y_gen, y_all, ylens, xpad, ilens
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
