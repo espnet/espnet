@@ -2,6 +2,7 @@
 
 # Copyright 2013   (Authors: Bagher BabaAli, Daniel Povey, Arnab Ghoshal)
 #           2014   Brno University of Technology (Author: Karel Vesely)
+#           2019   IIIT-Bangalore (Shreekantha Nadig)
 # Apache 2.0.
 if [ $# -le 0 ]; then
     echo "Argument should be the Timit directory, see ../run.sh for example."

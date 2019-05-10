@@ -69,7 +69,7 @@ def main(cmd_args):
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
     # loss
-    parser.add_argument('--ctc_type', default='builtin', type=str,
+    parser.add_argument('--ctc_type', default='warpctc', type=str,
                         choices=['builtin', 'warpctc'],
                         help='Type of CTC implementation to calculate loss.')
     # attention
