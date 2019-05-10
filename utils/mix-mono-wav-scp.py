@@ -14,7 +14,8 @@ else:
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description='Gather wav.scp for each channels into a wav.scp')
+        description='Mixing wav.scp files into a multi-channel wav.scp '
+                    'using sox.')
     parser.add_argument('scp', type=str, nargs='+', help='Give wav.scp')
     parser.add_argument('out', nargs='?', type=argparse.FileType('w'),
                         default=sys.stdout,
@@ -23,7 +24,6 @@ def main():
     args = parser.parse_args()
 
     fscps = [io.open(scp, 'r', encoding='utf-8') for scp in args.scp]
-
     for linenum, lines in enumerate(zip_longest(*fscps)):
         keys = []
         wavs = []
@@ -42,11 +42,12 @@ def main():
             wavs.append(wav.strip())
 
         if not all(k == keys[0] for k in keys):
-            raise RuntimeError('The ids mismatch: {}'.format(keys))
+            raise RuntimeError(
+                'The ids mismatch. Hint; the input files must be '
+                'sorted and must have same ids: {}'.format(keys))
 
-        # gather-wav.py can be found in "utils"
-        args.out.write('{} gather-wav.py {} |\n'.format(
-            keys[0], ' '.join('"{}"'.format(w) for w in wavs)))
+        args.out.write('{} sox -M {} -c {} -t wav - |\n'.format(
+            keys[0], ' '.join('{}'.format(w) for w in wavs), len(fscps)))
 
 
 if __name__ == '__main__':

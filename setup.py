@@ -32,7 +32,11 @@ requirements = {
         'tensorboardX>=1.4',
         'pillow>=5.3.0',
         'nara_wpe',
-        'kaldiio'
+        'museval',
+        'pystoi',
+        'kaldiio',
+        # A backport of inspect.signature for python2
+        'funcsigs'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [

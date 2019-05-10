@@ -4,6 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import copy
+import itertools
 import json
 import logging
 # matplotlib related
@@ -24,7 +25,6 @@ from chainer.serializers.npz import NpzDeserializer
 import matplotlib
 import numpy as np
 import torch
-
 matplotlib.use('Agg')
 
 
@@ -33,6 +33,18 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, min_batch_size=1, shortest_first=False):
     """Make batch set from json dictionary
 
+    if utts have "category" value,
+
+        >>> data = {'utt1': {'category': 'A', 'input': ...},
+        ...         'utt2': {'category': 'B', 'input': ...},
+        ...         'utt3': {'category': 'B', 'input': ...},
+        ...         'utt4': {'category': 'A', 'input': ...}}
+        >>> make_batchset(data, batchsize=2, ...)
+        [[('utt1', ...), ('utt4', ...)], [('utt2', ...), ('utt3': ...)]]
+
+    Note that if any utts doesn't have "category",
+    perform as same as "make_batchset_within_category"
+
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
     :param int batch_size: batch size
     :param int max_length_in: maximum length of input to decide adaptive batch size
@@ -40,8 +52,54 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
-    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
+    :return: List[List[Tuple[str, dict]]] list of batches
     """
+
+    category2data = {}  # Dict[str, dict]
+    for k, v in data.items():
+        category2data.setdefault(v.get('category'), {})[k] = v
+
+    batches_list = []  # List[List[List[Tuple[str, dict]]]]
+    for _, d in category2data.items():
+        # batch: List[List[Tuple[str, dict]]]
+        batches = make_batchset_within_category(
+            data=d,
+            batch_size=batch_size,
+            max_length_in=max_length_in,
+            max_length_out=max_length_out,
+            min_batch_size=min_batch_size,
+            shortest_first=shortest_first)
+        batches_list.append(batches)
+
+    if len(batches_list) == 1:
+        batches = batches_list[0]
+    else:
+        # Concat list. This way is faster than "sum(batch_list, [])"
+        batches = list(itertools.chain(*batches_list))
+
+    # for debugging
+    if num_batches > 0:
+        batches = batches[:num_batches]
+    logging.info('# minibatches: ' + str(len(batches)))
+
+    # batch: List[List[Tuple[str, dict]]]
+    return batches
+
+
+def make_batchset_within_category(
+        data, batch_size, max_length_in, max_length_out,
+        min_batch_size=1, shortest_first=False):
+    """Make batch set from json dictionary
+
+    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param int batch_size: batch size
+    :param int max_length_in: maximum length of input to decide adaptive batch size
+    :param int max_length_out: maximum length of output to decide adaptive batch size
+    :param int min_batch_size: mininum batch size (for multi-gpu)
+    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :return: List[List[Tuple[str, dict]]] list of batches
+    """
+
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
         data[1]['input'][0]['shape'][0]), reverse=not shortest_first)
@@ -83,15 +141,7 @@ def make_batchset(data, batch_size, max_length_in, max_length_out,
             break
         start = end
 
-    # for debugging
-    if num_batches > 0:
-        minibatches = minibatches[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatches)))
-
-    # such like: [('uttid1',
-    #              {'input': [{'shape': ...}],
-    #               'output': [{'shape': ...}]}),
-    #             ...]
+    # batch: List[List[Tuple[str, dict]]]
     return minibatches
 
 
@@ -149,11 +199,12 @@ class PlotAttentionReport(extension.Extension):
     :param bool reverse: If True, input and output length are reversed
     """
 
-    def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
+    def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False):
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
         self.converter = converter
+        self.transform = transform
         self.device = device
         self.reverse = reverse
         if not os.path.exists(self.outdir):
@@ -176,7 +227,7 @@ class PlotAttentionReport(extension.Extension):
             plot.clf()
 
     def get_attention_weights(self):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
+        batch = self.converter([self.transform(self.data)], self.device)
         att_ws = self.att_vis_fn(*batch)
         return att_ws
 
@@ -488,3 +539,62 @@ def add_results_to_json(js, nbest_hyps, char_list):
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js
+
+
+def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
+                     bottom=True, left=True, right=True, top=False,
+                     labelbottom=True, labelleft=True, labelright=True,
+                     labeltop=False, cmap='inferno'):
+    """Plot spectrogram using matplotlib
+
+    :param matplotlib.pyplot plt:
+    :param np.ndarray spec: Input stft (Freq, Time)
+    :param str mode: db or linear.
+    :param int fs: Sample frequency. To convert y-axis to kHz unit.
+    :param int frame_shift: The frame shift of stft. To convert x-axis to second unit.
+    :param bool bottom:
+    :param bool left:
+    :param bool right:
+    :param bool top:
+    :param bool labelbottom:
+    :param bool labelleft:
+    :param bool labelright:
+    :param bool labeltop:
+    :param str cmap: colormap defined in matplotlib
+
+    """
+    spec = np.abs(spec)
+    if mode == 'db':
+        x = 20 * np.log10(spec + np.finfo(spec.dtype).eps)
+    elif mode == 'linear':
+        x = spec
+    else:
+        raise ValueError(mode)
+
+    if fs is not None:
+        ytop = fs / 2000
+        ylabel = 'kHz'
+    else:
+        ytop = x.shape[0]
+        ylabel = 'bin'
+
+    if frame_shift is not None and fs is not None:
+        xtop = x.shape[1] * frame_shift / fs
+        xlabel = 's'
+    else:
+        xtop = x.shape[1]
+        xlabel = 'frame'
+
+    extent = (0, xtop, 0, ytop)
+    plt.imshow(x[::-1], cmap=cmap, extent=extent)
+
+    if labelbottom:
+        plt.xlabel('time [{}]'.format(xlabel))
+    if labelleft:
+        plt.ylabel('freq [{}]'.format(ylabel))
+    plt.colorbar().set_label('{}'.format(mode))
+
+    plt.tick_params(bottom=bottom, left=left, right=right, top=top,
+                    labelbottom=labelbottom, labelleft=labelleft,
+                    labelright=labelright, labeltop=labeltop)
+    plt.axis('auto')
