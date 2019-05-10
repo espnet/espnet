@@ -55,8 +55,6 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
         logging.info('reading model parameters from ' + tts_model_file)
 
         torch_load(tts_model_file, tacotron2)
-        # tacotron2.load_state_dict(
-        #    torch.load(tts_model_file, map_location=lambda storage, loc: storage))
     else:
         logging.info("not using pretrained tacotron2 model")
     # Set to eval mode
@@ -66,10 +64,6 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
         model=tacotron2,
         use_masking=use_masking,
         bce_pos_weight=bce_pos_weight,
-        #reporter=reporter
-        # These two are needed together
-        # reduce_loss=False,
-        # use_bce_loss=False
     )
 
     loss.eval()
@@ -103,7 +97,6 @@ def load_tacotron_loss(tts_model_conf, tts_model_file, args):
         idim=idim_taco,
         odim=odim_taco,
         train_args=train_args_taco,
-        ##reporter=reporter
     )
 
 
@@ -510,11 +503,7 @@ class E2E(torch.nn.Module):
 
         # set_requires_grad(self.dec, False)
         if oracle:
-            # utt list of olen
-            # tids = [d[1]['output'][0]['tokenid'].split() for d in data]
-            # ys = [np.fromiter(map(int, tids[i]), dtype=np.int64)
-            #      for i in sorted_index]
-            ys = [to_device(self, torch.from_numpy(y)) for y in ys for _ in range(n_samples_per_input)]
+            ys = [to_device(self, torch.from_numpy(y)) for y in ys for id in range(n_samples_per_input)]
 
             loss_att, y_gen, ylens = self.dec.gen_oracle(hpad, hlens, ys)
         else:
