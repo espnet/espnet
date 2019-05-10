@@ -23,6 +23,7 @@ requirements = {
         # 'cupy==5.0.0',
         'python_speech_features>=0.6',
         'setuptools>=38.5.1',
+        'scikit-learn==0.20',
         'librosa>=0.6.2',
         'soundfile>=0.10.2',
         'inflect>=1.0.0',
@@ -35,7 +36,6 @@ requirements = {
         'museval',
         'pystoi',
         'kaldiio',
-        'scikit-learn==0.20',
         # A backport of inspect.signature for python2
         'funcsigs'
     ],
