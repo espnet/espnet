@@ -9,7 +9,7 @@
 # general configuration
 backend=pytorch
 stage=0       # start from -1 if you need to start from data download
-stop_stage=100
+stop_stage=1
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -80,14 +80,18 @@ set -o pipefail
 
 train_set=train_nodev
 train_dev=train_dev
-recog_set=eval
+recog_set=(JNAS_testset_100 JNAS_testset_500)
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     # Initial normalization of the data
-    local/jnas_data_prep.sh ${jnas_root}
+    local/jnas_train_prep.sh ${jnas_root} ./local
+    for rtask in ${recog_set[@]};do
+      local/jnas_eval_prep.sh ${jnas_root}/DOCS/Test_set ${rtask}
+    done
+
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -99,16 +103,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
-        data/all exp/make_fbank/all ${fbankdir}
+        data/train exp/make_fbank/train ${fbankdir}
 
     # remove utt having more than 2000 frames or less than 10 frames or
     # remove utt having more than 200 characters or 0 characters
-    remove_longshortdata.sh data/all data/all_trim
+    remove_longshortdata.sh data/train data/train_trim
 
     # following split consider prompt duplication (but does not consider speaker overlap instead)
-    local/split_tr_dt_et.sh --perdt 5 --peret 5 \
-        data/all_trim data/${train_set} data/${train_dev} data/${recog_set}
-
+    local/split_tr_dt.sh --perdt 5 data/train_trim \
+	    data/${train_set} data/${train_dev}
+    
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
@@ -118,7 +122,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 
-    for rtask in ${recog_set}; do
+    for rtask in ${recog_set[@]}; do
+	# Generate the fbank features.
+	steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+	    data/${rtask} exp/make_fbank/${rtask} ${fbankdir}
+
+	# remove longer or shorter datas.
+	remove_longshortdata.sh data/${rtask} data/${rtask}_trim
+
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
