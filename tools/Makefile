@@ -5,8 +5,8 @@ PYTHON :=
 PYTHON_VERSION := 3.7
 CUPY_VERSION := 5.0.0
 CUDA_VERSION := 10.0
-# PyTorch version: 0.4.1 or 1.0.0
-TH_VERSION := 1.0.0
+# PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
+TH_VERSION := 1.0.1
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
 
