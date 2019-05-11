@@ -124,5 +124,6 @@ fi
 
 # check the structure of perepraed data directory
 utils/fix_data_dir.sh ${locdata}/train
+rm -rf ${loctmp}
 
 echo "*** Initial JNAS training_data preparation finished!"
