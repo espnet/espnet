@@ -37,7 +37,9 @@ requirements = {
         'pystoi',
         'kaldiio',
         # A backport of inspect.signature for python2
-        'funcsigs'
+        'funcsigs',
+        'configargparse',
+        'PyYAML'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
