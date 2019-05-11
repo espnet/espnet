@@ -89,14 +89,6 @@ for filename in $(ls $wavdir); do
         cp ${scrdir}/${filename}_${type:0:3}.txt ${loctmp}/char_tmp/$id.utf8
         nkf --overwrite -Lu  ${loctmp}/char_tmp/$id.utf8
     fi
-#    while read line; do
-#	set ${line}
-#	utt_id=${1}
-#	text_sent=${2}
-#	echo ${utt_id:1:4}_${filename} ${text_sent} >> ${loctmp}/char_tmp/${utt_id:1:4}_${filename}.utf8
-#    done < ${loctmp}/char_tmp/$id.utf8
-
-#    rm ${loctmp}/char_tmp/$id.utf8
 
     PYTHONIOENCODING=utf-8 local/make_eval_trans.py \
         ${loctmp}/char_tmp/$id.utf8 \
@@ -113,9 +105,6 @@ sort -k1 > ${locdata}/${EVAL_PATH}/wav.scp
 awk 'NR==FNR{trans[$1]; next} ($1 in trans)' FS=" " \
 ${loctmp}/${EVAL_PATH}_trans.txt.unsorted $loctmp/${EVAL_PATH}_utt2spk.unsorted |\
 sort -k1 > ${locdata}/${EVAL_PATH}/utt2spk
-
-#cp ${loctmp}/${EVAL_PATH}_utt2spk.unsorted ${locdata}/${EVAL_PATH}/utt2spk
-#cp ${loctmp}/${EVAL_PATH}_utt2spk.unsorted ${PWD}/utt2spk
 
 sort -k1 < ${loctmp}/${EVAL_PATH}_trans.txt.unsorted > ${locdata}/${EVAL_PATH}/text.tmp
 
@@ -138,5 +127,6 @@ fi
 
 # check the structure of perepraed data directory
 utils/fix_data_dir.sh ${locdata}/${EVAL_PATH}
+rm -rf ${loctmp}
 
 echo "*** Initial JNAS eval data preparation finished!"

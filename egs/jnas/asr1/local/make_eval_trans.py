@@ -12,7 +12,6 @@ if this is the case produces a transcript line for each file in the format:
 prefix_a0405 IT SEEMED THE ORDAINED ORDER OF THINGS THAT DOGS SHOULD WORK
 """
 from __future__ import print_function
-
 import sys
 
 def err(msg):
