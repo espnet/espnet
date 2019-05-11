@@ -57,6 +57,7 @@ espnet.done: venv
 		. venv/bin/activate; pip install matplotlib==2.2.4; \
 	else \
 		. venv/bin/activate; pip install matplotlib; \
+	fi
 	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	touch espnet.done
 else
