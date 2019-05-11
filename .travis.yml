@@ -26,7 +26,7 @@ env:
 
 install:
   - if [[ ${USE_CONDA} == false ]]; then
-        pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
+        pip install torch==${TH_VERSION} -f https://download.pytorch.org/whl/cpu/stable;
     else
         cd tools;
         make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv;
