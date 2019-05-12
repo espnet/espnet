@@ -13,7 +13,7 @@ if [ $# != 2 ]; then
 fi
 
 DATA=$1  # database root directory
-speaker_path=$2
+speaker_list=$2
 
 echo "=== Starting initial JNAS training_data preparation ..."
 
@@ -35,7 +35,7 @@ echo -n > $logdir/make_trans.log
 
 echo "--- Preparing train/wav.scp, train/trans.txt and train/utt2spk ..."
 
-for spkname in $(cat ${speaker_path}/train_speakers.txt); do
+for spkname in $(cat ${speaker_list}); do
     scrdir=${DATA}/${trans}/${type}/${ifNP}
     spkwav_dir=${wavdir}/${spkname}/${ifNP}
 

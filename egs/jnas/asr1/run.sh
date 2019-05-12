@@ -9,7 +9,7 @@
 # general configuration
 backend=pytorch
 stage=0       # start from -1 if you need to start from data download
-stop_stage=1
+stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -62,7 +62,8 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 samp_prob=0.0
 
 # data
-jnas_root=/database/JNAS # original data directory to be stored
+jnas_train_root=/database/JNAS                # root directory including original data
+jnas_eval_root=/database/JNAS/DOCS/Test_set   # root directory including test data
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -80,16 +81,16 @@ set -o pipefail
 
 train_set=train_nodev
 train_dev=train_dev
-recog_set=(JNAS_testset_100 JNAS_testset_500)
+recog_set="JNAS_testset_100 JNAS_testset_500"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     # Initial normalization of the data
-    local/jnas_train_prep.sh ${jnas_root} ./local
+    local/jnas_train_prep.sh ${jnas_train_root} ./conf/train_speakers.txt
     for rtask in ${recog_set[@]};do
-      local/jnas_eval_prep.sh ${jnas_root}/DOCS/Test_set ${rtask}
+        local/jnas_eval_prep.sh ${jnas_eval_root} ${rtask}
     done
 
 fi
@@ -122,7 +123,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
 
-    for rtask in ${recog_set[@]}; do
+    for rtask in ${recog_set}; do
 	# Generate the fbank features.
 	steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
 	    data/${rtask} exp/make_fbank/${rtask} ${fbankdir}
