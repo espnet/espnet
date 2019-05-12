@@ -26,7 +26,7 @@ env:
 
 install:
   - if [[ ${USE_CONDA} == false ]]; then
-        pip install http://download.pytorch.org/whl/cpu/torch-${TH_VERSION}-cp27-cp27mu-linux_x86_64.whl ;
+        pip install --quiet torch==${TH_VERSION} -f https://download.pytorch.org/whl/cpu/stable;
     else
         cd tools;
         make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv;
@@ -66,20 +66,18 @@ install:
   - git clone https://github.com/bats-core/bats-core.git
   - export PATH=$(pwd)/bats-core/bin:$PATH
 
-
 script:
   # TODO test coding style?
   - flake8 espnet test utils;
   - autopep8 -r espnet test utils --global-config .pep8 --diff --max-line-length 120 | tee check_autopep8
   - test ! -s check_autopep8
+  - bash -c 'find egs -name "run.sh" -printf "%p" -execdir shellcheck -x -e SC1091 -e SC2086 {} \; ; cd ${TRAVIS_BUILD_DIR}/utils ; shellcheck -x -e SC1091 -e SC2086 *.sh' | tee check_shellcheck
+  - bash -c '! grep -q "SC[0-9]\{4\}" check_shellcheck'
   - pytest
   - bats test_utils
   - travis-sphinx build --source=doc --nowarn
-  - bash -c 'find egs -name "run.sh" -printf "%p" -execdir shellcheck -x -e SC1091 -e SC2086 {} \; ; cd ${TRAVIS_BUILD_DIR}/utils ; shellcheck -x -e SC1091 -e SC2086 *.sh'
 
 sudo: false
 
-
 after_success:
     - travis-sphinx deploy
-
