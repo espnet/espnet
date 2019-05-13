@@ -89,7 +89,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data Preparation"
     # Initial normalization of the data
     local/jnas_train_prep.sh ${jnas_train_root} ./conf/train_speakers.txt
-    for rtask in ${recog_set[@]};do
+    for rtask in ${recog_set};do
         local/jnas_eval_prep.sh ${jnas_eval_root} ${rtask}
     done
 
