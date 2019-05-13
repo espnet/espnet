@@ -34,11 +34,23 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     rm ./DCASE2019_task4/dataset/Synthetic_dataset.zip
 fi
 
+
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 2: Feature Generation"
+    # Prepare scp files.
     python ./local/preprocess_data.py
+
+    # Data augmentation with RIR reverberation.
+    if [ ! -d "RIRS_NOISES" ]; then
+        # Download the package that includes the real RIRs, simulated RIRs, isotropic noises and point-source noises
+        wget --no-check-certificate http://www.openslr.org/resources/28/rirs_noises.zip
+        unzip rirs_noises.zip
+        rm rirs_noises.zip
+    fi
+    . ./local/RIR_augment.sh data/train
+
     for x in train validation; do
         for f in text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
@@ -52,8 +64,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                            ./data
 fi
 
-# TODO: modify data loader
-#if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-#    echo "stage 3: Network Training"
-#    python ./DCASE2019_task4/baseline/main.py
-#fi
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: Network Training"
+    python ./sed/sed_train.py
+fi

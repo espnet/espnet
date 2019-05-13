@@ -6,6 +6,8 @@ import shutil
 # work_dir = espnet/egs/dcase19t4/sed1
 DATA_DIR = './DCASE2019_task4/dataset/metadata'
 AUDIO_DIR = os.path.join(os.getcwd(), 'DCASE2019_task4/dataset/audio')
+SOX_OPTION = '-r 16000 -c 1 -t wav'
+
 
 def make_scps(scp_dir: str, filenames: np.ndarray, dataset: str, att: str) -> None:
     with open(os.path.join(scp_dir, 'text'), 'a') as text_f, \
@@ -17,7 +19,7 @@ def make_scps(scp_dir: str, filenames: np.ndarray, dataset: str, att: str) -> No
                 if not os.path.exists(os.path.join(AUDIO_DIR, dataset, att, filename)):
                     continue
                 wav_id = os.path.splitext(filename)[0]
-                wav_scp_f.write(f'{att}-{wav_id} {os.path.join(AUDIO_DIR, dataset, att, filename)}\n')
+                wav_scp_f.write(f'{att}-{wav_id} sox {os.path.join(AUDIO_DIR, dataset, att, filename)} {SOX_OPTION} - |\n')
                 utt2spk_f.write(f'{att}-{wav_id} {att}\n')
                 text_f.write(f'{att}-{wav_id} {wav_id}.json\n')
 
@@ -26,7 +28,7 @@ def make_scps(scp_dir: str, filenames: np.ndarray, dataset: str, att: str) -> No
                 if not os.path.exists(os.path.join(AUDIO_DIR, dataset, filename)):
                     continue
                 wav_id = os.path.splitext(filename)[0]
-                wav_scp_f.write(f'{att}-{wav_id} {os.path.join(AUDIO_DIR, dataset, filename)}\n')
+                wav_scp_f.write(f'{att}-{wav_id} sox {os.path.join(AUDIO_DIR, dataset, filename)} {SOX_OPTION} - |\n')
                 utt2spk_f.write(f'{att}-{wav_id} {att}\n')
                 text_f.write(f'{att}-{wav_id} {wav_id}.json\n')
 
