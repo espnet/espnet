@@ -126,7 +126,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         cp data/${x}/text data/${x}/text.org
         paste -d "" \
             <(cut -f 1 -d" " data/${x}/text.org) \
-            <(awk '{$1=""; print tolower($0)}' data/${x}/text.org | perl -pe 's| \(\%.*\)||g' | perl -pe 's| \<.*\>||g' | sed -e "s/(//g" -e "s/)//g") \
+            <(awk '{$1=""; print tolower($0)}' data/${x}/text.org | perl -pe 's| \(\%.*?\)||g' | perl -pe 's| \<.*?\>||g' | sed -e "s/(//g" -e "s/)//g") \
             | sed -e 's/\s\+/ /g' > data/${x}/text
         # rm data/${x}/text.org
     done
