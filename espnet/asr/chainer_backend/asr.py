@@ -549,6 +549,5 @@ def recog(args):
             nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
-    # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
         f.write(json.dumps({'utts': new_js}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
