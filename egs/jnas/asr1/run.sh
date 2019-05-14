@@ -128,9 +128,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 	steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
 	    data/${rtask} exp/make_fbank/${rtask} ${fbankdir}
 
-	# remove longer or shorter datas.
-	remove_longshortdata.sh data/${rtask} data/${rtask}_trim
-
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${rtask}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
