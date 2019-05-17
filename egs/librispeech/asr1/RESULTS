@@ -25,3 +25,19 @@ decode_dev_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.5: 4.5
 decode_dev_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.5: 13.0
 decode_test_clean_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.5: 4.6
 decode_test_other_beam20_eacc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.5: 13.7
+
+# pytorch VGG-3BLSTM 1024 units, #BPE 5000, latest RNNLM training with tuned decoding (ctc_weight=0.5, lm_weight=0.7)
+# train_960_pytorch_vggblstm_e5_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_location_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs20_mli800_mlo150
+# WER
+decode_dev_clean_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 4.2
+decode_dev_other_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 12.5
+decode_test_clean_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 4.2
+decode_test_other_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 13.6
+
+# pytorch VGG-3BLSTM 1024 units, #BPE 5000, latest RNNLM training with tuned decoding (ctc_weight=0.5, lm_weight=0.7), dropout 0.2
+# train_960_pytorch_vggblstm_e5_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_location_aconvc10_aconvf100_mtlalpha0.5_drop0.2_adadelta_sampprob0.0_bs20_mli800_mlo150
+# WER
+decode_dev_clean_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 4.0
+decode_dev_other_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 12.3
+decode_test_clean_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 4.0
+decode_test_other_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 12.7

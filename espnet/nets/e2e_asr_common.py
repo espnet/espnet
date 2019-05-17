@@ -11,7 +11,7 @@ import sys
 
 
 def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
-    '''End detection
+    """End detection
 
     desribed in Eq. (50) of S. Watanabe et al
     "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition"
@@ -21,7 +21,7 @@ def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
     :param M:
     :param D_end:
     :return:
-    '''
+    """
     if len(ended_hyps) == 0:
         return False
     count = 0
@@ -43,14 +43,14 @@ def end_detect(ended_hyps, i, M=3, D_end=np.log(1 * np.exp(-10))):
 
 # TODO(takaaki-hori): add different smoothing methods
 def label_smoothing_dist(odim, lsm_type, transcript=None, blank=0):
-    '''Obtain label distribution for loss smoothing
+    """Obtain label distribution for loss smoothing
 
     :param odim:
     :param lsm_type:
     :param blank:
     :param transcript:
     :return:
-    '''
+    """
     if transcript is not None:
         with open(transcript, 'rb') as f:
             trans_json = json.load(f)['utts']

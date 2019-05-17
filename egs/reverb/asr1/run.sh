@@ -9,6 +9,7 @@
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
+stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -44,8 +45,10 @@ maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduce
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
 # optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=10
+patience=3
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
@@ -53,8 +56,10 @@ lm_vocabsize=65000  # effective only for word LMs
 lm_layers=1         # 2 for character LMs
 lm_units=1000       # 650 for character LMs
 lm_opt=sgd          # adam for character LMs
+lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 lm_batchsize=300    # 1024 for character LMs
 lm_epochs=20        # number of epochs
+lm_patience=3
 lm_maxlen=40        # 150 for character LMs
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
@@ -67,6 +72,11 @@ maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+
+# Dereverberation Measures
+compute_se=true # flag for turing on computation of dereverberation measures
+enable_pesq=false # please make sure that you or your institution have the license to report PESQ before turning on this flag
+nch_se=8
 
 # data
 reverb=/export/corpora5/REVERB_2014/REVERB    # JHU setup
@@ -91,16 +101,30 @@ set -o pipefail
 
 train_set=tr_simu_8ch_si284
 train_dev=dt_mult_1ch
-recog_set="dt_real_1ch dt_simu_1ch et_real_1ch et_simu_1ch"
+recog_set="dt_real_8ch_beamformit dt_simu_8ch_beamformit et_real_8ch_beamformit et_simu_8ch_beamformit dt_real_1ch_wpe dt_simu_1ch_wpe et_real_1ch_wpe et_simu_1ch_wpe"
 
-if [ ${stage} -le 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make the following data preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    wavdir=$PWD/wav # set the directory of the multi-condition training WAV files to be generated
+    wavdir=${PWD}/wav # set the directory of the multi-condition training WAV files to be generated
     echo "stage 0: Data preparation"
     local/generate_data.sh --wavdir ${wavdir} ${wsjcam0}
     local/prepare_simu_data.sh --wavdir ${wavdir} ${reverb} ${wsjcam0}
-    local/prepare_real_data.sh ${reverb}
+    local/prepare_real_data.sh --wavdir ${wavdir} ${reverb}
+
+    # Run WPE and Beamformit
+    local/run_wpe.sh
+    local/run_beamform.sh ${wavdir}/WPE/
+    if ${compute_se}; then
+      if [ ! -d local/REVERB_scores_source ] || [ ! -d local/REVERB_scores_source/REVERB-SPEENHA.Release04Oct/evaltools/SRMRToolbox ] || [ ! -f local/PESQ ]; then
+        # download and install speech enhancement evaluation tools
+        local/download_se_eval_tool.sh
+      fi
+      pesqdir=${PWD}/local
+      local/compute_se_scores.sh --nch ${nch_se} --enable_pesq ${enable_pesq} ${reverb} ${wavdir} ${pesqdir}
+      cat exp/compute_se_${nch_se}ch/scores/score_SimData
+      cat exp/compute_se_${nch_se}ch/scores/score_RealData
+    fi
 
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
     local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
@@ -109,7 +133,7 @@ fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
@@ -120,6 +144,7 @@ if [ ${stage} -le 1 ]; then
         utils/copy_data_dir.sh data/${x} data-fbank/${x}
         steps/make_fbank_pitch.sh --nj 32 --cmd "${train_cmd}" --write_utt2num_frames true \
             data-fbank/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data-fbank/${x}
     done
 
     echo "combine reverb simulation and wsj clean training data"
@@ -141,13 +166,13 @@ if [ ${stage} -le 1 ]; then
         /export/a{11,12,13,14}/${USER}/espnet-data/egs/reverb/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
-    dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
         data-fbank/${train_set}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
-    dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+    dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
         data-fbank/${train_dev}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
-        dump.sh --cmd "$train_cmd" --nj 4 --do_delta $do_delta \
+        dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data-fbank/${rtask}/feats.scp data-fbank/${train_set}/cmvn.ark exp/dump_feats/recog/${rtask} \
             ${feat_recog_dir}
     done
@@ -156,7 +181,7 @@ fi
 dict=data/lang_1char/${train_set}_units.txt
 echo "dictionary: ${dict}"
 nlsyms=data/lang_1char/non_lang_syms.txt
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
     mkdir -p data/lang_1char/
@@ -187,33 +212,34 @@ fi
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
     lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
-    if [ $use_wordlm = true ]; then
+    if [ ${use_wordlm} = true ]; then
         lmtag=${lmtag}_word${lm_vocabsize}
     fi
 fi
-lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
+lmexpname=train_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
-    if [ $use_wordlm = true ]; then
+    if [ ${use_wordlm} = true ]; then
         lmdatadir=data/local/wordlm_train
         lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
         mkdir -p ${lmdatadir}
-        cat data/${train_set}/text | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
+        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-                | grep -v "<" | tr [a-z] [A-Z] > ${lmdatadir}/train_others.txt
-        cat data/${train_dev}/text | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+                | grep -v "<" | tr "[:lower:]" "[:upper:]" > ${lmdatadir}/train_others.txt
+        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
         cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
         text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
     else
         lmdatadir=data/local/lm_train
-        lmdict=$dict
+        lmdict=${dict}
         mkdir -p ${lmdatadir}
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
             | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
         zcat ${wsj1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z \
-            | grep -v "<" | tr [a-z] [A-Z] \
+            | grep -v "<" | tr "[:lower:]" "[:upper:]" \
             | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
         text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
             | cut -f 2- -d" " > ${lmdatadir}/valid.txt
@@ -229,35 +255,40 @@ if [ ${stage} -le 3 ]; then
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
         --layer ${lm_layers} \
         --unit ${lm_units} \
         --opt ${lm_opt} \
+        --sortagrad ${lm_sortagrad} \
         --batchsize ${lm_batchsize} \
         --epoch ${lm_epochs} \
+        --patience ${lm_patience} \
         --maxlen ${lm_maxlen} \
         --dict ${lmdict}
 fi
 
 if [ -z ${tag} ]; then
-    expdir=exp/${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
     if ${do_delta}; then
-        expdir=${expdir}_delta
+        expname=${expname}_delta
     fi
 else
-    expdir=exp/${train_set}_${backend}_${tag}
+    expname=${train_set}_${backend}_${tag}
 fi
+expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
         --dict ${dict} \
         --debugdir ${expdir} \
@@ -282,17 +313,24 @@ if [ ${stage} -le 4 ]; then
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \
         --opt ${opt} \
-        --epochs ${epochs}
+        --sortagrad ${sortagrad} \
+        --epochs ${epochs} \
+        --patience ${patience}
 fi
 
-if [ ${stage} -le 5 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
 
+    pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
-        if [ $use_wordlm = true ]; then
+        if [ ${use_wordlm} = true ]; then
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_wordrnnlm${lm_weight}_${lmtag}
+        else
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        fi
+        if [ ${use_wordlm} = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
             recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
@@ -300,7 +338,7 @@ if [ ${stage} -le 5 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json 
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
 
         #### use CPU for decoding
         ngpu=0
@@ -319,23 +357,23 @@ if [ ${stage} -le 5 ]; then
             --minlenratio ${minlenratio} \
             --ctc-weight ${ctc_weight} \
             --lm-weight ${lm_weight} \
-            $recog_opts &
-        wait
+            ${recog_opts}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
     ) &
+    pids+=($!) # store background pids
     done
-    wait
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+
     echo "Report the result"
     decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
-    if [ $use_wordlm = true ]; then
-	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}
+    if [ ${use_wordlm} = true ]; then
+	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}_${lmtag}
     else
-	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}
+	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}_${lmtag}
     fi
-    local/score_for_reverb.sh --wer true --nlsyms ${nlsyms} \
-			      "${expdir}/decode_*_1ch_${decode_part_dir}/data.json" \
-			      ${dict} ${expdir}/decode_summary_1ch_${decode_part_dir}
+    local/get_results.sh ${nlsyms} ${dict} ${expdir} ${decode_part_dir}
     echo "Finished"
 fi

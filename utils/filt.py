@@ -1,26 +1,41 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # Apache 2.0
+from __future__ import print_function
+from __future__ import unicode_literals
 
-import sys
 import argparse
+import codecs
+import sys
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--exclude', '-v', dest='exclude', action='store_true', help='exclude filter words')
+is_python2 = sys.version_info[0] == 2
+
+
+def main(args):
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--exclude', '-v', dest='exclude', action='store_true',
+                        help='exclude filter words')
     parser.add_argument('filt', type=str, help='filter list')
     parser.add_argument('infile', type=str, help='input file')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
+    filter_file(args.infile, args.filt, args.exclude)
 
-    vocab=set()
-    with open(args.filt) as vocabfile:
+
+def filter_file(infile, filt, exclude):
+    vocab = set()
+    with codecs.open(filt, "r", encoding="utf-8") as vocabfile:
         for line in vocabfile:
-            vocab.add(unicode(line, 'utf_8').strip())
+            vocab.add(line.strip())
 
-    with open(args.infile) as textfile:
+    sys.stdout = codecs.getwriter("utf-8")(sys.stdout if is_python2 else sys.stdout.buffer)
+    with codecs.open(infile, "r", encoding="utf-8") as textfile:
         for line in textfile:
-            if args.exclude:
-                print " ".join(map(lambda word: word if not word in vocab else '', unicode(line, 'utf_8').strip().split())).encode('utf_8')
+            if exclude:
+                print(" ".join(map(lambda word: word if word not in vocab else '', line.strip().split())))
             else:
-                print " ".join(map(lambda word: word if word in vocab else '<UNK>', unicode(line, 'utf_8').strip().split())).encode('utf_8')
+                print(" ".join(map(lambda word: word if word in vocab else '<UNK>', line.strip().split())))
 
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
