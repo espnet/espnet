@@ -10,7 +10,25 @@ export LC_ALL=C
 export PATH=$MAIN_ROOT/tools/sentencepiece/build/src:$MAIN_ROOT/tools/nkf/nkf-2.1.4/:$PATH
 
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
-source $MAIN_ROOT/tools/venv/bin/activate
-export PATH=$MAIN_ROOT/utils:$PATH
+if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
+    source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
+else
+    source $MAIN_ROOT/tools/venv/bin/activate
+fi
+export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 
 export OMP_NUM_THREADS=1
+
+# check extra module installation
+if ! which nkf > /dev/null; then
+    echo "Error: it seems that nkf is not installed." >&2
+    echo "Error: please install nkf as follows." >&2
+    echo "Error: cd ${MAIN_ROOT}/tools && make nkf.done" >&2
+    return 1
+fi
+if ! which spm_decode > /dev/null; then
+    echo "Error: it seems that sentencepiece is not installed." >&2
+    echo "Error: please install sentencepiece as follows." >&2
+    echo "Error: cd ${MAIN_ROOT}/tools && make sentencepiece.done" >&2
+    return 1
+fi

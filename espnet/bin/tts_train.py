@@ -17,7 +17,7 @@ from distutils.util import strtobool
 import numpy as np
 
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -37,12 +37,13 @@ def main():
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
     # task related
     parser.add_argument('--train-json', type=str, required=True,
                         help='Filename of training json')
     parser.add_argument('--valid-json', type=str, required=True,
                         help='Filename of validation json')
-    # network archtecture
+    # network architecture
     # encoder
     parser.add_argument('--embed_dim', default=512, type=int,
                         help='Number of dimension of embedding')
@@ -67,7 +68,7 @@ def main():
     parser.add_argument('--aconv-filts', default=15, type=int,
                         help='Filter size of attention convolution')
     parser.add_argument('--cumulate_att_w', default=True, type=strtobool,
-                        help="Whether or not to cumulate attetion weights")
+                        help="Whether or not to cumulate attention weights")
     # decoder
     parser.add_argument('--dlayers', default=2, type=int,
                         help='Number of decoder layers')
@@ -123,6 +124,8 @@ def main():
     parser.add_argument('--bce_pos_weight', default=20.0, type=float,
                         help='Positive sample weight in BCE calculation (only for use_masking=True)')
     # minibatch related
+    parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
+                        help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batch_sort_key', default='shuffle', type=str,
                         choices=['shuffle', 'output', 'input'], nargs='?',
                         help='Batch sorting key')
@@ -134,6 +137,8 @@ def main():
                         help='Batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n_iter_processes', default=0, type=int,
                         help='Number of processes of iterator')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate for optimizer')
@@ -143,11 +148,15 @@ def main():
                         help='Weight decay coefficient for optimizer')
     parser.add_argument('--epochs', '-e', default=30, type=int,
                         help='Number of maximum epochs')
+    parser.add_argument('--early-stop-criterion', default='validation/main/loss', type=str, nargs='?',
+                        help="Value to monitor to trigger an early stopping of the training")
+    parser.add_argument('--patience', default=3, type=int, nargs='?',
+                        help="Number of epochs to wait without improvement before stopping the training")
     parser.add_argument('--grad-clip', default=1, type=float,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=5, type=int,
                         help='Number of samples of attention to be saved')
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose > 0:
@@ -175,7 +184,7 @@ def main():
 
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -186,11 +195,11 @@ def main():
     np.random.seed(args.seed)
 
     if args.backend == "pytorch":
-        from espnet.tts.tts_pytorch import train
+        from espnet.tts.pytorch_backend.tts import train
         train(args)
     else:
-        raise NotImplementedError
+        raise NotImplementedError("Only pytorch is supported.")
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

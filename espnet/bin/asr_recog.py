@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser()
     # general configuration
     parser.add_argument('--ngpu', default=0, type=int,
@@ -29,7 +29,9 @@ def main():
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
     parser.add_argument('--batchsize', default=1, type=int,
-                        help='Batch size for beam search')
+                        help='Batch size for beam search (0: means no batch processing)')
+    parser.add_argument('--preprocess-conf', type=str, default=None,
+                        help='The configuration file for the pre-processing')
     # task related
     parser.add_argument('--recog-json', type=str,
                         help='Filename of recognition data (json)')
@@ -40,6 +42,9 @@ def main():
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
+    parser.add_argument('--num-spkrs', default=1, type=int,
+                        choices=[1, 2],
+                        help='Number of speakers in the speech.')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
@@ -68,7 +73,10 @@ def main():
                         help='Word list to read')
     parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
-    args = parser.parse_args()
+    parser.add_argument('--streaming-window', type=int, default=False,
+                        help='Use streaming recognizer for inference - provide window size in frames. '
+                             '--batchsize must be set to 0 to enable this mode')
+    args = parser.parse_args(args)
 
     # logging info
     if args.verbose == 1:
@@ -86,7 +94,7 @@ def main():
     if args.ngpu > 0:
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
-            logging.warn("CUDA_VISIBLE_DEVICES is not set.")
+            logging.warning("CUDA_VISIBLE_DEVICES is not set.")
         elif args.ngpu != len(cvd.split(",")):
             logging.error("#gpus is not matched with CUDA_VISIBLE_DEVICES.")
             sys.exit(1)
@@ -104,17 +112,29 @@ def main():
     np.random.seed(args.seed)
     logging.info('set random seed = %d' % args.seed)
 
+    # validate rnn options
+    if args.rnnlm is not None and args.word_rnnlm is not None:
+        logging.error("It seems that both --rnnlm and --word-rnnlm are specified. Please use either option.")
+        sys.exit(1)
+
     # recog
     logging.info('backend = ' + args.backend)
-    if args.backend == "chainer":
-        from espnet.asr.asr_chainer import recog
-        recog(args)
-    elif args.backend == "pytorch":
-        from espnet.asr.asr_pytorch import recog
-        recog(args)
-    else:
-        raise ValueError("chainer and pytorch are only supported.")
+    if args.num_spkrs == 1:
+        if args.backend == "chainer":
+            from espnet.asr.chainer_backend.asr import recog
+            recog(args)
+        elif args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr import recog
+            recog(args)
+        else:
+            raise ValueError("Only chainer and pytorch are supported.")
+    elif args.num_spkrs == 2:
+        if args.backend == "pytorch":
+            from espnet.asr.pytorch_backend.asr_mix import recog
+            recog(args)
+        else:
+            raise ValueError("Only pytorch is supported.")
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

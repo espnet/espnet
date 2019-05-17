@@ -6,96 +6,102 @@
 import copy
 import json
 import logging
+# matplotlib related
 import os
 import shutil
 import tempfile
 
-import numpy as np
-import torch
-
 # chainer related
 import chainer
 
-from chainer.serializers.npz import DictionarySerializer
-from chainer.serializers.npz import NpzDeserializer
 from chainer import training
 from chainer.training import extension
 
-# io related
-import kaldi_io_py
+from chainer.serializers.npz import DictionarySerializer
+from chainer.serializers.npz import NpzDeserializer
 
-# matplotlib related
+# io related
 import matplotlib
+import numpy as np
+import torch
+
 matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
-def make_batchset(data, batch_size, max_length_in, max_length_out, num_batches=0):
+def make_batchset(data, batch_size, max_length_in, max_length_out,
+                  num_batches=0, min_batch_size=1, shortest_first=False):
+    """Make batch set from json dictionary
+
+    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param int batch_size: batch size
+    :param int max_length_in: maximum length of input to decide adaptive batch size
+    :param int max_length_out: maximum length of output to decide adaptive batch size
+    :param int num_batches: # number of batches to use (for debug)
+    :param int min_batch_size: minimum batch size (for multi-gpu)
+    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
+    """
     # sort it by input lengths (long to short)
     sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['input'][0]['shape'][0]), reverse=True)
+        data[1]['input'][0]['shape'][0]), reverse=not shortest_first)
     logging.info('# utts: ' + str(len(sorted_data)))
-    # change batchsize depending on the input and output length
-    minibatch = []
+
+    # check #utts is more than min_batch_size
+    if len(sorted_data) < min_batch_size:
+        raise ValueError("#utts is less than min_batch_size.")
+
+    # make list of minibatches
+    minibatches = []
     start = 0
     while True:
-        ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
-        olen = int(sorted_data[start][1]['output'][0]['shape'][0])
+        _, info = sorted_data[start]
+        ilen = int(info['input'][0]['shape'][0])
+        olen = int(info['output'][0]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
+        # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
         # then b = batchsize / 2
-        # and max(1, .) avoids batchsize = 0
-        b = max(1, int(batch_size / (1 + factor)))
-        end = min(len(sorted_data), start + b)
-        minibatch.append(sorted_data[start:end])
+        # and max(min_batches, .) avoids batchsize = 0
+        bs = max(min_batch_size, int(batch_size / (1 + factor)))
+        end = min(len(sorted_data), start + bs)
+        minibatch = sorted_data[start:end]
+        if shortest_first:
+            minibatch.reverse()
+
+        # check each batch is more than minimum batchsize
+        if len(minibatch) < min_batch_size:
+            mod = min_batch_size - len(minibatch) % min_batch_size
+            additional_minibatch = [sorted_data[i]
+                                    for i in np.random.randint(0, start, mod)]
+            if shortest_first:
+                additional_minibatch.reverse()
+            minibatch.extend(additional_minibatch)
+        minibatches.append(minibatch)
+
         if end == len(sorted_data):
             break
         start = end
+
+    # for debugging
     if num_batches > 0:
-        minibatch = minibatch[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatch)))
+        minibatches = minibatches[:num_batches]
+    logging.info('# minibatches: ' + str(len(minibatches)))
 
-    return minibatch
-
-
-def load_inputs_and_targets(batch):
-    """Function to load inputs and targets from list of dicts
-
-    :param list batch: list of dict which is subset of loaded data.json
-    :return: list of input feature sequences [(T_1, D), (T_2, D), ..., (T_B, D)]
-    :rtype: list of float ndarray
-    :return: list of target token id sequences [(L_1), (L_2), ..., (L_B)]
-    :rtype: list of int ndarray
-    """
-    # load acoustic features and target sequence of token ids
-    xs = [kaldi_io_py.read_mat(b[1]['input'][0]['feat']) for b in batch]
-    ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
-
-    # get index of non-zero length samples
-    nonzero_idx = filter(lambda i: len(ys[i]) > 0, range(len(xs)))
-    # sort in input lengths
-    nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
-    if len(nonzero_sorted_idx) != len(xs):
-        logging.warning('Target sequences include empty tokenid (batch %d -> %d).' % (
-            len(xs), len(nonzero_sorted_idx)))
-
-    # remove zero-length samples
-    xs = [xs[i] for i in nonzero_sorted_idx]
-    ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
-
-    return xs, ys
+    # such like: [('uttid1',
+    #              {'input': [{'shape': ...}],
+    #               'output': [{'shape': ...}]}),
+    #             ...]
+    return minibatches
 
 
-# * -------------------- chainer extension related -------------------- *
 class CompareValueTrigger(object):
-    '''Trigger invoked when key value getting bigger or lower than before
+    """Trigger invoked when key value getting bigger or lower than before
 
-    Args:
-        key (str): Key of value.
-        compare_fn: Function to compare the values.
-        trigger: Trigger that decide the comparison interval
-
-    '''
+    :param str key : Key of value
+    :param function compare_fn : Function to compare the values
+    :param (int, str) trigger : Trigger that decide the comparison interval
+    """
 
     def __init__(self, key, compare_fn, trigger=(1, 'epoch')):
         self._key = key
@@ -138,8 +144,8 @@ class PlotAttentionReport(extension.Extension):
     :param function att_vis_fn: function of attention visualization
     :param list data: list json utt key items
     :param str outdir: directory to save figures
-    :param function converter: function to convert data
-    :param int device: device id
+    :param CustomConverter converter: function to convert data
+    :param int | torch.device device: device
     :param bool reverse: If True, input and output length are reversed
     """
 
@@ -154,25 +160,40 @@ class PlotAttentionReport(extension.Extension):
             os.makedirs(self.outdir)
 
     def __call__(self, trainer):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
-        att_ws = self.att_vis_fn(*batch)
+        att_ws = self.get_attention_weights()
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.ep.{.updater.epoch}.png" % (
                 self.outdir, self.data[idx][0])
-            if self.reverse:
-                dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
-                enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
-            else:
-                dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
-                enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
-            if len(att_w.shape) == 3:
-                att_w = att_w[:, :dec_len, :enc_len]
-            else:
-                att_w = att_w[:dec_len, :enc_len]
+            att_w = self.get_attention_weight(idx, att_w)
             self._plot_and_save_attention(att_w, filename.format(trainer))
 
-    def _plot_and_save_attention(self, att_w, filename):
-        # dynamically import matplotlib due to not found error
+    def log_attentions(self, logger, step):
+        att_ws = self.get_attention_weights()
+        for idx, att_w in enumerate(att_ws):
+            att_w = self.get_attention_weight(idx, att_w)
+            plot = self.draw_attention_plot(att_w)
+            logger.add_figure("%s" % (self.data[idx][0]), plot.gcf(), step)
+            plot.clf()
+
+    def get_attention_weights(self):
+        batch = self.converter([self.converter.transform(self.data)], self.device)
+        att_ws = self.att_vis_fn(*batch)
+        return att_ws
+
+    def get_attention_weight(self, idx, att_w):
+        if self.reverse:
+            dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
+            enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
+        else:
+            dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
+            enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
+        if len(att_w.shape) == 3:
+            att_w = att_w[:, :dec_len, :enc_len]
+        else:
+            att_w = att_w[:dec_len, :enc_len]
+        return att_w
+
+    def draw_attention_plot(self, att_w):
         import matplotlib.pyplot as plt
         if len(att_w.shape) == 3:
             for h, aw in enumerate(att_w, 1):
@@ -185,12 +206,17 @@ class PlotAttentionReport(extension.Extension):
             plt.xlabel("Encoder Index")
             plt.ylabel("Decoder Index")
         plt.tight_layout()
+        return plt
+
+    def _plot_and_save_attention(self, att_w, filename):
+        plt = self.draw_attention_plot(att_w)
         plt.savefig(filename)
         plt.close()
 
 
 def restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
-    '''Extension to restore snapshot'''
+    """Extension to restore snapshot"""
+
     @training.make_extension(trigger=(1, 'epoch'))
     def restore_snapshot(trainer):
         _restore_snapshot(model, snapshot, load_fn)
@@ -204,7 +230,8 @@ def _restore_snapshot(model, snapshot, load_fn=chainer.serializers.load_npz):
 
 
 def adadelta_eps_decay(eps_decay):
-    '''Extension to perform adadelta eps decay'''
+    """Extension to perform adadelta eps decay"""
+
     @training.make_extension(trigger=(1, 'epoch'))
     def adadelta_eps_decay(trainer):
         _adadelta_eps_decay(trainer, eps_decay)
@@ -229,6 +256,7 @@ def _adadelta_eps_decay(trainer, eps_decay):
 def torch_snapshot(savefun=torch.save,
                    filename='snapshot.ep.{.updater.epoch}'):
     """Returns a trainer extension to take snapshots of the trainer for pytorch."""
+
     @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
     def torch_snapshot(trainer):
         _torch_snapshot_object(trainer, trainer, filename.format(trainer), savefun)
@@ -404,8 +432,8 @@ def parse_hypothesis(hyp, char_list):
 
     :param list hyp: recognition hypothesis
     :param list char_list: list of characters
-    :return: recognition text strinig
-    :return: recognition token strinig
+    :return: recognition text string
+    :return: recognition token string
     :return: recognition tokenid string
     """
     # remove sos and get results
@@ -455,7 +483,8 @@ def add_results_to_json(js, nbest_hyps, char_list):
 
         # show 1-best result
         if n == 1:
-            logging.info('groundtruth: %s' % out_dic['text'])
+            if 'text' in out_dic.keys():
+                logging.info('groundtruth: %s' % out_dic['text'])
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js

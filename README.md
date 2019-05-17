@@ -4,40 +4,50 @@
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
 
-ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition, and end-to-end text-to-speech.
-ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine, 
+ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
+ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
 
 ## Key Features
 
-- Hybrid CTC/attention based end-to-end ASR 
+- Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-- Encoder: VGG-like CNN + BLSTM or pyramid BLSTM
-- Attention: Dot product, location-aware attention, variants of multihead (pytorch only)
+- Encoder: VGG-like CNN + BiRNN (LSTM/GRU) or sub-sampling BiRNN (LSTM/GRU)
+- Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
+- Batch GPU decoding
+- Tacotron2 based end-to-end TTS
 - Flexible network architecture thanks to chainer and pytorch
-- Kaldi style complete recipe 
-  - Support numbers of ASR benchmarks (WSJ, Switchboard, CHiME-4, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, etc.)
-- State-of-the-art performance in Japanese/Chinese benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
-- Moderate performance in standard English benchmarks
-- Tacotron2 based end-to-end TTS (new!)
+- Kaldi style complete recipe
+  - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
+  - Support numbers of TTS recipes with a similar manner to the ASR recipe (LJSpeech, Librispeech, M-AILABS, etc.)
+  - Support speech translation recipes (Fisher callhome Spanish to English, IWSLT'18)
+  - Support speech separation and recognition recipe (WSJ-2mix)
+- State-of-the-art performance in several benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
+- Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
+- Tensorboard based monitoring
+
 
 ## Requirements
 
-- Python2.7+  
-- Cuda 8.0 or 9.1 (for the use of GPU)  
-- Cudnn 6+ (for the use of GPU)  
-- NCCL 2.0+ (for the use of multi-GPUs)
+- Python 2.7+, 3.7+ (mainly support Python3.7+)
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.1+
-- Chainer 4.3.1
+- PyTorch 0.4.1, 1.0.0
+- gcc>=4.9 for PyTorch1.0.0
+- Chainer 5.0.0
+
+Optionally, GPU environment requires the following libraries:
+
+- Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library
+- Cudnn 6+
+- NCCL 2.0+ (for the use of multi-GPUs)
 
 ## Installation
 
-### Step 1) setting of the environment
+### Step 1) setting of the environment for GPU support
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
 ```
@@ -49,7 +59,7 @@ export CUDA_HOME=$CUDAROOT
 export CUDA_PATH=$CUDAROOT
 ```
 
-If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl) 
+If you want to use multiple GPUs, you should install [nccl](https://developer.nvidia.com/nccl)
 and set paths in your `.bashrc` or `.bash_profile` appropriately, for example:
 ```
 CUDAROOT=/path/to/cuda
@@ -64,56 +74,75 @@ export CUDA_PATH=$CUDAROOT
 
 ### Step 2-A) installation with compiled Kaldi
 
-Install Python libraries and other required tools using system python and virtualenv
+#### using miniconda (default)
+
+Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi
 ```
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
+
+You can also specify the Python (`PYTHON_VERSION` default 3.7), PyTorch (`TH_VERSION` default 1.0.0) and CUDA versions (`CUDA_VERSION` default 10.0), for example:
 ```sh
 $ cd tools
-$ make KALDI=/path/to/kaldi -f conda.mk
+$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
+```
+
+#### using existing python
+
+If you do not want to use miniconda, you need to specify your python interpreter to setup `virtualenv`
+
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
 ```
 
 ### Step 2-B) installation including Kaldi installation
 
-Install Kaldi, Python libraries and other required tools using system python and virtualenv
+Install Kaldi, Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
-$ make -j
-```
-or using local [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
-```sh
-$ cd tools
-$ make -f conda.mk -j
+$ make -j 10
 ```
 
-### Step 2-C) installation with specified python
-
-Install Kaldi, Python libraries and other required tools using specified python and virtualenv
+As seen above, you can also specify the Python and CUDA versions, and Python path (based on `virtualenv`), for example:
 ```sh
 $ cd tools
-$ make -j PYTHON=/path/to/python2.7
+$ make -j 10 PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
-You can also specified `python3.6`, but some preprocessing functions require `python2.7`.  
-So we recommend to use `python2.7`.
+```sh
+$ cd tools
+$ make -j 10 PYTHON=/usr/bin/python2.7
+```
+
+
+### Step 2-C) installation for CPU-only
+
+To install in a terminal that does not have a GPU installed, just clear the version of `CUPY` as follows:
+
+```sh
+$ cd tools
+$ make CUPY_VERSION='' -j 10 
+```
+
+This option is enabled for any of the install configuration. 
 
 ### Step 3) installation check
 
 You can check whether the install is succeeded via the following commands
 ```sh
 $ cd tools
-$ source venv/bin/activate && python check_install.py
+$ make check_install
 ```
+or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal. 
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
 ```sh
 $ cd tools
 $ make clean_python
-$ make all_python
+$ make python
 ```
-And then check the install is succeeded again.
 
 ## Execution of example scripts
 
@@ -140,7 +169,7 @@ With this main script, you can perform a full procedure of ASR experiments inclu
 - Recognition and scoring
 
 The training progress (loss and accuracy for training and validation data) can be monitored with the following command
-```
+```sh
 $ tail -f exp/${expdir}/train.log
 ```
 With the default verbose (=0), it gives you the following information
@@ -160,9 +189,17 @@ this epoch [#####.............................................] 10.84%
    0.71428 iters/sec. Estimated time to finish: 2 days, 16:23:34.613215.
 ```
 
+In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
+```sh 
+$ tensorboard --logdir tensorboard
+```
+and connecting to the given address (default : localhost:6006). This will provide the following information:
+![2018-12-18_19h49_48](https://user-images.githubusercontent.com/14289171/50175839-2491e280-02fe-11e9-8dfc-de303804034d.png)
+Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (`pip install tensorflow; pip install tensorboard`) when you want to use Tensorboard.
+
 ### Use of GPU
 
-If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g., 
+If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g.,
 ```sh
 # use single gpu
 $ ./run.sh --ngpu 1
@@ -179,7 +216,7 @@ $ ./run.sh --ngpu 0
 ```
 Default setup uses CPU (`--ngpu 0`).
 
-Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) 
+Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
 is required before setup.
 
 ### Error due to ACS (Multiple GPUs)
@@ -187,6 +224,7 @@ is required before setup.
 When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
 Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
 To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
+
 
 ### Docker Container
 
@@ -200,7 +238,7 @@ For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
 It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
 
 ### Error due to matplotlib
-If you have the following error (or other numpy related errors), 
+If you have the following error (or other numpy related errors),
 ```
 RuntimeError: module compiled against API version 0xc but this version of numpy is 0xb
 Exception in main training loop: numpy.core.multiarray failed to import
@@ -233,9 +271,9 @@ $ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
 $ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
 ```
 
-The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value 
+The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
 (i.e., `--recog_model model.loss.best`).
-About the effectiveness of the hybrid CTC/attention during training and recognition, see [1] and [2].
+About the effectiveness of the hybrid CTC/attention during training and recognition, see [2] and [3].
 
 ## Results
 
@@ -245,13 +283,15 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | WSJ dev93 | 3.2 | 7.0 |
 | WSJ eval92| 2.1 | 4.7 |
-| CSJ eval1 | 7.3 | N/A  |
-| CSJ eval2 | 5.3 | N/A  |
-| CSJ eval3 | 5.9 | N/A  |
+| CSJ eval1 | 6.6 | N/A  |
+| CSJ eval2 | 4.8 | N/A  |
+| CSJ eval3 | 5.0 | N/A  |
+| Aishell dev | 6.8 | N/A |
+| Aishell test | 8.0 | N/A |
 | HKUST train_dev | 28.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
-| Librispeech dev_clean  | N/A | 4.5 |
-| Librispeech test_clean | N/A | 4.6 |
+| Librispeech dev_clean  | N/A | 4.0 |
+| Librispeech test_clean | N/A | 4.0 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
@@ -267,9 +307,20 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
 | TTS recipe support | no support | supported |
 
-## References (Please cite the following articles)
+## References
+[1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
 
-[1] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
+[2] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
 
-[2] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
+[3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
 
+## Citation                                                                     
+@inproceedings{watanabe2018espnet,                                                    
+  author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
+  title={ESPnet: End-to-End Speech Processing Toolkit},                         
+  year=2018,                                                                    
+  booktitle={Interspeech},                                           
+  pages={2207--2211},                                                           
+  doi={10.21437/Interspeech.2018-1456},                                         
+  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}                        
+}  

@@ -1,40 +1,43 @@
+# general
 *~
 *.pyc
 \#*\#
 .\#*
 *DS_Store
-slurm-*.out
-.eggs/
-.pytest_cache/
 espnet.egg-info/
-
 doc/_build
+slurm-*.out
+tmp*
+.eggs/
+.hypothesis/
+.idea
+.pytest_cache/
+check_autopep8
 
 # recipe related
 egs/*/*/data*
 egs/*/*/db
 egs/*/*/downloads
 egs/*/*/dump
+egs/*/*/enhan
 egs/*/*/exp
 egs/*/*/fbank
 egs/*/*/mfcc
 egs/*/*/stft
-egs/*/*/enhan
+egs/*/*/tensorboard
 egs/*/*/wav*
 
 # tools related
-tools/kaldi
-tools/kaldi-io-for-python/
-tools/kaldi_github/
+tools/bats-core
+tools/chainer_ctc/
+tools/kaldi*
+tools/mecab/
 tools/miniconda.sh
+tools/moses/
 tools/nkf/
 tools/venv/
-tools/warp-ctc/
-tools/chainer_ctc/
 tools/sentencepiece/
-tools/nkf*
-tools/chainer_ctc*
-tools/warp-ctc*
-tools/sentencepiece/*
-tools/moses
+tools/swig/
+tools/warp-ctc/
 tools/*.done
+

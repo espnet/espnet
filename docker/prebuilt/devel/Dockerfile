@@ -7,16 +7,22 @@ WORKDIR /
 # Download ESPnet
 RUN git clone https://github.com/espnet/espnet && \
     cd espnet && \
-    rm -rf docker egs src test
+    rm -rf docker egs test utils
 
 # Install espnet
 WORKDIR /espnet/tools
 
 # Delete cupy if cpu image
 RUN if [ -z "$( nvcc -V )" ];then \
-        sed -i '/cupy*/d' requirements.txt; \
+        sed -i 's| cupy==$(CUPY_VERSION) torch|torch|' Makefile && \
+        sed -i '\|. venv/bin/activate && pip install cupy==$(CUPY_VERSION)|d' Makefile; \
     fi 
 
-RUN make KALDI=/kaldi all 
+# Delete cupy test
+# Docker build does not load libcuda.so.1
+RUN sed -i "/cupy'/d" check_install.py; 
+
+RUN make KALDI=/kaldi && \
+    rm -rf ../espnet
 
 WORKDIR /
