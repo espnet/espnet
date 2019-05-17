@@ -55,9 +55,9 @@ from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.SparseImageWarp import sparse_image_warp
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-from espnet.utils.SparseImageWarp import sparse_image_warp
 
 matplotlib.use('Agg')
 
@@ -70,7 +70,7 @@ def time_warp(spec, W=5):
     spec_len = spec.shape[2]
     device = spec.device
 
-    y = num_rows//2
+    y = num_rows // 2
     horizontal_line_at_ctr = spec[0][y]
     assert len(horizontal_line_at_ctr) == spec_len
 
