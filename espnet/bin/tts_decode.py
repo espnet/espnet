@@ -3,7 +3,7 @@
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import argparse
+import configargparse
 import logging
 import os
 import platform
@@ -12,9 +12,14 @@ import sys
 
 
 def main(args):
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = configargparse.ArgumentParser(
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True, help='config file path')
+    parser.add('--config3', is_config_file=True, help='config file path')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='pytorch', type=str,
