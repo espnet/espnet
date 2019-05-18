@@ -20,10 +20,19 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-train_config=conf/train.yaml
-model_config=conf/model.yaml
-decode_config=conf/decode.yaml
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+train_config=conf/train_mtlalpha1.0.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode_ctcweight1.0.yaml
+
+# rnnlm related
+use_wordlm=true     # false means to train/use a character LM
+lm_vocabsize=100    # effective only for word LMs
+lmtag=              # tag for managing LMs
+lm_resume=          # specify a snapshot file to resume LM training
+
+# decoding parameter
+recog_model=model.loss.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+lm_weight=1.0
 
 # data
 datadir=./downloads
@@ -46,6 +55,7 @@ set -o pipefail
 
 train_set=train_nodev
 train_dev=train_dev
+lm_test=test
 recog_set="train_dev test"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
@@ -133,8 +143,64 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 fi
 
+
+# It takes about one day. If you just want to do end-to-end ASR without LM,
+# you can skip this and remove --rnnlm option in the recognition (stage 5)
+if [ -z ${lmtag} ]; then
+    lmtag=$(basename ${lm_config%.*})
+    if [ ${use_wordlm} = true ]; then
+        lmtag=${lmtag}_word${lm_vocabsize}
+    fi
+fi
+lmexpname=train_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${lmexpname}
+mkdir -p ${lmexpdir}
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: LM Preparation"
+
+    if [ ${use_wordlm} = true ]; then
+        lmdatadir=data/local/wordlm_train
+        lmdict=${lmdatadir}/wordlist_${lm_vocabsize}.txt
+        mkdir -p ${lmdatadir}
+        cut -f 2- -d" " data/${train_set}/text > ${lmdatadir}/train.txt
+        cut -f 2- -d" " data/${train_dev}/text > ${lmdatadir}/valid.txt
+        cut -f 2- -d" " data/${lm_test}/text > ${lmdatadir}/test.txt
+        text2vocabulary.py -s ${lm_vocabsize} -o ${lmdict} ${lmdatadir}/train.txt
+    else
+        lmdatadir=data/local/lm_train
+        lmdict=${dict}
+        mkdir -p ${lmdatadir}
+        text2token.py -s 1 -n 1 data/${train_set}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/train.txt
+        text2token.py -s 1 -n 1 data/${train_dev}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+        text2token.py -s 1 -n 1 data/${lm_test}/text \
+                | cut -f 2- -d" " > ${lmdatadir}/test.txt
+    fi
+
+    # use only 1 gpu
+    if [ ${ngpu} -gt 1 ]; then
+        echo "LM training does not support multi-gpu. signle gpu will be used."
+    fi
+    ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
+        lm_train.py \
+        --config ${lm_config} \
+        --ngpu ${ngpu} \
+        --backend ${backend} \
+        --verbose 1 \
+        --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
+        --train-label ${lmdatadir}/train.txt \
+        --valid-label ${lmdatadir}/valid.txt \
+        --test-label ${lmdatadir}/test.txt \
+        --resume ${lm_resume} \
+        --dict ${lmdict}
+fi
+
+
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_$(basename ${train_config%.*})_$(basename ${model_config%.*})
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -144,12 +210,11 @@ fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Network Training"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: Network Training"
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
-        --config2 ${model_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -164,14 +229,22 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --valid-json ${feat_dt_dir}/data.json
 fi
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Decoding"
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: Decoding"
     nj=8
 
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_rnnlm${lm_weight}_${lmtag}
+        if [ ${use_wordlm} = true ]; then
+            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+        else
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+        fi
+        if [ ${lm_weight} == 0 ]; then
+            recog_opts=""
+        fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -189,7 +262,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --verbose ${verbose} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model}
+            --model ${expdir}/results/${recog_model} \
+            --lm-weight ${lm_weight} \
+            ${recog_opts}
 
         score_sclite.sh ${expdir}/${decode_dir} ${dict}
 
