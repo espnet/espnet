@@ -28,15 +28,20 @@ def _plot_and_save_attention(att_w, filename):
     return fig
 
 
-def plot_multi_head_attention(savefn, data, attn_dict, outdir, suffix="png"):
+def savefig(plot, filename):
+    plot.savefig(filename)
+    plt.clf()
+
+
+def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=savefig):
     """Plot multi head attentions
 
-    :param savefn: function to save
     :param dict data: utts info from json file
     :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
         values should be torch.Tensor (head, input_length, output_length)
     :param str outdir: dir to save fig
     :param str suffix: filename suffix including image type (e.g., png)
+    :param savefn: function to save
     """
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
@@ -59,14 +64,10 @@ def plot_multi_head_attention(savefn, data, attn_dict, outdir, suffix="png"):
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def __call__(self, trainer):
-        def savefig(plot, filename):
-            plot.savefig(filename)
-            plt.clf()
-
         attn_dict = self.get_attention_weights()
         suffix = "ep.{.updater.epoch}.png".format(trainer)
         plot_multi_head_attention(
-            savefig, self.data, attn_dict, self.outdir, suffix)
+            self.data, attn_dict, self.outdir, suffix, savefig)
 
     def get_attention_weights(self):
         batch = self.converter([self.transform(self.data)], self.device)
@@ -80,5 +81,4 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
 
         attn_dict = self.get_attention_weights()
         plot_multi_head_attention(
-            log_fig, self.data, attn_dict, self.outdir, "")
-
+            self.data, attn_dict, self.outdir, "", log_fig)
