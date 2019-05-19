@@ -227,9 +227,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
         if ${use_lm}; then
-            decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
+            decode_dir=${decode_dir}_rnnlm_${lmtag}
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 

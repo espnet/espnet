@@ -144,7 +144,6 @@ fi
 if [ ${stage} -le 4 ]; then
     echo "stage 4: Decoding"
     nj=8
-    batchsize=0
     for rtask in ${recog_set}; do
         (
             decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
