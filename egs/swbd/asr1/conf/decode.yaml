@@ -1,0 +1,4 @@
+beam-size: 20
+penalty: 0.1
+maxlenratio: 0.0
+minlenratio: 0.0

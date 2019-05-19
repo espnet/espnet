@@ -32,7 +32,6 @@ lm_resume=          # specify a snapshot file to resume LM training
 
 # decoding parameter
 recog_model=model.loss.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-lm_weight=1.0
 
 # data
 datadir=./downloads
@@ -236,14 +235,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_rnnlm${lm_weight}_${lmtag}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
         if [ ${use_wordlm} = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
             recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
-        fi
-        if [ ${lm_weight} == 0 ]; then
-            recog_opts=""
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
@@ -263,7 +259,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model} \
-            --lm-weight ${lm_weight} \
             ${recog_opts}
 
         score_sclite.sh ${expdir}/${decode_dir} ${dict}

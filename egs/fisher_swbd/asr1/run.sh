@@ -20,58 +20,16 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network architecture
-# encoder related
-etype=blstmp # encoder architecture type
-elayers=8
-eunits=320
-eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=1
-dunits=300
-# attention related
-atype=location
-aconv_chans=10
-aconv_filts=100
-
-# hybrid CTC/attention
-mtlalpha=0.5
-
-# minibatch related
-batchsize=60
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
-# optimization related
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-opt=adadelta
-epochs=15
-patience=3
+train_config=conf/train.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 
 # rnnlm related
-lm_layers=2
-lm_units=650
-lm_opt=sgd        # or adam
-lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-lm_batchsize=256  # batch size in LM training
-lm_epochs=20      # if the data size is large, we can reduce this
-lm_patience=3
-lm_maxlen=100     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
-lm_weight=1.0
-beam_size=20
-penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-
-# scheduled sampling option
-samp_prob=0.0
 
 # data
 fisher_dir="/export/corpora3/LDC/LDC2004T19 /export/corpora3/LDC/LDC2005T19 /export/corpora3/LDC/LDC2004S13 /export/corpora3/LDC/LDC2005S13"
@@ -210,7 +168,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -221,7 +179,7 @@ expdir=exp/${expname}
 mkdir -p ${expdir}
 
 if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+    lmtag=$(basename ${lm_config%.*})
 fi
 lmexpname=train_rnnlm_${backend}_${lmtag}
 lmexpdir=exp/${lmexpname}
@@ -241,6 +199,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
+        --config ${lm_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
@@ -249,14 +208,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --sortagrad ${lm_sortagrad} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --patience ${lm_patience} \
-        --maxlen ${lm_maxlen} \
         --dict ${dict}
 fi
 
@@ -265,6 +216,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
+        --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -276,26 +228,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --opt ${opt} \
-        --sortagrad ${sortagrad} \
-        --epochs ${epochs} \
-        --patience ${patience}
+        --valid-json ${feat_dt_dir}/data.json
 fi
 
 wait # wait LM train to be finished
@@ -306,7 +239,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -317,18 +250,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight}
+            --rnnlm ${lmexpdir}/rnnlm.model.best
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
         local/score_sclite.sh data/eval2000 ${expdir}/${decode_dir}
