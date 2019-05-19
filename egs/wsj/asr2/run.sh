@@ -35,9 +35,6 @@ lmtag=              # tag for managing LMs
 wsj0=/export/corpora5/LDC/LDC93S6B
 wsj1=/export/corpora5/LDC/LDC94S13B
 
-# exp tag
-tag="" # tag for managing experiments.
-
 . utils/parse_options.sh || exit 1;
 
 . ./path.sh
