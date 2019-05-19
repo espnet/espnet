@@ -141,10 +141,11 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        optimizer.zero_grad()  # Clear the parameter gradients
         loss = self.model(*x).mean() / self.accum_grad
         loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
+
+        # update parameters
         self.forward_count += 1
         if self.forward_count != self.accum_grad:
             return
@@ -157,7 +158,7 @@ class CustomUpdater(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
-            optimizer.zero_grad()
+        optimizer.zero_grad()
 
 
 class CustomConverter(object):

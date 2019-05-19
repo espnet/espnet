@@ -23,13 +23,13 @@ from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
-from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import encoder_for
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+from espnet.nets.pytorch_backend.rnn.attentions import att_for
+from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
 CTC_LOSS_THRESHOLD = 10000
 
