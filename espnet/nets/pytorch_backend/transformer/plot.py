@@ -1,11 +1,12 @@
 import logging
 
+import matplotlib.pyplot as plt
+
 from espnet.asr import asr_utils
 
 
 def _plot_and_save_attention(att_w, filename):
     # dynamically import matplotlib due to not found error
-    import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
     import os
     d = os.path.dirname(filename)
@@ -24,12 +25,13 @@ def _plot_and_save_attention(att_w, filename):
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     fig.tight_layout()
-    fig.savefig(filename)
+    return fig
 
 
-def plot_multi_head_attention(data, attn_dict, outdir, suffix="png"):
+def plot_multi_head_attention(savefn, data, attn_dict, outdir, suffix="png"):
     """Plot multi head attentions
 
+    :param savefn: function to save
     :param dict data: utts info from json file
     :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
         values should be torch.Tensor (head, input_length, output_length)
@@ -51,12 +53,32 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png"):
                     att_w = att_w[:, :dec_len, :enc_len]
             else:
                 logging.warning("unknown name for shaping attention")
-            _plot_and_save_attention(att_w, filename)
+            fig = _plot_and_save_attention(att_w, filename)
+            savefn(fig, filename)
 
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def __call__(self, trainer):
-        batch = self.converter([self.transform(self.data)], self.device)
-        attn_dict = self.att_vis_fn(*batch)
+        def savefig(plot, filename):
+            plot.savefig(filename)
+            plt.clf()
+
+        attn_dict = self.get_attention_weights()
         suffix = "ep.{.updater.epoch}.png".format(trainer)
-        plot_multi_head_attention(self.data, attn_dict, self.outdir, suffix)
+        plot_multi_head_attention(
+            savefig, self.data, attn_dict, self.outdir, suffix)
+
+    def get_attention_weights(self):
+        batch = self.converter([self.transform(self.data)], self.device)
+        return self.att_vis_fn(*batch)
+
+    def log_attentions(self, logger, step):
+        def log_fig(plot, filename):
+            from os.path import basename
+            logger.add_figure(basename(filename), plot, step)
+            plt.clf()
+
+        attn_dict = self.get_attention_weights()
+        plot_multi_head_attention(
+            log_fig, self.data, attn_dict, self.outdir, "")
+
