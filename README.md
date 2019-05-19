@@ -122,10 +122,10 @@ To install in a terminal that does not have a GPU installed, just clear the vers
 
 ```sh
 $ cd tools
-$ make CUPY_VERSION='' -j 10 
+$ make CUPY_VERSION='' -j 10
 ```
 
-This option is enabled for any of the install configuration. 
+This option is enabled for any of the install configuration.
 
 ### Step 3) installation check
 
@@ -134,7 +134,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ make check_install
 ```
-or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal. 
+or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal.
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
@@ -190,7 +190,7 @@ this epoch [#####.............................................] 10.84%
 ```
 
 In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
-```sh 
+```sh
 $ tensorboard --logdir tensorboard
 ```
 and connecting to the given address (default : localhost:6006). This will provide the following information:
@@ -218,6 +218,37 @@ Default setup uses CPU (`--ngpu 0`).
 
 Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
 is required before setup.
+
+
+### Changing the configuration
+The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
+
+```bash
+asr_train.py --config conf/train.yaml --batch-size 24
+```
+
+In this way, you need to edit `run.sh` and it might be inconvenient.
+Instead of giving arguments directly, we recommend you to modify the yaml file and give it to `run.sh`:
+
+```bash
+./run.sh --train-config conf/train_modified.yaml
+```
+
+We also provide a utility to modify a yaml file from command line:
+
+```bash
+<conf/train.yaml change_yaml.py -a batch-size=24 > conf/train_batchsize24.yaml && ./run.sh --train-config conf/train_batchsize24.yaml
+
+# -a can be repeated
+<conf/train.yaml change_yaml.py -a batch-size=24 -a epochs=30 > conf/train_batchsize24_epochs30.yaml && ./run.sh --train-config conf/train_batchsize24_epochs30.yaml
+
+# hierarchical attributes can be touched
+<conf/train.yaml change_yaml.py -a a.b.c=3  # a: {b: {c: 4}} is added
+
+# The item is deleted if "=" is not included.
+<conf/train.yaml change_yaml.py -a batch-size
+```
+
 
 ### Error due to ACS (Multiple GPUs)
 
@@ -315,13 +346,13 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 
 [3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
 
-## Citation                                                                     
-@inproceedings{watanabe2018espnet,                                                    
+## Citation
+@inproceedings{watanabe2018espnet,
   author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
-  title={ESPnet: End-to-End Speech Processing Toolkit},                         
-  year=2018,                                                                    
-  booktitle={Interspeech},                                           
-  pages={2207--2211},                                                           
-  doi={10.21437/Interspeech.2018-1456},                                         
-  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}                        
-}  
+  title={ESPnet: End-to-End Speech Processing Toolkit},
+  year=2018,
+  booktitle={Interspeech},
+  pages={2207--2211},
+  doi={10.21437/Interspeech.2018-1456},
+  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
+}
