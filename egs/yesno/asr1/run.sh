@@ -20,9 +20,6 @@ decode_config=conf/decode.yaml
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
-# scheduled sampling option
-samp_prob=0.0
-
 # exp tag
 tag="" # tag for managing experiments.
 

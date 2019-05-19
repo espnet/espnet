@@ -299,11 +299,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
     echo "Report the result"
-    decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+    decode_part_dir=$(basename ${decode_config%.*})
     if [ ${use_wordlm} = true ]; then
-	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}_${lmtag}
+	decode_part_dir=${decode_part_dir}_wordrnnlm_${lmtag}
     else
-	decode_part_dir=${decode_part_dir}_rnnlm${lm_weight}_${lmtag}
+	decode_part_dir=${decode_part_dir}_rnnlm_${lmtag}
     fi
     local/get_results.sh ${nlsyms} ${dict} ${expdir} ${decode_part_dir}
     echo "Finished"

@@ -221,7 +221,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     extra_opts=""
     if ${use_lm}; then
-      extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best --lm-weight ${lm_weight} ${extra_opts}"
+      extra_opts="--rnnlm ${lmexpdir}/rnnlm.model.best ${extra_opts}"
     fi
 
     pids=() # initialize pids
