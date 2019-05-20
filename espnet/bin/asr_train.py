@@ -51,7 +51,7 @@ def main(cmd_args):
                         help='Filename of validation label data (json)')
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
-                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr)')
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
     # encoder
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
@@ -267,17 +267,18 @@ def main(cmd_args):
                         help='')
 
     args, _ = parser.parse_known_args(cmd_args)
-    from importlib import import_module
+
+    from espnet.utils.dynamic_import import dynamic_import
     if args.model_module is not None:
-        model_module = import_module(args.model_module)
-        assert hasattr(model_module, "E2E")
-        if hasattr(model_module, "add_arguments"):
-            model_module.add_arguments(parser)
+        model_class = dynamic_import(args.model_module)
+        model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
     if args.model_module is None:
-        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr"
-    else:
-        args.backend = "chainer" if "chainer" in args.model_module else "pytorch"
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+    if 'chainer_backend' in args.model_module:
+        args.backend = 'chainer'
+    if 'pytorch_backend' in args.model_module:
+        args.backend = 'pytorch'
 
     # logging info
     if args.verbose > 0:
