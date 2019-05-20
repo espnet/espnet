@@ -210,4 +210,6 @@ fi
     --do-delta ${do_delta} \
     --dict ${dict} \
     --nlsyms ${nlsyms} \
-    --lmexpdir ${lmexpdir}
+    --lmexpdir ${lmexpdir} \
+    --lmtag ${lmtag} \
+    --use-wordlm ${use_wordlm}

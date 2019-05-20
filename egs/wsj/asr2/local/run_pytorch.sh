@@ -78,6 +78,8 @@ train_dev=
 recog_set=
 nlsyms=
 lmexpdir=
+lmtag=
+use_wordlm=
 dict=
 
 # exp tag
@@ -159,13 +161,13 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=${n_decode_job}
-    if [ ${n_average} -gt 1 ]; then
+    # if [ ${n_average} -gt 1 ]; then
         recog_model=model.last${n_average}.avg.best
-        average_checkpoints.py --backend ${backend} \
-                               --snapshots ${expdir}/results/snapshot.ep.* \
-                               --out ${expdir}/results/${recog_model} \
-                               --num ${n_average}
-    fi
+    #     average_checkpoints.py --backend ${backend} \
+    #                            --snapshots ${expdir}/results/snapshot.ep.* \
+    #                            --out ${expdir}/results/${recog_model} \
+    #                            --num ${n_average}
+    # fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
@@ -214,4 +216,3 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-

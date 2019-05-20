@@ -77,6 +77,8 @@ train_dev=
 recog_set=
 nlsyms=
 lmexpdir=
+lmtag=
+use_wordlm=
 dict=
 
 # exp tag
