@@ -14,7 +14,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-- Encoder: VGG-like CNN + BiRNN (LSTM/GRU) or sub-sampling BiRNN (LSTM/GRU)
+- Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU) or Transformer
 - Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
@@ -304,6 +304,7 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 | Speed | ○ | ◎ |
 | Multi-GPU | supported | supported |
 | VGG-like encoder | supported | supported |
+| Transformer | supported | supported |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
 | TTS recipe support | no support | supported |
