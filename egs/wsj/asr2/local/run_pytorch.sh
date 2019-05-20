@@ -55,7 +55,7 @@ dropout=0.1
 attn_dropout=0.0
 accum_grad=2
 grad_clip=5
-patience=0
+patience=3
 
 # decoding parameter
 lm_weight=1.0
