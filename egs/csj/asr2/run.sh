@@ -51,14 +51,14 @@ maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduc
 sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 len_norm=False
 opt=noam
-epochs=100
+epochs=25
 lr_init=10.0
 warmup_steps=25000
 dropout=0.1
 attn_dropout=0.0
 accum_grad=2
 grad_clip=5
-patience=3
+patience=0
 
 # rnnlm related
 lm_layers=2
@@ -74,22 +74,13 @@ lmtag=            # tag for managing LMs
 
 # decoding parameter
 lm_weight=0.3
-beam_size=20
-penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.3
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-
-# decoding parameter
-lm_weight=1.0
 beam_size=10
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
+n_average=5
 n_decode_job=32
 
 # scheduled sampling option
@@ -337,11 +328,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             recog_opts=""
         else
             decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
-            if [ ${use_wordlm} = true ]; then
-                recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
-            else
-                recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
-            fi
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
