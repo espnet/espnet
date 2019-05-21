@@ -27,7 +27,6 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
-from espnet.transform.transformation import using_transform_config
 from espnet.tts.tts_utils import make_batchset
 from espnet.utils.io_utils import LoadInputsAndTargets
 
@@ -146,24 +145,8 @@ class CustomConverter(object):
     :param bool use_second_target:
     """
 
-    def __init__(self,
-                 return_targets=True,
-                 use_speaker_embedding=False,
-                 use_second_target=False,
-                 preprocess_conf=None):
+    def __init__(self, return_targets=True):
         self.return_targets = return_targets
-        self.use_speaker_embedding = use_speaker_embedding
-        self.use_second_target = use_second_target
-        self.load_inputs_and_targets = LoadInputsAndTargets(
-            mode='tts',
-            use_speaker_embedding=use_speaker_embedding,
-            use_second_target=use_second_target,
-            preprocess_conf=preprocess_conf)
-
-    def transform(self, item):
-        # load batch
-        xs, ys, spembs, spcs = self.load_inputs_and_targets(item)
-        return xs, ys, spembs, spcs
 
     def __call__(self, batch, device):
         # batch should be located in list
@@ -234,7 +217,8 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim, odim, vars(args)),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -267,10 +251,7 @@ def train(args):
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(return_targets=True,
-                                use_speaker_embedding=args.use_speaker_embedding,
-                                use_second_target=args.use_cbhg,
-                                preprocess_conf=args.preprocess_conf)
+    converter = CustomConverter(return_targets=True)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -290,23 +271,39 @@ def train(args):
                                    args.maxlen_in, args.maxlen_out,
                                    args.minibatches, args.batch_sort_key,
                                    min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
+    load_tr = LoadInputsAndTargets(
+        mode='tts',
+        use_speaker_embedding=args.use_speaker_embedding,
+        use_second_target=args.use_cbhg,
+        preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': True}  # Switch the mode of preprocessing
+    )
+
+    load_cv = LoadInputsAndTargets(
+        mode='tts',
+        use_speaker_embedding=args.use_speaker_embedding,
+        use_second_target=args.use_cbhg,
+        preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
+
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
     if args.n_iter_processes > 0:
         train_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(train_batchset, converter.transform),
+            TransformDataset(train_batchset, load_tr),
             batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
             shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingMultiprocessIterator(
-            TransformDataset(valid_batchset, converter.transform),
+            TransformDataset(valid_batchset, load_cv),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
         train_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(train_batchset, converter.transform),
+            TransformDataset(train_batchset, load_tr),
             batch_size=1, shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingSerialIterator(
-            TransformDataset(valid_batchset, converter.transform),
+            TransformDataset(valid_batchset, load_cv),
             batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
@@ -338,9 +335,8 @@ def train(args):
             att_vis_fn = tacotron2.calculate_all_attentions
         att_reporter = PlotAttentionReport(
             att_vis_fn, data, args.outdir + '/att_ws',
-            converter=CustomConverter(return_targets=False,
-                                      use_speaker_embedding=args.use_speaker_embedding,
-                                      preprocess_conf=args.preprocess_conf),
+            converter=CustomConverter(return_targets=False),
+            transform=load_cv,
             device=device, reverse=True)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
@@ -425,13 +421,16 @@ def decode(args):
         mode='tts', load_input=False, sort_in_input_length=False,
         use_speaker_embedding=train_args.use_speaker_embedding,
         preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None else args.preprocess_conf)
+        if args.preprocess_conf is None else args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
 
-    with torch.no_grad(), kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+    with torch.no_grad(), \
+            kaldiio.WriteHelper('ark,scp:{o}.ark,{o}.scp'.format(o=args.out)) as f:
+
         for idx, utt_id in enumerate(js.keys()):
             batch = [(utt_id, js[utt_id])]
-            with using_transform_config({'train': False}):
-                data = load_inputs_and_targets(batch)
+            data = load_inputs_and_targets(batch)
             if train_args.use_speaker_embedding:
                 spemb = data[1][0]
                 spemb = torch.FloatTensor(spemb).to(device)

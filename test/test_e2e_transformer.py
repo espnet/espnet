@@ -7,25 +7,16 @@ import pytest
 import torch
 
 
-try:
-    import espnet.nets.pytorch_backend.e2e_transformer  # NOQA
-    pytorch_T = True
-except Exception as e:
-    pytorch_T = False
-    pass
-
-
 logging.basicConfig(
     level=logging.INFO, format='%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s')
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 def test_sequential():
     class Masked(torch.nn.Module):
         def forward(self, x, m):
             return x, m
-    import espnet.nets.pytorch_backend.e2e_transformer as T
-    f = T.MultiSequential(Masked(), Masked())
+    from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
+    f = MultiSequential(Masked(), Masked())
     x = torch.randn(2, 3)
     m = torch.randn(2, 3) > 0
     assert len(f(x, m)) == 2
@@ -46,7 +37,6 @@ def subsequent_mask(size, backend='pytorch'):
         return subsequent_mask == 0
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_mask(module):
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(module))
@@ -106,10 +96,9 @@ def prepare(backend):
         return model, x, ilens, y, data
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 @pytest.mark.parametrize("module", ["pytorch"])
 def test_transformer_mask(module):
-    model, x, ilens, y, data = prepare()
+    model, x, ilens, y, data = prepare(module)
     yi, yo = model.add_sos_eos(y)
     y_mask = model.target_mask(yi)
     y = model.decoder.embed(yi)
@@ -121,8 +110,6 @@ def test_transformer_mask(module):
 
 @pytest.mark.parametrize("module", ["pytorch", "chainer"])
 def test_transformer_synth(module):
-    if module == "pytorch":
-        pytest.skip()
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(module))
     model, x, ilens, y, data = prepare(module)
 
@@ -140,17 +127,17 @@ def test_transformer_synth(module):
         optim = torch.optim.Adam(model.parameters(), 0.01)
         max_acc = 0
         for i in range(40):
-            loss, loss_ctc, loss_att, acc, cer, wer = model(x, ilens, y)
+            loss = model(x, ilens, y)
             optim.zero_grad()
             loss.backward()
             optim.step()
-            print(loss_att, acc)
-            max_acc = max(acc, max_acc)
+            max_acc = max(model.acc, max_acc)
         assert max_acc > 0.8
 
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-        T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+        from espnet.nets.pytorch_backend.transformer import plot
+        plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
         with torch.no_grad():
             nbest = model.recognize(x[0, :ilens[0]].numpy(), recog_args)
             print(y[0])
@@ -214,8 +201,7 @@ def prepare_copy_task(d_model, d_ff=64, n=1):
     return model, x, ilens, x, data
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
-def test_transformer_copy():
+def run_transformer_copy():
     # copy task defined in http://nlp.seas.harvard.edu/2018/04/03/attention.html#results
     d_model = 32
     model, x, ilens, y, data = prepare_copy_task(d_model)
@@ -229,11 +215,12 @@ def test_transformer_copy():
         if torch.cuda.is_available():
             x = x.cuda()
             y = y.cuda()
-        loss, loss_ctc, loss_att, acc, cer, wer = model(x, ilens, y)
+        loss = model(x, ilens, y)
         optim.zero_grad()
         loss.backward()
         optim.step()
-        print(i, loss_att.item(), acc)
+        acc = model.acc
+        print(i, loss.item(), acc)
         max_acc = max(acc, max_acc)
         # attn_dict = model.calculate_all_attentions(x, ilens, y)
         # T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test", "iter%d.png" % i)
@@ -273,38 +260,28 @@ def test_transformer_copy():
     # assert(False)
 
 
-@pytest.mark.skipif(not pytorch_T, reason="Transformer pytorch is not implemented")
 def test_transformer_parallel():
     if not torch.cuda.is_available():
         return
 
-    class LossAcc(torch.nn.Module):
-        def __init__(self, model):
-            super(LossAcc, self).__init__()
-            self.model = model
-
-        def forward(self, *args):
-            loss, loss_ctc, loss_att, acc, cer, wer = self.model(*args)
-            return loss_att, torch.as_tensor(acc).to(loss_att.device)
-
-    model, x, ilens, y, data = prepare()
+    model, x, ilens, y, data = prepare("pytorch")
     model = torch.nn.DataParallel(model).cuda()
     logging.debug(ilens)
     # test acc is almost 100%
     optim = torch.optim.Adam(model.parameters(), 0.02)
     max_acc = 0.0
     for i in range(40):
-        loss, loss_ctc, loss_att, acc, cer, wer = model(x, torch.as_tensor(ilens), y)
+        loss = model(x, torch.as_tensor(ilens), y)
         optim.zero_grad()
-        acc = float(acc.mean())
+        acc = float(model.module.acc)
         max_acc = max(acc, max_acc)
-        loss_att.mean().backward()
+        loss.mean().backward()
         optim.step()
-        print(loss_att, acc)
+        print(loss, acc)
         # attn_dict = model.calculate_all_attentions(x, ilens, y)
         # T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test", "iter%d.png" % i)
     assert max_acc > 0.8
 
 
 if __name__ == "__main__":
-    test_transformer_copy()
+    run_transformer_copy()

@@ -15,8 +15,10 @@ oov="<unk>"
 bpecode=""
 allow_one_column=false
 verbose=0
+trans_type=char
 filetype=""
 preprocess_conf=""
+category=""
 out="" # If omitted, write in stdout
 
 . utils/parse_options.sh
@@ -70,9 +72,9 @@ if [ -n "${bpecode}" ]; then
         | spm_encode --model=${bpecode} --output_format=piece) \
         > ${tmpdir}/output/token.scp
 elif [ -n "${nlsyms}" ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 else
-    text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 ${dir}/text --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 fi
 < ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
 # +2 comes from CTC blank and EOS
@@ -88,7 +90,12 @@ mkdir -p ${tmpdir}/other
 if [ -n "${lang}" ]; then
     awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/other/lang.scp
 fi
-cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
+
+if [ -n "${category}" ]; then
+    awk -v category=${category} '{print $1 " " category}' ${dir}/text \
+        > ${tmpdir}/other/category.scp
+fi
+cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
 
 # 4. Merge scp files into a JSON file
 opts=""
