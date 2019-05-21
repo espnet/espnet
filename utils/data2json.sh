@@ -13,7 +13,9 @@ lang=""
 feat="" # feat.scp
 oov="<unk>"
 bpecode=""
+allow_one_column=false
 verbose=0
+trans_type=char
 filetype=""
 preprocess_conf=""
 category=""
@@ -70,9 +72,9 @@ if [ -n "${bpecode}" ]; then
         | spm_encode --model=${bpecode} --output_format=piece) \
         > ${tmpdir}/output/token.scp
 elif [ -n "${nlsyms}" ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 else
-    text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/output/token.scp
+    text2token.py -s 1 -n 1 ${dir}/text --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 fi
 < ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
 # +2 comes from CTC blank and EOS
@@ -114,10 +116,15 @@ for intype in input output other; do
     done
 done
 
+if ${allow_one_column}; then
+    opts+="--allow-one-column true "
+else
+    opts+="--allow-one-column false "
+fi
+
 if [ -n "${out}" ]; then
     opts+="-O ${out}"
 fi
-
 merge_scp2json.py --verbose ${verbose} ${opts}
 
 rm -fr ${tmpdir}

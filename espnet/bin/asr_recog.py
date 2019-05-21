@@ -113,6 +113,11 @@ def main(args):
     np.random.seed(args.seed)
     logging.info('set random seed = %d' % args.seed)
 
+    # validate rnn options
+    if args.rnnlm is not None and args.word_rnnlm is not None:
+        logging.error("It seems that both --rnnlm and --word-rnnlm are specified. Please use either option.")
+        sys.exit(1)
+
     # recog
     logging.info('backend = ' + args.backend)
     if args.num_spkrs == 1:
