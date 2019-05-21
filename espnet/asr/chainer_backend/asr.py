@@ -105,6 +105,7 @@ class CustomUpdater(training.StandardUpdater):
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
+            optimizer.target.cleargrads()  # Clear the parameter gradients
         elif self.count % self.accum_grad == 0:
             optimizer.update()
             optimizer.target.cleargrads()  # Clear the parameter gradients
