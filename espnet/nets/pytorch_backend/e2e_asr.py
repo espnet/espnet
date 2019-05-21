@@ -429,7 +429,7 @@ class StreamingE2E(object):
         self._ctc_posteriors = []
 
         assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attention decoders."
-        assert not "b" in self._e2e.etype, "StreamingE2E works only with uni-directional encoders"
+        assert "b" not in self._e2e.etype, "StreamingE2E works only with uni-directional encoders"
 
     def accept_input(self, x):
         """Call this method each time a new batch of input is available."""
@@ -447,9 +447,9 @@ class StreamingE2E(object):
         if self._activates == 0 and z[0] != self._blank_idx_in_char_list:
             self._activates = 1
 
-            l = self._subsampling_factor * (self._recog_args.onset_margin + 1)
+            m = self._subsampling_factor * (self._recog_args.onset_margin + 1)
             h, ilen = self._e2e.subsample_frames(
-                np.reshape(self._previous_input[-l:],
+                np.reshape(self._previous_input[-m:],
                            [-1, len(self._previous_input[0])]))
 
             h, _, self._previous_encoder_recurrent_state = self._e2e.enc(
@@ -478,8 +478,8 @@ class StreamingE2E(object):
                         self._activates = 0
                         self._blank_dur = 0
 
-                        l = self._subsampling_factor * self._recog_args.onset_margin
-                        self._previous_input = self._previous_input[-l:]
+                        m = self._subsampling_factor * self._recog_args.onset_margin
+                        self._previous_input = self._previous_input[-m:]
                         self._encoder_states = []
                         self._ctc_posteriors = []
             else:
