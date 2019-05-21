@@ -17,9 +17,9 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from espnet.nets.pytorch_backend.attentions import AttForward
-from espnet.nets.pytorch_backend.attentions import AttForwardTA
-from espnet.nets.pytorch_backend.attentions import AttLoc
+from espnet.nets.pytorch_backend.rnn.attentions import AttForward
+from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
+from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
