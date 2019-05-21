@@ -283,8 +283,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | Aishell dev | 6.8 | N/A |
 | Aishell test | 8.0 | N/A |
-| CSJ eval1 | 6.6 | N/A  |
-| CSJ eval2 | 4.8 | N/A  |
+| CSJ eval1 | 5.9 | N/A  |
+| CSJ eval2 | 4.5 | N/A  |
 | CSJ eval3 | 5.0 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 4.0 |
@@ -316,13 +316,16 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 
 [3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
 
-## Citation                                                                     
-@inproceedings{watanabe2018espnet,                                                    
+## Citation
+
+```
+@inproceedings{watanabe2018espnet,
   author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
-  title={ESPnet: End-to-End Speech Processing Toolkit},                         
-  year=2018,                                                                    
-  booktitle={Interspeech},                                           
-  pages={2207--2211},                                                           
-  doi={10.21437/Interspeech.2018-1456},                                         
-  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}                        
-}  
+  title={ESPnet: End-to-End Speech Processing Toolkit},
+  year=2018,
+  booktitle={Interspeech},
+  pages={2207--2211},
+  doi={10.21437/Interspeech.2018-1456},
+  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
+}
+```
