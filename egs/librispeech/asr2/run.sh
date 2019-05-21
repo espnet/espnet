@@ -80,7 +80,7 @@ maxlenratio=0.0
 minlenratio=0.0
 ctc_weight=0.5
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=5
+n_average=10
 n_decode_job=32
 
 # scheduled sampling option
