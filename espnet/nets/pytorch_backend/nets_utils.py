@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 
@@ -32,7 +33,7 @@ def pad_list(xs, pad_value):
     return pad
 
 
-def make_pad_mask(lengths):
+def make_pad_mask(lengths, xs=None, length_dim=-1):
     """Function to make mask tensor containing indices of padded part
 
     e.g.: lengths = [5, 3, 2]
@@ -41,17 +42,37 @@ def make_pad_mask(lengths):
                   [0, 0, 1, 1, 1]]
 
     :param list lengths: list of lengths (B)
+    :param torch.Tensor xs: Make the shape to be like.
+    :param int length_dim:
     :return: mask tensor containing indices of padded part (B, Tmax)
     :rtype: torch.Tensor
     """
+    if length_dim == 0:
+        raise ValueError('length_dim cannot be 0: {}'.format(length_dim))
+
     if not isinstance(lengths, list):
         lengths = lengths.tolist()
     bs = int(len(lengths))
-    maxlen = int(max(lengths))
+    if xs is None:
+        maxlen = int(max(lengths))
+    else:
+        maxlen = xs.size(length_dim)
+
     seq_range = torch.arange(0, maxlen, dtype=torch.int64)
     seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
     seq_length_expand = seq_range_expand.new(lengths).unsqueeze(-1)
-    return seq_range_expand >= seq_length_expand
+    mask = seq_range_expand >= seq_length_expand
+
+    if xs is not None:
+        assert xs.size(0) == bs, (xs.size(0), bs)
+
+        if length_dim < 0:
+            length_dim = xs.dim() + length_dim
+        # ind = (:, None, ..., None, :, , None, ..., None)
+        ind = tuple(slice(None) if i in (0, length_dim) else None
+                    for i in range(xs.dim()))
+        mask = mask[ind].expand_as(xs).to(xs.device)
+    return mask
 
 
 def mask_by_length(xs, length, fill=0):
@@ -124,3 +145,64 @@ def index_select_lm_state(rnnlm_state, dim, vidx):
         for i in vidx:
             new_state.append(rnnlm_state[int(i)][:])
     return new_state
+
+
+def to_torch_tensor(x):
+    """Change to torch.Tensor or ComplexTensor from numpy.ndarray
+
+    :param: Union[np.ndarray, torch.Tensor, ComplexTensor, dict] x:
+    :rtype: Union[torch.Tensor, ComplexTensor]:
+
+        >>> xs = np.ones(3, dtype=np.float32)
+        >>> xs = to_torch_tensor(xs)
+        tensor([1., 1., 1.])
+        >>> xs = torch.ones(3, 4, 5)
+        >>> assert to_torch_tensor(xs) is xs
+        >>> xs = {'real': xs, 'imag': xs}
+        >>> to_torch_tensor(xs)
+        ComplexTensor(
+        Real:
+        tensor([1., 1., 1.])
+        Imag;
+        tensor([1., 1., 1.])
+        )
+    """
+
+    # If numpy, change to torch tensor
+    if isinstance(x, np.ndarray):
+        if x.dtype.kind == 'c':
+            # Dynamically importing because torch_complex requires python3
+            from torch_complex.tensor import ComplexTensor
+            return ComplexTensor(x)
+        else:
+            return torch.from_numpy(x)
+
+    # If {'real': ..., 'imag': ...}, convert to ComplexTensor
+    elif isinstance(x, dict):
+        # Dynamically importing because torch_complex requires python3
+        from torch_complex.tensor import ComplexTensor
+
+        if 'real' not in x or 'imag' not in x:
+            raise ValueError("has 'real' and 'imag' keys: {}".format(list(x)))
+        # Relative importing because of using python3 syntax
+        return ComplexTensor(x['real'], x['imag'])
+
+    # If torch.Tensor, as it is
+    elif isinstance(x, torch.Tensor):
+        return x
+
+    else:
+        error = ("x must be numpy.ndarray, torch.Tensor or a dict like "
+                 "{{'real': torch.Tensor, 'imag': torch.Tensor}}, "
+                 "but got {}".format(type(x)))
+        try:
+            from torch_complex.tensor import ComplexTensor
+        except Exception:
+            # If PY2
+            raise ValueError(error)
+        else:
+            # If PY3
+            if isinstance(x, ComplexTensor):
+                return x
+            else:
+                raise ValueError(error)

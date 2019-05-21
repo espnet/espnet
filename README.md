@@ -14,7 +14,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-- Encoder: VGG-like CNN + BiRNN (LSTM/GRU) or sub-sampling BiRNN (LSTM/GRU)
+- Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU) or Transformer
 - Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
@@ -281,17 +281,18 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 | 3.2 | 7.0 |
-| WSJ eval92| 2.1 | 4.7 |
-| CSJ eval1 | 6.6 | N/A  |
-| CSJ eval2 | 4.8 | N/A  |
-| CSJ eval3 | 5.0 | N/A  |
 | Aishell dev | 6.8 | N/A |
 | Aishell test | 8.0 | N/A |
-| HKUST train_dev | 28.8 | N/A  |
+| CSJ eval1 | 5.8 | N/A  |
+| CSJ eval2 | 4.5 | N/A  |
+| CSJ eval3 | 4.9 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 4.0 |
 | Librispeech test_clean | N/A | 4.0 |
+| TEDLIUM2 dev  | N/A | 12.8 |
+| TEDLIUM2 test | N/A | 12.6 |
+| WSJ dev93 | 3.2 | 7.0 |
+| WSJ eval92| 2.1 | 4.7 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
@@ -303,6 +304,7 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 | Speed | ○ | ◎ |
 | Multi-GPU | supported | supported |
 | VGG-like encoder | supported | supported |
+| Transformer | supported | supported |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
 | TTS recipe support | no support | supported |
@@ -314,13 +316,16 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 
 [3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
 
-## Citation                                                                     
-@inproceedings{watanabe2018espnet,                                                    
+## Citation
+
+```
+@inproceedings{watanabe2018espnet,
   author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
-  title={ESPnet: End-to-End Speech Processing Toolkit},                         
-  year=2018,                                                                    
-  booktitle={Interspeech},                                           
-  pages={2207--2211},                                                           
-  doi={10.21437/Interspeech.2018-1456},                                         
-  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}                        
-}  
+  title={ESPnet: End-to-End Speech Processing Toolkit},
+  year=2018,
+  booktitle={Interspeech},
+  pages={2207--2211},
+  doi={10.21437/Interspeech.2018-1456},
+  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
+}
+```

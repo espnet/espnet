@@ -1,12 +1,12 @@
 # If a Python interpreter is specified, then creates a virtualenv from it
-# PYTHON := /usr/bin/python2.7
+# PYTHON := /usr/bin/python3.7
 PYTHON :=
 # The python version installed in the conda setup
 PYTHON_VERSION := 3.7
 CUPY_VERSION := 5.0.0
 CUDA_VERSION := 10.0
-# PyTorch version: 0.4.1 or 1.0.0
-TH_VERSION := 1.0.0
+# PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
+TH_VERSION := 1.0.1
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
 
@@ -29,9 +29,9 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done pytorch_complex.done
 
-extra: nkf.done sentencepiece.done mecab.done moses.done
+extra: nkf.done sentencepiece.done mecab.done moses.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -109,6 +109,16 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
 
+ifeq ($(PYTHON_VERSION),2.7)
+# Nothing to do
+pytorch_complex.done:
+else
+pytorch_complex.done: venv
+	# Require python>=3.6, pytorch>=1.0
+	. venv/bin/activate; pip install git+https://github.com/kamo-naoyuki/pytorch_complex
+	touch pytorch_complex.done
+endif
+
 nkf.done:
 	rm -rf nkf
 	mkdir -p nkf
@@ -160,6 +170,15 @@ else
 	. venv/bin/activate; python check_install.py --no-cupy
 endif
 
+pesq: PESQ/P862/Software/PESQ
+PESQ/P862/Software/PESQ: PESQ
+	cd PESQ/P862/Software/source; gcc *.c -lm -o PESQ
+PESQ: PESQ.zip
+	rm -rf PESQ
+	unzip PESQ.zip -d PESQ
+PESQ.zip:
+	wget 'https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200102-I!!SOFT-ZST-E&type=items' -O PESQ.zip
+
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
@@ -169,9 +188,10 @@ clean: clean_extra
 clean_python:
 	rm -rf venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done
+	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done pytorch_complex pytorch_complex.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:
 	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
 	rm -rf nkf sentencepiece mecab swig moses
+	rm -rf PESQ PESQ.zip
