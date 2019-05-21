@@ -62,7 +62,7 @@ REPORT_INTERVAL = 100
 
 
 def time_warp(spec, W=5):
-    """ Time warping
+    """Time warping
 
     :param spec: input tensor with shape (1, T, dim)
     """
@@ -87,7 +87,7 @@ def time_warp(spec, W=5):
 
 
 def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
-    """ Frequency masking
+    """Frequency masking
 
     :param spec: input tensor with shape (1, T, dim)
     """
@@ -111,7 +111,7 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
 
 
 def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
-    """ Time masking
+    """Time masking
 
     :param spec: input tensor with shape (1, T, dim)
     """

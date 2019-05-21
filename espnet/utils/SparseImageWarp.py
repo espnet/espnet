@@ -97,6 +97,7 @@ def solve_interpolation(train_points, train_values, order, regularization_weight
 
 def cross_squared_distance_matrix(x, y):
     """Pairwise squared distance between two (batch) matrices' rows (2nd dim).
+
         Computes the pairwise distances between rows of x and rows of y
         Args:
         x: [batch_size, n, d] float `Tensor`
@@ -118,6 +119,7 @@ def cross_squared_distance_matrix(x, y):
 
 def phi(r, order):
     """Coordinate-wise nonlinearity used to define the order of the interpolation.
+
     See https://en.wikipedia.org/wiki/Polyharmonic_spline for the definition.
     Args:
     r: input op
@@ -146,6 +148,7 @@ def phi(r, order):
 
 def apply_interpolation(query_points, train_points, w, v, order):
     """Apply polyharmonic interpolation model to data.
+
     Given coefficients w and v for the interpolation model, we evaluate
     interpolated function values at query_points.
     Args:
@@ -169,8 +172,8 @@ def apply_interpolation(query_points, train_points, w, v, order):
     # Pad query_points with ones, for the bias term in the linear model.
     ones = torch.ones_like(query_points[..., :1])
     query_points_pad = torch.cat((
-      query_points,
-      ones
+        query_points,
+        ones
     ), 2).float()
     linear_term = torch.matmul(query_points_pad, v)
 
@@ -179,6 +182,7 @@ def apply_interpolation(query_points, train_points, w, v, order):
 
 def dense_image_warp(image, flow):
     """Image warping using per-pixel flow vectors.
+
     Apply a non-linear warp to the image, where the warp is specified by a dense
     flow field of offset vectors that define the correspondences of pixel values
     in the output image back to locations in the  source image. Specifically, the
@@ -229,6 +233,7 @@ def interpolate_bilinear(grid,
                          name='interpolate_bilinear',
                          indexing='ij'):
     """Similar to Matlab's interp2 function.
+
     Finds values for query points on a grid using bilinear interpolation.
     Args:
     grid: a 4-D float `Tensor` of shape `[batch, height, width, channels]`.
@@ -294,10 +299,8 @@ def interpolate_bilinear(grid,
         alpha = torch.unsqueeze(alpha, 2)
         alphas.append(alpha)
 
-    flattened_grid = torch.reshape(
-      grid, [batch_size * height * width, channels])
-    batch_offsets = torch.reshape(
-      torch.arange(batch_size, device=grid_device) * height * width, [batch_size, 1])
+    flattened_grid = torch.reshape(grid, [batch_size * height * width, channels])
+    batch_offsets = torch.reshape(torch.arange(batch_size, device=grid_device) * height * width, [batch_size, 1])
 
     # This wraps array_ops.gather. We reshape the image data such that the
     # batch, y, and x coordinates are pulled into the first dimension.
