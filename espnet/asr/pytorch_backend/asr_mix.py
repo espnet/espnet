@@ -151,7 +151,8 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim, odim, vars(args)),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -410,6 +411,5 @@ def recog(args):
                     nbest_hyp = [hyp[i] for hyp in nbest_hyps]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
 
-    # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps({'utts': new_js}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
