@@ -64,7 +64,7 @@ REPORT_INTERVAL = 100
 def time_warp(spec, W=5):
     """Time warping
 
-    :param spec: input tensor with shape (1, T, dim)
+    :param spec: input tensor with shape (T, dim)
     """
     spec = spec.unsqueeze(0)
     num_rows = spec.shape[1]
@@ -89,7 +89,7 @@ def time_warp(spec, W=5):
 def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
     """Frequency masking
 
-    :param spec: input tensor with shape (1, T, dim)
+    :param spec: input tensor with shape (T, dim)
     """
     cloned = spec.unsqueeze(0).clone()
     num_mel_channels = cloned.shape[1]
@@ -113,7 +113,7 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
 def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
     """Time masking
 
-    :param spec: input tensor with shape (1, T, dim)
+    :param spec: input tensor with shape (T, dim)
     """
     cloned = spec.unsqueeze(0).clone()
     len_spectro = cloned.shape[2]
