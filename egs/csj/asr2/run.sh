@@ -74,7 +74,7 @@ lmtag=            # tag for managing LMs
 
 # decoding parameter
 lm_weight=0.3
-beam_size=10
+beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
