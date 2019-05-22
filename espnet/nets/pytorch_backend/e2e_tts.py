@@ -1124,4 +1124,3 @@ class HighwayNet(torch.nn.Module):
         proj = self.projection(x)
         gate = self.gate(x)
         return proj * gate + x * (1.0 - gate)
-
