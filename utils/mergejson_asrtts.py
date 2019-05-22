@@ -61,41 +61,45 @@ if __name__ == '__main__':
 
         if args.unpaired == "feat" or args.unpaired == "" or args.unpaired == "sae":
             in_dic = {}
-            #if unicode('idim', 'utf-8') in dic:
-            if dic.has_key(unicode('idim', 'utf-8')):
-                in_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('ilen', 'utf-8')]), int(dic[unicode('idim', 'utf-8')]))
+            if 'idim' in dic:
+                in_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('ilen', 'utf-8')]),
+                                                     int(dic[unicode('idim', 'utf-8')]))
             in_dic[unicode('name', 'utf-8')] = unicode('input1', 'utf-8')
             in_dic[unicode('feat', 'utf-8')] = dic[unicode('feat', 'utf-8')]
         if args.unpaired == "text" or args.unpaired == "":
             out_dic = {}
             out_dic[unicode('name', 'utf-8')] = unicode('target1', 'utf-8')
-            out_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('olen', 'utf-8')]), int(dic[unicode('odim', 'utf-8')]))
+            out_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('olen', 'utf-8')]),
+                                                  int(dic[unicode('odim', 'utf-8')]))
             out_dic[unicode('text', 'utf-8')] = dic[unicode('text', 'utf-8')]
             out_dic[unicode('token', 'utf-8')] = dic[unicode('token', 'utf-8')]
             out_dic[unicode('tokenid', 'utf-8')] = dic[unicode('tokenid', 'utf-8')]
         elif args.unpaired == "sae":
             out_dic = {}
-            if dic.has_key(unicode('idim', 'utf-8')):
-                out_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('ilen', 'utf-8')]), int(dic[unicode('idim', 'utf-8')]))
+            if 'idim' in dic:
+                out_dic[unicode('shape', 'utf-8')] = (int(dic[unicode('ilen', 'utf-8')]),
+                                                      int(dic[unicode('idim', 'utf-8')]))
             out_dic[unicode('name', 'utf-8')] = unicode('target1', 'utf-8')
             out_dic[unicode('feat', 'utf-8')] = dic[unicode('feat', 'utf-8')]
 
         if args.unpaired == "feat":
-            new_dic[id] = {unicode('input', 'utf-8'):[in_dic],
-                unicode('utt2spk', 'utf-8'):dic[unicode('utt2spk', 'utf-8')]}
+            new_dic[id] = {unicode('input', 'utf-8'): [in_dic],
+                           unicode('utt2spk', 'utf-8'): dic[unicode('utt2spk', 'utf-8')]}
         elif args.unpaired == "text":
-            new_dic[id] = {unicode('output', 'utf-8'):[out_dic],
-                unicode('utt2spk', 'utf-8'):dic[unicode('utt2spk', 'utf-8')]}
+            new_dic[id] = {unicode('output', 'utf-8'): [out_dic],
+                           unicode('utt2spk', 'utf-8'): dic[unicode('utt2spk', 'utf-8')]}
         elif args.unpaired == "":
-            new_dic[id] = {unicode('input', 'utf-8'):[in_dic], unicode('output', 'utf-8'):[out_dic],
-                unicode('utt2spk', 'utf-8'):dic[unicode('utt2spk', 'utf-8')]}
+            new_dic[id] = {unicode('input', 'utf-8'): [in_dic],
+                           unicode('output', 'utf-8'): [out_dic],
+                           unicode('utt2spk', 'utf-8'): dic[unicode('utt2spk', 'utf-8')]}
         elif args.unpaired == 'sae':
-            new_dic[id] = {unicode('input', 'utf-8'):[in_dic], unicode('output', 'utf-8'):[out_dic],
-                unicode('utt2spk', 'utf-8'):dic[unicode('utt2spk', 'utf-8')]}
+            new_dic[id] = {unicode('input', 'utf-8'): [in_dic],
+                           unicode('output', 'utf-8'): [out_dic],
+                           unicode('utt2spk', 'utf-8'): dic[unicode('utt2spk', 'utf-8')]}
 
     # ensure "ensure_ascii=False", which is a bug
     if args.output_json:
-	with codecs.open(args.output_json, "w", encoding='utf-8') as json_file:
+        with codecs.open(args.output_json, "w", encoding='utf-8') as json_file:
             json.dump({'utts': new_dic}, json_file, indent=4, ensure_ascii=False, sort_keys=True, encoding="utf-8")
     else:
         sys.stdout = codecs.getwriter('utf8')(sys.stdout)
