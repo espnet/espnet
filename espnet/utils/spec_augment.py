@@ -60,12 +60,12 @@ def time_warp(spec, W=5):
     :param int W: time warp parameter
     """
     spec = spec.unsqueeze(0)
-    num_rows = spec.shape[1]
-    spec_len = spec.shape[2]
+    spec_len = spec.shape[1]
+    num_rows = spec.shape[2]
     device = spec.device
 
     y = num_rows // 2
-    horizontal_line_at_ctr = spec[0][y]
+    horizontal_line_at_ctr = spec[0, :, y]
     assert len(horizontal_line_at_ctr) == spec_len
 
     point_to_warp = horizontal_line_at_ctr[random.randrange(W, spec_len - W)]
@@ -73,8 +73,8 @@ def time_warp(spec, W=5):
 
     # Uniform distribution from (0,W) with chance to be up to W negative
     dist_to_warp = random.randrange(-W, W)
-    src_pts, dest_pts = (torch.tensor([[[y, point_to_warp]]], device=device),
-                         torch.tensor([[[y, point_to_warp + dist_to_warp]]], device=device))
+    src_pts, dest_pts = (torch.tensor([[[point_to_warp, y]]], device=device),
+                         torch.tensor([[[point_to_warp + dist_to_warp, y]]], device=device))
     warped_spectro, dense_flows = sparse_image_warp(spec, src_pts, dest_pts)
     return warped_spectro.squeeze(3).squeeze(0)
 
@@ -88,7 +88,7 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
     :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
     cloned = spec.unsqueeze(0).clone()
-    num_mel_channels = cloned.shape[1]
+    num_mel_channels = cloned.shape[2]
 
     for i in range(0, num_masks):
         f = random.randrange(0, F)
@@ -100,9 +100,9 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
 
         mask_end = random.randrange(f_zero, f_zero + f)
         if (replace_with_zero):
-            cloned[0][f_zero:mask_end] = 0
+            cloned[0][:, f_zero:mask_end] = 0
         else:
-            cloned[0][f_zero:mask_end] = cloned.mean()
+            cloned[0][:, f_zero:mask_end] = cloned.mean()
     return cloned.squeeze(0)
 
 
@@ -115,7 +115,7 @@ def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
     :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
     cloned = spec.unsqueeze(0).clone()
-    len_spectro = cloned.shape[2]
+    len_spectro = cloned.shape[1]
 
     for i in range(0, num_masks):
         t = random.randrange(0, T)
@@ -127,9 +127,9 @@ def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
 
         mask_end = random.randrange(t_zero, t_zero + t)
         if (replace_with_zero):
-            cloned[0][:, t_zero:mask_end] = 0
+            cloned[0][t_zero:mask_end, :] = 0
         else:
-            cloned[0][:, t_zero:mask_end] = cloned.mean()
+            cloned[0][t_zero:mask_end, :] = cloned.mean()
     return cloned.squeeze(0)
 
 
