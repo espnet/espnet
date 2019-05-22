@@ -99,12 +99,10 @@ if __name__ == '__main__':
 
             input_list.append(in_add_dic)
             if args.unpaired == 'audio':
-                new_dic[key_id] = {'input': input_list,
-                               'utt2spk': orgdic['utt2spk']}
+                new_dic[key_id] = {'input': input_list, 'utt2spk': orgdic['utt2spk']}
             else:
-                new_dic[key_id] = {'input': input_list,
-                               'output': orgdic['output'],
-                               'utt2spk': orgdic['utt2spk']}
+                new_dic[key_id] = {'input': input_list, 'output': orgdic['output'],
+                                   'utt2spk': orgdic['utt2spk']}
 
         # add as output
         else:
@@ -129,11 +127,10 @@ if __name__ == '__main__':
             output_list.append(out_add_dic)
             if args.unpaired == 'text':
                 new_dic[key_id] = {'output': output_list,
-                               'utt2spk': orgdic['utt2spk']}
+                                   'utt2spk': orgdic['utt2spk']}
             else:
-                new_dic[key_id] = {'input': orgdic['input'],
-                           'output': output_list,
-                           'utt2spk': orgdic['utt2spk']}
+                new_dic[key_id] = {'input': orgdic['input'], 'output': output_list,
+                                   'utt2spk': orgdic['utt2spk']}
 
     # ensure "ensure_ascii=False", which is a bug
     jsonstring = json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False,
