@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 This implementation is modified from https://github.com/zcaceres/spec_augment
 
