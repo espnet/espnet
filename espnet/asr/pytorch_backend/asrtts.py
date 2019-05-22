@@ -35,13 +35,16 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.asrtts_utils import freeze_parameters
 from espnet.asr.asrtts_utils import load_inputs_and_targets
 from espnet.asr.asrtts_utils import load_inputs_spk_and_targets
-from espnet.asr.asrtts_utils import make_batchset
+from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asrtts_utils import merge_batchsets
 from espnet.asr.asrtts_utils import remove_output_layer
 from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_asrtts import E2E as asrtts
 from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.io_asrttsutils import LoadInputsAndTargetsASRTTS
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 
 from espnet.nets.pytorch_backend.e2e_asrtts import Tacotron2ASRLoss
 
@@ -128,7 +131,6 @@ class CustomUpdater(training.StandardUpdater):
         optimizer = self.get_optimizer('main')
         # Get the next batch ( a list of json files)
         loss = 0.0
-
         batch = train_iter.next()
         if len(batch[0]) == 3:
             utt_type = 'unpaired'
@@ -150,13 +152,14 @@ class CustomUpdater(training.StandardUpdater):
             # self.tts_model.eval()
             self.asr_model.train()
             loss_tts2asr = self.tts2asr_model(xs_tts, ilens_tts, ys_tts, labels,
-                                              olens_tts, spembs, zero_att=self.zero_att)
+                                              olens_tts, spembs)  # zero_att=self.zero_att)
             loss = self.alpha * loss_asr2tts + (1 - self.alpha) * loss_tts2asr
         else:
             self.asr_model.train()
             x = self.asr_converter(batch, self.device)
             logging.info("paired data training")
-            loss = 1. / self.ngpu * self.asr_model(*x)
+            loss_att, _, _, _, _ = self.asr_model(*x)
+            loss = 1. / self.ngpu * loss_att
 
         optimizer.zero_grad()
         if self.ngpu > 1:
@@ -371,7 +374,7 @@ def train(args):
     if args.expected_loss == 'tts':
         from espnet.nets.pytorch_backend.e2e_asrtts import load_tacotron_loss
         # assert args.tts_model, "Need to provide --tts-model and set --expected-loss tts"
-        loss_fn = load_tacotron_loss(args.tts_model_conf, args.tts_model, args)
+        loss_fn = load_tacotron_loss(args.tts_model_conf, args.tts_model, args, asr_model.reporter)
     elif args.expected_loss == 'none':
         loss_fn = None
     else:
@@ -379,7 +382,7 @@ def train(args):
             'Unknown expected loss: %s' % args.expected_loss
         )
     asr2tts_model = asrtts(idim, odim, args, predictor=asr_model,
-                           loss_fn=loss_fn, rnnlm=rnnlm)
+                           loss_fn=loss_fn, rnnlm=rnnlm, asr2tts=True, reporter=asr_model.reporter)
 
     if loss_fn is not None:
         tts_model = loss_fn.model
@@ -444,26 +447,33 @@ def train(args):
     train = merge_batchsets(train_subsets, shuffle=True)
     valid = make_batchset(valid_json, args.batch_size, args.maxlen_in, args.maxlen_out,
                           args.minibatches, min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+    load_tr = LoadInputsAndTargetsASRTTS(
+        mode='asr', use_speaker_embedding=args.use_speaker_embedding,
+        load_output=True, preprocess_conf=args.preprocess_conf,
+        preprocess_args={'train': False}  # Switch the mode of preprocessing
+    )
     load_cv = LoadInputsAndTargets(
         mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': False}  # Switch the mode of preprocessing
     )
     # hack to make batchsze argument as 1
     # actual batchsize is included in a list
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     if args.n_iter_processes > 0:
-        train_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(train, converter.transform),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
-        valid_iter = chainer.iterators.MultiprocessIterator(
-            TransformDataset(valid, converter.transform),
+        train_iter = ToggleableShufflingMultiprocessIterator(
+            TransformDataset(train, load_tr),
+            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+            shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingMultiprocessIterator(
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
-        train_iter = chainer.iterators.SerialIterator(
-            TransformDataset(train, converter.transform),
-            batch_size=1)
-        valid_iter = chainer.iterators.SerialIterator(
-            TransformDataset(valid, converter.transform),
+        train_iter = ToggleableShufflingMultiprocessIterator(
+            TransformDataset(train, load_tr),
+            batch_size=1, shuffle=not use_sortagrad)
+        valid_iter = ToggleableShufflingSerialIterator(
+            TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False)
     # Set up a trainer
     updater = CustomUpdater(

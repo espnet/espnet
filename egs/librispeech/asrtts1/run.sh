@@ -89,6 +89,7 @@ samp_prob=0.0
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
 datadir=/export/a15/vpanayotov/data
+datadir=/mnt/matylda2/data/librispeech_kaldi_download
 
 # base url for downloads.
 data_url=www.openslr.org/resources/12
@@ -96,6 +97,7 @@ data_url=www.openslr.org/resources/12
 # bpemode (unigram or bpe)
 nbpe=5000
 bpemode=unigram
+use_bpe=false
 
 # training related
 asr_train=true
@@ -106,7 +108,7 @@ asrtts_train=true
 asrtts_decode=true
 unpair=dualp
 policy_gradient=true
-rnnlm_loss=ce
+rnnlm_loss=none
 embed_dim=512
 
 # exp tag
@@ -131,38 +133,56 @@ set -u
 set -o pipefail
 
 train_set=train_960
-train_paired_set=train_100
-train_unpaired_set=train_360
+train_paired_set=train_clean_100
+train_unpaired_set=train_clean_360
 train_dev=dev
 recog_set="test_clean test_other dev_clean dev_other"
 
-if [ ${stage} -le -3 ] && [ ${stop_stage} -ge -3 ]; then
-    echo "stage -3: Data Download"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+echo "stage -3: Data Download"
+for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+    if [ ! -s ${datadir}/${part}.tar.gz ]; then
         local/download_and_untar.sh ${datadir} ${data_url} ${part}
-    done
-fi
-if [ ${stage} -le -2 ] && [ ${stop_stage} -ge -2 ]; then
-    ### Task dependent. You have to make data the following preparation part by yourself.
-    ### But you can utilize Kaldi recipes in most cases
-    echo "stage -2: Data preparation"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-        # use underscore-separated names in data directories.
+    fi
+done
+
+### Task dependent. You have to make data the following preparation part by yourself.
+### But you can utilize Kaldi recipes in most cases
+echo "stage -2: Data preparation"
+for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+    # use underscore-separated names in data directories.
+    if [ ! -s data/${part//-/_}/wav.scp ]; then
         local/data_prep.sh ${datadir}/LibriSpeech/${part} data/${part//-/_}
-    done
-fi
+    fi
+done
+
+nj=100
 dev_set=$train_dev
 eval_set=test_clean
-feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
-feat_dt_dir=${dumpdir}/${dev_set}; mkdir -p ${feat_dt_dir}
-feat_ev_dir=${dumpdir}/${eval_set}; mkdir -p ${feat_ev_dir}
+fbankdir=fbank
+feat_tr_dir=${dumpdir}/${train_set}; 
+feat_tr_p_dir=${dumpdir}/${train_paired_set};
+feat_tr_up_dir=${dumpdir}/${train_unpaired_set};
+feat_dt_dir=${dumpdir}/${dev_set};
+feat_ev_dir=${dumpdir}/${eval_set};
 dict=data/lang_char/${train_set}_units.txt
+nlsyms=data/lang_char/non_lang_syms.txt
 bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
+scratch=/mnt/scratch06/tmp/baskar/espnet_new/features
+nnet_dir=exp/xvector_nnet_1a
+tag=testing
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    echo "stage -1: Feature extraction for TTS and ASR"
-    scripts/feat_extract.sh $train_set $train_dev $recog_set
-    fbankdir=fbank
+    echo "stage -1: Tmp space allocation"
+    local/make_symlink_dir.sh --tmp-root $scratch/$fbankdir $fbankdir
+    local/make_symlink_dir.sh --tmp-root $scratch/$feat_tr_dir $feat_tr_dir
+    local/make_symlink_dir.sh --tmp-root $scratch/$feat_tr_p_dir $feat_tr_p_dir
+    local/make_symlink_dir.sh --tmp-root $scratch/$feat_tr_up_dir $feat_tr_up_dir
+    local/make_symlink_dir.sh --tmp-root $scratch/$feat_dt_dir $feat_dt_dir
+    local/make_symlink_dir.sh --tmp-root $scratch/$feat_ev_dir $feat_ev_dir
+fi
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    echo "stage 0: Feature extraction for TTS and ASR"
     for x in dev_clean test_clean train_clean_100 train_clean_360; do
         make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
             --fs ${fs} \
@@ -178,41 +198,67 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     done
     utils/combine_data.sh data/${train_set}_org data/train_clean_100 data/train_clean_360
     utils/combine_data.sh data/${dev_set}_org data/dev_clean
+    utils/copy_data_dir.sh data/${train_paired_set} data/${train_paired_set}_org
+    utils/copy_data_dir.sh data/${train_unpaired_set} data/${train_unpaired_set}_org
     # remove utt having more than 3000 frames
     # remove utt having more than 400 characters
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${dev_set}_org data/${dev_set}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_paired_set}_org data/${train_paired_set}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_unpaired_set}_org data/${train_unpaired_set}
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
     # dump features for training
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${train_paired_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train_p ${feat_tr_p_dir}
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
+        data/${train_unpaired_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train_up ${feat_tr_up_dir}
+    dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${dev_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
         data/${eval_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/eval ${feat_ev_dir}
+fi
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    echo "stage 1: JSON preparation for TTS and ASR"
     echo "dictionary: ${dict}"
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     mkdir -p data/lang_char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    if [ $use_bpe == 'true' ]; then
+        cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
+        spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000
+        spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
+    else
+        echo "make a non-linguistic symbol list"
+        cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+        cat ${nlsyms}
+        text2token.py -s 1 -n 1 $nlsyms data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    fi
     wc -l ${dict}
-
     # make json labels
+    if [ ! -s ${feat_ev_dir}/data.json ]; then
     data2json.sh --feat ${feat_tr_dir}/feats.scp \
          data/${train_set} ${dict} > ${feat_tr_dir}/data.json
+    data2json.sh --feat ${feat_tr_p_dir}/feats.scp \
+         data/${train_paired_set} ${dict} > ${feat_tr_p_dir}/data.json
+    data2json.sh --feat ${feat_tr_up_dir}/feats.scp \
+         data/${train_unpaired_set} ${dict} > ${feat_tr_up_dir}/data.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp \
          data/${dev_set} ${dict} > ${feat_dt_dir}/data.json
     data2json.sh --feat ${feat_ev_dir}/feats.scp \
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
+    fi
     # Make MFCCs and compute the energy-based VAD for each dataset
     mfccdir=mfcc
     vaddir=mfcc
     for name in ${train_set} ${dev_set} ${eval_set}; do
+        if [ ! -s data/${name}_mfcc/feats.scp ]; then
         utils/copy_data_dir.sh data/${name} data/${name}_mfcc
         steps/make_mfcc.sh \
-            --write-utt2num-frames true \
             --mfcc-config conf/mfcc.conf \
             --nj ${nj} --cmd "$train_cmd" \
             data/${name}_mfcc exp/make_mfcc ${mfccdir}
@@ -220,9 +266,9 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
         sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
             data/${name}_mfcc exp/make_vad ${vaddir}
         utils/fix_data_dir.sh data/${name}_mfcc
+        fi
     done
     # Check pretrained model existence
-    nnet_dir=exp/xvector_nnet_1a
     if [ ! -e ${nnet_dir} ];then
         echo "X-vector model does not exist. Download pre-trained model."
         wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
@@ -240,11 +286,10 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     for name in ${train_set} ${dev_set} ${eval_set}; do
         local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
     done
-
 fi
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    echo "stage 0: ASR training and decode"
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    echo "stage 2: LM training"
     lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
     lmexpdir=exp/${lmexpname}
     mkdir -p ${lmexpdir}
@@ -262,7 +307,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         > ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
-        echo "LM training does not support multi-gpu. signle gpu will be used."
+        echo "LM training does not support multi-gpu. single gpu will be used."
     fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
@@ -285,7 +330,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         --dict ${dict}
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: ASR training and decode"
     expdir=exp/asr_${tag}
     expname=asr_${tag}
     if [ $asr_train == 'true' ]; then
@@ -301,8 +347,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json \
+        --train-json ${feat_tr_dir}/data.json \
+        --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
         --eunits ${eunits} \
@@ -366,11 +412,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
 fi
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    echo "stage 2: TTS training, decode and synthesize"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "stage 4: TTS training, decode and synthesize"
     ttsexpdir=exp/tts_${tag}
     tr_json=$feat_tr_dir/data.json
     dt_json=$feat_dt_dir/data.json
+    seed=1
     # encoder related
     embed_dim=512
     elayers=1
@@ -424,7 +471,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
            --backend ${backend} \
            --ngpu ${ngpu} \
            --outdir ${ttsexpdir}/results \
-           --tensorboard-dir tensorboard/${expname} \
+           --tensorboard-dir tensorboard/${ttsexpdir} \
            --verbose ${verbose} \
            --seed ${seed} \
            --resume ${resume} \
@@ -511,53 +558,55 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 1: TTS training, decode and synthesize"
-    #scripts/asrtts_train.sh $train_set $train_set ${spk_vector}/xvectors_$train_set \
-    #    $train_set $train_unpaired_set $train_dev $recog_set \
-    #    $asrttsexpdir "dualp" "ce"
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "stage 5: ASR-TTS training, decode and synthesize"
+    asrttsexpdir=exp/asrtts_${tag}
+    train_opts=
+    sample_topk=
+    sample_scaling=0.1
+    teacher_weight=0.1
+    n_samples=5
 
-    feat_tr_paired_dir=dump/$train_paired_set/deltafalse
-    feat_tr_unpaired_dir=dump/$train_unpaired_set/deltafalse
-
-    if [ ! -s  ${feat_tr_unpaired_set}/data_rnd.json ]; then
-        local/rand_datagen.sh --jsonout "data_rnd.json" --xvec ${spk_vector}/xvectors_$train_set/xvector.scp dump/$train_unpaired_set/deltafalse dump/$train_unpaired_set/deltafalse $feat_tr_unpaired_dir
+    if [ ! -s  ${feat_tr_up_dir}/data_rnd.json ]; then
+        bash utils/copy_data_dir.sh data/${train_unpaired_set} data/${train_unpaired_set}_rnd
+        bash local/rand_datagen.sh --jsonout "${feat_tr_up_dir}/data_rnd.json" \
+            --nlsyms $nlsyms --dict $dict --xvec ${spk_vector}/xvectors_$train_set \
+            $feat_tr_p_dir $feat_tr_up_dir data/${train_unpaired_set}_rnd
     fi
-
     if [ $unpair == 'dual' ]; then
-        tr_json_list="${feat_tr_unpaired_dir}/data_rnd.json"
+        tr_json_list="${feat_tr_up_dir}/data_rnd.json"
     elif [ $unpair == 'dualp' ]; then
-       tr_json_list="${feat_tr_unpaired_dir}/data_rnd.json ${feat_tr_paired_dir}/data.json"
+       tr_json_list="${feat_tr_up_dir}/data_rnd.json ${feat_tr_p_dir}/data.json"
     else
-        tr_json_list="${feat_tr_paired_dir}/data.json"
+        tr_json_list="${feat_tr_p_dir}/data.json"
     fi
     if [ "$policy_gradient" = "true" ]; then
-        expdir=${expdir}_exploss_pgrad
+        asrttsexpdir=${asrttsexpdir}_exploss_pgrad
         train_opts="$train_opts --policy-gradient"
     fi
     if [ "$rnnlm_loss" = "ce" ]; then
-        expdir=${expdir}_rnnlmloss_${rnnlm_loss}
+        asrttsexpdir=${asrttsexpdir}_rnnlmloss_${rnnlm_loss}
         train_opts="$train_opts --rnnlm $rnnlm_model --rnnlm-conf $rnnlm_model_conf --rnnloss ce" 
     elif [ "$rnnlm_loss" = "kld" ]; then
-        expdir=${expdir}_rnnlmloss_${rnnlm_loss}
+        asrttsexpdir=${asrttsexpdir}_rnnlmloss_${rnnlm_loss}
         train_opts="$train_opts --rnnlm $rnnlm_model --rnnlm-conf $rnnlm_model_conf --rnnloss kld" 
     elif [ "$rnnlm_loss" = "mmd" ]; then
-        expdir=${expdir}_rnnlmloss_${rnnlm_loss}
+        asrttsexpdir=${asrttsexpdir}_rnnlmloss_${rnnlm_loss}
         train_opts="$train_opts --rnnlm $rnnlm_model --rnnlm-conf $rnnlm_model_conf --rnnloss mmd" 
     elif [ "$rnnlm_loss" = "kl" ]; then
-        expdir=${expdir}_rnnlmloss_${rnnlm_loss}
+        asrttsexpdir=${asrttsexpdir}_rnnlmloss_${rnnlm_loss}
         train_opts="$train_opts --rnnlm $rnnlm_model --rnnlm-conf $rnnlm_model_conf --rnnloss kl" 
     fi
     if [ $asrtts_train == 'true' ]; then
-        echo "stage 4: Network Training"
-        ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+        echo "stage 5: Network Training"
+        ${cuda_cmd} --gpu ${ngpu} ${asrttsexpdir}/train.log \
         asrtts_train.py \
         --ngpu ${ngpu} \
         --backend ${backend} \
-        --outdir ${expdir}/results \
+        --outdir ${asrttsexpdir}/results \
         --debugmode ${debugmode} \
         --dict ${dict} \
-        --debugdir ${expdir} \
+        --debugdir ${asrttsexpdir} \
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
@@ -612,14 +661,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             #### use CPU for decoding
             ngpu=0
 
-            ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            ${decode_cmd} JOB=1:${nj} ${asrttsexpdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
-            --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/model.${recog_model}  \
-            --model-conf ${expdir}/results/model.json  \
+            --result-label ${asrttsexpdir}/${decode_dir}/data.JOB.json \
+            --model ${asrttsexpdir}/results/model.${recog_model}  \
+            --model-conf ${asrttsexpdir}/results/model.json  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
@@ -628,7 +677,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             $recog_opts \
             &
             wait
-            score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+            score_sclite.sh --wer true ${asrttsexpdir}/${decode_dir} ${dict}
 
         ) &
         done

@@ -107,7 +107,7 @@ class Tacotron2Loss(torch.nn.Module):
     :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
 
-    def __init__(self, model, use_masking=True, bce_pos_weight=1.0):
+    def __init__(self, model, use_masking=True, bce_pos_weight=1.0, reporter=None):
         super(Tacotron2Loss, self).__init__()
         self.model = model
         self.use_masking = use_masking
@@ -118,9 +118,12 @@ class Tacotron2Loss(torch.nn.Module):
         else:
             self.use_cbhg = model.use_cbhg
             self.reduction_factor = model.reduction_factor
-        self.reporter = Reporter()
+        if reporter is None:
+            self.reporter = Reporter()
+        else:
+            self.reporter = reporter
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, softargmax=False):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, softargmax=False, asrtts=False):
         """Tacotron2 loss forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -184,6 +187,17 @@ class Tacotron2Loss(torch.nn.Module):
                 {'cbhg_l1_loss': cbhg_l1_loss.item()},
                 {'cbhg_mse_loss': cbhg_mse_loss.item()},
                 {'loss': loss.item()}])
+        elif asrtts:
+            # integrate loss
+            loss = l1_loss + mse_loss + bce_loss
+            # report loss values for logging
+            self.reporter.report(
+                {'l1_loss': l1_loss.item()},
+                {'mse_loss': mse_loss.item()},
+                {'bce_loss': bce_loss.item()},
+                {'loss': loss.item()},
+                {'mtl_loss': loss.item()})
+            logging.info(loss.item())
         else:
             # integrate loss
             loss = l1_loss + mse_loss + bce_loss
@@ -193,6 +207,7 @@ class Tacotron2Loss(torch.nn.Module):
                 {'mse_loss': mse_loss.item()},
                 {'bce_loss': bce_loss.item()},
                 {'loss': loss.item()}])
+            logging.info(loss.item())
 
         return loss
 
