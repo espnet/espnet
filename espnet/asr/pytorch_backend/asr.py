@@ -9,7 +9,6 @@ import json
 import logging
 import math
 import os
-import random
 import sys
 
 from chainer.datasets import TransformDataset
@@ -42,7 +41,7 @@ from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
-from espnet.utils.SparseImageWarp import sparse_image_warp
+from espnet.utils.spec_augment import specaug
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -59,87 +58,6 @@ else:
     from itertools import zip_longest as zip_longest
 
 REPORT_INTERVAL = 100
-
-
-def time_warp(spec, W=5):
-    """Time warping
-
-    :param spec: input tensor with shape (T, dim)
-    """
-    spec = spec.unsqueeze(0)
-    num_rows = spec.shape[1]
-    spec_len = spec.shape[2]
-    device = spec.device
-
-    y = num_rows // 2
-    horizontal_line_at_ctr = spec[0][y]
-    assert len(horizontal_line_at_ctr) == spec_len
-
-    point_to_warp = horizontal_line_at_ctr[random.randrange(W, spec_len - W)]
-    assert isinstance(point_to_warp, torch.Tensor)
-
-    # Uniform distribution from (0,W) with chance to be up to W negative
-    dist_to_warp = random.randrange(-W, W)
-    src_pts, dest_pts = (torch.tensor([[[y, point_to_warp]]], device=device),
-                         torch.tensor([[[y, point_to_warp + dist_to_warp]]], device=device))
-    warped_spectro, dense_flows = sparse_image_warp(spec, src_pts, dest_pts)
-    return warped_spectro.squeeze(3).squeeze(0)
-
-
-def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
-    """Frequency masking
-
-    :param spec: input tensor with shape (T, dim)
-    """
-    cloned = spec.unsqueeze(0).clone()
-    num_mel_channels = cloned.shape[1]
-
-    for i in range(0, num_masks):
-        f = random.randrange(0, F)
-        f_zero = random.randrange(0, num_mel_channels - f)
-
-        # avoids randrange error if values are equal and range is empty
-        if (f_zero == f_zero + f):
-            return cloned.squeeze(0)
-
-        mask_end = random.randrange(f_zero, f_zero + f)
-        if (replace_with_zero):
-            cloned[0][f_zero:mask_end] = 0
-        else:
-            cloned[0][f_zero:mask_end] = cloned.mean()
-    return cloned.squeeze(0)
-
-
-def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
-    """Time masking
-
-    :param spec: input tensor with shape (T, dim)
-    """
-    cloned = spec.unsqueeze(0).clone()
-    len_spectro = cloned.shape[2]
-
-    for i in range(0, num_masks):
-        t = random.randrange(0, T)
-        t_zero = random.randrange(0, len_spectro - t)
-
-        # avoids randrange error if values are equal and range is empty
-        if (t_zero == t_zero + t):
-            return cloned.squeeze(0)
-
-        mask_end = random.randrange(t_zero, t_zero + t)
-        if (replace_with_zero):
-            cloned[0][:, t_zero:mask_end] = 0
-        else:
-            cloned[0][:, t_zero:mask_end] = cloned.mean()
-    return cloned.squeeze(0)
-
-
-def specaug(spec):
-    """SpecAug implementation from https://github.com/zcaceres/spec_augment
-
-    :param spec: input tensor
-    """
-    return time_mask(freq_mask(time_warp(spec), num_masks=2), num_masks=2)
 
 
 class CustomEvaluator(extensions.Evaluator):
@@ -250,8 +168,9 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, use_specaug=True):
         self.subsampling_factor = subsampling_factor
+        self.use_specaug = use_specaug
         self.ignore_id = -1
 
     def __call__(self, batch, device, evaluation=False):
@@ -287,10 +206,10 @@ class CustomConverter(object):
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            if evaluation:
-                xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+            if self.use_specaug and not evaluation:
+                xs_pad = pad_list([specaug(torch.from_numpy(x).float()).to(device) for x in xs], 0)
             else:
-                xs_pad = pad_list([specaug(torch.from_numpy(x).float()) for x in xs], 0).to(device)
+                xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 
         ilens = torch.from_numpy(ilens).to(device)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys],
@@ -387,7 +306,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor)
+    converter = CustomConverter(subsampling_factor=subsampling_factor, use_specaug=args.use_specaug)
 
     # read json data
     with open(args.train_json, 'rb') as f:
