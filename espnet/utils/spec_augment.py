@@ -31,7 +31,7 @@ import random
 import torch
 
 
-def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2):
+def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2, replace_with_zero=False):
     """SpecAugment
 
     Reference: SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
@@ -45,8 +45,12 @@ def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2):
     :param int T: maximum width of each time mask
     :param int num_freq_masks: number of frequency masks
     :param int num_time_masks: number of time masks
+    :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
-    return time_mask(freq_mask(time_warp(spec), num_masks=num_freq_masks), num_masks=num_time_masks)
+    return time_mask(
+        freq_mask(time_warp(spec, W=W),
+                  F=F, num_masks=num_freq_masks, replace_with_zero=replace_with_zero),
+        T=T, num_masks=num_time_masks, replace_with_zero=replace_with_zero)
 
 
 def time_warp(spec, W=5):
