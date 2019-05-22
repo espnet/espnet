@@ -30,6 +30,7 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
+from espnet.asr.spec_augment import spec_augment
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
@@ -170,7 +171,10 @@ class CustomConverter(object):
 
     def __init__(self, subsampling_factor=1, use_specaug=True):
         self.subsampling_factor = subsampling_factor
-        self.use_specaug = use_specaug
+        if use_specaug:
+            self.specaug = spec_augment
+        else:
+            self.specaug = lambda x: x
         self.ignore_id = -1
 
     def __call__(self, batch, device, evaluation=False):
@@ -206,8 +210,8 @@ class CustomConverter(object):
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            if self.use_specaug and not evaluation:
-                xs_pad = pad_list([specaug(torch.from_numpy(x).float()).to(device) for x in xs], 0)
+            if not evaluation:
+                xs_pad = pad_list([torch.from_numpy(self.specaug(x)).float().to(device) for x in xs], 0)
             else:
                 xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 
