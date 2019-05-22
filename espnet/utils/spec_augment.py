@@ -1,5 +1,5 @@
 """
-SpecAugmnet implementation (https://github.com/zcaceres/spec_augment)
+This implementation is modified from https://github.com/zcaceres/spec_augment
 
 MIT License
 
@@ -35,7 +35,7 @@ def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2):
     Reference: SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
         (https://arxiv.org/pdf/1904.08779.pdf)
 
-    This implementation derived from https://github.com/zcaceres/spec_augment
+    This implementation modified from https://github.com/zcaceres/spec_augment
 
     :param torch.Tensor spec: input tensor with the shape (T, dim)
     :param int W: time warp parameter
