@@ -2,6 +2,10 @@ write a CER (or TER) result in exp/train_nodev_pytorch_vggblstm_e4_subsample1_2_
 |           SPKR              |           # Snt                     # Wrd            |           Corr                         Sub                        Del                         Ins                         Err                      S.Err            |
 |           Sum/Avg           |           1000                      25371            |           91.9                         7.2                        0.9                         0.8                         8.9                       63.5            |
 
+write a CER (or TER) result in exp/train_nodev_pytorch_vggblstm_e4_subsample1_2_2_1_1_unit1024_proj1024_d1_unit1024_location_adim1024_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs30_mli800_mlo150/decode_JNAS_testset_500_beam20_emodel.acc.best_p0_len0.0-0.0_ctcw0.3/result.txt
+|           SPKR              |           # Snt                     # Wrd            |           Corr                         Sub                        Del                         Ins                         Err                      S.Err            |
+|           Sum/Avg           |           1000                      30190            |           89.9                         8.9                        1.2                         1.1                        11.3                       75.5            |
+
 write a CER (or TER) result in exp/train_nodev_pytorch_vggblstm_e4_subsample1_2_2_1_1_unit1024_proj1024_d1_unit1024_location_adim1024_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs30_mli800_mlo150/decode_train_dev_beam20_emodel.acc.best_p0_len0.0-0.0_ctcw0.3/result.txt
 |           SPKR             |           # Snt                     # Wrd           |           Corr                       Sub                        Del                        Ins                        Err                      S.Err           |
 |           Sum/Avg          |           1306                      39489           |           89.9                       8.8                        1.3                        0.9                       11.0                       75.7           |
