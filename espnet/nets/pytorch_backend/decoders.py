@@ -685,7 +685,7 @@ class Decoder(torch.nn.Module):
                 yg[yg == -1] = 0
                 y = to_device(self, torch.from_numpy(yg))
             ey = self.embed(y)  # utt x zdim
-            att_c, att_w = self.att[att_idx](hpad, hlen.float().cuda(), z_list[0], att_w)
+            att_c, att_w = self.att[att_idx](hpad, hlen, z_list[0], att_w)
             ey = torch.cat((ey, att_c), dim=1)  # n_samples x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
