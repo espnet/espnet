@@ -350,6 +350,7 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 
 ## Citation
 
+```
 @inproceedings{watanabe2018espnet,
   author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
   title={ESPnet: End-to-End Speech Processing Toolkit},
@@ -359,3 +360,4 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
   doi={10.21437/Interspeech.2018-1456},
   url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
 }
+```
