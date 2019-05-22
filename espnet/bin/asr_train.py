@@ -159,6 +159,8 @@ def main(cmd_args):
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
+    parser.add_argument('--use-specaug', type=strtobool, default=True,
+                        help='The flag to use specaug in training.')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam', 'noam'],
