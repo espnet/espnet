@@ -224,31 +224,32 @@ is required before setup.
 The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
 
 ```bash
+# e.g.
 asr_train.py --config conf/train.yaml --batch-size 24
+# e.g.--config2 and --config3 are also provided and the latter option can overwrite the former.
+asr_train.py --config conf/train.yaml --config2 conf/new.yaml
 ```
 
-In this way, you need to edit `run.sh` and it might be inconvenient.
+In this way, you need to edit `run.sh` and it might be inconvenient sometimes.
 Instead of giving arguments directly, we recommend you to modify the yaml file and give it to `run.sh`:
 
 ```bash
+# e.g.
 ./run.sh --train-config conf/train_modified.yaml
+# e.g.
+./run.sh --train-config conf/train_modified.yaml --decode-config conf/decode_modified.yaml
 ```
 
-We also provide a utility to modify a yaml file from command line:
+We also provide a utility to generate a yaml file from the input yaml file:
 
 ```bash
-<conf/train.yaml change_yaml.py -a batch-size=24 > conf/train_batchsize24.yaml && ./run.sh --train-config conf/train_batchsize24.yaml
-
-# -a can be repeated
-<conf/train.yaml change_yaml.py -a batch-size=24 -a epochs=30 > conf/train_batchsize24_epochs30.yaml && ./run.sh --train-config conf/train_batchsize24_epochs30.yaml
-
-# hierarchical attributes can be touched
-<conf/train.yaml change_yaml.py -a a.b.c=3  # a: {b: {c: 4}} is added
-
-# The item is deleted if "=" is not included.
-<conf/train.yaml change_yaml.py -a batch-size
+# e.g. You can give any parameters as '-a key=value' and '-a' is repeatable.
+./run.sh --train-config $(change_yaml.py conf/train.yaml -a batch-size=24 -a epochs=10)
+# e.g. '-o' option specfies the output file name.
+./run.sh --train-config $(change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size=24)
 ```
 
+If `-o` is ommited, `chanege_yaml.py` creates a yaml file named as including thevalue in all arguments, e.g. `conf/train_batch-size24.yaml` in this case.
 
 ### Error due to ACS (Multiple GPUs)
 
