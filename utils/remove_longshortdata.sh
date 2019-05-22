@@ -29,7 +29,7 @@ utils/data/get_utt2num_frames.sh ${sdir}
     | awk '{print $1}' > ${odir}/tmp/reclist1
 
 echo "extract utterances having less than $maxchars or more than $minchars characters"
-# counting number of chars. Use (NF -1) instead of NF to exclude the utterance ID column
+# counting number of chars. Use (NF - 1) instead of NF to exclude the utterance ID column
 if [ -z ${nlsyms} ]; then
 text2token.py -s 1 -n 1 ${sdir}/text \
     | awk -v maxchars="$maxchars" '{ if (NF - 1 < maxchars) print }' \
