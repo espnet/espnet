@@ -34,13 +34,13 @@ from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import restore_snapshot
+from espnet.nets.asr_interface import ASRInterface
+from espnet.utils.deterministic_utils import set_deterministic_chainer
+from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
-
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
-
-from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
@@ -105,6 +105,7 @@ class CustomUpdater(training.StandardUpdater):
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
+            optimizer.target.cleargrads()  # Clear the parameter gradients
         elif self.count % self.accum_grad == 0:
             optimizer.update()
             optimizer.target.cleargrads()  # Clear the parameter gradients
@@ -240,9 +241,9 @@ def train(args):
 
     # specify model architecture
     logging.info('import model module: ' + args.model_module)
-    from importlib import import_module
-    model_module = import_module(args.model_module)
-    model = model_module.E2E(idim, odim, args, flag_return=False)
+    model_class = dynamic_import(args.model_module)
+    model = model_class(idim, odim, args, flag_return=False)
+    assert isinstance(model, ASRInterface)
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -250,7 +251,8 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps((idim, odim, vars(args)), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps((idim, odim, vars(args)),
+                           indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
     for key in sorted(vars(args).keys()):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
@@ -371,8 +373,9 @@ def train(args):
         trainer.extend(ShufflingEnabler(train_iters),
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
     if args.opt == 'noam':
-        trainer.extend(model_module.VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
-                                                scale=args.transformer_lr), trigger=(1, 'iteration'))
+        from espnet.nets.chainer_backend.e2e_asr_transformer import VaswaniRule
+        trainer.extend(VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
+                                   scale=args.transformer_lr), trigger=(1, 'iteration'))
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
@@ -400,14 +403,12 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         if hasattr(model, "module"):
             att_vis_fn = model.module.calculate_all_attentions
+            plot_class = model.module.attention_plot_class
         else:
             att_vis_fn = model.calculate_all_attentions
-        try:
-            PlotAttentionReport = model_module.PlotAttentionReport
-            logging.info('Using custom PlotAttentionReport')
-        except AttributeError:
-            from espnet.asr.asr_utils import PlotAttentionReport
-        att_reporter = PlotAttentionReport(
+            plot_class = model.attention_plot_class
+        logging.info('Using custom PlotAttentionReport')
+        att_reporter = plot_class(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, transform=load_cv, device=gpu_id)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
@@ -496,9 +497,9 @@ def recog(args):
 
     # specify model architecture
     logging.info('reading model parameters from ' + args.model)
-    from importlib import import_module
-    model_module = import_module(train_args.model_module)
-    model = model_module.E2E(idim, odim, train_args)
+    model_class = dynamic_import(train_args.model_module)
+    model = model_class(idim, odim, train_args)
+    assert isinstance(model, ASRInterface)
     chainer_load(args.model, model)
 
     # read rnnlm
@@ -548,6 +549,5 @@ def recog(args):
             nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 
-    # TODO(watanabe) fix character coding problems when saving it
     with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps({'utts': new_js}, indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
