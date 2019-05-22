@@ -29,11 +29,29 @@ import random
 import torch
 
 
+def specaug(spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2):
+    """SpecAugment
+
+    Reference: SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
+        (https://arxiv.org/pdf/1904.08779.pdf)
+
+    This implementation derived from https://github.com/zcaceres/spec_augment
+
+    :param torch.Tensor spec: input tensor with the shape (T, dim)
+    :param int W: time warp parameter
+    :param int F: maximum width of each freq mask
+    :param int T: maximum width of each time mask
+    :param int num_freq_masks: number of frequency masks
+    :param int num_time_masks: number of time masks
+    """
+    return time_mask(freq_mask(time_warp(spec), num_masks=num_freq_masks), num_masks=num_time_masks)
+
+
 def time_warp(spec, W=5):
     """Time warping
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
-    :param int W int: time warp parameter
+    :param int W: time warp parameter
     """
     spec = spec.unsqueeze(0)
     num_rows = spec.shape[1]
@@ -59,7 +77,8 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
     """Frequency masking
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
-    :param int num_masks int: number of masks
+    :param int F: maximum width of each mask
+    :param int num_masks: number of masks
     :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
     cloned = spec.unsqueeze(0).clone()
@@ -85,7 +104,8 @@ def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
     """Time masking
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
-    :param int num_masks int: number of masks
+    :param int T: maximum width of each mask
+    :param int num_masks: number of masks
     :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
     cloned = spec.unsqueeze(0).clone()
@@ -105,21 +125,6 @@ def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
         else:
             cloned[0][:, t_zero:mask_end] = cloned.mean()
     return cloned.squeeze(0)
-
-
-def specaug(spec, num_freq_masks=2, num_time_masks=2):
-    """SpecAugment
-
-    Reference: SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
-        (https://arxiv.org/pdf/1904.08779.pdf)
-
-    This implementation derived from https://github.com/zcaceres/spec_augment
-
-    :param torch.Tensor spec: input tensor with the shape (T, dim)
-    :param int num_freq_masks: number of frequency masks
-    :param int num_time_masks: number of time masks
-    """
-    return time_mask(freq_mask(time_warp(spec), num_masks=num_freq_masks), num_masks=num_time_masks)
 
 
 def sparse_image_warp(img_tensor,
