@@ -487,7 +487,7 @@ class Decoder(torch.nn.Module):
             local_scores = to_device(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
 
             # (or indexing)
-            # local_scores = to_device(self, torch.full((batch, beam, self.odim), self.logzero))
+            # local_scores = to_cuda(self, torch.full((batch, beam, self.odim), self.logzero))
             # _best_odims = local_best_odims
             # _best_score = local_best_scores
             # for si in six.moves.range(batch):
@@ -635,112 +635,9 @@ class Decoder(torch.nn.Module):
         att_ws = att_to_numpy(att_ws, self.att[att_idx])
         return att_ws
 
-    def generate(self, hpad, hlen, topk=0, maxlenratio=1.0, minlenratio=0.3, rnnlm=None):
-        '''Decoder generate
-
-        :param hs:
-        :return:
-        '''
-
-        # get dim, length info
-        # initialization
-        strm_idx = 0
-        self.loss = None
-        logzero = -1.0e+10
-        n_samples = len(hlen)
-        c_list = [self.zero_state(hpad)]
-        z_list = [self.zero_state(hpad)]
-        for l in six.moves.range(1, self.dlayers):
-            c_list.append(self.zero_state(hpad))
-            z_list.append(self.zero_state(hpad))
-        att_w = None
-        att_idx = min(strm_idx, len(self.att) - 1)
-        self.att[att_idx].reset()  # reset pre-computation of h
-
-        # preprate sos
-        if maxlenratio == 0:
-            maxlen = int(max(hlen))
-        else:
-            # maxlen >= 1
-            maxlen = max(1, int(maxlenratio * int(max(hlen))))
-        minlen = int(minlenratio * int(min(hlen)))
-        odim = self.eos + 1
-        # prepare the first label <sos>
-        y = to_device(self, torch.from_numpy(np.full(n_samples, self.sos, dtype=np.int64)))
-        indices = [np.array(range(odim), dtype=np.int32)] * n_samples
-        y_gen = np.full((maxlen, n_samples), self.ignore_id, dtype=np.int64)
-        not_ended = np.array([True] * n_samples, dtype=np.bool_)
-        # make a mask to avoid <blank>:0, <unk>:1, and sentence end prediction
-        suppress_mask = np.zeros((1, odim), dtype=np.float32)
-        suppress_mask[0, (0, 1, self.eos)] = logzero
-        suppress_mask = to_device(self, torch.from_numpy(suppress_mask))
-        suppress_mask_without_eos = suppress_mask.clone()
-        suppress_mask_without_eos[0, self.eos] = 0.
-        y_lens = np.zeros(n_samples, dtype=np.int64)
-        loss_list = []
-        y_all = []
-        for i in six.moves.range(maxlen):
-            if i > 0:
-                yg = y_gen[i - 1]
-                yg[yg == -1] = 0
-                y = to_device(self, torch.from_numpy(yg))
-            ey = self.embed(y)  # utt x zdim
-            att_c, att_w = self.att[att_idx](hpad, hlen, z_list[0], att_w)
-            ey = torch.cat((ey, att_c), dim=1)  # n_samples x (zdim + hdim)
-            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-            if i == minlen:  # exclude <eos> while sequence is short
-                suppress_mask = suppress_mask_without_eos
-            oy = self.output(z_list[-1]) + suppress_mask
-            if 0 < topk < odim:
-                topk_logits, topk_indices = torch.topk(oy, topk, dim=1)
-                sy = F.softmax(topk_logits, dim=1).data.cpu().numpy()
-                indices = topk_indices.data.cpu().numpy()
-            else:
-                sy = F.softmax(oy, dim=1).data.cpu().numpy()
-
-            if i < maxlen - 1:
-                for j in six.moves.range(n_samples):
-                    if not_ended[j]:
-                        y_gen[i, j] = np.random.choice(indices[j], 1, p=sy[j])  # or argmax in some cases
-                not_ended &= y_gen[i, :] != self.eos
-                y_lens[y_gen[i, :] == self.eos] = i + 1
-            else:
-                y_gen[i, not_ended] = self.eos
-                y_lens[not_ended] = i + 1
-            del sy
-            t = to_device(self, torch.from_numpy(y_gen[i]))
-            ce_loss = F.cross_entropy(oy, t, ignore_index=self.ignore_id, reduction='none')
-            loss_list.append(ce_loss)
-
-            # y_all for computing KL-divergence loss
-            y_all.append(self.output(z_list[-1]))
-
-            # all ended -> break
-            if np.sum(not_ended) == 0:
-                break
-
-        # loss array needs to be masked by 0 to exclude indeterminate valuse for igored_id
-        masked_loss = mask_by_length(torch.stack(loss_list).transpose(1, 0),
-                                     y_lens, fill=0.0)
-        sample_loss = torch.sum(masked_loss, dim=1)
-        # show predicted character sequence for debug
-        y_list = []
-        y_gen = y_gen.transpose(1, 0)
-        y_gen[y_gen == -1] = 0
-        for i in six.moves.range(n_samples):
-            y_seq = np.array(y_gen[i, :y_lens[i] - 1], dtype=np.int32)
-            y_list.append(y_seq)
-            if self.verbose > 0 and self.char_list is not None:
-                y_str = "".join([self.char_list[int(idx)] for idx in y_seq])
-                logging.info("generation[%d]: %.4f " % (i, sample_loss.data[i]) + y_str)
-
-        return sample_loss, y_list, y_gen, y_lens, y_all
-
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder)
+
