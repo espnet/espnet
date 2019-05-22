@@ -64,6 +64,7 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
         model=tacotron2,
         use_masking=use_masking,
         bce_pos_weight=bce_pos_weight,
+        reporter=reporter
     )
 
     loss.eval()
@@ -71,7 +72,7 @@ def TacotronRewardLoss(tts_model_file, idim=None, odim=None, train_args=None,
     return loss
 
 
-def load_tacotron_loss(tts_model_conf, tts_model_file, args):
+def load_tacotron_loss(tts_model_conf, tts_model_file, args, reporter):
     # Read model
     if 'conf' in tts_model_conf:
         with open(tts_model_conf, 'rb') as f:
@@ -97,6 +98,7 @@ def load_tacotron_loss(tts_model_conf, tts_model_file, args):
         idim=idim_taco,
         odim=odim_taco,
         train_args=train_args_taco,
+        reporter=reporter
     )
 
 
@@ -180,7 +182,7 @@ class E2E(torch.nn.Module):
     """
 
     def __init__(self, idim, odim, args, predictor=None, loss_fn=None, rnnlm=None,
-                 softargmax=False):
+                 softargmax=False, asr2tts=False, reporter=None):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -196,10 +198,13 @@ class E2E(torch.nn.Module):
         self.sample_scaling = args.sample_scaling
         self.softargmax = softargmax
         self.generator = args.generator
-        self.asr2tts = True
+        self.asr2tts = asr2tts
         self.rnnlm = rnnlm
         self.rnnloss = args.rnnloss
-        self.reporter = Reporter()
+        if reporter is not None:
+            self.reporter = reporter
+        else:
+            self.reporter = Reporter()
 
         # below means the last number becomes eos/sos ID
         # note that sos/eos IDs are identical
@@ -353,6 +358,8 @@ class E2E(torch.nn.Module):
                             loss_i = F.cross_entropy(lmz, ygen[:, i], reduction='none')
                         lm_loss += loss_i
                     lm_loss = lm_loss / ylens.sum().type_as(lm_loss)
+            else:
+                lm_loss = None
             # Weighted loss
             if self.loss_fn is not None:
                 # make labels for stop prediction
@@ -371,9 +378,11 @@ class E2E(torch.nn.Module):
                 self.loss_fn.eval()
                 with torch.no_grad():
                     if self.use_speaker_embedding:
-                        taco_loss = self.loss_fn(*x_taco, spembs=spembs, softargmax=self.softargmax)  # .mean(2).mean(1)
+                        taco_loss = self.loss_fn(*x_taco, spembs=spembs,
+                                                 softargmax=self.softargmax, asrtts=True)  # .mean(2).mean(1)
                     else:
-                        taco_loss = self.loss_fn(*x_taco, softargmax=self.softargmax)  # .mean(2).mean(1)
+                        taco_loss = self.loss_fn(*x_taco, softargmax=self.softargmax,
+                                                 asrtts=True)  # .mean(2).mean(1)
                 if lm_loss is not None:
                     taco_loss += lm_loss * self.lm_loss_weight
                 loss = ((taco_loss - taco_loss.mean()) * weight).mean()
@@ -392,12 +401,13 @@ class E2E(torch.nn.Module):
                         if self.loss_fn is not None:
                             # logging.info("generation[%d]: %.4f %.4f " % (k, weight[k], taco_loss[k]) + y_str)
                             logging.info("generation[%d]: %.4f %.4f " % (k,
-                                                                         weight[k].item(), taco_loss[k].item()) + y_str)
+                                                                         weight[k].item(), taco_loss) + y_str)
                         else:
                             logging.info("generation[%d]: %.4f " % (k,
                                                                     weight[k].item()) + y_str)
             loss_att = loss
-            self.acc = 0.0
+            acc = 0.0
+            self.acc = acc
 
         else:
             # 1. Encoder
