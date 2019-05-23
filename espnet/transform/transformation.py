@@ -1,10 +1,10 @@
 from collections import OrderedDict
 import copy
 import io
-import json
 import logging
 import sys
 
+import yaml
 
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.check_kwargs import check_kwargs
@@ -24,6 +24,7 @@ else:
 # TODO(karita): inherit TransformInterface
 # TODO(karita): register cmd arguments in asr_train.py
 import_alias = dict(
+    identity='espnet.transform.transform_interface:Identity',
     time_warp='espnet.transform.spec_augment:TimeWarp',
     time_mask='espnet.transform.spec_augment:TimeMask',
     freq_mask='espnet.transform.spec_augment:FreqMask',
@@ -69,7 +70,7 @@ class Transformation(object):
                 self.conf = copy.deepcopy(conffile)
             else:
                 with io.open(conffile, encoding='utf-8') as f:
-                    self.conf = json.load(f)
+                    self.conf = yaml.safe_load(f)
                     assert isinstance(self.conf, dict), type(self.conf)
         else:
             self.conf = {'mode': 'sequential', 'process': []}

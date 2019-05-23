@@ -98,7 +98,7 @@ class CustomEvaluator(extensions.Evaluator):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    x = self.converter(batch, self.device, evaluation=True)
+                    x = self.converter(batch, self.device)
                     self.model(*x)
                 summary.add(observation)
         self.model.train()
