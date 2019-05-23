@@ -146,7 +146,7 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
 
     # define model
     model = Tacotron2(idim, odim, Namespace(**model_args))
-    criterion = Tacotron2Loss(model, **loss_args)
+    criterion = Tacotron2Loss(model, Namespace(**loss_args))
     optimizer = torch.optim.Adam(model.parameters())
 
     # trainable
@@ -185,7 +185,7 @@ def test_tacotron2_gpu_trainable(model_dict):
 
     # define model
     tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
-    model = Tacotron2Loss(tacotron2, **loss_args)
+    model = Tacotron2Loss(tacotron2, Namespace(**loss_args))
     optimizer = torch.optim.Adam(model.parameters())
     model.cuda()
 
@@ -221,7 +221,7 @@ def test_tacotron2_multi_gpu_trainable(model_dict):
     # define model
     tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
     tacotron2 = torch.nn.DataParallel(tacotron2, device_ids)
-    model = Tacotron2Loss(tacotron2, **loss_args)
+    model = Tacotron2Loss(tacotron2, Namespace(**loss_args))
     optimizer = torch.optim.Adam(model.parameters())
     model.cuda()
 
