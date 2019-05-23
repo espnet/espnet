@@ -122,7 +122,7 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # compute loss and gradient
-        loss = self.model(*x)
+        loss = self.model(*x).mean()
         optimizer.zero_grad()
         loss.backward()
 

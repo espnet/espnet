@@ -140,7 +140,7 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     optimizer = torch.optim.Adam(model.parameters())
 
     # trainable
-    loss = model(xs, ilens, ys, labels, olens, spembs, spcs)
+    loss = model(xs, ilens, ys, labels, olens, spembs, spcs).mean()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -178,7 +178,7 @@ def test_tacotron2_gpu_trainable(model_dict):
     model.cuda()
 
     # trainable
-    loss = model(*batch)
+    loss = model(*batch).mean()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -212,7 +212,7 @@ def test_tacotron2_multi_gpu_trainable(model_dict):
     model.cuda()
 
     # trainable
-    loss = model(*batch)
+    loss = model(*batch).mean()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
