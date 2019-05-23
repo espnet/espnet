@@ -82,8 +82,9 @@ lmtag=1layer_unit1000_sgd_bs300
 lmexpdir=exp/train_rnnlm_${backend}_${lmtag}
 use_wordlm=true
 
+
 # exp tag
-tag="" # tag for managing experiments.
+tag="specaug_new" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
