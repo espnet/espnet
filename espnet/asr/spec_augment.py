@@ -1,4 +1,6 @@
 """
+TODO (karita) move this to espnet.transform.spec_augment
+
 MIT License
 
 Copyright (c) 2019 Zach Caceres, modified by Shigeki Karita
@@ -36,12 +38,14 @@ def time_warp(x, window=80):
     :returns numpy.ndarray: (time, freq)
     """
     # avoid randint range error
-    if x.shape[0] - window <= window:
+    t = x.shape[0]
+    if t - window <= window:
         return x
-    center = random.randrange(window, x.shape[0] - window)
-    w = random.randrange(-window, window)
-    left = Image.fromarray(x[:center]).resize((x.shape[1], center + w), BICUBIC)
-    right = Image.fromarray(x[center:]).resize((x.shape[1], x.shape[0] - center - w), BICUBIC)
+    # NOTE: randrange(a, b) emits a, a + 1, ..., b - 1
+    center = random.randrange(window, t - window)
+    warped = random.randrange(center - window, center + window) + 1  # 1 ... t - 1
+    left = Image.fromarray(x[:center]).resize((x.shape[1], warped), BICUBIC)
+    right = Image.fromarray(x[center:]).resize((x.shape[1], t - warped), BICUBIC)
     return numpy.concatenate((left, right), 0)
 
 
