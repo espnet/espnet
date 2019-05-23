@@ -391,6 +391,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ilens = list(map(int, ilens))
 
         # remove unnecessary padded part (for multi-gpus)
+        if max(ilens) != xs.shape[1]:
+            xs = xs[:, :max(ilens)]
         if max(olens) != ys.shape[1]:
             ys = ys[:, :max(olens)]
             labels = labels[:, :max(olens)]
