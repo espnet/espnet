@@ -25,9 +25,8 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
-from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.tts.tts_utils import make_batchset
+from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
@@ -223,7 +222,8 @@ def train(args):
         logging.info('ARGS: ' + key + ': ' + str(vars(args)[key]))
 
     # specify model architecture
-    tacotron2 = Tacotron2(idim, odim, args)
+    model_class = dynamic_import(args.model_module)
+    tacotron2 = model_class(idim, odim, args)
     logging.info(tacotron2)
 
     # check the use of multi-gpu
@@ -238,7 +238,8 @@ def train(args):
     tacotron2 = tacotron2.to(device)
 
     # define loss
-    model = Tacotron2Loss(tacotron2, args)
+    loss_class = dynamic_import(args.loss_module)
+    model = loss_class(tacotron2, args)
     reporter = model.reporter
 
     # Setup an optimizer
@@ -397,7 +398,9 @@ def decode(args):
         logging.info('args: ' + key + ': ' + str(vars(args)[key]))
 
     # define model
-    tacotron2 = Tacotron2(idim, odim, train_args)
+    model_class = dynamic_import(train_args.model_module)
+    tacotron2 = model_class(idim, odim, train_args)
+    logging.info(tacotron2)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
