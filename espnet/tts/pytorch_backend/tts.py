@@ -19,7 +19,6 @@ from chainer import training
 from chainer.training import extensions
 
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
