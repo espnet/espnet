@@ -167,20 +167,11 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, args, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1):
         self.subsampling_factor = subsampling_factor
-        if args.specaug == "prev":
-            from espnet.utils.spec_augment import specaug
-            self.specaug = lambda x: specaug(torch.from_numpy(x).float())
-        elif args.specaug == "new":
-            from espnet.asr.spec_augment import spec_augment
-            self.specaug = lambda x: torch.from_numpy(spec_augment(x)).float()
-        else:
-            logging.warning("specaug is disabled")
-            self.specaug = lambda x: torch.from_numpy(x).float()
         self.ignore_id = -1
 
-    def __call__(self, batch, device, evaluation=False):
+    def __call__(self, batch, device):
         """Transforms a batch and send it to a device
 
         :param list batch: The batch to transform
@@ -200,7 +191,6 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
-        # for training specaug is applied
         # currently only support real number
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
@@ -213,10 +203,7 @@ class CustomConverter(object):
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            if not evaluation:
-                xs_pad = pad_list([self.specaug(x).to(device) for x in xs], 0)
-            else:
-                xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 
         ilens = torch.from_numpy(ilens).to(device)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys],
@@ -313,7 +300,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(args, subsampling_factor=subsampling_factor)
+    converter = CustomConverter(subsampling_factor=subsampling_factor)
 
     # read json data
     with open(args.train_json, 'rb') as f:
