@@ -9,16 +9,17 @@ from PIL.Image import BICUBIC
 from espnet.transform.functional import FuncTrans
 
 
-def time_warp(x, window=80, inplace=False, mode="PIL"):
+def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
     """time warp for spec agument
 
     move random center frame by the random width ~ uniform(-window, window)
     :param numpy.ndarray x: spectrogram (time, freq)
-    :param int window: width to warp
+    :param int max_time_warp: maximum time frames to warp
     :param bool inplace: overwrite x with the result
     :param str mode: "PIL" (default, fast, not differentiable) or "sparse_image_warp" (slow, differentiable)
     :returns numpy.ndarray: time warped spectrogram (time, freq)
     """
+    window = max_time_warp
     if mode == "PIL":
         t = x.shape[0]
         if t - window <= window:
@@ -47,11 +48,16 @@ class TimeWarp(FuncTrans):
     _func = time_warp
     __doc__ = time_warp.__doc__
 
+    def __call__(self, x, train):
+        if not train:
+            return x
+        return super().__call__(x)
 
-def freq_mask(x, F=30, num_masks=2, replace_with_zero=True, inplace=False):
+
+def freq_mask(x, F=30, n_mask=2, replace_with_zero=True, inplace=False):
     """freq mask for spec agument
     :param numpy.ndarray x: (time, freq)
-    :param int num_masks: the number of masks
+    :param int n_mask: the number of masks
     :param bool inplace: overwrite
     :param bool replace_with_zero: pad zero on mask if true else use mean
     """
@@ -61,7 +67,7 @@ def freq_mask(x, F=30, num_masks=2, replace_with_zero=True, inplace=False):
         cloned = x.copy()
 
     num_mel_channels = cloned.shape[1]
-    fs = numpy.random.randint(0, F, size=(num_masks, 2))
+    fs = numpy.random.randint(0, F, size=(n_mask, 2))
 
     for f, mask_end in fs:
         f_zero = random.randrange(0, num_mel_channels - f)
@@ -82,11 +88,16 @@ class FreqMask(FuncTrans):
     _func = freq_mask
     __doc__ = freq_mask.__doc__
 
+    def __call__(self, x, train):
+        if not train:
+            return x
+        return super().__call__(x)
 
-def time_mask(spec, T=40, num_masks=2, replace_with_zero=True, inplace=False):
+
+def time_mask(spec, T=40, n_mask=2, replace_with_zero=True, inplace=False):
     """freq mask for spec agument
     :param numpy.ndarray spec: (time, freq)
-    :param int num_masks: the number of masks
+    :param int n_mask: the number of masks
     :param bool inplace: overwrite
     :param bool replace_with_zero: pad zero on mask if true else use mean
     """
@@ -95,7 +106,7 @@ def time_mask(spec, T=40, num_masks=2, replace_with_zero=True, inplace=False):
     else:
         cloned = spec.copy()
     len_spectro = cloned.shape[0]
-    ts = numpy.random.randint(0, T, size=(num_masks, 2))
+    ts = numpy.random.randint(0, T, size=(n_mask, 2))
     for t, mask_end in ts:
         # avoid randint range error
         if len_spectro - t <= 0:
@@ -114,15 +125,19 @@ def time_mask(spec, T=40, num_masks=2, replace_with_zero=True, inplace=False):
     return cloned
 
 
-
 class TimeMask(FuncTrans):
     _func = time_mask
     __doc__ = time_mask.__doc__
 
+    def __call__(self, x, train):
+        if not train:
+            return x
+        return super().__call__(x)
 
-def spec_augment(x, resize_mode="PIL", max_time_warp=40,
+
+def spec_augment(x, resize_mode="PIL", max_time_warp=80,
                  max_freq_width=27, n_freq_mask=2,
-                 max_time_width=100, n_time_mask=2, inplace=True):
+                 max_time_width=100, n_time_mask=2, inplace=True, replace_with_zero=True):
     """spec agument
     apply random time warping and time/freq masking
     default setting is based on LD (Librispeech double) in Table 2 https://arxiv.org/pdf/1904.08779.pdf
@@ -135,20 +150,22 @@ def spec_augment(x, resize_mode="PIL", max_time_warp=40,
     :param int n_freq_mask: the number of the random freq mask (m_F)
     :param int time_mask_width: maximum width of the random time mask (T)
     :param int n_time_mask: the number of the random time mask (m_T)
-
-
-    :param int num_masks: the number of masks
     :param bool inplace: overwrite intermediate array
     :param bool replace_with_zero: pad zero on mask if true else use mean
     """
     assert isinstance(x, numpy.ndarray)
     assert x.ndim == 2
     x = time_warp(x, max_time_warp, inplace=inplace, mode=resize_mode)
-    x = freq_mask(x, max_freq_width, n_freq_mask, inplace=inplace)
-    x = time_mask(x, max_time_width, n_time_mask, inplace=inplace)
+    x = freq_mask(x, max_freq_width,  n_freq_mask, inplace=inplace, replace_with_zero=replace_with_zero)
+    x = time_mask(x, max_time_width, n_time_mask, inplace=inplace, replace_with_zero=replace_with_zero)
     return x
 
 
 class SpecAugment(FuncTrans):
     _func = spec_augment
     __doc__ = spec_augment.__doc__
+
+    def __call__(self, x, train):
+        if not train:
+            return x
+        return super().__call__(x)

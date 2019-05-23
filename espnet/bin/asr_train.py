@@ -68,7 +68,7 @@ def main(cmd_args):
                         help='Number of encoder hidden units')
     parser.add_argument('--eprojs', default=320, type=int,
                         help='Number of encoder projection units')
-    parser.add_argument('--subsample', default=1, type=str,
+    parser.add_argument('--subsample', default="1", type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
     # loss
@@ -159,8 +159,6 @@ def main(cmd_args):
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
-    parser.add_argument('--specaug', type=str, default=None,
-                        help='The flag to use specaug in training.')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam', 'noam'],

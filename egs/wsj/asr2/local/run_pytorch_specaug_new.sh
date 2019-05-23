@@ -84,7 +84,7 @@ use_wordlm=true
 
 
 # exp tag
-tag="specaug_new" # tag for managing experiments.
+tag="specaug_preprocess" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -149,7 +149,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --epochs ${epochs} \
         --sortagrad ${sortagrad} \
         --lsm-weight ${lsm_weight} \
-        --specaug "new" \
+        --preprocess-conf "conf/preprocess.json" \
         --model-module "espnet.nets.${backend}_backend.e2e_asr_transformer:E2E" \
         --transformer-lr ${lr_init} \
         --transformer-warmup-steps ${warmup_steps} \
