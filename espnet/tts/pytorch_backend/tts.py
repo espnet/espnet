@@ -275,7 +275,7 @@ def train(args):
     load_tr = LoadInputsAndTargets(
         mode='tts',
         use_speaker_embedding=args.use_speaker_embedding,
-        use_second_target=args.use_cbhg,
+        use_second_target=args.use_cbhg if hasattr(args, "use_cbhg") else False,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': True}  # Switch the mode of preprocessing
     )
@@ -283,7 +283,7 @@ def train(args):
     load_cv = LoadInputsAndTargets(
         mode='tts',
         use_speaker_embedding=args.use_speaker_embedding,
-        use_second_target=args.use_cbhg,
+        use_second_target=args.use_cbhg if hasattr(args, "use_cbhg") else False,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': False}  # Switch the mode of preprocessing
     )

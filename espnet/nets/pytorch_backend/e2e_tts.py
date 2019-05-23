@@ -255,8 +255,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         parser.add_argument('--cbhg_gru_units', default=256, type=int,
                             help='Number of GRU units in CBHG')
         # model (parameter) related
-        parser.add_argument('--use_speaker_embedding', default=False, type=strtobool,
-                            help='Whether to use speaker embedding')
         parser.add_argument('--use_batch_norm', default=True, type=strtobool,
                             help='Whether to use batch normalization')
         parser.add_argument('--use_concate', default=True, type=strtobool,
