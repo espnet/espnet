@@ -36,10 +36,10 @@ def time_warp(x, window=80):
     :returns numpy.ndarray: (time, freq)
     """
     # avoid randint range error
-    if x.shape[0] - window > window:
+    if x.shape[0] - window <= window:
         return x
-    center = random.randint(window, x.shape[0] - window)
-    w = random.randint(-window, window)
+    center = random.randrange(window, x.shape[0] - window)
+    w = random.randrange(-window, window)
     left = Image.fromarray(x[:center]).resize((x.shape[1], center + w), BICUBIC)
     right = Image.fromarray(x[center:]).resize((x.shape[1], x.shape[0] - center - w), BICUBIC)
     return numpy.concatenate((left, right), 0)
@@ -89,7 +89,10 @@ def time_mask(spec, T=40, num_masks=2, replace_with_zero=True, inplace=False):
     len_spectro = cloned.shape[0]
     ts = numpy.random.randint(0, T, size=(num_masks, 2))
     for t, mask_end in ts:
-        t_zero = random.randint(0, len_spectro - t)
+        # avoid randint range error
+        if len_spectro - t <= 0:
+            continue
+        t_zero = random.randrange(0, len_spectro - t)
 
         # avoids randrange error if values are equal and range is empty
         if t_zero == t_zero + t:
