@@ -47,8 +47,6 @@ def main(cmd_args):
     # network architecture
     parser.add_argument('--model-module', type=str, default="espnet.nets.pytorch_backend.e2e_tts:Tacotron2",
                         help='model defined module')
-    parser.add_argument('--loss-module', type=str, default="espnet.nets.pytorch_backend.e2e_tts:Tacotron2Loss",
-                        help='loss defined module')
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
@@ -89,9 +87,7 @@ def main(cmd_args):
 
     from espnet.utils.dynamic_import import dynamic_import
     model_class = dynamic_import(args.model_module)
-    loss_class = dynamic_import(args.loss_module)
     model_class.add_arguments(parser)
-    loss_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
 
     # logging info

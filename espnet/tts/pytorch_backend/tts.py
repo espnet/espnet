@@ -223,24 +223,20 @@ def train(args):
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    tacotron2 = model_class(idim, odim, args)
-    logging.info(tacotron2)
+    model = model_class(idim, odim, args)
+    logging.info(model)
+    reporter = model.reporter
 
     # check the use of multi-gpu
     if args.ngpu > 1:
-        tacotron2 = torch.nn.DataParallel(tacotron2, device_ids=list(range(args.ngpu)))
+        model = torch.nn.DataParallel(model, device_ids=list(range(args.ngpu)))
         logging.info('batch size is automatically increased (%d -> %d)' % (
             args.batch_size, args.batch_size * args.ngpu))
         args.batch_size *= args.ngpu
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    tacotron2 = tacotron2.to(device)
-
-    # define loss
-    loss_class = dynamic_import(args.loss_module)
-    model = loss_class(tacotron2, args)
-    reporter = model.reporter
+    model = model.to(device)
 
     # Setup an optimizer
     optimizer = torch.optim.Adam(
@@ -323,18 +319,20 @@ def train(args):
     trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
 
     # Save best models
-    trainer.extend(extensions.snapshot_object(tacotron2, 'model.loss.best', savefun=torch_save),
+    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
         data = sorted(list(valid_json.items())[:args.num_save_attention],
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
-        if hasattr(tacotron2, "module"):
-            att_vis_fn = tacotron2.module.calculate_all_attentions
+        if hasattr(model, "module"):
+            att_vis_fn = model.module.calculate_all_attentions
+            plot_class = model.module.attention_plot_class
         else:
-            att_vis_fn = tacotron2.calculate_all_attentions
-        att_reporter = PlotAttentionReport(
+            att_vis_fn = model.calculate_all_attentions
+            plot_class = model.attention_plot_class
+        att_reporter = plot_class(
             att_vis_fn, data, args.outdir + '/att_ws',
             converter=CustomConverter(return_targets=False),
             transform=load_cv,
@@ -372,7 +370,7 @@ def train(args):
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, att_reporter))
 
     if use_sortagrad:
@@ -399,17 +397,17 @@ def decode(args):
 
     # define model
     model_class = dynamic_import(train_args.model_module)
-    tacotron2 = model_class(idim, odim, train_args)
-    logging.info(tacotron2)
+    model = model_class(idim, odim, train_args)
+    logging.info(model)
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    torch_load(args.model, tacotron2)
-    tacotron2.eval()
+    torch_load(args.model, model)
+    model.eval()
 
     # set torch device
     device = torch.device("cuda" if args.ngpu > 0 else "cpu")
-    tacotron2 = tacotron2.to(device)
+    model = model.to(device)
 
     # read json data
     with open(args.json, 'rb') as f:
@@ -443,7 +441,7 @@ def decode(args):
             x = torch.LongTensor(x).to(device)
 
             # decode and write
-            outs, _, _ = tacotron2.inference(x, args, spemb)
+            outs, _, _ = model.inference(x, args, spemb)
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
