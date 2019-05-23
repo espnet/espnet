@@ -17,73 +17,22 @@ verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 
 # configuration path
-preprocess_conf=conf/preprocess.json
-
-# network architecture
-# beamformer related
-use_beamformer=true
-blayers=3
-bunits=300
-bprojs=300
-ref_channel=-1  # Specified ref mic for beamformer. If <0, use attention dnn
-
-# encoder related
-etype=vggblstmp     # encoder architecture type
-elayers=3
-eunits=1024
-eprojs=1024
-subsample=1_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=1
-dunits=1024
-# attention related
-atype=location
-adim=1024
-aconv_chans=10
-aconv_filts=100
-
-# hybrid CTC/attention
-mtlalpha=0.5
-
-# minibatch related
-batchsize=10
-maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
-# optimization related
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-opt=adadelta
-epochs=12
-patience=3
+preprocess_config=conf/preprocess.json
+train_config=conf/train.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
-lm_layers=1         # 2 for character LMs
-lm_units=1000       # 650 for character LMs
-lm_opt=sgd          # adam for character LMs
-lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-lm_batchsize=300    # 1024 for character LMs
-lm_epochs=20        # number of epochs
-lm_patience=3
-lm_maxlen=40        # 150 for character LMs
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
 
 # decoding parameter
-lm_weight=1.0
-beam_size=20
-penalty=0
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # enhanced speech option
 fs=16000
-
-# scheduled sampling option
-samp_prob=0.0
 
 # data
 chime4_data=/export/corpora4/CHiME4/CHiME3    # JHU setup
@@ -186,7 +135,7 @@ echo "dictionary: ${dict}"
 nlsyms=data/lang_1char/non_lang_syms.txt
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs$((batchsize * ngpu))_mli${maxlen_in}_mlo${maxlen_out}_usebf${use_beamformer}_bunit${bunits}_bproj${bprojs}
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -215,7 +164,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for setname in tr05_multi_noisy_multich ${train_dev} ${recog_set}; do
         data2json.sh --cmd "${train_cmd}" --nj 30 \
             --category "multichannel" \
-            --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
+            --preprocess-conf ${preprocess_config} --filetype sound.hdf5 \
             --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
             --out data/${setname}/data.json data/${setname} ${dict}
     done
@@ -223,7 +172,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     setname=train_si284
     data2json.sh --cmd "${train_cmd}" --nj 30 \
         --category "singlechannel" \
-        --preprocess-conf ${preprocess_conf} --filetype sound.hdf5 \
+        --preprocess-conf ${preprocess_config} --filetype sound.hdf5 \
         --feat data/${setname}/feats.scp --nlsyms ${nlsyms} \
         --out data/${setname}/data.json data/${setname} ${dict}
 
@@ -234,7 +183,7 @@ fi
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+    lmtag=$(basename ${lm_config%.*})
     if [ ${use_wordlm} = true ]; then
         lmtag=${lmtag}_word${lm_vocabsize}
     fi
@@ -275,6 +224,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
+        --config ${lm_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
@@ -283,14 +233,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --sortagrad ${lm_sortagrad} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --patience ${lm_patience} \
-        --maxlen ${lm_maxlen} \
         --dict ${lmdict}
 fi
 
@@ -300,12 +242,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
-        --use-frontend True \
-        --use-beamformer ${use_beamformer} \
-        --blayers ${blayers} \
-        --bunits ${bunits} \
-        --bprojs ${bprojs} \
-        --ref-channel ${ref_channel} \
+        --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -318,27 +255,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --resume ${resume} \
         --train-json data/${train_set}/data.json \
         --valid-json data/${train_dev}/data.json \
-        --preprocess-conf ${preprocess_conf} \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --sampling-probability ${samp_prob} \
-        --maxlen-out ${maxlen_out} \
-        --opt ${opt} \
-        --sortagrad ${sortagrad} \
-        --epochs ${epochs} \
-        --patience ${patience}
+        --preprocess-conf ${preprocess_config}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -348,7 +265,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
 
         if [ ${use_wordlm} = true ]; then
             recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
@@ -364,18 +281,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --debugmode ${debugmode} \
             --recog-json data/${rtask}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            --lm-weight ${lm_weight} \
             ${recog_opts}
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
 
