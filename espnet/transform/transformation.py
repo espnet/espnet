@@ -7,6 +7,8 @@ import sys
 
 
 from espnet.utils.dynamic_import import dynamic_import
+from espnet.utils.check_kwargs import check_kwargs
+
 
 PY2 = sys.version_info[0] == 2
 
@@ -19,7 +21,13 @@ else:
     from inspect import signature
 
 
+# TODO(karita): inherit TransformInterface
+# TODO(karita): register cmd arguments in asr_train.py
 import_alias = dict(
+    time_warp='espnet.transform.spec_augment:TimeWarp',
+    time_mask='espnet.transform.spec_augment:TimeMask',
+    freq_mask='espnet.transform.spec_augment:FreqMask',
+    spec_augment='espnet.transform.spec_augment:SpecAugment',
     speed_perturbation='espnet.transform.perturb:SpeedPerturbation',
     volume_perturbation='espnet.transform.perturb:VolumePerturbation',
     noise_injection='espnet.transform.perturb:NoiseInjection',
@@ -73,6 +81,7 @@ class Transformation(object):
                 opts = dict(process)
                 process_type = opts.pop('type')
                 class_obj = dynamic_import(process_type, import_alias)
+                # TODO(karita): assert isinstance(class_obj, TransformInterface)
                 try:
                     self.functions[idx] = class_obj(**opts)
                 except TypeError:
@@ -114,7 +123,7 @@ class Transformation(object):
         if self.conf.get('mode', 'sequential') == 'sequential':
             for idx in range(len(self.conf['process'])):
                 func = self.functions[idx]
-
+                # TODO(karita): use TrainingTrans and UttTrans to check __call__ args
                 # Derive only the args which the func has
                 try:
                     param = signature(func).parameters
