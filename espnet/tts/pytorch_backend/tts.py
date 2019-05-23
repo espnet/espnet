@@ -200,7 +200,7 @@ def train(args):
     # reverse input and output dimension
     idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    if args.use_cbhg:
+    if args.use_cbhg if hasattr(args, "use_cbhg") else False:
         args.spc_dim = int(valid_json[utts[0]]['input'][1]['shape'][1])
     if args.use_speaker_embedding:
         args.spk_embed_dim = int(valid_json[utts[0]]['input'][1]['shape'][0])
@@ -351,7 +351,7 @@ def train(args):
                                          'epoch', file_name='mse_loss.png'))
     trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
                                          'epoch', file_name='bce_loss.png'))
-    if args.use_cbhg:
+    if args.use_cbhg if hasattr(args, "use_cbhg") else False:
         plot_keys += ['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss',
                       'main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss']
         trainer.extend(extensions.PlotReport(['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss'],
