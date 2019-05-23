@@ -22,7 +22,7 @@ fi
 
 dir=$1
 dic=$2
-tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
+tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
 rm -f ${tmpdir}/*.scp
 
 # input, which is not necessary for decoding mode, and make it as an option
@@ -51,11 +51,11 @@ if [[ "$unpaired" == "text" || $unpaired == "" ]]; then
     else
         text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/token.scp
     fi
-    cat ${tmpdir}/token.scp | utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/tokenid.scp
-    cat ${tmpdir}/tokenid.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/olen.scp 
+    utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} < ${tmpdir}/token.scp > ${tmpdir}/tokenid.scp
+    awk '{print $1 " " NF-1}' < ${tmpdir}/tokenid.scp > ${tmpdir}/olen.scp 
     # +2 comes from CTC blank and EOS
-    vocsize=`tail -n 1 ${dic} | awk '{print $2}'`
-    odim=`echo "$vocsize + 2" | bc`
+    vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
+    odim=$(echo "$vocsize + 2" | bc)
     awk -v odim=${odim} '{print $1 " " odim}' ${dir}/text > ${tmpdir}/odim.scp
 
     # others
@@ -73,8 +73,8 @@ if [[ $unpaired == "text" || $unpaired == "" ]]; then
 fi
 
 for x in $opts; do
-    k=`basename ${x} .scp`
-    cat ${x} | scp2json.py --key ${k} > ${tmpdir}/${k}.json
+    k=$(basename ${x} .scp)
+    scp2json.py --key ${k} < ${x} > ${tmpdir}/${k}.json
 done
 mergejson_asrtts.py --unpaired "$unpaired" --verbose ${verbose} ${tmpdir}/*.json
 

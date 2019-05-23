@@ -108,6 +108,7 @@ asrtts_train=true
 asrtts_decode=true
 unpair=dualp
 policy_gradient=true
+use_rnnlm=false
 rnnlm_loss=none
 embed_dim=512
 
@@ -385,11 +386,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         # split data
         splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
         #### use CPU for decoding
-        ngpu=0
         # set batchsize 0 to disable batch decoding
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
-            --ngpu ${ngpu} \
+            --ngpu 0 \
             --backend ${backend} \
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
@@ -468,10 +468,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
     minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
     if [ $tts_train == 'true' ]; then
-    ${cuda_cmd} --gpu ${ngpu} ${ttsexpdir}/train.log \
+    ${cuda_cmd} --gpu 1 ${ttsexpdir}/train.log \
         tts_train.py \
            --backend ${backend} \
-           --ngpu ${ngpu} \
+           --ngpu 1 \
            --outdir ${ttsexpdir}/results \
            --tensorboard-dir tensorboard/${ttsexpdir} \
            --verbose ${verbose} \
@@ -601,9 +601,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
     if [ $asrtts_train == 'true' ]; then
         echo "stage 5: Network Training"
-        ${cuda_cmd} --gpu ${ngpu} ${asrttsexpdir}/train.log \
+        ${cuda_cmd} --gpu 1 ${asrttsexpdir}/train.log \
         asrtts_train.py \
-        --ngpu ${ngpu} \
+        --ngpu 1 \
         --backend ${backend} \
         --outdir ${asrttsexpdir}/results \
         --debugmode ${debugmode} \
