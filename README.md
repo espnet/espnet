@@ -243,13 +243,12 @@ Instead of giving arguments directly, we recommend you to modify the yaml file a
 We also provide a utility to generate a yaml file from the input yaml file:
 
 ```bash
-# e.g. You can give any parameters as '-a key=value' and '-a' is repeatable.
+# e.g. You can give any parameters as '-a key=value' and '-a' is repeatable. 
+#      This generates new file at 'conf/train_batch-size24_epochs10.yaml'
 ./run.sh --train-config $(change_yaml.py conf/train.yaml -a batch-size=24 -a epochs=10)
-# e.g. '-o' option specfies the output file name.
+# e.g. '-o' option specfies the output file name instead of auto named file.
 ./run.sh --train-config $(change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size=24)
 ```
-
-If `-o` is ommited, `chanege_yaml.py` creates a yaml file named as including thevalue in all arguments, e.g. `conf/train_batch-size24.yaml` in this case.
 
 ### Error due to ACS (Multiple GPUs)
 
