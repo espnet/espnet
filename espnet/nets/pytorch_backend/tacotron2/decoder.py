@@ -64,6 +64,7 @@ class Prenet(torch.nn.Module):
     """
 
     def __init__(self, idim, odim, n_layers=2, n_units=256):
+        super(Prenet, self).__init__()
         self.prenet = torch.nn.ModuleList()
         for layer in six.moves.range(n_layers):
             ichans = odim if layer == 0 else n_layers
@@ -96,6 +97,7 @@ class Postnet(torch.nn.Module):
     """
 
     def __init__(self, idim, odim, n_layers=5, n_chans=512, n_filts=5, dropout=0.5, use_batch_norm=True):
+        super(Postnet, self).__init__()
         self.postnet = torch.nn.ModuleList()
         for layer in six.moves.range(n_layers - 1):
             ichans = odim if layer == 0 else n_chans
