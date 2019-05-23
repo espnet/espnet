@@ -10,7 +10,6 @@ import torch
 from argparse import Namespace
 
 from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
-from espnet.nets.pytorch_backend.e2e_tts import Tacotron2Loss
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
@@ -53,14 +52,7 @@ def make_model_args(**kwargs):
         cbhg_conv_proj_chans=256,
         cbhg_highway_layers=4,
         cbhg_highway_units=128,
-        cbhg_gru_units=256
-    )
-    defaults.update(kwargs)
-    return defaults
-
-
-def make_loss_args(**kwargs):
-    defaults = dict(
+        cbhg_gru_units=256,
         use_masking=True,
         bce_pos_weight=1.0
     )
@@ -127,7 +119,6 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
 def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
     # make args
     model_args = make_model_args(**model_dict)
-    loss_args = make_loss_args(**loss_dict)
     inference_args = make_inference_args()
 
     # setup batch
@@ -146,11 +137,10 @@ def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
 
     # define model
     model = Tacotron2(idim, odim, Namespace(**model_args))
-    criterion = Tacotron2Loss(model, Namespace(**loss_args))
     optimizer = torch.optim.Adam(model.parameters())
 
     # trainable
-    loss = criterion(xs, ilens, ys, labels, olens, spembs, spcs)
+    loss = model(xs, ilens, ys, labels, olens, spembs, spcs)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -178,14 +168,12 @@ def test_tacotron2_gpu_trainable(model_dict):
     idim = 5
     odim = 10
     model_args = make_model_args(**model_dict)
-    loss_args = make_loss_args()
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
                            model_args['spk_embed_dim'], model_args['spc_dim'])
     batch = (x.cuda() if x is not None else None for x in batch)
 
     # define model
-    tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
-    model = Tacotron2Loss(tacotron2, Namespace(**loss_args))
+    model = Tacotron2(idim, odim, Namespace(**model_args))
     optimizer = torch.optim.Adam(model.parameters())
     model.cuda()
 
@@ -213,15 +201,13 @@ def test_tacotron2_multi_gpu_trainable(model_dict):
     idim = 5
     odim = 10
     model_args = make_model_args(**model_dict)
-    loss_args = make_loss_args()
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
                            model_args['spk_embed_dim'], model_args['spc_dim'])
     batch = (x.cuda() if x is not None else None for x in batch)
 
     # define model
-    tacotron2 = Tacotron2(idim, odim, Namespace(**model_args))
-    tacotron2 = torch.nn.DataParallel(tacotron2, device_ids)
-    model = Tacotron2Loss(tacotron2, Namespace(**loss_args))
+    model = Tacotron2(idim, odim, Namespace(**model_args))
+    model = torch.nn.DataParallel(model, device_ids)
     optimizer = torch.optim.Adam(model.parameters())
     model.cuda()
 
