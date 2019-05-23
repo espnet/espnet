@@ -4,12 +4,13 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from __future__ import unicode_literals
+
 import argparse
 import codecs
 import json
 import logging
 import sys
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

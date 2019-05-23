@@ -155,7 +155,7 @@ for part in dev-clean test-clean dev-other test-other train-clean-100 train-clea
     fi
 done
 
-nj=100
+nj=20
 dev_set=$train_dev
 eval_set=test_clean
 fbankdir=fbank
@@ -184,6 +184,7 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Feature extraction for TTS and ASR"
     for x in dev_clean test_clean train_clean_100 train_clean_360; do
+        if [ ! -s data/${x}/feats.scp ]; then
         make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
             --fs ${fs} \
             --fmax "${fmax}" \
@@ -195,6 +196,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             data/${x} \
             exp/make_fbank/${x} \
             ${fbankdir}
+        fi
     done
     utils/combine_data.sh data/${train_set}_org data/train_clean_100 data/train_clean_360
     utils/combine_data.sh data/${dev_set}_org data/dev_clean
@@ -233,9 +235,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     else
         echo "make a non-linguistic symbol list"
-        cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
-        cat ${nlsyms}
-        text2token.py -s 1 -n 1 $nlsyms data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
+        #cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
+        #cat ${nlsyms}
+        text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
         | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     fi
     wc -l ${dict}
