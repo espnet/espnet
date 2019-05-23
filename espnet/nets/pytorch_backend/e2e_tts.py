@@ -66,10 +66,6 @@ class CBHGLoss(torch.nn.Module):
         :return: mean square error loss value
         :rtype: torch.Tensor
         """
-        # remove padded part
-        cbhg_outs = cbhg_outs[:, :max(olens)]
-        spcs = spcs[:, :max(olens)]
-
         # perform masking for padded values
         if self.use_masking:
             mask = make_non_pad_mask(olens).unsqueeze(-1).to(spcs.device)
