@@ -63,13 +63,14 @@ class Prenet(torch.nn.Module):
     :param int n_units: the number of prenet units
     """
 
-    def __init__(self, idim, odim, n_layers=2, n_units=256):
+    def __init__(self, idim, n_layers=2, n_units=256, dropout=0.5):
         super(Prenet, self).__init__()
+        self.dropout = dropout
         self.prenet = torch.nn.ModuleList()
         for layer in six.moves.range(n_layers):
-            ichans = odim if layer == 0 else n_layers
+            n_inputs = idim if layer == 0 else n_units
             self.prenet += [torch.nn.Sequential(
-                torch.nn.Linear(ichans, n_units, bias=False),
+                torch.nn.Linear(n_inputs, n_units, bias=False),
                 torch.nn.ReLU())]
 
     def forward(self, x):
@@ -79,7 +80,7 @@ class Prenet(torch.nn.Module):
         :return: output tensor (B, odim)
         :rtype: torch.Tensor
         """
-        for l in six.moves.range(self.prenet):
+        for l in six.moves.range(len(self.prenet)):
             x = F.dropout(self.prenet[l](x), self.dropout)
         return x
 
@@ -225,10 +226,10 @@ class Decoder(torch.nn.Module):
         # define prenet
         if self.prenet_layers > 0:
             self.prenet = Prenet(
-                idim=self.idim,
-                odim=self.odim,
+                idim=self.odim,
                 n_layers=self.prenet_layers,
-                n_units=self.prenet_units)
+                n_units=self.prenet_units,
+                dropout=self.dropout)
         else:
             self.prenet = None
         # define postnet
@@ -295,7 +296,7 @@ class Decoder(torch.nn.Module):
                 att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
             else:
                 att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
-            prenet_out = self.prenet(prev_out)
+            prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
@@ -316,7 +317,10 @@ class Decoder(torch.nn.Module):
         if self.reduction_factor > 1:
             before_outs = before_outs.view(before_outs.size(0), self.odim, -1)  # (B, odim, Lmax)
 
-        after_outs = before_outs + self.postnet(before_outs)  # (B, odim, Lmax)
+        if self.postnet is not None:
+            after_outs = before_outs + self.postnet(before_outs)  # (B, odim, Lmax)
+        else:
+            after_outs = before_outs
         before_outs = before_outs.transpose(2, 1)  # (B, Lmax, odim)
         after_outs = after_outs.transpose(2, 1)  # (B, Lmax, odim)
         logits = logits
@@ -374,7 +378,7 @@ class Decoder(torch.nn.Module):
             else:
                 att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w)
             att_ws += [att_w]
-            prenet_out = self.prenet(prev_out)
+            prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
@@ -398,7 +402,8 @@ class Decoder(torch.nn.Module):
                 if idx < minlen:
                     continue
                 outs = torch.cat(outs, dim=2)  # (1, odim, L)
-                outs = outs + self.postnet(outs)  # (1, odim, L)
+                if self.postnet is not None:
+                    outs = outs + self.postnet(outs)  # (1, odim, L)
                 outs = outs.transpose(2, 1).squeeze(0)  # (L, odim)
                 probs = torch.cat(probs, dim=0)
                 att_ws = torch.cat(att_ws, dim=0)
@@ -445,7 +450,7 @@ class Decoder(torch.nn.Module):
             else:
                 att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
             att_ws += [att_w]
-            prenet_out = self.prenet(prev_out)
+            prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):
