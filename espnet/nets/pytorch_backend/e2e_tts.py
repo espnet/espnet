@@ -8,7 +8,6 @@ import logging
 
 from distutils.util import strtobool
 
-import chainer
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -22,6 +21,7 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
+from espnet.nets.tts_interface import TTSLossInterface
 
 
 def make_non_pad_mask(lengths):
@@ -46,32 +46,35 @@ def make_non_pad_mask(lengths):
     return seq_range_expand < seq_length_expand
 
 
-class Reporter(chainer.Chain):
-    def report(self, dicts):
-        for d in dicts:
-            chainer.reporter.report(d, self)
-
-
-class Tacotron2Loss(torch.nn.Module):
+class Tacotron2Loss(TTSLossInterface, torch.nn.Module):
     """Tacotron2 loss function
 
     :param torch.nn.Module model: tacotron2 model
-    :param bool use_masking: whether to mask padded part in loss calculation
-    :param float bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
+    :param Namespace args: argments containing following attributes
+        (bool) use_masking: whether to mask padded part in loss calculation
+        (float) bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
 
-    def __init__(self, model, use_masking=True, bce_pos_weight=1.0):
+    @staticmethod
+    def add_arguments(parser):
+        parser.add_argument('--use_masking', default=False, type=strtobool,
+                            help='Whether to use masking in calculation of loss')
+        parser.add_argument('--bce_pos_weight', default=20.0, type=float,
+                            help='Positive sample weight in BCE calculation (only for use_masking=True)')
+        return parser
+
+    def __init__(self, model, args):
+        super(TTSLossInterface, self).__init__()
         super(Tacotron2Loss, self).__init__()
         self.model = model
-        self.use_masking = use_masking
-        self.bce_pos_weight = bce_pos_weight
+        self.use_masking = args.use_masking
+        self.bce_pos_weight = args.bce_pos_weight
         if hasattr(model, 'module'):
             self.use_cbhg = model.module.use_cbhg
             self.reduction_factor = model.module.reduction_factor
         else:
             self.use_cbhg = model.use_cbhg
             self.reduction_factor = model.reduction_factor
-        self.reporter = Reporter()
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
         """Tacotron2 loss forward computation
