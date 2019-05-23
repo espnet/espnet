@@ -21,7 +21,7 @@ def main(cmd_args):
     parser = configargparse.ArgumentParser(
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-    
+
     # general configuration
     parser.add('--config', is_config_file=True, help='config file path')
     parser.add('--config2', is_config_file=True,

@@ -49,6 +49,7 @@ class CBHGLoss(torch.nn.Module):
     :param Namespace args: argments containing following attributes
         (bool) use_masking: whether to mask padded part in loss calculation
     """
+
     def __init__(self, args):
         super(CBHGLoss, self).__init__()
         self.reduction_factor = args.reduction_factor
