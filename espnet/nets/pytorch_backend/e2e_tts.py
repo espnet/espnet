@@ -1,37 +1,27 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
-from __future__ import division
-
 import logging
-import six
+
+from distutils.util import strtobool
 
 import chainer
 import numpy as np
 import torch
 import torch.nn.functional as F
 
-from torch.nn.utils.rnn import pack_padded_sequence
-from torch.nn.utils.rnn import pad_packed_sequence
-
+from espnet.asr.asr_utils import PlotAttentionReport
+from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
-
-from espnet.nets.pytorch_backend.nets_utils import to_device
-
-
-def encoder_init(m):
-    if isinstance(m, torch.nn.Conv1d):
-        torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('relu'))
-
-
-def decoder_init(m):
-    if isinstance(m, torch.nn.Conv1d):
-        torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain('tanh'))
+from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
+from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
+from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
+from espnet.nets.tts_interface import TTSInterface
 
 
 def make_non_pad_mask(lengths):
@@ -60,43 +50,6 @@ class Reporter(chainer.Chain):
     def report(self, dicts):
         for d in dicts:
             chainer.reporter.report(d, self)
-
-
-class ZoneOutCell(torch.nn.Module):
-    """ZoneOut Cell
-
-    This code is modified from https://github.com/eladhoffer/seq2seq.pytorch
-
-    :param torch.nn.Module cell: pytorch recurrent cell
-    :param float zoneout_prob: probability of zoneout
-    """
-
-    def __init__(self, cell, zoneout_prob=0.1):
-        super(ZoneOutCell, self).__init__()
-        self.cell = cell
-        self.hidden_size = cell.hidden_size
-        self.zoneout_prob = zoneout_prob
-        if zoneout_prob > 1.0 or zoneout_prob < 0.0:
-            raise ValueError("zoneout probability must be in the range from 0.0 to 1.0.")
-
-    def forward(self, inputs, hidden):
-        next_hidden = self.cell(inputs, hidden)
-        next_hidden = self._zoneout(hidden, next_hidden, self.zoneout_prob)
-        return next_hidden
-
-    def _zoneout(self, h, next_h, prob):
-        # apply recursively
-        if isinstance(h, tuple):
-            num_h = len(h)
-            if not isinstance(prob, tuple):
-                prob = tuple([prob] * num_h)
-            return tuple([self._zoneout(h[i], next_h[i], prob[i]) for i in range(num_h)])
-
-        if self.training:
-            mask = h.new(*h.size()).bernoulli_(prob)
-            return mask * h + (1 - mask) * next_h
-        else:
-            return prob * h + (1 - prob) * next_h
 
 
 class Tacotron2Loss(torch.nn.Module):
@@ -197,7 +150,7 @@ class Tacotron2Loss(torch.nn.Module):
         return loss
 
 
-class Tacotron2(torch.nn.Module):
+class Tacotron2(TTSInterface, torch.nn.Module):
     """Tacotron2 based Seq2Seq converts chars to features
 
     :param int idim: dimension of the inputs
@@ -236,6 +189,88 @@ class Tacotron2(torch.nn.Module):
         (int) cbhg_highway_units: the number of units of highway network in CBHG
         (int) cbhg_gru_units: the number of units of GRU in CBHG
     """
+
+    @staticmethod
+    def add_arguments(parser):
+        # encoder
+        parser.add_argument('--embed_dim', default=512, type=int,
+                            help='Number of dimension of embedding')
+        parser.add_argument('--elayers', default=1, type=int,
+                            help='Number of encoder layers')
+        parser.add_argument('--eunits', '-u', default=512, type=int,
+                            help='Number of encoder hidden units')
+        parser.add_argument('--econv_layers', default=3, type=int,
+                            help='Number of encoder convolution layers')
+        parser.add_argument('--econv_chans', default=512, type=int,
+                            help='Number of encoder convolution channels')
+        parser.add_argument('--econv_filts', default=5, type=int,
+                            help='Filter size of encoder convolution')
+        # attention
+        parser.add_argument('--atype', default="location", type=str,
+                            choices=["forward_ta", "forward", "location"],
+                            help='Type of attention mechanism')
+        parser.add_argument('--adim', default=512, type=int,
+                            help='Number of attention transformation dimensions')
+        parser.add_argument('--aconv-chans', default=32, type=int,
+                            help='Number of attention convolution channels')
+        parser.add_argument('--aconv-filts', default=15, type=int,
+                            help='Filter size of attention convolution')
+        parser.add_argument('--cumulate_att_w', default=True, type=strtobool,
+                            help="Whether or not to cumulate attention weights")
+        # decoder
+        parser.add_argument('--dlayers', default=2, type=int,
+                            help='Number of decoder layers')
+        parser.add_argument('--dunits', default=1024, type=int,
+                            help='Number of decoder hidden units')
+        parser.add_argument('--prenet_layers', default=2, type=int,
+                            help='Number of prenet layers')
+        parser.add_argument('--prenet_units', default=256, type=int,
+                            help='Number of prenet hidden units')
+        parser.add_argument('--postnet_layers', default=5, type=int,
+                            help='Number of postnet layers')
+        parser.add_argument('--postnet_chans', default=512, type=int,
+                            help='Number of postnet channels')
+        parser.add_argument('--postnet_filts', default=5, type=int,
+                            help='Filter size of postnet')
+        parser.add_argument('--output_activation', default=None, type=str, nargs='?',
+                            help='Output activation function')
+        # cbhg
+        parser.add_argument('--use_cbhg', default=False, type=strtobool,
+                            help='Whether to use CBHG module')
+        parser.add_argument('--cbhg_conv_bank_layers', default=8, type=int,
+                            help='Number of convoluional bank layers in CBHG')
+        parser.add_argument('--cbhg_conv_bank_chans', default=128, type=int,
+                            help='Number of convoluional bank channles in CBHG')
+        parser.add_argument('--cbhg_conv_proj_filts', default=3, type=int,
+                            help='Filter size of convoluional projection layer in CBHG')
+        parser.add_argument('--cbhg_conv_proj_chans', default=256, type=int,
+                            help='Number of convoluional projection channels in CBHG')
+        parser.add_argument('--cbhg_highway_layers', default=4, type=int,
+                            help='Number of highway layers in CBHG')
+        parser.add_argument('--cbhg_highway_units', default=128, type=int,
+                            help='Number of highway units in CBHG')
+        parser.add_argument('--cbhg_gru_units', default=256, type=int,
+                            help='Number of GRU units in CBHG')
+        # model (parameter) related
+        parser.add_argument('--use_speaker_embedding', default=False, type=strtobool,
+                            help='Whether to use speaker embedding')
+        parser.add_argument('--use_batch_norm', default=True, type=strtobool,
+                            help='Whether to use batch normalization')
+        parser.add_argument('--use_concate', default=True, type=strtobool,
+                            help='Whether to concatenate encoder embedding with decoder outputs')
+        parser.add_argument('--use_residual', default=True, type=strtobool,
+                            help='Whether to use residual connection in conv layer')
+        parser.add_argument('--dropout', default=0.5, type=float,
+                            help='Dropout rate')
+        parser.add_argument('--zoneout', default=0.1, type=float,
+                            help='Zoneout rate')
+        parser.add_argument('--reduction_factor', default=1, type=int,
+                            help='Reduction factor')
+        return
+
+    @property
+    def attention_plot_class(self):
+        return PlotAttentionReport
 
     def __init__(self, idim, odim, args):
         super(Tacotron2, self).__init__()
@@ -350,10 +385,6 @@ class Tacotron2(torch.nn.Module):
                              highway_units=self.cbhg_highway_units,
                              gru_units=self.cbhg_gru_units)
 
-        # initialize
-        self.enc.apply(encoder_init)
-        self.dec.apply(decoder_init)
-
     def forward(self, xs, ilens, ys, olens=None, spembs=None):
         """Tacotron2 forward computation
 
@@ -447,631 +478,3 @@ class Tacotron2(torch.nn.Module):
         self.train()
 
         return att_ws.cpu().numpy()
-
-
-class Encoder(torch.nn.Module):
-    """Character embedding encoder
-
-    This is the encoder which converts the sequence of characters into
-    the sequence of hidden states. The network structure is based on
-    that of tacotron2 in the field of speech synthesis.
-
-    :param int idim: dimension of the inputs
-    :param int embed_dim: dimension of character embedding
-    :param int elayers: the number of encoder blstm layers
-    :param int eunits: the number of encoder blstm units
-    :param int econv_layers: the number of encoder conv layers
-    :param int econv_filts: the number of encoder conv filter size
-    :param int econv_chans: the number of encoder conv filter channels
-    :param bool use_batch_norm: whether to use batch normalization
-    :param float dropout: dropout rate
-    """
-
-    def __init__(self, idim,
-                 embed_dim=512,
-                 elayers=1,
-                 eunits=512,
-                 econv_layers=3,
-                 econv_chans=512,
-                 econv_filts=5,
-                 use_batch_norm=True,
-                 use_residual=False,
-                 dropout=0.5):
-        super(Encoder, self).__init__()
-        # store the hyperparameters
-        self.idim = idim
-        self.embed_dim = embed_dim
-        self.elayers = elayers
-        self.eunits = eunits
-        self.econv_layers = econv_layers
-        self.econv_chans = econv_chans if econv_layers != 0 else -1
-        self.econv_filts = econv_filts if econv_layers != 0 else -1
-        self.use_batch_norm = use_batch_norm
-        self.use_residual = use_residual
-        self.dropout = dropout
-        # define network layer modules
-        self.embed = torch.nn.Embedding(self.idim, self.embed_dim)
-        if self.econv_layers > 0:
-            self.convs = torch.nn.ModuleList()
-            for layer in six.moves.range(self.econv_layers):
-                ichans = self.embed_dim if layer == 0 else self.econv_chans
-                if self.use_batch_norm:
-                    self.convs += [torch.nn.Sequential(
-                        torch.nn.Conv1d(ichans, self.econv_chans, self.econv_filts, stride=1,
-                                        padding=(self.econv_filts - 1) // 2, bias=False),
-                        torch.nn.BatchNorm1d(self.econv_chans),
-                        torch.nn.ReLU(),
-                        torch.nn.Dropout(self.dropout))]
-                else:
-                    self.convs += [torch.nn.Sequential(
-                        torch.nn.Conv1d(ichans, self.econv_chans, self.econv_filts, stride=1,
-                                        padding=(self.econv_filts - 1) // 2, bias=False),
-                        torch.nn.ReLU(),
-                        torch.nn.Dropout(self.dropout))]
-        else:
-            self.convs = None
-        iunits = econv_chans if self.econv_layers != 0 else self.embed_dim
-        self.blstm = torch.nn.LSTM(
-            iunits, self.eunits // 2, self.elayers,
-            batch_first=True,
-            bidirectional=True)
-
-    def forward(self, xs, ilens):
-        """Character encoding forward computation
-
-        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param list ilens: list of lengths of each batch (B)
-        :return: batch of sequences of padded encoder states (B, Tmax, eunits)
-        :rtype: torch.Tensor
-        :return: batch of lengths of each encoder states (B)
-        :rtype: list
-        """
-        xs = self.embed(xs).transpose(1, 2)
-        for l in six.moves.range(self.econv_layers):
-            if self.use_residual:
-                xs += self.convs[l](xs)
-            else:
-                xs = self.convs[l](xs)
-        xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
-        self.blstm.flatten_parameters()
-        xs, _ = self.blstm(xs)  # (B, Tmax, C)
-        xs, hlens = pad_packed_sequence(xs, batch_first=True)
-
-        return xs, hlens
-
-    def inference(self, x):
-        """Character encoder inference
-
-        :param torch.Tensor x: the sequence of character ids (T)
-        :return: the sequence encoder states (T, eunits)
-        :rtype: torch.Tensor
-        """
-        assert len(x.size()) == 1
-        xs = x.unsqueeze(0)
-        ilens = [x.size(0)]
-
-        return self.forward(xs, ilens)[0][0]
-
-
-class Decoder(torch.nn.Module):
-    """Decoder to predict the sequence of features
-
-    This the decoder which generate the sequence of features from
-    the sequence of the hidden states. The network structure is
-    based on that of the tacotron2 in the field of speech synthesis.
-
-    :param int idim: dimension of the inputs
-    :param int odim: dimension of the outputs
-    :param instance att: instance of attention class
-    :param int dlayers: the number of decoder lstm layers
-    :param int dunits: the number of decoder lstm units
-    :param int prenet_layers: the number of prenet layers
-    :param int prenet_units: the number of prenet units
-    :param int postnet_layers: the number of postnet layers
-    :param int postnet_filts: the number of postnet filter size
-    :param int postnet_chans: the number of postnet filter channels
-    :param function output_activation_fn: activation function for outputs
-    :param bool cumulate_att_w: whether to cumulate previous attention weight
-    :param bool use_batch_norm: whether to use batch normalization
-    :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
-    :param float dropout: dropout rate
-    :param float zoneout: zoneout rate
-    :param int reduction_factor: reduction factor
-    :param float threshold: threshold in inference
-    :param float minlenratio: minimum length ratio in inference
-    :param float maxlenratio: maximum length ratio in inference
-    """
-
-    def __init__(self, idim, odim, att,
-                 dlayers=2,
-                 dunits=1024,
-                 prenet_layers=2,
-                 prenet_units=256,
-                 postnet_layers=5,
-                 postnet_chans=512,
-                 postnet_filts=5,
-                 output_activation_fn=None,
-                 cumulate_att_w=True,
-                 use_batch_norm=True,
-                 use_concate=True,
-                 dropout=0.5,
-                 zoneout=0.1,
-                 threshold=0.5,
-                 reduction_factor=1,
-                 maxlenratio=5.0,
-                 minlenratio=0.0):
-        super(Decoder, self).__init__()
-        # store the hyperparameters
-        self.idim = idim
-        self.odim = odim
-        self.att = att
-        self.dlayers = dlayers
-        self.dunits = dunits
-        self.prenet_layers = prenet_layers
-        self.prenet_units = prenet_units if prenet_layers != 0 else self.odim
-        self.postnet_layers = postnet_layers
-        self.postnet_chans = postnet_chans if postnet_layers != 0 else -1
-        self.postnet_filts = postnet_filts if postnet_layers != 0 else -1
-        self.output_activation_fn = output_activation_fn
-        self.cumulate_att_w = cumulate_att_w
-        self.use_batch_norm = use_batch_norm
-        self.use_concate = use_concate
-        self.dropout = dropout
-        self.zoneout = zoneout
-        self.reduction_factor = reduction_factor
-        self.threshold = threshold
-        self.maxlenratio = maxlenratio
-        self.minlenratio = minlenratio
-        # check attention type
-        if isinstance(self.att, AttForwardTA):
-            self.use_att_extra_inputs = True
-        else:
-            self.use_att_extra_inputs = False
-        # define lstm network
-        self.lstm = torch.nn.ModuleList()
-        for layer in six.moves.range(self.dlayers):
-            iunits = self.idim + self.prenet_units if layer == 0 else self.dunits
-            lstm = torch.nn.LSTMCell(iunits, self.dunits)
-            if zoneout > 0.0:
-                lstm = ZoneOutCell(lstm, self.zoneout)
-            self.lstm += [lstm]
-        # define prenet
-        if self.prenet_layers > 0:
-            self.prenet = torch.nn.ModuleList()
-            for layer in six.moves.range(self.prenet_layers):
-                ichans = self.odim if layer == 0 else self.prenet_units
-                self.prenet += [torch.nn.Sequential(
-                    torch.nn.Linear(ichans, self.prenet_units, bias=False),
-                    torch.nn.ReLU())]
-        else:
-            self.prenet = None
-        # define postnet
-        if self.postnet_layers > 0:
-            self.postnet = torch.nn.ModuleList()
-            for layer in six.moves.range(self.postnet_layers - 1):
-                ichans = self.odim if layer == 0 else self.postnet_chans
-                ochans = self.odim if layer == self.postnet_layers - 1 else self.postnet_chans
-                if use_batch_norm:
-                    self.postnet += [torch.nn.Sequential(
-                        torch.nn.Conv1d(ichans, ochans, self.postnet_filts, stride=1,
-                                        padding=(self.postnet_filts - 1) // 2, bias=False),
-                        torch.nn.BatchNorm1d(ochans),
-                        torch.nn.Tanh(),
-                        torch.nn.Dropout(self.dropout))]
-                else:
-                    self.postnet += [torch.nn.Sequential(
-                        torch.nn.Conv1d(ichans, ochans, self.postnet_filts, stride=1,
-                                        padding=(self.postnet_filts - 1) // 2, bias=False),
-                        torch.nn.Tanh(),
-                        torch.nn.Dropout(self.dropout))]
-            ichans = self.postnet_chans if self.postnet_layers != 1 else self.odim
-            if use_batch_norm:
-                self.postnet += [torch.nn.Sequential(
-                    torch.nn.Conv1d(ichans, odim, self.postnet_filts, stride=1,
-                                    padding=(self.postnet_filts - 1) // 2, bias=False),
-                    torch.nn.BatchNorm1d(odim),
-                    torch.nn.Dropout(self.dropout))]
-            else:
-                self.postnet += [torch.nn.Sequential(
-                    torch.nn.Conv1d(ichans, odim, self.postnet_filts, stride=1,
-                                    padding=(self.postnet_filts - 1) // 2, bias=False),
-                    torch.nn.Dropout(self.dropout))]
-        else:
-            self.postnet = None
-        # define projection layers
-        iunits = self.idim + self.dunits if self.use_concate else self.dunits
-        self.feat_out = torch.nn.Linear(iunits, self.odim * self.reduction_factor, bias=False)
-        self.prob_out = torch.nn.Linear(iunits, self.reduction_factor)
-
-    def zero_state(self, hs):
-        init_hs = hs.new_zeros(hs.size(0), self.dunits)
-        return init_hs
-
-    def forward(self, hs, hlens, ys):
-        """Decoder forward computation
-
-        :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
-        :param list hlens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
-        :return: outputs with postnets (B, Lmax, odim)
-        :rtype: torch.Tensor
-        :return: outputs without postnets (B, Lmax, odim)
-        :rtype: torch.Tensor
-        :return: stop logits (B, Lmax)
-        :rtype: torch.Tensor
-        :return: attention weights (B, Lmax, Tmax)
-        :rtype: torch.Tensor
-        """
-        # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
-        if self.reduction_factor > 1:
-            ys = ys[:, self.reduction_factor - 1::self.reduction_factor]
-
-        # length list should be list of int
-        hlens = list(map(int, hlens))
-
-        # initialize hidden states of decoder
-        c_list = [self.zero_state(hs)]
-        z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
-            c_list += [self.zero_state(hs)]
-            z_list += [self.zero_state(hs)]
-        prev_out = hs.new_zeros(hs.size(0), self.odim)
-
-        # initialize attention
-        prev_att_w = None
-        self.att.reset()
-
-        # loop for an output sequence
-        outs, logits = [], []
-        for y in ys.transpose(0, 1):
-            if self.use_att_extra_inputs:
-                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
-            else:
-                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
-            prenet_out = self._prenet_forward(prev_out)
-            xs = torch.cat([att_c, prenet_out], dim=1)
-            z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.lstm[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-            zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
-            outs += [self.feat_out(zcs).view(hs.size(0), self.odim, -1)]
-            logits += [self.prob_out(zcs)]
-            prev_out = y  # teacher forcing
-            if self.cumulate_att_w and prev_att_w is not None:
-                prev_att_w = prev_att_w + att_w  # Note: error when use +=
-            else:
-                prev_att_w = att_w
-
-        logits = torch.cat(logits, dim=1)  # (B, Lmax)
-        before_outs = torch.cat(outs, dim=2)  # (B, odim, Lmax)
-
-        if self.reduction_factor > 1:
-            before_outs = before_outs.view(before_outs.size(0), self.odim, -1)  # (B, odim, Lmax)
-
-        after_outs = before_outs + self._postnet_forward(before_outs)  # (B, odim, Lmax)
-        before_outs = before_outs.transpose(2, 1)  # (B, Lmax, odim)
-        after_outs = after_outs.transpose(2, 1)  # (B, Lmax, odim)
-        logits = logits
-
-        # apply activation function for scaling
-        if self.output_activation_fn is not None:
-            before_outs = self.output_activation_fn(before_outs)
-            after_outs = self.output_activation_fn(after_outs)
-
-        return after_outs, before_outs, logits
-
-    def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0):
-        """Generate the sequence of features given the encoder hidden states
-
-        :param torch.Tensor h: the sequence of encoder states (T, C)
-        :param float threshold: threshold in inference
-        :param float minlenratio: minimum length ratio in inference
-        :param float maxlenratio: maximum length ratio in inference
-        :return: the sequence of features (L, D)
-        :rtype: torch.Tensor
-        :return: the sequence of stop probabilities (L)
-        :rtype: torch.Tensor
-        :return: the sequence of attention weight (L, T)
-        :rtype: torch.Tensor
-        """
-        # setup
-        assert len(h.size()) == 2
-        hs = h.unsqueeze(0)
-        ilens = [h.size(0)]
-        maxlen = int(h.size(0) * maxlenratio)
-        minlen = int(h.size(0) * minlenratio)
-
-        # initialize hidden states of decoder
-        c_list = [self.zero_state(hs)]
-        z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
-            c_list += [self.zero_state(hs)]
-            z_list += [self.zero_state(hs)]
-        prev_out = hs.new_zeros(1, self.odim)
-
-        # initialize attention
-        prev_att_w = None
-        self.att.reset()
-
-        # loop for an output sequence
-        idx = 0
-        outs, att_ws, probs = [], [], []
-        while True:
-            # updated index
-            idx += self.reduction_factor
-
-            # decoder calculation
-            if self.use_att_extra_inputs:
-                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w, prev_out)
-            else:
-                att_c, att_w = self.att(hs, ilens, z_list[0], prev_att_w)
-            att_ws += [att_w]
-            prenet_out = self._prenet_forward(prev_out)
-            xs = torch.cat([att_c, prenet_out], dim=1)
-            z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.lstm[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-            zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
-            outs += [self.feat_out(zcs).view(1, self.odim, -1)]  # [(1, odim, r), ...]
-            probs += [torch.sigmoid(self.prob_out(zcs))[0]]  # [(r), ...]
-            if self.output_activation_fn is not None:
-                prev_out = self.output_activation_fn(outs[-1][:, :, -1])  # (1, odim)
-            else:
-                prev_out = outs[-1][:, :, -1]  # (1, odim)
-            if self.cumulate_att_w and prev_att_w is not None:
-                prev_att_w = prev_att_w + att_w  # Note: error when use +=
-            else:
-                prev_att_w = att_w
-
-            # check whether to finish generation
-            if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
-                # check mininum length
-                if idx < minlen:
-                    continue
-                outs = torch.cat(outs, dim=2)  # (1, odim, L)
-                outs = outs + self._postnet_forward(outs)  # (1, odim, L)
-                outs = outs.transpose(2, 1).squeeze(0)  # (L, odim)
-                probs = torch.cat(probs, dim=0)
-                att_ws = torch.cat(att_ws, dim=0)
-                break
-
-        if self.output_activation_fn is not None:
-            outs = self.output_activation_fn(outs)
-
-        return outs, probs, att_ws
-
-    def calculate_all_attentions(self, hs, hlens, ys):
-        """Decoder attention calculation
-
-        :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
-        :param list hlens: list of lengths of each input batch (B)
-        :param torch.Tensor ys: batch of the sequences of padded target features (B, Lmax, odim)
-        :return: attention weights (B, Lmax, Tmax)
-        :rtype: numpy array
-        """
-        # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
-        if self.reduction_factor > 1:
-            ys = ys[:, self.reduction_factor - 1::self.reduction_factor]
-
-        # length list should be list of int
-        hlens = list(map(int, hlens))
-
-        # initialize hidden states of decoder
-        c_list = [self.zero_state(hs)]
-        z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
-            c_list += [self.zero_state(hs)]
-            z_list += [self.zero_state(hs)]
-        prev_out = hs.new_zeros(hs.size(0), self.odim)
-
-        # initialize attention
-        prev_att_w = None
-        self.att.reset()
-
-        # loop for an output sequence
-        att_ws = []
-        for y in ys.transpose(0, 1):
-            if self.use_att_extra_inputs:
-                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
-            else:
-                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
-            att_ws += [att_w]
-            prenet_out = self._prenet_forward(prev_out)
-            xs = torch.cat([att_c, prenet_out], dim=1)
-            z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.lstm[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-            prev_out = y  # teacher forcing
-            if self.cumulate_att_w and prev_att_w is not None:
-                prev_att_w = prev_att_w + att_w  # Note: error when use +=
-            else:
-                prev_att_w = att_w
-
-        att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
-
-        return att_ws
-
-    def _prenet_forward(self, x):
-        if self.prenet is not None:
-            for l in six.moves.range(self.prenet_layers):
-                x = F.dropout(self.prenet[l](x), self.dropout)
-        return x
-
-    def _postnet_forward(self, xs):
-        if self.postnet is not None:
-            for l in six.moves.range(self.postnet_layers):
-                xs = self.postnet[l](xs)
-        return xs
-
-
-class CBHG(torch.nn.Module):
-    """CBHG module to convert log mel-fbank to linear spectrogram
-
-    :param int idim: dimension of the inputs
-    :param int odim: dimension of the outputs
-    :param int conv_bank_layers: the number of convolution bank layers
-    :param int conv_bank_chans: the number of channels in convolution bank
-    :param int conv_proj_filts: kernel size of convolutional projection layer
-    :param int conv_proj_chans: the number of channels in convolutional projection layer
-    :param int highway_layers: the number of highway network layers
-    :param int highway_units: the number of highway network units
-    :param int gru_units: the number of GRU units (for both directions)
-    """
-
-    def __init__(self,
-                 idim,
-                 odim,
-                 conv_bank_layers=8,
-                 conv_bank_chans=128,
-                 conv_proj_filts=3,
-                 conv_proj_chans=256,
-                 highway_layers=4,
-                 highway_units=128,
-                 gru_units=256):
-        super(CBHG, self).__init__()
-        self.idim = idim
-        self.odim = odim
-        self.conv_bank_layers = conv_bank_layers
-        self.conv_bank_chans = conv_bank_chans
-        self.conv_proj_filts = conv_proj_filts
-        self.conv_proj_chans = conv_proj_chans
-        self.highway_layers = highway_layers
-        self.highway_units = highway_units
-        self.gru_units = gru_units
-
-        # define 1d convolution bank
-        self.conv_bank = torch.nn.ModuleList()
-        for k in range(1, self.conv_bank_layers + 1):
-            if k % 2 != 0:
-                padding = (k - 1) // 2
-            else:
-                padding = ((k - 1) // 2, (k - 1) // 2 + 1)
-            self.conv_bank += [torch.nn.Sequential(
-                torch.nn.ConstantPad1d(padding, 0.0),
-                torch.nn.Conv1d(idim, self.conv_bank_chans, k, stride=1,
-                                padding=0, bias=True),
-                torch.nn.BatchNorm1d(self.conv_bank_chans),
-                torch.nn.ReLU())]
-
-        # define max pooling (need padding for one-side to keep same length)
-        self.max_pool = torch.nn.Sequential(
-            torch.nn.ConstantPad1d((0, 1), 0.0),
-            torch.nn.MaxPool1d(2, stride=1))
-
-        # define 1d convolution projection
-        self.projections = torch.nn.Sequential(
-            torch.nn.Conv1d(self.conv_bank_chans * self.conv_bank_layers, self.conv_proj_chans,
-                            self.conv_proj_filts, stride=1,
-                            padding=(self.conv_proj_filts - 1) // 2, bias=True),
-            torch.nn.BatchNorm1d(self.conv_proj_chans),
-            torch.nn.ReLU(),
-            torch.nn.Conv1d(self.conv_proj_chans, self.idim,
-                            self.conv_proj_filts, stride=1,
-                            padding=(self.conv_proj_filts - 1) // 2, bias=True),
-            torch.nn.BatchNorm1d(self.idim),
-        )
-
-        # define highway network
-        self.highways = torch.nn.ModuleList()
-        self.highways += [torch.nn.Linear(idim, self.highway_units)]
-        for _ in range(self.highway_layers):
-            self.highways += [HighwayNet(self.highway_units)]
-
-        # define bidirectional GRU
-        self.gru = torch.nn.GRU(self.highway_units, gru_units // 2, num_layers=1,
-                                batch_first=True, bidirectional=True)
-
-        # define final projection
-        self.output = torch.nn.Linear(gru_units, odim, bias=True)
-
-    def forward(self, xs, ilens):
-        """CBHG module forward
-
-        :param torch.Tensor xs: batch of the sequences of inputs (B, Tmax, idim)
-        :param torch.Tensor ilens: list of lengths of each input batch (B)
-        :return: batch of sequences of padded outputs (B, Tmax, eunits)
-        :rtype: torch.Tensor
-        :return: batch of lengths of each encoder states (B)
-        :rtype: list
-        """
-        xs = xs.transpose(1, 2)  # (B, idim, Tmax)
-        convs = []
-        for k in range(self.conv_bank_layers):
-            convs += [self.conv_bank[k](xs)]
-        convs = torch.cat(convs, dim=1)  # (B, #CH * #BANK, Tmax)
-        convs = self.max_pool(convs)
-        convs = self.projections(convs).transpose(1, 2)  # (B, Tmax, idim)
-        xs = xs.transpose(1, 2) + convs
-        # + 1 for dimension adjustment layer
-        for l in range(self.highway_layers + 1):
-            xs = self.highways[l](xs)
-
-        # sort by length
-        xs, ilens, sort_idx = self._sort_by_length(xs, ilens)
-
-        # total_length needs for DataParallel
-        # (see https://github.com/pytorch/pytorch/pull/6327)
-        total_length = xs.size(1)
-        xs = pack_padded_sequence(xs, ilens, batch_first=True)
-        self.gru.flatten_parameters()
-        xs, _ = self.gru(xs)
-        xs, ilens = pad_packed_sequence(xs, batch_first=True, total_length=total_length)
-
-        # revert sorting by length
-        xs, ilens = self._revert_sort_by_length(xs, ilens, sort_idx)
-
-        xs = self.output(xs)  # (B, Tmax, odim)
-
-        return xs, ilens
-
-    def inference(self, x):
-        """CBHG module inference
-
-        :param torch.Tensor x: input (T, idim)
-        :return: the sequence encoder states (T, odim)
-        :rtype: torch.Tensor
-        """
-        assert len(x.size()) == 2
-        xs = x.unsqueeze(0)
-        ilens = x.new([x.size(0)]).long()
-
-        return self.forward(xs, ilens)[0][0]
-
-    def _sort_by_length(self, xs, ilens):
-        sort_ilens, sort_idx = ilens.sort(0, descending=True)
-        return xs[sort_idx], ilens[sort_idx], sort_idx
-
-    def _revert_sort_by_length(self, xs, ilens, sort_idx):
-        _, revert_idx = sort_idx.sort(0)
-        return xs[revert_idx], ilens[revert_idx]
-
-
-class HighwayNet(torch.nn.Module):
-    """Highway Network
-
-    :param int idim: dimension of the inputs
-    """
-
-    def __init__(self, idim):
-        super(HighwayNet, self).__init__()
-        self.idim = idim
-        self.projection = torch.nn.Sequential(
-            torch.nn.Linear(idim, idim),
-            torch.nn.ReLU())
-        self.gate = torch.nn.Sequential(
-            torch.nn.Linear(idim, idim),
-            torch.nn.Sigmoid())
-
-    def forward(self, x):
-        """Highway Network forward
-
-        :param torch.Tensor x: batch of inputs (B, *, idim)
-        :return: batch of outputs (B, *, idim)
-        :rtype: torch.Tensor
-        """
-        proj = self.projection(x)
-        gate = self.gate(x)
-        return proj * gate + x * (1.0 - gate)
