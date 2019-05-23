@@ -64,7 +64,6 @@ class Tacotron2Loss(TTSLossInterface, torch.nn.Module):
         return parser
 
     def __init__(self, model, args):
-        super(TTSLossInterface, self).__init__()
         super(Tacotron2Loss, self).__init__()
         self.model = model
         self.use_masking = args.use_masking
