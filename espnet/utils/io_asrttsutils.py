@@ -216,16 +216,17 @@ class LoadInputsAndTargetsASRTTS(object):
                 ys = zip(*[[y[i] for i in nonzero_sorted_idx] for y in ys])
 
             y_name = list(y_feats_dict.keys())[0]
-            if self.use_speaker_embedding:
-                spembs = list(x_feats_dict.values())[1]
-                spembs = [spembs[i] for i in nonzero_sorted_idx]
-                spembs_name = list(x_feats_dict.keys())[1]
-                return_batch = OrderedDict([(x_name, xs), (y_name, ys), (spembs_name, spembs)])
-            else:
-                # Keepng x_name and y_name, e.g. input1, for future extension
-                return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
+
+            # Keepng x_name and y_name, e.g. input1, for future extension
+            return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
         else:
             return_batch = OrderedDict([(x_name, xs)])
+        if len(x_feats_dict.keys()) == 2:
+            spembs = list(x_feats_dict.values())[1]
+            spembs = [spembs[i] for i in nonzero_sorted_idx]
+            spembs_name = list(x_feats_dict.keys())[1]
+            return_batch = OrderedDict([(x_name, xs), (y_name, ys), (spembs_name, spembs)])
+ 
         return return_batch, uttid_list
 
     def _create_batch_tts(self, x_feats_dict, y_feats_dict, uttid_list, eos):
