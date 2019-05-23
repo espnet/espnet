@@ -66,6 +66,10 @@ class CBHGLoss(torch.nn.Module):
         :return: mean square error loss value
         :rtype: torch.Tensor
         """
+        # remove padded part
+        cbhg_outs = cbhg_outs[:, :max(olens)]
+        spcs = spcs[:, :max(olens)]
+
         # perform masking for padded values
         if self.use_masking:
             mask = make_non_pad_mask(olens).unsqueeze(-1).to(spcs.device)
@@ -390,6 +394,11 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
             ilens = list(map(int, ilens))
 
+        # remove unnecessary padded part (for multi-gpus)
+        if max(olens) != ys.shape[1]:
+            ys = ys[:, :max(olens)]
+            labels = labels[:, :max(olens)]
+
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
         if self.spk_embed_dim is not None:
@@ -397,7 +406,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
 
-        # remove mod part of groundtruth
+        # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
             olens = [olen - olen % self.reduction_factor for olen in olens]
             ys = ys[:, :max(olens)]
@@ -415,8 +424,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         ]
 
         if self.use_cbhg:
-            # remove mod part of groundtruth
-            if self.reduction_factor > 1:
+            # remove unnecessary padded part (for multi-gpus)
+            if max(olens) != spcs.shape[1]:
                 spcs = spcs[:, :max(olens)]
 
             # caluculate cbhg outputs & loss and report them
