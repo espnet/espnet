@@ -238,7 +238,7 @@ def train(args):
     tacotron2 = tacotron2.to(device)
 
     # define loss
-    model = Tacotron2Loss(tacotron2, args.use_masking, args.bce_pos_weight)
+    model = Tacotron2Loss(tacotron2, args)
     reporter = model.reporter
 
     # Setup an optimizer
