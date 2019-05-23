@@ -12,8 +12,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet.asr.asr_utils import PlotAttentionReport
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
 from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
@@ -21,7 +19,6 @@ from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet.nets.tts_interface import TTSInterface
-from espnet.nets.tts_interface import TTSLossInterface
 
 
 def make_non_pad_mask(lengths):
@@ -46,63 +43,70 @@ def make_non_pad_mask(lengths):
     return seq_range_expand < seq_length_expand
 
 
-class Tacotron2Loss(TTSLossInterface, torch.nn.Module):
+class CBHGLoss(torch.nn.Module):
+    """Loss function for CBHG module
+
+    :param Namespace args: argments containing following attributes
+        (bool) use_masking: whether to mask padded part in loss calculation
+    """
+    def __init__(self, args):
+        super(CBHGLoss, self).__init__()
+        self.reduction_factor = args.reduction_factor
+        self.use_masking = args.use_masking
+
+    def forward(self, cbhg_outs, spcs, olens):
+        """CBHG loss forward computation
+
+        :param torch.Tensor cbhg_outs: cbhg outputs (B, Lmax, spc_dim)
+        :param torch.Tensor before_outs: groundtruth of spectrogram (B, Lmax, spc_dim)
+        :param list olens: batch of the lengths of each target (B)
+        :return: l1 loss value
+        :rtype: torch.Tensor
+        :return: mean square error loss value
+        :rtype: torch.Tensor
+        """
+        # perform masking for padded values
+        if self.use_masking:
+            mask = make_non_pad_mask(olens).unsqueeze(-1).to(spcs.device)
+            spcs = spcs.masked_select(mask)
+            cbhg_outs = cbhg_outs.masked_select(mask)
+
+        # calculate loss
+        cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs)
+        cbhg_mse_loss = F.mse_loss(cbhg_outs, spcs)
+
+        return cbhg_l1_loss, cbhg_mse_loss
+
+
+class Tacotron2Loss(torch.nn.Module):
     """Tacotron2 loss function
 
-    :param torch.nn.Module model: tacotron2 model
     :param Namespace args: argments containing following attributes
         (bool) use_masking: whether to mask padded part in loss calculation
         (float) bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
 
-    @staticmethod
-    def add_arguments(parser):
-        parser.add_argument('--use_masking', default=False, type=strtobool,
-                            help='Whether to use masking in calculation of loss')
-        parser.add_argument('--bce_pos_weight', default=20.0, type=float,
-                            help='Positive sample weight in BCE calculation (only for use_masking=True)')
-        return parser
-
-    def __init__(self, model, args):
+    def __init__(self, args):
         super(Tacotron2Loss, self).__init__()
-        torch.nn.Module.__init__(self)
-        self.model = model
         self.use_masking = args.use_masking
         self.bce_pos_weight = args.bce_pos_weight
-        if hasattr(model, 'module'):
-            self.use_cbhg = model.module.use_cbhg
-            self.reduction_factor = model.module.reduction_factor
-        else:
-            self.use_cbhg = model.use_cbhg
-            self.reduction_factor = model.reduction_factor
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
+    def forward(self, after_outs, before_outs, logits, ys, labels, olens):
         """Tacotron2 loss forward computation
 
-        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param list ilens: list of lengths of each input batch (B)
+        :param torch.Tensor after_outs: outputs with postnets (B, Lmax, odim)
+        :param torch.Tensor before_outs: outputs without postnets (B, Lmax, odim)
+        :param torch.Tensor logits: stop logits (B, Lmax)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
         :param list olens: batch of the lengths of each target (B)
-        :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
-        :param torch.Tensor spcs: batch of padded target features (B, Lmax, spc_dim)
-        :return: loss value
+        :return: l1 loss value
+        :rtype: torch.Tensor
+        :return: mean square error loss value
+        :rtype: torch.Tensor
+        :return: binary cross entropy loss value
         :rtype: torch.Tensor
         """
-        logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
-        # calcuate outputs
-        if self.use_cbhg:
-            cbhg_outs, after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
-        else:
-            after_outs, before_outs, logits = self.model(xs, ilens, ys, olens, spembs)
-
-        # remove mod part
-        if self.reduction_factor > 1:
-            olens = [olen - olen % self.reduction_factor for olen in olens]
-            ys = ys[:, :max(olens)]
-            labels = labels[:, :max(olens)]
-            spcs = spcs[:, :max(olens)] if spcs is not None else None
-
         # prepare weight of positive samples in cross entorpy
         if self.bce_pos_weight != 1.0:
             weights = ys.new(*labels.size()).fill_(1)
@@ -112,45 +116,20 @@ class Tacotron2Loss(TTSLossInterface, torch.nn.Module):
 
         # perform masking for padded values
         if self.use_masking:
-            mask = to_device(self, make_non_pad_mask(olens).unsqueeze(-1))
+            mask = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
             ys = ys.masked_select(mask)
             after_outs = after_outs.masked_select(mask)
             before_outs = before_outs.masked_select(mask)
             labels = labels.masked_select(mask[:, :, 0])
             logits = logits.masked_select(mask[:, :, 0])
             weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
-            if self.use_cbhg:
-                spcs = spcs.masked_select(mask)
-                cbhg_outs = cbhg_outs.masked_select(mask)
 
         # calculate loss
         l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
         mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
         bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
-        if self.use_cbhg:
-            # calculate chbg loss and then itegrate them
-            cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs)
-            cbhg_mse_loss = F.mse_loss(cbhg_outs, spcs)
-            loss = l1_loss + mse_loss + bce_loss + cbhg_l1_loss + cbhg_mse_loss
-            # report loss values for logging
-            self.reporter.report([
-                {'l1_loss': l1_loss.item()},
-                {'mse_loss': mse_loss.item()},
-                {'bce_loss': bce_loss.item()},
-                {'cbhg_l1_loss': cbhg_l1_loss.item()},
-                {'cbhg_mse_loss': cbhg_mse_loss.item()},
-                {'loss': loss.item()}])
-        else:
-            # integrate loss
-            loss = l1_loss + mse_loss + bce_loss
-            # report loss values for logging
-            self.reporter.report([
-                {'l1_loss': l1_loss.item()},
-                {'mse_loss': mse_loss.item()},
-                {'bce_loss': bce_loss.item()},
-                {'loss': loss.item()}])
 
-        return loss
+        return l1_loss, mse_loss, bce_loss
 
 
 class Tacotron2(TTSInterface, torch.nn.Module):
@@ -191,6 +170,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         (int) cbhg_highway_layers: the number of layers of highway network in CBHG
         (int) cbhg_highway_units: the number of units of highway network in CBHG
         (int) cbhg_gru_units: the number of units of GRU in CBHG
+        (bool) use_masking: whether to mask padded part in loss calculation
+        (float) bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
 
     @staticmethod
@@ -267,15 +248,18 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                             help='Zoneout rate')
         parser.add_argument('--reduction_factor', default=1, type=int,
                             help='Reduction factor')
+        # loss related
+        parser.add_argument('--use_masking', default=False, type=strtobool,
+                            help='Whether to use masking in calculation of loss')
+        parser.add_argument('--bce_pos_weight', default=20.0, type=float,
+                            help='Positive sample weight in BCE calculation (only for use_masking=True)')
         return
 
-    @property
-    def attention_plot_class(self):
-        return PlotAttentionReport
-
     def __init__(self, idim, odim, args):
+        # initialize base classes
         super(Tacotron2, self).__init__()
         torch.nn.Module.__init__(self)
+
         # store hyperparameters
         self.idim = idim
         self.odim = odim
@@ -376,6 +360,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            dropout=self.dropout,
                            zoneout=self.zoneout,
                            reduction_factor=self.reduction_factor)
+        self.taco2_loss = Tacotron2Loss(args)
         if self.use_cbhg:
             self.cbhg = CBHG(idim=self.odim,
                              odim=self.spc_dim,
@@ -386,8 +371,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                              highway_layers=self.cbhg_highway_layers,
                              highway_units=self.cbhg_highway_units,
                              gru_units=self.cbhg_gru_units)
+            self.cbhg_loss = CBHGLoss(args)
 
-    def forward(self, xs, ilens, ys, olens=None, spembs=None):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
         """Tacotron2 forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -395,32 +381,56 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor olens:
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
-        :return: outputs with postnets (B, Lmax, odim)
-        :rtype: torch.Tensor
-        :return: outputs without postnets (B, Lmax, odim)
-        :rtype: torch.Tensor
-        :return: stop logits (B, Lmax)
-        :rtype: torch.Tensor
-        :return: attention weights (B, Lmax, Tmax)
+        :param torch.Tensor spcs: batch of groundtruth spectrogram (B, Lmax, spc_dim)
+        :return: loss value
         :rtype: torch.Tensor
         """
         # check ilens type (should be list of int)
         if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
             ilens = list(map(int, ilens))
 
+        # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
         if self.spk_embed_dim is not None:
             spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
             hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits = self.dec(hs, hlens, ys)
 
+        # remove mod part of groundtruth
+        if self.reduction_factor > 1:
+            olens = [olen - olen % self.reduction_factor for olen in olens]
+            ys = ys[:, :max(olens)]
+            labels = labels[:, :max(olens)]
+
+        # caluculate taco2 loss
+        l1_loss, mse_loss, bce_loss = self.taco2_loss(
+            after_outs, before_outs, logits, ys, labels, olens)
+        loss = l1_loss + mse_loss + bce_loss
+        report_keys = []
+        report_keys += [
+            {'l1_loss': l1_loss.item()},
+            {'mse_loss': mse_loss.item()},
+            {'bce_loss': bce_loss.item()},
+        ]
+
         if self.use_cbhg:
+            # remove mod part of groundtruth
             if self.reduction_factor > 1:
-                olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
+                spcs = spcs[:, :max(olens)]
+
+            # caluculate cbhg outputs & loss and report them
             cbhg_outs, _ = self.cbhg(after_outs, olens)
-            return cbhg_outs, after_outs, before_outs, logits
-        else:
-            return after_outs, before_outs, logits
+            cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, spcs, olens)
+            loss = loss + cbhg_l1_loss + cbhg_mse_loss
+            report_keys += [
+                {'cbhg_l1_loss': cbhg_l1_loss.item()},
+                {'cbhg_mse_loss': cbhg_mse_loss.item()},
+            ]
+
+        report_keys += [{'loss': loss.item()}]
+        self.reporter.report(report_keys)
+
+        return loss
 
     def inference(self, x, inference_args, spemb=None):
         """Generates the sequence of features given the sequences of characters
@@ -457,7 +467,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             return outs, probs, att_ws
 
     def calculate_all_attentions(self, xs, ilens, ys, spembs=None):
-        """Tacotron2 forward computation
+        """Tacotron2 attention weight computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
