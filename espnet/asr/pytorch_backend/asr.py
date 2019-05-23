@@ -176,6 +176,7 @@ class CustomConverter(object):
             from espnet.asr.spec_augment import spec_augment
             self.specaug = lambda x: torch.from_numpy(spec_augment(x)).float()
         else:
+            logging.warning("specaug is disabled")
             self.specaug = lambda x: torch.from_numpy(x).float()
         self.ignore_id = -1
 
