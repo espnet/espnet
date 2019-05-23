@@ -61,32 +61,27 @@ if __name__ == '__main__':
         if args.unpaired == "feat" or args.unpaired == "" or args.unpaired == "sae":
             in_dic = {}
             if 'idim' in dic:
-                in_dic['shape'] = (int(dic['ilen']),
-                                                     int(dic['idim']))
+                in_dic['shape'] = (int(dic['ilen']), int(dic['idim']))
             in_dic['name'] = 'input1'
             in_dic['feat'] = dic['feat']
         if args.unpaired == "text" or args.unpaired == "":
             out_dic = {}
             out_dic['name'] = 'target1'
-            out_dic['shape'] = (int(dic['olen']),
-                                                  int(dic['odim']))
+            out_dic['shape'] = (int(dic['olen']), int(dic['odim']))
             out_dic['text'] = dic['text']
             out_dic['token'] = dic['token']
             out_dic['tokenid'] = dic['tokenid']
         elif args.unpaired == "sae":
             out_dic = {}
             if 'idim' in dic:
-                out_dic['shape'] = (int(dic['ilen']),
-                                                      int(dic['idim']))
+                out_dic['shape'] = (int(dic['ilen']), int(dic['idim']))
             out_dic['name'] = 'target1'
             out_dic['feat'] = dic['feat']
 
         if args.unpaired == "feat":
-            new_dic[id] = {'input': [in_dic],
-                           'utt2spk': dic['utt2spk']}
+            new_dic[id] = {'input': [in_dic], 'utt2spk': dic['utt2spk']}
         elif args.unpaired == "text":
-            new_dic[id] = {'output': [out_dic],
-                           'utt2spk': dic['utt2spk']}
+            new_dic[id] = {'output': [out_dic], 'utt2spk': dic['utt2spk']}
         elif args.unpaired == "":
             new_dic[id] = {'input': [in_dic],
                            'output': [out_dic],
