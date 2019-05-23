@@ -65,6 +65,7 @@ class Tacotron2Loss(TTSLossInterface, torch.nn.Module):
 
     def __init__(self, model, args):
         super(Tacotron2Loss, self).__init__()
+        torch.nn.Module.__init__(self)
         self.model = model
         self.use_masking = args.use_masking
         self.bce_pos_weight = args.bce_pos_weight
@@ -274,6 +275,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
     def __init__(self, idim, odim, args):
         super(Tacotron2, self).__init__()
+        torch.nn.Module.__init__(self)
         # store hyperparameters
         self.idim = idim
         self.odim = odim
