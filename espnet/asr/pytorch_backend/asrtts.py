@@ -112,7 +112,7 @@ class CustomUpdater(training.StandardUpdater):
                  grad_clip_threshold, train_iter,
                  optimizer, asr_converter, asrtts_converter,
                  device, ngpu,
-                 alpha=0.5, zero_att=False):
+                 alpha, zero_att):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.asr2tts_model = asr2tts_model
         self.tts2asr_model = tts2asr_model
@@ -146,13 +146,13 @@ class CustomUpdater(training.StandardUpdater):
             self.tts_model.train()
             logging.info("unpaired speech training")
             x = (xs_asr, ilens_asr, ys_asr, spembs)
-            loss_asr2tts = self.asr2tts_model(*x)
+            loss_asr2tts, _, _, _, _ = self.asr2tts_model(*x)
             logging.info("unpaired text training")
             self.tts_model.train()
             # self.tts_model.eval()
             self.asr_model.train()
             loss_tts2asr = self.tts2asr_model(xs_tts, ilens_tts, ys_tts, labels,
-                                              olens_tts, spembs)  # zero_att=self.zero_att)
+                                              olens_tts, spembs, zero_att=self.zero_att)
             loss = self.alpha * loss_asr2tts + (1 - self.alpha) * loss_tts2asr
         else:
             self.asr_model.train()

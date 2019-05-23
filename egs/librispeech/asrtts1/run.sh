@@ -564,7 +564,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: ASR-TTS training, decode and synthesize"
     asrttsexpdir=exp/asrtts_${tag}
     train_opts=
-    sample_topk=
+    sample_topk=0
     sample_scaling=0.1
     teacher_weight=0.1
     n_samples=5
