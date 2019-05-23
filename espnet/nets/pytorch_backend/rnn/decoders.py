@@ -78,6 +78,7 @@ class Decoder(torch.nn.Module):
         self.dunits = dunits
         self.sos = sos
         self.eos = eos
+        self.eprojs = eprojs
         self.odim = odim
         self.verbose = verbose
         self.char_list = char_list
@@ -105,7 +106,7 @@ class Decoder(torch.nn.Module):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0):
+    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0, zero_att=False):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
@@ -123,8 +124,11 @@ class Decoder(torch.nn.Module):
         # in SPA (speaker parallel attention), att_idx is used to select attention module. In other cases, it is 0.
         att_idx = min(strm_idx, len(self.att) - 1)
 
-        # hlen should be list of integer
-        hlens = list(map(int, hlens))
+        if zero_att:
+            hlens = None
+        else:
+            # hlen should be list of integer
+            hlens = list(map(int, hlens))
 
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
@@ -141,15 +145,23 @@ class Decoder(torch.nn.Module):
         # get dim, length info
         batch = ys_out_pad.size(0)
         olength = ys_out_pad.size(1)
-        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlens))
-        logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
-
+        if not zero_att:
+            logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlens))
+            logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
         # initialization
-        c_list = [self.zero_state(hs_pad)]
-        z_list = [self.zero_state(hs_pad)]
-        for _ in six.moves.range(1, self.dlayers):
-            c_list.append(self.zero_state(hs_pad))
-            z_list.append(self.zero_state(hs_pad))
+        if zero_att:
+            c_list = [ys_out_pad.new_zeros(batch, self.dunits, dtype=torch.float)]
+            z_list = [ys_out_pad.new_zeros(batch, self.dunits, dtype=torch.float)]
+            for l in six.moves.range(1, self.dlayers):
+                c_list.append(ys_out_pad.new_zeros(batch, self.dunits, dtype=torch.float))
+                z_list.append(ys_out_pad.new_zeros(batch, self.dunits, dtype=torch.float))
+        else:
+            c_list = [self.zero_state(hs_pad)]
+            z_list = [self.zero_state(hs_pad)]
+            for l in six.moves.range(1, self.dlayers):
+                c_list.append(self.zero_state(hs_pad))
+                z_list.append(self.zero_state(hs_pad))
+
         att_w = None
         z_all = []
         self.att[att_idx].reset()  # reset pre-computation of h
@@ -159,7 +171,10 @@ class Decoder(torch.nn.Module):
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            att_c, att_w = self.att[att_idx](hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w)
+            if zero_att:
+                att_z = torch.zeros(ys_out_pad.size(0), self.eprojs).cuda()
+            else:
+                att_c, att_w = self.att[att_idx](hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
@@ -167,7 +182,10 @@ class Decoder(torch.nn.Module):
                 z_out = self.dropout_emb(self.embed(z_out.cuda()))
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
-                ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
+                if zero_att:
+                    ey = torch.cat((eys[:, i, :], att_z), dim=1)
+                else:
+                    ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             z_all.append(self.dropout_dec[-1](z_list[-1]))
 
@@ -685,7 +703,7 @@ class Decoder(torch.nn.Module):
                 yg[yg == -1] = 0
                 y = to_device(self, torch.from_numpy(yg))
             ey = self.embed(y)  # utt x zdim
-            att_c, att_w = self.att[att_idx](hpad, hlen, z_list[0], att_w)
+            att_c, att_w = self.att[att_idx](hpad, hlen.float().cuda(), z_list[0], att_w)
             ey = torch.cat((ey, att_c), dim=1)  # n_samples x (zdim + hdim)
             z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
             for l in six.moves.range(1, self.dlayers):

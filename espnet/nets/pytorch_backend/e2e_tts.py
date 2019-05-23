@@ -123,7 +123,8 @@ class Tacotron2Loss(torch.nn.Module):
         else:
             self.reporter = reporter
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, softargmax=False, asrtts=False):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None,
+                softargmax=False, asrtts=False):
         """Tacotron2 loss forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -171,9 +172,19 @@ class Tacotron2Loss(torch.nn.Module):
                 cbhg_outs = cbhg_outs.masked_select(mask)
 
         # calculate loss
-        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
-        mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-        bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
+        if asrtts:
+            l1_loss = F.l1_loss(after_outs, ys, reduce=False) + F.l1_loss(before_outs,
+                                                                          ys, reduce=False)
+            l1_loss = l1_loss.mean(2).mean(1)
+            mse_loss = F.mse_loss(after_outs, ys, reduce=False) + F.mse_loss(before_outs,
+                                                                             ys, reduce=False)
+            mse_loss = mse_loss.mean(2).mean(1)
+            bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights, reduce=False)
+            bce_loss = bce_loss.mean(1)
+        else:
+            l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
+            mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
+            bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
         if self.use_cbhg:
             # calculate chbg loss and then itegrate them
             cbhg_l1_loss = F.l1_loss(cbhg_outs, spcs)
@@ -192,12 +203,12 @@ class Tacotron2Loss(torch.nn.Module):
             loss = l1_loss + mse_loss + bce_loss
             # report loss values for logging
             self.reporter.report(
-                {'l1_loss': l1_loss.item()},
-                {'mse_loss': mse_loss.item()},
-                {'bce_loss': bce_loss.item()},
-                {'loss': loss.item()},
-                {'mtl_loss': loss.item()})
-            logging.info(loss.item())
+                {'l1_loss': l1_loss.mean(0).item()},
+                {'mse_loss': mse_loss.mean(0).item()},
+                {'bce_loss': bce_loss.mean(0).item()},
+                {'loss': loss.mean(0).item()},
+                {'mtl_loss': loss.mean(0).item()})
+            logging.info(loss.mean(0).item())
         else:
             # integrate loss
             loss = l1_loss + mse_loss + bce_loss
@@ -794,7 +805,6 @@ class Decoder(torch.nn.Module):
 
         logits = torch.cat(logits, dim=1)  # (B, Lmax)
         before_outs = torch.cat(outs, dim=2)  # (B, odim, Lmax)
-
         if self.reduction_factor > 1:
             before_outs = before_outs.view(before_outs.size(0), self.odim, -1)  # (B, odim, Lmax)
 
@@ -890,6 +900,94 @@ class Decoder(torch.nn.Module):
             outs = self.output_activation_fn(outs)
 
         return outs, probs, att_ws
+
+    def generate(self, hs, hlens, att_w_maxlen=None):
+        """DECODER FORWARD CALCULATION
+
+        :param torch.Tensor hs: batch of the sequences of padded hidden states (B, Tmax, idim)
+        :param list hlens: list of lengths of each input batch (B)
+        :param int att_w_maxlen: maximum length of att_w (only for dataparallel)
+        :return: outputs with postnets (B, Lmax, odim)
+        :rtype: torch.Tensor
+        :return: outputs without postnets (B, Lmax, odim)
+        :rtype: torch.Tensor
+        :return: stop logits (B, Lmax)
+        :rtype: torch.Tensor
+        :return: attetion weights (B, Lmax, Tmax)
+        :rtype: torch.Tensor
+        """
+        # setup
+        maxlen = int(max(hlens) * self.maxlenratio)
+        minlen = int(min(hlens) * self.minlenratio)
+        # initialize hidden states of decoder
+        c_list = [self.zero_state(hs)]
+        z_list = [self.zero_state(hs)]
+        for l in six.moves.range(1, self.dlayers):
+            c_list += [self.zero_state(hs)]
+            z_list += [self.zero_state(hs)]
+        # TODO(kan-bayashi): need to be fixed in pytorch v4
+        prev_out = hs.new_zeros(hs.size(0), self.odim)
+
+        # initialize attention
+        prev_att_w = None
+        self.att.reset()
+
+        # loop for an output sequence
+        idx = 0
+        outs, logits = [], []
+        ylens = [maxlen] * hs.size(0)
+        while True:
+            # updated index
+            idx += 1
+            # decoder calculation
+            if self.use_att_extra_inputs:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
+            else:
+                att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
+            prenet_out = self._prenet_forward(prev_out)
+            xs = torch.cat([att_c, prenet_out], dim=1)
+            z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
+            for l in six.moves.range(1, self.dlayers):
+                z_list[l], c_list[l] = self.lstm[l](
+                    z_list[l - 1], (z_list[l], c_list[l]))
+            zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
+            if self.output_activation_fn is not None:
+                outs += [self.output_activation_fn(self.feat_out(zcs))]
+            else:
+                outs += [self.feat_out(zcs).view(hs.size(0), self.odim, -1)]
+            logits += [self.prob_out(zcs)]
+            prev_out = outs[-1][:, :, -1]
+            if self.cumulate_att_w and prev_att_w is not None:
+                prev_att_w = prev_att_w + att_w  # Note: error when use +=
+            else:
+                prev_att_w = att_w
+
+            # check whether to finish generation
+            if idx >= minlen:
+                probs = torch.sigmoid(logits[-1])  # (B)
+                end_flag = True
+                for i in six.moves.range(probs.size(0)):
+                    # logging.info('idx=%d,%d: logit=%f, probs=%f' % (idx, i, float(logits[-1][i]), float(probs[i])))
+                    if ylens[i] == maxlen and probs[i].mean() >= self.threshold:
+                        ylens[i] = idx
+                    if ylens[i] == maxlen:
+                        end_flag = False
+
+                if end_flag or idx == maxlen:
+                    break
+
+        logits = torch.cat(logits, dim=1)  # (B, Lmax)
+        outs = torch.cat(outs, dim=2)  # (B, odim, Lmax)
+        if self.reduction_factor > 1:
+            outs = outs.view(outs.size(0), self.odim, -1)  # (B, odim, Lmax)
+        outs = outs + self._postnet_forward(outs)  # (B, odim, Lmax)
+        outs = outs.transpose(2, 1)  # (B, Lmax, odim)
+
+        # apply activation function for scaling
+        # if self.output_activation_fn is not None:
+        #    outs = self.output_activation_fn(outs)
+
+        return outs, logits, ylens
 
     def calculate_all_attentions(self, hs, hlens, ys):
         """Decoder attention calculation

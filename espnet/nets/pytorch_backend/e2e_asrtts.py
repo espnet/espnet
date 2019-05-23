@@ -24,9 +24,9 @@ from chainer import reporter
 from espnet.asr.asr_utils import torch_load
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
-from espnet.nets.pytorch_backend.attentions import att_for
-from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import encoder_for
+from espnet.nets.pytorch_backend.rnn.attentions import att_for
+from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length_and_multiply
 from espnet.nets.pytorch_backend.nets_utils import pad_list
@@ -120,7 +120,7 @@ class Tacotron2ASRLoss(torch.nn.Module):
         self.weight = weight
         self.generator = args.generator
 
-    def forward(self, xs, ilens, ys, labels, olens=None, spembs=None):
+    def forward(self, xs, ilens, ys, labels, olens=None, spembs=None, zero_att=False):
         """TACOTRON2 LOSS FORWARD CALCULATION
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -136,28 +136,43 @@ class Tacotron2ASRLoss(torch.nn.Module):
         # generate feature sequences for a batch
         torch.set_grad_enabled(self.training)
         set_requires_grad(self.tts_model, True)
-        outs, logits, flens = self.tts_model.generate(xs, ilens, spembs)
+        if not zero_att:
+            outs, logits, flens = self.tts_model.generate(xs, ilens, spembs)
 
-        if self.generator == 'tts':
-            flens = sorted(flens, reverse=True)
-            enc_outs, enc_flens = self.asr_model.enc(outs, flens)
-        # asr loss
-        xslst = [xs[i, :ilens[i] - 1] for i in six.moves.range(enc_outs.size(0))]
-        asr_loss, acc = self.asr_model.dec(enc_outs, enc_flens, xslst)
+        if not zero_att:
+            if self.generator == 'tts':
+                flens = sorted(flens, reverse=True)
+                enc_outs, enc_flens, _ = self.asr_model.enc(outs, flens)
+            # asr loss
+            xslst = [xs[i, :ilens[i] - 1] for i in six.moves.range(enc_outs.size(0))]
+            asr_loss, acc = self.asr_model.dec(enc_outs, enc_flens, xslst)
+        else:
+            xslst = [xs[i, :ilens[i] - 1] for i in six.moves.range(xs.size(0))]
+            asr_loss, acc = self.asr_model.dec(xs, ilens, xslst, zero_att=zero_att)
         # calculate loss
-        flens = torch.LongTensor(flens)
-        labels = torch.zeros(outs.size(0), outs.size(1), dtype=torch.float32)
-        labels[torch.arange(outs.size(0), dtype=torch.int64), flens - 1] = 1
-        bce_loss = F.binary_cross_entropy_with_logits(logits, labels.cuda())
-        loss = (asr_loss + bce_loss) * self.weight
-        # report loss values for logging
-        loss_data = loss.detach().cpu().numpy()
-        asr_loss_data = asr_loss.detach().cpu().numpy()
-        bce_loss_data = bce_loss.detach().cpu().numpy()
-        logging.info("loss = %.3e (asr: %.3e, bce: %.3e)" % (
-            loss_data, asr_loss_data, bce_loss_data))
-        if self.reporter is not None:
-            self.reporter.report(None, asr_loss_data, acc, None, None, bce_loss_data)
+        if not zero_att:
+            flens = torch.LongTensor(flens)
+            labels = torch.zeros(outs.size(0), outs.size(1), dtype=torch.float32)
+            labels[torch.arange(outs.size(0), dtype=torch.int64), flens - 1] = 1
+            bce_loss = F.binary_cross_entropy_with_logits(logits, labels.cuda())
+            loss = (asr_loss + bce_loss) * self.weight
+            # report loss values for logging
+            loss_data = loss.detach().cpu().numpy()
+            asr_loss_data = asr_loss.detach().cpu().numpy()
+            bce_loss_data = bce_loss.detach().cpu().numpy()
+            logging.info("loss = %.3e (asr: %.3e, bce: %.3e)" % (loss_data,
+                                                                 asr_loss_data,
+                                                                 bce_loss_data))
+        else:
+            loss = asr_loss
+            # report loss values for logging
+            loss_data = loss.detach().cpu().numpy()
+            asr_loss_data = asr_loss.detach().cpu().numpy()
+            logging.info("asr_loss: %.3e" % (asr_loss_data))
+        if self.reporter is not None and not zero_att:
+            self.reporter.report(asr_loss_data, acc, None, None, bce_loss_data)
+        elif self.reporter is not None and zero_att:
+            self.reporter.report(asr_loss_data, acc, None, None, None)
         return loss
 
 
@@ -386,7 +401,6 @@ class E2E(torch.nn.Module):
                 if lm_loss is not None:
                     taco_loss += lm_loss * self.lm_loss_weight
                 loss = ((taco_loss - taco_loss.mean()) * weight).mean()
-                # self.loss = (taco_loss).mean()
             else:
                 if lm_loss is not None:
                     loss = (-weight + lm_loss * self.lm_loss_weight).mean()
@@ -399,9 +413,8 @@ class E2E(torch.nn.Module):
                         k = i * self.n_samples_per_input + j
                         y_str = "".join([self.char_list[int(ygen[k, l])] for l in range(ylens[k])])
                         if self.loss_fn is not None:
-                            # logging.info("generation[%d]: %.4f %.4f " % (k, weight[k], taco_loss[k]) + y_str)
-                            logging.info("generation[%d]: %.4f %.4f " % (k,
-                                                                         weight[k].item(), taco_loss) + y_str)
+                            logging.info("generation[%d]: %.4f %.4f " % (k, weight[k],
+                                                                         taco_loss[k]) + y_str)
                         else:
                             logging.info("generation[%d]: %.4f " % (k,
                                                                     weight[k].item()) + y_str)
