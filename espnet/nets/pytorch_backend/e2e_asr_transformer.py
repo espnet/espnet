@@ -67,7 +67,16 @@ class E2E(ASRInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
-        self.encoder = Encoder(idim, args)
+        self.encoder = Encoder(
+            idim=idim,
+            attention_dim=args.adim,
+            attention_heads=args.aheads,
+            linear_units=args.eunits,
+            num_blocks=args.elayers,
+            input_layer=args.transformer_input_layer,
+            dropout_rate=args.dropout_rate,
+            attention_dropout_rate=args.transformer_attn_dropout_rate
+        )
         self.decoder = Decoder(
             odim=odim,
             attention_dim=args.adim,
