@@ -343,29 +343,20 @@ def train(args):
         att_reporter = None
 
     # Make a plot for training and validation values
-    plot_keys = ['main/loss', 'validation/main/loss',
-                 'main/l1_loss', 'validation/main/l1_loss',
-                 'main/mse_loss', 'validation/main/mse_loss',
-                 'main/bce_loss', 'validation/main/bce_loss']
-    trainer.extend(extensions.PlotReport(['main/l1_loss', 'validation/main/l1_loss'],
-                                         'epoch', file_name='l1_loss.png'))
-    trainer.extend(extensions.PlotReport(['main/mse_loss', 'validation/main/mse_loss'],
-                                         'epoch', file_name='mse_loss.png'))
-    trainer.extend(extensions.PlotReport(['main/bce_loss', 'validation/main/bce_loss'],
-                                         'epoch', file_name='bce_loss.png'))
-    if args.use_cbhg if hasattr(args, "use_cbhg") else False:
-        plot_keys += ['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss',
-                      'main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss']
-        trainer.extend(extensions.PlotReport(['main/cbhg_l1_loss', 'validation/main/cbhg_l1_loss'],
-                                             'epoch', file_name='cbhg_l1_loss.png'))
-        trainer.extend(extensions.PlotReport(['main/cbhg_mse_loss', 'validation/main/cbhg_mse_loss'],
-                                             'epoch', file_name='cbhg_mse_loss.png'))
-    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='loss.png'))
+    if hasattr(model, "module"):
+        base_plot_keys = model.module.base_plot_keys
+    else:
+        base_plot_keys = model.base_plot_keys
+    plot_keys = []
+    for key in base_plot_keys:
+        plot_key = ['main/' + key, 'validation/main/' + key]
+        trainer.extend(extensions.PlotReport(plot_key, 'epoch', file_name=key + '.png'))
+        plot_keys += plot_key
+    trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='all_loss.png'))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
-    report_keys = plot_keys[:]
-    report_keys[0:0] = ['epoch', 'iteration', 'elapsed_time']
+    report_keys = ['epoch', 'iteration', 'elapsed_time'] + plot_keys
     trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
 
