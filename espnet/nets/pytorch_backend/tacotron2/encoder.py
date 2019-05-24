@@ -79,11 +79,14 @@ class Encoder(torch.nn.Module):
                         torch.nn.Dropout(self.dropout))]
         else:
             self.convs = None
-        iunits = econv_chans if self.econv_layers != 0 else self.embed_dim
-        self.blstm = torch.nn.LSTM(
-            iunits, self.eunits // 2, self.elayers,
-            batch_first=True,
-            bidirectional=True)
+        if elayers > 0:
+            iunits = econv_chans if self.econv_layers != 0 else self.embed_dim
+            self.blstm = torch.nn.LSTM(
+                iunits, self.eunits // 2, self.elayers,
+                batch_first=True,
+                bidirectional=True)
+        else:
+            self.blstm = None
         # initialize
         self.apply(encoder_init)
 
@@ -103,6 +106,8 @@ class Encoder(torch.nn.Module):
                 xs += self.convs[l](xs)
             else:
                 xs = self.convs[l](xs)
+        if self.blstm is None:
+            return xs.transpose(1, 2), ilens
         xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
         self.blstm.flatten_parameters()
         xs, _ = self.blstm(xs)  # (B, Tmax, C)
