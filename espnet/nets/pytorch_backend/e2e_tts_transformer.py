@@ -5,10 +5,14 @@
 
 from distutils.util import strtobool
 
+import numpy as np
 import torch
+import torch.nn.functional as F
 
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
+from espnet.nets.pytorch_backend.tacotron2.e2e_tts_tacotron2 import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.encoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
@@ -17,20 +21,56 @@ from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
 
 
-def subsequent_mask(size, device="cpu", dtype=torch.uint8):
-    """Create mask for subsequent steps (1, size, size)
+class TransformerTTSLoss(torch.nn.Module):
+    """Transformer TTS loss function
 
-    :param int size: size of mask
-    :param str device: "cpu" or "cuda" or torch.Tensor.device
-    :param torch.dtype dtype: result dtype
-    :rtype: torch.Tensor
-    >>> subsequent_mask(3)
-    [[1, 0, 0],
-     [1, 1, 0],
-     [1, 1, 1]]
+    :param Namespace args: argments containing following attributes
+        (bool) use_masking: whether to mask padded part in loss calculation
+        (float) bce_pos_weight: weight of positive sample of stop token (only for use_masking=True)
     """
-    ret = torch.ones(size, size, device=device, dtype=dtype)
-    return torch.tril(ret, out=ret)
+
+    def __init__(self, args):
+        super(TransformerTTSLoss, self).__init__()
+        self.use_masking = args.use_masking
+        self.bce_pos_weight = args.bce_pos_weight
+
+    def forward(self, outs, logits, ys, labels, olens):
+        """Transformer loss forward computation
+
+        :param torch.Tensor outs: outputs i.e. log-mels (B, Lmax, odim)
+        :param torch.Tensor logits: stop logits (B, Lmax)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
+        :param list olens: batch of the lengths of each target (B)
+        :return: l1 loss value
+        :rtype: torch.Tensor
+        :return: mean square error loss value
+        :rtype: torch.Tensor
+        :return: binary cross entropy loss value
+        :rtype: torch.Tensor
+        """
+        # prepare weight of positive samples in cross entorpy
+        if self.bce_pos_weight != 1.0:
+            weights = ys.new(*labels.size()).fill_(1)
+            weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
+        else:
+            weights = None
+
+        # perform masking for padded values
+        if self.use_masking:
+            mask = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            ys = ys.masked_select(mask)
+            outs = outs.masked_select(mask)
+            labels = labels.masked_select(mask[:, :, 0])
+            logits = logits.masked_select(mask[:, :, 0])
+            weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
+
+        # calculate loss
+        l1_loss = F.l1_loss(outs, ys)
+        mse_loss = F.mse_loss(outs, ys)
+        bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
+
+        return l1_loss, mse_loss, bce_loss
 
 
 class Transformer(TTSInterface, torch.nn.Module):
@@ -42,6 +82,7 @@ class Transformer(TTSInterface, torch.nn.Module):
     @staticmethod
     def add_arguments(parser):
         group = parser.add_argument_group("transformer model setting")
+        # network structure related
         group.add_argument('--eprenet_conv_layers', default=3, type=int,
                            help='Number of encoder prenet convolution layers')
         group.add_argument('--eprenet_conv_chans', default=512, type=int,
@@ -70,6 +111,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help='Number of postnet channels')
         group.add_argument('--postnet_filts', default=5, type=int,
                            help='Filter size of postnet')
+        # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
                                     "kaiming_uniform", "kaiming_normal"],
@@ -85,6 +127,11 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help='optimizer warmup steps')
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
+        # loss related
+        group.add_argument('--use_masking', default=True, type=strtobool,
+                           help='Whether to use masking in calculation of loss')
+        group.add_argument('--bce_pos_weight', default=5.0, type=float,
+                           help='Positive sample weight in BCE calculation (only for use_masking=True)')
         return parser
 
     @property
@@ -195,6 +242,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             dropout=self.postnet_dropout_rate
         )
 
+        # define loss function
+        self.criterion = TransformerTTSLoss()
+
         # initialize parameters
         self.reset_parameters(args)
 
@@ -222,3 +272,66 @@ class Transformer(TTSInterface, torch.nn.Module):
         for m in self.modules():
             if isinstance(m, (torch.nn.Embedding, LayerNorm)):
                 m.reset_parameters()
+
+    def forward(self, xs, ilens, ys, labels, olens, *args, **kwargs):
+        """Transformer forward computation
+
+        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor olens: batch of the lengths of each target (B)
+        :return: loss value
+        :rtype: torch.Tensor
+        """
+        # check ilens and olens type (should be list of int)
+        if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
+            ilens = list(map(int, ilens))
+        if isinstance(olens, torch.Tensor) or isinstance(olens, np.ndarray):
+            olens = list(map(int, olens))
+
+        # remove unnecessary padded part (for multi-gpus)
+        max_in = max(ilens)
+        max_out = max(olens)
+        if max_in != xs.shape[1]:
+            xs = xs[:, :max_in]
+        if max_out != ys.shape[1]:
+            ys = ys[:, :max_out]
+            labels = labels[:, :max_out]
+
+        # forward encoder
+        src_masks = (~make_pad_mask(ilens).to(xs.device).unsqueeze(-2))
+        hs, h_masks = self.encoder(xs, src_masks)
+
+        # forward decoder
+        y_masks = self.target_mask(ys)
+        zs, z_masks = self.decoder(ys, y_masks, hs, h_masks)
+        outs = self.feat_out(zs)
+        logits = self.prob_out(outs)
+
+        # caluculate taco2 loss
+        l1_loss, mse_loss, bce_loss = self.criterion(
+            outs, logits, ys, labels, olens)
+        loss = l1_loss + mse_loss + bce_loss
+
+        # report for chainer reporter
+        report_keys = [
+            {'l1_loss': l1_loss.item()},
+            {'mse_loss': mse_loss.item()},
+            {'bce_loss': bce_loss.item()},
+            {'loss': loss.item()},
+        ]
+        self.reporter.report(report_keys)
+
+        return loss
+
+    @property
+    def base_plot_keys(self):
+        """base key names to plot during training. keys should match what `chainer.reporter` reports
+
+        if you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
+        also `loss.png` will be created as a figure visulizing `main/loss` and `validation/main/loss` values.
+
+        :rtype list[str] plot_keys: base keys to plot during training
+        """
+        plot_keys = ['loss', 'l1_loss', 'mse_loss', 'bce_loss']
+        return plot_keys
