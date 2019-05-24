@@ -24,6 +24,7 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet.nets.tts_interface import TTSInterface
 from espnet.tts.tts_utils import make_batchset
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -222,6 +223,7 @@ def train(args):
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
+    assert isinstance(model_class, TTSInterface)
     model = model_class(idim, odim, args)
     logging.info(model)
     reporter = model.reporter
@@ -396,6 +398,7 @@ def decode(args):
 
     # define model
     model_class = dynamic_import(train_args.model_module)
+    assert isinstance(model_class, TTSInterface)
     model = model_class(idim, odim, train_args)
     logging.info(model)
 
