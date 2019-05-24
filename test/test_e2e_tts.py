@@ -10,10 +10,11 @@ import torch
 from argparse import Namespace
 
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
+from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
-def make_model_args(**kwargs):
+def make_taco2_args(**kwargs):
     defaults = dict(
         use_speaker_embedding=False,
         spk_embed_dim=None,
@@ -97,28 +98,27 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
 
 
 @pytest.mark.parametrize(
-    "model_dict, loss_dict", [
-        ({}, {}),
-        ({}, {"use_masking": False}),
-        ({}, {"bce_pos_weight": 10.0}),
-        ({"atype": "forward"}, {}),
-        ({"atype": "forward_ta"}, {}),
-        ({"prenet_layers": 0}, {}),
-        ({"postnet_layers": 0}, {}),
-        ({"prenet_layers": 0, "postnet_layers": 0}, {}),
-        ({"output_activation": "relu"}, {}),
-        ({"cumulate_att_w": False}, {}),
-        ({"use_batch_norm": False}, {}),
-        ({"use_concate": False}, {}),
-        ({"dropout": 0.0}, {}),
-        ({"zoneout": 0.0}, {}),
-        ({"reduction_factor": 3}, {}),
-        ({"use_speaker_embedding": True}, {}),
-        ({"use_cbhg": True}, {}),
+    "model_dict", [
+        ({"use_masking": False}),
+        ({"bce_pos_weight": 10.0}),
+        ({"atype": "forward"}),
+        ({"atype": "forward_ta"}),
+        ({"prenet_layers": 0}),
+        ({"postnet_layers": 0}),
+        ({"prenet_layers": 0, "postnet_layers": 0}),
+        ({"output_activation": "relu"}),
+        ({"cumulate_att_w": False}),
+        ({"use_batch_norm": False}),
+        ({"use_concate": False}),
+        ({"dropout": 0.0}),
+        ({"zoneout": 0.0}),
+        ({"reduction_factor": 3}),
+        ({"use_speaker_embedding": True}),
+        ({"use_cbhg": True}),
     ])
-def test_tacotron2_trainable_and_decodable(model_dict, loss_dict):
+def test_tacotron2_trainable_and_decodable(model_dict):
     # make args
-    model_args = make_model_args(**model_dict)
+    model_args = make_taco2_args(**model_dict)
     inference_args = make_inference_args()
 
     # setup batch
@@ -167,7 +167,7 @@ def test_tacotron2_gpu_trainable(model_dict):
     maxout_len = 10
     idim = 5
     odim = 10
-    model_args = make_model_args(**model_dict)
+    model_args = make_taco2_args(**model_dict)
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
                            model_args['spk_embed_dim'], model_args['spc_dim'])
     batch = (x.cuda() if x is not None else None for x in batch)
@@ -200,7 +200,7 @@ def test_tacotron2_multi_gpu_trainable(model_dict):
     maxout_len = 10
     idim = 5
     odim = 10
-    model_args = make_model_args(**model_dict)
+    model_args = make_taco2_args(**model_dict)
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
                            model_args['spk_embed_dim'], model_args['spc_dim'])
     batch = (x.cuda() if x is not None else None for x in batch)
@@ -213,6 +213,68 @@ def test_tacotron2_multi_gpu_trainable(model_dict):
 
     # trainable
     loss = model(*batch).mean()
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+
+def make_transformer_args(**kwargs):
+    defaults = dict(
+        embed_dim=512,
+        eprenet_conv_layers=2,
+        eprenet_conv_filts=5,
+        eprenet_conv_chans=512,
+        dprenet_layers=2,
+        dprenet_units=256,
+        adim=32,
+        aheads=4,
+        elayers=2,
+        eunits=512,
+        dlayers=2,
+        dunits=512,
+        postnet_layers=5,
+        postnet_filts=5,
+        postnet_chans=512,
+        dropout=0.5,
+        zoneout=0.1,
+        eprenet_dropout=None,
+        dprenet_dropout=None,
+        postnet_dropout=None,
+        transformer_attn_dropout=None,
+        use_masking=True,
+        bce_pos_weight=5.0,
+        use_batch_norm=True,
+        transformer_init="pytorch"
+    )
+    defaults.update(kwargs)
+    return defaults
+
+
+@pytest.mark.parametrize(
+    "model_dict", [
+        ({}),
+        ({"use_masking": False}),
+        ({"bce_pos_weight": 10.0}),
+    ])
+def test_transformer_trainable(model_dict, loss_dict):
+    # make args
+    model_args = make_transformer_args(**model_dict)
+
+    # setup batch
+    bs = 2
+    maxin_len = 10
+    maxout_len = 10
+    idim = 5
+    odim = 10
+    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    xs, ilens, ys, labels, olens, spembs, spcs = batch
+
+    # define model
+    model = Transformer(idim, odim, Namespace(**model_args))
+    optimizer = torch.optim.Adam(model.parameters())
+
+    # trainable
+    loss = model(xs, ilens, ys, labels, olens).mean()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
