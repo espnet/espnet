@@ -201,14 +201,18 @@ def train(args):
     # reverse input and output dimension
     idim = int(valid_json[utts[0]]['output'][0]['shape'][1])
     odim = int(valid_json[utts[0]]['input'][0]['shape'][1])
-    if args.use_cbhg if hasattr(args, "use_cbhg") else False:
-        args.spc_dim = int(valid_json[utts[0]]['input'][1]['shape'][1])
+    logging.info('#input dims : ' + str(idim))
+    logging.info('#output dims: ' + str(odim))
+
+    # get extra input and output dimenstion
     if args.use_speaker_embedding:
         args.spk_embed_dim = int(valid_json[utts[0]]['input'][1]['shape'][0])
     else:
         args.spk_embed_dim = None
-    logging.info('#input dims : ' + str(idim))
-    logging.info('#output dims: ' + str(odim))
+    if args.use_second_target:
+        args.spc_dim = int(valid_json[utts[0]]['input'][1]['shape'][1])
+    else:
+        args.spc_dim = None
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -272,7 +276,7 @@ def train(args):
     load_tr = LoadInputsAndTargets(
         mode='tts',
         use_speaker_embedding=args.use_speaker_embedding,
-        use_second_target=args.use_cbhg if hasattr(args, "use_cbhg") else False,
+        use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': True}  # Switch the mode of preprocessing
     )
@@ -280,7 +284,7 @@ def train(args):
     load_cv = LoadInputsAndTargets(
         mode='tts',
         use_speaker_embedding=args.use_speaker_embedding,
-        use_second_target=args.use_cbhg if hasattr(args, "use_cbhg") else False,
+        use_second_target=args.use_second_target,
         preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': False}  # Switch the mode of preprocessing
     )
