@@ -81,21 +81,8 @@ class Decoder(torch.nn.Module):
             x = self.output_layer(x)
         return x, tgt_mask
 
-    def inference(self, tgt, tgt_mask, memory):
-        """decoder inferece for TTS
-
-        :param torch.Tensor tgt: input tensor (batch, maxlen_out, #mels)
-        :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
-        :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
-        :return x: final block outputs (batch, maxlen_out, attention_dim)
-        :rtype: torch.Tensor
-        """
-        x = self.embed(tgt)
-        x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, None)
-        return self.output_norm(x[:, -1])
-
     def recognize(self, tgt, tgt_mask, memory):
-        """decoder recognize for ASR
+        """recognize one step
 
         :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
         :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
@@ -105,4 +92,7 @@ class Decoder(torch.nn.Module):
         """
         x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, None)
-        return torch.log_softmax(self.output_layer(self.output_norm(x[:, -1])), dim=-1)
+        if self.output_layer is not None:
+            return torch.log_softmax(self.output_layer(self.output_norm(x[:, -1])), dim=-1)
+        else:
+            return self.output_norm(x[:, -1])
