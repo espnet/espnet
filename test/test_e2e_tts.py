@@ -282,7 +282,6 @@ def test_transformer_trainable_and_decodable(model_dict):
     loss.backward()
     optimizer.step()
     if model.use_scaled_pos_enc:
-        print(model)
         assert model.encoder.embed[1].alpha.grad is not None
         assert model.decoder.embed[1].alpha.grad is not None
 
