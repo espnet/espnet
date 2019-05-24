@@ -3,7 +3,6 @@
 # Copyright 2019 Shigeki Karita and Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from distutils.util import strtobool
 
 import numpy as np
 import torch
@@ -17,10 +16,13 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrene
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.cli_utils import strtobool
 
 
 class TransformerTTSLoss(torch.nn.Module):
@@ -113,6 +115,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help='Number of postnet channels')
         group.add_argument('--postnet_filts', default=5, type=int,
                            help='Filter size of postnet')
+        group.add_argument('--use_scaled_pos_enc', default=True, type=strtobool,
+                           help='use trainable scaled positional encoding instead of the fixed scale one.')
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -181,6 +185,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             self.transformer_attn_dropout = args.dropout
         else:
             self.transformer_attn_dropout = args.transformer_attn_dropout
+        self.pos_enc_class = ScaledPositionalEncoding if args.use_scaled_pos_enc else PositionalEncoding
 
         # define transformer encoder
         encoder_prenet = torch.nn.Sequential(
@@ -204,7 +209,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             num_blocks=self.elayers,
             input_layer=encoder_prenet,
             dropout_rate=self.dropout,
-            attention_dropout_rate=self.transformer_attn_dropout
+            attention_dropout_rate=self.transformer_attn_dropout,
+            pos_enc_class=self.pos_enc_class
         )
 
         # define transformer decoder
@@ -226,7 +232,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             dropout_rate=self.dropout,
             attention_dropout_rate=self.transformer_attn_dropout,
             input_layer=decoder_prenet,
-            use_output_layer=False
+            use_output_layer=False,
+            pos_enc_class=self.pos_enc_class
         )
 
         # define final projection
