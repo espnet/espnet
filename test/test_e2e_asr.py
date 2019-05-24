@@ -191,7 +191,7 @@ def test_streaming_e2e_encoder_and_ctc_with_offline_attention():
     m = importlib.import_module('espnet.nets.pytorch_backend.e2e_asr')
     args = make_arg()
     model = m.E2E(40, 5, args)
-    asr = m.StreamingE2E(model, args, args.char_list)
+    asr = m.WindowStreamingE2E(model, args)
 
     in_data = np.random.randn(100, 40)
     for i in range(10):

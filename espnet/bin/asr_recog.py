@@ -19,24 +19,25 @@ def main(args):
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
-    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config', is_config_file=True,
+               help='Config file path')
     parser.add('--config2', is_config_file=True,
-               help='second config file path that overwrites the settings in `--config`.')
+               help='Second config file path that overwrites the settings in `--config`')
     parser.add('--config3', is_config_file=True,
-               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+               help='Third config file path that overwrites the settings in `--config` and `--config2`')
 
-    parser.add_argument('--ngpu', default=0, type=int,
+    parser.add_argument('--ngpu', type=int, default=0,
                         help='Number of GPUs')
-    parser.add_argument('--backend', default='chainer', type=str,
+    parser.add_argument('--backend', type=str, default='chainer',
                         choices=['chainer', 'pytorch'],
                         help='Backend library')
-    parser.add_argument('--debugmode', default=1, type=int,
+    parser.add_argument('--debugmode', type=int, default=1,
                         help='Debugmode')
-    parser.add_argument('--seed', default=1, type=int,
+    parser.add_argument('--seed', type=int, default=1,
                         help='Random seed')
-    parser.add_argument('--verbose', '-V', default=1, type=int,
+    parser.add_argument('--verbose', '-V', type=int, default=1,
                         help='Verbose option')
-    parser.add_argument('--batchsize', default=1, type=int,
+    parser.add_argument('--batchsize', type=int, default=1,
                         help='Batch size for beam search (0: means no batch processing)')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
@@ -50,23 +51,23 @@ def main(args):
                         help='Model file parameters to read')
     parser.add_argument('--model-conf', type=str, default=None,
                         help='Model config file')
-    parser.add_argument('--num-spkrs', default=1, type=int,
+    parser.add_argument('--num-spkrs', type=int, default=1,
                         choices=[1, 2],
-                        help='Number of speakers in the speech.')
+                        help='Number of speakers in the speech')
     # search related
     parser.add_argument('--nbest', type=int, default=1,
                         help='Output N-best hypotheses')
     parser.add_argument('--beam-size', type=int, default=1,
                         help='Beam size')
-    parser.add_argument('--penalty', default=0.0, type=float,
+    parser.add_argument('--penalty', type=float, default=0.0,
                         help='Incertion penalty')
-    parser.add_argument('--maxlenratio', default=0.0, type=float,
+    parser.add_argument('--maxlenratio', type=float, default=0.0,
                         help="""Input length ratio to obtain max output length.
                         If maxlenratio=0.0 (default), it uses a end-detect function
                         to automatically find maximum hypothesis lengths""")
-    parser.add_argument('--minlenratio', default=0.0, type=float,
+    parser.add_argument('--minlenratio', type=float, default=0.0,
                         help='Input length ratio to obtain min output length')
-    parser.add_argument('--ctc-weight', default=0.0, type=float,
+    parser.add_argument('--ctc-weight', type=float, default=0.0,
                         help='CTC weight in joint decoding')
     # rnnlm related
     parser.add_argument('--rnnlm', type=str, default=None,
@@ -79,11 +80,21 @@ def main(args):
                         help='Word RNNLM model config file to read')
     parser.add_argument('--word-dict', type=str, default=None,
                         help='Word list to read')
-    parser.add_argument('--lm-weight', default=0.1, type=float,
-                        help='RNNLM weight.')
-    parser.add_argument('--streaming-window', type=int, default=False,
-                        help='Use streaming recognizer for inference - provide window size in frames. '
-                             '--batchsize must be set to 0 to enable this mode')
+    parser.add_argument('--lm-weight', type=float, default=0.1,
+                        help='RNNLM weight')
+    # streaming related
+    parser.add_argument('--streaming-mode', type=int, default=0,
+                        help="""Use streaming recognizer for inference
+                        (0: none, 1: window streaming, 2: segment streaming).
+                        --batchsize must be set to 0 to enable this mode""")
+    parser.add_argument('--streaming-window', type=int, default=10,
+                        help='Window size')
+    parser.add_argument('--min-blank-dur', type=int, default=10,
+                        help='Minimum blank duration threshold')
+    parser.add_argument('--onset-margin', type=int, default=1,
+                        help='Onset margin')
+    parser.add_argument('--offset-margin', type=int, default=1,
+                        help='Offset margin')
     args = parser.parse_args(args)
 
     # logging info
