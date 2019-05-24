@@ -256,7 +256,7 @@ def make_transformer_args(**kwargs):
         ({"use_masking": False}),
         ({"bce_pos_weight": 10.0}),
     ])
-def test_transformer_trainable(model_dict, loss_dict):
+def test_transformer_trainable(model_dict):
     # make args
     model_args = make_transformer_args(**model_dict)
 
