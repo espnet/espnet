@@ -27,6 +27,10 @@ lm_vocabsize=65000  # effective only for word LMs
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
 
+# decoding
+n_average=10
+n_decode_job=32
+
 # config files
 lm_config=conf/lm.yaml
 preprocess_config=conf/preprocess.yaml
@@ -233,7 +237,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    nj=${n_decode_job}
     if [ ${n_average} -gt 1 ]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
@@ -245,15 +249,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for rtask in ${recog_set}; do
     (
         decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
-        if [ ${lm_weight} == 0 ]; then
-            recog_opts=""
+        if [ ${use_wordlm} = true ]; then
+            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
         else
-            decode_dir=${decode_dir}_rnnlm${lm_weight}_${lmtag}
-            if [ ${use_wordlm} = true ]; then
-                recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
-            else
-                recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
-            fi
+            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
