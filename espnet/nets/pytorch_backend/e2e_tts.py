@@ -500,3 +500,17 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.train()
 
         return att_ws.cpu().numpy()
+
+    @property
+    def base_plot_keys(self):
+        """base key names to plot during training. keys should match what `chainer.reporter` reports
+
+        if you add the key `loss`, the reporter will report `main/loss` and `validation/main/loss` values.
+        also `loss.png` will be created as a figure visulizing `main/loss` and `validation/main/loss` values.
+
+        :rtype list[str] plot_keys: base keys to plot during training
+        """
+        plot_keys = ['loss', 'l1_loss', 'mse_loss', 'bce_loss']
+        if self.use_cbhg:
+            plot_keys += ['cbhg_l1_loss', 'cbhg_mse_loss']
+        return plot_keys
