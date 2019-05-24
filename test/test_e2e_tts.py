@@ -9,7 +9,7 @@ import torch
 
 from argparse import Namespace
 
-from espnet.nets.pytorch_backend.e2e_tts import Tacotron2
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 

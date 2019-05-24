@@ -55,7 +55,7 @@ def main(cmd_args):
     parser.add_argument('--valid-json', type=str, required=True,
                         help='Filename of validation json')
     # network architecture
-    parser.add_argument('--model-module', type=str, default="espnet.nets.pytorch_backend.e2e_tts:Tacotron2",
+    parser.add_argument('--model-module', type=str, default="espnet.nets.pytorch_backend.e2e_tts_tacotron2:Tacotron2",
                         help='model defined module')
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
