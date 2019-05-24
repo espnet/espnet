@@ -306,7 +306,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         y_masks = self.target_mask(olens)
         zs, z_masks = self.decoder(ys, y_masks, hs, h_masks)
         outs = self.feat_out(zs)
-        logits = self.prob_out(outs)
+        logits = self.prob_out(zs).squeeze(-1)
 
         # caluculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.criterion(
@@ -325,7 +325,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         return loss
 
     def target_mask(self, olens):
-        y_masks = make_non_pad_mask(olens).unsqueeze(-1).to(next(self.parameters()).device)
+        y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks
 
