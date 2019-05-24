@@ -6,8 +6,8 @@ import sys
 
 import yaml
 
-from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.check_kwargs import check_kwargs
+from espnet.utils.dynamic_import import dynamic_import
 
 
 PY2 = sys.version_info[0] == 2
@@ -82,7 +82,8 @@ class Transformation(object):
                 opts = dict(process)
                 process_type = opts.pop('type')
                 class_obj = dynamic_import(process_type, import_alias)
-                # TODO(karita): assert isinstance(class_obj, TransformInterface)
+                # TODO(karita): assert issubclass(class_obj, TransformInterface)
+                check_kwargs(class_obj, opts)
                 try:
                     self.functions[idx] = class_obj(**opts)
                 except TypeError:
