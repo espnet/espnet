@@ -227,8 +227,8 @@ def train(args):
 
     # specify model architecture
     model_class = dynamic_import(args.model_module)
-    assert isinstance(model_class, TTSInterface)
     model = model_class(idim, odim, args)
+    assert isinstance(model, TTSInterface)
     logging.info(model)
     reporter = model.reporter
 
@@ -393,8 +393,8 @@ def decode(args):
 
     # define model
     model_class = dynamic_import(train_args.model_module)
-    assert isinstance(model_class, TTSInterface)
     model = model_class(idim, odim, train_args)
+    assert isinstance(model, TTSInterface)
     logging.info(model)
 
     # load trained model parameters
