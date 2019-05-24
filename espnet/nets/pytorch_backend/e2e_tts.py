@@ -391,11 +391,13 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             ilens = list(map(int, ilens))
 
         # remove unnecessary padded part (for multi-gpus)
-        if max(ilens) != xs.shape[1]:
-            xs = xs[:, :max(ilens)]
-        if max(olens) != ys.shape[1]:
-            ys = ys[:, :max(olens)]
-            labels = labels[:, :max(olens)]
+        max_in = max(ilens)
+        max_out = max(olens)
+        if max_in != xs.shape[1]:
+            xs = xs[:, :max_in]
+        if max_out != ys.shape[1]:
+            ys = ys[:, :max_out]
+            labels = labels[:, :max_out]
 
         # calculate tacotron2 outputs
         hs, hlens = self.enc(xs, ilens)
@@ -407,8 +409,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
             olens = [olen - olen % self.reduction_factor for olen in olens]
-            ys = ys[:, :max(olens)]
-            labels = labels[:, :max(olens)]
+            ys = ys[:, :max_out]
+            labels = labels[:, :max_out]
 
         # caluculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
@@ -423,8 +425,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         if self.use_cbhg:
             # remove unnecessary padded part (for multi-gpus)
-            if max(olens) != spcs.shape[1]:
-                spcs = spcs[:, :max(olens)]
+            if max_out != spcs.shape[1]:
+                spcs = spcs[:, :max_out]
 
             # caluculate cbhg outputs & loss and report them
             cbhg_outs, _ = self.cbhg(after_outs, olens)
