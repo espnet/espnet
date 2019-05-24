@@ -32,6 +32,7 @@ class Encoder(torch.nn.Module):
     :param int econv_filts: the number of encoder conv filter size
     :param int econv_chans: the number of encoder conv filter channels
     :param bool use_batch_norm: whether to use batch normalization
+    :param bool use_residual: whether to use residual connection
     :param float dropout: dropout rate
     """
 
