@@ -25,7 +25,6 @@ from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import plot_spectrogram
-from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
@@ -33,14 +32,16 @@ from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
-from espnet.nets.pytorch_backend.e2e_asr import E2E
+from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
+from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.spec_augment import specaug
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -98,7 +99,7 @@ class CustomEvaluator(extensions.Evaluator):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    x = self.converter(batch, self.device)
+                    x = self.converter(batch, self.device, evaluation=True)
                     self.model(*x)
                 summary.add(observation)
         self.model.train()
@@ -119,13 +120,15 @@ class CustomUpdater(training.StandardUpdater):
     """
 
     def __init__(self, model, grad_clip_threshold, train_iter,
-                 optimizer, converter, device, ngpu):
+                 optimizer, converter, device, ngpu, accum_grad=1):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip_threshold = grad_clip_threshold
         self.converter = converter
         self.device = device
         self.ngpu = ngpu
+        self.accum_grad = accum_grad
+        self.forward_count = 0
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -139,12 +142,15 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # Compute the loss at this time step and accumulate it
-        optimizer.zero_grad()  # Clear the parameter gradients
-        loss = self.model(*x)[0]
-        if self.ngpu > 1:
-            loss = loss.sum() / self.ngpu
+        loss = self.model(*x).mean() / self.accum_grad
         loss.backward()  # Backprop
         loss.detach()  # Truncate the graph
+
+        # update parameters
+        self.forward_count += 1
+        if self.forward_count != self.accum_grad:
+            return
+        self.forward_count = 0
         # compute the gradient norm to check if it is normal or not
         grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold)
@@ -153,6 +159,7 @@ class CustomUpdater(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
+        optimizer.zero_grad()
 
 
 class CustomConverter(object):
@@ -161,11 +168,12 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, use_specaug=True):
         self.subsampling_factor = subsampling_factor
+        self.use_specaug = use_specaug
         self.ignore_id = -1
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device, evaluation=False):
         """Transforms a batch and send it to a device
 
         :param list batch: The batch to transform
@@ -185,6 +193,8 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
+        # for training specaug is applied
+        # currently only support real number
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
                 [torch.from_numpy(x.real).float() for x in xs], 0).to(device)
@@ -196,8 +206,10 @@ class CustomConverter(object):
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            xs_pad = pad_list(
-                [torch.from_numpy(x).float() for x in xs], 0).to(device)
+            if self.use_specaug and not evaluation:
+                xs_pad = pad_list([specaug(torch.from_numpy(x).float()).to(device) for x in xs], 0)
+            else:
+                xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 
         ilens = torch.from_numpy(ilens).to(device)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys],
@@ -238,7 +250,9 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model = E2E(idim, odim, args)
+    model_class = dynamic_import(args.model_module)
+    model = model_class(idim, odim, args)
+    assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
 
     if args.rnnlm is not None:
@@ -281,13 +295,18 @@ def train(args):
     elif args.opt == 'adam':
         optimizer = torch.optim.Adam(model.parameters(),
                                      weight_decay=args.weight_decay)
+    elif args.opt == 'noam':
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+        optimizer = get_std_opt(model, args.adim, args.transformer_warmup_steps, args.transformer_lr)
+    else:
+        raise NotImplementedError("unknown optimizer: " + args.opt)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, "target", reporter)
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor)
+    converter = CustomConverter(subsampling_factor=subsampling_factor, use_specaug=args.use_specaug)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -333,7 +352,7 @@ def train(args):
 
     # Set up a trainer
     updater = CustomUpdater(
-        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu)
+        model, args.grad_clip, train_iter, optimizer, converter, device, args.ngpu, args.accum_grad)
     trainer = training.Trainer(
         updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -355,9 +374,11 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         if hasattr(model, "module"):
             att_vis_fn = model.module.calculate_all_attentions
+            plot_class = model.module.attention_plot_class
         else:
             att_vis_fn = model.calculate_all_attentions
-        att_reporter = PlotAttentionReport(
+            plot_class = model.attention_plot_class
+        att_reporter = plot_class(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, transform=load_cv, device=device)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
@@ -427,7 +448,7 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, att_reporter))
     # Run the training
     trainer.run()
@@ -445,7 +466,9 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    model = E2E(idim, odim, train_args)
+    model_class = dynamic_import(train_args.model_module)
+    model = model_class(idim, odim, train_args)
+    assert isinstance(model, ASRInterface)
     torch_load(args.model, model)
     model.recog_args = args
 
@@ -554,7 +577,9 @@ def enhance(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    model = E2E(idim, odim, train_args)
+    model_class = dynamic_import(train_args.model_module)
+    model = model_class(idim, odim, train_args)
+    assert isinstance(model, ASRInterface)
     torch_load(args.model, model)
     model.recog_args = args
 
@@ -661,29 +686,6 @@ def enhance(args):
             mas = mask[idx][:ilens[idx]]
             feat = feats[idx]
 
-            # Write enhanced wave files
-            if enh_writer is not None:
-                if istft is not None:
-                    enh = istft(enh)
-                else:
-                    enh = enh
-
-                if args.keep_length:
-                    if len(org_feats[idx]) < len(enh):
-                        # Truncate the frames added by stft padding
-                        enh = enh[:len(org_feats[idx])]
-                    elif len(org_feats) > len(enh):
-                        padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
-                            + [(0, 0)] * (enh.ndim - 1)
-                        enh = np.pad(enh, padwidth, mode='constant')
-
-                if args.enh_filetype in ('sound', 'sound.hdf5'):
-                    enh_writer[name] = (args.fs, enh)
-                else:
-                    # Hint: To dump stft_signal, mask or etc,
-                    # enh_filetype='hdf5' might be convenient.
-                    enh_writer[name] = enh
-
             # Plot spectrogram
             if args.image_dir is not None and num_images < args.num_images:
                 import matplotlib.pyplot as plt
@@ -717,6 +719,29 @@ def enhance(args):
 
                 plt.savefig(os.path.join(args.image_dir, name + '.png'))
                 plt.clf()
+
+            # Write enhanced wave files
+            if enh_writer is not None:
+                if istft is not None:
+                    enh = istft(enh)
+                else:
+                    enh = enh
+
+                if args.keep_length:
+                    if len(org_feats[idx]) < len(enh):
+                        # Truncate the frames added by stft padding
+                        enh = enh[:len(org_feats[idx])]
+                    elif len(org_feats) > len(enh):
+                        padwidth = [(0, (len(org_feats[idx]) - len(enh)))] \
+                            + [(0, 0)] * (enh.ndim - 1)
+                        enh = np.pad(enh, padwidth, mode='constant')
+
+                if args.enh_filetype in ('sound', 'sound.hdf5'):
+                    enh_writer[name] = (args.fs, enh)
+                else:
+                    # Hint: To dump stft_signal, mask or etc,
+                    # enh_filetype='hdf5' might be convenient.
+                    enh_writer[name] = enh
 
             if num_images >= args.num_images and enh_writer is None:
                 logging.info('Breaking the process.')

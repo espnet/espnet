@@ -5,7 +5,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import argparse
+import configargparse
 import logging
 import os
 import platform
@@ -19,9 +19,16 @@ from espnet.utils.cli_utils import strtobool
 
 
 def main(cmd_args):
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = configargparse.ArgumentParser(
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True,
+               help='second config file path that overwrites the settings in `--config`.')
+    parser.add('--config3', is_config_file=True,
+               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -51,7 +58,7 @@ def main(cmd_args):
                         help='Filename of validation label data (json)')
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
-                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr)')
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
     # encoder
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
@@ -159,6 +166,8 @@ def main(cmd_args):
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
+    parser.add_argument('--use-specaug', type=strtobool, default=True,
+                        help='The flag to use specaug in training.')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
                         choices=['adadelta', 'adam', 'noam'],
@@ -267,17 +276,18 @@ def main(cmd_args):
                         help='')
 
     args, _ = parser.parse_known_args(cmd_args)
-    from importlib import import_module
+
+    from espnet.utils.dynamic_import import dynamic_import
     if args.model_module is not None:
-        model_module = import_module(args.model_module)
-        assert hasattr(model_module, "E2E")
-        if hasattr(model_module, "add_arguments"):
-            model_module.add_arguments(parser)
+        model_class = dynamic_import(args.model_module)
+        model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
     if args.model_module is None:
-        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr"
-    else:
-        args.backend = "chainer" if "chainer" in args.model_module else "pytorch"
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+    if 'chainer_backend' in args.model_module:
+        args.backend = 'chainer'
+    if 'pytorch_backend' in args.model_module:
+        args.backend = 'pytorch'
 
     # logging info
     if args.verbose > 0:
