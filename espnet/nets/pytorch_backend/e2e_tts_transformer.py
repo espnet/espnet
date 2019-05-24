@@ -11,6 +11,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import make_non_pad_mask
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
@@ -243,7 +244,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         )
 
         # define loss function
-        self.criterion = TransformerTTSLoss(args)
+        self.criterion = Tacotron2Loss(args)
 
         # initialize parameters
         self.reset_parameters(args)
@@ -305,12 +306,15 @@ class Transformer(TTSInterface, torch.nn.Module):
         # forward decoder
         y_masks = self.target_mask(olens)
         zs, z_masks = self.decoder(ys, y_masks, hs, h_masks)
-        outs = self.feat_out(zs)
-        logits = self.prob_out(zs).squeeze(-1)
+        before_outs = self.feat_out(zs)  # (B, Lmax, odim)
+        logits = self.prob_out(zs).squeeze(-1)  # (B, Lmax)
+
+        # postnet
+        after_outs = self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         # caluculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.criterion(
-            outs, logits, ys, labels, olens)
+            after_outs, before_outs, logits, ys, labels, olens)
         loss = l1_loss + mse_loss + bce_loss
 
         # report for chainer reporter
@@ -323,6 +327,22 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.reporter.report(report_keys)
 
         return loss
+
+    def inference(self, x, inference_args, *args, **kwargs):
+        """Generates the sequence of features given the sequences of characters
+
+        :param torch.Tensor x: the sequence of characters (T)
+        :param Namespace inference_args: argments containing following attributes
+            (float) threshold: threshold in inference
+            (float) minlenratio: minimum length ratio in inference
+            (float) maxlenratio: maximum length ratio in inference
+        :rtype: torch.Tensor
+        :return: the sequence of stop probabilities (L)
+        :rtype: torch.Tensor
+        :return: the sequence of attention weight (L, T)
+        :rtype: torch.Tensor
+        """
+        pass
 
     def target_mask(self, olens):
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
