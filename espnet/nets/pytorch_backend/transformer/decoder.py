@@ -9,7 +9,7 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
 class Decoder(torch.nn.Module):
-    """Transfomer decoder
+    """Transfomer decoder module
 
     :param int odim: output dim
     :param int attention_dim: dimention of attention
