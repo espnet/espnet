@@ -16,6 +16,8 @@ from distutils.util import strtobool
 
 import numpy as np
 
+from espnet.nets.tts_interface import TTSInterface
+
 
 def main(cmd_args):
     parser = configargparse.ArgumentParser(
@@ -97,6 +99,7 @@ def main(cmd_args):
 
     from espnet.utils.dynamic_import import dynamic_import
     model_class = dynamic_import(args.model_module)
+    issubclass(model_class, TTSInterface)
     model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
 
