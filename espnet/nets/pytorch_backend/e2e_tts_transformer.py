@@ -9,11 +9,11 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.e2e_tts_tacotron2 import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
+from espnet.nets.pytorch_backend.transformer.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.encoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -299,11 +299,11 @@ class Transformer(TTSInterface, torch.nn.Module):
             labels = labels[:, :max_out]
 
         # forward encoder
-        src_masks = (~make_pad_mask(ilens).to(xs.device).unsqueeze(-2))
+        src_masks = make_non_pad_mask(ilens).to(xs.device).unsqueeze(-2)
         hs, h_masks = self.encoder(xs, src_masks)
 
         # forward decoder
-        y_masks = self.target_mask(ys)
+        y_masks = self.target_mask(olens)
         zs, z_masks = self.decoder(ys, y_masks, hs, h_masks)
         outs = self.feat_out(zs)
         logits = self.prob_out(outs)
@@ -323,6 +323,11 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.reporter.report(report_keys)
 
         return loss
+
+    def target_mask(self, olens):
+        y_masks = make_non_pad_mask(olens).unsqueeze(-1).to(next(self.parameters()).device)
+        s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
+        return y_masks.unsqueeze(-2) & s_masks
 
     @property
     def base_plot_keys(self):
