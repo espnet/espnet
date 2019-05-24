@@ -3,7 +3,7 @@
 PYTHON :=
 # The python version installed in the conda setup
 PYTHON_VERSION := 3.7
-CUPY_VERSION := 5.0.0
+CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
 # PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
 TH_VERSION := 1.0.1
@@ -29,7 +29,7 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done pytorch_complex.done
+python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done pytorch_complex.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done pesq
 
@@ -80,11 +80,6 @@ ifneq ($(strip $(CUPY_VERSION)),)
 	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
 	touch cupy.done
 endif
-
-chainer_patch.done: espnet.done
-	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
-	patch $(FILENAME) < prefetch.patch
-	touch chainer_patch.done
 
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
@@ -188,7 +183,7 @@ clean: clean_extra
 clean_python:
 	rm -rf venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done pytorch_complex pytorch_complex.done
+	rm -f warp-ctc.done chainer_ctc.done espnet.done pytorch_complex pytorch_complex.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:
