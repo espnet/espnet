@@ -283,4 +283,5 @@ def test_transformer_trainable_and_decodable(model_dict):
     # decodable
     model.eval()
     with torch.no_grad():
-        outs, probs = model.inference(xs[0][:ilens[0]], Namespace(**inference_args))
+        model.inference(xs[0][:ilens[0]], Namespace(**inference_args))
+        model.calculate_all_attentions(xs, ilens, ys, olens)

@@ -15,6 +15,7 @@ from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -247,9 +248,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.criterion = Tacotron2Loss(args)
 
         # initialize parameters
-        self.reset_parameters(args)
+        self._reset_parameters(args)
 
-    def reset_parameters(self, args):
+    def _reset_parameters(self, args):
         if args.transformer_init == "pytorch":
             return
         # weight init
@@ -304,7 +305,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         hs, h_masks = self.encoder(xs, src_masks)
 
         # forward decoder
-        y_masks = self.target_mask(olens)
+        y_masks = self._target_mask(olens)
         zs, z_masks = self.decoder(ys, y_masks, hs, h_masks)
         before_outs = self.feat_out(zs)  # (B, Lmax, odim)
         logits = self.prob_out(zs).squeeze(-1)  # (B, Lmax)
@@ -386,7 +387,32 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         return outs, probs
 
-    def target_mask(self, olens):
+    def calculate_all_attentions(self, xs, ilens, ys, olens, *args, **kwargs):
+        '''Calculate attention weights
+
+        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor ilens: list of lengths of each output batch (B)
+        :return: attention weights dict
+        :rtype: dict
+        '''
+        with torch.no_grad():
+            # forward encoder
+            src_masks = make_non_pad_mask(ilens).to(xs.device).unsqueeze(-2)
+            hs, h_masks = self.encoder(xs, src_masks)
+
+            # forward decoder
+            y_masks = self._target_mask(olens)
+            self.decoder(ys, y_masks, hs, h_masks)
+
+        att_ws_dict = dict()
+        for name, m in self.named_modules():
+            if isinstance(m, MultiHeadedAttention):
+                att_ws_dict[name] = m.attn.cpu().numpy()
+        return att_ws_dict
+
+    def _target_mask(self, olens):
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks
