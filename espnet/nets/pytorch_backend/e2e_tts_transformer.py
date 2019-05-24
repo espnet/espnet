@@ -9,12 +9,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
-from espnet.nets.pytorch_backend.tacotron2.e2e_tts_tacotron2 import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
-from espnet.nets.pytorch_backend.transformer.e2e_asr_transformer import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.encoder import Decoder
+from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
@@ -150,7 +150,6 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.eprenet_conv_layers = args.eprenet_conv_layers
         self.eprenet_conv_filts = args.eprenet_conv_filts
         self.eprenet_conv_chans = args.eprenet_conv_chans
-        self.eprenet_proj_units = args.eprenet_proj_units
         self.dprenet_layers = args.dprenet_layers
         self.dprenet_units = args.dprenet_units
         self.postnet_layers = args.postnet_layers
@@ -163,21 +162,23 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.dlayers = args.dlayers
         self.dunits = args.dunits
         self.use_batch_norm = args.use_batch_norm
-        self.dropout_rate = args.dropout_rate
-        if self.eprenet_dropout_rate is None:
-            self.eprenet_dropout_rate = args.dropout_rate
-        if self.dprenet_dropout_rate is None:
-            self.dprenet_dropout_rate = args.dropout_rate
+        self.dropout = args.dropout
+        if args.eprenet_dropout is None:
+            self.eprenet_dropout = args.dropout
         else:
-            self.dprenet_dropout_rate = args.dprenet_dropout_rate
-        if args.postnet_dropout_rate is None:
-            self.postnet_dropout_rate = args.dropout_rate
+            self.eprenet_dropout = args.eprenet_dropout
+        if args.dprenet_dropout is None:
+            self.dprenet_dropout = args.dropout
         else:
-            self.postnet_dropout_rate = args.postnet_dropout_rate
-        if args.transformer_attn_dropout_rate is None:
-            self.transformer_attn_dropout_rate = args.dropout_rate
+            self.dprenet_dropout = args.dprenet_dropout
+        if args.postnet_dropout is None:
+            self.postnet_dropout = args.dropout
         else:
-            self.transformer_attn_dropout_rate = args.transformer_attn_dropout_rate
+            self.postnet_dropout = args.postnet_dropout
+        if args.transformer_attn_dropout is None:
+            self.transformer_attn_dropout = args.dropout
+        else:
+            self.transformer_attn_dropout = args.transformer_attn_dropout
 
         # define transformer encoder
         encoder_prenet = torch.nn.Sequential(
@@ -187,10 +188,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                 elayers=0,
                 econv_layers=self.eprenet_conv_layers,
                 econv_chans=self.eprenet_conv_chans,
-                econv_filts=self.econder_prenet_conv_filts,
-                proj_units=self.econder_prenet_proj_units,
+                econv_filts=self.eprenet_conv_filts,
                 use_batch_norm=self.use_batch_norm,
-                dropout=self.eprenet_dropout_rate
+                dropout=self.eprenet_dropout
             ),
             torch.nn.Linear(self.eprenet_conv_chans, self.adim)
         )
@@ -201,8 +201,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             linear_units=self.eunits,
             num_blocks=self.elayers,
             input_layer=encoder_prenet,
-            dropout_rate=self.dropout_rate,
-            attention_dropout_rate=self.transformer_attn_dropout_rate
+            dropout_rate=self.dropout,
+            attention_dropout_rate=self.transformer_attn_dropout
         )
 
         # define transformer decoder
@@ -211,7 +211,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 idim=self.odim,
                 n_layers=self.dprenet_layers,
                 n_units=self.dprenet_units,
-                dropout=self.dprenet_dropout_rate
+                dropout=self.dprenet_dropout
             ),
             torch.nn.Linear(self.dprenet_units, self.adim)
         )
@@ -219,10 +219,10 @@ class Transformer(TTSInterface, torch.nn.Module):
             odim=-1,
             attention_dim=self.adim,
             attention_heads=self.aheads,
-            linear_units=self.decoder_units,
-            num_blocks=self.decoder_blocks,
-            dropout_rate=self.dropout_rate,
-            attention_dropout_rate=self.transformer_attn_dropout_rate,
+            linear_units=self.dunits,
+            num_blocks=self.dlayers,
+            dropout_rate=self.dropout,
+            attention_dropout_rate=self.transformer_attn_dropout,
             input_layer=decoder_prenet,
             use_output_layer=False
         )
@@ -239,11 +239,11 @@ class Transformer(TTSInterface, torch.nn.Module):
             n_chans=self.postnet_chans,
             n_filts=self.postnet_filts,
             use_batch_norm=self.use_batch_norm,
-            dropout=self.postnet_dropout_rate
+            dropout=self.postnet_dropout
         )
 
         # define loss function
-        self.criterion = TransformerTTSLoss()
+        self.criterion = TransformerTTSLoss(args)
 
         # initialize parameters
         self.reset_parameters(args)
