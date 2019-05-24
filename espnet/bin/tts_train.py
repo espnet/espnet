@@ -75,6 +75,8 @@ def main(cmd_args):
                         help='The configuration file for the pre-processing')
     parser.add_argument('--use_speaker_embedding', default=False, type=strtobool,
                         help='Whether to use speaker embedding')
+    parser.add_argument('--use_second_target', default=False, type=strtobool,
+                        help='Whether to use second target')
     # optimization related
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate for optimizer')
