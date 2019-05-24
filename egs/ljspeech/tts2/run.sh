@@ -282,6 +282,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
            --use_masking ${use_masking} \
            --bce_pos_weight ${bce_pos_weight} \
            --use_cbhg true \
+           --use_second_target true \
            --cbhg_conv_bank_layers ${cbhg_conv_bank_layers} \
            --cbhg_conv_bank_chans ${cbhg_conv_bank_chans} \
            --cbhg_conv_proj_filts ${cbhg_conv_proj_filts} \
