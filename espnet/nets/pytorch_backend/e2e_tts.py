@@ -409,6 +409,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
             olens = [olen - olen % self.reduction_factor for olen in olens]
+            max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
 
