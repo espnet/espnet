@@ -65,6 +65,7 @@ def test_optional_args():
 def test_func_trans():
     def foo_bar(x, a=1, b=2):
         '''Foo bar
+
         :param x: input
         :param int a: default 1
         :param int b: default 2
@@ -77,7 +78,7 @@ def test_func_trans():
 
     assert FooBar(a=2)(0) == 0
     try:
-        f = FooBar(d=1)
+        FooBar(d=1)
     except TypeError as e:
         raised = True
         assert str(e) == "foo_bar() got an unexpected keyword argument 'd'"
@@ -87,10 +88,6 @@ def test_func_trans():
     import argparse
     parser = argparse.ArgumentParser()
     FooBar.add_arguments(parser)
-    # expected = [
-    #     argparse._StoreAction(option_strings=['--foo-bar-a'], dest='foo_bar_a', nargs=None, const=None, default=1, type=int, choices=None, help=None, metavar=None),
-    #     argparse._StoreAction(option_strings=['--foo-bar-b'], dest='foo_bar_b', nargs=None, const=None, default=2, type=int, choices=None, help=None, metavar=None)
-    # ]
     # NOTE: index 0 is help
     assert parser._actions[1].option_strings == ['--foo-bar-a']
     assert parser._actions[1].default == 1

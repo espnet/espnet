@@ -37,7 +37,9 @@ def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
         return numpy.concatenate((left, right), 0)
     elif mode == "sparse_image_warp":
         import torch
+
         from espnet.utils import spec_augment
+
         # TODO(karita): make this differentiable again
         return spec_augment.time_warp(torch.from_numpy(x), window).numpy()
     else:
@@ -56,6 +58,7 @@ class TimeWarp(FuncTrans):
 
 def freq_mask(x, F=30, n_mask=2, replace_with_zero=True, inplace=False):
     """freq mask for spec agument
+
     :param numpy.ndarray x: (time, freq)
     :param int n_mask: the number of masks
     :param bool inplace: overwrite
@@ -96,6 +99,7 @@ class FreqMask(FuncTrans):
 
 def time_mask(spec, T=40, n_mask=2, replace_with_zero=True, inplace=False):
     """freq mask for spec agument
+
     :param numpy.ndarray spec: (time, freq)
     :param int n_mask: the number of masks
     :param bool inplace: overwrite
@@ -139,11 +143,11 @@ def spec_augment(x, resize_mode="PIL", max_time_warp=80,
                  max_freq_width=27, n_freq_mask=2,
                  max_time_width=100, n_time_mask=2, inplace=True, replace_with_zero=True):
     """spec agument
+
     apply random time warping and time/freq masking
     default setting is based on LD (Librispeech double) in Table 2 https://arxiv.org/pdf/1904.08779.pdf
 
     :param numpy.ndarray x: (time, freq)
-
     :param str resize_mode: "PIL" (fast, nondifferentiable) or "sparse_image_warp" (slow, differentiable)
     :param int max_time_warp: maximum frames to warp the center frame in spectrogram (W)
     :param int freq_mask_width: maximum width of the random freq mask (F)
@@ -156,7 +160,7 @@ def spec_augment(x, resize_mode="PIL", max_time_warp=80,
     assert isinstance(x, numpy.ndarray)
     assert x.ndim == 2
     x = time_warp(x, max_time_warp, inplace=inplace, mode=resize_mode)
-    x = freq_mask(x, max_freq_width,  n_freq_mask, inplace=inplace, replace_with_zero=replace_with_zero)
+    x = freq_mask(x, max_freq_width, n_freq_mask, inplace=inplace, replace_with_zero=replace_with_zero)
     x = time_mask(x, max_time_width, n_time_mask, inplace=inplace, replace_with_zero=replace_with_zero)
     return x
 
