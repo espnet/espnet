@@ -339,10 +339,52 @@ class Transformer(TTSInterface, torch.nn.Module):
         :rtype: torch.Tensor
         :return: the sequence of stop probabilities (L)
         :rtype: torch.Tensor
-        :return: the sequence of attention weight (L, T)
-        :rtype: torch.Tensor
         """
-        pass
+        # get options
+        threshold = inference_args.threshold
+        minlenratio = inference_args.minlenratio
+        maxlenratio = inference_args.maxlenratio
+
+        # forward encoder
+        xs = x.unsqueeze(0)
+        hs, _ = self.encoder(xs, None)
+
+        # set limits of length
+        maxlen = int(hs.size(1) * maxlenratio)
+        minlen = int(hs.size(1) * minlenratio)
+
+        # initialize
+        idx = 0
+        ys = hs.new_zeros(1, 1, self.odim)
+        outs, probs = [], []
+
+        # forward decoder step-by-step
+        while True:
+            # update index
+            idx += 1
+
+            # calculate output and stop prob at idx-th step
+            y_masks = subsequent_mask(idx).unsqueeze(0)
+            z = self.decoder.recognize(ys, y_masks, hs)  # (B, adim)
+            outs += [self.feat_out(z)]  # [(1, odim, 1), ...]
+            probs += [torch.sigmoid(self.prob_out(z))[0]]
+
+            # update next inputs
+            ys = torch.cat((ys, outs[-1].unsqueeze(0)), dim=1)  # (1, idx + 1, odim)
+
+            # check whether to finish generation
+            if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
+                # check mininum length
+                if idx < minlen:
+                    continue
+                outs = torch.cat(outs, dim=0).unsqueeze(0).transpose(1, 2)  # (L, odim) -> (1, L, odim) -> (1, odim, L)
+                if self.postnet is not None:
+                    outs = outs + self.postnet(outs)  # (1, odim, L)
+                outs = outs.transpose(2, 1).squeeze(0)  # (L, odim)
+                probs = torch.cat(probs, dim=0)
+                break
+
+        return outs, probs
 
     def target_mask(self, olens):
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
