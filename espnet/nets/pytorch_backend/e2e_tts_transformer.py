@@ -185,6 +185,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             self.transformer_attn_dropout = args.dropout
         else:
             self.transformer_attn_dropout = args.transformer_attn_dropout
+        self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.pos_enc_class = ScaledPositionalEncoding if args.use_scaled_pos_enc else PositionalEncoding
 
         # define transformer encoder
