@@ -1,11 +1,12 @@
 from collections import OrderedDict
 import copy
-import importlib
 import io
 import json
 import logging
 import sys
 
+
+from espnet.utils.dynamic_import import dynamic_import
 
 PY2 = sys.version_info[0] == 2
 
@@ -18,35 +19,22 @@ else:
     from inspect import signature
 
 
-def dynamic_import(import_path):
-    alias = dict(
-        speed_perturbation='espnet.transform.perturb:SpeedPerturbation',
-        volume_perturbation='espnet.transform.perturb:VolumePerturbation',
-        noise_injection='espnet.transform.perturb:NoiseInjection',
-        bandpass_perturbation='espnet.transform.perturb:BandpassPerturbation',
-        rir_convolve='espnet.transform.perturb:RIRConvolve',
-        delta='espnet.transform.add_deltas:AddDeltas',
-        cmvn='espnet.transform.cmvn:CMVN',
-        utterance_cmvn='espnet.transform.cmvn:UtteranceCMVN',
-        fbank='espnet.transform.spectrogram:LogMelSpectrogram',
-        spectrogram='espnet.transform.spectrogram:Spectrogram',
-        stft='espnet.transform.spectrogram:Stft',
-        istft='espnet.transform.spectrogram:IStft',
-        stft2fbank='espnet.transform.spectrogram:Stft2LogMelSpectrogram',
-        wpe='espnet.transform.wpe:WPE',
-        channel_selector='espnet.transform.channel_selector:ChannelSelector')
-
-    if import_path not in alias and ':' not in import_path:
-        raise ValueError(
-            'import_path should be one of {} or '
-            'include ":", e.g. "espnet.transform.add_deltas:AddDeltas" : '
-            '{}'.format(set(alias), import_path))
-    if ':' not in import_path:
-        import_path = alias[import_path]
-
-    module_name, objname = import_path.split(':')
-    m = importlib.import_module(module_name)
-    return getattr(m, objname)
+import_alias = dict(
+    speed_perturbation='espnet.transform.perturb:SpeedPerturbation',
+    volume_perturbation='espnet.transform.perturb:VolumePerturbation',
+    noise_injection='espnet.transform.perturb:NoiseInjection',
+    bandpass_perturbation='espnet.transform.perturb:BandpassPerturbation',
+    rir_convolve='espnet.transform.perturb:RIRConvolve',
+    delta='espnet.transform.add_deltas:AddDeltas',
+    cmvn='espnet.transform.cmvn:CMVN',
+    utterance_cmvn='espnet.transform.cmvn:UtteranceCMVN',
+    fbank='espnet.transform.spectrogram:LogMelSpectrogram',
+    spectrogram='espnet.transform.spectrogram:Spectrogram',
+    stft='espnet.transform.spectrogram:Stft',
+    istft='espnet.transform.spectrogram:IStft',
+    stft2fbank='espnet.transform.spectrogram:Stft2LogMelSpectrogram',
+    wpe='espnet.transform.wpe:WPE',
+    channel_selector='espnet.transform.channel_selector:ChannelSelector')
 
 
 class Transformation(object):
@@ -84,7 +72,7 @@ class Transformation(object):
                 assert isinstance(process, dict), type(process)
                 opts = dict(process)
                 process_type = opts.pop('type')
-                class_obj = dynamic_import(process_type)
+                class_obj = dynamic_import(process_type, import_alias)
                 try:
                     self.functions[idx] = class_obj(**opts)
                 except TypeError:
