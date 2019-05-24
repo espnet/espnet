@@ -256,9 +256,10 @@ def make_transformer_args(**kwargs):
         ({"use_masking": False}),
         ({"bce_pos_weight": 10.0}),
     ])
-def test_transformer_trainable(model_dict):
+def test_transformer_trainable_and_decodable(model_dict):
     # make args
     model_args = make_transformer_args(**model_dict)
+    inference_args = make_inference_args()
 
     # setup batch
     bs = 2
@@ -278,3 +279,8 @@ def test_transformer_trainable(model_dict):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+    # decodable
+    model.eval()
+    with torch.no_grad():
+        outs, probs = model.inference(xs[0][:ilens[0]], Namespace(**inference_args))
