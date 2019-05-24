@@ -244,6 +244,7 @@ def make_transformer_args(**kwargs):
         use_masking=True,
         bce_pos_weight=5.0,
         use_batch_norm=True,
+        use_scaled_pos_enc=True,
         transformer_init="pytorch"
     )
     defaults.update(kwargs)

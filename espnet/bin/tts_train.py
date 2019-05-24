@@ -12,11 +12,10 @@ import random
 import subprocess
 import sys
 
-from distutils.util import strtobool
-
 import numpy as np
 
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.cli_utils import strtobool
 
 
 def main(cmd_args):
