@@ -99,7 +99,7 @@ def main(cmd_args):
 
     from espnet.utils.dynamic_import import dynamic_import
     model_class = dynamic_import(args.model_module)
-    issubclass(model_class, TTSInterface)
+    assert issubclass(model_class, TTSInterface)
     model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
 
