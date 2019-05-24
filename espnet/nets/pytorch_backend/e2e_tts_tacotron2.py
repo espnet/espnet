@@ -378,9 +378,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         """Tacotron2 forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param list ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
-        :param torch.Tensor olens:
+        :param torch.Tensor olens: batch of the lengths of each target (B)
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
         :param torch.Tensor spcs: batch of groundtruth spectrogram (B, Lmax, spc_dim)
         :return: loss value
