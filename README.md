@@ -37,7 +37,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 - PyTorch 0.4.1, 1.0.0
 - gcc>=4.9 for PyTorch1.0.0
-- Chainer 5.0.0
+- Chainer 6.0.0
 
 Optionally, GPU environment requires the following libraries:
 
