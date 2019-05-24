@@ -258,7 +258,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
     def __init__(self, idim, odim, args):
         # initialize base classes
-        super(Tacotron2, self).__init__()
+        TTSInterface.__init__(self)
         torch.nn.Module.__init__(self)
 
         # store hyperparameters
