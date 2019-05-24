@@ -90,7 +90,7 @@ class Encoder(torch.nn.Module):
         # initialize
         self.apply(encoder_init)
 
-    def forward(self, xs, ilens):
+    def forward(self, xs, ilens=None):
         """Character encoding forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -107,7 +107,7 @@ class Encoder(torch.nn.Module):
             else:
                 xs = self.convs[l](xs)
         if self.blstm is None:
-            return xs.transpose(1, 2), ilens
+            return xs.transpose(1, 2)
         xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
         self.blstm.flatten_parameters()
         xs, _ = self.blstm(xs)  # (B, Tmax, C)
