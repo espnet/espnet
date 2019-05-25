@@ -30,17 +30,18 @@ class Decoder(torch.nn.Module):
                  dropout_rate=0.1,
                  attention_dropout_rate=0.0,
                  input_layer="embed",
-                 use_output_layer=True):
+                 use_output_layer=True,
+                 pos_enc_class=PositionalEncoding):
         super(Decoder, self).__init__()
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(odim, attention_dim),
-                PositionalEncoding(attention_dim, dropout_rate)
+                pos_enc_class(attention_dim, dropout_rate)
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
                 input_layer,
-                PositionalEncoding(attention_dim, dropout_rate)
+                pos_enc_class(attention_dim, dropout_rate)
             )
         else:
             raise NotImplementedError("only `embed` or torch.nn.Module is supported.")
