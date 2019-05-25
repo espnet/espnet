@@ -34,8 +34,8 @@ import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.nets.pytorch_backend.e2e_asr import SegmentStreamingE2E
-from espnet.nets.pytorch_backend.e2e_asr import WindowStreamingE2E
+from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
+from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileWriterWrapper
@@ -527,7 +527,7 @@ def recog(args):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                if args.streaming_mode == 1:
+                if args.streaming_mode == 'window':
                     logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
                     se2e = WindowStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
                     for i in range(0, feat.shape[0], args.streaming_window):
@@ -537,7 +537,7 @@ def recog(args):
                     se2e.decode_with_attention_offline()
                     logging.info('Offline attention decoder finished')
                     nbest_hyps = se2e.retrieve_recognition()
-                elif args.streaming_mode == 2:
+                elif args.streaming_mode == 'segment':
                     logging.info('Using streaming recognizer with threshold value %d', args.min_blank_dur)
                     nbest_hyps = []
                     for n in range(args.nbest):
