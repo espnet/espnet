@@ -10,7 +10,6 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import make_non_pad_mask
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
@@ -25,8 +24,8 @@ from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 
 
-class TransformerTTSLoss(torch.nn.Module):
-    """Transformer TTS loss function
+class TransformerLoss(torch.nn.Module):
+    """Transformer loss function
 
     :param Namespace args: argments containing following attributes
         (bool) use_masking: whether to mask padded part in loss calculation
@@ -34,14 +33,15 @@ class TransformerTTSLoss(torch.nn.Module):
     """
 
     def __init__(self, args):
-        super(TransformerTTSLoss, self).__init__()
+        super(TransformerLoss, self).__init__()
         self.use_masking = args.use_masking
         self.bce_pos_weight = args.bce_pos_weight
 
-    def forward(self, outs, logits, ys, labels, olens):
+    def forward(self, after_outs, before_outs, logits, ys, labels, olens):
         """Transformer loss forward computation
 
-        :param torch.Tensor outs: outputs i.e. log-mels (B, Lmax, odim)
+        :param torch.Tensor after_outs: outputs with postnets (B, Lmax, odim)
+        :param torch.Tensor before_outs: outputs without postnets (B, Lmax, odim)
         :param torch.Tensor logits: stop logits (B, Lmax)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor labels: batch of the sequences of stop token labels (B, Lmax)
@@ -57,17 +57,17 @@ class TransformerTTSLoss(torch.nn.Module):
         if self.use_masking:
             mask = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
             ys = ys.masked_select(mask)
-            outs = outs.masked_select(mask)
+            after_outs = after_outs.masked_select(mask)
+            before_outs = before_outs.masked_select(mask)
             labels = labels.masked_select(mask[:, :, 0])
             logits = logits.masked_select(mask[:, :, 0])
 
         # calculate loss
-        l1_loss = F.l1_loss(outs, ys)
-        mse_loss = F.mse_loss(outs, ys)
+        l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
         bce_loss = F.binary_cross_entropy_with_logits(
             logits, labels, pos_weight=torch.tensor(self.bce_pos_weight, device=ys.device))
 
-        return l1_loss, mse_loss, bce_loss
+        return l1_loss, bce_loss
 
 
 class Transformer(TTSInterface, torch.nn.Module):
@@ -284,7 +284,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         )
 
         # define loss function
-        self.criterion = Tacotron2Loss(args)
+        self.criterion = TransformerLoss(args)
 
         # initialize parameters
         self._reset_parameters(args)
@@ -352,15 +352,14 @@ class Transformer(TTSInterface, torch.nn.Module):
         # postnet
         after_outs = self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
-        # caluculate taco2 loss
-        l1_loss, mse_loss, bce_loss = self.criterion(
+        # caluculate loss values
+        l1_loss, bce_loss = self.criterion(
             after_outs, before_outs, logits, ys, labels, olens)
-        loss = l1_loss + mse_loss + bce_loss
+        loss = l1_loss + bce_loss
 
         # report for chainer reporter
         report_keys = [
             {'l1_loss': l1_loss.item()},
-            {'mse_loss': mse_loss.item()},
             {'bce_loss': bce_loss.item()},
             {'loss': loss.item()},
         ]
@@ -465,5 +464,5 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         :rtype list[str] plot_keys: base keys to plot during training
         """
-        plot_keys = ['loss', 'l1_loss', 'mse_loss', 'bce_loss']
+        plot_keys = ['loss', 'l1_loss', 'bce_loss']
         return plot_keys
