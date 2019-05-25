@@ -80,7 +80,37 @@ class TransformerTTSLoss(torch.nn.Module):
 class Transformer(TTSInterface, torch.nn.Module):
     """Transformer for TTS
 
-    Reference: Neural Speech Synthesis with Transformer Network (https://arxiv.org/pdf/1809.08895.pdf)
+    - Reference: Neural Speech Synthesis with Transformer Network (https://arxiv.org/pdf/1809.08895.pdf)
+
+    :param int idim: dimension of the inputs
+    :param int odim: dimension of the outputs
+    :param Namespace args: argments containing following attributes
+        (int) eprenet_conv_layers: number of encoder prenet convolution layers
+        (int) eprenet_conv_chans: number of encoder prenet convolution channels
+        (int) eprenet_conv_filts: filter size of encoder prenet convolution
+        (int) dprenet_layers: number of decoder prenet layers
+        (int) dprenet_units: number of decoder prenet hidden units
+        (int) elayers: number of encoder layers
+        (int) eunits: number of encoder hidden units
+        (int) adim: number of attention transformation dimensions
+        (int) aheads: number of heads for multi head attention
+        (int) dlayers: number of decoder layers
+        (int) dunits: number of decoder hidden units
+        (int) postnet_layers: number of postnet layers
+        (int) postnet_chans: number of postnet channels
+        (int) postnet_filts: filter size of postnet
+        (bool) use_scaled_pos_enc: whether to use trainable scaled positional encoding instead of the fixed scale one
+        (bool) use_batch_norm: whether to use batch normalization')
+        (float) transformer_init: how to initialize transformer parameters')
+        (float) transformer_lr': initial value of learning rate
+        (int) transformer_warmup_steps: optimizer warmup steps
+        (float) transformer_attn_dropout_rate: dropout in transformer attention. use dropout if none is set
+        (float) eprenet_dropout_rate: dropout rate in encoder prenet. use dropout if none is set
+        (float) dprenet_dropout_rate: dropout rate in decoder prenet. use dropout if none is set
+        (float) postnet_dropout_rate: dropout rate in postnet. use dropout_rate if none is set
+        (float) dropout_rate: dropout rate in the other module
+        (bool) use_masking: whether to use masking in calculation of loss
+        (float) bce_pos_weight: positive sample weight in bce calculation (only for use_masking=true)
     """
 
     @staticmethod
