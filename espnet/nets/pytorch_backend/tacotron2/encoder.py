@@ -33,7 +33,7 @@ class Encoder(torch.nn.Module):
     :param int econv_chans: the number of encoder conv filter channels
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_residual: whether to use residual connection
-    :param float dropout: dropout rate
+    :param float dropout_rate: dropout rate
     """
 
     def __init__(self, idim,
@@ -45,7 +45,7 @@ class Encoder(torch.nn.Module):
                  econv_filts=5,
                  use_batch_norm=True,
                  use_residual=False,
-                 dropout=0.5):
+                 dropout_rate=0.5):
         super(Encoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
@@ -57,7 +57,7 @@ class Encoder(torch.nn.Module):
         self.econv_filts = econv_filts if econv_layers != 0 else -1
         self.use_batch_norm = use_batch_norm
         self.use_residual = use_residual
-        self.dropout = dropout
+        self.dropout_rate = dropout_rate
         # define network layer modules
         self.embed = torch.nn.Embedding(self.idim, self.embed_dim)
         if self.econv_layers > 0:
@@ -70,13 +70,13 @@ class Encoder(torch.nn.Module):
                                         padding=(self.econv_filts - 1) // 2, bias=False),
                         torch.nn.BatchNorm1d(self.econv_chans),
                         torch.nn.ReLU(),
-                        torch.nn.Dropout(self.dropout))]
+                        torch.nn.Dropout(self.dropout_rate))]
                 else:
                     self.convs += [torch.nn.Sequential(
                         torch.nn.Conv1d(ichans, self.econv_chans, self.econv_filts, stride=1,
                                         padding=(self.econv_filts - 1) // 2, bias=False),
                         torch.nn.ReLU(),
-                        torch.nn.Dropout(self.dropout))]
+                        torch.nn.Dropout(self.dropout_rate))]
         else:
             self.convs = None
         if elayers > 0:

@@ -160,8 +160,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         (bool) cumulate_att_w: whether to cumulate previous attention weight
         (bool) use_batch_norm: whether to use batch normalization
         (bool) use_concate: whether to concatenate encoder embedding with decoder lstm outputs
-        (float) dropout: dropout rate
-        (float) zoneout: zoneout rate
+        (float) dropout_rate: dropout rate
+        (float) zoneout_rate: zoneout rate
         (int) reduction_factor: reduction factor
         (bool) use_cbhg: whether to use CBHG module
         (int) cbhg_conv_bank_layers: the number of convoluional banks in CBHG
@@ -243,9 +243,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                             help='Whether to concatenate encoder embedding with decoder outputs')
         parser.add_argument('--use-residual', default=True, type=strtobool,
                             help='Whether to use residual connection in conv layer')
-        parser.add_argument('--dropout', default=0.5, type=float,
+        parser.add_argument('--dropout-rate', default=0.5, type=float,
                             help='Dropout rate')
-        parser.add_argument('--zoneout', default=0.1, type=float,
+        parser.add_argument('--zoneout-rate', default=0.1, type=float,
                             help='Zoneout rate')
         parser.add_argument('--reduction-factor', default=1, type=int,
                             help='Reduction factor')
@@ -284,8 +284,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.cumulate_att_w = args.cumulate_att_w
         self.use_batch_norm = args.use_batch_norm
         self.use_concate = args.use_concate
-        self.dropout = args.dropout
-        self.zoneout = args.zoneout
+        self.dropout_rate = args.dropout_rate
+        self.zoneout_rate = args.zoneout_rate
         self.reduction_factor = args.reduction_factor
         self.atype = args.atype
         self.use_cbhg = args.use_cbhg
@@ -315,7 +315,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            econv_chans=self.econv_chans,
                            econv_filts=self.econv_filts,
                            use_batch_norm=self.use_batch_norm,
-                           dropout=self.dropout)
+                           dropout_rate=self.dropout_rate)
         dec_idim = self.eunits if self.spk_embed_dim is None else self.eunits + self.spk_embed_dim
         if self.atype == "location":
             att = AttLoc(dec_idim,
@@ -358,8 +358,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            cumulate_att_w=self.cumulate_att_w,
                            use_batch_norm=self.use_batch_norm,
                            use_concate=self.use_concate,
-                           dropout=self.dropout,
-                           zoneout=self.zoneout,
+                           dropout_rate=self.dropout_rate,
+                           zoneout_rate=self.zoneout_rate,
                            reduction_factor=self.reduction_factor)
         self.taco2_loss = Tacotron2Loss(args)
         if self.use_cbhg:

@@ -117,22 +117,27 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help='Filter size of postnet')
         group.add_argument('--use-scaled-pos-enc', default=True, type=strtobool,
                            help='use trainable scaled positional encoding instead of the fixed scale one.')
+        group.add_argument('--use-batch-norm', default=True, type=strtobool,
+                           help='Whether to use batch normalization')
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
-                                    "kaiming_uniform", "kaiming_normal"],
+                                    "kaiming_uniform", "kaiming-normal"],
                            help='how to initialize transformer parameters')
-        group.add_argument("--transformer-input-layer", type=str, default="conv2d",
-                           choices=["conv2d", "linear", "embed"],
-                           help='transformer input layer type')
-        group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
-                           help='dropout in transformer attention. use --dropout-rate if None is set')
         group.add_argument('--transformer-lr', default=10.0, type=float,
                            help='Initial value of learning rate')
         group.add_argument('--transformer-warmup-steps', default=25000, type=int,
                            help='optimizer warmup steps')
-        group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
-                           help='normalize loss by length')
+        group.add_argument('--transformer-attn-dropout-rate', default=0.0, type=float,
+                           help='dropout in transformer attention. use --dropout if None is set')
+        group.add_argument('--eprenet-dropout-rate', default=0.5, type=float,
+                           help='dropout rate in encoder prenet. use --dropout if None is set')
+        group.add_argument('--dprenet-dropout-rate', default=0.5, type=float,
+                           help='dropout rate in decoder prenet. use --dropout if None is set')
+        group.add_argument('--postnet-dropout-rate', default=0.5, type=float,
+                           help='dropout rate in postnet. use --dropout-rate if None is set')
+        group.add_argument('--dropout-rate', default=0.1, type=float,
+                           help='dropout rate in the other module')
         # loss related
         group.add_argument('--use-masking', default=True, type=strtobool,
                            help='Whether to use masking in calculation of loss')
@@ -168,23 +173,23 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.dlayers = args.dlayers
         self.dunits = args.dunits
         self.use_batch_norm = args.use_batch_norm
-        self.dropout = args.dropout
-        if args.eprenet_dropout is None:
-            self.eprenet_dropout = args.dropout
+        self.dropout_rate = args.dropout_rate
+        if args.eprenet_dropout_rate is None:
+            self.eprenet_dropout_rate = args.dropout_rate
         else:
-            self.eprenet_dropout = args.eprenet_dropout
-        if args.dprenet_dropout is None:
-            self.dprenet_dropout = args.dropout
+            self.eprenet_dropout_rate = args.eprenet_dropout_rate
+        if args.dprenet_dropout_rate is None:
+            self.dprenet_dropout_rate = args.dropout_rate
         else:
-            self.dprenet_dropout = args.dprenet_dropout
-        if args.postnet_dropout is None:
-            self.postnet_dropout = args.dropout
+            self.dprenet_dropout_rate = args.dprenet_dropout_rate
+        if args.postnet_dropout_rate is None:
+            self.postnet_dropout_rate = args.dropout_rate
         else:
-            self.postnet_dropout = args.postnet_dropout
-        if args.transformer_attn_dropout is None:
-            self.transformer_attn_dropout = args.dropout
+            self.postnet_dropout_rate = args.postnet_dropout_rate
+        if args.transformer_attn_dropout_rate is None:
+            self.transformer_attn_dropout_rate = args.dropout_rate
         else:
-            self.transformer_attn_dropout = args.transformer_attn_dropout
+            self.transformer_attn_dropout_rate = args.transformer_attn_dropout_rate
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.pos_enc_class = ScaledPositionalEncoding if args.use_scaled_pos_enc else PositionalEncoding
 
@@ -198,7 +203,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 econv_chans=self.eprenet_conv_chans,
                 econv_filts=self.eprenet_conv_filts,
                 use_batch_norm=self.use_batch_norm,
-                dropout=self.eprenet_dropout
+                dropout_rate=self.eprenet_dropout_rate
             ),
             torch.nn.Linear(self.eprenet_conv_chans, self.adim)
         )
@@ -209,8 +214,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             linear_units=self.eunits,
             num_blocks=self.elayers,
             input_layer=encoder_prenet,
-            dropout_rate=self.dropout,
-            attention_dropout_rate=self.transformer_attn_dropout,
+            dropout_rate=self.dropout_rate,
+            attention_dropout_rate=self.transformer_attn_dropout_rate,
             pos_enc_class=self.pos_enc_class
         )
 
@@ -220,7 +225,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 idim=self.odim,
                 n_layers=self.dprenet_layers,
                 n_units=self.dprenet_units,
-                dropout=self.dprenet_dropout
+                dropout_rate=self.dprenet_dropout_rate
             ),
             torch.nn.Linear(self.dprenet_units, self.adim)
         )
@@ -230,8 +235,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             attention_heads=self.aheads,
             linear_units=self.dunits,
             num_blocks=self.dlayers,
-            dropout_rate=self.dropout,
-            attention_dropout_rate=self.transformer_attn_dropout,
+            dropout_rate=self.dropout_rate,
+            attention_dropout_rate=self.transformer_attn_dropout_rate,
             input_layer=decoder_prenet,
             use_output_layer=False,
             pos_enc_class=self.pos_enc_class
@@ -249,7 +254,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             n_chans=self.postnet_chans,
             n_filts=self.postnet_filts,
             use_batch_norm=self.use_batch_norm,
-            dropout=self.postnet_dropout
+            dropout_rate=self.postnet_dropout_rate
         )
 
         # define loss function
