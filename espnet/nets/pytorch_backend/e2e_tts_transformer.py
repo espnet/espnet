@@ -85,6 +85,7 @@ class Transformer(TTSInterface, torch.nn.Module):
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
     :param Namespace args: argments containing following attributes
+        (int) embed_dim: dimension of character embedding
         (int) eprenet_conv_layers: number of encoder prenet convolution layers
         (int) eprenet_conv_chans: number of encoder prenet convolution channels
         (int) eprenet_conv_filts: filter size of encoder prenet convolution
@@ -117,6 +118,8 @@ class Transformer(TTSInterface, torch.nn.Module):
     def add_arguments(parser):
         group = parser.add_argument_group("transformer model setting")
         # network structure related
+        group.add_argument('--embed-dim', default=512, type=int,
+                           help='Dimension of character embedding')
         group.add_argument('--eprenet-conv-layers', default=3, type=int,
                            help='Number of encoder prenet convolution layers')
         group.add_argument('--eprenet-conv-chans', default=512, type=int,
