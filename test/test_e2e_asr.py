@@ -206,12 +206,79 @@ def test_streaming_e2e_encoder_and_ctc_with_offline_attention():
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
     dummy_json = make_dummy_json(8, [1, 700], [1, 700], idim=20, odim=5)
-    from espnet.asr.asr_utils import make_batchset
+    from espnet.asr.batchfy import make_batchset
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
         import espnet.nets.chainer_backend.e2e_asr as m
     batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    model = m.E2E(20, 5, args)
+    for batch in batchset:
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss.backward()
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(100, 20)
+        model.recognize(in_data, args, args.char_list)
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch", "chainer"]
+)
+def test_sortagrad_trainable_with_batch_bins(module):
+    args = make_arg(sortagrad=1)
+    idim = 20
+    odim = 5
+    dummy_json = make_dummy_json(8, [100, 200], [100, 200], idim=idim, odim=odim)
+    from espnet.asr.batchfy import make_batchset
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_asr as m
+    else:
+        import espnet.nets.chainer_backend.e2e_asr as m
+    batch_elems = 20000
+    batchset = make_batchset(dummy_json, batch_bins=batch_elems, shortest_first=True)
+    for batch in batchset:
+        n = 0
+        for uttid, info in batch:
+            ilen = int(info['input'][0]['shape'][0])
+            olen = int(info['output'][0]['shape'][0])
+            n += ilen * idim + olen * odim
+        assert olen < batch_elems
+
+    model = m.E2E(20, 5, args)
+    for batch in batchset:
+        attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
+        attn_loss.backward()
+    with torch.no_grad(), chainer.no_backprop_mode():
+        in_data = np.random.randn(100, 20)
+        model.recognize(in_data, args, args.char_list)
+
+
+@pytest.mark.parametrize(
+    "module", ["pytorch", "chainer"]
+)
+def test_sortagrad_trainable_with_batch_frames(module):
+    args = make_arg(sortagrad=1)
+    idim = 20
+    odim = 5
+    dummy_json = make_dummy_json(8, [100, 200], [100, 200], idim=idim, odim=odim)
+    from espnet.asr.batchfy import make_batchset
+    if module == "pytorch":
+        import espnet.nets.pytorch_backend.e2e_asr as m
+    else:
+        import espnet.nets.chainer_backend.e2e_asr as m
+    batch_frames_in = 1000
+    batch_frames_out = 1000
+    batchset = make_batchset(dummy_json, batch_frames_in=batch_frames_in, batch_frames_out=batch_frames_out,
+                             shortest_first=True)
+    for batch in batchset:
+        i = 0
+        o = 0
+        for uttid, info in batch:
+            i += int(info['input'][0]['shape'][0])
+            o += int(info['output'][0]['shape'][0])
+        assert i <= batch_frames_in
+        assert o <= batch_frames_out
+
     model = m.E2E(20, 5, args)
     for batch in batchset:
         attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
