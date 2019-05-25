@@ -31,7 +31,7 @@ epochs: 300
 dropout-rate: 0.1
 accum-grad: 2
 grad-clip: 5
-patience: 100
+patience: 0
 transformer-lr: 10.0
 transformer-warmup-steps: 25000
 transformer-attn-dropout-rate: 0.0
