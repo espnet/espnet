@@ -374,7 +374,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                              gru_units=self.cbhg_gru_units)
             self.cbhg_loss = CBHGLoss(args)
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
         """Tacotron2 forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
@@ -443,7 +443,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         return loss
 
-    def inference(self, x, inference_args, spemb=None):
+    def inference(self, x, inference_args, spemb=None, *args, **kwargs):
         """Generates the sequence of features given the sequences of characters
 
         :param torch.Tensor x: the sequence of characters (T)
@@ -477,7 +477,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         else:
             return outs, probs, att_ws
 
-    def calculate_all_attentions(self, xs, ilens, ys, spembs=None):
+    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, *args, **kwargs):
         """Tacotron2 attention weight computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
