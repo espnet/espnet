@@ -40,7 +40,7 @@ maxlen-out: 800    # if output length > maxlen-out, batchsize is reduced (if use
 lr: 1e-3
 eps: 1e-6
 weight-decay: 0.0
-dropout: 0.5
-zoneout: 0.1
+dropout-rate: 0.5
+zoneout-rate: 0.1
 epochs: 200
 patience: 20

@@ -23,20 +23,20 @@ class ZoneOutCell(torch.nn.Module):
     This code is modified from https://github.com/eladhoffer/seq2seq.pytorch
 
     :param torch.nn.Module cell: pytorch recurrent cell
-    :param float zoneout_prob: probability of zoneout
+    :param float zoneout_rate: probability of zoneout
     """
 
-    def __init__(self, cell, zoneout_prob=0.1):
+    def __init__(self, cell, zoneout_rate=0.1):
         super(ZoneOutCell, self).__init__()
         self.cell = cell
         self.hidden_size = cell.hidden_size
-        self.zoneout_prob = zoneout_prob
-        if zoneout_prob > 1.0 or zoneout_prob < 0.0:
+        self.zoneout_rate = zoneout_rate
+        if zoneout_rate > 1.0 or zoneout_rate < 0.0:
             raise ValueError("zoneout probability must be in the range from 0.0 to 1.0.")
 
     def forward(self, inputs, hidden):
         next_hidden = self.cell(inputs, hidden)
-        next_hidden = self._zoneout(hidden, next_hidden, self.zoneout_prob)
+        next_hidden = self._zoneout(hidden, next_hidden, self.zoneout_rate)
         return next_hidden
 
     def _zoneout(self, h, next_h, prob):
@@ -63,9 +63,9 @@ class Prenet(torch.nn.Module):
     :param int n_units: the number of prenet units
     """
 
-    def __init__(self, idim, n_layers=2, n_units=256, dropout=0.5):
+    def __init__(self, idim, n_layers=2, n_units=256, dropout_rate=0.5):
         super(Prenet, self).__init__()
-        self.dropout = dropout
+        self.dropout_rate = dropout_rate
         self.prenet = torch.nn.ModuleList()
         for layer in six.moves.range(n_layers):
             n_inputs = idim if layer == 0 else n_units
@@ -81,7 +81,7 @@ class Prenet(torch.nn.Module):
         :rtype: torch.Tensor
         """
         for l in six.moves.range(len(self.prenet)):
-            x = F.dropout(self.prenet[l](x), self.dropout)
+            x = F.dropout(self.prenet[l](x), self.dropout_rate)
         return x
 
 
@@ -94,10 +94,10 @@ class Postnet(torch.nn.Module):
     :param int n_filts: the number of postnet filter size
     :param int n_chans: the number of postnet filter channels
     :param bool use_batch_norm: whether to use batch normalization
-    :param float dropout: dropout rate
+    :param float dropout_rate: dropout_rate rate
     """
 
-    def __init__(self, idim, odim, n_layers=5, n_chans=512, n_filts=5, dropout=0.5, use_batch_norm=True):
+    def __init__(self, idim, odim, n_layers=5, n_chans=512, n_filts=5, dropout_rate=0.5, use_batch_norm=True):
         super(Postnet, self).__init__()
         self.postnet = torch.nn.ModuleList()
         for layer in six.moves.range(n_layers - 1):
@@ -109,25 +109,25 @@ class Postnet(torch.nn.Module):
                                     padding=(n_filts - 1) // 2, bias=False),
                     torch.nn.BatchNorm1d(ochans),
                     torch.nn.Tanh(),
-                    torch.nn.Dropout(dropout))]
+                    torch.nn.Dropout(dropout_rate))]
             else:
                 self.postnet += [torch.nn.Sequential(
                     torch.nn.Conv1d(ichans, ochans, n_filts, stride=1,
                                     padding=(n_filts - 1) // 2, bias=False),
                     torch.nn.Tanh(),
-                    torch.nn.Dropout(dropout))]
+                    torch.nn.Dropout(dropout_rate))]
         ichans = n_chans if n_layers != 1 else odim
         if use_batch_norm:
             self.postnet += [torch.nn.Sequential(
                 torch.nn.Conv1d(ichans, odim, n_filts, stride=1,
                                 padding=(n_filts - 1) // 2, bias=False),
                 torch.nn.BatchNorm1d(odim),
-                torch.nn.Dropout(dropout))]
+                torch.nn.Dropout(dropout_rate))]
         else:
             self.postnet += [torch.nn.Sequential(
                 torch.nn.Conv1d(ichans, odim, n_filts, stride=1,
                                 padding=(n_filts - 1) // 2, bias=False),
-                torch.nn.Dropout(dropout))]
+                torch.nn.Dropout(dropout_rate))]
 
     def forward(self, xs):
         """Postnet forward calculation
@@ -162,8 +162,8 @@ class Decoder(torch.nn.Module):
     :param bool cumulate_att_w: whether to cumulate previous attention weight
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
-    :param float dropout: dropout rate
-    :param float zoneout: zoneout rate
+    :param float dropout_rate: dropout rate
+    :param float zoneout_rate: zoneout rate
     :param int reduction_factor: reduction factor
     :param float threshold: threshold in inference
     :param float minlenratio: minimum length ratio in inference
@@ -182,8 +182,8 @@ class Decoder(torch.nn.Module):
                  cumulate_att_w=True,
                  use_batch_norm=True,
                  use_concate=True,
-                 dropout=0.5,
-                 zoneout=0.1,
+                 dropout_rate=0.5,
+                 zoneout_rate=0.1,
                  threshold=0.5,
                  reduction_factor=1,
                  maxlenratio=5.0,
@@ -204,8 +204,8 @@ class Decoder(torch.nn.Module):
         self.cumulate_att_w = cumulate_att_w
         self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
-        self.dropout = dropout
-        self.zoneout = zoneout
+        self.dropout_rate = dropout_rate
+        self.zoneout_rate = zoneout_rate
         self.reduction_factor = reduction_factor
         self.threshold = threshold
         self.maxlenratio = maxlenratio
@@ -220,8 +220,8 @@ class Decoder(torch.nn.Module):
         for layer in six.moves.range(self.dlayers):
             iunits = self.idim + self.prenet_units if layer == 0 else self.dunits
             lstm = torch.nn.LSTMCell(iunits, self.dunits)
-            if zoneout > 0.0:
-                lstm = ZoneOutCell(lstm, self.zoneout)
+            if zoneout_rate > 0.0:
+                lstm = ZoneOutCell(lstm, self.zoneout_rate)
             self.lstm += [lstm]
         # define prenet
         if self.prenet_layers > 0:
@@ -229,7 +229,7 @@ class Decoder(torch.nn.Module):
                 idim=self.odim,
                 n_layers=self.prenet_layers,
                 n_units=self.prenet_units,
-                dropout=self.dropout)
+                dropout_rate=self.dropout_rate)
         else:
             self.prenet = None
         # define postnet
@@ -241,7 +241,7 @@ class Decoder(torch.nn.Module):
                 n_chans=self.postnet_chans,
                 n_filts=self.postnet_filts,
                 use_batch_norm=self.use_batch_norm,
-                dropout=self.dropout)
+                dropout_rate=self.dropout_rate)
         else:
             self.postnet = None
         # define projection layers
