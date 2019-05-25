@@ -83,10 +83,11 @@ def main(args):
     parser.add_argument('--lm-weight', type=float, default=0.1,
                         help='RNNLM weight')
     # streaming related
-    parser.add_argument('--streaming-mode', type=int, default=0,
+    parser.add_argument('--streaming-mode', type=str, default=None,
+                        choices=['window', 'segment'],
                         help="""Use streaming recognizer for inference
                         (0: none, 1: window streaming, 2: segment streaming).
-                        --batchsize must be set to 0 to enable this mode""")
+                        `--batchsize` must be set to 0 to enable this mode""")
     parser.add_argument('--streaming-window', type=int, default=10,
                         help='Window size')
     parser.add_argument('--min-blank-dur', type=int, default=10,
