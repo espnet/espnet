@@ -77,6 +77,9 @@ def main(cmd_args):
     parser.add_argument('--use-second-target', default=False, type=strtobool,
                         help='Whether to use second target')
     # optimization related
+    parser.add_argument('--opt', default='adam', type=str,
+                        choices=['adam', 'noam'],
+                        help='Optimizer')
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate for optimizer')
     parser.add_argument('--eps', default=1e-6, type=float,
