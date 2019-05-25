@@ -87,15 +87,15 @@ class Transformer(TTSInterface, torch.nn.Module):
     def add_arguments(parser):
         group = parser.add_argument_group("transformer model setting")
         # network structure related
-        group.add_argument('--eprenet_conv_layers', default=3, type=int,
+        group.add_argument('--eprenet-conv-layers', default=3, type=int,
                            help='Number of encoder prenet convolution layers')
-        group.add_argument('--eprenet_conv_chans', default=512, type=int,
+        group.add_argument('--eprenet-conv-chans', default=512, type=int,
                            help='Number of encoder prenet convolution channels')
-        group.add_argument('--eprenet_conv_filts', default=5, type=int,
+        group.add_argument('--eprenet-conv-filts', default=5, type=int,
                            help='Filter size of encoder prenet convolution')
-        group.add_argument('--dprenet_layers', default=2, type=int,
+        group.add_argument('--dprenet-layers', default=2, type=int,
                            help='Number of decoder prenet layers')
-        group.add_argument('--dprenet_units', default=256, type=int,
+        group.add_argument('--dprenet-units', default=256, type=int,
                            help='Number of decoder prenet hidden units')
         group.add_argument('--elayers', default=12, type=int,
                            help='Number of encoder layers')
@@ -109,13 +109,13 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help='Number of decoder layers')
         group.add_argument('--dunits', default=2048, type=int,
                            help='Number of decoder hidden units')
-        group.add_argument('--postnet_layers', default=5, type=int,
+        group.add_argument('--postnet-layers', default=5, type=int,
                            help='Number of postnet layers')
-        group.add_argument('--postnet_chans', default=512, type=int,
+        group.add_argument('--postnet-chans', default=512, type=int,
                            help='Number of postnet channels')
-        group.add_argument('--postnet_filts', default=5, type=int,
+        group.add_argument('--postnet-filts', default=5, type=int,
                            help='Filter size of postnet')
-        group.add_argument('--use_scaled_pos_enc', default=True, type=strtobool,
+        group.add_argument('--use-scaled-pos-enc', default=True, type=strtobool,
                            help='use trainable scaled positional encoding instead of the fixed scale one.')
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
@@ -134,10 +134,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
                            help='normalize loss by length')
         # loss related
-        group.add_argument('--use_masking', default=True, type=strtobool,
+        group.add_argument('--use-masking', default=True, type=strtobool,
                            help='Whether to use masking in calculation of loss')
-        group.add_argument('--bce_pos_weight', default=5.0, type=float,
-                           help='Positive sample weight in BCE calculation (only for use_masking=True)')
+        group.add_argument('--bce-pos-weight', default=5.0, type=float,
+                           help='Positive sample weight in BCE calculation (only for use-masking=True)')
         return parser
 
     @property
