@@ -1,0 +1,58 @@
+# This is tactron2 + CBHG training settting
+
+# encoder related
+embed_dim: 512
+elayers: 1
+eunits: 512
+econv_layers: 3 # if set 0, no conv layer is used
+econv_chans: 512
+econv_filts: 5
+
+# decoder related
+dlayers: 2
+dunits: 1024
+prenet_layers: 2  # if set 0, no prenet is used
+prenet_units: 256
+postnet_layers: 5 # if set 0, no postnet is used
+postnet_chans: 512
+postnet_filts: 5
+
+# attention related
+atype: forward_ta
+adim: 128
+aconv_chans: 32
+aconv_filts: 15      # resulting in filter_size = aconv_filts * 2 + 1
+cumulate_att_w: true # whether to cumulate attetion weight
+use_batch_norm: true # whether to use batch normalization in conv layer
+use_concate: true    # whether to concatenate encoder embedding with decoder lstm outputs
+use_residual: false  # whether to use residual connection in encoder convolution
+use_masking: true    # whether to mask the padded part in loss calculation
+bce_pos_weight: 1.0  # weight for positive samples of stop token in cross-entropy calculation
+reduction_factor: 1
+
+# cbhg related
+use-cbhg: true
+use-second-target: true
+cbhg_conv_bank_layers: 8
+cbhg_conv_bank_chans: 128
+cbhg_conv_proj_filts: 3
+cbhg_conv_proj_chans: 256
+cbhg_highway_layers: 4
+cbhg_highway_units: 128
+cbhg_gru_units: 256
+
+# minibatch related
+batchsize: 32
+sortagrad: 0       # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+batch_sort_key: shuffle # shuffle or input or output
+maxlen_in: 150     # if input length  > maxlen_in, batchsize is reduced (if use "shuffle", not effect)
+maxlen_out: 400    # if output length > maxlen_out, batchsize is reduced (if use "shuffle", not effect)
+
+# optimization related
+lr: 1e-3
+eps: 1e-6
+weight_decay: 0.0
+dropout: 0.5
+zoneout: 0.1
+epochs: 200
+patience: 20
