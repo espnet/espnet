@@ -29,27 +29,28 @@ class Encoder(torch.nn.Module):
                  num_blocks=6,
                  dropout_rate=0.1,
                  attention_dropout_rate=0.0,
-                 input_layer="conv2d"):
+                 input_layer="conv2d",
+                 pos_enc_class=PositionalEncoding):
         super(Encoder, self).__init__()
         if input_layer == "linear":
-            self.input_layer = torch.nn.Sequential(
+            self.embed = torch.nn.Sequential(
                 torch.nn.Linear(idim, attention_dim),
                 torch.nn.LayerNorm(attention_dim),
                 torch.nn.Dropout(dropout_rate),
                 torch.nn.ReLU(),
-                PositionalEncoding(attention_dim, dropout_rate)
+                pos_enc_class(attention_dim, dropout_rate)
             )
         elif input_layer == "conv2d":
-            self.input_layer = Conv2dSubsampling(idim, attention_dim, dropout_rate)
+            self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
         elif input_layer == "embed":
-            self.input_layer = torch.nn.Sequential(
+            self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(idim, attention_dim),
-                PositionalEncoding(attention_dim, dropout_rate)
+                pos_enc_class(attention_dim, dropout_rate)
             )
         elif isinstance(input_layer, torch.nn.Module):
-            self.input_layer = torch.nn.Sequential(
+            self.embed = torch.nn.Sequential(
                 input_layer,
-                PositionalEncoding(attention_dim, dropout_rate)
+                pos_enc_class(attention_dim, dropout_rate)
             )
         else:
             raise ValueError("unknown input_layer: " + input_layer)
@@ -74,8 +75,8 @@ class Encoder(torch.nn.Module):
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
         if isinstance(self.input_layer, Conv2dSubsampling):
-            xs, masks = self.input_layer(xs, masks)
+            xs, masks = self.embded(xs, masks)
         else:
-            xs = self.input_layer(xs)
+            xs = self.embed(xs)
         xs, masks = self.encoders(xs, masks)
         return self.norm(xs), masks
