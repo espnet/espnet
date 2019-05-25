@@ -122,7 +122,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
-                                    "kaiming_uniform", "kaiming-normal"],
+                                    "kaiming_uniform", "kaiming_normal"],
                            help='how to initialize transformer parameters')
         group.add_argument('--transformer-lr', default=10.0, type=float,
                            help='Initial value of learning rate')
