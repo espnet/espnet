@@ -65,17 +65,17 @@ class Encoder(torch.nn.Module):
         )
         self.norm = LayerNorm(attention_dim)
 
-    def forward(self, x, mask):
+    def forward(self, xs, masks):
         """Embed positions in tensor
 
-        :param torch.Tensor x: input tensor
-        :param torch.Tensor mask: input mask
+        :param torch.Tensor xs: input tensor
+        :param torch.Tensor masks: input mask
         :return: position embedded tensor and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
         if isinstance(self.input_layer, Conv2dSubsampling):
-            x, mask = self.input_layer(x, mask)
+            xs, masks = self.input_layer(xs, masks)
         else:
-            x = self.input_layer(x)
-        x, mask = self.encoders(x, mask)
-        return self.norm(x), mask
+            xs = self.input_layer(xs)
+        xs, masks = self.encoders(xs, masks)
+        return self.norm(xs), masks
