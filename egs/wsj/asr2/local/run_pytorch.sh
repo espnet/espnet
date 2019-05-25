@@ -138,7 +138,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --aheads ${aheads} \
         --adim ${adim} \
         --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
+        --batch-bins $((${batchsize} * (800 * 83 + 100 * 52) - 100)) \
         --dropout-rate ${dropout} \
         --maxlen-in ${maxlen_in} \
         --maxlen-out ${maxlen_out} \

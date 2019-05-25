@@ -147,8 +147,9 @@ def batchfy_by_frame(data, max_frames_in, max_frames_out, max_frames_inout,
     :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
     :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
     """
-    if max_frames_in <= 0 and max_frames_out <= 0:
-        raise ValueError(f"At least, one of `--batch-frames-in` and `--batch-frames-out` should be > 0")
+    if max_frames_in <= 0 and max_frames_out <= 0 and max_frames_inout <= 0:
+        raise ValueError(
+            f"At least, one of `--batch-frames-in`, `--batch-frames-out` or `--batch-frames-inout` should be > 0")
 
     # sort by input lengths
     sorted_data = sorted(data.items(), key=lambda sample: int(
@@ -165,18 +166,21 @@ def batchfy_by_frame(data, max_frames_in, max_frames_out, max_frames_inout,
         max_ilen = 0
         while (start + b) < length:
             ilen = int(sorted_data[start + b][1]['input'][0]['shape'][0])
-            if ilen > max_frames_in:
+            if ilen > max_frames_in and max_frames_in != 0:
                 raise ValueError(
-                    f"Can't fit one sample in --maxlen-in ({max_frames_in}): Please increase the value")
+                    f"Can't fit one sample in --batch-frames-in ({max_frames_in}): Please increase the value")
             olen = int(sorted_data[start + b][1]['output'][0]['shape'][0])
-            if olen > max_frames_out:
+            if olen > max_frames_out and max_frames_out != 0:
                 raise ValueError(
-                    f"Can't fit one sample in --maxlen-out ({max_frames_out}): Please increase the value")
+                    f"Can't fit one sample in --batch-frames-out ({max_frames_out}): Please increase the value")
+            if ilen + olen > max_frames_inout and max_frames_inout != 0:
+                raise ValueError(
+                    f"Can't fit one sample in --batch-frames-out ({max_frames_inout}): Please increase the value")
             max_olen = max(max_olen, olen)
             max_ilen = max(max_ilen, ilen)
-            in_ok = max_ilen * b <= max_frames_in or max_frames_in == 0
-            out_ok = max_olen * b <= max_frames_out or max_frames_out == 0
-            inout_ok = (max_ilen + max_olen) * b <= max_frames_inout or max_frames_inout == 0
+            in_ok = max_ilen * (b + 1) <= max_frames_in or max_frames_in == 0
+            out_ok = max_olen * (b + 1) <= max_frames_out or max_frames_out == 0
+            inout_ok = (max_ilen + max_olen) * (b + 1) <= max_frames_inout or max_frames_inout == 0
             if in_ok and out_ok and inout_ok:
                 # add more seq in the minibatch
                 b += 1
@@ -214,18 +218,18 @@ BATCH_COUNT_CHOICES = ["auto", "seq", "bin", "frame"]
 
 
 def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out=float("inf"),
-                  count="auto", batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0,
-                  num_batches=0, min_batch_size=1, shortest_first=False):
+                  num_batches=0, min_batch_size=1, shortest_first=False,
+                  count="auto", batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0):
     # check args
     if count not in BATCH_COUNT_CHOICES:
-        raise ValueError(f"arg 'count' should be one of {BATCH_COUNT_CHOICES}")
+        raise ValueError(f"arg 'count' ({count}) should be one of {BATCH_COUNT_CHOICES}")
 
     if count == "auto":
         if batch_size != 0:
             count = "seq"
         elif batch_bins != 0:
             count = "bin"
-        elif batch_frames_in != 0 or batch_frames_out != 0:
+        elif batch_frames_in != 0 or batch_frames_out != 0 or batch_frames_inout != 0:
             count = "frame"
         else:
             raise ValueError(f"cannot detect `--batch-count` manually set one of {BATCH_COUNT_CHOICES}")
