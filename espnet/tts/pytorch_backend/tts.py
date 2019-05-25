@@ -181,7 +181,7 @@ class CustomConverter(object):
             "xs": xs,
             "ilens": ilens,
             "ys": ys,
-            "lables": labels,
+            "labels": labels,
             "olens": olens,
             "spembs": spembs,
             "spcs": spcs
