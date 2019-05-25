@@ -83,17 +83,24 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
     labels = ys.new_zeros(ys.size(0), ys.size(1))
     for i, l in enumerate(olens):
         labels[i, l - 1:] = 1
+
+    batch = {
+        "xs": xs,
+        "ilens": ilens,
+        "ys": ys,
+        "labels": labels,
+        "olens": olens,
+    }
+
     if spk_embed_dim is not None:
         spembs = torch.from_numpy(np.random.randn(bs, spk_embed_dim)).float().to(device)
-    else:
-        spembs = None
+        batch["spembs"] = spembs
     if spc_dim is not None:
         spcs = [np.random.randn(l, spc_dim) for l in olens]
         spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
-    else:
-        spcs = None
+        batch["spcs"] = spcs
 
-    return xs, ilens, ys, labels, olens, spembs, spcs
+    return batch
 
 
 @pytest.mark.parametrize(
@@ -132,14 +139,13 @@ def test_tacotron2_trainable_and_decodable(model_dict):
         model_args['spk_embed_dim'] = 128
     batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
                            model_args['spk_embed_dim'], model_args['spc_dim'])
-    xs, ilens, ys, labels, olens, spembs, spcs = batch
 
     # define model
     model = Tacotron2(idim, odim, Namespace(**model_args))
     optimizer = torch.optim.Adam(model.parameters())
 
     # trainable
-    loss = model(xs, ilens, ys, labels, olens, spembs, spcs).mean()
+    loss = model(**batch).mean()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -147,9 +153,9 @@ def test_tacotron2_trainable_and_decodable(model_dict):
     # decodable
     model.eval()
     with torch.no_grad():
-        spemb = None if model_args['spk_embed_dim'] is None else spembs[0]
-        model.inference(xs[0][:ilens[0]], Namespace(**inference_args), spemb)
-        model.calculate_all_attentions(xs, ilens, ys, spembs)
+        spemb = None if model_args['spk_embed_dim'] is None else batch["spembs"][0]
+        model.inference(batch["xs"][0][:batch["ilens"][0]], Namespace(**inference_args), spemb)
+        model.calculate_all_attentions(**batch)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
@@ -178,7 +184,7 @@ def test_tacotron2_gpu_trainable(model_dict):
     model.to(device)
 
     # trainable
-    loss = model(*batch).mean()
+    loss = model(**batch).mean()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -213,7 +219,7 @@ def test_tacotron2_multi_gpu_trainable(model_dict):
     model.to(device)
 
     # trainable
-    loss = model(*batch).mean()
+    loss = model(**batch).mean()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
