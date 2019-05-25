@@ -169,23 +169,26 @@ class CustomConverter(object):
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1.0
 
-        # load second target
-        if spcs is not None:
-            spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
-
-        # load speaker embedding
-        if spembs is not None:
-            spembs = torch.from_numpy(np.array(spembs)).float().to(device)
-
-        return {
+        # prepare dict
+        new_batch = {
             "xs": xs,
             "ilens": ilens,
             "ys": ys,
             "labels": labels,
             "olens": olens,
-            "spembs": spembs,
-            "spcs": spcs
         }
+
+        # load second target
+        if spcs is not None:
+            spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
+            new_batch["spcs"] = spcs
+
+        # load speaker embedding
+        if spembs is not None:
+            spembs = torch.from_numpy(np.array(spembs)).float().to(device)
+            new_batch["spembs"] = spembs
+
+        return new_batch
 
 
 def train(args):
