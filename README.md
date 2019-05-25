@@ -1,4 +1,4 @@
-B<div align="left"><img src="doc/image/espnet_logo1.png" width="550"/></div>
+<div align="left"><img src="doc/image/espnet_logo1.png" width="550"/></div>
 
 # ESPnet: end-to-end speech processing toolkit
 
