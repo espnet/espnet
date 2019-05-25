@@ -244,6 +244,7 @@ def make_transformer_args(**kwargs):
         use_masking=True,
         bce_pos_weight=5.0,
         use_batch_norm=True,
+        use_scaled_pos_enc=True,
         transformer_init="pytorch"
     )
     defaults.update(kwargs)
@@ -254,6 +255,7 @@ def make_transformer_args(**kwargs):
     "model_dict", [
         ({}),
         ({"use_masking": False}),
+        ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
     ])
 def test_transformer_trainable_and_decodable(model_dict):
@@ -279,6 +281,9 @@ def test_transformer_trainable_and_decodable(model_dict):
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+    if model.use_scaled_pos_enc:
+        assert model.encoder.embed[1].alpha.grad is not None
+        assert model.decoder.embed[1].alpha.grad is not None
 
     # decodable
     model.eval()
