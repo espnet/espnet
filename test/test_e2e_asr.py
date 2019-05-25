@@ -266,9 +266,11 @@ def test_sortagrad_trainable_with_batch_frames(module):
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
         import espnet.nets.chainer_backend.e2e_asr as m
-    batch_frames_in = 1000
-    batch_frames_out = 1000
-    batchset = make_batchset(dummy_json, batch_frames_in=batch_frames_in, batch_frames_out=batch_frames_out,
+    batch_frames_in = 500
+    batch_frames_out = 500
+    batchset = make_batchset(dummy_json,
+                             batch_frames_in=batch_frames_in,
+                             batch_frames_out=batch_frames_out,
                              shortest_first=True)
     for batch in batchset:
         i = 0
