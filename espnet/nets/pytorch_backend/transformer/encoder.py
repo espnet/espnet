@@ -20,6 +20,7 @@ class Encoder(torch.nn.Module):
     :param float dropout_rate: dropout rate
     :param float attention_dropout_rate: dropout rate for attention
     :param str or torch.nn.Module input_layer: input layer type
+    :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
     """
 
     def __init__(self, idim,
@@ -74,7 +75,7 @@ class Encoder(torch.nn.Module):
         :return: position embedded tensor and mask
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
-        if isinstance(self.input_layer, Conv2dSubsampling):
+        if isinstance(self.embed, Conv2dSubsampling):
             xs, masks = self.embded(xs, masks)
         else:
             xs = self.embed(xs)

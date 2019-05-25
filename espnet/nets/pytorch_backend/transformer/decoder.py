@@ -20,6 +20,7 @@ class Decoder(torch.nn.Module):
     :param float attention_dropout_rate: dropout rate for attention
     :param str or torch.nn.Module input_layer: input layer type
     :param bool use_output_layer: whether to use output layer
+    :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
     """
 
     def __init__(self, odim,
