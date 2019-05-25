@@ -78,7 +78,6 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
     return batch
 
 
-
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
