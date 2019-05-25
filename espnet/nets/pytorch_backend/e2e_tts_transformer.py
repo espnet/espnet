@@ -350,7 +350,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         logits = self.prob_out(zs).squeeze(-1)  # (B, Lmax)
 
         # postnet
-        after_outs = self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
+        after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         # caluculate loss values
         l1_loss, bce_loss = self.criterion(
