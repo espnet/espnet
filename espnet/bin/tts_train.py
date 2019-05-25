@@ -80,6 +80,8 @@ def main(cmd_args):
     parser.add_argument('--opt', default='adam', type=str,
                         choices=['adam', 'noam'],
                         help='Optimizer')
+    parser.add_argument('--accum-grad', default=1, type=int,
+                        help='Number of gradient accumuration')
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate for optimizer')
     parser.add_argument('--eps', default=1e-6, type=float,

@@ -106,13 +106,15 @@ class CustomUpdater(training.StandardUpdater):
     :param torch.device device : The device to use
     """
 
-    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device):
+    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device, accum_grad=1):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
         self.device = device
         self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
+        self.accum_grad = accum_grad
+        self.forward_count = 0
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -127,11 +129,16 @@ class CustomUpdater(training.StandardUpdater):
 
         # compute loss and gradient
         if isinstance(x, tuple):
-            loss = self.model(*x).mean()
+            loss = self.model(*x).mean() / self.accum_grad
         else:
-            loss = self.model(**x).mean()
-        optimizer.zero_grad()
+            loss = self.model(**x).mean() / self.accum_grad
         loss.backward()
+
+        # update parameters
+        self.forward_count += 1
+        if self.forward_count != self.accum_grad:
+            return
+        self.forward_count = 0
 
         # compute the gradient norm to check if it is normal or not
         grad_norm = self.clip_grad_norm(self.model.parameters(), self.grad_clip)
@@ -140,6 +147,7 @@ class CustomUpdater(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
+        optimizer.zero_grad()
 
 
 class CustomConverter(object):
@@ -322,7 +330,7 @@ def train(args):
 
     # Set up a trainer
     converter = CustomConverter()
-    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device, args.accum_grad)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
