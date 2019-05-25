@@ -228,7 +228,10 @@ class PlotAttentionReport(extension.Extension):
 
     def get_attention_weights(self):
         batch = self.converter([self.transform(self.data)], self.device)
-        att_ws = self.att_vis_fn(*batch)
+        if isinstance(batch, tuple):
+            att_ws = self.att_vis_fn(*batch)
+        elif isinstance(batch, dict):
+            att_ws = self.att_vis_fn(**batch)
         return att_ws
 
     def get_attention_weight(self, idx, att_w):

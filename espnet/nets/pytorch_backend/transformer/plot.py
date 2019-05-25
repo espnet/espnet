@@ -71,7 +71,11 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
 
     def get_attention_weights(self):
         batch = self.converter([self.transform(self.data)], self.device)
-        return self.att_vis_fn(*batch)
+        if isinstance(batch, tuple):
+            att_ws = self.att_vis_fn(*batch)
+        elif isinstance(batch, dict):
+            att_ws = self.att_vis_fn(**batch)
+        return att_ws
 
     def log_attentions(self, logger, step):
         def log_fig(plot, filename):
