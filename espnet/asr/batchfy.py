@@ -133,12 +133,14 @@ def batchfy_by_bin(data, batch_bins, num_batches=0, min_batch_size=1, shortest_f
     return minibatches
 
 
-def batchfy_by_frame(data, max_frames_in, max_frames_out, num_batches=0, min_batch_size=1, shortest_first=False):
+def batchfy_by_frame(data, max_frames_in, max_frames_out, max_frames_inout,
+                     num_batches=0, min_batch_size=1, shortest_first=False):
     """Make variably sized batch set, which maximizes the number of frames to max_batch_frame.
 
     :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
     :param int max_frames_in: Maximum input frames of a batch
     :param int max_frames_out: Maximum output frames of a batch
+    :param int max_frames_inout: Maximum input+output frames of a batch
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param int test: Return only every `test` batches
@@ -172,9 +174,10 @@ def batchfy_by_frame(data, max_frames_in, max_frames_out, num_batches=0, min_bat
                     f"Can't fit one sample in --maxlen-out ({max_frames_out}): Please increase the value")
             max_olen = max(max_olen, olen)
             max_ilen = max(max_ilen, ilen)
-            in_ok = max_ilen * b <= max_frames_in or max_ilen == 0
-            out_ok = max_olen * b <= max_frames_out or max_olen == 0
-            if in_ok and out_ok:
+            in_ok = max_ilen * b <= max_frames_in or max_frames_in == 0
+            out_ok = max_olen * b <= max_frames_out or max_frames_out == 0
+            inout_ok = (max_ilen + max_olen) * b <= max_frames_inout or max_frames_inout == 0
+            if in_ok and out_ok and inout_ok:
                 # add more seq in the minibatch
                 b += 1
             else:
@@ -211,7 +214,7 @@ BATCH_COUNT_CHOICES = ["auto", "seq", "bin", "frame"]
 
 
 def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out=float("inf"),
-                  count="auto", batch_bins=0, batch_frames_in=0, batch_frames_out=0,
+                  count="auto", batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0,
                   num_batches=0, min_batch_size=1, shortest_first=False):
     # check args
     if count not in BATCH_COUNT_CHOICES:
@@ -253,6 +256,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
                 data=d,
                 max_frames_in=batch_frames_in,
                 max_frames_out=batch_frames_out,
+                max_frames_inout=batch_frames_inout,
                 min_batch_size=min_batch_size,
                 shortest_first=shortest_first)
         batches_list.append(batches)
@@ -292,6 +296,7 @@ make_batchset.__doc__ = \
     :param int batch_bins: maximum number of bins (frames x dim) in a minibatch.
     :param int batch_frames_in:  maximum number of input frames in a minibatch.
     :param int batch_frames_out: maximum number of output frames in a minibatch.
+    :param int batch_frames_out: maximum number of input+output frames in a minibatch.
     :param str count: strategy to count maximum size of batch. choices=""" + f"{BATCH_COUNT_CHOICES}" + \
     """
     :param int max_length_in: maximum length of input to decide adaptive batch size

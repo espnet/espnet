@@ -167,6 +167,8 @@ def main(cmd_args):
                         help='Maximum input frames in a minibatch (0 to disable)')
     parser.add_argument('--batch-frames-out', default=0, type=int,
                         help='Maximum output frames in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-inout', default=0, type=int,
+                        help='Maximum input+output frames in a minibatch (0 to disable)')
     parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
                         help='When --batch-count=seq, batch size is reduced if the input sequence length > ML.')
     parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
