@@ -59,7 +59,7 @@ def main(cmd_args):
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
-    parser.add_argument('--batch_sort_key', default='shuffle', type=str,
+    parser.add_argument('--batch-sort-key', default='shuffle', type=str,
                         choices=['shuffle', 'output', 'input'], nargs='?',
                         help='Batch sorting key')
     parser.add_argument('--batch-size', '-b', default=32, type=int,
@@ -68,13 +68,13 @@ def main(cmd_args):
                         help='Batch size is reduced if the input sequence length > ML')
     parser.add_argument('--maxlen-out', default=200, type=int, metavar='ML',
                         help='Batch size is reduced if the output sequence length > ML')
-    parser.add_argument('--n_iter_processes', default=0, type=int,
+    parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
-    parser.add_argument('--use_speaker_embedding', default=False, type=strtobool,
+    parser.add_argument('--use-speaker-embedding', default=False, type=strtobool,
                         help='Whether to use speaker embedding')
-    parser.add_argument('--use_second_target', default=False, type=strtobool,
+    parser.add_argument('--use-second-target', default=False, type=strtobool,
                         help='Whether to use second target')
     # optimization related
     parser.add_argument('--lr', default=1e-3, type=float,
