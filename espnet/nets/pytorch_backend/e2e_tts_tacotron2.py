@@ -108,13 +108,6 @@ class Tacotron2Loss(torch.nn.Module):
         :return: binary cross entropy loss value
         :rtype: torch.Tensor
         """
-        # prepare weight of positive samples in cross entorpy
-        if self.bce_pos_weight != 1.0:
-            weights = ys.new(*labels.size()).fill_(1)
-            weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
-        else:
-            weights = None
-
         # perform masking for padded values
         if self.use_masking:
             mask = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
@@ -123,12 +116,12 @@ class Tacotron2Loss(torch.nn.Module):
             before_outs = before_outs.masked_select(mask)
             labels = labels.masked_select(mask[:, :, 0])
             logits = logits.masked_select(mask[:, :, 0])
-            weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
 
         # calculate loss
         l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
         mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-        bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
+        bce_loss = F.binary_cross_entropy_with_logits(
+            logits, labels, pos_weight=torch.tensor(self.bce_pos_weight, device=ys.device))
 
         return l1_loss, mse_loss, bce_loss
 
