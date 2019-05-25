@@ -85,7 +85,10 @@ class CustomEvaluator(extensions.Evaluator):
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
                     x = self.converter(batch, self.device)
-                    self.model(*x)
+                    if isinstance(x, tuple):
+                        self.model(*x)
+                    else:
+                        self.model(**x)
                 summary.add(observation)
         self.model.train()
 
@@ -123,7 +126,10 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # compute loss and gradient
-        loss = self.model(*x).mean()
+        if isinstance(x, tuple):
+            loss = self.model(*x).mean()
+        else:
+            loss = self.model(**x).mean()
         optimizer.zero_grad()
         loss.backward()
 
@@ -137,15 +143,10 @@ class CustomUpdater(training.StandardUpdater):
 
 
 class CustomConverter(object):
-    """Custom converter for Tacotron2 training
+    """Custom converter for E2E-TTS model training"""
 
-    :param bool return_targets:
-    :param bool use_speaker_embedding:
-    :param bool use_second_target:
-    """
-
-    def __init__(self, return_targets=True):
-        self.return_targets = return_targets
+    def __init__(self):
+        pass
 
     def __call__(self, batch, device):
         # batch should be located in list
@@ -176,10 +177,15 @@ class CustomConverter(object):
         if spembs is not None:
             spembs = torch.from_numpy(np.array(spembs)).float().to(device)
 
-        if self.return_targets:
-            return xs, ilens, ys, labels, olens, spembs, spcs
-        else:
-            return xs, ilens, ys, spembs
+        return {
+            "xs": xs,
+            "ilens": ilens,
+            "ys": ys,
+            "lables": labels,
+            "olens": olens,
+            "spembs": spembs,
+            "spcs": spcs
+        }
 
 
 def train(args):
@@ -252,9 +258,6 @@ def train(args):
     setattr(optimizer, 'target', reporter)
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
 
-    # Setup a converter
-    converter = CustomConverter(return_targets=True)
-
     # read json data
     with open(args.train_json, 'rb') as f:
         train_json = json.load(f)['utts']
@@ -309,6 +312,7 @@ def train(args):
             batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
+    converter = CustomConverter()
     updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
@@ -339,7 +343,7 @@ def train(args):
             plot_class = model.attention_plot_class
         att_reporter = plot_class(
             att_vis_fn, data, args.outdir + '/att_ws',
-            converter=CustomConverter(return_targets=False),
+            converter=converter,
             transform=load_cv,
             device=device, reverse=True)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
