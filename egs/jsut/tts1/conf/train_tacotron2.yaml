@@ -31,7 +31,7 @@ bce-pos-weight: 1.0  # weight for positive samples of stop token in cross-entrop
 reduction-factor: 2
 
 # minibatch related
-batchsize: 32
+batch-size: 32
 batch-sort-key: shuffle # shuffle or input or output
 maxlen-in: 150     # if input length  > maxlen-in, batchsize is reduced (if use "shuffle", not effect)
 maxlen-out: 400    # if output length > maxlen-out, batchsize is reduced (if use "shuffle", not effect)
