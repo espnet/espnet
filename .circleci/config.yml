@@ -7,11 +7,11 @@ workflows:
   version: 2
   test:
     jobs:
-      - test-ubuntu18-conda
-      - test-ubuntu18-system
+      - test-ubuntu18
+      - test-ubuntu16
 
 jobs:
-  test-ubuntu18-conda:
+  test-ubuntu18:
     docker:
       - image: circleci/buildpack-deps:18.04
         environment:
@@ -19,6 +19,8 @@ jobs:
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
           USE_CONDA: true
+          CC: gcc-7
+          CXX: g++-7
     working_directory: ~/repo
 
     steps:
@@ -31,13 +33,16 @@ jobs:
             ./ci/test_shell.sh
             ./ci/test_python.sh
 
-  test-ubuntu18-system:
+  test-ubuntu16:
     docker:
-      - image: circleci/buildpack-deps:18.04
+      - image: circleci/buildpack-deps:16.04
         environment:
+          ESPNET_PYTHON_VERSION: 3.7
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
-          USE_CONDA: false
+          USE_CONDA: true
+          CC: gcc-7
+          CXX: g++-7
     working_directory: ~/repo
 
     steps:
@@ -45,7 +50,10 @@ jobs:
       - run:
           name: run tests
           command: |
-            sudo apt-get install -y cmake g++-7 libsndfile1-dev python3-dev python3-pip
+            sudo apt-get install software-properties-common
+            sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+            sudo apt-get update
+            sudo apt-get install -y cmake g++-7 libsndfile1-dev
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
