@@ -77,12 +77,12 @@ jobs:
           command: |
             yum install -y git centos-release-scl cmake libsndfile
             yum-config-manager --enable rhel-server-rhscl-7-rpms
-            yum install -y devtoolset-7
+            yum install -y devtoolset-7-gcc-c++
       - checkout
       - run:
           name: run tests
           command: |
-            scl enable devtoolset-7 bash
+            source scl_source enable devtoolset-7
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
