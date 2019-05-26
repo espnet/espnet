@@ -61,7 +61,7 @@ jobs:
 
   test-centos7:
     docker:
-      - image: centos/devtoolset-7-toolchain-centos7:latest
+      - image: centos:7
         environment:
           ESPNET_PYTHON_VERSION: 3.7
           TH_VERSION: 1.1.0
@@ -72,12 +72,16 @@ jobs:
     working_directory: ~/repo
 
     steps:
+      - run:
+          name: Install dependencies
+          command: |
+            yum install -y git centos-release-scl cmake libsndfile
+            yum-config-manager --enable rhel-server-rhscl-7-rpms
+            yum install devtoolset-7
       - checkout
       - run:
           name: run tests
           command: |
-            yum install sudo
-            sudo yum install cmake libsndfile
             source scl_source enable devtoolset-7
             ./ci/install.sh
             ./ci/test_shell.sh
