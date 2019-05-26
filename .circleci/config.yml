@@ -82,7 +82,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            source scl_source enable devtoolset-7
+            scl enable devtoolset-7 bash
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
