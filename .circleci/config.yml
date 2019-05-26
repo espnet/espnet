@@ -59,7 +59,7 @@ jobs:
             ./ci/test_shell.sh
             ./ci/test_python.sh
 
-    test-centos7:
+  test-centos7:
     docker:
       - image: centos/devtoolset-7-toolchain-centos7:latest
         environment:
