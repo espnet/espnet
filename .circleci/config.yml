@@ -77,7 +77,7 @@ jobs:
           command: |
             yum install -y git centos-release-scl cmake libsndfile
             yum-config-manager --enable rhel-server-rhscl-7-rpms
-            yum install devtoolset-7
+            yum install -y devtoolset-7
       - checkout
       - run:
           name: run tests
