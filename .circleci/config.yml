@@ -82,7 +82,9 @@ jobs:
       - run:
           name: run tests
           command: |
+            ls
             source scl_source enable devtoolset-7
+            ls
             cd repo
             ./ci/install.sh
             ./ci/test_shell.sh
