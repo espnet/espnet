@@ -78,3 +78,17 @@ See [doc](doc/README.md).
 
 See matplotlib's guideline https://matplotlib.org/devel/portable_code.html
 We do not block your PR even if it is not portable.
+
+
+## On CI failure
+
+### Travis CI
+
+1. read log from PR checks > details
+
+### Circle CI
+
+1. read log from PR checks > details
+2. turn on Reurn workflow > Rerun job with SSH
+3. open your local terminal and `ssh -p xxx xxx` (displayed in circle ci log)
+4. try and check anything you can
