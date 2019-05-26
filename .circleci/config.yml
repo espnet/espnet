@@ -9,6 +9,7 @@ workflows:
     jobs:
       - test-ubuntu18
       - test-ubuntu16
+      - test-centos7
 
 jobs:
   test-ubuntu18:
@@ -28,7 +29,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            sudo apt-get install -y cmake g++-7 libsndfile1-dev
+            sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
@@ -50,10 +51,33 @@ jobs:
       - run:
           name: run tests
           command: |
-            sudo apt-get install software-properties-common
-            sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-            sudo apt-get update
+            sudo apt-get install -y software-properties-common
+            sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+            sudo apt-get update -qq
+            sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev
+            ./ci/install.sh
+            ./ci/test_shell.sh
+            ./ci/test_python.sh
+
+    test-centos7:
+    docker:
+      - image: centos/devtoolset-7-toolchain-centos7:latest
+        environment:
+          ESPNET_PYTHON_VERSION: 3.7
+          TH_VERSION: 1.1.0
+          CHAINER_VERSION: 5.0.0
+          USE_CONDA: true
+          CC: gcc-7
+          CXX: g++-7
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: run tests
+          command: |
             sudo apt-get install -y cmake g++-7 libsndfile1-dev
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
+
