@@ -75,7 +75,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            yum install -y git centos-release-scl cmake libsndfile
+            yum install -y git centos-release-scl cmake libsndfile make bzip2 wget which
             yum-config-manager --enable rhel-server-rhscl-7-rpms
             yum install -y devtoolset-7-gcc-c++
       - checkout
@@ -83,6 +83,7 @@ jobs:
           name: run tests
           command: |
             source scl_source enable devtoolset-7
+            cd repo
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
