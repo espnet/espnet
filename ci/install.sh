@@ -2,9 +2,6 @@
 
 set -euo pipefail
 
-pip install -U pip wheel
-pip install chainer=="${CHAINER_VERSION}"
-
 if [[ ${USE_CONDA} == false ]]; then
     if [[ ${TH_VERSION} == nightly ]]; then
         pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
@@ -27,6 +24,10 @@ else
     )
 fi
 
+python --version
+
+pip install -U pip wheel
+pip install chainer=="${CHAINER_VERSION}"
 
 # install espnet
 pip install -e .
