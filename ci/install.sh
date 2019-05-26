@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# NOTE: DO NOT WRITE DISTRIBUTION-SPECIFIC COMMANDS HERE (e.g., apt, dnf, etc)
+
 set -euo pipefail
 
 if [[ ${USE_CONDA} == false ]]; then
@@ -12,16 +14,16 @@ else
     (
         cd tools
         make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv
-        . venv/etc/profile.d/conda.sh
-        conda config --set always_yes yes --set changeps1 no
-        conda activate
-        conda update -y conda
-        if [[ ${TH_VERSION} == nightly ]]; then
-            conda install pytorch-nightly-cpu -c pytorch
-        else
-            conda install -y pytorch-cpu="${TH_VERSION}" -c pytorch
-        fi
     )
+    . tools/venv/etc/profile.d/conda.sh
+    conda config --set always_yes yes --set changeps1 no
+    conda activate
+    conda update -y conda
+    if [[ ${TH_VERSION} == nightly ]]; then
+        conda install pytorch-nightly-cpu -c pytorch
+    else
+        conda install -y pytorch-cpu="${TH_VERSION}" -c pytorch
+    fi
 fi
 
 python --version
