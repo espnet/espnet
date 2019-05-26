@@ -3,8 +3,15 @@
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
 version: 2
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-ubuntu18-conda
+      - test-ubuntu18-system
+
 jobs:
-  build:
+  test-ubuntu18:
     docker:
       - image: circleci/buildpack-deps:18.04
         environment:
@@ -19,6 +26,28 @@ jobs:
       - run:
           name: run tests
           command: |
+            sudo apt-get install -y cmake g++-7 libsndfile1-dev
+            ./ci/install.sh
+            ./ci/test_shell.sh
+            ./ci/test_python.sh
+
+  test-ubuntu18-system:
+    docker:
+      - image: circleci/buildpack-deps:18.04
+        environment:
+          ESPNET_PYTHON_VERSION: 3.7
+          TH_VERSION: 1.1.0
+          CHAINER_VERSION: 5.0.0
+          USE_CONDA: false
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: run tests
+          command: |
+            sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+            sudo apt update
             sudo apt-get install -y cmake g++-7 libsndfile1-dev
             ./ci/install.sh
             ./ci/test_shell.sh
