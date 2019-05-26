@@ -67,8 +67,8 @@ jobs:
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
           USE_CONDA: true
-          CC: gcc
-          CXX: g++
+          CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
+          CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
     working_directory: ~/repo
 
     steps:
@@ -82,10 +82,8 @@ jobs:
       - run:
           name: run tests
           command: |
-            ls
-            source scl_source enable devtoolset-7
-            ls
-            cd repo
+            # NOTE(karita) this line exited 1
+            # source scl_source enable devtoolset-7
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
