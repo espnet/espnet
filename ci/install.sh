@@ -16,7 +16,7 @@ else
         make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv
     )
     . tools/venv/etc/profile.d/conda.sh
-    conda config --set always_yes yes --set changeps1 no
+    conda config --set always_yes yes
     conda activate
     conda update -y conda
     if [[ ${TH_VERSION} == nightly ]]; then
