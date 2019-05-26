@@ -56,7 +56,6 @@ install:
         cd -
     fi
   - ./ci/install.sh
-  - export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/chainer_ctc/ext/warp-ctc/build"
 
 script:
   - ./ci/test_shell.sh
