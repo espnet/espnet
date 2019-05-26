@@ -459,7 +459,7 @@ def decode(args):
             x = torch.LongTensor(x).to(device)
 
             # decode and write
-            outs, _, _ = model.inference(x, args, spemb)
+            outs = model.inference(x, args, spemb)[0]
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
