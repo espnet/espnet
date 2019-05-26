@@ -11,7 +11,7 @@ workflows:
       - test-ubuntu18-system
 
 jobs:
-  test-ubuntu18:
+  test-ubuntu18-conda:
     docker:
       - image: circleci/buildpack-deps:18.04
         environment:
@@ -35,7 +35,6 @@ jobs:
     docker:
       - image: circleci/buildpack-deps:18.04
         environment:
-          ESPNET_PYTHON_VERSION: 3.7
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
           USE_CONDA: false
@@ -46,8 +45,6 @@ jobs:
       - run:
           name: run tests
           command: |
-            sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-            sudo apt update
             sudo apt-get install -y cmake g++-7 libsndfile1-dev
             ./ci/install.sh
             ./ci/test_shell.sh
