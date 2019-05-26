@@ -1,0 +1,33 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:latest
+        environment:
+          TH_VERSION: 1.1.0
+          CHAINER_VERSION: 5.0.0
+          USE_CONDA: false
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --quiet torch==${TH_VERSION} -f https://download.pytorch.org/whl/cpu/stable
+            pip install chainer==${CHAINER_VERSION}
+            ./ci/install.sh
+
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            ./ci/test_shell.sh
+            ./ci/test_python.sh
