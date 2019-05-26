@@ -22,9 +22,9 @@ jobs:
           command: |
             conda update -n base -c defaults conda
             conda install -y python=${ESPNET_PYTHON_VERSION}
+            conda install -y cmake gcc
             conda install -y pytorch-cpu=${TH_VERSION} -c pytorch
             pip install chainer==${CHAINER_VERSION}
-            conda install cmake
             ./ci/install.sh
 
       - run:
