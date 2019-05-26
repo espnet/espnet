@@ -11,6 +11,8 @@ jobs:
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
           USE_CONDA: false
+          CC: gcc-7
+          CXX: g++-7
     working_directory: ~/repo
 
     steps:
@@ -19,6 +21,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            sudo apt-get install -y cmake g++-7
             python3 -m venv venv
             . venv/bin/activate
             pip install --quiet torch==${TH_VERSION} -f https://download.pytorch.org/whl/cpu/stable
