@@ -20,16 +20,9 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            cd tools
-            conda create --prefix venv python=${ESPNET_PYTHON_VERSION}
-            source venv/bin/activate
-            conda config --set always_yes yes --set changeps1 no
-            if [[ ${TH_VERSION} == nightly ]]; then
-                conda install pytorch-nightly-cpu -c pytorch
-            else
-                conda install -y pytorch-cpu=${TH_VERSION} -c pytorch
-            fi
-            cd -
+            conda update -n base -c defaults conda
+            conda install -y python=${ESPNET_PYTHON_VERSION}
+            conda install -y pytorch-cpu=${TH_VERSION} -c pytorch
             pip install chainer==${CHAINER_VERSION}
             conda install cmake
             ./ci/install.sh
@@ -37,6 +30,5 @@ jobs:
       - run:
           name: run tests
           command: |
-            source tools/venv/bin/activate
             ./ci/test_shell.sh
             ./ci/test_python.sh
