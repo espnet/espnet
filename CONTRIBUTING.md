@@ -48,15 +48,7 @@ $ test ! -s check_autopep8
 
 You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
 
-You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core) and [shellcheck].
-To install:
-
-``` console
-$ git clone https://github.com/bats-core/bats-core.git
-$ wget https://storage.googleapis.com/shellcheck/shellcheck-stable.linux.x86_64.tar.xz
-$ tar -xvf shellcheck-stable.linux.x86_64.tar.xz
-$ export PATH=$(pwd)/bats-core/bin:$(pwd)/shellcheck-stable/bin:$PATH
-```
+You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core) and [shellcheck](https://github.com/koalaman/shellcheck).
 
 To test:
 
@@ -90,5 +82,6 @@ We do not block your PR even if it is not portable.
 
 1. read log from PR checks > details
 2. turn on Reurn workflow > Rerun job with SSH
-3. open your local terminal and `ssh -p xxx xxx` (displayed in circle ci log)
-4. try and check anything you can
+3. open your local terminal and `ssh -p xxx xxx` (check circle ci log for the exact address)
+4. try anything you can to pass the CI
+

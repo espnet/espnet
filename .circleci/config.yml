@@ -7,6 +7,7 @@ workflows:
   version: 2
   test:
     jobs:
+      # TODO(karita): support tests without conda
       - test-ubuntu18
       - test-ubuntu16
       - test-centos7
