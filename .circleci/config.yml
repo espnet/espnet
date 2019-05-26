@@ -84,6 +84,7 @@ jobs:
           command: |
             # NOTE(karita) this line exited 1
             # source scl_source enable devtoolset-7
+            PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
