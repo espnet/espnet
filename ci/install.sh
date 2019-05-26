@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-$(CXX) -v
+$CXX -v
 
 if [[ ${USE_CONDA} == false ]]; then
     if [[ ${TH_VERSION} == nightly ]]; then
