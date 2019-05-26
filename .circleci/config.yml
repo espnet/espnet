@@ -20,7 +20,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            sudo apt-get install -y cmake
+            sudo apt-get install -y cmake g++-7
             ./ci/install.sh
 
       - run:
