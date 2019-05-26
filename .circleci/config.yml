@@ -22,10 +22,8 @@ jobs:
           command: |
             cd tools
             conda create --prefix venv python=${ESPNET_PYTHON_VERSION}
-            source venv/etc/profile.d/conda.sh
+            source venv/bin/activate
             conda config --set always_yes yes --set changeps1 no
-            conda activate
-            conda update -y conda
             if [[ ${TH_VERSION} == nightly ]]; then
                 conda install pytorch-nightly-cpu -c pytorch
             else
@@ -33,6 +31,7 @@ jobs:
             fi
             cd -
             pip install chainer==${CHAINER_VERSION}
+            conda install cmake
             ./ci/install.sh
 
       - run:
