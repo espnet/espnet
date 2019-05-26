@@ -13,16 +13,17 @@ if [[ ${USE_CONDA} == false ]]; then
     fi
 else
     (
-    make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv
-    . venv/etc/profile.d/conda.sh
-    conda config --set always_yes yes --set changeps1 no
-    conda activate
-    conda update -y conda
-    if [[ ${TH_VERSION} == nightly ]]; then
-        conda install pytorch-nightly-cpu -c pytorch
-    else
-        conda install -y pytorch-cpu="${TH_VERSION}" -c pytorch
-    fi
+        cd tools
+        make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv
+        . venv/etc/profile.d/conda.sh
+        conda config --set always_yes yes --set changeps1 no
+        conda activate
+        conda update -y conda
+        if [[ ${TH_VERSION} == nightly ]]; then
+            conda install pytorch-nightly-cpu -c pytorch
+        else
+            conda install -y pytorch-cpu="${TH_VERSION}" -c pytorch
+        fi
     )
 fi
 
