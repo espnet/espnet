@@ -31,3 +31,6 @@ cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh
 pip install . && cd ..
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/chainer_ctc/ext/warp-ctc/build"
 export LD_LIBRARY_PATH
+
+# log
+pip freeze
