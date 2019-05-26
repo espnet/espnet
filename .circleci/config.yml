@@ -77,7 +77,8 @@ jobs:
           name: run tests
           command: |
             source scl_source enable devtoolset-7
-            yum install cmake libsndfile
+            yum install sudo
+            sudo yum install cmake libsndfile
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
