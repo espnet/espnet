@@ -20,9 +20,9 @@ else
     conda activate
     conda update -y conda
     if [[ ${TH_VERSION} == nightly ]]; then
-        conda install pytorch-nightly-cpu -c pytorch
+        conda install -q -y pytorch-nightly-cpu -c pytorch
     else
-        conda install -y pytorch-cpu="${TH_VERSION}" -c pytorch
+        conda install -q -y pytorch-cpu="${TH_VERSION}" -c pytorch
     fi
 fi
 
