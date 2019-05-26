@@ -21,7 +21,7 @@ jobs:
           name: install dependencies
           command: |
             cd tools
-            make PYTHON_VERSION=${ESPNET_PYTHON_VERSION} venv
+            conda create --prefix venv python=${ESPNET_PYTHON_VERSION}
             source venv/etc/profile.d/conda.sh
             conda config --set always_yes yes --set changeps1 no
             conda activate
