@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+$(CXX) -v
+
 if [[ ${USE_CONDA} == false ]]; then
     if [[ ${TH_VERSION} == nightly ]]; then
         pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
