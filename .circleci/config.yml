@@ -6,12 +6,12 @@ version: 2
 jobs:
   build:
     docker:
-      - image: conda/miniconda3:latest
+      - image: circleci/buildpack-deps:18.04
         environment:
           ESPNET_PYTHON_VERSION: 3.7
           TH_VERSION: 1.1.0
           CHAINER_VERSION: 5.0.0
-          USE_CONDA: false
+          USE_CONDA: true
     working_directory: ~/repo
 
     steps:
