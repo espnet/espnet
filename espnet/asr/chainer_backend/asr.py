@@ -313,7 +313,14 @@ def train(args):
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
-                              args.maxlen_in, args.maxlen_out, args.minibatches, shortest_first=use_sortagrad)
+                              args.maxlen_in, args.maxlen_out, args.minibatches,
+                              min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                              shortest_first=use_sortagrad,
+                              count=args.batch_count,
+                              batch_bins=args.batch_bins,
+                              batch_frames_in=args.batch_frames_in,
+                              batch_frames_out=args.batch_frames_out,
+                              batch_frames_inout=args.batch_frames_inout)
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
@@ -382,7 +389,14 @@ def train(args):
 
     # set up validation iterator
     valid = make_batchset(valid_json, args.batch_size,
-                          args.maxlen_in, args.maxlen_out, args.minibatches)
+                          args.maxlen_in, args.maxlen_out, args.minibatches,
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                          count=args.batch_count,
+                          batch_bins=args.batch_bins,
+                          batch_frames_in=args.batch_frames_in,
+                          batch_frames_out=args.batch_frames_out,
+                          batch_frames_inout=args.batch_frames_inout)
+
     if args.n_iter_processes > 0:
         valid_iter = chainer.iterators.MultiprocessIterator(
             TransformDataset(valid, load_cv),
