@@ -14,10 +14,10 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.decoder import Decoder
+from espnet.nets.pytorch_backend.transformer.decoder import DecoderV2 as Decoder
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
-from espnet.nets.pytorch_backend.transformer.encoder import Encoder
+from espnet.nets.pytorch_backend.transformer.encoder import EncoderV2 as Encoder
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
@@ -302,9 +302,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         self._reset_parameters(args)
 
     def _reset_parameters(self, args):
-        # alpha in scaled positional encoding init
-        self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
-        self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
+        if self.use_scaled_pos_enc:
+            # alpha in scaled positional encoding init
+            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
+            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
 
         if args.transformer_init == "pytorch":
             return
