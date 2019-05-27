@@ -5,24 +5,24 @@ import numpy as np
 
 
 def batchfy_by_seq(
-        data, batch_size, max_length_in, max_length_out,
-        min_batch_size=1, shortest_first=False):
+        sorted_data, batch_size, max_length_in, max_length_out,
+        min_batch_size=1, shortest_first=False,
+        ikey="input", okey="output"):
     """Make batch set from json dictionary
 
-    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param Dict[str, Dict[str, Any]] sorted_data: dictionary loaded from data.json
     :param int batch_size: batch size
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int min_batch_size: mininum batch size (for multi-gpu)
     :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+
+    :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
+    :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
     :return: List[List[Tuple[str, dict]]] list of batches
     """
     if batch_size <= 0:
         raise ValueError(f"Invalid batch_size={batch_size}")
-    # sort it by input lengths (long to short)
-    sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['input'][0]['shape'][0]), reverse=not shortest_first)
-    logging.info('# utts: ' + str(len(sorted_data)))
 
     # check #utts is more than min_batch_size
     if len(sorted_data) < min_batch_size:
@@ -33,8 +33,8 @@ def batchfy_by_seq(
     start = 0
     while True:
         _, info = sorted_data[start]
-        ilen = int(info['input'][0]['shape'][0])
-        olen = int(info['output'][0]['shape'][0])
+        ilen = int(info[ikey][0]['shape'][0])
+        olen = int(info[okey][0]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
@@ -64,26 +64,27 @@ def batchfy_by_seq(
     return minibatches
 
 
-def batchfy_by_bin(data, batch_bins, num_batches=0, min_batch_size=1, shortest_first=False):
+def batchfy_by_bin(sorted_data, batch_bins, num_batches=0, min_batch_size=1, shortest_first=False,
+                   ikey="input", okey="output"):
     """Make variably sized batch set, which maximizes the number of bins up to `batch_bins`.
 
-    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param Dict[str, Dict[str, Any]] sorted_data: dictionary loaded from data.json
     :param int batch_bins: Maximum frames of a batch
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param int test: Return only every `test` batches
     :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+
+    :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
+    :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
+
     :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
     """
     if batch_bins <= 0:
         raise ValueError(f"invalid batch_bins={batch_bins}")
-
-    # sort by input lengths
-    sorted_data = sorted(data.items(), key=lambda sample: int(
-        sample[1]['input'][0]['shape'][0]), reverse=not shortest_first)
     length = len(sorted_data)
-    idim = int(sorted_data[0][1]['input'][0]['shape'][1])
-    odim = int(sorted_data[0][1]['output'][0]['shape'][1])
+    idim = int(sorted_data[0][1][ikey][0]['shape'][1])
+    odim = int(sorted_data[0][1][okey][0]['shape'][1])
     logging.info('# utts: ' + str(len(sorted_data)))
     minibatches = []
     start = 0
@@ -94,8 +95,8 @@ def batchfy_by_bin(data, batch_bins, num_batches=0, min_batch_size=1, shortest_f
         next_size = 0
         max_olen = 0
         while next_size < batch_bins and (start + b) < length:
-            ilen = int(sorted_data[start + b][1]['input'][0]['shape'][0]) * idim
-            olen = int(sorted_data[start + b][1]['output'][0]['shape'][0]) * odim
+            ilen = int(sorted_data[start + b][1][ikey][0]['shape'][0]) * idim
+            olen = int(sorted_data[start + b][1][okey][0]['shape'][0]) * odim
             if olen > max_olen:
                 max_olen = olen
             next_size = (max_olen + ilen) * (b + 1)
@@ -133,11 +134,12 @@ def batchfy_by_bin(data, batch_bins, num_batches=0, min_batch_size=1, shortest_f
     return minibatches
 
 
-def batchfy_by_frame(data, max_frames_in, max_frames_out, max_frames_inout,
-                     num_batches=0, min_batch_size=1, shortest_first=False):
+def batchfy_by_frame(sorted_data, max_frames_in, max_frames_out, max_frames_inout,
+                     num_batches=0, min_batch_size=1, shortest_first=False,
+                     ikey="input", okey="output"):
     """Make variably sized batch set, which maximizes the number of frames to max_batch_frame.
 
-    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param Dict[str, Dict[str, Any]] sorteddata: dictionary loaded from data.json
     :param int max_frames_in: Maximum input frames of a batch
     :param int max_frames_out: Maximum output frames of a batch
     :param int max_frames_inout: Maximum input+output frames of a batch
@@ -145,17 +147,16 @@ def batchfy_by_frame(data, max_frames_in, max_frames_out, max_frames_inout,
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param int test: Return only every `test` batches
     :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+
+    :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
+    :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
+
     :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
     """
     if max_frames_in <= 0 and max_frames_out <= 0 and max_frames_inout <= 0:
         raise ValueError(
             f"At least, one of `--batch-frames-in`, `--batch-frames-out` or `--batch-frames-inout` should be > 0")
-
-    # sort by input lengths
-    sorted_data = sorted(data.items(), key=lambda sample: int(
-        sample[1]['input'][0]['shape'][0]), reverse=not shortest_first)
     length = len(sorted_data)
-    logging.info('# utts: ' + str(len(sorted_data)))
     minibatches = []
     start = 0
     end = 0
@@ -165,11 +166,11 @@ def batchfy_by_frame(data, max_frames_in, max_frames_out, max_frames_inout,
         max_olen = 0
         max_ilen = 0
         while (start + b) < length:
-            ilen = int(sorted_data[start + b][1]['input'][0]['shape'][0])
+            ilen = int(sorted_data[start + b][1][ikey][0]['shape'][0])
             if ilen > max_frames_in and max_frames_in != 0:
                 raise ValueError(
                     f"Can't fit one sample in --batch-frames-in ({max_frames_in}): Please increase the value")
-            olen = int(sorted_data[start + b][1]['output'][0]['shape'][0])
+            olen = int(sorted_data[start + b][1][okey][0]['shape'][0])
             if olen > max_frames_out and max_frames_out != 0:
                 raise ValueError(
                     f"Can't fit one sample in --batch-frames-out ({max_frames_out}): Please increase the value")
@@ -214,15 +215,96 @@ def batchfy_by_frame(data, max_frames_in, max_frames_out, max_frames_inout,
     return minibatches
 
 
+def batchfy_shuffle(data, batch_size, min_batch_size, num_batches, shortest_first):
+    import random
+    logging.info('use shuffled batch.')
+    sorted_data = random.sample(data.items(), len(data.items()))
+    logging.info('# utts: ' + str(len(sorted_data)))
+    # make list of minibatches
+    minibatches = []
+    start = 0
+    while True:
+        end = min(len(sorted_data), start + batch_size)
+        # check each batch is more than minimum batchsize
+        minibatch = sorted_data[start:end]
+        if shortest_first:
+            minibatch.reverse()
+        if len(minibatch) < min_batch_size:
+            mod = min_batch_size - len(minibatch) % min_batch_size
+            additional_minibatch = [sorted_data[i] for i in np.random.randint(0, start, mod)]
+            if shortest_first:
+                additional_minibatch.reverse()
+            minibatch.extend(additional_minibatch)
+        minibatches.append(minibatch)
+        if end == len(sorted_data):
+            break
+        start = end
+
+    # for debugging
+    if num_batches > 0:
+        minibatches = minibatches[:num_batches]
+        logging.info('# minibatches: ' + str(len(minibatches)))
+    return minibatches
+
+
 BATCH_COUNT_CHOICES = ["auto", "seq", "bin", "frame"]
+BATCH_SORT_KEY_CHOICES = ["input", "output", "shuffle"]
 
 
 def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out=float("inf"),
-                  num_batches=0, min_batch_size=1, shortest_first=False,
+                  num_batches=0, min_batch_size=1, shortest_first=False, batch_sort_key="input", swap_io=False,
                   count="auto", batch_bins=0, batch_frames_in=0, batch_frames_out=0, batch_frames_inout=0):
+    """Make batch set from json dictionary
+
+    if utts have "category" value,
+
+        >>> data = {'utt1': {'category': 'A', 'input': ...},
+        ...         'utt2': {'category': 'B', 'input': ...},
+        ...         'utt3': {'category': 'B', 'input': ...},
+        ...         'utt4': {'category': 'A', 'input': ...}}
+        >>> make_batchset(data, batchsize=2, ...)
+        [[('utt1', ...), ('utt4', ...)], [('utt2', ...), ('utt3': ...)]]
+
+    Note that if any utts doesn't have "category",
+    perform as same as batchfy_by_{count}
+
+    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param int batch_size: maximum number of sequences in a minibatch.
+    :param int batch_bins: maximum number of bins (frames x dim) in a minibatch.
+    :param int batch_frames_in:  maximum number of input frames in a minibatch.
+    :param int batch_frames_out: maximum number of output frames in a minibatch.
+    :param int batch_frames_out: maximum number of input+output frames in a minibatch.
+    :param str count: strategy to count maximum size of batch.
+        For choices, see espnet.asr.batchfy.BATCH_COUNT_CHOICES
+
+    :param int max_length_in: maximum length of input to decide adaptive batch size
+    :param int max_length_out: maximum length of output to decide adaptive batch size
+    :param int num_batches: # number of batches to use (for debug)
+    :param int min_batch_size: minimum batch size (for multi-gpu)
+    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+        :return: List[List[Tuple[str, dict]]] list of batches
+    :param str batch_sort_key: how to sort data before creating minibatches ["input", "output", "shuffle"]
+    :param bool swap_io: if True, use "input" as output and "output" as input in `data` dict
+    """
+
     # check args
     if count not in BATCH_COUNT_CHOICES:
         raise ValueError(f"arg 'count' ({count}) should be one of {BATCH_COUNT_CHOICES}")
+    if batch_sort_key not in BATCH_SORT_KEY_CHOICES:
+        raise ValueError(f"arg 'batch_sort_key' ({batch_sort_key}) should be one of {BATCH_SORT_KEY_CHOICES}")
+
+    # for TTS
+    # TODO(karita): remove this by creating converter from ASR to TTS json format
+    if swap_io:
+        ikey = "output"
+        okey = "input"
+        if batch_sort_key == "input":
+            batch_sort_key = "output"
+        elif batch_sort_key == "output":
+            batch_sort_key = "input"
+    else:
+        ikey = "input"
+        okey = "output"
 
     if count == "auto":
         if batch_size != 0:
@@ -232,37 +314,52 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
         elif batch_frames_in != 0 or batch_frames_out != 0 or batch_frames_inout != 0:
             count = "frame"
         else:
-            raise ValueError(f"cannot detect `--batch-count` manually set one of {BATCH_COUNT_CHOICES}")
+            raise ValueError(f"cannot detect `count` manually set one of {BATCH_COUNT_CHOICES}")
+        logging.info(f"count is auto detected as {count}")
+
+    if count != "seq" and batch_sort_key == "shuffle":
+        raise ValueError(f"batch_sort_key=shuffle is only available if batch_count=seq")
 
     category2data = {}  # Dict[str, dict]
     for k, v in data.items():
         category2data.setdefault(v.get('category'), {})[k] = v
 
     batches_list = []  # List[List[List[Tuple[str, dict]]]]
-    for _, d in category2data.items():
-        # batch: List[List[Tuple[str, dict]]]
+    for d in category2data.values():
+        if batch_sort_key == 'shuffle':
+            batches = batchfy_shuffle(d, batch_size, min_batch_size, num_batches, shortest_first)
+            batches_list.append(batches)
+            continue
+
+        # sort it by input lengths (long to short)
+        sorted_data = sorted(data.items(), key=lambda data: int(
+            data[1][batch_sort_key][0]['shape'][0]), reverse=not shortest_first)
+        logging.info('# utts: ' + str(len(sorted_data)))
         if count == "seq":
             batches = batchfy_by_seq(
-                data=d,
+                sorted_data,
                 batch_size=batch_size,
                 max_length_in=max_length_in,
                 max_length_out=max_length_out,
                 min_batch_size=min_batch_size,
-                shortest_first=shortest_first)
+                shortest_first=shortest_first,
+                ikey=ikey, okey=okey)
         if count == "bin":
             batches = batchfy_by_bin(
-                data=d,
+                sorted_data,
                 batch_bins=batch_bins,
                 min_batch_size=min_batch_size,
-                shortest_first=shortest_first)
+                shortest_first=shortest_first,
+                ikey=ikey, okey=okey)
         if count == "frame":
             batches = batchfy_by_frame(
-                data=d,
+                sorted_data,
                 max_frames_in=batch_frames_in,
                 max_frames_out=batch_frames_out,
                 max_frames_inout=batch_frames_inout,
                 min_batch_size=min_batch_size,
-                shortest_first=shortest_first)
+                shortest_first=shortest_first,
+                ikey=ikey, okey=okey)
         batches_list.append(batches)
 
     if len(batches_list) == 1:
@@ -278,35 +375,3 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
 
     # batch: List[List[Tuple[str, dict]]]
     return batches
-
-
-make_batchset.__doc__ = \
-    """Make batch set from json dictionary
-
-    if utts have "category" value,
-
-        >>> data = {'utt1': {'category': 'A', 'input': ...},
-        ...         'utt2': {'category': 'B', 'input': ...},
-        ...         'utt3': {'category': 'B', 'input': ...},
-        ...         'utt4': {'category': 'A', 'input': ...}}
-        >>> make_batchset(data, batchsize=2, ...)
-        [[('utt1', ...), ('utt4', ...)], [('utt2', ...), ('utt3': ...)]]
-
-    Note that if any utts doesn't have "category",
-    perform as same as "make_batchset_within_category"
-
-    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
-    :param int batch_size: maximum number of sequences in a minibatch.
-    :param int batch_bins: maximum number of bins (frames x dim) in a minibatch.
-    :param int batch_frames_in:  maximum number of input frames in a minibatch.
-    :param int batch_frames_out: maximum number of output frames in a minibatch.
-    :param int batch_frames_out: maximum number of input+output frames in a minibatch.
-    :param str count: strategy to count maximum size of batch. choices=""" + f"{BATCH_COUNT_CHOICES}" + \
-    """
-    :param int max_length_in: maximum length of input to decide adaptive batch size
-    :param int max_length_out: maximum length of output to decide adaptive batch size
-    :param int num_batches: # number of batches to use (for debug)
-    :param int min_batch_size: minimum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
-        :return: List[List[Tuple[str, dict]]] list of batches
-"""

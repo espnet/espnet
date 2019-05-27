@@ -266,13 +266,25 @@ def train(args):
         args.batch_sort_key = "input"
     # make minibatch list (variable length)
     train_batchset = make_batchset(train_json, args.batch_size,
-                                   args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
+                                   args.maxlen_in, args.maxlen_out, args.minibatches,
+                                   batch_sort_key=args.batch_sort_key,
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                                   shortest_first=use_sortagrad,
+                                   count=args.batch_count,
+                                   batch_bins=args.batch_bins,
+                                   batch_frames_in=args.batch_frames_in,
+                                   batch_frames_out=args.batch_frames_out,
+                                   batch_frames_inout=args.batch_frames_inout)
     valid_batchset = make_batchset(valid_json, args.batch_size,
-                                   args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
+                                   args.maxlen_in, args.maxlen_out, args.minibatches,
+                                   batch_sort_key=args.batch_sort_key,
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                                   count=args.batch_count,
+                                   batch_bins=args.batch_bins,
+                                   batch_frames_in=args.batch_frames_in,
+                                   batch_frames_out=args.batch_frames_out,
+                                   batch_frames_inout=args.batch_frames_inout)
+
     load_tr = LoadInputsAndTargets(
         mode='tts',
         use_speaker_embedding=args.use_speaker_embedding,
