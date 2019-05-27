@@ -39,6 +39,14 @@ class Decoder(torch.nn.Module):
                 torch.nn.Embedding(odim, attention_dim),
                 pos_enc_class(attention_dim, dropout_rate)
             )
+        elif input_layer == "linear":
+            self.embed = torch.nn.Sequential(
+                torch.nn.Linear(odim, attention_dim),
+                torch.nn.LayerNorm(attention_dim),
+                torch.nn.Dropout(dropout_rate),
+                torch.nn.ReLU(),
+                pos_enc_class(attention_dim, dropout_rate)
+            )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
                 input_layer,
