@@ -3,6 +3,7 @@ import torch
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
+from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayerV2
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import PositionwiseFeedForward
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
@@ -21,6 +22,7 @@ class Encoder(torch.nn.Module):
     :param float attention_dropout_rate: dropout rate for attention
     :param str or torch.nn.Module input_layer: input layer type
     :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
+    :param bool normalize_before: whether to use layer_norm before the first block
     """
 
     def __init__(self, idim,
@@ -31,7 +33,8 @@ class Encoder(torch.nn.Module):
                  dropout_rate=0.1,
                  attention_dropout_rate=0.0,
                  input_layer="conv2d",
-                 pos_enc_class=PositionalEncoding):
+                 pos_enc_class=PositionalEncoding,
+                 normalize_before=True):
         super(Encoder, self).__init__()
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -55,17 +58,19 @@ class Encoder(torch.nn.Module):
             )
         else:
             raise ValueError("unknown input_layer: " + input_layer)
-
+        self.normalize_before = normalize_before
         self.encoders = repeat(
             num_blocks,
             lambda: EncoderLayer(
                 attention_dim,
                 MultiHeadedAttention(attention_heads, attention_dim, attention_dropout_rate),
                 PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                dropout_rate
+                dropout_rate,
+                normalize_before
             )
         )
-        self.norm = LayerNorm(attention_dim)
+        if self.normalize_before:
+            self.after_norm = LayerNorm(attention_dim)
 
     def forward(self, xs, masks):
         """Embed positions in tensor
@@ -80,4 +85,6 @@ class Encoder(torch.nn.Module):
         else:
             xs = self.embed(xs)
         xs, masks = self.encoders(xs, masks)
+        if self.normalize_before:
+            xs = self.norm(xs)
         return self.norm(xs), masks

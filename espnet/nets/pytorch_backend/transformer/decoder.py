@@ -21,6 +21,7 @@ class Decoder(torch.nn.Module):
     :param str or torch.nn.Module input_layer: input layer type
     :param bool use_output_layer: whether to use output layer
     :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
+    :param bool normalize_before: whether to use layer_norm before the first block
     """
 
     def __init__(self, odim,
@@ -32,7 +33,8 @@ class Decoder(torch.nn.Module):
                  attention_dropout_rate=0.0,
                  input_layer="embed",
                  use_output_layer=True,
-                 pos_enc_class=PositionalEncoding):
+                 pos_enc_class=PositionalEncoding,
+                 normalize_before=True):
         super(Decoder, self).__init__()
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
@@ -54,6 +56,7 @@ class Decoder(torch.nn.Module):
             )
         else:
             raise NotImplementedError("only `embed` or torch.nn.Module is supported.")
+        self.normalize_before = normalize_before
         self.decoders = repeat(
             num_blocks,
             lambda: DecoderLayer(
@@ -64,7 +67,8 @@ class Decoder(torch.nn.Module):
                 dropout_rate
             )
         )
-        self.output_norm = LayerNorm(attention_dim)
+        if self.normalize_before:
+            self.after_norm = LayerNorm(attention_dim)
         if use_output_layer:
             self.output_layer = torch.nn.Linear(attention_dim, odim)
         else:
@@ -86,7 +90,8 @@ class Decoder(torch.nn.Module):
         """
         x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, memory_mask)
-        x = self.output_norm(x)
+        if self.normalize_before:
+            x = self.after_norm(x)
         if self.output_layer is not None:
             x = self.output_layer(x)
         return x, tgt_mask
@@ -102,7 +107,9 @@ class Decoder(torch.nn.Module):
         """
         x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, None)
+        if self.normalize_before:
+            x_ = self.after_norm(x[:, -1])
         if self.output_layer is not None:
-            return torch.log_softmax(self.output_layer(self.output_norm(x[:, -1])), dim=-1)
+            return torch.log_softmax(self.output_layer(x_), dim=-1)
         else:
-            return self.output_norm(x[:, -1])
+            return x_
