@@ -86,4 +86,4 @@ class Encoder(torch.nn.Module):
         xs, masks = self.encoders(xs, masks)
         if self.normalize_before:
             xs = self.norm(xs)
-        return self.norm(xs), masks
+        return xs, masks
