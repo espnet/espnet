@@ -63,7 +63,7 @@ def main(cmd_args):
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batch_sort_key', default='shuffle', type=str,
                         choices=['shuffle', 'output', 'input'], nargs='?',
-                        help='Batch sorting key')
+                        help='Batch sorting key. "shuffle" only work with --batch-count "seq".')
     parser.add_argument('--batch-count', default='auto', choices=BATCH_COUNT_CHOICES,
                         help='How to count batch_size. The default (auto) will find how to count by args.')
     parser.add_argument('--batch-size', '-b', default=0, type=int,
