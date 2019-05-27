@@ -378,9 +378,12 @@ class Transformer(TTSInterface, torch.nn.Module):
             {'l1_loss': l1_loss.item()},
             {'bce_loss': bce_loss.item()},
             {'loss': loss.item()},
-            {'encoder_alpha': self.encoder.embed[-1].alpha.data.item()},
-            {'decoder_alpha': self.decoder.embed[-1].alpha.data.item()},
         ]
+        if self.use_scaled_pos_enc:
+            report_keys += [
+                {'encoder_alpha': self.encoder.embed[-1].alpha.data.item()},
+                {'decoder_alpha': self.decoder.embed[-1].alpha.data.item()},
+            ]
         self.reporter.report(report_keys)
 
         return loss
@@ -482,5 +485,8 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         :rtype list[str] plot_keys: base keys to plot during training
         """
-        plot_keys = ['loss', 'l1_loss', 'bce_loss', 'encoder_alpha', 'decoder_alpha']
+        plot_keys = ['loss', 'l1_loss', 'bce_loss']
+        if self.use_scaled_pos_enc:
+            plot_keys += ['encoder_alpha', 'decoder_alpha']
+
         return plot_keys
