@@ -34,7 +34,7 @@ env:
 
 matrix:
   allow_failures:
-    - env: TH_VERSION=nightly
+    - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0
 
 install:
   - ./ci/install.sh
