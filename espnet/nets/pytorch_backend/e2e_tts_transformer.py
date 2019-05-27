@@ -220,41 +220,49 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.pos_enc_class = ScaledPositionalEncoding if args.use_scaled_pos_enc else PositionalEncoding
 
         # define transformer encoder
-        encoder_prenet = torch.nn.Sequential(
-            EncoderPrenet(
-                idim=self.idim,
-                embed_dim=self.embed_dim,
-                elayers=0,
-                econv_layers=self.eprenet_conv_layers,
-                econv_chans=self.eprenet_conv_chans,
-                econv_filts=self.eprenet_conv_filts,
-                use_batch_norm=self.use_batch_norm,
-                dropout_rate=self.eprenet_dropout_rate
-            ),
-            torch.nn.Linear(self.eprenet_conv_chans, self.adim)
-        )
+        if self.eprenet_conv_layers != 0:
+            # encoder prenet
+            encoder_input_layer = torch.nn.Sequential(
+                EncoderPrenet(
+                    idim=self.idim,
+                    embed_dim=self.embed_dim,
+                    elayers=0,
+                    econv_layers=self.eprenet_conv_layers,
+                    econv_chans=self.eprenet_conv_chans,
+                    econv_filts=self.eprenet_conv_filts,
+                    use_batch_norm=self.use_batch_norm,
+                    dropout_rate=self.eprenet_dropout_rate
+                ),
+                torch.nn.Linear(self.eprenet_conv_chans, self.adim)
+            )
+        else:
+            encoder_input_layer = "embed"
         self.encoder = Encoder(
             idim=self.idim,
             attention_dim=self.adim,
             attention_heads=self.aheads,
             linear_units=self.eunits,
             num_blocks=self.elayers,
-            input_layer=encoder_prenet,
+            input_layer=encoder_input_layer,
             dropout_rate=self.dropout_rate,
             attention_dropout_rate=self.transformer_attn_dropout_rate,
             pos_enc_class=self.pos_enc_class
         )
 
         # define transformer decoder
-        decoder_prenet = torch.nn.Sequential(
-            DecoderPrenet(
-                idim=self.odim,
-                n_layers=self.dprenet_layers,
-                n_units=self.dprenet_units,
-                dropout_rate=self.dprenet_dropout_rate
-            ),
-            torch.nn.Linear(self.dprenet_units, self.adim)
-        )
+        if self.dprenet_layers != 0:
+            # decoder prenet
+            decoder_input_layer = torch.nn.Sequential(
+                DecoderPrenet(
+                    idim=self.odim,
+                    n_layers=self.dprenet_layers,
+                    n_units=self.dprenet_units,
+                    dropout_rate=self.dprenet_dropout_rate
+                ),
+                torch.nn.Linear(self.dprenet_units, self.adim)
+            )
+        else:
+            decoder_input_layer = "linear"
         self.decoder = Decoder(
             odim=-1,
             attention_dim=self.adim,
@@ -263,7 +271,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             num_blocks=self.dlayers,
             dropout_rate=self.dropout_rate,
             attention_dropout_rate=self.transformer_attn_dropout_rate,
-            input_layer=decoder_prenet,
+            input_layer=decoder_input_layer,
             use_output_layer=False,
             pos_enc_class=self.pos_enc_class
         )
