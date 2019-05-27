@@ -1,0 +1,47 @@
+a This is the Transformer TTS configuration
+
+# network architecture related
+model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer
+embed-dim: 512
+eprenet-conv-layers: 3  # one more linear layer w/o non-linear will be added for 0-centor
+eprenet-conv-filts: 5
+eprenet-conv-chans: 256
+dprenet-layers: 2  # one more linear layer w/o non-linear will be added for 0-centor
+dprenet-units: 256
+adim: 256
+aheads: 4
+elayers: 6
+eunits: 1024
+dlayers: 6
+dunits: 1024
+postnet-layers: 5
+postnet-filts: 5
+postnet-chans: 512
+use-masking: True
+bce-pos-weight: 5.0
+use-batch-norm: True
+use-scaled-pos-enc: True
+
+# minibatch related
+batch-size: 16
+batch-sort-key: shuffle # shuffle or input or output
+maxlen-in: 0            # if input length  > maxlen-in, batchsize is reduced (if use "shuffle", not effect)
+maxlen-out: 0           # if output length > maxlen-out, batchsize is reduced (if use "shuffle", not effect)
+
+# training related
+transformer-init: pytorch
+transformer-warmup-steps: 25000
+transformer-lr: 10.0
+dropout-rate: 0.1
+eprenet-dropout-rate: 0.1
+dprenet-dropout-rate: 0.5
+postnet-dropout-rate: 0.1
+transformer-attn-dropout-rate: 0.1
+
+# optimization related
+opt: noam
+accum-grad: 8
+grad-clip: 1
+weight-decay: 0.0
+epochs: 400
+patience: 0
