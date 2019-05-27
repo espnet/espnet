@@ -34,8 +34,16 @@ env:
 
 matrix:
   allow_failures:
-    - env: TH_VERSION=nightly
-    - env: CHAINER_VERSION=6.0.0
+    # torch nightly with chainer stable
+    - python: 3.7
+      env: USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0
+    - python: 3.7
+      env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0
+    # chainer nightly with torch stable
+    - python: 3.7
+      env: USE_CONDA=false ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0
+    - python: 3.7 
+      env: USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=1.0.1 CHAINER_VERSION=6.0.0
 
 install:
   - ./ci/install.sh
