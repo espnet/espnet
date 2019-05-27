@@ -14,10 +14,10 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.decoder import DecoderV2 as Decoder
+from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
-from espnet.nets.pytorch_backend.transformer.encoder import EncoderV2 as Encoder
+from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.tts_interface import TTSInterface
@@ -145,6 +145,10 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help='use trainable scaled positional encoding instead of the fixed scale one.')
         group.add_argument('--use-batch-norm', default=True, type=strtobool,
                            help='Whether to use batch normalization')
+        group.add_argument('--encoder-normalize-before', default=True, type=strtobool,
+                           help='Whether to apply layer norm before encoder block')
+        group.add_argument('--decoder-normalize-before', default=True, type=strtobool,
+                           help='Whether to apply layer norm before decoder block')
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
