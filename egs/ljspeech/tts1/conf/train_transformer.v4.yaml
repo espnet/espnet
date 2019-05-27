@@ -32,8 +32,8 @@ maxlen-out: 0  # if output length > maxlen-out, batchsize is reduced (if use "sh
 
 # training related
 transformer-init: xavier_uniform
-transformer-warmup-steps: 4000
-transformer-lr: 10.0
+transformer-warmup-steps: 10000
+transformer-lr: 1.0
 initial-encoder-alpha: 1.0
 initial-decoder-alpha: 1.0
 dropout-rate: 0.1
