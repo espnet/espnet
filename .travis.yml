@@ -30,7 +30,7 @@ env:
 
 matrix:
   allow_failures:
-    - USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
+    - env: USE_CONDA=true ESPNET_PYTHON_VERSION=3.7 TH_VERSION=nightly CHAINER_VERSION=5.0.0 CC=gcc-7 CXX=g++-7
 
 install:
   - ./ci/install.sh
