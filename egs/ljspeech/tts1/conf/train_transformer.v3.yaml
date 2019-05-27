@@ -23,7 +23,7 @@ use-batch-norm: True
 use-scaled-pos-enc: True
 
 # minibatch related
-batch-size: 24
+batch-size: 16
 batch-sort-key: shuffle # shuffle or input or output
 maxlen-in: 0   # if input length  > maxlen-in, batchsize is reduced (if use "shuffle", not effect)
 maxlen-out: 0  # if output length > maxlen-out, batchsize is reduced (if use "shuffle", not effect)
@@ -31,7 +31,7 @@ maxlen-out: 0  # if output length > maxlen-out, batchsize is reduced (if use "sh
 # training related
 transformer-init: xavier_uniform
 transformer-warmup-steps: 4000
-transformer-lr: 1.0
+transformer-lr: 10.0
 dropout-rate: 0.1
 eprenet-dropout-rate: 0.1
 dprenet-dropout-rate: 0.1
