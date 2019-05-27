@@ -150,6 +150,10 @@ class Transformer(TTSInterface, torch.nn.Module):
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
                                     "kaiming_uniform", "kaiming_normal"],
                            help='how to initialize transformer parameters')
+        group.add_argument("--initial-encoder-alpha", type=float, default=1.0,
+                           help='initial alpha value in encoder\'s ScaledPositionalEncoding')
+        group.add_argument("--initial-decoder-alpha", type=float, default=1.0,
+                           help='initial alpha value in decoder\'s ScaledPositionalEncoding')
         group.add_argument('--transformer-lr', default=10.0, type=float,
                            help='Initial value of learning rate')
         group.add_argument('--transformer-warmup-steps', default=25000, type=int,
@@ -298,6 +302,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         self._reset_parameters(args)
 
     def _reset_parameters(self, args):
+        # alpha in scaled positional encoding init
+        self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
+        self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
+
         if args.transformer_init == "pytorch":
             return
         # weight init
