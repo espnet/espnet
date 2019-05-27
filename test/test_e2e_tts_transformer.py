@@ -34,9 +34,11 @@ def make_transformer_args(**kwargs):
         postnet_dropout_rate=None,
         transformer_attn_dropout_rate=None,
         use_masking=True,
-        bce_pos_weight=5.0,
+        bce_pos_weight=1.0,
         use_batch_norm=True,
         use_scaled_pos_enc=True,
+        encoder_normalize_before=True,
+        decoder_normalize_before=True,
         transformer_init="pytorch",
         initial_encoder_alpha=1.0,
         initial_decoder_alpha=1.0,
@@ -86,6 +88,9 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
+        ({"encoder_normalize_before": False}),
+        ({"decoder_normalize_before": False}),
+        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
     ])
 def test_transformer_trainable_and_decodable(model_dict):
     # make args
@@ -129,6 +134,9 @@ def test_transformer_trainable_and_decodable(model_dict):
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
+        ({"encoder_normalize_before": False}),
+        ({"decoder_normalize_before": False}),
+        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
     ])
 def test_transformer_gpu_trainable(model_dict):
     # make args
@@ -167,6 +175,9 @@ def test_transformer_gpu_trainable(model_dict):
         ({"use_masking": False}),
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
+        ({"encoder_normalize_before": False}),
+        ({"decoder_normalize_before": False}),
+        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
     ])
 def test_transformer_multi_gpu_trainable(model_dict):
     # make args
