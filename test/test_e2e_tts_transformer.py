@@ -37,7 +37,9 @@ def make_transformer_args(**kwargs):
         bce_pos_weight=5.0,
         use_batch_norm=True,
         use_scaled_pos_enc=True,
-        transformer_init="pytorch"
+        transformer_init="pytorch",
+        initial_encoder_alpha=1.0,
+        initial_decoder_alpha=1.0,
     )
     defaults.update(kwargs)
     return defaults
