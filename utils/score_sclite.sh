@@ -73,13 +73,13 @@ elif [ ${num_spkrs} -eq 2 ]; then
       if ${remove_blank}; then
           sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp${n}.trn
       fi
-      if [ ! -z ${nlsyms} ]; then
+      if [ -n "${nlsyms}" ]; then
           cp ${dir}/ref${n}.trn ${dir}/ref${n}.trn.org
           cp ${dir}/hyp${n}.trn ${dir}/hyp${n}.trn.org
           filt.py -v ${nlsyms} ${dir}/ref${n}.trn.org > ${dir}/ref${n}.trn
           filt.py -v ${nlsyms} ${dir}/hyp${n}.trn.org > ${dir}/hyp${n}.trn
       fi
-      if [ ! -z ${filter} ]; then
+      if [ -n "${filter}" ]; then
           sed -i.bak3 -f ${filter} ${dir}/hyp${n}.trn
           sed -i.bak3 -f ${filter} ${dir}/ref${n}.trn
       fi
@@ -98,7 +98,7 @@ elif [ ${num_spkrs} -eq 2 ]; then
 
   if ${wer}; then
       for n in $(seq ${num_spkrs}); do
-          if [ ! -z $bpe ]; then
+          if [ -n "$bpe" ]; then
               spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref${n}.trn | sed -e "s/▁/ /g" > ${dir}/ref${n}.wrd.trn
               spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp${n}.trn | sed -e "s/▁/ /g" > ${dir}/hyp${n}.wrd.trn
           else

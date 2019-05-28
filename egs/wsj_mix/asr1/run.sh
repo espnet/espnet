@@ -100,9 +100,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr
-train_dev=cv
-recog_set=tt
+train_set="tr"
+train_dev="cv"
+recog_set="tt"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
