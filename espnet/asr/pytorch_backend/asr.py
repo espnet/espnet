@@ -41,6 +41,7 @@ from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.spec_augment import specaug
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -98,7 +99,7 @@ class CustomEvaluator(extensions.Evaluator):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    x = self.converter(batch, self.device)
+                    x = self.converter(batch, self.device, evaluation=True)
                     self.model(*x)
                 summary.add(observation)
         self.model.train()
@@ -167,11 +168,12 @@ class CustomConverter(object):
     :param int subsampling_factor : The subsampling factor
     """
 
-    def __init__(self, subsampling_factor=1):
+    def __init__(self, subsampling_factor=1, use_specaug=True):
         self.subsampling_factor = subsampling_factor
+        self.use_specaug = use_specaug
         self.ignore_id = -1
 
-    def __call__(self, batch, device):
+    def __call__(self, batch, device, evaluation=False):
         """Transforms a batch and send it to a device
 
         :param list batch: The batch to transform
@@ -191,6 +193,8 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
+        # for training specaug is applied
+        # currently only support real number
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
                 [torch.from_numpy(x.real).float() for x in xs], 0).to(device)
@@ -202,8 +206,10 @@ class CustomConverter(object):
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            xs_pad = pad_list(
-                [torch.from_numpy(x).float() for x in xs], 0).to(device)
+            if self.use_specaug and not evaluation:
+                xs_pad = pad_list([specaug(torch.from_numpy(x).float()).to(device) for x in xs], 0)
+            else:
+                xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 
         ilens = torch.from_numpy(ilens).to(device)
         ys_pad = pad_list([torch.from_numpy(y).long() for y in ys],
@@ -300,7 +306,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(subsampling_factor=subsampling_factor)
+    converter = CustomConverter(subsampling_factor=subsampling_factor, use_specaug=args.use_specaug)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -442,7 +448,7 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, att_reporter))
     # Run the training
     trainer.run()
