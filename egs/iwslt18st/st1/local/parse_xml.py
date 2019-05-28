@@ -33,7 +33,7 @@ def main():
             trans_dict_all[talk_id] = OrderedDict()
         elif e.tag == 'seg':
             utt_id = int(e.get('id'))
-            ref = e.text.encode('utf-8')
+            ref = e.text
 
             # Remove Al Gore:, Video: etc.
             ref = ref.split(':')[-1].lstrip()
