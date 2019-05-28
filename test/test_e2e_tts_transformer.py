@@ -42,6 +42,7 @@ def make_transformer_args(**kwargs):
         transformer_init="pytorch",
         initial_encoder_alpha=1.0,
         initial_decoder_alpha=1.0,
+        reduction_factor=1,
     )
     defaults.update(kwargs)
     return defaults
@@ -89,6 +90,8 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
         ({"use_scaled_pos_enc": False}),
         ({"bce_pos_weight": 10.0}),
         ({"encoder_normalize_before": False}),
+        ({"reduction_factor": 2}),
+        ({"reduction_factor": 3}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
     ])
