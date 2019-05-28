@@ -11,6 +11,7 @@ workflows:
       - test-ubuntu18
       - test-ubuntu16
       - test-centos7
+      - test-debian9
 
 jobs:
   test-ubuntu18:
@@ -90,3 +91,24 @@ jobs:
             ./ci/test_shell.sh
             ./ci/test_python.sh
 
+  test-debian9:
+    docker:
+      - image: debian:9
+        environment:
+          ESPNET_PYTHON_VERSION: 3.7
+          TH_VERSION: 1.1.0
+          CHAINER_VERSION: 5.0.0
+          USE_CONDA: true
+          CC: gcc-6
+          CXX: g++-6
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: run tests
+          command: |
+            sudo apt-get install -qq -y cmake g++-6 libsndfile1-dev
+            ./ci/install.sh
+            ./ci/test_shell.sh
+            ./ci/test_python.sh
