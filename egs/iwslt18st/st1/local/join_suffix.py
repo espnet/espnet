@@ -6,7 +6,6 @@
 
 
 import sys
-from codecs import open
 
 # This script joins together pairs of split-up words like "you 're" -> "you're".
 # The TEDLIUM transcripts are normalized in a way that's not traditional for
@@ -17,8 +16,8 @@ for line in sys.stdin:
     new_items = []
     i = 1
     while i < len(items):
-        if i < len(items) - 1 and items[i+1][0] == '\'':
-            new_items.append(items[i] + items[i+1])
+        if i < len(items) - 1 and items[i + 1][0] == '\'':
+            new_items.append(items[i] + items[i + 1])
             i = i + 1
         else:
             new_items.append(items[i])

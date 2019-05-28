@@ -1,10 +1,11 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import codecs
 import logging
 
 if __name__ == '__main__':
@@ -18,12 +19,12 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
 
     file_order = []
-    with open(args.file_order, 'r') as f:
+    with codecs.open(args.file_order, 'r') as f:
         for line in f:
             file_order.append(line.strip().replace('.en', ''))
 
     logging.info("reading %s", args.text)
-    with open(args.text, 'r') as f:
+    with codecs.open(args.text, 'r', encoding="utf-8") as f:
         refs = f.readlines()
 
     dic = {}

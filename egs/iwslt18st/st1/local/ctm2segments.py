@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
@@ -7,6 +7,7 @@
 from __future__ import division
 
 import argparse
+import codecs
 import re
 
 
@@ -23,7 +24,7 @@ def main():
     args = parser.parse_args()
 
     refs = []
-    with open(args.text) as f:
+    with codecs.open(args.text, encoding="utf-8") as f:
         for line in f:
             line = line.strip().lower()
             utt_id = line.split(' ')[0].split('_')[0]
@@ -31,7 +32,7 @@ def main():
             refs += [(utt_id, ref)]
 
     ctms = []
-    with open(args.ctm) as f:
+    with codecs.open(args.ctm, encoding="utf-8") as f:
         for line in f:
             ctms.append(re.sub(r'[\s]+', ' ', line.strip()))
     ctms = sorted(ctms, key=lambda x: float(x.split()[2]))
