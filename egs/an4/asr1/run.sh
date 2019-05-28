@@ -52,9 +52,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodev
-train_dev=train_dev
-lm_test=test
+train_set="train_nodev"
+train_dev="train_dev"
+lm_test="test"
 recog_set="train_dev test"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
