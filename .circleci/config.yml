@@ -108,7 +108,8 @@ jobs:
       - run:
           name: run tests
           command: |
-            sudo apt-get install -qq -y cmake g++-6 libsndfile1-dev
+            apt-get update -qq
+            apt-get install -qq -y git cmake g++-6 libsndfile1-dev unzip bzip2 wget
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
