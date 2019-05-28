@@ -27,7 +27,7 @@ endif
 
 .PHONY: all clean
 
-all: kaldi.done python check_install
+all: kaldi.done python check_install extra
 
 python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done
 
