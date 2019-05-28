@@ -149,6 +149,8 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help='Whether to apply layer norm before encoder block')
         group.add_argument('--decoder-normalize-before', default=True, type=strtobool,
                            help='Whether to apply layer norm before decoder block')
+        parser.add_argument('--reduction-factor', default=1, type=int,
+                            help='Reduction factor')
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
@@ -226,6 +228,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             self.transformer_attn_dropout_rate = args.transformer_attn_dropout_rate
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.pos_enc_class = ScaledPositionalEncoding if args.use_scaled_pos_enc else PositionalEncoding
+        self.reduction_factor = args.reduction_factor
 
         # define transformer encoder
         if self.eprenet_conv_layers != 0:
@@ -285,8 +288,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(self.adim, self.odim, bias=False)
-        self.prob_out = torch.nn.Linear(self.adim, 1)
+        self.feat_out = torch.nn.Linear(self.adim, self.odim * self.reduction_factor, bias=False)
+        self.prob_out = torch.nn.Linear(self.adim, self.reduction_factor)
 
         # define postnet
         self.postnet = Postnet(
@@ -364,14 +367,31 @@ class Transformer(TTSInterface, torch.nn.Module):
         src_masks = make_non_pad_mask(ilens).to(xs.device).unsqueeze(-2)
         hs, h_masks = self.encoder(xs, src_masks)
 
+        # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
+        if self.reduction_factor > 1:
+            ys_ = ys[:, self.reduction_factor - 1::self.reduction_factor]
+            olens_ = [olen // self.reduction_factor for olen in olens]
+        else:
+            ys_, olens_ = ys, olens
+
         # forward decoder
-        y_masks = self._target_mask(olens)
-        zs, z_masks = self.decoder(ys, y_masks, hs, h_masks)
-        before_outs = self.feat_out(zs)  # (B, Lmax, odim)
-        logits = self.prob_out(zs).squeeze(-1)  # (B, Lmax)
+        y_masks = self._target_mask(olens_)
+        zs, z_masks = self.decoder(ys_, y_masks, hs, h_masks)
+        # (B, Lmax//r * r, odim) -> (B, Lmax//r, odim * r)
+        before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
+        # (B, Lmax//r, r) -> (B, Lmax//r * r)
+        logits = self.prob_out(zs).view(zs.size(0), -1)
 
         # postnet
         after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
+
+        # modifiy mod part of groundtruth
+        if self.reduction_factor > 1:
+            olens = [olen - olen % self.reduction_factor for olen in olens]
+            max_out = max(olens)
+            ys = ys[:, :max_out]
+            labels = labels[:, :max_out]
+            labels[:, -1] = 1.0  # make sure at least one frame has 1
 
         # caluculate loss values
         l1_loss, bce_loss = self.criterion(
@@ -431,11 +451,11 @@ class Transformer(TTSInterface, torch.nn.Module):
             # calculate output and stop prob at idx-th step
             y_masks = subsequent_mask(idx).unsqueeze(0)
             z = self.decoder.recognize(ys, y_masks, hs)  # (B, adim)
-            outs += [self.feat_out(z)]  # [(1, odim, 1), ...]
-            probs += [torch.sigmoid(self.prob_out(z))[0]]
+            outs += [self.feat_out(z).view(self.reduction_factor, self.odim)]  # [(r, odim), ...]
+            probs += [torch.sigmoid(self.prob_out(z))[0]]  # [(r), ...]
 
             # update next inputs
-            ys = torch.cat((ys, outs[-1].unsqueeze(0)), dim=1)  # (1, idx + 1, odim)
+            ys = torch.cat((ys, outs[-1][-1].view(1, 1, self.odim)), dim=1)  # (1, idx + 1, odim)
 
             # check whether to finish generation
             if int(sum(probs[-1] >= threshold)) > 0 or idx >= maxlen:
