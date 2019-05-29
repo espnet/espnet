@@ -260,7 +260,6 @@ def test_sortagrad_trainable_with_batch_frames(module):
     idim = 20
     odim = 5
     dummy_json = make_dummy_json(8, [100, 200], [100, 200], idim=idim, odim=odim)
-    from espnet.asr.batchfy import make_batchset
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
