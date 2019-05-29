@@ -55,7 +55,7 @@ class SegmentStreamingE2E(object):
             self._activates = 1
 
             # Rerun encoder with zero state at onset of detection
-            tail_len = self._subsampling_factor * (self._recog_args.onset_margin + 1)
+            tail_len = self._subsampling_factor * (self._recog_args.streaming_onset_margin + 1)
             h, ilen = self._e2e.subsample_frames(
                 np.reshape(self._previous_input[-tail_len:], [-1, len(self._previous_input[0])]))
             h, _, self._previous_encoder_recurrent_state = self._e2e.enc(
@@ -71,8 +71,8 @@ class SegmentStreamingE2E(object):
             else:
                 self._blank_dur = 0
 
-            if self._blank_dur >= self._recog_args.min_blank_dur:
-                seg_len = len(self._encoder_states) - self._blank_dur + self._recog_args.offset_margin
+            if self._blank_dur >= self._recog_args.streaming_min_blank_dur:
+                seg_len = len(self._encoder_states) - self._blank_dur + self._recog_args.streaming_offset_margin
                 if seg_len > 0:
                     # Run decoder with a detected segment
                     h = torch.cat(self._encoder_states[:seg_len], dim=0).view(
@@ -85,7 +85,7 @@ class SegmentStreamingE2E(object):
                     self._activates = 0
                     self._blank_dur = 0
 
-                    tail_len = self._subsampling_factor * self._recog_args.onset_margin
+                    tail_len = self._subsampling_factor * self._recog_args.streaming_onset_margin
                     self._previous_input = self._previous_input[-tail_len:]
                     self._encoder_states = []
                     self._ctc_posteriors = []
