@@ -85,8 +85,8 @@ case=lc.rm
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
-st_ted=/export/b08/inaguma/IWSLT
-st_ted=~/corpus/iwslt18/data
+st_ted=/n/sd3/inaguma/corpus/iwslt18/data
+# st_ted=/export/b08/inaguma/IWSLT
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -106,16 +106,122 @@ train_set=train_nodevtest_sp.en
 train_dev=train_dev.en
 recog_set="dev.en test.en dev2010.en tst2010.en tst2013.en tst2014.en tst2015.en"
 
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+    echo "stage -1: Data Download"
+    for part in train dev2010 tst2010 tst2013 tst2014 tst2015; do
+        local/download_and_untar.sh ${st_ted} ${part}
+    done
+fi
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    ### Task dependent. You have to make data the following preparation part by yourself.
+    ### But you can utilize Kaldi recipes in most cases
+    echo "stage 0: Data preparation"
+    local/data_prep_train.sh ${st_ted}
+
+    # data cleaning
+    ### local/forced_align.sh ${st_ted} data/train
+    cp -rf data/train data/train.tmp
+    reduce_data_dir.sh data/train.tmp local/reclist data/train
+    for lang in en de; do
+        utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.tc.${lang} >data/train/text.tc.${lang}
+        utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.lc.${lang} >data/train/text.lc.${lang}
+        utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.lc.rm.${lang} >data/train/text.lc.rm.${lang}
+    done
+    rm -rf data/train.tmp
+
+    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
+        local/data_prep_eval.sh ${st_ted} ${part}
+    done
+fi
+
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    if [ ! -d "data/train_nodevtest_sp.en" ]; then
-        echo "run .run.sh first"
-        exit 1
-    fi
+    fbankdir=fbank
+    # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+    for x in train dev2010 tst2010 tst2013 tst2014 tst2015; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${x} exp/make_fbank/${x} ${fbankdir}
+    done
+
+    # make a dev set
+    utils/subset_data_dir.sh --speakers data/train 2000 data/dev
+    utils/subset_data_dir.sh --spk-list <(utils/filter_scp.pl --exclude data/dev/spk2utt data/train/spk2utt) data/train data/train_nodev
+    for lang in en de; do
+        utils/filter_scp.pl data/train_nodev/utt2spk <data/train/text.tc.${lang} >data/train_nodev/text.tc.${lang}
+        utils/filter_scp.pl data/train_nodev/utt2spk <data/train/text.lc.${lang} >data/train_nodev/text.lc.${lang}
+        utils/filter_scp.pl data/train_nodev/utt2spk <data/train/text.lc.rm.${lang} >data/train_nodev/text.lc.rm.${lang}
+        utils/filter_scp.pl data/dev/utt2spk <data/train/text.tc.${lang} >data/dev/text.tc.${lang}
+        utils/filter_scp.pl data/dev/utt2spk <data/train/text.lc.${lang} >data/dev/text.lc.${lang}
+        utils/filter_scp.pl data/dev/utt2spk <data/train/text.lc.rm.${lang} >data/dev/text.lc.rm.${lang}
+    done
+
+    # make a speaker-disjoint test set
+    utils/subset_data_dir.sh --speakers data/train_nodev 2000 data/test
+    utils/subset_data_dir.sh --spk-list <(utils/filter_scp.pl --exclude data/test/spk2utt data/train_nodev/spk2utt) data/train_nodev data/train_nodevtest
+    for lang in en de; do
+        utils/filter_scp.pl data/train_nodevtest/utt2spk <data/train_nodev/text.tc.${lang} >data/train_nodevtest/text.tc.${lang}
+        utils/filter_scp.pl data/train_nodevtest/utt2spk <data/train_nodev/text.lc.${lang} >data/train_nodevtest/text.lc.${lang}
+        utils/filter_scp.pl data/train_nodevtest/utt2spk <data/train_nodev/text.lc.rm.${lang} >data/train_nodevtest/text.lc.rm.${lang}
+        utils/filter_scp.pl data/test/utt2spk <data/train_nodev/text.tc.${lang} >data/test/text.tc.${lang}
+        utils/filter_scp.pl data/test/utt2spk <data/train_nodev/text.lc.${lang} >data/test/text.lc.${lang}
+        utils/filter_scp.pl data/test/utt2spk <data/train_nodev/text.lc.rm.${lang} >data/test/text.lc.rm.${lang}
+    done
+
+    # speed-perturbed
+    utils/perturb_data_dir_speed.sh 0.9 data/train_nodevtest data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/train_nodevtest data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/train_nodevtest data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/train_nodevtest_sp data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/train_nodevtest_sp exp/make_fbank/train_nodevtest_sp ${fbankdir}
+    for lang in en de; do
+        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >data/train_nodevtest_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >data/train_nodevtest_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >data/train_nodevtest_sp/text.lc.rm.${lang}
+        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
+        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
+        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
+    done
+
+    # Divide into source and target languages
+    for x in train_nodevtest_sp dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+        local/divide_lang.sh ${x}
+    done
+
+    cp -rf data/dev.en data/train_dev.en
+    cp -rf data/dev.de data/train_dev.de
+
+    for x in train_nodevtest_sp train_dev; do
+        # remove utt having more than 3000 frames
+        # remove utt having more than 400 characters
+        for lang in en de; do
+            remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${x}.${lang} data/${x}.${lang}.tmp
+        done
+
+        # Match the number of utterances between source and target languages
+        # extract commocn lines
+        cut -f -1 -d " " data/${x}.en.tmp/text > data/${x}.de.tmp/reclist1
+        cut -f -1 -d " " data/${x}.de.tmp/text > data/${x}.de.tmp/reclist2
+        comm -12 data/${x}.de.tmp/reclist1 data/${x}.de.tmp/reclist2 > data/${x}.de.tmp/reclist
+
+        for lang in en de; do
+            reduce_data_dir.sh data/${x}.${lang}.tmp data/${x}.de.tmp/reclist data/${x}.${lang}
+            utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}.${lang}
+        done
+        rm -rf data/${x}.*.tmp
+    done
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -268,8 +374,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --weight-decay ${weight_decay}
 fi
 
-exit 1
-
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=16
@@ -309,7 +413,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
           set=$(echo ${rtask} | cut -f -1 -d ".")
           local/score_sclite_reseg.sh --case ${case} --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
         fi
-
     ) &
     pids+=($!) # store background pids
     done

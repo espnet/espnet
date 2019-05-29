@@ -40,7 +40,7 @@ lsm_type=unigram
 lsm_weight=0.1
 drop_enc=0.3
 drop_dec=0.0
-weight_decay=0.000001
+weight_decay=1e-6
 
 # transfer learning ralated
 asr_model=
@@ -65,7 +65,7 @@ minlenratio=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # preprocessing related
-case=tc
+case=lc
 # tc: truecase
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
@@ -93,8 +93,6 @@ set -o pipefail
 train_set=train_nodevtest_sp.de
 train_dev=train_dev.de
 recog_set="dev.de test.de dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
-# recog_set="dev.de"
-# recog_set="test.de"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
