@@ -21,16 +21,15 @@ from itertools import groupby
 
 from chainer import reporter
 
+from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
-
-from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import encoder_for
-
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+from espnet.nets.pytorch_backend.rnn.attentions import att_for
+from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -49,7 +48,7 @@ class Reporter(chainer.Chain):
         reporter.report({'loss': mtl_loss}, self)
 
 
-class E2E(torch.nn.Module):
+class E2E(ASRInterface, torch.nn.Module):
     """E2E module
 
     :param int idim: dimension of inputs
@@ -58,7 +57,7 @@ class E2E(torch.nn.Module):
     """
 
     def __init__(self, idim, odim, args):
-        super(E2E, self).__init__()
+        torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
@@ -210,15 +209,15 @@ class E2E(torch.nn.Module):
 
         # 2. CTC loss
         if self.mtlalpha == 0:
-            loss_ctc = None
+            self.loss_ctc = None
         else:
-            loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
+            self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
 
         # 3. attention loss
         if self.mtlalpha == 1:
-            loss_att, acc = None, None
+            self.loss_att, acc = None, None
         else:
-            loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
+            self.loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
         self.acc = acc
 
         # 4. compute cer without beam search
@@ -284,33 +283,24 @@ class E2E(torch.nn.Module):
 
         alpha = self.mtlalpha
         if alpha == 0:
-            self.loss = loss_att
-            loss_att_data = float(loss_att)
+            self.loss = self.loss_att
+            loss_att_data = float(self.loss_att)
             loss_ctc_data = None
         elif alpha == 1:
-            self.loss = loss_ctc
+            self.loss = self.loss_ctc
             loss_att_data = None
-            loss_ctc_data = float(loss_ctc)
+            loss_ctc_data = float(self.loss_ctc)
         else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = float(loss_att)
-            loss_ctc_data = float(loss_ctc)
+            self.loss = alpha * self.loss_ctc + (1 - alpha) * self.loss_att
+            loss_att_data = float(self.loss_att)
+            loss_ctc_data = float(self.loss_ctc)
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             self.reporter.report(loss_ctc_data, loss_att_data, acc, cer_ctc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
-
-        # Note(kamo): In order to work with DataParallel, on pytorch==0.4,
-        # the return value must be torch.CudaTensor, or tuple/list/dict of it.
-        # Neither CPUTensor nor float/int value can be used
-        # because NCCL communicates between GPU devices.
-        device = next(self.parameters()).device
-        acc = torch.tensor([acc], device=device) if acc is not None else None
-        cer = torch.tensor([cer], device=device)
-        wer = torch.tensor([wer], device=device)
-        return self.loss, loss_ctc, loss_att, acc, cer, wer
+        return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search

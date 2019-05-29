@@ -13,7 +13,7 @@ from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.ctc_prefix_score import CTCPrefixScoreTH
 from espnet.nets.e2e_asr_common import end_detect
 
-from espnet.nets.pytorch_backend.attentions import att_to_numpy
+from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 
 from espnet.nets.pytorch_backend.nets_utils import append_ids
 from espnet.nets.pytorch_backend.nets_utils import get_last_yseq

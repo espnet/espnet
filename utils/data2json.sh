@@ -106,7 +106,7 @@ for intype in input output other; do
         opts+="--scps "
     fi
 
-    for x in ${tmpdir}/${intype}/*.scp; do
+    for x in "${tmpdir}/${intype}"/*.scp; do
         k=$(basename ${x} .scp)
         if [ ${k} = shape ]; then
             opts+="shape:${x}:shape "
