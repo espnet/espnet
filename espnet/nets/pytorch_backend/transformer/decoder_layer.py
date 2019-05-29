@@ -32,6 +32,7 @@ class DecoderLayer(nn.Module):
         self.norm3 = LayerNorm(size)
         self.dropout = nn.Dropout(dropout_rate)
         self.normalize_before = normalize_before
+        self.concate_after = concate_after
         if self.concate_after:
             self.concate_linear1 = nn.Linear(size + size, size)
             self.concate_linear2 = nn.Linear(size + size, size)
