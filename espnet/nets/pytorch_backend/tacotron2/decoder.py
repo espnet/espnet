@@ -70,7 +70,7 @@ class Prenet(torch.nn.Module):
         for layer in six.moves.range(n_layers):
             n_inputs = idim if layer == 0 else n_units
             self.prenet += [torch.nn.Sequential(
-                torch.nn.Linear(n_inputs, n_units, bias=False),
+                torch.nn.Linear(n_inputs, n_units),
                 torch.nn.ReLU())]
 
     def forward(self, x):
