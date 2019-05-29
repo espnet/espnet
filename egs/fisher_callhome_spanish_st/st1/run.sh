@@ -259,10 +259,10 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
-    if [ ! -z ${asr_model} ]; then
+    if [ -n "${asr_model}" ]; then
       expname=${expname}_asrtrans
     fi
-    if [ ! -z ${mt_model} ]; then
+    if [ -n "${mt_model}" ]; then
       expname=${expname}_mttrans
     fi
 else

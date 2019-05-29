@@ -30,8 +30,8 @@ fi
 
 set -euo pipefail
 
-reffiles=( $(echo $1 | tr , " ") )
-enhfiles=( $(echo $2 | tr , " ") )
+IFS=, read -r -a reffiles <<<$1
+IFS=, read -r -a enhfiles <<<$2
 dir=$3
 logdir=${dir}/log
 mkdir -p ${logdir}

@@ -3,6 +3,7 @@
 # ESPnet: end-to-end speech processing toolkit
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
+[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -14,7 +15,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-- Encoder: VGG-like CNN + BiRNN (LSTM/GRU) or sub-sampling BiRNN (LSTM/GRU)
+- Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU) or Transformer
 - Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
@@ -37,7 +38,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 - PyTorch 0.4.1, 1.0.0
 - gcc>=4.9 for PyTorch1.0.0
-- Chainer 5.0.0
+- Chainer 6.0.0
 
 Optionally, GPU environment requires the following libraries:
 
@@ -122,10 +123,10 @@ To install in a terminal that does not have a GPU installed, just clear the vers
 
 ```sh
 $ cd tools
-$ make CUPY_VERSION='' -j 10 
+$ make CUPY_VERSION='' -j 10
 ```
 
-This option is enabled for any of the install configuration. 
+This option is enabled for any of the install configuration.
 
 ### Step 3) installation check
 
@@ -134,7 +135,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ make check_install
 ```
-or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal. 
+or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal.
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
@@ -190,7 +191,7 @@ this epoch [#####.............................................] 10.84%
 ```
 
 In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
-```sh 
+```sh
 $ tensorboard --logdir tensorboard
 ```
 and connecting to the given address (default : localhost:6006). This will provide the following information:
@@ -218,6 +219,37 @@ Default setup uses CPU (`--ngpu 0`).
 
 Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
 is required before setup.
+
+
+### Changing the configuration
+The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
+
+```bash
+# e.g.
+asr_train.py --config conf/train.yaml --batch-size 24
+# e.g.--config2 and --config3 are also provided and the latter option can overwrite the former.
+asr_train.py --config conf/train.yaml --config2 conf/new.yaml
+```
+
+In this way, you need to edit `run.sh` and it might be inconvenient sometimes.
+Instead of giving arguments directly, we recommend you to modify the yaml file and give it to `run.sh`:
+
+```bash
+# e.g.
+./run.sh --train-config conf/train_modified.yaml
+# e.g.
+./run.sh --train-config conf/train_modified.yaml --decode-config conf/decode_modified.yaml
+```
+
+We also provide a utility to generate a yaml file from the input yaml file:
+
+```bash
+# e.g. You can give any parameters as '-a key=value' and '-a' is repeatable. 
+#      This generates new file at 'conf/train_batch-size24_epochs10.yaml'
+./run.sh --train-config $(change_yaml.py conf/train.yaml -a batch-size=24 -a epochs=10)
+# e.g. '-o' option specfies the output file name instead of auto named file.
+./run.sh --train-config $(change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size=24)
+```
 
 ### Error due to ACS (Multiple GPUs)
 
@@ -283,9 +315,9 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 |-----------|:----:|:----:|
 | Aishell dev | 6.8 | N/A |
 | Aishell test | 8.0 | N/A |
-| CSJ eval1 | 6.6 | N/A  |
-| CSJ eval2 | 4.8 | N/A  |
-| CSJ eval3 | 5.0 | N/A  |
+| CSJ eval1 | 5.7 | N/A  |
+| CSJ eval2 | 4.3 | N/A  |
+| CSJ eval3 | 4.8 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 4.0 |
 | Librispeech test_clean | N/A | 4.0 |
@@ -304,6 +336,7 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 | Speed | ○ | ◎ |
 | Multi-GPU | supported | supported |
 | VGG-like encoder | supported | supported |
+| Transformer | supported | supported |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
 | TTS recipe support | no support | supported |
@@ -315,13 +348,16 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 
 [3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
 
-## Citation                                                                     
-@inproceedings{watanabe2018espnet,                                                    
+## Citation
+
+```
+@inproceedings{watanabe2018espnet,
   author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
-  title={ESPnet: End-to-End Speech Processing Toolkit},                         
-  year=2018,                                                                    
-  booktitle={Interspeech},                                           
-  pages={2207--2211},                                                           
-  doi={10.21437/Interspeech.2018-1456},                                         
-  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}                        
-}  
+  title={ESPnet: End-to-End Speech Processing Toolkit},
+  year=2018,
+  booktitle={Interspeech},
+  pages={2207--2211},
+  doi={10.21437/Interspeech.2018-1456},
+  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
+}
+```
