@@ -22,6 +22,9 @@ class Encoder(torch.nn.Module):
     :param str or torch.nn.Module input_layer: input layer type
     :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
     :param bool normalize_before: whether to use layer_norm before the first block
+    :param bool concate_after: whether to concat attention layer's input and output
+        if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
+        if False, no additional linear will be applied. i.e. x -> x + att(x)
     """
 
     def __init__(self, idim,
@@ -33,7 +36,8 @@ class Encoder(torch.nn.Module):
                  attention_dropout_rate=0.0,
                  input_layer="conv2d",
                  pos_enc_class=PositionalEncoding,
-                 normalize_before=True):
+                 normalize_before=True,
+                 concate_after=False):
         super(Encoder, self).__init__()
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -65,7 +69,8 @@ class Encoder(torch.nn.Module):
                 MultiHeadedAttention(attention_heads, attention_dim, attention_dropout_rate),
                 PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate,
-                normalize_before
+                normalize_before,
+                concate_after
             )
         )
         if self.normalize_before:

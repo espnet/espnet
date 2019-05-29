@@ -1,3 +1,5 @@
+import torch
+
 from torch import nn
 
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -12,9 +14,13 @@ class EncoderLayer(nn.Module):
         feed forward module
     :param float dropout_rate: dropout rate
     :param bool normalize_before: whether to use layer_norm before the first block
+    :param bool concate_after: whether to concat attention layer's input and output
+        if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
+        if False, no additional linear will be applied. i.e. x -> x + att(x)
     """
 
-    def __init__(self, size, self_attn, feed_forward, dropout_rate, normalize_before=True):
+    def __init__(self, size, self_attn, feed_forward, dropout_rate,
+                 normalize_before=True, concate_after=False):
         super(EncoderLayer, self).__init__()
         self.self_attn = self_attn
         self.feed_forward = feed_forward
@@ -23,6 +29,9 @@ class EncoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
         self.size = size
         self.normalize_before = normalize_before
+        self.concate_after = concate_after
+        if self.concate_after:
+            self.concate_linear = nn.Linear(size + size, size)
 
     def forward(self, x, mask):
         """Compute encoded features
@@ -34,7 +43,11 @@ class EncoderLayer(nn.Module):
         residual = x
         if self.normalize_before:
             x = self.norm1(x)
-        x = residual + self.dropout(self.self_attn(x, x, x, mask))
+        if self.concate_after:
+            x_concat = torch.cat((x, self.self_attn(x, x, x, mask)), dim=-1)
+            x = residual + self.concate_linear(x_concat)
+        else:
+            x = residual + self.dropout(self.self_attn(x, x, x, mask))
         if not self.normalize_before:
             x = self.norm1(x)
 
