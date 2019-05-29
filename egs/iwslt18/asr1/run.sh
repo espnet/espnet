@@ -258,12 +258,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    cat data/train_nodevtest_sp.*/text.${case} | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
+    grep sp1.0 data/train_nodevtest_sp.*/text.${case} | cut -f 2- -d " " | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
     # Share the same dictinary between source and target languages
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    cat data/train_nodevtest_sp.*/text.${case} | grep sp1.0 | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
+    grep sp1.0 data/train_nodevtest_sp.*/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
       | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
