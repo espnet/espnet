@@ -11,20 +11,22 @@ nlsyms=""
 bpe=""
 bpemodel=""
 filter=""
-lc=false
+case=lc.rm
 
 . utils/parse_options.sh
 
-if [ $# != 2 ]; then
-    echo "Usage: $0 <decode-dir> <dict>";
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <decode-dir> <dict-tgt> <dict-src>";
     exit 1;
 fi
 
 dir=$1
-dic=$2
+dic_tgt=$2
+dic_src=$3
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-local/json2trn.py ${dir}/data.json ${dic} --ref ${dir}/ref.trn.org --hyp ${dir}/hyp.trn.org --src ${dir}/src.trn.org
+json2trn_mt.py ${dir}/data.json ${dic_tgt} --ref ${dir}/ref.trn.org \
+    --hyp ${dir}/hyp.trn.org --src ${dir}/src.trn.org --dict-src ${dic_src}
 
 # remove uttterance id
 perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn.org > ${dir}/ref.trn
@@ -56,22 +58,25 @@ else
 fi
 
 # detokenize
-detokenizer.perl -l de < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
-detokenizer.perl -l de < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
-detokenizer.perl -l de < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
+detokenizer.perl -l de -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
+detokenizer.perl -l de -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
+detokenizer.perl -l de -q < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 
-sleep 1
-
-if ${lc}; then
-    # case-insensitive
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.txt
-    echo "write a case-insensitive BLEU result in ${dir}/result.txt"
-else
-    # case-sensitive
-    multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.txt
-    echo "write a case-sensitive BLEU result in ${dir}/result.txt"
+if [ ${case} = tc ]; then
+    echo ${set} > ${dir}/result.tc.txt
+    multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.tc.txt
+    echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
+    cat ${dir}/result.tc.txt
 fi
-cat ${dir}/result.txt
 
+# detokenize
+cat ${dir}/ref.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref.wrd.trn.detok.lc.rm
+cat ${dir}/hyp.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/hyp.wrd.trn.detok.lc.rm
+cat ${dir}/src.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/src.wrd.trn.detok.lc.rm
+
+echo ${set} > ${dir}/result.lc.txt
+multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt
+echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
+cat ${dir}/result.lc.txt
 
 # TODO(hirofumi): add TER & METEOR metrics here
