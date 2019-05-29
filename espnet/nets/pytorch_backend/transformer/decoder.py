@@ -115,6 +115,8 @@ class Decoder(torch.nn.Module):
         x, tgt_mask, memory, memory_mask = self.decoders(x, tgt_mask, memory, None)
         if self.normalize_before:
             x_ = self.after_norm(x[:, -1])
+        else:
+            x_ = x[:, -1]
         if self.output_layer is not None:
             return torch.log_softmax(self.output_layer(x_), dim=-1)
         else:
