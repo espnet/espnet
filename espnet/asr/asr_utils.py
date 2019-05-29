@@ -425,6 +425,28 @@ def torch_save(path, model):
         torch.save(model.state_dict(), path)
 
 
+def snapshot_object(target, filename):
+    """Returns a trainer extension to take snapshots of a given object.
+
+    Args:
+        target: Object to serialize.
+        filename (str): Name of the file into which the object is serialized.
+            It can be a format string, where the trainer object is passed to
+            the :meth:`str.format` method. For example,
+            ``'snapshot_{.updater.iteration}'`` is converted to
+            ``'snapshot_10000'`` at the 10,000th iteration.
+        savefun: Function to save the object. It takes two arguments: the
+            output file path and the object to serialize.
+    Returns:
+        An extension function.
+    """
+    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
+    def snapshot_object(trainer):
+        torch_save(os.path.join(trainer.out, filename.format(trainer)), target)
+
+    return snapshot_object
+
+
 def torch_load(path, model):
     """Function to load torch model states
 
