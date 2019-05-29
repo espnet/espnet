@@ -294,9 +294,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_${train_set}
     mkdir -p ${lmdatadir}
-    cat data/${train_set}/text.${case} | grep sp1.0 | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " \
+    grep sp1.0 data/${train_set}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " \
         > ${lmdatadir}/train_${case}.txt
-    cat data/${train_dev}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " \
+    text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text.${case} | cut -f 2- -d " " \
         > ${lmdatadir}/valid_${case}.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
