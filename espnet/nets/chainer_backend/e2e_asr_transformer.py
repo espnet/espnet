@@ -10,12 +10,11 @@ from chainer import reporter
 import chainer.functions as F
 from chainer.training import extension
 
-from espnet.asr import asr_utils
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttention
-from espnet.nets.chainer_backend.decoders_transformer import Decoder
-from espnet.nets.chainer_backend.encoders_transformer import Encoder
-from espnet.nets.chainer_backend.nets_utils_transformer import plot_multi_head_attention
+from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
+from espnet.nets.chainer_backend.transformer.decoder import Decoder
+from espnet.nets.chainer_backend.transformer.encoder import Encoder
+from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 
 MAX_DECODER_OUTPUT = 5
 MIN_VALUE = float(np.finfo(np.float32).min)
@@ -349,11 +348,3 @@ class E2E(ASRInterface, chainer.Chain):
     @property
     def attention_plot_class(self):
         return PlotAttentionReport
-
-
-class PlotAttentionReport(asr_utils.PlotAttentionReport):
-    def __call__(self, trainer):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
-        attn_dict = self.att_vis_fn(*batch)
-        suffix = "ep.{.updater.epoch}.png".format(trainer)
-        plot_multi_head_attention(self.data, attn_dict, self.outdir, suffix)

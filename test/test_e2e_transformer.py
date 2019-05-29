@@ -157,7 +157,8 @@ def test_transformer_synth(module):
 
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-        T.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
+        from espnet.nets.pytorch_backend.transformer import plot
+        plot.plot_multi_head_attention(data, attn_dict, "/tmp/espnet-test")
 
         with chainer.no_backprop_mode():
             nbest = model.recognize(x[0, :ilens[0]], recog_args)
