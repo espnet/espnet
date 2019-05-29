@@ -26,9 +26,9 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
@@ -255,10 +255,10 @@ def train(args):
                                          'epoch', file_name='acc.png'))
 
     # Save best models
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+    trainer.extend(snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
     if mtl_mode != 'ctc':
-        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+        trainer.extend(snapshot_object(model, 'model.acc.best'),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states

@@ -26,9 +26,9 @@ from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import plot_spectrogram
 from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
@@ -397,10 +397,10 @@ def train(args):
                                          'epoch', file_name='cer.png'))
 
     # Save best models
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+    trainer.extend(snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
     if mtl_mode != 'ctc':
-        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+        trainer.extend(snapshot_object(model, 'model.acc.best'),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states
