@@ -16,6 +16,7 @@ import pytest
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet.utils.training.batchfy import make_batchset
 from test.utils_test import make_dummy_json
 
 
@@ -205,7 +206,6 @@ def test_streaming_e2e_encoder_and_ctc_with_offline_attention():
 )
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
-    from espnet.asr.batchfy import make_batchset
     dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
@@ -229,7 +229,6 @@ def test_sortagrad_trainable_with_batch_bins(module):
     idim = 20
     odim = 5
     dummy_json = make_dummy_json(8, [100, 200], [100, 200], idim=idim, odim=odim)
-    from espnet.asr.batchfy import make_batchset
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
