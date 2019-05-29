@@ -60,7 +60,7 @@ class DecoderLayer(nn.Module):
         if self.normalize_before:
             x = self.norm2(x)
         if self.concate_after:
-            x_concat = torch.cat(x, self.src_attn(x, memory, memory, memory_mask))
+            x_concat = torch.cat((x, self.src_attn(x, memory, memory, memory_mask)), dim=-1)
             x = residual + self.concate_linear2(x_concat)
         else:
             x = residual + self.dropout(self.src_attn(x, memory, memory, memory_mask))
