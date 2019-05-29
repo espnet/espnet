@@ -5,10 +5,10 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttention
-from espnet.nets.chainer_backend.nets_utils_transformer import FeedForwardLayer
-from espnet.nets.chainer_backend.nets_utils_transformer import LayerNorm
-from espnet.nets.chainer_backend.nets_utils_transformer import PositionalEncoding
+from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
+from espnet.nets.chainer_backend.transformer.nets_utils import FeedForwardLayer
+from espnet.nets.chainer_backend.transformer.nets_utils import LayerNorm
+from espnet.nets.chainer_backend.transformer.nets_utils import PositionalEncoding
 
 import logging
 import numpy as np
