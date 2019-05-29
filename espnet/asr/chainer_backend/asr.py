@@ -337,6 +337,8 @@ def train(args):
         updater = CustomUpdater(
             train_iters[0], optimizer, converter=converter, device=gpu_id, accum_grad=accum_grad)
     else:
+        if args.batch_count not in ("auto", "seq") and args.batch_size == 0:
+            raise NotImplementedError("--batch-count 'bin' and 'frame' are not implemented in chainer multi gpu")
         # set up minibatches
         train_subsets = []
         for gid in six.moves.xrange(ngpu):
