@@ -16,8 +16,8 @@ from distutils.util import strtobool
 
 import numpy as np
 
-from espnet.asr.batchfy import BATCH_COUNT_CHOICES
 from espnet.nets.tts_interface import TTSInterface
+from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
 def main(cmd_args):

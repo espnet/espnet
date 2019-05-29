@@ -15,8 +15,8 @@ import sys
 
 import numpy as np
 
-from espnet.asr.batchfy import BATCH_COUNT_CHOICES
 from espnet.utils.cli_utils import strtobool
+from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
 def main(cmd_args):

@@ -29,7 +29,6 @@ from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.batchfy import make_batchset
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
@@ -42,6 +41,7 @@ from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.spec_augment import specaug
+from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
