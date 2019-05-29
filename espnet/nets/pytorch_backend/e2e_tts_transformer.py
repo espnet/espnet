@@ -149,10 +149,10 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help='Whether to apply layer norm before encoder block')
         group.add_argument('--decoder-normalize-before', default=True, type=strtobool,
                            help='Whether to apply layer norm before decoder block')
-        group.add_argument('--encoder-concat-after', default=False, type=strtobool,
-                           help='Whether to concat attention layer\'s input and output in encoder')
-        group.add_argument('--decoder-concat-after', default=False, type=strtobool,
-                           help='Whether to concat attention layer\'s input and output in decoder')
+        group.add_argument('--encoder-concate-after', default=False, type=strtobool,
+                           help='Whether to concate attention layer\'s input and output in encoder')
+        group.add_argument('--decoder-concate-after', default=False, type=strtobool,
+                           help='Whether to concate attention layer\'s input and output in decoder')
         parser.add_argument('--reduction-factor', default=1, type=int,
                             help='Reduction factor')
         # training related
@@ -233,6 +233,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.pos_enc_class = ScaledPositionalEncoding if args.use_scaled_pos_enc else PositionalEncoding
         self.reduction_factor = args.reduction_factor
+        self.encoder_normalize_before = args.encoder_normalize_before
+        self.decoder_normalize_before = args.decoder_normalize_before
+        self.encoder_concate_after = args.encoder_concate_after
+        self.decoder_concate_after = args.decoder_concate_after
 
         # define transformer encoder
         if self.eprenet_conv_layers != 0:
@@ -261,7 +265,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             input_layer=encoder_input_layer,
             dropout_rate=self.dropout_rate,
             attention_dropout_rate=self.transformer_attn_dropout_rate,
-            pos_enc_class=self.pos_enc_class
+            pos_enc_class=self.pos_enc_class,
+            normalize_before=self.encoder_normalize_before,
+            concate_after=self.encoder_concate_after
         )
 
         # define transformer decoder
@@ -288,7 +294,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=self.transformer_attn_dropout_rate,
             input_layer=decoder_input_layer,
             use_output_layer=False,
-            pos_enc_class=self.pos_enc_class
+            pos_enc_class=self.pos_enc_class,
+            normalize_before=self.decoder_normalize_before,
+            concate_after=self.decoder_concate_after
         )
 
         # define final projection
