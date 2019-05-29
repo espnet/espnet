@@ -39,8 +39,8 @@ def make_transformer_args(**kwargs):
         use_scaled_pos_enc=True,
         encoder_normalize_before=True,
         decoder_normalize_before=True,
-        encoder_concat_after=False,
-        decoder_concat_after=False,
+        encoder_concate_after=False,
+        decoder_concate_after=False,
         transformer_init="pytorch",
         initial_encoder_alpha=1.0,
         initial_decoder_alpha=1.0,
@@ -96,8 +96,8 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
         ({"reduction_factor": 3}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
-        ({"decoder_concat_after": True}),
-        ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"decoder_concate_after": True}),
+        ({"encoder_concate_after": True, "decoder_concate_after": True}),
     ])
 def test_transformer_trainable_and_decodable(model_dict):
     # make args
@@ -144,8 +144,8 @@ def test_transformer_trainable_and_decodable(model_dict):
         ({"encoder_normalize_before": False}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
-        ({"decoder_concat_after": True}),
-        ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"decoder_concate_after": True}),
+        ({"encoder_concate_after": True, "decoder_concate_after": True}),
     ])
 def test_transformer_gpu_trainable(model_dict):
     # make args
@@ -187,8 +187,8 @@ def test_transformer_gpu_trainable(model_dict):
         ({"encoder_normalize_before": False}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
-        ({"decoder_concat_after": True}),
-        ({"encoder_concat_after": True, "decoder_concat_after": True}),
+        ({"decoder_concate_after": True}),
+        ({"encoder_concate_after": True, "decoder_concate_after": True}),
     ])
 def test_transformer_multi_gpu_trainable(model_dict):
     # make args
