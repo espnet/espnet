@@ -205,8 +205,8 @@ def test_streaming_e2e_encoder_and_ctc_with_offline_attention():
 )
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
-    dummy_json = make_dummy_json(8, [1, 700], [1, 700], idim=20, odim=5)
     from espnet.asr.batchfy import make_batchset
+    dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
@@ -217,7 +217,7 @@ def test_sortagrad_trainable(module):
         attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
-        in_data = np.random.randn(100, 20)
+        in_data = np.random.randn(50, 20)
         model.recognize(in_data, args, args.char_list)
 
 
