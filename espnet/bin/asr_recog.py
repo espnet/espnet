@@ -85,16 +85,15 @@ def main(args):
     # streaming related
     parser.add_argument('--streaming-mode', type=str, default=None,
                         choices=['window', 'segment'],
-                        help="""Use streaming recognizer for inference
-                        (0: none, 1: window streaming, 2: segment streaming).
+                        help="""Use streaming recognizer for inference.
                         `--batchsize` must be set to 0 to enable this mode""")
     parser.add_argument('--streaming-window', type=int, default=10,
                         help='Window size')
-    parser.add_argument('--min-blank-dur', type=int, default=10,
+    parser.add_argument('--streaming-min-blank-dur', type=int, default=10,
                         help='Minimum blank duration threshold')
-    parser.add_argument('--onset-margin', type=int, default=1,
+    parser.add_argument('--streaming-onset-margin', type=int, default=1,
                         help='Onset margin')
-    parser.add_argument('--offset-margin', type=int, default=1,
+    parser.add_argument('--streaming-offset-margin', type=int, default=1,
                         help='Offset margin')
     args = parser.parse_args(args)
 

@@ -538,7 +538,7 @@ def recog(args):
                     logging.info('Offline attention decoder finished')
                     nbest_hyps = se2e.retrieve_recognition()
                 elif args.streaming_mode == 'segment':
-                    logging.info('Using streaming recognizer with threshold value %d', args.min_blank_dur)
+                    logging.info('Using streaming recognizer with threshold value %d', args.streaming_min_blank_dur)
                     nbest_hyps = []
                     for n in range(args.nbest):
                         nbest_hyps.append({'yseq': [], 'score': 0.0})
