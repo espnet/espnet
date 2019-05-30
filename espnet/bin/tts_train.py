@@ -85,7 +85,7 @@ def main(cmd_args):
                         help='When --batch-count=seq, batch size is reduced if the input sequence length > ML.')
     parser.add_argument('--maxlen-out', '--batch-seq-maxlen-out', default=200, type=int, metavar='ML',
                         help='When --batch-count=seq, batch size is reduced if the output sequence length > ML')
-    parser.add_argument('--n_iter_processes', default=0, type=int,
+    parser.add_argument('--num-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
