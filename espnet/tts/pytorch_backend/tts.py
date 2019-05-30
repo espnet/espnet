@@ -19,9 +19,9 @@ from chainer import training
 from chainer.training import extensions
 
 from espnet.asr.asr_utils import get_model_conf
+from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.tts_interface import TTSInterface
@@ -352,7 +352,7 @@ def train(args):
     trainer.extend(torch_snapshot(), trigger=save_interval)
 
     # Save best models
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+    trainer.extend(snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss', trigger=save_interval))
 
     # Save attention figure for each epoch
