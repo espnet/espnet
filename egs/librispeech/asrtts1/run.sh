@@ -438,7 +438,11 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: TTS training, decode and synthesize"
     ttsexpdir=exp/tts_${tag}
+<<<<<<< HEAD
     tr_json=$feat_tr_p_dir/data.json
+=======
+    tr_json=$feat_tr_dir/data.json
+>>>>>>> da72d0720ff48ff8e094d9a23b599d7845023631
     dt_json=$feat_dt_dir/data.json
     seed=1
     # encoder related

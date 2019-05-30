@@ -566,18 +566,20 @@ class Decoder(torch.nn.Module):
                         k = k + beam
                         continue
                     for beam_j in six.moves.range(beam):
-                        yk = y_prev[k][:]
-                        yk.append(self.eos)
-                        if len(yk) < hlens[samp_i]:
-                            _vscore = eos_vscores[samp_i][beam_j] + penalty_i
-                            if normalize_score:
-                                _vscore = _vscore / len(yk)
-                            _score = _vscore.data.cpu().numpy()
-                            ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
+                        if eos_vscores[samp_i, beam_j] > thr[samp_i]:
+                            yk = y_prev[k][:]
+                            yk.append(self.eos)
+                            if len(yk) < hlens[samp_i]:
+                                _vscore = eos_vscores[samp_i][beam_j] + penalty_i
+                                if normalize_score:
+                                    _vscore = _vscore / len(yk)
+                                _score = _vscore.data.cpu().numpy()
+                                ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
                         k = k + 1
 
             # end detection
-            stop_search = [stop_search[samp_i] for samp_i in six.moves.range(batch)]
+            stop_search = [stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
+                           for samp_i in six.moves.range(batch)]
             stop_search_summary = list(set(stop_search))
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
