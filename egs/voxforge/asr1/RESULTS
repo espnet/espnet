@@ -1,4 +1,4 @@
-# VGGBLSMP, adaeldta with eps decay monitering validation accuracy
+# VGGBLSMP, adaeldta with eps decay monitoring validation accuracy
 $ grep Avg exp/tr_it_a10/decode_*t_it_beam20_eacc.best_p0_len0.0-0.8/result.txt 
 exp/tr_it_a10/decode_dt_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 exp/tr_it_a10/decode_dt_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg               | 1080   78951 | 86.7    5.9    7.3    3.2   16.5   98.1 |
@@ -59,10 +59,19 @@ shinji@b14:/export/a08/shinji/201707e2e/espnet_dev6/egs/voxforge/asr2$ grep -e A
 | SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 | Sum/Avg               | 1055   77966 | 89.7    4.4    6.0    2.2   12.5   99.1 |
 
-# Transformer 300 epochs
+# Transformer 300 epochs, decoder 1 layer 1024 units (conf/tuning/train_pytorch_transformer.yaml)
 write a CER (or TER) result in exp/tr_it_pytorch_ep300pa10/decode_dt_it_decode/result.txt
 | SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 | Sum/Avg               | 1082   79133 | 92.0    3.9    4.1    1.8    9.8   96.2 |
 write a CER (or TER) result in exp/tr_it_pytorch_ep300pa10/decode_et_it_decode/result.txt
 | SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 | Sum/Avg               | 1055   77966 | 92.1    3.9    4.0    1.7    9.6   95.7 |
+
+# Transformer 300 epochs, decoder 6 layer 2048 units (conf/tuning/train_pytorch_transformer_d6-2048.yaml)
+# It takes very long time for the decoding and I don't recommend to use this setup without speed improvement during decoding
+write a CER (or TER) result in exp/tr_it_pytorch_train_d6-2048/decode_dt_it_decode/result.txt
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1082   79133 | 92.5    3.8    3.7    1.9    9.4   95.0 |
+write a CER (or TER) result in exp/tr_it_pytorch_train_d6-2048/decode_et_it_decode/result.txt
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1055   77966 | 92.6    3.7    3.7    1.7    9.1   95.6 |
