@@ -13,16 +13,17 @@ RUN git clone https://github.com/espnet/espnet && \
 WORKDIR /espnet/tools
 
 # Delete cupy if cpu image
+# Disable cupy test
+# Docker build does not load libcuda.so.1
+# Replace nvidia-smi for nvcc because docker does not load nvidia-smi
 RUN if [ -z "$( nvcc -V )" ];then \
-        sed -i 's| cupy==$(CUPY_VERSION) torch|torch|' Makefile && \
-        sed -i '\|. venv/bin/activate && pip install cupy==$(CUPY_VERSION)|d' Makefile; \
+        make KALDI=/kaldi CUPY_VERSION=''; \
+    else \
+        sed -i '158s|install.py|install.py --no-cupy|' Makefile && \
+        sed -i '19s|nvidia-smi|nvcc|' Makefile && \
+        make KALDI=/kaldi; \
     fi 
 
-# Delete cupy test
-# Docker build does not load libcuda.so.1
-RUN sed -i "/cupy'/d" check_install.py; 
-
-RUN make KALDI=/kaldi && \
-    rm -rf ../espnet
-
+RUN rm -rf ../espnet
+    
 WORKDIR /
