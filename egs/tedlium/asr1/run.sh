@@ -123,8 +123,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
     spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} \
-        --model_prefix=${bpemodel%%.*} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel} --output_format=piece < data/lang_char/input.txt | \
+        --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | \
         tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
