@@ -16,6 +16,7 @@ import sys
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
+from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
 def main(cmd_args):
@@ -156,12 +157,22 @@ def main(cmd_args):
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
-    parser.add_argument('--batch-size', '-b', default=50, type=int,
-                        help='Batch size')
-    parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
-                        help='Batch size is reduced if the input sequence length > ML')
-    parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
-                        help='Batch size is reduced if the output sequence length > ML')
+    parser.add_argument('--batch-count', default='auto', choices=BATCH_COUNT_CHOICES,
+                        help='How to count batch_size. The default (auto) will find how to count by args.')
+    parser.add_argument('--batch-size', '--batch-seqs', '-b', default=0, type=int,
+                        help='Maximum seqs in a minibatch (0 to disable)')
+    parser.add_argument('--batch-bins', default=0, type=int,
+                        help='Maximum bins in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-in', default=0, type=int,
+                        help='Maximum input frames in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-out', default=0, type=int,
+                        help='Maximum output frames in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-inout', default=0, type=int,
+                        help='Maximum input+output frames in a minibatch (0 to disable)')
+    parser.add_argument('--maxlen-in', '--batch-seq-maxlen-in', default=800, type=int, metavar='ML',
+                        help='When --batch-count=seq, batch size is reduced if the input sequence length > ML.')
+    parser.add_argument('--maxlen-out', '--batch-seq-maxlen-out', default=150, type=int, metavar='ML',
+                        help='When --batch-count=seq, batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
