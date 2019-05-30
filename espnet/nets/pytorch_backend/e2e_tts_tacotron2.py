@@ -108,13 +108,6 @@ class Tacotron2Loss(torch.nn.Module):
         :return: binary cross entropy loss value
         :rtype: torch.Tensor
         """
-        # prepare weight of positive samples in cross entorpy
-        if self.bce_pos_weight != 1.0:
-            weights = ys.new(*labels.size()).fill_(1)
-            weights.masked_fill_(labels.eq(1), self.bce_pos_weight)
-        else:
-            weights = None
-
         # perform masking for padded values
         if self.use_masking:
             mask = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
@@ -123,12 +116,12 @@ class Tacotron2Loss(torch.nn.Module):
             before_outs = before_outs.masked_select(mask)
             labels = labels.masked_select(mask[:, :, 0])
             logits = logits.masked_select(mask[:, :, 0])
-            weights = weights.masked_select(mask[:, :, 0]) if weights is not None else None
 
         # calculate loss
         l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
         mse_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
-        bce_loss = F.binary_cross_entropy_with_logits(logits, labels, weights)
+        bce_loss = F.binary_cross_entropy_with_logits(
+            logits, labels, pos_weight=torch.tensor(self.bce_pos_weight, device=ys.device))
 
         return l1_loss, mse_loss, bce_loss
 
@@ -160,8 +153,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         (bool) cumulate_att_w: whether to cumulate previous attention weight
         (bool) use_batch_norm: whether to use batch normalization
         (bool) use_concate: whether to concatenate encoder embedding with decoder lstm outputs
-        (float) dropout: dropout rate
-        (float) zoneout: zoneout rate
+        (float) dropout_rate: dropout rate
+        (float) zoneout_rate: zoneout rate
         (int) reduction_factor: reduction factor
         (bool) use_cbhg: whether to use CBHG module
         (int) cbhg_conv_bank_layers: the number of convoluional banks in CBHG
@@ -178,17 +171,17 @@ class Tacotron2(TTSInterface, torch.nn.Module):
     @staticmethod
     def add_arguments(parser):
         # encoder
-        parser.add_argument('--embed_dim', default=512, type=int,
+        parser.add_argument('--embed-dim', default=512, type=int,
                             help='Number of dimension of embedding')
         parser.add_argument('--elayers', default=1, type=int,
                             help='Number of encoder layers')
         parser.add_argument('--eunits', '-u', default=512, type=int,
                             help='Number of encoder hidden units')
-        parser.add_argument('--econv_layers', default=3, type=int,
+        parser.add_argument('--econv-layers', default=3, type=int,
                             help='Number of encoder convolution layers')
-        parser.add_argument('--econv_chans', default=512, type=int,
+        parser.add_argument('--econv-chans', default=512, type=int,
                             help='Number of encoder convolution channels')
-        parser.add_argument('--econv_filts', default=5, type=int,
+        parser.add_argument('--econv-filts', default=5, type=int,
                             help='Filter size of encoder convolution')
         # attention
         parser.add_argument('--atype', default="location", type=str,
@@ -200,60 +193,60 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                             help='Number of attention convolution channels')
         parser.add_argument('--aconv-filts', default=15, type=int,
                             help='Filter size of attention convolution')
-        parser.add_argument('--cumulate_att_w', default=True, type=strtobool,
+        parser.add_argument('--cumulate-att-w', default=True, type=strtobool,
                             help="Whether or not to cumulate attention weights")
         # decoder
         parser.add_argument('--dlayers', default=2, type=int,
                             help='Number of decoder layers')
         parser.add_argument('--dunits', default=1024, type=int,
                             help='Number of decoder hidden units')
-        parser.add_argument('--prenet_layers', default=2, type=int,
+        parser.add_argument('--prenet-layers', default=2, type=int,
                             help='Number of prenet layers')
-        parser.add_argument('--prenet_units', default=256, type=int,
+        parser.add_argument('--prenet-units', default=256, type=int,
                             help='Number of prenet hidden units')
-        parser.add_argument('--postnet_layers', default=5, type=int,
+        parser.add_argument('--postnet-layers', default=5, type=int,
                             help='Number of postnet layers')
-        parser.add_argument('--postnet_chans', default=512, type=int,
+        parser.add_argument('--postnet-chans', default=512, type=int,
                             help='Number of postnet channels')
-        parser.add_argument('--postnet_filts', default=5, type=int,
+        parser.add_argument('--postnet-filts', default=5, type=int,
                             help='Filter size of postnet')
-        parser.add_argument('--output_activation', default=None, type=str, nargs='?',
+        parser.add_argument('--output-activation', default=None, type=str, nargs='?',
                             help='Output activation function')
         # cbhg
-        parser.add_argument('--use_cbhg', default=False, type=strtobool,
+        parser.add_argument('--use-cbhg', default=False, type=strtobool,
                             help='Whether to use CBHG module')
-        parser.add_argument('--cbhg_conv_bank_layers', default=8, type=int,
+        parser.add_argument('--cbhg-conv-bank-layers', default=8, type=int,
                             help='Number of convoluional bank layers in CBHG')
-        parser.add_argument('--cbhg_conv_bank_chans', default=128, type=int,
+        parser.add_argument('--cbhg-conv-bank-chans', default=128, type=int,
                             help='Number of convoluional bank channles in CBHG')
-        parser.add_argument('--cbhg_conv_proj_filts', default=3, type=int,
+        parser.add_argument('--cbhg-conv-proj-filts', default=3, type=int,
                             help='Filter size of convoluional projection layer in CBHG')
-        parser.add_argument('--cbhg_conv_proj_chans', default=256, type=int,
+        parser.add_argument('--cbhg-conv-proj-chans', default=256, type=int,
                             help='Number of convoluional projection channels in CBHG')
-        parser.add_argument('--cbhg_highway_layers', default=4, type=int,
+        parser.add_argument('--cbhg-highway-layers', default=4, type=int,
                             help='Number of highway layers in CBHG')
-        parser.add_argument('--cbhg_highway_units', default=128, type=int,
+        parser.add_argument('--cbhg-highway-units', default=128, type=int,
                             help='Number of highway units in CBHG')
-        parser.add_argument('--cbhg_gru_units', default=256, type=int,
+        parser.add_argument('--cbhg-gru-units', default=256, type=int,
                             help='Number of GRU units in CBHG')
         # model (parameter) related
-        parser.add_argument('--use_batch_norm', default=True, type=strtobool,
+        parser.add_argument('--use-batch-norm', default=True, type=strtobool,
                             help='Whether to use batch normalization')
-        parser.add_argument('--use_concate', default=True, type=strtobool,
+        parser.add_argument('--use-concate', default=True, type=strtobool,
                             help='Whether to concatenate encoder embedding with decoder outputs')
-        parser.add_argument('--use_residual', default=True, type=strtobool,
+        parser.add_argument('--use-residual', default=True, type=strtobool,
                             help='Whether to use residual connection in conv layer')
-        parser.add_argument('--dropout', default=0.5, type=float,
+        parser.add_argument('--dropout-rate', default=0.5, type=float,
                             help='Dropout rate')
-        parser.add_argument('--zoneout', default=0.1, type=float,
+        parser.add_argument('--zoneout-rate', default=0.1, type=float,
                             help='Zoneout rate')
-        parser.add_argument('--reduction_factor', default=1, type=int,
+        parser.add_argument('--reduction-factor', default=1, type=int,
                             help='Reduction factor')
         # loss related
-        parser.add_argument('--use_masking', default=False, type=strtobool,
+        parser.add_argument('--use-masking', default=False, type=strtobool,
                             help='Whether to use masking in calculation of loss')
-        parser.add_argument('--bce_pos_weight', default=20.0, type=float,
-                            help='Positive sample weight in BCE calculation (only for use_masking=True)')
+        parser.add_argument('--bce-pos-weight', default=20.0, type=float,
+                            help='Positive sample weight in BCE calculation (only for use-masking=True)')
         return
 
     def __init__(self, idim, odim, args):
@@ -284,8 +277,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.cumulate_att_w = args.cumulate_att_w
         self.use_batch_norm = args.use_batch_norm
         self.use_concate = args.use_concate
-        self.dropout = args.dropout
-        self.zoneout = args.zoneout
+        self.dropout_rate = args.dropout_rate
+        self.zoneout_rate = args.zoneout_rate
         self.reduction_factor = args.reduction_factor
         self.atype = args.atype
         self.use_cbhg = args.use_cbhg
@@ -315,7 +308,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            econv_chans=self.econv_chans,
                            econv_filts=self.econv_filts,
                            use_batch_norm=self.use_batch_norm,
-                           dropout=self.dropout)
+                           dropout_rate=self.dropout_rate)
         dec_idim = self.eunits if self.spk_embed_dim is None else self.eunits + self.spk_embed_dim
         if self.atype == "location":
             att = AttLoc(dec_idim,
@@ -358,8 +351,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            cumulate_att_w=self.cumulate_att_w,
                            use_batch_norm=self.use_batch_norm,
                            use_concate=self.use_concate,
-                           dropout=self.dropout,
-                           zoneout=self.zoneout,
+                           dropout_rate=self.dropout_rate,
+                           zoneout_rate=self.zoneout_rate,
                            reduction_factor=self.reduction_factor)
         self.taco2_loss = Tacotron2Loss(args)
         if self.use_cbhg:
@@ -374,13 +367,13 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                              gru_units=self.cbhg_gru_units)
             self.cbhg_loss = CBHGLoss(args)
 
-    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None):
+    def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
         """Tacotron2 forward computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
-        :param list ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
-        :param torch.Tensor olens:
+        :param torch.Tensor olens: batch of the lengths of each target (B)
         :param torch.Tensor spembs: batch of speaker embedding vector (B, spk_embed_dim)
         :param torch.Tensor spcs: batch of groundtruth spectrogram (B, Lmax, spc_dim)
         :return: loss value
@@ -412,6 +405,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
+            labels[:, -1] = 1.0  # make sure at least one frame has 1
 
         # caluculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
@@ -443,7 +437,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
 
         return loss
 
-    def inference(self, x, inference_args, spemb=None):
+    def inference(self, x, inference_args, spemb=None, *args, **kwargs):
         """Generates the sequence of features given the sequences of characters
 
         :param torch.Tensor x: the sequence of characters (T)
@@ -477,7 +471,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         else:
             return outs, probs, att_ws
 
-    def calculate_all_attentions(self, xs, ilens, ys, spembs=None):
+    def calculate_all_attentions(self, xs, ilens, ys, spembs=None, *args, **kwargs):
         """Tacotron2 attention weight computation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
