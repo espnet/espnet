@@ -25,6 +25,7 @@ decode_config=conf/decode.yaml
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
 
 # data
 voxforge=downloads # original data directory to be stored
@@ -165,7 +166,13 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     nj=16
-
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py --backend ${backend} \
+			       --snapshots ${expdir}/results/snapshot.ep.* \
+			       --out ${expdir}/results/${recog_model} \
+			       --num ${n_average}
+    fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
