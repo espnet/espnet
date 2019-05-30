@@ -24,7 +24,8 @@ def main(cmd_args):
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
     # general configuration
-    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config', is_config_file=True,
+               help='config file path')
     parser.add('--config2', is_config_file=True,
                help='second config file path that overwrites the settings in `--config`.')
     parser.add('--config3', is_config_file=True,
@@ -47,7 +48,12 @@ def main(cmd_args):
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
-    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?',
+                        help="Tensorboard log dir path")
+    parser.add_argument('--save-interval-epochs', default=1, type=int,
+                        help="Save interval epochs")
+    parser.add_argument('--report-interval-iters', default=100, type=int,
+                        help="Report interval iterations")
     # task related
     parser.add_argument('--train-json', type=str, required=True,
                         help='Filename of training json')

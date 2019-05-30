@@ -44,8 +44,6 @@ from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
-REPORT_INTERVAL = 100
-
 
 class CustomEvaluator(extensions.Evaluator):
     """Custom Evaluator for Tacotron2 training
@@ -148,6 +146,11 @@ class CustomUpdater(training.StandardUpdater):
         else:
             optimizer.step()
         optimizer.zero_grad()
+
+    def update(self):
+        self.update_core()
+        if self.forward_count == 0:
+            self.iteration += 1
 
 
 class CustomConverter(object):
@@ -341,12 +344,16 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
+    # set intervals
+    save_interval = (args.save_interval_epochs, 'epoch')
+    report_interval = (args.report_interval_iters, 'iteration')
+
     # Save snapshot for each epoch
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+    trainer.extend(torch_snapshot(), trigger=save_interval)
 
     # Save best models
     trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+                   trigger=training.triggers.MinValueTrigger('validation/main/loss', trigger=save_interval))
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
@@ -363,7 +370,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device, reverse=True)
-        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+        trainer.extend(att_reporter, trigger=save_interval)
     else:
         att_reporter = None
 
@@ -380,10 +387,10 @@ def train(args):
     trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='all_loss.png'))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=report_interval))
     report_keys = ['epoch', 'iteration', 'elapsed_time'] + plot_keys
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.PrintReport(report_keys), trigger=report_interval)
+    trainer.extend(extensions.ProgressBar())
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
