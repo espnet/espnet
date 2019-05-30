@@ -172,7 +172,7 @@ def main(cmd_args):
     parser.add_argument('--weight-decay', default=0.0, type=float,
                         help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
-                        choices=['loss', 'acc'],
+                        choices=['loss', 'acc', 'cer_ctc'],
                         help='Criterion to perform epsilon decay')
     parser.add_argument('--threshold', default=1e-4, type=float,
                         help='Threshold to stop iteration')

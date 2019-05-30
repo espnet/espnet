@@ -36,16 +36,16 @@ eunits=1024
 eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
-dlayers=2
+dlayers=1
 dunits=1024
 # attention related
 atype=location
-adim=1024
+adim=100
 aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
-mtlalpha=0.5
+mtlalpha=0.0
 
 # minibatch related
 batchsize=20
@@ -74,16 +74,16 @@ lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
-lm_weight=0.7
+lm_weight=0.0
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
-ctc_weight=0.5
+ctc_weight=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # scheduled sampling option
-samp_prob=0.0
+samp_prob=0.5
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -170,7 +170,6 @@ nlsyms=data/lang_char/non_lang_syms.txt
 bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
 scratch=/mnt/scratch06/tmp/baskar/espnet_new/features
 nnet_dir=exp/xvector_nnet_1a
-tag=testing
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Tmp space allocation"
@@ -293,21 +292,42 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: LM training"
-    lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
-    lmexpdir=exp/${lmexpname}
-    mkdir -p ${lmexpdir}
-    lmdatadir=data/local/lm_train_${bpemode}${nbpe}
+    if [ $use_bpe == 'true' ]; then
+        lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
+        lmexpdir=exp/${lmexpname}
+        mkdir -p ${lmexpdir}
+        lmdatadir=data/local/lm_train_${bpemode}${nbpe}
+    elif [ $use_bpe == 'false' ]; then
+        lmexpname=train_rnnlm_${backend}_${lmtag}_char
+        lmexpdir=exp/${lmexpname}
+        mkdir -p ${lmexpdir}
+        lmdatadir=data/local/lm_train_char
+    fi
     mkdir -p ${lmdatadir}
     # use external data
     if [ ! -e data/local/lm_train/librispeech-lm-norm.txt.gz ]; then
         wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/lm_train/
     fi
     cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
-    # combine external text and transcriptions and shuffle them with seed 777
-    zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
-        spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
-    cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
-        > ${lmdatadir}/valid.txt
+    if [ $use_bpe == 'true' ]; then
+        # combine external text and transcriptions and shuffle them with seed 777
+        zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
+            spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
+        cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
+            > ${lmdatadir}/valid.txt
+    else
+        echo "char text preparation for LM"
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/train_trans.txt
+        zcat data/local/lm_train/librispeech-lm-norm.txt.gz \
+            | grep -v "<" | tr "[:lower:]" "[:upper:]" \
+            | text2token.py -n 1 | cut -f 2- -d" " > ${lmdatadir}/train_others.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text \
+            | cut -f 2- -d" " > ${lmdatadir}/valid.txt
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${eval_set}/text \
+                | cut -f 2- -d" " > ${lmdatadir}/test.txt
+        cat ${lmdatadir}/train_trans.txt ${lmdatadir}/train_others.txt > ${lmdatadir}/train.txt
+    fi
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. single gpu will be used."
@@ -350,7 +370,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data.json \
+        --train-json ${feat_tr_p_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json \
         --etype ${etype} \
         --elayers ${elayers} \
@@ -379,12 +399,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     nj=32
 
     pids=() # initialize pids
-    for rtask in ${recog_set}; do
+    for rtask in ${eval_set}; do
     (
         decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
-        feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
+        feat_recog_dir=${dumpdir}/${rtask}
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
         #### use CPU for decoding
         # set batchsize 0 to disable batch decoding
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
@@ -392,19 +412,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --ngpu 0 \
             --backend ${backend} \
             --batchsize 0 \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
             --beam-size ${beam_size} \
             --penalty ${penalty} \
             --maxlenratio ${maxlenratio} \
             --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight}
+            --ctc-weight ${ctc_weight} 
 
-        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
-
+        if [ $use_bpe == 'true' ]; then
+            score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        else
+            score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+        fi
     ) &
     pids+=($!) # store background pids
     done
@@ -417,22 +438,22 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: TTS training, decode and synthesize"
     ttsexpdir=exp/tts_${tag}
-    tr_json=$feat_tr_dir/data.json
+    tr_json=$feat_tr_p_dir/data.json
     dt_json=$feat_dt_dir/data.json
     seed=1
     # encoder related
     embed_dim=512
     elayers=1
     eunits=512
-    econv_layers=3 # if set 0, no conv layer is used
+    econv_layers=1 # if set 0, no conv layer is used
     econv_chans=512
     econv_filts=5
     # decoder related
-    dlayers=2
-    dunits=1024
-    prenet_layers=2  # if set 0, no prenet is used
+    dlayers=1
+    dunits=512
+    prenet_layers=1  # if set 0, no prenet is used
     prenet_units=256
-    postnet_layers=5 # if set 0, no postnet is used
+    postnet_layers=1 # if set 0, no postnet is used
     postnet_chans=512
     postnet_filts=5
     use_speaker_embedding=true
@@ -444,7 +465,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     cumulate_att_w=true # whether to cumulate attetion weight
     use_batch_norm=true # whether to use batch normalization in conv layer
     use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
-    use_residual=false  # whether to use residual connection in encoder convolution
+    use_residual=true  # whether to use residual connection in encoder convolution
     use_masking=true    # whether to mask the padded part in loss calculation
     bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
     reduction_factor=2

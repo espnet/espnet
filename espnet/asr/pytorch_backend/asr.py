@@ -197,7 +197,7 @@ class CustomConverter(object):
             xs_pad_imag = pad_list(
                 [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
             # Note(kamo):
-            # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
+            # {'real': ..., 'imag': ...} will be chanqged to ComplexTensor in E2E.
             # Don't create ComplexTensor and give it E2E here
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
@@ -244,7 +244,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model_class = dynamic_import(args.model_module)
+    model_class = dynamic_import(args.model_module+':E2E')
     model = model_class(idim, odim, args)
     assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
@@ -419,6 +419,16 @@ def train(args):
                            trigger=CompareValueTrigger(
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
+        elif args.criterion == 'cer_ctc':
+            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
+                           trigger=CompareValueTrigger(
+                               'validation/main/cer_ctc',
+                               lambda best_value, current_value: best_value > current_value))
+            trainer.extend(adadelta_eps_decay(args.eps_decay),
+                           trigger=CompareValueTrigger(
+                               'validation/main/cer_ctc',
+                               lambda best_value, current_value: best_value > current_value))
+
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
@@ -460,7 +470,7 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    model_class = dynamic_import(train_args.model_module)
+    model_class = dynamic_import(train_args.model_module+':E2E')
     model = model_class(idim, odim, train_args)
     assert isinstance(model, ASRInterface)
     torch_load(args.model, model)
