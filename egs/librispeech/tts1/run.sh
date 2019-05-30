@@ -27,12 +27,12 @@ n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/train_tacotron2+spkemb.yaml
+train_config=conf/train_pytorch_tacotron2+spkemb.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-griffin_lim_iters=100  # the number of iterations of Griffin-Lim
+griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this

@@ -35,12 +35,12 @@ trim_shift_length=256
 trim_min_silence=0.01
 
 # config files
-train_config=conf/train_tacotron2.yaml
+train_config=conf/train_pytorch_tacotron2.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
-griffin_lim_iters=100  # the number of iterations of Griffin-Lim
+griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # dataset configuration
 db_root=downloads

@@ -28,7 +28,7 @@ n_shift=256 # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/train_tacotron2+cbhg.yaml
+train_config=conf/train_pytorch_tacotron2+cbhg.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
