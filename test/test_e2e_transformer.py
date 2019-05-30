@@ -110,7 +110,6 @@ def test_transformer_mask(module):
 
 @pytest.mark.parametrize("module", ["pytorch", "chainer"])
 def test_transformer_synth(module):
-    T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(module))
     model, x, ilens, y, data = prepare(module)
 
     # test beam search
