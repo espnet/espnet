@@ -8,7 +8,6 @@
 # Makes train/test splits
 
 . path.sh
-
 echo "=== Starting initial VoxForge data preparation ..."
 
 . utils/parse_options.sh
@@ -123,7 +122,7 @@ for s in all; do
 	else
 	    cp $dir/etc/PROMPTS ${loctmp}/char_tmp/$idpfx.utf8
 	fi
-
+	# local/make_trans.py ${loctmp}/char_tmp/$idpfx.utf8 ${idpfx} "${all_wavs[@]}" \  
 	PYTHONIOENCODING=utf-8 local/make_trans.py ${loctmp}/char_tmp/$idpfx.utf8 ${idpfx} "${all_wavs[@]}" \
 			    2>>${logdir}/make_trans.log >> ${loctmp}/${s}_trans.txt.unsorted
     done
