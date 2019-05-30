@@ -25,9 +25,9 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.tts_interface import TTSInterface
-from espnet.tts.tts_utils import make_batchset
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.training.batchfy import make_batchset
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.train_utils import check_early_stop
@@ -266,13 +266,27 @@ def train(args):
         args.batch_sort_key = "input"
     # make minibatch list (variable length)
     train_batchset = make_batchset(train_json, args.batch_size,
-                                   args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
+                                   args.maxlen_in, args.maxlen_out, args.minibatches,
+                                   batch_sort_key=args.batch_sort_key,
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                                   shortest_first=use_sortagrad,
+                                   count=args.batch_count,
+                                   batch_bins=args.batch_bins,
+                                   batch_frames_in=args.batch_frames_in,
+                                   batch_frames_out=args.batch_frames_out,
+                                   batch_frames_inout=args.batch_frames_inout,
+                                   swap_io=True)
     valid_batchset = make_batchset(valid_json, args.batch_size,
-                                   args.maxlen_in, args.maxlen_out,
-                                   args.minibatches, args.batch_sort_key,
-                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
+                                   args.maxlen_in, args.maxlen_out, args.minibatches,
+                                   batch_sort_key=args.batch_sort_key,
+                                   min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                                   count=args.batch_count,
+                                   batch_bins=args.batch_bins,
+                                   batch_frames_in=args.batch_frames_in,
+                                   batch_frames_out=args.batch_frames_out,
+                                   batch_frames_inout=args.batch_frames_inout,
+                                   swap_io=True)
+
     load_tr = LoadInputsAndTargets(
         mode='tts',
         use_speaker_embedding=args.use_speaker_embedding,
