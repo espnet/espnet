@@ -66,7 +66,7 @@ def main(cmd_args):
                         help='Batch sorting key. "shuffle" only work with --batch-count "seq".')
     parser.add_argument('--batch-count', default='auto', choices=BATCH_COUNT_CHOICES,
                         help='How to count batch_size. The default (auto) will find how to count by args.')
-    parser.add_argument('--batch-size', '-b', default=0, type=int,
+    parser.add_argument('--batch-size', '--batch-seqs', '-b', default=0, type=int,
                         help='Maximum seqs in a minibatch (0 to disable)')
     parser.add_argument('--batch-bins', default=0, type=int,
                         help='Maximum bins in a minibatch (0 to disable)')
@@ -76,9 +76,9 @@ def main(cmd_args):
                         help='Maximum output frames in a minibatch (0 to disable)')
     parser.add_argument('--batch-frames-inout', default=0, type=int,
                         help='Maximum input+output frames in a minibatch (0 to disable)')
-    parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
+    parser.add_argument('--maxlen-in', '--batch-seq-maxlen-in', default=100, type=int, metavar='ML',
                         help='When --batch-count=seq, batch size is reduced if the input sequence length > ML.')
-    parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
+    parser.add_argument('--maxlen-out', '--batch-seq-maxlen-out', default=200, type=int, metavar='ML',
                         help='When --batch-count=seq, batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n_iter_processes', default=0, type=int,
                         help='Number of processes of iterator')
