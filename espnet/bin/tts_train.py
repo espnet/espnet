@@ -95,7 +95,7 @@ def main(cmd_args):
                         help='Whether to use second target')
     # optimization related
     parser.add_argument('--opt', default='adam', type=str,
-                        choices=['adam', 'noam'],
+                        choices=['adam'],
                         help='Optimizer')
     parser.add_argument('--accum-grad', default=1, type=int,
                         help='Number of gradient accumuration')
