@@ -30,6 +30,7 @@ lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -224,6 +225,14 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+        recog_model=model.last${n_average}.avg.best
+        average_checkpoints.py \
+            --backend ${backend} \
+            --snapshots ${expdir}/results/snapshot.ep.* \
+            --out ${expdir}/results/${recog_model} \
+            --num ${n_average}
+    fi
     nj=32
 
     pids=() # initialize pids
