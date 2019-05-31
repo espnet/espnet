@@ -54,7 +54,11 @@ done
 utils/split_scp.pl ${scp} ${split_scps} || exit 1;
 
 # dump features
+<<<<<<< HEAD
 if ${do_delta}; then
+=======
+if ${do_delta};then
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     ${cmd} JOB=1:${nj} ${logdir}/dump_feature.JOB.log \
         apply-cmvn --norm-vars=true ${cvmnark} scp:${logdir}/feats.JOB.scp ark:- \| \
         add-deltas ark:- ark:- \| \

@@ -21,8 +21,46 @@ seed=1
 # feature configuration
 do_delta=false
 
+<<<<<<< HEAD
 train_config=conf/train.yaml
 decode_config=conf/decode.yaml
+=======
+# network architecture
+# encoder related
+etype=vggblstmp     # encoder architecture type
+elayers=6
+eunits=320
+eprojs=320
+subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+# decoder related
+dlayers=1
+dunits=300
+# attention related
+atype=location
+adim=320
+awin=5
+aheads=4
+aconv_chans=10
+aconv_filts=100
+
+# hybrid CTC/attention
+mtlalpha=0.5
+
+# label smoothing
+lsm_type=unigram
+lsm_weight=0.05
+
+# minibatch related
+batchsize=30
+maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
+
+# optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+opt=adadelta
+epochs=15
+patience=3
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
@@ -154,7 +192,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ -z ${tag} ]; then
+<<<<<<< HEAD
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
+=======
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    if [ "${lsm_type}" != "" ]; then
+        expname=${expname}_lsm${lsm_type}${lsm_weight}
+    fi
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -182,7 +227,35 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --resume ${resume} \
         --seed ${seed} \
         --train-json ${feat_tr_dir}/data.json \
+<<<<<<< HEAD
         --valid-json ${feat_dt_dir}/data.json
+=======
+        --valid-json ${feat_dt_dir}/data.json \
+        --etype ${etype} \
+        --elayers ${elayers} \
+        --eunits ${eunits} \
+        --eprojs ${eprojs} \
+        --subsample ${subsample} \
+        --dlayers ${dlayers} \
+        --dunits ${dunits} \
+        --atype ${atype} \
+        --adim ${adim} \
+        --awin ${awin} \
+        --aheads ${aheads} \
+        --aconv-chans ${aconv_chans} \
+        --aconv-filts ${aconv_filts} \
+        --mtlalpha ${mtlalpha} \
+        --lsm-type ${lsm_type} \
+        --lsm-weight ${lsm_weight} \
+        --batch-size ${batchsize} \
+        --maxlen-in ${maxlen_in} \
+        --maxlen-out ${maxlen_out} \
+        --sampling-probability ${samp_prob} \
+        --opt ${opt} \
+        --sortagrad ${sortagrad} \
+        --epochs ${epochs} \
+        --patience ${patience}
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then

@@ -16,8 +16,11 @@ export PATH=$MAIN_ROOT/tools/sentencepiece/build/bin:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
     source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
+<<<<<<< HEAD
 elif [ -e $BUT_CONDA/etc/profile.d/conda.sh ]; then
     source $BUT_CONDA/bin/activate py36_cuda9_torch4
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 else
     source $MAIN_ROOT/tools/venv/bin/activate
 fi

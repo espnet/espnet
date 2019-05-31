@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 MAIN_ROOT=$PWD/../../..
+=======
+MAIN_ROOT=/mnt/matylda6/baskar/espnet_cyc
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 KALDI_ROOT=$MAIN_ROOT/tools/kaldi
 SPNET_ROOT=$MAIN_ROOT/espnet
 BUT_CONDA=/homes/kazi/baskar/anaconda3/
@@ -12,6 +16,7 @@ export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sctk/bin
 . $KALDI_ROOT/tools/config/common_path.sh
 export LC_ALL=C
 
+<<<<<<< HEAD
 export PATH=$MAIN_ROOT/tools/sentencepiece/build/bin:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
@@ -22,11 +27,20 @@ else
     source $MAIN_ROOT/tools/venv/bin/activate
 fi
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
+=======
+export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$KALDI_ROOT/tools/sph2pipe_v2.5/:$CUDAROOT/bin:$PWD:$PATH
+
+export PATH=$MAIN_ROOT/utils/:$SPNET_ROOT/bin/:$PATH
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build:$CUDAROOT/lib64
+#source $MAIN_ROOT/tools/venv/bin/activate
+source $BUT_CONDA/bin/activate py36_cuda9_torch4
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 export PYTHONPATH=$MAIN_ROOT:$SPNET_ROOT:$KALDI_ROOT/kaldi-io-for-python:$BUT_CONDA/envs/py36_cuda9_torch4/bin:$SPNET_ROOT/lm/:$SPNET_ROOT/tts:$SPNET_ROOT/asr/:$SPNET_ROOT/nets/:$MAIN_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH
 
 export OMP_NUM_THREADS=1
 export CC="/usr/local/bin/gcc-5.3"
 export CXX="/usr/local/bin/g++-5.3"
+<<<<<<< HEAD
 export CPATH=$CUDA_HOME/include
 
 # check extra module installation
@@ -36,3 +50,7 @@ if ! which spm_decode > /dev/null; then
     echo "Error: cd ${MAIN_ROOT}/tools && make sentencepiece.done" >&2
     return 1
 fi
+=======
+
+export CPATH=$CUDA_HOME/include
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986

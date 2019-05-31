@@ -70,7 +70,11 @@ else
   write_num_frames_opt=
 fi
 
+<<<<<<< HEAD
 if [ "${filetype}" == hdf5 ]; then
+=======
+if [ "${filetype}" == hdf5 ];then
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     ext=h5
 else
     ext=ark

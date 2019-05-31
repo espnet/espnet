@@ -24,6 +24,11 @@ def main(cmd_args):
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
 
+<<<<<<< HEAD
+=======
+def main(args):
+    parser = argparse.ArgumentParser()
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     # general configuration
     parser.add('--config', is_config_file=True,
                help='config file path')
@@ -49,24 +54,114 @@ def main(cmd_args):
                         help='Process only N minibatches (for debug)')
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
+<<<<<<< HEAD
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?',
                         help="Tensorboard log directory path")
     parser.add_argument('--save-interval-epochs', default=1, type=int,
                         help="Save interval epochs")
     parser.add_argument('--report-interval-iters', default=100, type=int,
                         help="Report interval iterations")
+=======
+    parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?', help="Tensorboard log dir path")
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     # task related
     parser.add_argument('--train-json', type=str, required=True,
                         help='Filename of training json')
     parser.add_argument('--valid-json', type=str, required=True,
                         help='Filename of validation json')
     # network architecture
+<<<<<<< HEAD
     parser.add_argument('--model-module', type=str, default="espnet.nets.pytorch_backend.e2e_tts_tacotron2:Tacotron2",
                         help='model defined module')
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
     parser.add_argument('--batch-sort-key', default='shuffle', type=str,
+=======
+    # encoder
+    parser.add_argument('--embed_dim', default=512, type=int,
+                        help='Number of dimension of embedding')
+    parser.add_argument('--elayers', default=1, type=int,
+                        help='Number of encoder layers')
+    parser.add_argument('--eunits', '-u', default=512, type=int,
+                        help='Number of encoder hidden units')
+    parser.add_argument('--econv_layers', default=3, type=int,
+                        help='Number of encoder convolution layers')
+    parser.add_argument('--econv_chans', default=512, type=int,
+                        help='Number of encoder convolution channels')
+    parser.add_argument('--econv_filts', default=5, type=int,
+                        help='Filter size of encoder convolution')
+    # attention
+    parser.add_argument('--atype', default="location", type=str,
+                        choices=["forward_ta", "forward", "location"],
+                        help='Type of attention mechanism')
+    parser.add_argument('--adim', default=512, type=int,
+                        help='Number of attention transformation dimensions')
+    parser.add_argument('--aconv-chans', default=32, type=int,
+                        help='Number of attention convolution channels')
+    parser.add_argument('--aconv-filts', default=15, type=int,
+                        help='Filter size of attention convolution')
+    parser.add_argument('--cumulate_att_w', default=True, type=strtobool,
+                        help="Whether or not to cumulate attention weights")
+    # decoder
+    parser.add_argument('--dlayers', default=2, type=int,
+                        help='Number of decoder layers')
+    parser.add_argument('--dunits', default=1024, type=int,
+                        help='Number of decoder hidden units')
+    parser.add_argument('--prenet_layers', default=2, type=int,
+                        help='Number of prenet layers')
+    parser.add_argument('--prenet_units', default=256, type=int,
+                        help='Number of prenet hidden units')
+    parser.add_argument('--postnet_layers', default=5, type=int,
+                        help='Number of postnet layers')
+    parser.add_argument('--postnet_chans', default=512, type=int,
+                        help='Number of postnet channels')
+    parser.add_argument('--postnet_filts', default=5, type=int,
+                        help='Filter size of postnet')
+    parser.add_argument('--output_activation', default=None, type=str, nargs='?',
+                        help='Output activation function')
+    # cbhg
+    parser.add_argument('--use_cbhg', default=False, type=strtobool,
+                        help='Whether to use CBHG module')
+    parser.add_argument('--cbhg_conv_bank_layers', default=8, type=int,
+                        help='Number of convoluional bank layers in CBHG')
+    parser.add_argument('--cbhg_conv_bank_chans', default=128, type=int,
+                        help='Number of convoluional bank channles in CBHG')
+    parser.add_argument('--cbhg_conv_proj_filts', default=3, type=int,
+                        help='Filter size of convoluional projection layer in CBHG')
+    parser.add_argument('--cbhg_conv_proj_chans', default=256, type=int,
+                        help='Number of convoluional projection channels in CBHG')
+    parser.add_argument('--cbhg_highway_layers', default=4, type=int,
+                        help='Number of highway layers in CBHG')
+    parser.add_argument('--cbhg_highway_units', default=128, type=int,
+                        help='Number of highway units in CBHG')
+    parser.add_argument('--cbhg_gru_units', default=256, type=int,
+                        help='Number of GRU units in CBHG')
+    # model (parameter) related
+    parser.add_argument('--use_speaker_embedding', default=False, type=strtobool,
+                        help='Whether to use speaker embedding')
+    parser.add_argument('--use_batch_norm', default=True, type=strtobool,
+                        help='Whether to use batch normalization')
+    parser.add_argument('--use_concate', default=True, type=strtobool,
+                        help='Whether to concatenate encoder embedding with decoder outputs')
+    parser.add_argument('--use_residual', default=True, type=strtobool,
+                        help='Whether to use residual connection in conv layer')
+    parser.add_argument('--dropout', default=0.5, type=float,
+                        help='Dropout rate')
+    parser.add_argument('--zoneout', default=0.1, type=float,
+                        help='Zoneout rate')
+    parser.add_argument('--reduction_factor', default=1, type=int,
+                        help='Reduction factor')
+    # loss related
+    parser.add_argument('--use_masking', default=False, type=strtobool,
+                        help='Whether to use masking in calculation of loss')
+    parser.add_argument('--bce_pos_weight', default=20.0, type=float,
+                        help='Positive sample weight in BCE calculation (only for use_masking=True)')
+    # minibatch related
+    parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
+                        help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
+    parser.add_argument('--batch_sort_key', default='shuffle', type=str,
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                         choices=['shuffle', 'output', 'input'], nargs='?',
                         help='Batch sorting key. "shuffle" only work with --batch-count "seq".')
     parser.add_argument('--batch-count', default='auto', choices=BATCH_COUNT_CHOICES,
@@ -89,10 +184,13 @@ def main(cmd_args):
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
+<<<<<<< HEAD
     parser.add_argument('--use-speaker-embedding', default=False, type=strtobool,
                         help='Whether to use speaker embedding')
     parser.add_argument('--use-second-target', default=False, type=strtobool,
                         help='Whether to use second target')
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     # optimization related
     parser.add_argument('--opt', default='adam', type=str,
                         choices=['adam'],
@@ -115,6 +213,7 @@ def main(cmd_args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=5, type=int,
                         help='Number of samples of attention to be saved')
+<<<<<<< HEAD
 
     args, _ = parser.parse_known_args(cmd_args)
 
@@ -123,6 +222,9 @@ def main(cmd_args):
     assert issubclass(model_class, TTSInterface)
     model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
+=======
+    args = parser.parse_args(args)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
     # logging info
     if args.verbose > 0:

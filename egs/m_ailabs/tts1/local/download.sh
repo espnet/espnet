@@ -11,21 +11,33 @@ available_langs=(
 )
 
 # check arguments
+<<<<<<< HEAD
 if [ $# != 2 ]; then
+=======
+if [ $# != 2 ];then
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     echo "Usage: $0 <tar_dir> <lang_tag>"
     echo "Available languages: ${available_langs[*]}"
     exit 1
 fi
 
 # check language
+<<<<<<< HEAD
 if ! $(echo ${available_langs[*]} | grep -q ${lang}); then
+=======
+if ! $(echo ${available_langs[*]} | grep -q ${lang});then
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     echo "Specified language is not available or not supported."
     exit 1
 fi
 
 # download dataset
 cwd=`pwd`
+<<<<<<< HEAD
 if [ ! -e ${db}/${lang} ]; then
+=======
+if [ ! -e ${db}/${lang} ];then
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     mkdir -p ${db}
     cd ${db}
     wget http://www.caito.de/data/Training/stt_tts/${lang}.tgz

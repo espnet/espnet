@@ -29,8 +29,12 @@ class CTC(torch.nn.Module):
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)
         elif self.ctc_type == 'warpctc':
             import warpctc_pytorch as warp_ctc
+<<<<<<< HEAD
             # self.ctc_loss = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
             self.ctc_loss = warp_ctc.CTCLoss(size_average=True)
+=======
+            self.ctc_loss = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         else:
             raise ValueError('ctc_type must be "builtin" or "warpctc": {}'
                              .format(self.ctc_type))

@@ -19,6 +19,7 @@ resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false
+<<<<<<< HEAD
 # feature extraction related
 fs=16000      # sampling frequency
 fmax=""       # maximum frequency
@@ -27,6 +28,8 @@ n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # network architecture
 # encoder related
@@ -36,16 +39,28 @@ eunits=1024
 eprojs=1024
 subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
+<<<<<<< HEAD
 dlayers=1
 dunits=1024
 # attention related
 atype=location
 adim=100
+=======
+dlayers=2
+dunits=1024
+# attention related
+atype=location
+adim=1024
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 aconv_chans=10
 aconv_filts=100
 
 # hybrid CTC/attention
+<<<<<<< HEAD
 mtlalpha=0.0
+=======
+mtlalpha=0.5
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # minibatch related
 batchsize=20
@@ -74,22 +89,37 @@ lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
+<<<<<<< HEAD
 lm_weight=0.0
+=======
+lm_weight=0.7
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 beam_size=20
 penalty=0.0
 maxlenratio=0.0
 minlenratio=0.0
+<<<<<<< HEAD
 ctc_weight=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # scheduled sampling option
 samp_prob=0.5
+=======
+ctc_weight=0.5
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+
+# scheduled sampling option
+samp_prob=0.0
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
 datadir=/export/a15/vpanayotov/data
+<<<<<<< HEAD
 datadir=/mnt/matylda2/data/librispeech_kaldi_download
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # base url for downloads.
 data_url=www.openslr.org/resources/12
@@ -97,6 +127,7 @@ data_url=www.openslr.org/resources/12
 # bpemode (unigram or bpe)
 nbpe=5000
 bpemode=unigram
+<<<<<<< HEAD
 use_bpe=false
 
 # training related
@@ -111,6 +142,8 @@ policy_gradient=true
 use_rnnlm=false
 rnnlm_loss=none
 embed_dim=512
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -120,7 +153,11 @@ rnnlm_model=$PWD/rnnlm_models/librispeech_360/rnnlm.model.best
 rnnlm_model_conf=$PWD/rnnlm_models/librispeech_360/model.json
 tts_model=$PWD/pretrained_models/librispeech_100/tts/results/model.loss.best
 tts_model_conf=$PWD/pretrained_models/librispeech_100/tts/results/model.json
+<<<<<<< HEAD
 spk_vector=exp/xvector_nnet_1a
+=======
+spk_vectors=exp/xvector_nnet_1a
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 . utils/parse_options.sh || exit 1;
 
@@ -134,6 +171,7 @@ set -u
 set -o pipefail
 
 train_set=train_960
+<<<<<<< HEAD
 train_paired_set=train_clean_100
 train_unpaired_set=train_clean_360
 train_dev=dev
@@ -711,6 +749,54 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         wait
         echo "Finished"
     fi
+=======
+train_paired_set=train_100
+train_unpaired_set=train_360
+train_dev=dev
+recog_set="test_clean test_other dev_clean dev_other"
+
+if [ ${stage} -le -3 ] && [ ${stop_stage} -ge -3 ]; then
+    echo "stage -3: Data Download"
+    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+        local/download_and_untar.sh ${datadir} ${data_url} ${part}
+    done
+fi
+if [ ${stage} -le -2 ] && [ ${stop_stage} -ge -2 ]; then
+    ### Task dependent. You have to make data the following preparation part by yourself.
+    ### But you can utilize Kaldi recipes in most cases
+    echo "stage -2: Data preparation"
+    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+        # use underscore-separated names in data directories.
+        local/data_prep.sh ${datadir}/LibriSpeech/${part} data/${part//-/_}
+    done
+fi
+
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+    echo "stage -1: Feature extraction for TTS and ASR"
+    scripts/feat_extract.sh $train_set $train_dev $recog_set
+fi
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    echo "stage 0: ASR training and decode"
+    scripts/lm_train.sh $train_set $train_dev $dict $lmtag
+fi
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    echo "stage 0: ASR training and decode"
+    scripts/asr_train_decode.sh $train_set $train_dev $recog_set $asrexpdir
+fi
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    echo "stage 1: TTS training, decode and synthesize"
+    scripts/tts_train_decode.sh $train_set $train_dev $recog_set $ttsexpdir
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 1: TTS training, decode and synthesize"
+    scripts/asrtts_train.sh $train_set $train_set ${spk_vector}/xvectors_$train_set \
+        $train_set $train_unpaired_set $train_dev $recog_set \
+        $asrttsexpdir "dualp" "ce"
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 fi
 
 

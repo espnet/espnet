@@ -7,23 +7,42 @@
 import logging
 import math
 
+<<<<<<< HEAD
 import chainer
 from chainer import reporter
 import numpy as np
 
 from espnet.nets.asr_interface import ASRInterface
+=======
+import numpy as np
+
+import chainer
+
+from chainer import reporter
+
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 from espnet.nets.chainer_backend.attentions import att_for
 from espnet.nets.chainer_backend.ctc import ctc_for
 from espnet.nets.chainer_backend.decoders import decoder_for
 from espnet.nets.chainer_backend.encoders import encoder_for
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 CTC_LOSS_THRESHOLD = 10000
 
 
+<<<<<<< HEAD
 class E2E(ASRInterface, chainer.Chain):
     def __init__(self, idim, odim, args, flag_return=True):
         chainer.Chain.__init__(self)
+=======
+class E2E(chainer.Chain):
+    def __init__(self, idim, odim, args, flag_return=True):
+        super(E2E, self).__init__()
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
         self.etype = args.etype
@@ -70,7 +89,11 @@ class E2E(ASRInterface, chainer.Chain):
         self.loss = None
         self.flag_return = flag_return
 
+<<<<<<< HEAD
     def forward(self, xs, ilens, ys):
+=======
+    def __call__(self, xs, ilens, ys):
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         """E2E forward
 
         :param xs:
