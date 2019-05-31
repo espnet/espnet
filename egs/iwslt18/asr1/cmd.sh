@@ -24,6 +24,7 @@
 #
 # The official documentaion for run.pl, queue.pl, slurm.pl, and ssh.pl:
 #   "Parallelization in Kaldi": http://kaldi-asr.org/doc/queue.html
+<<<<<<< HEAD
 # =========================================================~
 
 
@@ -87,3 +88,5 @@ else
     echo "$0: Error: Unknown cmd_backend=${cmd_backend}" 1>&2
     return 1
 fi
+=======
+>>>>>>> 7fbfd8f260a95d47f61678c0d65aa835bc2319e4

@@ -3,6 +3,7 @@
 # ESPnet: end-to-end speech processing toolkit
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
+[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -37,7 +38,13 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 - PyTorch 0.4.1, 1.0.0
 - gcc>=4.9 for PyTorch1.0.0
-- Chainer 5.0.0
+- Chainer 6.0.0
+
+Optionally, GPU environment requires the following libraries:
+
+- Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library
+- Cudnn 6+
+- NCCL 2.0+ (for the use of multi-GPUs)
 
 Optionally, GPU environment requires the following libraries:
 
@@ -122,10 +129,10 @@ To install in a terminal that does not have a GPU installed, just clear the vers
 
 ```sh
 $ cd tools
-$ make CUPY_VERSION='' -j 10 
+$ make CUPY_VERSION='' -j 10
 ```
 
-This option is enabled for any of the install configuration. 
+This option is enabled for any of the install configuration.
 
 ### Step 3) installation check
 
@@ -134,7 +141,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ make check_install
 ```
-or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal. 
+or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal.
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
@@ -190,7 +197,7 @@ this epoch [#####.............................................] 10.84%
 ```
 
 In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
-```sh 
+```sh
 $ tensorboard --logdir tensorboard
 ```
 and connecting to the given address (default : localhost:6006). This will provide the following information:
@@ -218,6 +225,44 @@ Default setup uses CPU (`--ngpu 0`).
 
 Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
 is required before setup.
+
+
+### Changing the configuration
+The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
+
+```bash
+# e.g.
+asr_train.py --config conf/train.yaml --batch-size 24
+# e.g.--config2 and --config3 are also provided and the latter option can overwrite the former.
+asr_train.py --config conf/train.yaml --config2 conf/new.yaml
+```
+
+In this way, you need to edit `run.sh` and it might be inconvenient sometimes.
+Instead of giving arguments directly, we recommend you to modify the yaml file and give it to `run.sh`:
+
+```bash
+# e.g.
+./run.sh --train-config conf/train_modified.yaml
+# e.g.
+./run.sh --train-config conf/train_modified.yaml --decode-config conf/decode_modified.yaml
+```
+
+We also provide a utility to generate a yaml file from the input yaml file:
+
+```bash
+# e.g. You can give any parameters as '-a key=value' and '-a' is repeatable. 
+#      This generates new file at 'conf/train_batch-size24_epochs10.yaml'
+./run.sh --train-config $(change_yaml.py conf/train.yaml -a batch-size=24 -a epochs=10)
+# e.g. '-o' option specfies the output file name instead of auto named file.
+./run.sh --train-config $(change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size=24)
+```
+
+### How to set minibatch
+
+From espnet v0.4.0, we have three options in `--batch-count` to specify minibatch size (see `espnet.utils.batchfy` for implementation);
+1. `--batch-count seq --batch-seqs 32 --batch-seq-maxlen-in 800 --batch-seq-maxlen-out 150`. This option is compatible to the old setting before v0.4.0. This counts the minibatch size as the number of sequences and reduces the size when the maximum length of the input or output sequences is greater than 800 or 150, respectively.
+2. `--batch-count bin --batch-bins 100000`. This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., `max(ilen) * idim + max(olen) * odim`). Basically, this option makes trainining iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-bins $((x * (mean(ilen) * idim + mean(olen) * odim)))`.
+3. `--batch-count frame --batch-frames-in 800 --batch-frames-out 100 --batch-frames-inout 900`. This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes trainining iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
 
 ### Error due to ACS (Multiple GPUs)
 
@@ -284,8 +329,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Aishell dev | 6.8 | N/A |
 | Aishell test | 8.0 | N/A |
 | CSJ eval1 | 5.7 | N/A  |
-| CSJ eval2 | 4.3 | N/A  |
-| CSJ eval3 | 4.8 | N/A  |
+| CSJ eval2 | 4.1 | N/A  |
+| CSJ eval3 | 4.5 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 4.0 |
 | Librispeech test_clean | N/A | 4.0 |

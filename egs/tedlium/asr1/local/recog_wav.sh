@@ -7,27 +7,31 @@
 . ./cmd.sh
 
 # general configuration
-backend=chainer
+backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
-verbose=0      # verbose option
+verbose=1      # verbose option
 
 # feature configuration
 do_delta=false
 cmvn=cmvn.ark
 
 # rnnlm related
-use_wordlm=true     # false means to use a character LM
+use_wordlm=false     # false means to use a character LM
 lang_model=rnnlm.model.best
 
 # decoding parameter
-lm_weight=1.0
-beam_size=30
+lm_weight=0
+beam_size=20
 penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
+maxlenratio=0.9
+minlenratio=0.1
 ctc_weight=0.3
+streaming_mode=segment
+min_blank_dur=10
+onset_margin=4
+offset_margin=4
 recog_model=model.acc.best
 decode_dir=decode
 
@@ -124,6 +128,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --minlenratio ${minlenratio} \
         --ctc-weight ${ctc_weight} \
         --lm-weight ${lm_weight} \
+        --streaming-mode ${streaming_mode} \
+        --streaming-min-blank-dur ${min_blank_dur} \
+        --streaming-onset-margin ${onset_margin} \
+        --streaming-offset-margin ${offset_margin} \
+        --batchsize 0 \
         ${recog_opts}
 
     echo ""

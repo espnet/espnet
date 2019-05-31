@@ -4,26 +4,3 @@
    contain the root `toctree` directive.
 
 espnet: end-to-end speech processing toolkit
-============================================
-espnet is an end-to-end speech processing toolkit.
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Tutorial:
-
-   ./tutorial.md
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Reference Manual:
-
-   ./apis/nets.rst
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

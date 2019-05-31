@@ -1,12 +1,14 @@
 from collections import OrderedDict
 import copy
 import io
-import json
 import logging
 import sys
 
+import yaml
 
+from espnet.utils.check_kwargs import check_kwargs
 from espnet.utils.dynamic_import import dynamic_import
+
 
 PY2 = sys.version_info[0] == 2
 
@@ -19,7 +21,14 @@ else:
     from inspect import signature
 
 
+# TODO(karita): inherit TransformInterface
+# TODO(karita): register cmd arguments in asr_train.py
 import_alias = dict(
+    identity='espnet.transform.transform_interface:Identity',
+    time_warp='espnet.transform.spec_augment:TimeWarp',
+    time_mask='espnet.transform.spec_augment:TimeMask',
+    freq_mask='espnet.transform.spec_augment:FreqMask',
+    spec_augment='espnet.transform.spec_augment:SpecAugment',
     speed_perturbation='espnet.transform.perturb:SpeedPerturbation',
     volume_perturbation='espnet.transform.perturb:VolumePerturbation',
     noise_injection='espnet.transform.perturb:NoiseInjection',
@@ -61,7 +70,7 @@ class Transformation(object):
                 self.conf = copy.deepcopy(conffile)
             else:
                 with io.open(conffile, encoding='utf-8') as f:
-                    self.conf = json.load(f)
+                    self.conf = yaml.safe_load(f)
                     assert isinstance(self.conf, dict), type(self.conf)
         else:
             self.conf = {'mode': 'sequential', 'process': []}
@@ -73,6 +82,8 @@ class Transformation(object):
                 opts = dict(process)
                 process_type = opts.pop('type')
                 class_obj = dynamic_import(process_type, import_alias)
+                # TODO(karita): assert issubclass(class_obj, TransformInterface)
+                check_kwargs(class_obj, opts)
                 try:
                     self.functions[idx] = class_obj(**opts)
                 except TypeError:
@@ -114,7 +125,7 @@ class Transformation(object):
         if self.conf.get('mode', 'sequential') == 'sequential':
             for idx in range(len(self.conf['process'])):
                 func = self.functions[idx]
-
+                # TODO(karita): use TrainingTrans and UttTrans to check __call__ args
                 # Derive only the args which the func has
                 try:
                     param = signature(func).parameters

@@ -126,16 +126,6 @@ class LoadInputsAndTargets(object):
             if self.load_output:
                 for idx, inp in enumerate(info['output']):
                     if 'tokenid' in inp:
-                        # ======= Legacy format for output =======
-                        # {"output": [{"tokenid": "1 2 3 4"}])
-                        x = np.fromiter(map(int, inp['tokenid'].split()),
-                                        dtype=np.int64)
-                    else:
-                        # ======= New format =======
-                        # {"input":
-                        #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                        #    "filetype": "hdf5",
-                        #    "name": "target1", ...}], ...}
                         x = self._get_from_loader(
                             filepath=inp['feat'],
                             filetype=inp.get('filetype', 'mat'))

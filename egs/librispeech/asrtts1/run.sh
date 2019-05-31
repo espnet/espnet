@@ -90,7 +90,6 @@ samp_prob=0.5
 # if you're not on the CLSP grid.
 datadir=/export/a15/vpanayotov/data
 datadir=/mnt/matylda2/data/librispeech_kaldi_download
-
 # base url for downloads.
 data_url=www.openslr.org/resources/12
 

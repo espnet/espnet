@@ -23,24 +23,25 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import make_batchset
 from espnet.asr.asr_utils import plot_spectrogram
 from espnet.asr.asr_utils import restore_snapshot
+from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.nets.pytorch_backend.e2e_asr import StreamingE2E
+from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
+from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import FileWriterWrapper
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
@@ -191,23 +192,24 @@ class CustomConverter(object):
         ilens = np.array([x.shape[0] for x in xs])
 
         # perform padding and convert to tensor
+        # currently only support real number
         if xs[0].dtype.kind == 'c':
             xs_pad_real = pad_list(
                 [torch.from_numpy(x.real).float() for x in xs], 0).to(device)
             xs_pad_imag = pad_list(
                 [torch.from_numpy(x.imag).float() for x in xs], 0).to(device)
             # Note(kamo):
-            # {'real': ..., 'imag': ...} will be chanqged to ComplexTensor in E2E.
+            # {'real': ..., 'imag': ...} will be changed to ComplexTensor in E2E.
             # Don't create ComplexTensor and give it E2E here
             # because torch.nn.DataParellel can't handle it.
             xs_pad = {'real': xs_pad_real, 'imag': xs_pad_imag}
         else:
-            xs_pad = pad_list(
-                [torch.from_numpy(x).float() for x in xs], 0).to(device)
+            xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
 
         ilens = torch.from_numpy(ilens).to(device)
-        ys_pad = pad_list([torch.from_numpy(y).long() for y in ys],
-                          self.ignore_id).to(device)
+        # NOTE: this is for multi-task learning (e.g., speech translation)
+        ys_pad = pad_list([torch.from_numpy(np.array(y[0]) if isinstance(y, tuple) else y).long()
+                           for y in ys], self.ignore_id).to(device)
 
         return xs_pad, ilens, ys_pad
 
@@ -244,7 +246,7 @@ def train(args):
         logging.info('Multitask learning mode')
 
     # specify model architecture
-    model_class = dynamic_import(args.model_module+':E2E')
+    model_class = dynamic_import(args.model_module)
     model = model_class(idim, odim, args)
     assert isinstance(model, ASRInterface)
     subsampling_factor = model.subsample[0]
@@ -312,10 +314,21 @@ def train(args):
     # make minibatch list (variable length)
     train = make_batchset(train_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1, shortest_first=use_sortagrad)
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                          shortest_first=use_sortagrad,
+                          count=args.batch_count,
+                          batch_bins=args.batch_bins,
+                          batch_frames_in=args.batch_frames_in,
+                          batch_frames_out=args.batch_frames_out,
+                          batch_frames_inout=args.batch_frames_inout)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
-                          min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                          min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                          count=args.batch_count,
+                          batch_bins=args.batch_bins,
+                          batch_frames_in=args.batch_frames_in,
+                          batch_frames_out=args.batch_frames_out,
+                          batch_frames_inout=args.batch_frames_inout)
 
     load_tr = LoadInputsAndTargets(
         mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
@@ -390,10 +403,10 @@ def train(args):
                                          'epoch', file_name='cer.png'))
 
     # Save best models
-    trainer.extend(extensions.snapshot_object(model, 'model.loss.best', savefun=torch_save),
+    trainer.extend(snapshot_object(model, 'model.loss.best'),
                    trigger=training.triggers.MinValueTrigger('validation/main/loss'))
     if mtl_mode != 'ctc':
-        trainer.extend(extensions.snapshot_object(model, 'model.acc.best', savefun=torch_save),
+        trainer.extend(snapshot_object(model, 'model.acc.best'),
                        trigger=training.triggers.MaxValueTrigger('validation/main/acc'))
 
     # save snapshot which contains model and optimizer states
@@ -419,16 +432,6 @@ def train(args):
                            trigger=CompareValueTrigger(
                                'validation/main/loss',
                                lambda best_value, current_value: best_value < current_value))
-        elif args.criterion == 'cer_ctc':
-            trainer.extend(restore_snapshot(model, args.outdir + '/model.acc.best', load_fn=torch_load),
-                           trigger=CompareValueTrigger(
-                               'validation/main/cer_ctc',
-                               lambda best_value, current_value: best_value > current_value))
-            trainer.extend(adadelta_eps_decay(args.eps_decay),
-                           trigger=CompareValueTrigger(
-                               'validation/main/cer_ctc',
-                               lambda best_value, current_value: best_value > current_value))
-
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
@@ -452,7 +455,7 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, att_reporter))
     # Run the training
     trainer.run()
@@ -470,7 +473,7 @@ def recog(args):
 
     # load trained model parameters
     logging.info('reading model parameters from ' + args.model)
-    model_class = dynamic_import(train_args.model_module+':E2E')
+    model_class = dynamic_import(train_args.model_module)
     model = model_class(idim, odim, train_args)
     assert isinstance(model, ASRInterface)
     torch_load(args.model, model)
@@ -530,9 +533,9 @@ def recog(args):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                if args.streaming_window:
+                if args.streaming_mode == 'window':
                     logging.info('Using streaming recognizer with window size %d frames', args.streaming_window)
-                    se2e = StreamingE2E(e2e=model, recog_args=args, char_list=train_args.char_list, rnnlm=rnnlm)
+                    se2e = WindowStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
                     for i in range(0, feat.shape[0], args.streaming_window):
                         logging.info('Feeding frames %d - %d', i, i + args.streaming_window)
                         se2e.accept_input(feat[i:i + args.streaming_window])
@@ -540,6 +543,24 @@ def recog(args):
                     se2e.decode_with_attention_offline()
                     logging.info('Offline attention decoder finished')
                     nbest_hyps = se2e.retrieve_recognition()
+                elif args.streaming_mode == 'segment':
+                    logging.info('Using streaming recognizer with threshold value %d', args.streaming_min_blank_dur)
+                    nbest_hyps = []
+                    for n in range(args.nbest):
+                        nbest_hyps.append({'yseq': [], 'score': 0.0})
+                    se2e = SegmentStreamingE2E(e2e=model, recog_args=args, rnnlm=rnnlm)
+                    r = np.prod(model.subsample)
+                    for i in range(0, feat.shape[0], r):
+                        hyps = se2e.accept_input(feat[i:i + r])
+                        if hyps is not None:
+                            text = ''.join([train_args.char_list[int(x)]
+                                            for x in hyps[0]['yseq'][1:-1] if int(x) != -1])
+                            text = text.replace(model.space, ' ')
+                            text = text.replace(model.blank, '')
+                            logging.info(text)
+                            for n in range(args.nbest):
+                                nbest_hyps[n]['yseq'].extend(hyps[n]['yseq'])
+                                nbest_hyps[n]['score'] += hyps[n]['score']
                 else:
                     nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
