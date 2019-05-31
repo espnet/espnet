@@ -21,7 +21,6 @@ from itertools import groupby
 
 from chainer import reporter
 
-<<<<<<< HEAD
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
@@ -31,17 +30,6 @@ from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
-=======
-from espnet.nets.e2e_asr_common import label_smoothing_dist
-
-from espnet.nets.pytorch_backend.attentions import att_for
-from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import encoder_for
-
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.pytorch_backend.nets_utils import to_device
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -60,11 +48,7 @@ class Reporter(chainer.Chain):
         reporter.report({'loss': mtl_loss}, self)
 
 
-<<<<<<< HEAD
 class E2E(ASRInterface, torch.nn.Module):
-=======
-class E2E(torch.nn.Module):
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     """E2E module
 
     :param int idim: dimension of inputs
@@ -73,11 +57,7 @@ class E2E(torch.nn.Module):
     """
 
     def __init__(self, idim, odim, args):
-<<<<<<< HEAD
         torch.nn.Module.__init__(self)
-=======
-        super(E2E, self).__init__()
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
@@ -113,7 +93,6 @@ class E2E(torch.nn.Module):
         else:
             labeldist = None
 
-<<<<<<< HEAD
         if args.use_frontend:
             # Relative importing because of using python3 syntax
             from espnet.nets.pytorch_backend.frontends.feature_transform \
@@ -127,8 +106,6 @@ class E2E(torch.nn.Module):
         else:
             self.frontend = None
 
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
         # ctc
@@ -183,11 +160,7 @@ class E2E(torch.nn.Module):
                     n = data.size(1)
                     stdv = 1. / math.sqrt(n)
                     data.normal_(0, stdv)
-<<<<<<< HEAD
                 elif data.dim() in (3, 4):
-=======
-                elif data.dim() == 4:
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                     # conv weight
                     n = data.size(1)
                     for k in data.size()[2:]:
@@ -224,7 +197,6 @@ class E2E(torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
-<<<<<<< HEAD
         # 0. Frontend
         if self.frontend is not None:
             hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
@@ -246,22 +218,6 @@ class E2E(torch.nn.Module):
             self.loss_att, acc = None, None
         else:
             self.loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
-=======
-        # 1. encoder
-        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
-
-        # 2. CTC loss
-        if self.mtlalpha == 0:
-            loss_ctc = None
-        else:
-            loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
-
-        # 3. attention loss
-        if self.mtlalpha == 1:
-            loss_att, acc = None, None
-        else:
-            loss_att, acc = self.dec(hs_pad, hlens, ys_pad)
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         self.acc = acc
 
         # 4. compute cer without beam search
@@ -327,7 +283,6 @@ class E2E(torch.nn.Module):
 
         alpha = self.mtlalpha
         if alpha == 0:
-<<<<<<< HEAD
             self.loss = self.loss_att
             loss_att_data = float(self.loss_att)
             loss_ctc_data = None
@@ -339,40 +294,13 @@ class E2E(torch.nn.Module):
             self.loss = alpha * self.loss_ctc + (1 - alpha) * self.loss_att
             loss_att_data = float(self.loss_att)
             loss_ctc_data = float(self.loss_ctc)
-=======
-            self.loss = loss_att
-            loss_att_data = float(loss_att)
-            loss_ctc_data = None
-        elif alpha == 1:
-            self.loss = loss_ctc
-            loss_att_data = None
-            loss_ctc_data = float(loss_ctc)
-        else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = float(loss_att)
-            loss_ctc_data = float(loss_ctc)
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             self.reporter.report(loss_ctc_data, loss_att_data, acc, cer_ctc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
-<<<<<<< HEAD
         return self.loss
-=======
-
-        # Note(kamo): In order to work with DataParallel, on pytorch==0.4,
-        # the return value must be torch.CudaTensor, or tuple/list/dict of it.
-        # Neither CPUTensor nor float/int value can be used
-        # because NCCL communicates between GPU devices.
-        device = next(self.parameters()).device
-
-        acc = torch.tensor([acc], device=device) if acc is not None else None
-        cer = torch.tensor([cer], device=device)
-        wer = torch.tensor([wer], device=device)
-        return self.loss, loss_ctc, loss_att, acc, cer, wer
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
@@ -386,7 +314,6 @@ class E2E(torch.nn.Module):
         """
         prev = self.training
         self.eval()
-<<<<<<< HEAD
         ilens = [x.shape[0]]
 
         # subsample frame
@@ -418,27 +345,6 @@ class E2E(torch.nn.Module):
         if prev:
             self.train()
 
-=======
-        # subsample frame
-        h, ilen = self.subsample_frames(x)
-
-        # 1. encoder
-        # make a utt list (1) to use the same interface for encoder
-        h, _, _ = self.enc(h.unsqueeze(0), ilen)
-
-        # calculate log P(z_t|X) for CTC scores
-        if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(h)[0]
-        else:
-            lpz = None
-
-        # 2. decoder
-        # decode the first utterance
-        y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
-
-        if prev:
-            self.train()
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
@@ -453,7 +359,6 @@ class E2E(torch.nn.Module):
         """
         prev = self.training
         self.eval()
-<<<<<<< HEAD
         ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
 
         # subsample frame
@@ -474,37 +379,17 @@ class E2E(torch.nn.Module):
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
             lpz = self.ctc.log_softmax(hs_pad)
-=======
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_device(self, torch.from_numpy(np.array(xx, dtype=np.float32)))
-              for xx in xs]
-
-        # 1. encoder
-        xpad = pad_list(hs, 0.0)
-        hpad, hlens, _ = self.enc(xpad, ilens)
-
-        # calculate log P(z_t|X) for CTC scores
-        if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(hpad)
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         else:
             lpz = None
 
         # 2. decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
-<<<<<<< HEAD
         y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
-=======
-        y = self.dec.recognize_beam_batch(hpad, hlens, lpz, recog_args, char_list, rnnlm)
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
         if prev:
             self.train()
         return y
 
-<<<<<<< HEAD
     def enhance(self, xs):
         """Forwarding only the frontend stage
 
@@ -526,8 +411,6 @@ class E2E(torch.nn.Module):
             self.train()
         return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
 
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation
 
@@ -540,7 +423,6 @@ class E2E(torch.nn.Module):
         :rtype: float ndarray
         """
         with torch.no_grad():
-<<<<<<< HEAD
             # 0. Frontend
             if self.frontend is not None:
                 hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
@@ -552,12 +434,6 @@ class E2E(torch.nn.Module):
             hpad, hlens, _ = self.enc(hs_pad, hlens)
 
             # 2. Decoder
-=======
-            # encoder
-            hpad, hlens, _ = self.enc(xs_pad, ilens)
-
-            # decoder
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad)
 
         return att_ws

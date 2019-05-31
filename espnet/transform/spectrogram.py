@@ -2,7 +2,6 @@ import librosa
 import numpy as np
 
 
-<<<<<<< HEAD
 def stft(x, n_fft, n_shift, win_length=None, window='hann', center=True,
          pad_mode='reflect'):
     # x: [Time, Channel]
@@ -89,14 +88,6 @@ def logmelspectrogram(x, fs, n_mels, n_fft, n_shift,
                                   fmin=fmin, fmax=fmax, eps=eps)
 
 
-=======
-def spectrogram(x, n_fft, n_shift,
-                win_length=None, window='hann'):
-    spc = np.abs(librosa.stft(x, n_fft, n_shift, win_length, window=window)).T
-    return spc
-
-
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 class Spectrogram(object):
     def __init__(self, n_fft, n_shift, win_length=None, window='hann'):
         self.n_fft = n_fft
@@ -114,37 +105,15 @@ class Spectrogram(object):
                         window=self.window))
 
     def __call__(self, x):
-<<<<<<< HEAD
         return spectrogram(x,
-=======
-        return spectrogram(x.astype(np.float32),
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                            n_fft=self.n_fft, n_shift=self.n_shift,
                            win_length=self.win_length,
                            window=self.window)
 
 
-<<<<<<< HEAD
 class LogMelSpectrogram(object):
     def __init__(self, fs, n_mels, n_fft, n_shift, win_length=None,
                  window='hann', fmin=None, fmax=None, eps=1e-10):
-=======
-def logmelspectrogram(x, fs, n_mels, n_fft, n_shift,
-                      win_length=None, window='hann', fmin=None, fmax=None,
-                      eps=1e-10):
-    fmin = 0 if fmin is None else fmin
-    fmax = fs / 2 if fmax is None else fmax
-    mel_basis = librosa.filters.mel(fs, n_fft, n_mels, fmin, fmax)
-    spc = np.abs(librosa.stft(x, n_fft, n_shift, win_length, window=window))
-    lmspc = np.log10(np.maximum(eps, np.dot(mel_basis, spc).T))
-
-    return lmspc
-
-
-class LogMelSpectrogram(object):
-    def __init__(self, fs, n_mels, n_fft, n_shift, win_length=None, window='hann',
-                 fmin=None, fmax=None, eps=1e-10):
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         self.fs = fs
         self.n_mels = n_mels
         self.n_fft = n_fft
@@ -158,11 +127,7 @@ class LogMelSpectrogram(object):
     def __repr__(self):
         return ('{name}(fs={fs}, n_mels={n_mels}, n_fft={n_fft}, '
                 'n_shift={n_shift}, win_length={win_length}, window={window}, '
-<<<<<<< HEAD
                 'fmin={fmin}, fmax={fmax}, eps={eps}))'
-=======
-                'fmin={fmin}), fmax={fmax}, eps={eps}))'
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                 .format(name=self.__class__.__name__,
                         fs=self.fs,
                         n_mels=self.n_mels,
@@ -176,11 +141,7 @@ class LogMelSpectrogram(object):
 
     def __call__(self, x):
         return logmelspectrogram(
-<<<<<<< HEAD
             x,
-=======
-            x.astype(np.float32),
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
             fs=self.fs,
             n_mels=self.n_mels,
             n_fft=self.n_fft, n_shift=self.n_shift,
@@ -188,7 +149,6 @@ class LogMelSpectrogram(object):
             window=self.window)
 
 
-<<<<<<< HEAD
 class Stft2LogMelSpectrogram(object):
     def __init__(self, fs, n_mels, n_fft, fmin=None, fmax=None, eps=1e-10):
         self.fs = fs
@@ -219,8 +179,6 @@ class Stft2LogMelSpectrogram(object):
             fmax=self.fmax)
 
 
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 class Stft(object):
     def __init__(self, n_fft, n_shift, win_length=None,
                  window='hann', center=True, pad_mode='reflect'):
@@ -244,7 +202,6 @@ class Stft(object):
                         pad_mode=self.pad_mode))
 
     def __call__(self, x):
-<<<<<<< HEAD
         return stft(x, self.n_fft, self.n_shift,
                     win_length=self.win_length,
                     window=self.window,
@@ -274,31 +231,3 @@ class IStft(object):
                      win_length=self.win_length,
                      window=self.window,
                      center=self.center)
-=======
-        # x: [Time, Channel]
-        if x.ndim == 1:
-            single_channel = True
-            # x: [Time] -> [Time, Channel]
-            x = x[:, None]
-            channel = 1
-        else:
-            single_channel = False
-            channel = x.shape[1]
-        x = x.astype(np.float32)
-
-        # FIXME(kamo): librosa.stft can't use multi-channel?
-        # x: [Time, Channel, Freq]
-        x = np.stack([librosa.stft(
-            x=x[:, ch],
-            n_fft=self.n_fft,
-            hop_length=self.n_shift,
-            win_length=self.win_length,
-            window=self.window,
-            center=self.center,
-            pad_mode=self.pad_mode).T
-            for ch in range(channel)], axis=1)
-        if single_channel:
-            # x: [Time, Channel, Freq] -> [Time, Freq]
-            x = x[:, 0]
-        return x
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986

@@ -33,7 +33,6 @@ requirements = {
         'tensorboardX>=1.4',
         'pillow>=5.3.0',
         'nara_wpe',
-<<<<<<< HEAD
         'museval',
         'pystoi',
         'kaldiio',
@@ -41,9 +40,6 @@ requirements = {
         'funcsigs',
         'configargparse',
         'PyYAML'
-=======
-        'kaldiio'
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [

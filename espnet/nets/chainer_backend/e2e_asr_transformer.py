@@ -1,11 +1,8 @@
 # encoding: utf-8
-<<<<<<< HEAD
 from distutils.util import strtobool
 import logging
 import math
 import numpy as np
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 import chainer
 from chainer import reporter
@@ -13,51 +10,17 @@ from chainer import reporter
 import chainer.functions as F
 from chainer.training import extension
 
-<<<<<<< HEAD
 from espnet.asr import asr_utils
 from espnet.nets.asr_interface import ASRInterface
-=======
-from distutils.util import strtobool
-
-from espnet.asr import asr_utils
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 from espnet.nets.chainer_backend.attentions_transformer import MultiHeadAttention
 from espnet.nets.chainer_backend.decoders_transformer import Decoder
 from espnet.nets.chainer_backend.encoders_transformer import Encoder
 from espnet.nets.chainer_backend.nets_utils_transformer import plot_multi_head_attention
 
-<<<<<<< HEAD
-=======
-import logging
-import math
-import numpy as np
-
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 MAX_DECODER_OUTPUT = 5
 MIN_VALUE = float(np.finfo(np.float32).min)
 
 
-<<<<<<< HEAD
-=======
-def add_arguments(parser):
-    group = parser.add_argument_group("transformer model setting")
-    group.add_argument("--transformer-init", type=str, default="pytorch",
-                       help='how to initialize transformer parameters')
-    group.add_argument("--transformer-input-layer", type=str, default="conv2d",
-                       choices=["conv2d", "linear", "embed"],
-                       help='transformer input layer type')
-    group.add_argument('--transformer-attn-dropout-rate', default=None, type=float,
-                       help='dropout in transformer attention. use --dropout-rate if None is set')
-    group.add_argument('--transformer-lr', default=10.0, type=float,
-                       help='Initial value of learning rate')
-    group.add_argument('--transformer-warmup-steps', default=25000, type=int,
-                       help='optimizer warmup steps')
-    group.add_argument('--transformer-length-normalized-loss', default=True, type=strtobool,
-                       help='normalize loss by length')
-    return parser
-
-
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 class VaswaniRule(extension.Extension):
 
     """Trainer extension to shift an optimizer attribute magically by Vaswani.
@@ -118,7 +81,6 @@ class VaswaniRule(extension.Extension):
         self._last_value = value
 
 
-<<<<<<< HEAD
 class E2E(ASRInterface, chainer.Chain):
     @staticmethod
     def add_arguments(parser):
@@ -140,11 +102,6 @@ class E2E(ASRInterface, chainer.Chain):
 
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
         chainer.Chain.__init__(self)
-=======
-class E2E(chainer.Chain):
-    def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
-        super(E2E, self).__init__()
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         self.mtlalpha = args.mtlalpha
         assert 0 <= self.mtlalpha <= 1, "mtlalpha must be [0,1]"
         if args.transformer_attn_dropout_rate is None:
@@ -268,11 +225,7 @@ class E2E(chainer.Chain):
                     logging.info("prediction [%d]: " % i + seq_hat)
         return loss, accuracy
 
-<<<<<<< HEAD
     def forward(self, xs, ilens, ys, calculate_attentions=False):
-=======
-    def __call__(self, xs, ilens, ys, calculate_attentions=False):
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         xp = self.xp
         ilens = np.array([int(x) for x in ilens])
 
@@ -393,13 +346,10 @@ class E2E(chainer.Chain):
                 ret[_name] = var.data
         return ret
 
-<<<<<<< HEAD
     @property
     def attention_plot_class(self):
         return PlotAttentionReport
 
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
     def __call__(self, trainer):

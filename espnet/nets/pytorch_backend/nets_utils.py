@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import numpy as np
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 import torch
 
 
@@ -36,11 +33,7 @@ def pad_list(xs, pad_value):
     return pad
 
 
-<<<<<<< HEAD
 def make_pad_mask(lengths, xs=None, length_dim=-1):
-=======
-def make_pad_mask(lengths):
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     """Function to make mask tensor containing indices of padded part
 
     e.g.: lengths = [5, 3, 2]
@@ -49,7 +42,6 @@ def make_pad_mask(lengths):
                   [0, 0, 1, 1, 1]]
 
     :param list lengths: list of lengths (B)
-<<<<<<< HEAD
     :param torch.Tensor xs: Make the shape to be like.
     :param int length_dim:
     :return: mask tensor containing indices of padded part (B, Tmax)
@@ -81,19 +73,6 @@ def make_pad_mask(lengths):
                     for i in range(xs.dim()))
         mask = mask[ind].expand_as(xs).to(xs.device)
     return mask
-=======
-    :return: mask tensor containing indices of padded part (B, Tmax)
-    :rtype: torch.Tensor
-    """
-    if not isinstance(lengths, list):
-        lengths = lengths.tolist()
-    bs = int(len(lengths))
-    maxlen = int(max(lengths))
-    seq_range = torch.arange(0, maxlen, dtype=torch.int64)
-    seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
-    seq_length_expand = seq_range_expand.new(lengths).unsqueeze(-1)
-    return seq_range_expand >= seq_length_expand
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 
 def mask_by_length(xs, length, fill=0):
@@ -104,7 +83,6 @@ def mask_by_length(xs, length, fill=0):
     return ret
 
 
-<<<<<<< HEAD
 def mask_by_length_and_multiply(xs, length, fill=0, msize=1):
     assert xs.size(0) == len(length)
     ret = xs.data.new(xs.size(0) * msize, xs.size(1), xs.size(2)).fill_(fill)
@@ -133,8 +111,6 @@ def set_requires_grad(nets, requires_grad=False):
                     param.requires_grad = requires_grad
 
 
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 def th_accuracy(pad_outputs, pad_targets, ignore_label):
     """Function to calculate accuracy
 
@@ -197,7 +173,6 @@ def index_select_lm_state(rnnlm_state, dim, vidx):
         for i in vidx:
             new_state.append(rnnlm_state[int(i)][:])
     return new_state
-<<<<<<< HEAD
 
 
 def to_torch_tensor(x):
@@ -259,5 +234,3 @@ def to_torch_tensor(x):
                 return x
             else:
                 raise ValueError(error)
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986

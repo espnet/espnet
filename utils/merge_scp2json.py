@@ -6,10 +6,7 @@ from __future__ import unicode_literals
 
 import argparse
 import codecs
-<<<<<<< HEAD
 from distutils.util import strtobool
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 from io import open
 import json
 import logging
@@ -62,12 +59,9 @@ if __name__ == '__main__':
                         help='The json files except for the input and outputs')
     parser.add_argument('--verbose', '-V', default=1, type=int,
                         help='Verbose option')
-<<<<<<< HEAD
     parser.add_argument('--allow-one-column', type=strtobool, default=False,
                         help='Allow one column in input scp files. '
                              'In this case, the value will be empty string.')
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     parser.add_argument('--out', '-O', type=str,
                         help='The output filename. '
                              'If omitted, then output to sys.stdout')
@@ -172,11 +166,7 @@ if __name__ == '__main__':
         for ls_list in (input_lines, output_lines, lines):
             for ls in ls_list:
                 for line in ls:
-<<<<<<< HEAD
                     if line == '' or first == '':
-=======
-                    if line == ''or first == '':
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                         if line != first:
                             concat = sum(
                                 input_infos + output_infos + infos, [])
@@ -222,7 +212,6 @@ if __name__ == '__main__':
                 for line, info in zip(line_list, info_list):
                     sps = line.split(None, 1)
                     if len(sps) < 2:
-<<<<<<< HEAD
                         if not args.allow_one_column:
                             raise RuntimeError(
                                 'Format error {}th line in {}: '
@@ -233,13 +222,6 @@ if __name__ == '__main__':
                     else:
                         uttid, value = sps
 
-=======
-                        raise RuntimeError(
-                            'Format error {}th line in {}: '
-                            ' Expecting "<key> <value>":\n>>> {}'
-                            .format(nutt, info[1], line))
-                    uttid, value = sps
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                     key = info[0]
                     type_func = info[2]
                     value = value.rstrip()

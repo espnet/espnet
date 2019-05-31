@@ -26,22 +26,15 @@ class LoadInputsAndTargets(object):
     >>> feat, target = l(batch)
 
     :param: str mode: Specify the task mode, "asr" or "tts"
-<<<<<<< HEAD
     :param: str preprocess_conf: The path of a json file for pre-processing
-=======
-    :param: str preproces_conf: The path of a json file for pre-processing
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     :param: bool load_input: If False, not to load the input data
     :param: bool load_output: If False, not to load the output data
     :param: bool sort_in_input_length: Sort the mini-batch in descending order
         of the input length
     :param: bool use_speaker_embedding: Used for tts mode only
     :param: bool use_second_target: Used for tts mode only
-<<<<<<< HEAD
     :param: dict preprocess_args: Set some optional arguments for preprocessing
     :param: Optional[dict] preprocess_args: Used for tts mode only
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     """
 
     def __init__(self, mode='asr',
@@ -51,10 +44,7 @@ class LoadInputsAndTargets(object):
                  sort_in_input_length=True,
                  use_speaker_embedding=False,
                  use_second_target=False,
-<<<<<<< HEAD
                  preprocess_args=None
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                  ):
         self._loaders = {}
         if mode not in ['asr', 'tts']:
@@ -63,11 +53,7 @@ class LoadInputsAndTargets(object):
         if preprocess_conf is not None:
             self.preprocessing = Transformation(preprocess_conf)
             logging.warning(
-<<<<<<< HEAD
                 '[Experimental feature] Some preprocessing will be done '
-=======
-                '[Experimental feature] Some pre-transform will be done '
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                 'for the mini-batch creation using {}'
                 .format(self.preprocessing))
         else:
@@ -88,14 +74,11 @@ class LoadInputsAndTargets(object):
         self.sort_in_input_length = sort_in_input_length
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
-<<<<<<< HEAD
         if preprocess_args is None:
             self.preprocess_args = {}
         else:
             assert isinstance(preprocess_args, dict), type(preprocess_args)
             self.preprocess_args = dict(preprocess_args)
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
     def __call__(self, batch):
         """Function to load inputs and targets from list of dicts
@@ -118,18 +101,12 @@ class LoadInputsAndTargets(object):
             uttid_list.append(uttid)
 
             if self.load_input:
-<<<<<<< HEAD
                 # Note(kamo): This for-loop is for multiple inputs
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                 for idx, inp in enumerate(info['input']):
                     # {"input":
                     #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                     #    "filetype": "hdf5",
-<<<<<<< HEAD
                     #    "name": "input1", ...}], ...}
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                     x = self._get_from_loader(
                         filepath=inp['feat'],
                         filetype=inp.get('filetype', 'mat'))
@@ -149,19 +126,6 @@ class LoadInputsAndTargets(object):
             if self.load_output:
                 for idx, inp in enumerate(info['output']):
                     if 'tokenid' in inp:
-                        # ======= Legacy format for output =======
-                        # {"output": [{"tokenid": "1 2 3 4"}])
-                        x = np.fromiter(map(int, inp['tokenid'].split()),
-                                        dtype=np.int64)
-                    else:
-                        # ======= New format =======
-                        # {"input":
-                        #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                        #    "filetype": "hdf5",
-<<<<<<< HEAD
-                        #    "name": "target1", ...}], ...}
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                         x = self._get_from_loader(
                             filepath=inp['feat'],
                             filetype=inp.get('filetype', 'mat'))
@@ -184,13 +148,8 @@ class LoadInputsAndTargets(object):
             # Apply pre-processing only to input1 feature, now
             if 'input1' in return_batch:
                 return_batch['input1'] = \
-<<<<<<< HEAD
                     self.preprocessing(return_batch['input1'], uttid_list,
                                        **self.preprocess_args)
-=======
-                    self.preprocessing(return_batch['input1'],
-                                       uttid_list)
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
         # Doesn't return the names now.
         return tuple(return_batch.values())
@@ -199,7 +158,6 @@ class LoadInputsAndTargets(object):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
-<<<<<<< HEAD
             e.g. {"input1": [ndarray, ndarray, ...],
                   "input2": [ndarray, ndarray, ...]}
         :param OrderedDict y_feats_dict:
@@ -207,9 +165,6 @@ class LoadInputsAndTargets(object):
                   "target2": [ndarray, ndarray, ...]}
         :param: List[str] uttid_list:
             Give uttid_list to sort in the same order as the mini-batch
-=======
-        :param OrderedDict y_feats_dict:
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         :return: batch, uttid_list
         :rtype: Tuple[OrderedDict, List[str]]
         """
@@ -232,12 +187,8 @@ class LoadInputsAndTargets(object):
                 for n in range(1, len(y_feats_dict)):
                     nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
         else:
-<<<<<<< HEAD
             # Note(kamo): Be careful not to make nonzero_idx to a generator
             nonzero_idx = list(range(len(xs)))
-=======
-            nonzero_idx = range(len(xs))
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
         if self.sort_in_input_length:
             # sort in input lengths
@@ -262,11 +213,8 @@ class LoadInputsAndTargets(object):
                 ys = zip(*[[y[i] for i in nonzero_sorted_idx] for y in ys])
 
             y_name = list(y_feats_dict.keys())[0]
-<<<<<<< HEAD
 
             # Keepng x_name and y_name, e.g. input1, for future extension
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
             return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
         else:
             return_batch = OrderedDict([(x_name, xs)])
@@ -276,16 +224,12 @@ class LoadInputsAndTargets(object):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
-<<<<<<< HEAD
             e.g. {"input1": [ndarray, ndarray, ...],
                   "input2": [ndarray, ndarray, ...]}
         :param OrderedDict y_feats_dict:
             e.g. {"target1": [ndarray, ndarray, ...],
                   "target2": [ndarray, ndarray, ...]}
         :param: List[str] uttid_list:
-=======
-        :param OrderedDict y_feats_dict:
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         :param int eos:
         :return: batch, uttid_list
         :rtype: Tuple[OrderedDict, List[str]]
@@ -354,19 +298,15 @@ class LoadInputsAndTargets(object):
         In order to make the fds to be opened only at the first referring,
         the loader are stored in self._loaders
 
-<<<<<<< HEAD
         >>> ndarray = loader.get_from_loader(
         ...     'some/path.h5:F01_050C0101_PED_REAL', filetype='hdf5')
 
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         :param: str filepath:
         :param: str filetype:
         :return:
         :rtype: np.ndarray
         """
         if filetype == 'hdf5':
-<<<<<<< HEAD
             # e.g.
             #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
             #                "filetype": "hdf5",
@@ -376,18 +316,10 @@ class LoadInputsAndTargets(object):
             loader = self._loaders.get(filepath)
             if loader is None:
                 # To avoid disk access, create loader only for the first time
-=======
-            filepath, key = filepath.split(':', 1)
-            loader = self._loaders.get(filepath)
-            if loader is None:
-                #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                #                "filetype": "hdf5",
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                 loader = h5py.File(filepath, 'r')
                 self._loaders[filepath] = loader
             return loader[key][()]
         elif filetype == 'sound.hdf5':
-<<<<<<< HEAD
             # e.g.
             #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
             #                "filetype": "sound.hdf5",
@@ -397,29 +329,18 @@ class LoadInputsAndTargets(object):
             loader = self._loaders.get(filepath)
             if loader is None:
                 # To avoid disk access, create loader only for the first time
-=======
-            filepath, key = filepath.split(':', 1)
-            loader = self._loaders.get(filepath)
-            if loader is None:
-                #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                #                "filetype": "sound.hdf5",
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                 loader = SoundHDF5File(filepath, 'r', dtype='int16')
                 self._loaders[filepath] = loader
             array, rate = loader[key]
             return array
         elif filetype == 'sound':
-<<<<<<< HEAD
             # e.g.
             #    {"input": [{"feat": "some/path.wav",
             #                "filetype": "sound"},
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
             # Assume PCM16
             array, rate = soundfile.read(filepath, dtype='int16')
             return array
         elif filetype == 'npz':
-<<<<<<< HEAD
             # e.g.
             #    {"input": [{"feat": "some/path.npz:F01_050C0101_PED_REAL",
             #                "filetype": "npz",
@@ -428,26 +349,15 @@ class LoadInputsAndTargets(object):
             loader = self._loaders.get(filepath)
             if loader is None:
                 # To avoid disk access, create loader only for the first time
-=======
-            filepath, key = filepath.split(':', 1)
-            loader = self._loaders.get(filepath)
-            if loader is None:
-                #    {"input": [{"feat": "some/path.npz:F01_050C0101_PED_REAL",
-                #                "filetype": "npz",
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
                 loader = np.load(filepath)
                 self._loaders[filepath] = loader
             return loader[key]
         elif filetype == 'npy':
-<<<<<<< HEAD
             # e.g.
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
             #    {"input": [{"feat": "some/path.npy",
             #                "filetype": "npy"},
             return np.load(filepath)
         elif filetype in ['mat', 'vec']:
-<<<<<<< HEAD
             # e.g.
             #    {"input": [{"feat": "some/path.ark:123",
             #                "filetype": "mat"}]},
@@ -464,19 +374,6 @@ class LoadInputsAndTargets(object):
                 # To avoid disk access, create loader only for the first time
                 loader = kaldiio.load_scp(filepath)
                 self._loaders[filepath] = loader
-=======
-            #    {"input": [{"feat": "some/path.ark:123",
-            #                "filetype": "mat"}]},
-            # load_mat can load both matrix and vector
-            return kaldiio.load_mat(filepath)
-        elif filetype == 'scp':
-            filepath, key = filepath.split(':', 1)
-            loader = self._loaders.get(filepath)
-            if loader is None:
-                #    {"input": [{"feat": "some/path.scp:F01_050C0101_PED_REAL",
-                #                "filetype": "scp",
-                loader = kaldiio.load_scp(filepath)
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
             return loader[key]
         else:
             raise NotImplementedError(
