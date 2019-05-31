@@ -27,7 +27,7 @@ rm -f ${tmpdir}/*.scp
 
 # input, which is not necessary for decoding mode, and make it as an option
 if [[ "$unpaired" == "feat" || $unpaired == "" || $unpaired == "sae" ]]; then
-    if [ ! -n ${feat} ]; then
+    if [ -z ${feat} ]; then
         if [ ${verbose} -eq 0 ]; then
             utils/data/get_utt2num_frames.sh ${dir} &> /dev/null
             cp ${dir}/utt2num_frames ${tmpdir}/ilen.scp
@@ -44,9 +44,9 @@ fi
 
 # output
 if [[ "$unpaired" == "text" || $unpaired == "" ]]; then
-    if [ ! -n ${bpecode} ]; then
+    if [ -z ${bpecode} ]; then
         paste -d " " <(awk '{print $1}' ${dir}/text) <(cut -f 2- -d" " ${dir}/text | spm_encode --model=${bpecode} --output_format=piece) > ${tmpdir}/token.scp
-    elif [ ! -n ${nlsyms} ]; then
+    elif [ -z ${nlsyms} ]; then
         text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/token.scp
     else
         text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/token.scp
@@ -59,7 +59,7 @@ if [[ "$unpaired" == "text" || $unpaired == "" ]]; then
     awk -v odim=${odim} '{print $1 " " odim}' ${dir}/text > ${tmpdir}/odim.scp
 
     # others
-    if [ ! -n ${lang} ]; then
+    if [ -z ${lang} ]; then
         awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/lang.scp
     fi
 fi
