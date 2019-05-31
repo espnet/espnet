@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # [WIP] DNN based frontend system
 
 [Warining] **Not all components are enough tested.**
@@ -56,6 +55,3 @@ All components are implemented using PyTorch, thus they can perform with its aut
     To traing the backend part with nolsy data,
     passing the multi-channel data to the backend part without the frontend,
     and the backend cannot handle multi-channel, so selecting 1-channel randomly.
-=======
-# WIP (kamo)
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986

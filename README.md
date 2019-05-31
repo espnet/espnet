@@ -15,11 +15,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-<<<<<<< HEAD
 - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU) or Transformer
-=======
-- Encoder: VGG-like CNN + BiRNN (LSTM/GRU) or sub-sampling BiRNN (LSTM/GRU)
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 - Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
@@ -42,7 +38,6 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 - PyTorch 0.4.1, 1.0.0
 - gcc>=4.9 for PyTorch1.0.0
-<<<<<<< HEAD
 - Chainer 6.0.0
 
 Optionally, GPU environment requires the following libraries:
@@ -50,9 +45,6 @@ Optionally, GPU environment requires the following libraries:
 - Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library
 - Cudnn 6+
 - NCCL 2.0+ (for the use of multi-GPUs)
-=======
-- Chainer 5.0.0
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 Optionally, GPU environment requires the following libraries:
 
@@ -115,7 +107,6 @@ $ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
 ### Step 2-B) installation including Kaldi installation
 
 Install Kaldi, Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
-<<<<<<< HEAD
 ```sh
 $ cd tools
 $ make -j 10
@@ -124,16 +115,6 @@ $ make -j 10
 As seen above, you can also specify the Python and CUDA versions, and Python path (based on `virtualenv`), for example:
 ```sh
 $ cd tools
-=======
-```sh
-$ cd tools
-$ make -j 10
-```
-
-As seen above, you can also specify the Python and CUDA versions, and Python path (based on `virtualenv`), for example:
-```sh
-$ cd tools
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 $ make -j 10 PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
 ```
 ```sh
@@ -148,17 +129,10 @@ To install in a terminal that does not have a GPU installed, just clear the vers
 
 ```sh
 $ cd tools
-<<<<<<< HEAD
 $ make CUPY_VERSION='' -j 10
 ```
 
 This option is enabled for any of the install configuration.
-=======
-$ make CUPY_VERSION='' -j 10 
-```
-
-This option is enabled for any of the install configuration. 
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 ### Step 3) installation check
 
@@ -167,11 +141,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ make check_install
 ```
-<<<<<<< HEAD
 or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal.
-=======
-or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal. 
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
@@ -227,11 +197,7 @@ this epoch [#####.............................................] 10.84%
 ```
 
 In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
-<<<<<<< HEAD
 ```sh
-=======
-```sh 
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 $ tensorboard --logdir tensorboard
 ```
 and connecting to the given address (default : localhost:6006). This will provide the following information:
@@ -372,18 +338,6 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | TEDLIUM2 test | N/A | 12.6 |
 | WSJ dev93 | 3.2 | 7.0 |
 | WSJ eval92| 2.1 | 4.7 |
-<<<<<<< HEAD
-=======
-| CSJ eval1 | 6.6 | N/A  |
-| CSJ eval2 | 4.8 | N/A  |
-| CSJ eval3 | 5.0 | N/A  |
-| Aishell dev | 6.8 | N/A |
-| Aishell test | 8.0 | N/A |
-| HKUST train_dev | 28.8 | N/A  |
-| HKUST dev       | 27.4 | N/A  |
-| Librispeech dev_clean  | N/A | 4.0 |
-| Librispeech test_clean | N/A | 4.0 |
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
@@ -402,7 +356,6 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 
 ## References
 [1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
-<<<<<<< HEAD
 
 [2] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
 
@@ -421,20 +374,3 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
   url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
 }
 ```
-=======
-
-[2] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
-
-[3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
-
-## Citation                                                                     
-@inproceedings{watanabe2018espnet,                                                    
-  author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
-  title={ESPnet: End-to-End Speech Processing Toolkit},                         
-  year=2018,                                                                    
-  booktitle={Interspeech},                                           
-  pages={2207--2211},                                                           
-  doi={10.21437/Interspeech.2018-1456},                                         
-  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}                        
-}  
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986

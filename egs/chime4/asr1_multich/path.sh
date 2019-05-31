@@ -14,7 +14,6 @@ else
     source $MAIN_ROOT/tools/venv/bin/activate
 fi
 export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
-<<<<<<< HEAD
 export PATH=$MAIN_ROOT/tools/PESQ/P862/Software/source:$PATH
 
 export OMP_NUM_THREADS=1
@@ -35,7 +34,3 @@ if ! which PESQ > /dev/null; then
     echo "Error: cd ${MAIN_ROOT}/tools && make pesq" >&2
     return 1
 fi
-=======
-
-export OMP_NUM_THREADS=1
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986

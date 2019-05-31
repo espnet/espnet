@@ -1,5 +1,4 @@
 # If a Python interpreter is specified, then creates a virtualenv from it
-<<<<<<< HEAD
 # PYTHON := /usr/bin/python3.7
 PYTHON :=
 # The python version installed in the conda setup
@@ -8,16 +7,6 @@ CUPY_VERSION := 6.0.0
 CUDA_VERSION := 10.0
 # PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
 TH_VERSION := 1.0.1
-=======
-# PYTHON := /usr/bin/python2.7
-PYTHON :=
-# The python version installed in the conda setup
-PYTHON_VERSION := 3.7
-CUPY_VERSION := 5.0.0
-CUDA_VERSION := 10.0
-# PyTorch version: 0.4.1 or 1.0.0
-TH_VERSION := 1.0.0
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
 
@@ -40,15 +29,9 @@ endif
 
 all: kaldi.done python check_install
 
-<<<<<<< HEAD
 python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done pytorch_complex.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done pesq
-=======
-python: venv $(CUDA_DEPS) chainer_patch.done warp-ctc.done chainer_ctc.done
-
-extra: nkf.done sentencepiece.done mecab.done moses.done
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -76,7 +59,6 @@ espnet.done: venv
 		. venv/bin/activate; pip install matplotlib; \
 	fi
 	. venv/bin/activate; pip install torch==$(TH_VERSION)
-<<<<<<< HEAD
 	touch espnet.done
 else
 miniconda.sh:
@@ -91,22 +73,6 @@ espnet.done: venv
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
 	touch espnet.done
-=======
-	touch espnet.done
-else
-miniconda.sh:
-	test -f miniconda.sh || wget $(CONDA_URL) -O miniconda.sh
-venv: miniconda.sh
-	test -d $(PWD)/venv || bash miniconda.sh -b -p $(PWD)/venv
-	. venv/bin/activate && conda update -y conda
-	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
-	. venv/bin/activate && conda info -a
-espnet.done: venv
-	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
-	. venv/bin/activate && conda install -y matplotlib
-	. venv/bin/activate && pip install -e ..
-	touch espnet.done
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 endif
 
 cupy.done: espnet.done
@@ -115,14 +81,6 @@ ifneq ($(strip $(CUPY_VERSION)),)
 	touch cupy.done
 endif
 
-<<<<<<< HEAD
-=======
-chainer_patch.done: espnet.done
-	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
-	patch $(FILENAME) < prefetch.patch
-	touch chainer_patch.done
-
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
 	git clone https://github.com/jnishi/warp-ctc.git
@@ -146,7 +104,6 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
 
-<<<<<<< HEAD
 ifeq ($(PYTHON_VERSION),2.7)
 # Nothing to do
 pytorch_complex.done:
@@ -157,8 +114,6 @@ pytorch_complex.done: venv
 	touch pytorch_complex.done
 endif
 
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 nkf.done:
 	rm -rf nkf
 	mkdir -p nkf
@@ -210,7 +165,6 @@ else
 	. venv/bin/activate; python check_install.py --no-cupy
 endif
 
-<<<<<<< HEAD
 pesq: PESQ/P862/Software/PESQ
 PESQ/P862/Software/PESQ: PESQ
 	cd PESQ/P862/Software/source; gcc *.c -lm -o PESQ
@@ -220,8 +174,6 @@ PESQ: PESQ.zip
 PESQ.zip:
 	wget 'https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200102-I!!SOFT-ZST-E&type=items' -O PESQ.zip
 
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
@@ -231,17 +183,10 @@ clean: clean_extra
 clean_python:
 	rm -rf venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-<<<<<<< HEAD
 	rm -f warp-ctc.done chainer_ctc.done espnet.done pytorch_complex pytorch_complex.done
-=======
-	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 	find . -iname "*.pyc" -delete
 
 clean_extra:
 	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
 	rm -rf nkf sentencepiece mecab swig moses
-<<<<<<< HEAD
 	rm -rf PESQ PESQ.zip
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986

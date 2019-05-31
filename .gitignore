@@ -40,8 +40,4 @@ tools/sentencepiece/
 tools/swig/
 tools/warp-ctc/
 tools/*.done
-<<<<<<< HEAD
 tools/PESQ*
-=======
-
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986

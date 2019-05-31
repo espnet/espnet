@@ -13,17 +13,12 @@ spk=$3
 data_dir=$4
 
 # check arguments
-<<<<<<< HEAD
 if [ $# != 4 ]; then
-=======
-if [ $# != 4 ];then
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     echo "Usage: $0 [options] <download_dir> <lang> <spk> <data_dir>"
     exit 1
 fi
 
 # check language
-<<<<<<< HEAD
 if [ ${lang} = "de_DE" ]; then
     available_spks=("angela" "rebecca" "ramona" "eva" "karlsson")
 elif [ ${lang} = "en_UK" ]; then
@@ -39,23 +34,6 @@ elif [ ${lang} = "fr_FR" ]; then
 elif [ ${lang} = "uk_UK" ]; then
     available_spks=("sumska" "loboda" "miskun" "obruchov" "shepel")
 elif [ ${lang} = "ru_RU" ]; then
-=======
-if [ ${lang} = "de_DE" ];then
-    available_spks=("angela" "rebecca" "ramona" "eva" "karlsson")
-elif [ ${lang} = "en_UK" ];then
-    available_spks=("elizabeth")
-elif [ ${lang} = "it_IT" ];then
-    available_spks=("lisa" "riccardo")
-elif [ ${lang} = "es_ES" ];then
-    available_spks=("karen" "tux" "victor")
-elif [ ${lang} = "en_US" ];then
-    available_spks=("judy" "mary" "elliot")
-elif [ ${lang} = "fr_FR" ];then
-    available_spks=("ezwa" "nadine" "bernard" "gilles" "zeckou")
-elif [ ${lang} = "uk_UK" ];then
-    available_spks=("sumska" "loboda" "miskun" "obruchov" "shepel")
-elif [ ${lang} = "ru_RU" ];then
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     available_spks=("hajdurova" "minaev" "nikolaev")
 else
     echo "${lang} is not supported."
@@ -63,11 +41,7 @@ else
 fi
 
 # check speaker
-<<<<<<< HEAD
 if ! $(echo ${available_spks[*]} | grep -q ${spk}); then
-=======
-if ! $(echo ${available_spks[*]} | grep -q ${spk});then
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     echo "Specified speaker is not available."
     echo "Available speakers: ${available_spks[*]}"
     exit 1

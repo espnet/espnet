@@ -100,15 +100,9 @@ set -e
 set -u
 set -o pipefail
 
-<<<<<<< HEAD
 train_set="tr"
 train_dev="cv"
 recog_set="tt"
-=======
-train_set=tr
-train_dev=cv
-recog_set=tt
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.

@@ -20,41 +20,9 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-<<<<<<< HEAD
 train_config=conf/train_mtlalpha1.0.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode_ctcweight1.0.yaml
-=======
-# network architecture
-# encoder related
-etype=blstmp     # encoder architecture type
-elayers=4
-eunits=320
-eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=1
-dunits=300
-# attention related
-atype=location
-adim=320
-aconv_chans=10
-aconv_filts=100
-
-# hybrid CTC/attention
-mtlalpha=0.5
-
-# minibatch related
-batchsize=30
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
-# optimization related
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-opt=adadelta
-epochs=20
-patience=3
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
@@ -231,11 +199,7 @@ fi
 
 
 if [ -z ${tag} ]; then
-<<<<<<< HEAD
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
-=======
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -245,13 +209,8 @@ fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
 
-<<<<<<< HEAD
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
-=======
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Network Training"
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
@@ -266,39 +225,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.json \
-<<<<<<< HEAD
         --valid-json ${feat_dt_dir}/data.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-=======
-        --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --opt ${opt} \
-        --sortagrad ${sortagrad} \
-        --epochs ${epochs} \
-        --patience ${patience}
-fi
-
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Decoding"
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     nj=8
 
     pids=() # initialize pids
@@ -327,17 +258,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --verbose ${verbose} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-<<<<<<< HEAD
             --model ${expdir}/results/${recog_model} \
             ${recog_opts}
-=======
-            --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight}
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
         score_sclite.sh ${expdir}/${decode_dir} ${dict}
 

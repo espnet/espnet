@@ -25,56 +25,11 @@ n_mels=80     # number of mel basis
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
 win_length="" # window length
-<<<<<<< HEAD
 
 # config files
 train_config=conf/train_pytorch_tacotron2+spkemb.yaml
 decode_config=conf/decode.yaml
 
-=======
-# encoder related
-embed_dim=512
-elayers=1
-eunits=512
-econv_layers=3 # if set 0, no conv layer is used
-econv_chans=512
-econv_filts=5
-# decoder related
-dlayers=2
-dunits=1024
-prenet_layers=2  # if set 0, no prenet is used
-prenet_units=256
-postnet_layers=5 # if set 0, no postnet is used
-postnet_chans=512
-postnet_filts=5
-use_speaker_embedding=true
-# attention related
-atype=forward_ta
-adim=128
-aconv_chans=32
-aconv_filts=15      # resulting in filter_size = aconv_filts * 2 + 1
-cumulate_att_w=true # whether to cumulate attetion weight
-use_batch_norm=true # whether to use batch normalization in conv layer
-use_concate=true    # whether to concatenate encoder embedding with decoder lstm outputs
-use_residual=false  # whether to use residual connection in encoder convolution
-use_masking=true    # whether to mask the padded part in loss calculation
-bce_pos_weight=1.0  # weight for positive samples of stop token in cross-entropy calculation
-reduction_factor=2
-# minibatch related
-batchsize=64
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-batch_sort_key=output # empty or input or output (if empty, shuffled batch will be used)
-maxlen_in=150     # if input length  > maxlen_in, batchsize is reduced (if batch_sort_key="", not effect)
-maxlen_out=400    # if output length > maxlen_out, batchsize is reduced (if batch_sort_key="", not effect)
-# optimization related
-lr=1e-3
-eps=1e-6
-weight_decay=0.0
-dropout=0.5
-zoneout=0.1
-epochs=30
-patience=5
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 # decoding related
 model=model.loss.best
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
@@ -99,10 +54,7 @@ set -u
 set -o pipefail
 
 train_set=train_clean_460
-<<<<<<< HEAD
 train_set=train_clean_100
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 dev_set=dev
 eval_set=test_clean
 
@@ -205,11 +157,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     done
     # Check pretrained model existence
     nnet_dir=exp/xvector_nnet_1a
-<<<<<<< HEAD
     if [ ! -e ${nnet_dir} ]; then
-=======
-    if [ ! -e ${nnet_dir} ];then
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         echo "X-vector model does not exist. Download pre-trained model."
         wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
         tar xvf 0008_sitw_v2_1a.tar.gz
@@ -229,54 +177,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 
-<<<<<<< HEAD
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
-=======
-if [ -z ${tag} ];then
-    expname=${train_set}_${backend}_taco2_r${reduction_factor}_enc${embed_dim}
-    if [ ${econv_layers} -gt 0 ];then
-        expname=${expname}-${econv_layers}x${econv_filts}x${econv_chans}
-    fi
-    expname=${expname}-${elayers}x${eunits}_dec${dlayers}x${dunits}
-    if [ ${prenet_layers} -gt 0 ];then
-        expname=${expname}_pre${prenet_layers}x${prenet_units}
-    fi
-    if [ ${postnet_layers} -gt 0 ];then
-        expname=${expname}_post${postnet_layers}x${postnet_filts}x${postnet_chans}
-    fi
-    expname=${expname}_${atype}${adim}-${aconv_filts}x${aconv_chans}
-    if ${cumulate_att_w};then
-        expname=${expname}_cm
-    fi
-    if ${use_batch_norm};then
-        expname=${expname}_bn
-    fi
-    if ${use_residual};then
-        expname=${expname}_rs
-    fi
-    if ${use_concate};then
-        expname=${expname}_cc
-    fi
-    if ${use_masking};then
-        expname=${expname}_msk_pw${bce_pos_weight}
-    fi
-    expname=${expname}_do${dropout}_zo${zoneout}_lr${lr}_ep${eps}_wd${weight_decay}_bs$((batchsize*ngpu))
-    if [ ! ${batch_sort_key} = "shuffle" ];then
-        expname=${expname}_sort_by_${batch_sort_key}_mli${maxlen_in}_mlo${maxlen_out}
-    fi
-    expname=${expname}_sd${seed}
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 else
     expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-<<<<<<< HEAD
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-=======
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     echo "stage 4: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
@@ -291,55 +199,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
            --resume ${resume} \
            --train-json ${tr_json} \
            --valid-json ${dt_json} \
-<<<<<<< HEAD
            --config ${train_config}
 fi
 
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-=======
-           --embed_dim ${embed_dim} \
-           --elayers ${elayers} \
-           --eunits ${eunits} \
-           --econv_layers ${econv_layers} \
-           --econv_chans ${econv_chans} \
-           --econv_filts ${econv_filts} \
-           --dlayers ${dlayers} \
-           --dunits ${dunits} \
-           --prenet_layers ${prenet_layers} \
-           --prenet_units ${prenet_units} \
-           --postnet_layers ${postnet_layers} \
-           --postnet_chans ${postnet_chans} \
-           --postnet_filts ${postnet_filts} \
-           --atype ${atype} \
-           --adim ${adim} \
-           --aconv-chans ${aconv_chans} \
-           --aconv-filts ${aconv_filts} \
-           --cumulate_att_w ${cumulate_att_w} \
-           --use_speaker_embedding ${use_speaker_embedding} \
-           --use_batch_norm ${use_batch_norm} \
-           --use_concate ${use_concate} \
-           --use_residual ${use_residual} \
-           --use_masking ${use_masking} \
-           --bce_pos_weight ${bce_pos_weight} \
-           --lr ${lr} \
-           --eps ${eps} \
-           --dropout ${dropout} \
-           --zoneout ${zoneout} \
-           --reduction_factor ${reduction_factor} \
-           --weight-decay ${weight_decay} \
-           --sortagrad ${sortagrad} \
-           --batch_sort_key ${batch_sort_key} \
-           --batch-size ${batchsize} \
-           --maxlen-in ${maxlen_in} \
-           --maxlen-out ${maxlen_out} \
-           --epochs ${epochs} \
-           --patience ${patience}
-fi
-
-outdir=${expdir}/outputs_${model}_th${threshold}_mlr${minlenratio}-${maxlenratio}
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     echo "stage 5: Decoding"
     for name in ${dev_set} ${eval_set};do
         [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
@@ -362,11 +226,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
     done
 fi
 
-<<<<<<< HEAD
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-=======
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ];then
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     echo "stage 6: Synthesis"
     for name in ${dev_set} ${eval_set};do
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
@@ -381,10 +241,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ];then
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
             --n_mels ${n_mels} \
-<<<<<<< HEAD
             --iters ${griffin_lim_iters} \
-=======
->>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
             ${outdir}_denorm/${name} \
             ${outdir}_denorm/${name}/log \
             ${outdir}_denorm/${name}/wav
