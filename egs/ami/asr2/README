@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# gather the waveform directories from multiple locations as train, dev and test
+# prepare a scp file from these dirs
+# the text needs to be created from the ctm (kind of file)
+# locations provided by the SD guys are as follows:
+#1) /mnt/matylda4/landini/data/AMI_for_seq+att/raws_data_16kHz.Array1.BeamformIt_v099/enrollment_segments # wav dir for xvector extraction
+#2) /mnt/matylda4/landini/data/AMI_data/lists/All_files_per_speaker.scp 
+#3) /mnt/matylda4/landini/data/AMI_for_seq+att/per_spk_stats_nice_format
+#4) /mnt/matylda4/landini/data/AMI_for_seq+att/raws_data_16kHz.Array1.BeamformIt_v099/full_filtered  # train wav dir
+#5) /mnt/matylda6/mireia/DATASETS/AMI/lists/All_files.scp
+#6) /mnt/matylda4/landini/data/AMI_for_seq+att/rttms/updated_filtered_condensed
+#7) /mnt/matylda6/mireia/DATASETS/AMI/lists/All_files.scp
+#8) /mnt/matylda6/mireia/DATASETS/AMI/lists/Part{1,2,3,4}.scp, Part1: 15.32h, Part2: 17.99h, Part3: 18.4h, Part4: 15.71h 
+
+# Step1: convert raw to wav dir (16KHz)
+pathA=/mnt/matylda4/landini/data/AMI_for_seq+att/raws_data_16kHz.Array1.BeamformIt_v099/enrollment_segments
+pathB=/mnt/matylda4/landini/data/AMI_for_seq+att/raws_data_16kHz.Array1.BeamformIt_v099/full_filtered
+scratch=/mnt/scratch06/tmp/baskar/ami
+outdir=data/wav
+rttms=/mnt/matylda4/landini/data/AMI_for_seq+att/rttms/updated_filtered_condensed
+stage=1
+
+train=data/train
+dev=data/dev
+test=data/test
+xvec=data/xvec
+
+
+if [ $stage -le -1 ]; then
+    local/make_symlink_dir.sh --tmp-root $scratch $outdir
+    for dir in $pathA $pathB; do
+        mkdir -p $outdir/$(basename $dir)
+        find $dir -iname '*.raw' > $outdir/$(basename $dir)/wav.scp
+    done
+    files=(`find $outdir/ -iname "wav.scp" | xargs -n1 -i cat {}`)
+    num=${#files[@]}
+    for ((idx=0; idx<$num; idx++)); do
+        dir=$(dirname ${files[$idx]})
+        subdir=$(echo $dir | awk -F'/' '{print $(NF-2)"/"$(NF-1)}');
+        if [ ! -d $outdir/$subdir ]; then mkdir -p $outdir/$subdir; fi # inefficient
+        name=$(basename -s .raw ${files[$idx]})
+        echo "converting $name to wav"
+        sox -b 16 -r 16000 -c 1 -e signed-integer ${files[$idx]} $outdir/$subdir/${name}.wav
+    done
+fi
+
+if [ $stage -le 0 ]; then
+    mkdir -p $train $dev $eval $xvec
+    find $(pwd)/$outdir/enrollment_segments/* -iname "*.wav" | sort -u | awk -F"/" '{print $NF" " $0}' | sed "s|.wav | |g" > $xvec/wav.enroll.scp
+    awk '{print $1 " " $1}' $xvec/wav.enroll.scp > $xvec/utt2spk;
+    perl utils/utt2spk_to_spk2utt.pl $xvec/utt2spk > $xvec/spk2utt
+    find $(pwd)/$outdir/full_filtered/* -iname "*.wav" | sort -u | awk -F"/" '{print $NF" " $0}' | sed "s|.wav | |g" > $train/wav.full.scp
+    awk '{print $1 " " $1}' $train/wav.full.scp > $train/utt2spk;
+    perl utils/utt2spk_to_spk2utt.pl $train/utt2spk > $train/spk2utt
+fi
+
+
+if [ $stage -le 1 ]; then
+    find $rttms -iname "*.rttm" | sort > $train/rttms_list
+    num=$(cat ${train}/rttms_list | wc -l)
+    rttm_list=(`cat $train/rttms_list`)
+    echo "${rttm_list}"
+    for ((id=0; id<$num; id++)); do
+        python local/text_prep.py ${rttm_list[$id]} out/$(basename ${rttm_list[$id]})
+    done
+    find out/* -iname "*.rttm" | sort -u | xargs -n1 -i cat {} > $train/rttm_list_seg
+fi
+
+if [ $stage -le 2 ]; then
+    train_seg=${train}.seg
+    mkdir -p $train_seg
+    #AMI_EN2001a_H00_MEE068_0149704_0149864 AMI_EN2001a_H00 1497.04 1498.64
+    awk '{print $1 "_" ($2*100) "_" ($3*100)" "$1 " " $2 " " $3}'  $train/rttm_list_seg > $train_seg/segments
+    awk '{printf($1 "_" ($2*100) "_" ($3*100)); for (i=4;i<=NF;i++) printf(" %s", $i); printf "\n"}'  $train/rttm_list_seg > $train_seg/text
+    awk '{print $1 " " $1}' $train_seg/text > $train_seg/utt2spk
+    perl utils/utt2spk_to_spk2utt.pl $train_seg/utt2spk > $train_seg/spk2utt
+    bash utils/fix_data_dir.sh $train_seg
+fi
+
+if [ $stage -le 3 ]; then
+    bash utils/subset_data_dir_tr_cv.sh $train_seg ${train_seg}_tr ${train_seg}_cv
+fi
+
+
