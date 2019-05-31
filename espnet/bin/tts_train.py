@@ -50,7 +50,7 @@ def main(cmd_args):
     parser.add_argument('--verbose', '-V', default=0, type=int,
                         help='Verbose option')
     parser.add_argument('--tensorboard-dir', default=None, type=str, nargs='?',
-                        help="Tensorboard log dir path")
+                        help="Tensorboard log directory path")
     parser.add_argument('--save-interval-epochs', default=1, type=int,
                         help="Save interval epochs")
     parser.add_argument('--report-interval-iters', default=100, type=int,

@@ -129,14 +129,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 
-if [ -z ${tag} ];then
+if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
 else
     expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
@@ -156,7 +156,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
 fi
 
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     if [ ${n_average} -gt 1 ]; then
         recog_model=model.last${n_average}.avg.best
@@ -192,7 +192,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Synthesis"
     pids=() # initialize pids
     for name in ${dev_set} ${eval_set};do

@@ -115,7 +115,7 @@ class PlotAttentionReport(extension.Extension):
         batch = self.converter([self.transform(self.data)], self.device)
         if isinstance(batch, tuple):
             att_ws = self.att_vis_fn(*batch)
-        elif isinstance(batch, dict):
+        else:
             att_ws = self.att_vis_fn(**batch)
         return att_ws
 
