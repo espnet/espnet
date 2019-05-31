@@ -123,7 +123,7 @@ for s in all; do
 	else
 	    cp $dir/etc/PROMPTS ${loctmp}/char_tmp/$idpfx.utf8
 	fi
-  
+
 	PYTHONIOENCODING=utf-8 local/make_trans.py ${loctmp}/char_tmp/$idpfx.utf8 ${idpfx} "${all_wavs[@]}" \
 			    2>>${logdir}/make_trans.log >> ${loctmp}/${s}_trans.txt.unsorted
     done
