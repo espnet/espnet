@@ -20,13 +20,56 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
+<<<<<<< HEAD
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
+=======
+# network architecture
+# encoder related
+etype=vggblstm     # encoder architecture type
+elayers=3
+eunits=1024
+eprojs=1024
+subsample=1_2_2_1_1 # skip every n frame from input to nth layers
+# decoder related
+dlayers=1
+dunits=1024
+# attention related
+atype=location
+adim=1024
+aconv_chans=10
+aconv_filts=100
+
+# hybrid CTC/attention
+mtlalpha=0.5
+
+# minibatch related
+batchsize=32
+maxlen_in=600  # if input length  > maxlen_in, batchsize is automatically reduced
+maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
+
+# optimization related
+sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+opt=adadelta
+epochs=10
+patience=3
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
+<<<<<<< HEAD
+=======
+lm_layers=1         # 2 for character LMs
+lm_units=1000       # 650 for character LMs
+lm_opt=sgd          # adam for character LMs
+lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
+lm_batchsize=300    # 1024 for character LMs
+lm_epochs=20        # number of epochs
+lm_patience=3
+lm_maxlen=40        # 150 for character LMs
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
 
@@ -171,7 +214,11 @@ fi
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
+<<<<<<< HEAD
     lmtag=$(basename ${lm_config%.*})
+=======
+    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     if [ ${use_wordlm} = true ]; then
         lmtag=${lmtag}_word${lm_vocabsize}
     fi
@@ -220,11 +267,26 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
+<<<<<<< HEAD
+=======
+        --layer ${lm_layers} \
+        --unit ${lm_units} \
+        --opt ${lm_opt} \
+        --sortagrad ${lm_sortagrad} \
+        --batchsize ${lm_batchsize} \
+        --epoch ${lm_epochs} \
+        --patience ${lm_patience} \
+        --maxlen ${lm_maxlen} \
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         --dict ${lmdict}
 fi
 
 if [ -z ${tag} ]; then
+<<<<<<< HEAD
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
+=======
+    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -250,7 +312,30 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.json \
+<<<<<<< HEAD
         --valid-json ${feat_dt_dir}/data.json
+=======
+        --valid-json ${feat_dt_dir}/data.json \
+        --etype ${etype} \
+        --elayers ${elayers} \
+        --eunits ${eunits} \
+        --eprojs ${eprojs} \
+        --subsample ${subsample} \
+        --dlayers ${dlayers} \
+        --dunits ${dunits} \
+        --atype ${atype} \
+        --adim ${adim} \
+        --aconv-chans ${aconv_chans} \
+        --aconv-filts ${aconv_filts} \
+        --mtlalpha ${mtlalpha} \
+        --batch-size ${batchsize} \
+        --maxlen-in ${maxlen_in} \
+        --maxlen-out ${maxlen_out} \
+        --opt ${opt} \
+        --sortagrad ${sortagrad} \
+        --epochs ${epochs} \
+        --patience ${patience}
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -260,9 +345,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
+<<<<<<< HEAD
         decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
         if [ ${use_wordlm} = true ]; then
             decode_dir=${decode_dir}_wordrnnlm_${lmtag}
+=======
+        if [ ${use_wordlm} = true ]; then
+            decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_wordrnnlm${lm_weight}_${lmtag}
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         else
             decode_dir=${decode_dir}_rnnlm_${lmtag}
         fi
@@ -288,6 +378,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
+<<<<<<< HEAD
+=======
+            --beam-size ${beam_size} \
+            --penalty ${penalty} \
+            --maxlenratio ${maxlenratio} \
+            --minlenratio ${minlenratio} \
+            --ctc-weight ${ctc_weight} \
+            --lm-weight ${lm_weight} \
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
             ${recog_opts}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
@@ -299,9 +398,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 
     echo "Report the result"
+<<<<<<< HEAD
     decode_part_dir=$(basename ${decode_config%.*})
     if [ ${use_wordlm} = true ]; then
 	decode_part_dir=${decode_part_dir}_wordrnnlm_${lmtag}
+=======
+    decode_part_dir=beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}
+    if [ ${use_wordlm} = true ]; then
+	decode_part_dir=${decode_part_dir}_wordrnnlm${lm_weight}_${lmtag}
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     else
 	decode_part_dir=${decode_part_dir}_rnnlm_${lmtag}
     fi

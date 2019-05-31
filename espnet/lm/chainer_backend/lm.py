@@ -373,7 +373,11 @@ def train(args):
 
     set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+<<<<<<< HEAD:espnet/lm/chainer_backend/lm.py
         writer = SummaryWriter(args.tensorboard_dir)
+=======
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/lm/chainer_backend/lm.py
         trainer.extend(TensorboardLogger(writer))
 
     trainer.run()

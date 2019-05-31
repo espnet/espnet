@@ -94,18 +94,25 @@ def main():
                     i += 1
             a = chars
 
+<<<<<<< HEAD
         if(args.trans_type == "phn"):
             a = a.split(" ")
         else:
             a = [a[j:j + n] for j in range(0, len(a), n)]
+=======
+        a = [a[j:j + n] for j in range(0, len(a), n)]
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
         a_flat = []
         for z in a:
             a_flat.append("".join(z))
 
         a_chars = [z.replace(' ', args.space) for z in a_flat]
+<<<<<<< HEAD
         if(args.trans_type == "phn"):
             a_chars = [z.replace("sil", args.space) for z in a_chars]
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         print(' '.join(a_chars))
         line = f.readline()
 

@@ -48,12 +48,26 @@ $ test ! -s check_autopep8
 
 You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
 
+<<<<<<< HEAD
 You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core) and [shellcheck](https://github.com/koalaman/shellcheck).
+=======
+You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core).  
+To install:
+
+``` console
+$ git clone https://github.com/bats-core/bats-core.git
+$ export PATH=$(pwd)/bats-core/bin:$PATH
+```
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 To test:
 
 ``` console
+<<<<<<< HEAD
 ./ci/test_bash.sh
+=======
+$ bats test_utils
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 ```
 
 ### Configuration files

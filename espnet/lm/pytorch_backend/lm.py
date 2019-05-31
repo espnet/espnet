@@ -161,6 +161,7 @@ class ClassifierWithState(nn.Module):
 # Definition of a recurrent net for language modeling
 class RNNLM(nn.Module):
     """A pytorch RNNLM
+<<<<<<< HEAD:espnet/lm/pytorch_backend/lm.py
 
     :param int n_vocab: The size of the vocabulary
     :param int n_layers: The number of layers to create
@@ -168,6 +169,15 @@ class RNNLM(nn.Module):
     :param str typ: The RNN type
     """
 
+=======
+
+    :param int n_vocab: The size of the vocabulary
+    :param int n_layers: The number of layers to create
+    :param int n_units: The number of units per layer
+    :param str typ: The RNN type
+    """
+
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/lm/pytorch_backend/lm.py
     def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
@@ -410,7 +420,11 @@ def train(args):
 
     set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+<<<<<<< HEAD:espnet/lm/pytorch_backend/lm.py
         writer = SummaryWriter(args.tensorboard_dir)
+=======
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/lm/pytorch_backend/lm.py
         trainer.extend(TensorboardLogger(writer))
 
     trainer.run()

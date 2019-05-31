@@ -15,10 +15,15 @@ oov="<unk>"
 bpecode=""
 allow_one_column=false
 verbose=0
+<<<<<<< HEAD
 trans_type=char
 filetype=""
 preprocess_conf=""
 category=""
+=======
+filetype=""
+preprocess_conf=""
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 out="" # If omitted, write in stdout
 
 . utils/parse_options.sh
@@ -72,9 +77,15 @@ if [ -n "${bpecode}" ]; then
         | spm_encode --model=${bpecode} --output_format=piece) \
         > ${tmpdir}/output/token.scp
 elif [ -n "${nlsyms}" ]; then
+<<<<<<< HEAD
     text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text --trans_type ${trans_type} > ${tmpdir}/output/token.scp
 else
     text2token.py -s 1 -n 1 ${dir}/text --trans_type ${trans_type} > ${tmpdir}/output/token.scp
+=======
+    text2token.py -s 1 -n 1 -l ${nlsyms} ${dir}/text > ${tmpdir}/output/token.scp
+else
+    text2token.py -s 1 -n 1 ${dir}/text > ${tmpdir}/output/token.scp
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 fi
 < ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
 # +2 comes from CTC blank and EOS
@@ -84,6 +95,7 @@ odim=$(echo "$vocsize + 2" | bc)
 
 cat ${dir}/text > ${tmpdir}/output/text.scp
 
+<<<<<<< HEAD
 
 # 3. Create scp files for the others
 mkdir -p ${tmpdir}/other
@@ -96,6 +108,15 @@ if [ -n "${category}" ]; then
         > ${tmpdir}/other/category.scp
 fi
 cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
+=======
+
+# 3. Create scp files for the others
+mkdir -p ${tmpdir}/other
+if [ -n "${lang}" ]; then
+    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/other/lang.scp
+fi
+cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # 4. Merge scp files into a JSON file
 opts=""
@@ -106,7 +127,11 @@ for intype in input output other; do
         opts+="--scps "
     fi
 
+<<<<<<< HEAD
     for x in "${tmpdir}/${intype}"/*.scp; do
+=======
+    for x in ${tmpdir}/${intype}/*.scp; do
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         k=$(basename ${x} .scp)
         if [ ${k} = shape ]; then
             opts+="shape:${x}:shape "
@@ -116,6 +141,7 @@ for intype in input output other; do
     done
 done
 
+<<<<<<< HEAD
 if ${allow_one_column}; then
     opts+="--allow-one-column true "
 else
@@ -125,6 +151,12 @@ fi
 if [ -n "${out}" ]; then
     opts+="-O ${out}"
 fi
+=======
+if [ -n "${out}" ]; then
+    opts+="-O ${out}"
+fi
+
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 merge_scp2json.py --verbose ${verbose} ${opts}
 
 rm -fr ${tmpdir}

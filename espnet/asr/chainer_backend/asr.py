@@ -32,6 +32,7 @@ from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import chainer_load
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.nets.asr_interface import ASRInterface
 from espnet.utils.deterministic_utils import set_deterministic_chainer
@@ -41,6 +42,18 @@ from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+=======
+from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asr_utils import restore_snapshot
+from espnet.transform.transformation import using_transform_config
+from espnet.utils.io_utils import LoadInputsAndTargets
+
+from espnet.utils.training.iterators import ShufflingEnabler
+from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
+from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
+
+from espnet.utils.deterministic_utils import set_deterministic_chainer
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
 
@@ -105,7 +118,10 @@ class CustomUpdater(training.StandardUpdater):
         logging.info('grad norm={}'.format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning('grad norm is nan. Do not update model.')
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
             optimizer.target.cleargrads()  # Clear the parameter gradients
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
         elif self.count % self.accum_grad == 0:
             optimizer.update()
             optimizer.target.cleargrads()  # Clear the parameter gradients
@@ -169,12 +185,26 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
 class CustomConverter(object):
     """Custom Converter
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
 
     :param int subsampling_factor : The subsampling factor
     """
 
     def __init__(self, subsampling_factor=1):
         self.subsampling_factor = subsampling_factor
+=======
+
+    :param int subsampling_factor : The subsampling factor
+    """
+
+    def __init__(self, subsampling_factor=1, preprocess_conf=None):
+        self.subsampling_factor = subsampling_factor
+        self.load_inputs_and_targets = LoadInputsAndTargets(
+            mode='asr', load_output=True, preprocess_conf=preprocess_conf)
+
+    def transform(self, item):
+        return self.load_inputs_and_targets(item)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
 
     def __call__(self, batch, device):
         # set device
@@ -241,9 +271,15 @@ def train(args):
 
     # specify model architecture
     logging.info('import model module: ' + args.model_module)
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
     model_class = dynamic_import(args.model_module)
     model = model_class(idim, odim, args, flag_return=False)
     assert isinstance(model, ASRInterface)
+=======
+    from importlib import import_module
+    model_module = import_module(args.model_module)
+    model = model_module.E2E(idim, odim, args, flag_return=False)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -283,9 +319,12 @@ def train(args):
         optimizer = chainer.optimizers.Adam()
     elif args.opt == 'noam':
         optimizer = chainer.optimizers.Adam(alpha=0, beta1=0.9, beta2=0.98, eps=1e-9)
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
     else:
         raise NotImplementedError('args.opt={}'.format(args.opt))
 
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.GradientClipping(args.grad_clip))
 
@@ -299,6 +338,7 @@ def train(args):
         valid_json = json.load(f)['utts']
 
     # set up training iterator and updater
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
     load_tr = LoadInputsAndTargets(
         mode='asr', load_output=True, preprocess_conf=args.preprocess_conf,
         preprocess_args={'train': True}  # Switch the mode of preprocessing
@@ -308,11 +348,16 @@ def train(args):
         preprocess_args={'train': False}  # Switch the mode of preprocessing
     )
 
+=======
+    converter = CustomConverter(subsampling_factor=model.subsample[0],
+                                preprocess_conf=args.preprocess_conf)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     accum_grad = args.accum_grad
     if ngpu <= 1:
         # make minibatch list (variable length)
         train = make_batchset(train_json, args.batch_size,
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
                               args.maxlen_in, args.maxlen_out, args.minibatches,
                               min_batch_size=args.ngpu if args.ngpu > 1 else 1,
                               shortest_first=use_sortagrad,
@@ -321,16 +366,27 @@ def train(args):
                               batch_frames_in=args.batch_frames_in,
                               batch_frames_out=args.batch_frames_out,
                               batch_frames_inout=args.batch_frames_inout)
+=======
+                              args.maxlen_in, args.maxlen_out, args.minibatches, shortest_first=use_sortagrad)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
         # hack to make batchsize argument as 1
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
             train_iters = [ToggleableShufflingMultiprocessIterator(
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
                 TransformDataset(train, load_tr),
+=======
+                TransformDataset(train, converter.transform),
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
                 shuffle=not use_sortagrad)]
         else:
             train_iters = [ToggleableShufflingSerialIterator(
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
                 TransformDataset(train, load_tr),
+=======
+                TransformDataset(train, converter.transform),
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
                 batch_size=1, shuffle=not use_sortagrad)]
 
         # set up updater
@@ -360,13 +416,21 @@ def train(args):
         # actual batchsize is included in a list
         if args.n_iter_processes > 0:
             train_iters = [ToggleableShufflingMultiprocessIterator(
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
                 TransformDataset(train_subsets[gid], load_tr),
+=======
+                TransformDataset(train_subsets[gid], converter.transform),
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
                 batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
                 shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
         else:
             train_iters = [ToggleableShufflingSerialIterator(
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
                 TransformDataset(train_subsets[gid], load_tr),
+=======
+                TransformDataset(train_subsets[gid], converter.transform),
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
                 batch_size=1, shuffle=not use_sortagrad)
                 for gid in six.moves.xrange(ngpu)]
 
@@ -382,9 +446,14 @@ def train(args):
         trainer.extend(ShufflingEnabler(train_iters),
                        trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, 'epoch'))
     if args.opt == 'noam':
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
         from espnet.nets.chainer_backend.e2e_asr_transformer import VaswaniRule
         trainer.extend(VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
                                    scale=args.transformer_lr), trigger=(1, 'iteration'))
+=======
+        trainer.extend(model_module.VaswaniRule('alpha', d=args.adim, warmup_steps=args.transformer_warmup_steps,
+                                                scale=args.transformer_lr), trigger=(1, 'iteration'))
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
     # Resume from a snapshot
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
@@ -419,6 +488,7 @@ def train(args):
                       key=lambda x: int(x[1]['input'][0]['shape'][1]), reverse=True)
         if hasattr(model, "module"):
             att_vis_fn = model.module.calculate_all_attentions
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
             plot_class = model.module.attention_plot_class
         else:
             att_vis_fn = model.calculate_all_attentions
@@ -427,6 +497,18 @@ def train(args):
         att_reporter = plot_class(
             att_vis_fn, data, args.outdir + "/att_ws",
             converter=converter, transform=load_cv, device=gpu_id)
+=======
+        else:
+            att_vis_fn = model.calculate_all_attentions
+        try:
+            PlotAttentionReport = model_module.PlotAttentionReport
+            logging.info('Using custom PlotAttentionReport')
+        except AttributeError:
+            from espnet.asr.asr_utils import PlotAttentionReport
+        att_reporter = PlotAttentionReport(
+            att_vis_fn, data, args.outdir + "/att_ws",
+            converter=converter, device=gpu_id)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
         att_reporter = None
@@ -487,7 +569,11 @@ def train(args):
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
         writer = SummaryWriter(args.tensorboard_dir)
+=======
+        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
         trainer.extend(TensorboardLogger(writer, att_reporter))
 
     # Run the training
@@ -513,9 +599,15 @@ def recog(args):
 
     # specify model architecture
     logging.info('reading model parameters from ' + args.model)
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
     model_class = dynamic_import(train_args.model_module)
     model = model_class(idim, odim, train_args)
     assert isinstance(model, ASRInterface)
+=======
+    from importlib import import_module
+    model_module = import_module(train_args.model_module)
+    model = model_module.E2E(idim, odim, train_args)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
     chainer_load(args.model, model)
 
     # read rnnlm
@@ -551,9 +643,13 @@ def recog(args):
     load_inputs_and_targets = LoadInputsAndTargets(
         mode='asr', load_output=False, sort_in_input_length=False,
         preprocess_conf=train_args.preprocess_conf
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
         if args.preprocess_conf is None else args.preprocess_conf,
         preprocess_args={'train': False}  # Switch the mode of preprocessing
     )
+=======
+        if args.preprocess_conf is None else args.preprocess_conf)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
 
     # decode each utterance
     new_js = {}
@@ -561,7 +657,12 @@ def recog(args):
         for idx, name in enumerate(js.keys(), 1):
             logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
             batch = [(name, js[name])]
+<<<<<<< HEAD:espnet/asr/chainer_backend/asr.py
             feat = load_inputs_and_targets(batch)[0][0]
+=======
+            with using_transform_config({'train': False}):
+                feat = load_inputs_and_targets(batch)[0][0]
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986:espnet/asr/chainer_backend/asr.py
             nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
             new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
 

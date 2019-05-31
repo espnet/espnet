@@ -15,9 +15,13 @@ import numpy as np
 
 
 def main(args):
+<<<<<<< HEAD
     parser = configargparse.ArgumentParser(
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+=======
+    parser = argparse.ArgumentParser()
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     # general configuration
     parser.add('--config', is_config_file=True, help='config file path')
     parser.add('--config2', is_config_file=True,

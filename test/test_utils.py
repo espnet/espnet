@@ -4,6 +4,7 @@ import kaldiio
 import numpy as np
 import pytest
 
+<<<<<<< HEAD
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.io_utils import SoundHDF5File
 from espnet.utils.training.batchfy import make_batchset
@@ -20,10 +21,30 @@ def test_make_batchset(swap_io):
     print([len(batch) for batch in batchset])
     batchset = make_batchset(dummy_json, 24, 2 ** 10, 2 ** 10,
                              min_batch_size=10, swap_io=swap_io)
+=======
+import espnet.asr.asr_utils
+import espnet.tts.tts_utils
+from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.io_utils import SoundHDF5File
+from test.utils_test import make_dummy_json
+
+
+@pytest.mark.parametrize('utils', [espnet.asr.asr_utils, espnet.tts.tts_utils])
+def test_make_batchset(utils):
+    dummy_json = make_dummy_json(128, [128, 512], [16, 128])
+    # check w/o adaptive batch size
+    batchset = utils.make_batchset(dummy_json, 24, 2 ** 10, 2 ** 10,
+                                   min_batch_size=1)
+    assert sum([len(batch) >= 1 for batch in batchset]) == len(batchset)
+    print([len(batch) for batch in batchset])
+    batchset = utils.make_batchset(dummy_json, 24, 2 ** 10, 2 ** 10,
+                                   min_batch_size=10)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
     print([len(batch) for batch in batchset])
 
     # check w/ adaptive batch size
+<<<<<<< HEAD
     batchset = make_batchset(dummy_json, 24, 256, 64,
                              min_batch_size=10, swap_io=swap_io)
     assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
@@ -42,6 +63,25 @@ def test_sortagrad(swap_io):
         key = 'output'
     else:
         batchset = make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, shortest_first=True)
+=======
+    batchset = utils.make_batchset(dummy_json, 24, 256, 64,
+                                   min_batch_size=10)
+    assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
+    print([len(batch) for batch in batchset])
+    batchset = utils.make_batchset(dummy_json, 24, 256, 64,
+                                   min_batch_size=10)
+    assert sum([len(batch) >= 10 for batch in batchset]) == len(batchset)
+
+
+@pytest.mark.parametrize('utils', [espnet.asr.asr_utils, espnet.tts.tts_utils])
+def test_sortagrad(utils):
+    dummy_json = make_dummy_json(128, [1, 700], [1, 700])
+    if 'tts' in str(utils):
+        batchset = utils.make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, batch_sort_key="input", shortest_first=True)
+        key = 'output'
+    else:
+        batchset = utils.make_batchset(dummy_json, 16, 2 ** 10, 2 ** 10, shortest_first=True)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         key = 'input'
     prev_start_ilen = batchset[0][0][1][key][0]['shape'][0]
     for batch in batchset:

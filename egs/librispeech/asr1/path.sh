@@ -16,8 +16,11 @@ export PATH=$MAIN_ROOT/tools/sentencepiece/build/bin:$PATH
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$MAIN_ROOT/tools/chainer_ctc/ext/warp-ctc/build
 if [ -e $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh ]; then
     source $MAIN_ROOT/tools/venv/etc/profile.d/conda.sh && conda deactivate && conda activate
+<<<<<<< HEAD
 elif [ -e $BUT_CONDA/etc/profile.d/conda.sh ]; then
     source $BUT_CONDA/bin/activate py36_cuda9_torch4
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 else
     source $MAIN_ROOT/tools/venv/bin/activate
 fi
@@ -25,9 +28,12 @@ export PATH=$MAIN_ROOT/utils:$MAIN_ROOT/espnet/bin:$PATH
 export PYTHONPATH=$MAIN_ROOT:$SPNET_ROOT:$KALDI_ROOT/kaldi-io-for-python:$BUT_CONDA/envs/py36_cuda9_torch4/bin:$SPNET_ROOT/lm/:$SPNET_ROOT/tts:$SPNET_ROOT/asr/:$SPNET_ROOT/nets/:$MAIN_ROOT/utils/:$SPNET_ROOT/bin/:$PYTHONPATH
 
 export OMP_NUM_THREADS=1
+<<<<<<< HEAD
 export CC="/usr/local/bin/gcc-5.3"
 export CXX="/usr/local/bin/g++-5.3"
 export CPATH=$CUDA_HOME/include
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
 # check extra module installation
 if ! which spm_decode > /dev/null; then

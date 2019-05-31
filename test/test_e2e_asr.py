@@ -16,7 +16,10 @@ import pytest
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+<<<<<<< HEAD
 from espnet.utils.training.batchfy import make_batchset
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 from test.utils_test import make_dummy_json
 
 
@@ -54,8 +57,12 @@ def make_arg(**kwargs):
         ctc_type="warpctc",
         sym_space="<space>",
         sym_blank="<blank>",
+<<<<<<< HEAD
         sortagrad=0,
         use_frontend=False
+=======
+        sortagrad=0
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)
@@ -206,7 +213,12 @@ def test_streaming_e2e_encoder_and_ctc_with_offline_attention():
 )
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
+<<<<<<< HEAD
     dummy_json = make_dummy_json(8, [1, 100], [1, 100], idim=20, odim=5)
+=======
+    dummy_json = make_dummy_json(8, [1, 700], [1, 700], idim=20, odim=5)
+    from espnet.asr.asr_utils import make_batchset
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     if module == "pytorch":
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
@@ -217,6 +229,7 @@ def test_sortagrad_trainable(module):
         attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
+<<<<<<< HEAD
         in_data = np.random.randn(50, 20)
         model.recognize(in_data, args, args.char_list)
 
@@ -284,6 +297,8 @@ def test_sortagrad_trainable_with_batch_frames(module):
         attn_loss = model(*convert_batch(batch, module, idim=20, odim=5))[0]
         attn_loss.backward()
     with torch.no_grad(), chainer.no_backprop_mode():
+=======
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
         in_data = np.random.randn(100, 20)
         model.recognize(in_data, args, args.char_list)
 
@@ -339,8 +354,12 @@ def test_loss_and_ctc_grad(etype):
     th_batch = prepare_inputs("pytorch")
 
     _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+<<<<<<< HEAD
     th_model(*th_batch)
     th_ctc, th_att = th_model.loss_ctc, th_model.loss_att
+=======
+    _, th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
@@ -364,8 +383,12 @@ def test_loss_and_ctc_grad(etype):
     th_model.zero_grad()
 
     _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+<<<<<<< HEAD
     th_model(*th_batch)
     th_ctc, th_att = th_model.loss_ctc, th_model.loss_att
+=======
+    _, th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
     ch_att.backward()
     th_att.backward()
     np.testing.assert_allclose(ch_model.dec.output.W.grad,
@@ -390,8 +413,12 @@ def test_mtl_loss(etype):
     th_batch = prepare_inputs("pytorch")
 
     _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+<<<<<<< HEAD
     th_model(*th_batch)
     th_ctc, th_att = th_model.loss_ctc, th_model.loss_att
+=======
+    _, th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
     # test masking
     ch_ench = ch_model.att.pre_compute_enc_h.data
@@ -431,8 +458,13 @@ def test_zero_length_target(etype):
     ch_batch = prepare_inputs("chainer", olens=[4, 0])
     th_batch = prepare_inputs("pytorch", olens=[4, 0])
 
+<<<<<<< HEAD
     ch_model(*ch_batch)
     th_model(*th_batch)
+=======
+    _, ch_ctc, ch_att, ch_acc = ch_model(*ch_batch)
+    _, th_ctc, th_att, th_acc, th_cer, th_wer = th_model(*th_batch)
+>>>>>>> 3c086dddcae725e6068d5dffc26e5962617cf986
 
     # NOTE: We ignore all zero length case because chainer also fails. Have a nice data-prep!
     # out_data = ""
