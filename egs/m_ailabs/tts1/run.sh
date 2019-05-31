@@ -156,14 +156,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
          data/${eval_set} ${dict} > ${feat_ev_dir}/data.json
 fi
 
-if [ -z ${tag} ];then
+if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
 else
     expname=${train_set}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Text-to-speech model training"
     tr_json=${feat_tr_dir}/data.json
     dt_json=${feat_dt_dir}/data.json
@@ -183,7 +183,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ];then
 fi
 
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
     for name in ${dev_set} ${eval_set};do
         [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
@@ -206,7 +206,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ];then
     done
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ];then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Synthesis"
     for name in ${dev_set} ${eval_set};do
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
