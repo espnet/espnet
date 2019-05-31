@@ -226,7 +226,6 @@ class LoadInputsAndTargetsASRTTS(object):
             spembs = [spembs[i] for i in nonzero_sorted_idx]
             spembs_name = list(x_feats_dict.keys())[1]
             return_batch = OrderedDict([(x_name, xs), (y_name, ys), (spembs_name, spembs)])
- 
         return return_batch, uttid_list
 
     def _create_batch_tts(self, x_feats_dict, y_feats_dict, uttid_list, eos):
@@ -253,7 +252,6 @@ class LoadInputsAndTargetsASRTTS(object):
             nonzero_sorted_idx = sorted(nonzero_idx, key=lambda i: -len(xs[i]))
         else:
             nonzero_sorted_idx = nonzero_idx
-        # remove zero-length samples
         xs = [xs[i] for i in nonzero_sorted_idx]
         uttid_list = [uttid_list[i] for i in nonzero_sorted_idx]
         # Added eos into input sequence
