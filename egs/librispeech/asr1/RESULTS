@@ -41,3 +41,10 @@ decode_dev_clean_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_
 decode_dev_other_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 12.3
 decode_test_clean_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 4.0
 decode_test_other_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024: 12.7
+
+# pytorch Transformer without any hyper-parameter tuning
+#train_960_pytorch_transformer_conv2d_e12_unit2048_d6_unit2048_aheads4_dim256_mtlalpha0.3_noam_sampprob0.0_ngpu3_bs32_lr10.0_warmup25000_mli512_mlo150_epochs100_accum2_lennormFalse_lsmunigram0.1/
+decode_dev_clean_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024/result.wrd.txt: 3.8
+decode_dev_other_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024/result.wrd.txt: 9.9
+decode_test_clean_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024/result.wrd.txt: 4.2
+decode_test_other_beam20_emodel.last10.avg.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.7_1layer_unit1024_sgd_bs1024/result.wrd.txt: 9.8
