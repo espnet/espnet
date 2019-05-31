@@ -78,7 +78,6 @@ class Decoder(torch.nn.Module):
         self.dunits = dunits
         self.sos = sos
         self.eos = eos
-        self.eprojs = eprojs
         self.odim = odim
         self.verbose = verbose
         self.char_list = char_list
@@ -106,7 +105,7 @@ class Decoder(torch.nn.Module):
                 z_list[l] = self.decoder[l](self.dropout_dec[l - 1](z_list[l - 1]), z_prev[l])
         return z_list, c_list
 
-    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0, zero_att=False):
+    def forward(self, hs_pad, hlens, ys_pad, strm_idx=0):
         """Decoder forward
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
@@ -124,11 +123,8 @@ class Decoder(torch.nn.Module):
         # in SPA (speaker parallel attention), att_idx is used to select attention module. In other cases, it is 0.
         att_idx = min(strm_idx, len(self.att) - 1)
 
-        if zero_att:
-            hlens = None
-        else:
-            # hlen should be list of integer
-            hlens = list(map(int, hlens))
+        # hlen should be list of integer
+        hlens = list(map(int, hlens))
 
         self.loss = None
         # prepare input and output word sequences with sos/eos IDs
@@ -145,23 +141,15 @@ class Decoder(torch.nn.Module):
         # get dim, length info
         batch = ys_out_pad.size(0)
         olength = ys_out_pad.size(1)
-        if not zero_att:
-            logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlens))
-            logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
-        # initialization
-        if zero_att:
-            c_list = [ys_out_pad.new_zeros(batch, self.dunits, dtype=torch.float)]
-            z_list = [ys_out_pad.new_zeros(batch, self.dunits, dtype=torch.float)]
-            for l in six.moves.range(1, self.dlayers):
-                c_list.append(ys_out_pad.new_zeros(batch, self.dunits, dtype=torch.float))
-                z_list.append(ys_out_pad.new_zeros(batch, self.dunits, dtype=torch.float))
-        else:
-            c_list = [self.zero_state(hs_pad)]
-            z_list = [self.zero_state(hs_pad)]
-            for l in six.moves.range(1, self.dlayers):
-                c_list.append(self.zero_state(hs_pad))
-                z_list.append(self.zero_state(hs_pad))
+        logging.info(self.__class__.__name__ + ' input lengths:  ' + str(hlens))
+        logging.info(self.__class__.__name__ + ' output lengths: ' + str([y.size(0) for y in ys_out]))
 
+        # initialization
+        c_list = [self.zero_state(hs_pad)]
+        z_list = [self.zero_state(hs_pad)]
+        for _ in six.moves.range(1, self.dlayers):
+            c_list.append(self.zero_state(hs_pad))
+            z_list.append(self.zero_state(hs_pad))
         att_w = None
         z_all = []
         self.att[att_idx].reset()  # reset pre-computation of h
@@ -171,21 +159,15 @@ class Decoder(torch.nn.Module):
 
         # loop for an output sequence
         for i in six.moves.range(olength):
-            if zero_att:
-                att_z = torch.zeros(ys_out_pad.size(0), self.eprojs).cuda()
-            else:
-                att_c, att_w = self.att[att_idx](hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w)
+            att_c, att_w = self.att[att_idx](hs_pad, hlens, self.dropout_dec[0](z_list[0]), att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
-                z_out = np.argmax(z_out.cpu().detach(), axis=1)
+                z_out = np.argmax(z_out.detach().cpu(), axis=1)
                 z_out = self.dropout_emb(self.embed(z_out.cuda()))
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
-                if zero_att:
-                    ey = torch.cat((eys[:, i, :], att_z), dim=1)
-                else:
-                    ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
+                ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
             z_all.append(self.dropout_dec[-1](z_list[-1]))
 
@@ -566,18 +548,20 @@ class Decoder(torch.nn.Module):
                         k = k + beam
                         continue
                     for beam_j in six.moves.range(beam):
-                        yk = y_prev[k][:]
-                        yk.append(self.eos)
-                        if len(yk) < hlens[samp_i]:
-                            _vscore = eos_vscores[samp_i][beam_j] + penalty_i
-                            if normalize_score:
-                                _vscore = _vscore / len(yk)
-                            _score = _vscore.data.cpu().numpy()
-                            ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
+                        if eos_vscores[samp_i, beam_j] > thr[samp_i]:
+                            yk = y_prev[k][:]
+                            yk.append(self.eos)
+                            if len(yk) < hlens[samp_i]:
+                                _vscore = eos_vscores[samp_i][beam_j] + penalty_i
+                                if normalize_score:
+                                    _vscore = _vscore / len(yk)
+                                _score = _vscore.data.cpu().numpy()
+                                ended_hyps[samp_i].append({'yseq': yk, 'vscore': _vscore, 'score': _score})
                         k = k + 1
 
             # end detection
-            stop_search = [stop_search[samp_i] for samp_i in six.moves.range(batch)]
+            stop_search = [stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
+                           for samp_i in six.moves.range(batch)]
             stop_search_summary = list(set(stop_search))
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
                 break
@@ -650,110 +634,6 @@ class Decoder(torch.nn.Module):
         # convert to numpy array with the shape (B, Lmax, Tmax)
         att_ws = att_to_numpy(att_ws, self.att[att_idx])
         return att_ws
-
-    def generate(self, hpad, hlen, topk=0, maxlenratio=1.0, minlenratio=0.3, rnnlm=None):
-        '''Decoder generate
-
-        :param hs:
-        :return:
-        '''
-
-        # get dim, length info
-        # initialization
-        strm_idx = 0
-        self.loss = None
-        logzero = -1.0e+10
-        n_samples = len(hlen)
-        c_list = [self.zero_state(hpad)]
-        z_list = [self.zero_state(hpad)]
-        for l in six.moves.range(1, self.dlayers):
-            c_list.append(self.zero_state(hpad))
-            z_list.append(self.zero_state(hpad))
-        att_w = None
-        att_idx = min(strm_idx, len(self.att) - 1)
-        self.att[att_idx].reset()  # reset pre-computation of h
-
-        # preprate sos
-        if maxlenratio == 0:
-            maxlen = int(max(hlen))
-        else:
-            # maxlen >= 1
-            maxlen = max(1, int(maxlenratio * int(max(hlen))))
-        minlen = int(minlenratio * int(min(hlen)))
-        odim = self.eos + 1
-        # prepare the first label <sos>
-        y = to_device(self, torch.from_numpy(np.full(n_samples, self.sos, dtype=np.int64)))
-        indices = [np.array(range(odim), dtype=np.int32)] * n_samples
-        y_gen = np.full((maxlen, n_samples), self.ignore_id, dtype=np.int64)
-        not_ended = np.array([True] * n_samples, dtype=np.bool_)
-        # make a mask to avoid <blank>:0, <unk>:1, and sentence end prediction
-        suppress_mask = np.zeros((1, odim), dtype=np.float32)
-        suppress_mask[0, (0, 1, self.eos)] = logzero
-        suppress_mask = to_device(self, torch.from_numpy(suppress_mask))
-        suppress_mask_without_eos = suppress_mask.clone()
-        suppress_mask_without_eos[0, self.eos] = 0.
-        y_lens = np.zeros(n_samples, dtype=np.int64)
-        loss_list = []
-        y_all = []
-        for i in six.moves.range(maxlen):
-            if i > 0:
-                yg = y_gen[i - 1]
-                yg[yg == -1] = 0
-                y = to_device(self, torch.from_numpy(yg))
-            ey = self.embed(y)  # utt x zdim
-            att_c, att_w = self.att[att_idx](hpad, hlen.float().cuda(), z_list[0], att_w)
-            ey = torch.cat((ey, att_c), dim=1)  # n_samples x (zdim + hdim)
-            z_list[0], c_list[0] = self.decoder[0](ey, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
-                z_list[l], c_list[l] = self.decoder[l](
-                    z_list[l - 1], (z_list[l], c_list[l]))
-            if i == minlen:  # exclude <eos> while sequence is short
-                suppress_mask = suppress_mask_without_eos
-            oy = self.output(z_list[-1]) + suppress_mask
-            if 0 < topk < odim:
-                topk_logits, topk_indices = torch.topk(oy, topk, dim=1)
-                sy = F.softmax(topk_logits, dim=1).data.cpu().numpy()
-                indices = topk_indices.data.cpu().numpy()
-            else:
-                sy = F.softmax(oy, dim=1).data.cpu().numpy()
-
-            if i < maxlen - 1:
-                for j in six.moves.range(n_samples):
-                    if not_ended[j]:
-                        y_gen[i, j] = np.random.choice(indices[j], 1, p=sy[j])  # or argmax in some cases
-                not_ended &= y_gen[i, :] != self.eos
-                y_lens[y_gen[i, :] == self.eos] = i + 1
-            else:
-                y_gen[i, not_ended] = self.eos
-                y_lens[not_ended] = i + 1
-            del sy
-            t = to_device(self, torch.from_numpy(y_gen[i]))
-            ce_loss = F.cross_entropy(oy, t, ignore_index=self.ignore_id, reduction='none')
-            loss_list.append(ce_loss)
-
-            # y_all for computing KL-divergence loss
-            y_all.append(self.output(z_list[-1]))
-
-            # all ended -> break
-            if np.sum(not_ended) == 0:
-                break
-
-        # loss array needs to be masked by 0 to exclude indeterminate valuse for igored_id
-        masked_loss = mask_by_length(torch.stack(loss_list).transpose(1, 0),
-                                     y_lens, fill=0.0)
-        sample_loss = torch.sum(masked_loss, dim=1)
-        # show predicted character sequence for debug
-        y_list = []
-        y_gen = y_gen.transpose(1, 0)
-        y_gen[y_gen == -1] = 0
-        for i in six.moves.range(n_samples):
-            y_seq = np.array(y_gen[i, :y_lens[i] - 1], dtype=np.int32)
-            y_list.append(y_seq)
-            if self.verbose > 0 and self.char_list is not None:
-                y_str = "".join([self.char_list[int(idx)] for idx in y_seq])
-                logging.info("generation[%d]: %.4f " % (i, sample_loss.data[i]) + y_str)
-
-        return sample_loss, y_list, y_gen, y_lens, y_all
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):

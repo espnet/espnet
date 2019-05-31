@@ -5,7 +5,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import argparse
+import configargparse
 import logging
 import os
 import platform
@@ -16,12 +16,20 @@ import sys
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool
+from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
 
 def main(cmd_args):
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = configargparse.ArgumentParser(
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True,
+               help='second config file path that overwrites the settings in `--config`.')
+    parser.add('--config3', is_config_file=True,
+               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -51,7 +59,7 @@ def main(cmd_args):
                         help='Filename of validation label data (json)')
     # network architecture
     parser.add_argument('--model-module', type=str, default=None,
-                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr)')
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
     # encoder
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
@@ -68,7 +76,7 @@ def main(cmd_args):
                         help='Number of encoder hidden units')
     parser.add_argument('--eprojs', default=320, type=int,
                         help='Number of encoder projection units')
-    parser.add_argument('--subsample', default=1, type=str,
+    parser.add_argument('--subsample', default="1", type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
     # loss
@@ -122,7 +130,7 @@ def main(cmd_args):
     parser.add_argument('--beam-size', type=int, default=4,
                         help='Beam size')
     parser.add_argument('--penalty', default=0.0, type=float,
-                        help='Insertion penalty')
+                        help='Incertion penalty')
     parser.add_argument('--maxlenratio', default=0.0, type=float,
                         help="""Input length ratio to obtain max output length.
                         If maxlenratio=0.0 (default), it uses a end-detect function
@@ -149,12 +157,22 @@ def main(cmd_args):
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
-    parser.add_argument('--batch-size', '-b', default=50, type=int,
-                        help='Batch size')
-    parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
-                        help='Batch size is reduced if the input sequence length > ML')
-    parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
-                        help='Batch size is reduced if the output sequence length > ML')
+    parser.add_argument('--batch-count', default='auto', choices=BATCH_COUNT_CHOICES,
+                        help='How to count batch_size. The default (auto) will find how to count by args.')
+    parser.add_argument('--batch-size', '--batch-seqs', '-b', default=0, type=int,
+                        help='Maximum seqs in a minibatch (0 to disable)')
+    parser.add_argument('--batch-bins', default=0, type=int,
+                        help='Maximum bins in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-in', default=0, type=int,
+                        help='Maximum input frames in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-out', default=0, type=int,
+                        help='Maximum output frames in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-inout', default=0, type=int,
+                        help='Maximum input+output frames in a minibatch (0 to disable)')
+    parser.add_argument('--maxlen-in', '--batch-seq-maxlen-in', default=800, type=int, metavar='ML',
+                        help='When --batch-count=seq, batch size is reduced if the input sequence length > ML.')
+    parser.add_argument('--maxlen-out', '--batch-seq-maxlen-out', default=150, type=int, metavar='ML',
+                        help='When --batch-count=seq, batch size is reduced if the output sequence length > ML')
     parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
@@ -164,7 +182,7 @@ def main(cmd_args):
                         choices=['adadelta', 'adam', 'noam'],
                         help='Optimizer')
     parser.add_argument('--accum-grad', default=1, type=int,
-                        help='Number of gradient accumulation')
+                        help='Number of gradient accumuration')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
@@ -172,7 +190,7 @@ def main(cmd_args):
     parser.add_argument('--weight-decay', default=0.0, type=float,
                         help='Weight decay ratio')
     parser.add_argument('--criterion', default='acc', type=str,
-                        choices=['loss', 'acc', 'cer_ctc'],
+                        choices=['loss', 'acc'],
                         help='Criterion to perform epsilon decay')
     parser.add_argument('--threshold', default=1e-4, type=float,
                         help='Threshold to stop iteration')
@@ -267,17 +285,18 @@ def main(cmd_args):
                         help='')
 
     args, _ = parser.parse_known_args(cmd_args)
-    from importlib import import_module
+
+    from espnet.utils.dynamic_import import dynamic_import
     if args.model_module is not None:
-        model_module = import_module(args.model_module)
-        assert hasattr(model_module, "E2E")
-        if hasattr(model_module, "add_arguments"):
-            model_module.add_arguments(parser)
+        model_class = dynamic_import(args.model_module)
+        model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
     if args.model_module is None:
-        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr"
-    else:
-        args.backend = "chainer" if "chainer" in args.model_module else "pytorch"
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+    if 'chainer_backend' in args.model_module:
+        args.backend = 'chainer'
+    if 'pytorch_backend' in args.model_module:
+        args.backend = 'pytorch'
 
     # logging info
     if args.verbose > 0:
@@ -296,36 +315,12 @@ def main(cmd_args):
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-            elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]):
-                command = 'nvidia-smi --query-gpu=memory.free,memory.total \
-                    --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1 / $3 > 0.98) print NR-1}\''
-                try:
-                    cvd = str(subprocess.check_output(command, shell=True).rsplit('\n')[0:args.ngpu])
-                    cvd = cvd.replace("]", "")
-                    cvd = cvd.replace("[", "")
-                    cvd = cvd.replace("'", "")
-                    logging.info("Selected GPU is: " + str(cvd))
-                    os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-                except subprocess.CalledProcessError:
-                    logging.info("No GPU seems to be available")
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-            elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]).decode():
-                command = 'nvidia-smi --query-gpu=memory.free,memory.total \
-                    --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1 / $3 > 0.98) print NR-1}\''
-                try:
-                    cvd = str(subprocess.check_output(command, shell=True).decode().rsplit('\n')[0:args.ngpu])
-                    cvd = cvd.replace("]", "")
-                    cvd = cvd.replace("[", "")
-                    cvd = cvd.replace("'", "")
-                    logging.info("Selected GPU is: " + str(cvd))
-                    os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-                except subprocess.CalledProcessError:
-                    logging.info("No GPU seems to be available")
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
             logging.warning("CUDA_VISIBLE_DEVICES is not set.")

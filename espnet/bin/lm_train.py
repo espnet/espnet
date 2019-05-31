@@ -9,7 +9,7 @@
 from __future__ import division
 from __future__ import print_function
 
-import argparse
+import configargparse
 import logging
 
 import numpy as np
@@ -21,9 +21,16 @@ import sys
 
 
 def main(args):
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = configargparse.ArgumentParser(
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True,
+               help='second config file path that overwrites the settings in `--config`.')
+    parser.add('--config3', is_config_file=True,
+               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -92,36 +99,12 @@ def main(args):
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-            elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]):
-                command = 'nvidia-smi --query-gpu=memory.free,memory.total \
-                    --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1 / $3 > 0.98) print NR-1}\''
-                try:
-                    cvd = str(subprocess.check_output(command, shell=True).rsplit('\n')[0:args.ngpu])
-                    cvd = cvd.replace("]", "")
-                    cvd = cvd.replace("[", "")
-                    cvd = cvd.replace("'", "")
-                    logging.info("Selected GPU is: " + str(cvd))
-                    os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-                except subprocess.CalledProcessError:
-                    logging.info("No GPU seems to be available")
         # python 3 case
         else:
             if "clsp.jhu.edu" in subprocess.check_output(["hostname", "-f"]).decode():
                 cvd = subprocess.check_output(["/usr/local/bin/free-gpu", "-n", str(args.ngpu)]).decode().strip()
                 logging.info('CLSP: use gpu' + cvd)
                 os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-            elif "fit.vutbr.cz" in subprocess.check_output(["hostname", "-f"]).decode():
-                command = 'nvidia-smi --query-gpu=memory.free,memory.total \
-                    --format=csv |tail -n+2| awk \'BEGIN{FS=" "}{if ($1 / $3 > 0.98) print NR-1}\''
-                try:
-                    cvd = str(subprocess.check_output(command, shell=True).decode().rsplit('\n')[0:args.ngpu])
-                    cvd = cvd.replace("]", "")
-                    cvd = cvd.replace("[", "")
-                    cvd = cvd.replace("'", "")
-                    logging.info("Selected GPU is: " + str(cvd))
-                    os.environ['CUDA_VISIBLE_DEVICES'] = cvd
-                except subprocess.CalledProcessError:
-                    logging.info("No GPU seems to be available")
         cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
         if cvd is None:
             logging.warning("CUDA_VISIBLE_DEVICES is not set.")

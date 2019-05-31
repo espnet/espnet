@@ -3,6 +3,7 @@ import numpy as np
 
 from espnet.transform.add_deltas import add_deltas
 from espnet.transform.cmvn import CMVN
+from espnet.transform.functional import FuncTrans
 from espnet.transform.spectrogram import logmelspectrogram
 from espnet.transform.transformation import Transformation
 
@@ -59,3 +60,38 @@ def test_optional_args():
     preprocessing = Transformation(kwargs)
     assert preprocessing(np.array([100, 200]), train=True) == 100
     assert preprocessing(np.array([100, 200]), train=False) == 200
+
+
+def test_func_trans():
+    def foo_bar(x, a=1, b=2):
+        '''Foo bar
+
+        :param x: input
+        :param int a: default 1
+        :param int b: default 2
+        '''
+        return x + a - b
+
+    class FooBar(FuncTrans):
+        _func = foo_bar
+        __doc__ = foo_bar.__doc__
+
+    assert FooBar(a=2)(0) == 0
+    try:
+        FooBar(d=1)
+    except TypeError as e:
+        raised = True
+        assert str(e) == "foo_bar() got an unexpected keyword argument 'd'"
+    assert raised
+    assert str(FooBar(a=100)) == "FooBar(a=100, b=2)"
+
+    import argparse
+    parser = argparse.ArgumentParser()
+    FooBar.add_arguments(parser)
+    # NOTE: index 0 is help
+    assert parser._actions[1].option_strings == ['--foo-bar-a']
+    assert parser._actions[1].default == 1
+    assert parser._actions[1].type == int
+    assert parser._actions[2].option_strings == ['--foo-bar-b']
+    assert parser._actions[2].default == 2
+    assert parser._actions[2].type == int
