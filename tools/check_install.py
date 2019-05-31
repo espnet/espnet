@@ -21,13 +21,13 @@ def main(args):
         ('kaldiio', None),
         ('matplotlib', None),
         ('torch', ("0.4.1", "1.0.0", "1.0.1.post2")),
-        ('chainer', ("5.0.0")),
+        ('chainer', ("6.0.0")),
         ('chainer_ctc', None),
         ('warpctc_pytorch', ("0.1.1"))
     ]
 
     if not args.no_cupy:
-        MANUALLY_INSTALLED_LIBRARIES.append(('cupy', ("5.0.0")))
+        MANUALLY_INSTALLED_LIBRARIES.append(('cupy', ("6.0.0")))
 
     logging.basicConfig(
         level=logging.INFO,
