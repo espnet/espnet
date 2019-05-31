@@ -13,7 +13,7 @@ RUN git clone https://github.com/espnet/espnet && \
 WORKDIR /espnet/tools
 
 # Delete cupy if cpu image
-RUN if [ -z "$( nvcc -V )" ];then \
+RUN if [ -z "$( nvcc -V )" ]; then \
         sed -i 's| cupy==$(CUPY_VERSION) torch|torch|' Makefile && \
         sed -i '\|. venv/bin/activate && pip install cupy==$(CUPY_VERSION)|d' Makefile; \
     fi 
