@@ -20,17 +20,17 @@ data=$1
 set=$2
 
 train_url=http://i13pc106.ira.uka.de/~mmueller/iwslt-corpus.zip
-if [ $set = "dev2010" ];then
+if [ $set = "dev2010" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.dev2010.en-de.tgz
-elif [ $set = "tst2010" ];then
+elif [ $set = "tst2010" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2010.en-de.tgz
-elif [ $set = "tst2013" ];then
+elif [ $set = "tst2013" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2013.en-de.tgz
-elif [ $set = "tst2014" ];then
+elif [ $set = "tst2014" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2014.en-de.tgz
-elif [ $set = "tst2015" ];then
+elif [ $set = "tst2015" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2015.en-de.tgz
-elif [ $set = "tst2018" ];then
+elif [ $set = "tst2018" ]; then
     url=http://i13pc106.ira.uka.de/~jniehues/IWSLT-SLT/data/eval/en-de/preprocessed/IWSLT-SLT.tst2018.en-de.tgz
 fi
 

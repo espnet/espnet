@@ -44,8 +44,6 @@ from tensorboardX import SummaryWriter
 
 matplotlib.use('Agg')
 
-REPORT_INTERVAL = 100
-
 
 class CustomEvaluator(extensions.Evaluator):
     """Custom Evaluator for Tacotron2 training
@@ -85,7 +83,10 @@ class CustomEvaluator(extensions.Evaluator):
                 with chainer.reporter.report_scope(observation):
                     # convert to torch tensor
                     x = self.converter(batch, self.device)
-                    self.model(*x)
+                    if isinstance(x, tuple):
+                        self.model(*x)
+                    else:
+                        self.model(**x)
                 summary.add(observation)
         self.model.train()
 
@@ -103,13 +104,15 @@ class CustomUpdater(training.StandardUpdater):
     :param torch.device device : The device to use
     """
 
-    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device):
+    def __init__(self, model, grad_clip, train_iter, optimizer, converter, device, accum_grad=1):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
         self.grad_clip = grad_clip
         self.converter = converter
         self.device = device
         self.clip_grad_norm = torch.nn.utils.clip_grad_norm_
+        self.accum_grad = accum_grad
+        self.forward_count = 0
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -123,9 +126,17 @@ class CustomUpdater(training.StandardUpdater):
         x = self.converter(batch, self.device)
 
         # compute loss and gradient
-        loss = self.model(*x).mean()
-        optimizer.zero_grad()
+        if isinstance(x, tuple):
+            loss = self.model(*x).mean() / self.accum_grad
+        else:
+            loss = self.model(**x).mean() / self.accum_grad
         loss.backward()
+
+        # update parameters
+        self.forward_count += 1
+        if self.forward_count != self.accum_grad:
+            return
+        self.forward_count = 0
 
         # compute the gradient norm to check if it is normal or not
         grad_norm = self.clip_grad_norm(self.model.parameters(), self.grad_clip)
@@ -134,18 +145,19 @@ class CustomUpdater(training.StandardUpdater):
             logging.warning('grad norm is nan. Do not update model.')
         else:
             optimizer.step()
+        optimizer.zero_grad()
+
+    def update(self):
+        self.update_core()
+        if self.forward_count == 0:
+            self.iteration += 1
 
 
 class CustomConverter(object):
-    """Custom converter for Tacotron2 training
+    """Custom converter for E2E-TTS model training"""
 
-    :param bool return_targets:
-    :param bool use_speaker_embedding:
-    :param bool use_second_target:
-    """
-
-    def __init__(self, return_targets=True):
-        self.return_targets = return_targets
+    def __init__(self):
+        pass
 
     def __call__(self, batch, device):
         # batch should be located in list
@@ -168,18 +180,26 @@ class CustomConverter(object):
         for i, l in enumerate(olens):
             labels[i, l - 1:] = 1.0
 
+        # prepare dict
+        new_batch = {
+            "xs": xs,
+            "ilens": ilens,
+            "ys": ys,
+            "labels": labels,
+            "olens": olens,
+        }
+
         # load second target
         if spcs is not None:
             spcs = pad_list([torch.from_numpy(spc).float() for spc in spcs], 0).to(device)
+            new_batch["spcs"] = spcs
 
         # load speaker embedding
         if spembs is not None:
             spembs = torch.from_numpy(np.array(spembs)).float().to(device)
+            new_batch["spembs"] = spembs
 
-        if self.return_targets:
-            return xs, ilens, ys, labels, olens, spembs, spcs
-        else:
-            return xs, ilens, ys, spembs
+        return new_batch
 
 
 def train(args):
@@ -244,16 +264,16 @@ def train(args):
     model = model.to(device)
 
     # Setup an optimizer
-    optimizer = torch.optim.Adam(
-        model.parameters(), args.lr, eps=args.eps,
-        weight_decay=args.weight_decay)
+    if args.opt == 'adam':
+        optimizer = torch.optim.Adam(
+            model.parameters(), args.lr, eps=args.eps,
+            weight_decay=args.weight_decay)
+    else:
+        raise NotImplementedError("unknown optimizer: " + args.opt)
 
     # FIXME: TOO DIRTY HACK
     setattr(optimizer, 'target', reporter)
     setattr(optimizer, 'serialize', lambda s: reporter.serialize(s))
-
-    # Setup a converter
-    converter = CustomConverter(return_targets=True)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -305,15 +325,15 @@ def train(args):
 
     # hack to make batchsize argument as 1
     # actual bathsize is included in a list
-    if args.n_iter_processes > 0:
+    if args.num_iter_processes > 0:
         train_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(train_batchset, load_tr),
-            batch_size=1, n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20,
+            batch_size=1, n_processes=args.num_iter_processes, n_prefetch=8, maxtasksperchild=20,
             shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(valid_batchset, load_cv),
             batch_size=1, repeat=False, shuffle=False,
-            n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
+            n_processes=args.num_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
         train_iter = ToggleableShufflingSerialIterator(
             TransformDataset(train_batchset, load_tr),
@@ -323,7 +343,8 @@ def train(args):
             batch_size=1, repeat=False, shuffle=False)
 
     # Set up a trainer
-    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device)
+    converter = CustomConverter()
+    updater = CustomUpdater(model, args.grad_clip, train_iter, optimizer, converter, device, args.accum_grad)
     trainer = training.Trainer(updater, (args.epochs, 'epoch'), out=args.outdir)
 
     # Resume from a snapshot
@@ -334,12 +355,16 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(CustomEvaluator(model, valid_iter, reporter, converter, device))
 
+    # set intervals
+    save_interval = (args.save_interval_epochs, 'epoch')
+    report_interval = (args.report_interval_iters, 'iteration')
+
     # Save snapshot for each epoch
-    trainer.extend(torch_snapshot(), trigger=(1, 'epoch'))
+    trainer.extend(torch_snapshot(), trigger=save_interval)
 
     # Save best models
     trainer.extend(snapshot_object(model, 'model.loss.best'),
-                   trigger=training.triggers.MinValueTrigger('validation/main/loss'))
+                   trigger=training.triggers.MinValueTrigger('validation/main/loss', trigger=save_interval))
 
     # Save attention figure for each epoch
     if args.num_save_attention > 0:
@@ -353,10 +378,10 @@ def train(args):
             plot_class = model.attention_plot_class
         att_reporter = plot_class(
             att_vis_fn, data, args.outdir + '/att_ws',
-            converter=CustomConverter(return_targets=False),
+            converter=converter,
             transform=load_cv,
             device=device, reverse=True)
-        trainer.extend(att_reporter, trigger=(1, 'epoch'))
+        trainer.extend(att_reporter, trigger=save_interval)
     else:
         att_reporter = None
 
@@ -373,10 +398,10 @@ def train(args):
     trainer.extend(extensions.PlotReport(plot_keys, 'epoch', file_name='all_loss.png'))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
+    trainer.extend(extensions.LogReport(trigger=report_interval))
     report_keys = ['epoch', 'iteration', 'elapsed_time'] + plot_keys
-    trainer.extend(extensions.PrintReport(report_keys), trigger=(REPORT_INTERVAL, 'iteration'))
-    trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
+    trainer.extend(extensions.PrintReport(report_keys), trigger=report_interval)
+    trainer.extend(extensions.ProgressBar())
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
@@ -452,7 +477,7 @@ def decode(args):
             x = torch.LongTensor(x).to(device)
 
             # decode and write
-            outs, _, _ = model.inference(x, args, spemb)
+            outs = model.inference(x, args, spemb)[0]
             if outs.size(0) == x.size(0) * args.maxlenratio:
                 logging.warning("output length reaches maximum length (%s)." % utt_id)
             logging.info('(%d/%d) %s (size:%d->%d)' % (
