@@ -1,4 +1,4 @@
-lm-weight: 0
+lm-weight: 1.0
 beam-size: 30
 penalty: 0.0
 maxlenratio: 0.0

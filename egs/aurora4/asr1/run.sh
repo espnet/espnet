@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -8,9 +7,9 @@
 
 # general configuration
 backend=pytorch
-stage=4        # start from 0 if you need to start from data preparation
-stop_stage=4
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+stage=0        # start from 0 if you need to start from data preparation
+stop_stage=5
+ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -29,7 +28,7 @@ decode_config=conf/decode.yaml
 use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
 lm_resume=          # specify a snapshot file to resume LM training
-lmtag=              # tag for managing LMs
+lmtag=wordlm              # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
@@ -40,7 +39,7 @@ wsj0=/export/corpora5/LDC/LDC93S6B
 wsj1=/export/corpora5/LDC/LDC94S13B
 
 # exp tag
-tag="" # tag for managing experiments.
+tag="wide_shallow_network" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -53,7 +52,8 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_si84_clean
+# train_set=train_si84_284
+train_set=train_si84_multi
 train_dev=dev_0330
 train_test=test_0166
 recog_set=dev_0330
@@ -64,9 +64,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
     local/aurora4_data_prep.sh ${aurora4} ${wsj0}
     local/aurora4_format_data.sh
-    
-    # local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
-    # local/wsj_format_data.sh
+
+    # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained.
+    local/wsj_data_prep.sh ${wsj0}/??-{?,??}.? ${wsj1}/??-{?,??}.?
+    local/wsj_format_data.sh
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -77,11 +78,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in train_si84_multi dev_0330 test_0166 train_si84_clean; do
-        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
+    # for x in train_si84_multi dev_0330 test_0166 train_si284; do
+    for x in train_si84_multi dev_0330 test_0166; do
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
+
+    # echo "combine train_si84_multi and train_si284"
+    # utils/combine_data.sh data/${train_set} data/train_si84_multi data/train_si284
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -89,12 +94,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/wsj/asr1/dump/${train_set}/delta${do_delta}/storage \
+        /export/b{10,11}/${USER}/espnet-data/egs/wsj/asr1/dump/${train_set}/delta${do_delta}/storage \
         ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
     utils/create_split_dir.pl \
-        /export/b{10,11,12,13}/${USER}/espnet-data/egs/wsj/asr1/dump/${train_dev}/delta${do_delta}/storage \
+        /export/b{10,11}/${USER}/espnet-data/egs/wsj/asr1/dump/${train_dev}/delta${do_delta}/storage \
         ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 32 --do_delta ${do_delta} \
@@ -233,6 +238,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --train-json ${feat_tr_dir}/data.json \
         --valid-json ${feat_dt_dir}/data.json
 fi
+
+# Using pretrained wordlm from WSJ recipe
+# lmexpdir=/export/a10/jzy/espnet/egs/wsj/asr1/exp/train_rnnlm_pytorch_1layer_unit1000_sgd_bs300_word65000
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
