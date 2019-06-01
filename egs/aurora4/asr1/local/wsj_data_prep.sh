@@ -11,6 +11,7 @@ fi
 
 
 dir=`pwd`/data/local/data
+mkdir -p $dir
 local=`pwd`/local
 utils=`pwd`/utils
 

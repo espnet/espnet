@@ -16,6 +16,7 @@ AURORA=$1
 CORPUS=$2
 
 dir=`pwd`/data/local/data
+mkdir -p $dir
 local=`pwd`/local
 utils=`pwd`/utils
 
