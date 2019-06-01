@@ -25,7 +25,7 @@ from espnet.asr.asr_utils import torch_load
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
-from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.decoders_asrtts import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import mask_by_length_and_multiply

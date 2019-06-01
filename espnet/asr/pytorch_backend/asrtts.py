@@ -26,7 +26,7 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import make_batchset
+from espnet.asr.asrtts_utils import make_batchset_asr as make_batchset
 from espnet.asr.asr_utils import PlotAttentionReport
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import torch_load

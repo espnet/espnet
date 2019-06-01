@@ -30,7 +30,7 @@ win_length="" # window length
 
 # network architecture
 # encoder related
-etype=vggblstm     # encoder architecture type
+etype=blstmp     # encoder architecture type
 elayers=5
 eunits=1024
 eprojs=1024

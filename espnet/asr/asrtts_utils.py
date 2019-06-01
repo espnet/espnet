@@ -31,6 +31,63 @@ matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
+def make_batchset_asr(data, batch_size, max_length_in, max_length_out,
+                  num_batches=0, min_batch_size=1, shortest_first=False):
+    """Make batch set from json dictionary
+
+    if utts have "category" value,
+
+        >>> data = {'utt1': {'category': 'A', 'input': ...},
+        ...         'utt2': {'category': 'B', 'input': ...},
+        ...         'utt3': {'category': 'B', 'input': ...},
+        ...         'utt4': {'category': 'A', 'input': ...}}
+        >>> make_batchset(data, batchsize=2, ...)
+        [[('utt1', ...), ('utt4', ...)], [('utt2', ...), ('utt3': ...)]]
+
+    Note that if any utts doesn't have "category",
+    perform as same as "make_batchset_within_category"
+
+    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
+    :param int batch_size: batch size
+    :param int max_length_in: maximum length of input to decide adaptive batch size
+    :param int max_length_out: maximum length of output to decide adaptive batch size
+    :param int num_batches: # number of batches to use (for debug)
+    :param int min_batch_size: minimum batch size (for multi-gpu)
+    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :return: List[List[Tuple[str, dict]]] list of batches
+    """
+
+    category2data = {}  # Dict[str, dict]
+    for k, v in data.items():
+        category2data.setdefault(v.get('category'), {})[k] = v
+
+    batches_list = []  # List[List[List[Tuple[str, dict]]]]
+    for _, d in category2data.items():
+        # batch: List[List[Tuple[str, dict]]]
+        batches = make_batchset_within_category(
+            data=d,
+            batch_size=batch_size,
+            max_length_in=max_length_in,
+            max_length_out=max_length_out,
+            min_batch_size=min_batch_size,
+            shortest_first=shortest_first)
+        batches_list.append(batches)
+
+    if len(batches_list) == 1:
+        batches = batches_list[0]
+    else:
+        # Concat list. This way is faster than "sum(batch_list, [])"
+        batches = list(itertools.chain(*batches_list))
+
+    # for debugging
+    if num_batches > 0:
+        batches = batches[:num_batches]
+    logging.info('# minibatches: ' + str(len(batches)))
+
+    # batch: List[List[Tuple[str, dict]]]
+    return batches
+
+
 def make_batchset(data, batch_size, max_length_in, max_length_out,
                   num_batches=0, min_batch_size=1, shortest_first=False):
     """Make batch set from json dictionary
