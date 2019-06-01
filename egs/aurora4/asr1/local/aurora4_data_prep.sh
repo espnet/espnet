@@ -16,8 +16,6 @@ AURORA=$1
 CORPUS=$2
 
 dir=`pwd`/data/local/data
-lmdir=`pwd`/data/local/nist_lm
-mkdir -p $dir $lmdir
 local=`pwd`/local
 utils=`pwd`/utils
 
@@ -26,19 +24,6 @@ sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
 if [ ! -x $sph2pipe ]; then
   echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
   exit 1;
-fi
-
-if [ -z $IRSTLM ] ; then
-  export IRSTLM=$KALDI_ROOT/tools/irstlm/
-fi
-export PATH=${PATH}:$IRSTLM/bin
-if ! command -v prune-lm >/dev/null 2>&1 ; then
-  echo "$0: Error: the IRSTLM is not available or compiled" >&2
-  echo "$0: Error: We used to install it by default, but." >&2
-  echo "$0: Error: this is no longer the case." >&2
-  echo "$0: Error: To install it, go to $KALDI_ROOT/tools" >&2
-  echo "$0: Error: and run extras/install_irstlm.sh" >&2
-  exit 1
 fi
 
 cd $dir
@@ -348,39 +333,6 @@ for x in train_si84_clean train_si84_multi test_eval92 test_0166 dev_0330 dev_12
     | perl -ane 'chop; m:^...:; print "$_ $&\n";' > $x.utt2spk
   cat $x.utt2spk | $utils/utt2spk_to_spk2utt.pl > $x.spk2utt || exit 1;
 done
-
-#in case we want to limit lm's on most frequent words, copy lm training word frequency list
-cp $CORPUS/11-13.1/wsj0/doc/lng_modl/vocab/wfl_64.lst $lmdir
-chmod u+w $lmdir/*.lst # had weird permissions on source.
-
-# The 20K vocab, open-vocabulary language model (i.e. the one with UNK), without
-# verbalized pronunciations.   This is the most common test setup, I understand.
-
-cp $CORPUS/11-13.1/wsj0/doc/lng_modl/base_lm/bcb20onp.z $lmdir/lm_bg.arpa.gz || exit 1;
-chmod u+w $lmdir/lm_bg.arpa.gz
-
-# trigram would be:
-cat $CORPUS/11-13.1/wsj0/doc/lng_modl/base_lm/tcb20onp.z | \
-  perl -e 'while(<>){ if(m/^\\data\\/){ print; last;  } } while(<>){ print; }' \
-  | gzip -c -f > $lmdir/lm_tg.arpa.gz || exit 1;
-
-prune-lm --threshold=1e-7 $lmdir/lm_tg.arpa.gz $lmdir/lm_tgpr.arpa || exit 1;
-gzip -f $lmdir/lm_tgpr.arpa || exit 1;
-
-# repeat for 5k language models
-cp $CORPUS/11-13.1/wsj0/doc/lng_modl/base_lm/bcb05onp.z  $lmdir/lm_bg_5k.arpa.gz || exit 1;
-chmod u+w $lmdir/lm_bg_5k.arpa.gz
-
-# trigram would be: !only closed vocabulary here!
-cp $CORPUS/11-13.1/wsj0/doc/lng_modl/base_lm/tcb05cnp.z $lmdir/lm_tg_5k.arpa.gz || exit 1;
-chmod u+w $lmdir/lm_tg_5k.arpa.gz
-gunzip $lmdir/lm_tg_5k.arpa.gz
-tail -n 4328839 $lmdir/lm_tg_5k.arpa | gzip -c -f > $lmdir/lm_tg_5k.arpa.gz
-rm $lmdir/lm_tg_5k.arpa
-
-prune-lm --threshold=1e-7 $lmdir/lm_tg_5k.arpa.gz $lmdir/lm_tgpr_5k.arpa || exit 1;
-gzip -f $lmdir/lm_tgpr_5k.arpa || exit 1;
-
 
 if [ ! -f wsj0-train-spkrinfo.txt ] || [ `cat wsj0-train-spkrinfo.txt | wc -l` -ne 134 ]; then
   rm -f wsj0-train-spkrinfo.txt

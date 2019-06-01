@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2019 Johns Hopkins University (Ziyan Jiang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -8,7 +8,7 @@
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-stop_stage=5
+stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -28,7 +28,7 @@ decode_config=conf/decode.yaml
 use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
 lm_resume=          # specify a snapshot file to resume LM training
-lmtag=wordlm              # tag for managing LMs
+lmtag=              # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
@@ -39,7 +39,7 @@ wsj0=/export/corpora5/LDC/LDC93S6B
 wsj1=/export/corpora5/LDC/LDC94S13B
 
 # exp tag
-tag="wide_shallow_network" # tag for managing experiments.
+tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -52,8 +52,7 @@ set -e
 set -u
 set -o pipefail
 
-# train_set=train_si84_284
-train_set=train_si84_multi
+train_set=train_mix
 train_dev=dev_0330
 train_test=test_0166
 recog_set=dev_0330
@@ -78,15 +77,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Feature Generation"
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    # for x in train_si84_multi dev_0330 test_0166 train_si284; do
-    for x in train_si84_multi dev_0330 test_0166; do
+    for x in train_si84_multi dev_0330 test_0166 train_si284; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh data/${x}
     done
 
-    # echo "combine train_si84_multi and train_si284"
-    # utils/combine_data.sh data/${train_set} data/train_si84_multi data/train_si284
+    echo "combine train_si84 and train_si284"
+    utils/combine_data.sh data/${train_set} data/train_si84_multi data/train_si284
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
