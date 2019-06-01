@@ -560,7 +560,7 @@ class Decoder(torch.nn.Module):
             if i > minlen:
                 k = 0
                 penalty_i = (i + 1) * penalty
-                thr = accum_best_scores[:, -1]
+                # thr = accum_best_scores[:, -1]
                 for samp_i in six.moves.range(batch):
                     if stop_search[samp_i]:
                         k = k + beam

@@ -32,7 +32,7 @@ matplotlib.use('Agg')
 
 # * -------------------- training iterator related -------------------- *
 def make_batchset_asr(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, min_batch_size=1, shortest_first=False):
+                      num_batches=0, min_batch_size=1, shortest_first=False):
     """Make batch set from json dictionary
 
     if utts have "category" value,
