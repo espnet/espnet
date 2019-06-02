@@ -81,7 +81,7 @@ class Prenet(torch.nn.Module):
         :rtype: torch.Tensor
         """
         for l in six.moves.range(len(self.prenet)):
-            x = F.dropout(self.prenet[l](x), self.dropout_rate)
+            x = F.dropout(self.prenet[l](x), self.dropout_rate, training=self.training)
         return x
 
 
