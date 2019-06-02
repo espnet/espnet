@@ -64,10 +64,11 @@ class TransformerLoss(torch.nn.Module):
 
         # calculate loss
         l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
+        l2_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
         bce_loss = F.binary_cross_entropy_with_logits(
             logits, labels, pos_weight=torch.tensor(self.bce_pos_weight, device=ys.device))
 
-        return l1_loss, bce_loss
+        return l1_loss, l2_loss, bce_loss
 
 
 class Transformer(TTSInterface, torch.nn.Module):
@@ -181,6 +182,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument('--use-masking', default=True, type=strtobool,
                            help='Whether to use masking in calculation of loss')
+        group.add_argument('--loss-type', default="L1", choices=["L1", "L2", "L1+L2"],
+                           help='How to calc loss')
         group.add_argument('--bce-pos-weight', default=5.0, type=float,
                            help='Positive sample weight in BCE calculation (only for use-masking=True)')
         return parser
@@ -316,6 +319,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # define loss function
         self.criterion = TransformerLoss(args)
+        self.loss_type = args.loss_type
 
         # initialize parameters
         self._reset_parameters(args)
@@ -327,6 +331,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
 
         if args.transformer_init == "pytorch":
+            for m in self.modules():
+                if hasattr(m, "reset_parameters"):
+                    m.reset_parameters()
             return
         # weight init
         for p in self.parameters():
@@ -406,13 +413,21 @@ class Transformer(TTSInterface, torch.nn.Module):
             labels[:, -1] = 1.0  # make sure at least one frame has 1
 
         # caluculate loss values
-        l1_loss, bce_loss = self.criterion(
+        l1_loss, l2_loss, bce_loss = self.criterion(
             after_outs, before_outs, logits, ys, labels, olens)
-        loss = l1_loss + bce_loss
+        if self.loss_type == "L1":
+            loss = l1_loss + bce_loss
+        elif self.loss_type == "L2":
+            loss = l2_loss + bce_loss
+        elif self.loss_type == "L1+L2":
+            loss = l1_loss + l2_loss + bce_loss
+        else:
+            raise ValueError("unknown --loss-type " + self.loss_type)
 
         # report for chainer reporter
         report_keys = [
             {'l1_loss': l1_loss.item()},
+            {'l2_loss': l2_loss.item()},
             {'bce_loss': bce_loss.item()},
             {'loss': loss.item()},
         ]
@@ -522,7 +537,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         :rtype list[str] plot_keys: base keys to plot during training
         """
-        plot_keys = ['loss', 'l1_loss', 'bce_loss']
+        plot_keys = ['loss', 'l1_loss', 'l2_loss', 'bce_loss']
         if self.use_scaled_pos_enc:
             plot_keys += ['encoder_alpha', 'decoder_alpha']
 
