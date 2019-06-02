@@ -63,11 +63,13 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
 
 
 class PlotAttentionReport(asr_utils.PlotAttentionReport):
+    def plotfn(self, *args, **kwargs):
+        plot_multi_head_attention(*args, **kwargs)
+
     def __call__(self, trainer):
         attn_dict = self.get_attention_weights()
         suffix = "ep.{.updater.epoch}.png".format(trainer)
-        plot_multi_head_attention(
-            self.data, attn_dict, self.outdir, suffix, savefig)
+        self.plotfn(self.data, attn_dict, self.outdir, suffix, savefig)
 
     def get_attention_weights(self):
         batch = self.converter([self.transform(self.data)], self.device)
@@ -84,5 +86,4 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
             plt.clf()
 
         attn_dict = self.get_attention_weights()
-        plot_multi_head_attention(
-            self.data, attn_dict, self.outdir, "", log_fig)
+        self.plotfn(self.data, attn_dict, self.outdir, "", log_fig)
