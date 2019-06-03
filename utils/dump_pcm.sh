@@ -7,6 +7,8 @@ compress=false
 write_utt2num_frames=false # if true writes utt2num_frames
 verbose=2
 filetype=mat # mat or hdf5
+keep_length=true
+format=wav
 # End configuration section.
 
 echo "$0 $*"  # Print the command line for logging
@@ -69,18 +71,22 @@ done
 utils/validate_data_dir.sh --no-text --no-feats ${data}
 
 if ${write_utt2num_frames}; then
-  write_num_frames_opt="--write-num-frames=ark,t:${logdir}/utt2num_frames.JOB"
+    opts="--write-num-frames=ark,t:${logdir}/utt2num_frames.JOB"
 else
-  write_num_frames_opt=
+    opts=
 fi
 
-if [ "${filetype}" == hdf5 ];then
-    ext=h5
-elif [ "${filetype}" == sound.hdf5 ];then
-    # Specify flac
-    ext=flac.h5
+if [ "${filetype}" == hdf5 ]; then
+    ext=.h5
+elif [ "${filetype}" == sound.hdf5 ]; then
+    ext=.flac.h5
+    opts+="--format ${format} "
+
+elif [ "${filetype}" == sound ]; then
+    ext=
+    opts+="--format wav "
 else
-    ext=ark
+    ext=.ark
 fi
 
 if [ -f ${data}/segments ]; then
@@ -93,13 +99,13 @@ if [ -f ${data}/segments ]; then
   utils/split_scp.pl ${data}/segments ${split_segments}
 
   ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log \
-      dump-pcm.py --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
-      --segment=${logdir}/segments.JOB ${write_num_frames_opt} scp:${scp} \
-      ark,scp:${pcmdir}/raw_pcm_${name}.JOB.${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
+      dump-pcm.py ${opts} --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
+      --keep-length ${keep_length} --segment=${logdir}/segments.JOB scp:${scp} \
+      ark,scp:${pcmdir}/raw_pcm_${name}.JOB${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
 
 else
 
-  echo "$0: [info]: no segments file exists: assuming pcm.scp indexed by utterance."
+  echo "$0: [info]: no segments file exists: assuming wav.scp indexed by utterance."
   split_scps=""
   for n in $(seq ${nj}); do
     split_scps="${split_scps} ${logdir}/wav.${n}.scp"
@@ -108,9 +114,9 @@ else
   utils/split_scp.pl ${scp} ${split_scps}
 
   ${cmd} JOB=1:${nj} ${logdir}/dump_pcm_${name}.JOB.log \
-      dump-pcm.py --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
-      ${write_num_frames_opt} scp:${logdir}/wav.JOB.scp \
-      ark,scp:${pcmdir}/raw_pcm_${name}.JOB.${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
+      dump-pcm.py ${opts} --filetype ${filetype} --verbose=${verbose} --compress=${compress} \
+      --keep-length ${keep_length} scp:${logdir}/wav.JOB.scp \
+      ark,scp:${pcmdir}/raw_pcm_${name}.JOB${ext},${pcmdir}/raw_pcm_${name}.JOB.scp
 
 fi
 

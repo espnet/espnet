@@ -45,6 +45,7 @@ args = argparse.Namespace(
     context_residual=False,
     replace_sos=False,
     tgt_lang=False
+    use_frontend=False
 )
 
 

@@ -1,11 +1,12 @@
 # If a Python interpreter is specified, then creates a virtualenv from it
-# PYTHON := /usr/bin/python2.7
+# PYTHON := /usr/bin/python3.7
 PYTHON :=
 # The python version installed in the conda setup
 PYTHON_VERSION := 3.7
-CUPY_VERSION := 5.0.0
-# PyTorch version: 0.4.1 or 1.0.0
-TH_VERSION := 1.0.0
+CUPY_VERSION := 6.0.0
+CUDA_VERSION := 10.0
+# PyTorch version: 0.4.1 or 1.0.0 or 1.0.1
+TH_VERSION := 1.0.1
 # Use a prebuild Kaldi to omit the installation
 KALDI :=
 
@@ -14,14 +15,23 @@ CONDA_URL := https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.
 # PyTorch>=1.0.0 requires gcc>=4.9 when buliding the extensions
 GCC_VERSION := $(shell gcc -dumpversion)
 
+
+ifneq ($(shell which nvidia-smi),) # 'nvcc' found
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)
+CUDA_DEPS := cupy.done
+else
+CONDA_PYTORCH := pytorch-cpu=$(TH_VERSION)
+CUDA_DEPS :=
+endif
+
+
 .PHONY: all clean
 
 all: kaldi.done python check_install
 
-python: venv chainer_patch.done warp-ctc.done chainer_ctc.done
+python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done pytorch_complex.done
 
-extra: nkf.done sentencepiece.done mecab.done moses.done
-
+extra: nkf.done sentencepiece.done mecab.done moses.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -42,7 +52,13 @@ venv:
 espnet.done: venv
 	. venv/bin/activate; pip install pip --upgrade
 	. venv/bin/activate; pip install -e ..
-	. venv/bin/activate; pip install cupy==$(CUPY_VERSION) torch==$(TH_VERSION) matplotlib
+	# NOTE(kan-bayashi): matplotlib>=3.0.0 does not support python2
+	if . venv/bin/activate && python -c 'import sys; sys.version_info[0] != 3' &> /dev/null; then \
+		. venv/bin/activate; pip install matplotlib==2.2.4; \
+	else \
+		. venv/bin/activate; pip install matplotlib; \
+	fi
+	. venv/bin/activate; pip install torch==$(TH_VERSION)
 	touch espnet.done
 else
 miniconda.sh:
@@ -53,17 +69,17 @@ venv: miniconda.sh
 	. venv/bin/activate && conda install -y python=$(PYTHON_VERSION)
 	. venv/bin/activate && conda info -a
 espnet.done: venv
-	. venv/bin/activate && conda install -y pytorch=$(TH_VERSION) -c pytorch
+	. venv/bin/activate && conda install -y $(CONDA_PYTORCH) -c pytorch
 	. venv/bin/activate && conda install -y matplotlib
 	. venv/bin/activate && pip install -e ..
-	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
 	touch espnet.done
 endif
 
-chainer_patch.done: espnet.done
-	$(eval FILENAME := $(shell find venv/lib -name "multiprocess_iterator.py"))
-	patch $(FILENAME) < prefetch.patch
-	touch chainer_patch.done
+cupy.done: espnet.done
+ifneq ($(strip $(CUPY_VERSION)),)
+	. venv/bin/activate && pip install cupy==$(CUPY_VERSION)
+	touch cupy.done
+endif
 
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
@@ -87,6 +103,16 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
+
+ifeq ($(PYTHON_VERSION),2.7)
+# Nothing to do
+pytorch_complex.done:
+else
+pytorch_complex.done: venv
+	# Require python>=3.6, pytorch>=1.0
+	. venv/bin/activate; pip install git+https://github.com/kamo-naoyuki/pytorch_complex
+	touch pytorch_complex.done
+endif
 
 nkf.done:
 	rm -rf nkf
@@ -133,7 +159,20 @@ moses.done:
 	touch moses.done
 
 check_install: kaldi.done python
+ifneq ($(strip $(CUPY_VERSION)),)
 	. venv/bin/activate; python check_install.py
+else
+	. venv/bin/activate; python check_install.py --no-cupy
+endif
+
+pesq: PESQ/P862/Software/PESQ
+PESQ/P862/Software/PESQ: PESQ
+	cd PESQ/P862/Software/source; gcc *.c -lm -o PESQ
+PESQ: PESQ.zip
+	rm -rf PESQ
+	unzip PESQ.zip -d PESQ
+PESQ.zip:
+	wget 'https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200102-I!!SOFT-ZST-E&type=items' -O PESQ.zip
 
 clean: clean_extra
 	rm -rf kaldi venv warp-ctc chainer_ctc
@@ -144,9 +183,10 @@ clean: clean_extra
 clean_python:
 	rm -rf venv warp-ctc chainer_ctc
 	rm -f miniconda.sh
-	rm -f chainer_patch.done warp-ctc.done chainer_ctc.done espnet.done
+	rm -f warp-ctc.done chainer_ctc.done espnet.done pytorch_complex pytorch_complex.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:
 	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
 	rm -rf nkf sentencepiece mecab swig moses
+	rm -rf PESQ PESQ.zip

@@ -5,7 +5,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import argparse
+import configargparse
 import logging
 import os
 import platform
@@ -15,10 +15,21 @@ import sys
 
 import numpy as np
 
+from espnet.utils.cli_utils import strtobool
+from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
-def main(args):
-    parser = argparse.ArgumentParser()
+
+def main(cmd_args):
+    parser = configargparse.ArgumentParser(
+        config_file_parser_class=configargparse.YAMLConfigFileParser,
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     # general configuration
+    parser.add('--config', is_config_file=True, help='config file path')
+    parser.add('--config2', is_config_file=True,
+               help='second config file path that overwrites the settings in `--config`.')
+    parser.add('--config3', is_config_file=True,
+               help='third config file path that overwrites the settings in `--config` and `--config2`.')
+
     parser.add_argument('--ngpu', default=0, type=int,
                         help='Number of GPUs')
     parser.add_argument('--backend', default='chainer', type=str,
@@ -47,6 +58,8 @@ def main(args):
     parser.add_argument('--valid-json', type=str, default=None,
                         help='Filename of validation label data (json)')
     # network architecture
+    parser.add_argument('--model-module', type=str, default=None,
+                        help='model defined module (default: espnet.nets.xxx_backend.e2e_asr:E2E)')
     # encoder
     parser.add_argument('--num-spkrs', default=1, type=int,
                         choices=[1, 2],
@@ -63,7 +76,7 @@ def main(args):
                         help='Number of encoder hidden units')
     parser.add_argument('--eprojs', default=320, type=int,
                         help='Number of encoder projection units')
-    parser.add_argument('--subsample', default=1, type=str,
+    parser.add_argument('--subsample', default="1", type=str,
                         help='Subsample input frames x_y_z means subsample every x frame at 1st layer, '
                              'every y frame at 2nd layer etc.')
     # loss
@@ -144,20 +157,32 @@ def main(args):
     # minibatch related
     parser.add_argument('--sortagrad', default=0, type=int, nargs='?',
                         help="How many epochs to use sortagrad for. 0 = deactivated, -1 = all epochs")
-    parser.add_argument('--batch-size', '-b', default=50, type=int,
-                        help='Batch size')
-    parser.add_argument('--maxlen-in', default=800, type=int, metavar='ML',
-                        help='Batch size is reduced if the input sequence length > ML')
-    parser.add_argument('--maxlen-out', default=150, type=int, metavar='ML',
-                        help='Batch size is reduced if the output sequence length > ML')
-    parser.add_argument('--n_iter_processes', default=0, type=int,
+    parser.add_argument('--batch-count', default='auto', choices=BATCH_COUNT_CHOICES,
+                        help='How to count batch_size. The default (auto) will find how to count by args.')
+    parser.add_argument('--batch-size', '--batch-seqs', '-b', default=0, type=int,
+                        help='Maximum seqs in a minibatch (0 to disable)')
+    parser.add_argument('--batch-bins', default=0, type=int,
+                        help='Maximum bins in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-in', default=0, type=int,
+                        help='Maximum input frames in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-out', default=0, type=int,
+                        help='Maximum output frames in a minibatch (0 to disable)')
+    parser.add_argument('--batch-frames-inout', default=0, type=int,
+                        help='Maximum input+output frames in a minibatch (0 to disable)')
+    parser.add_argument('--maxlen-in', '--batch-seq-maxlen-in', default=800, type=int, metavar='ML',
+                        help='When --batch-count=seq, batch size is reduced if the input sequence length > ML.')
+    parser.add_argument('--maxlen-out', '--batch-seq-maxlen-out', default=150, type=int, metavar='ML',
+                        help='When --batch-count=seq, batch size is reduced if the output sequence length > ML')
+    parser.add_argument('--n-iter-processes', default=0, type=int,
                         help='Number of processes of iterator')
     parser.add_argument('--preprocess-conf', type=str, default=None,
                         help='The configuration file for the pre-processing')
     # optimization related
     parser.add_argument('--opt', default='adadelta', type=str,
-                        choices=['adadelta', 'adam'],
+                        choices=['adadelta', 'adam', 'noam'],
                         help='Optimizer')
+    parser.add_argument('--accum-grad', default=1, type=int,
+                        help='Number of gradient accumuration')
     parser.add_argument('--eps', default=1e-8, type=float,
                         help='Epsilon constant for optimizer')
     parser.add_argument('--eps-decay', default=0.01, type=float,
@@ -179,19 +204,105 @@ def main(args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
-    # transfer learning related
+
+    # speech translation related
+    parser.add_argument('--context-residual', default='', nargs='?',
+                        help='')
     parser.add_argument('--asr-model', default=False, nargs='?',
                         help='Pre-trained ASR model')
     parser.add_argument('--mt-model', default=False, nargs='?',
                         help='Pre-trained MT model')
-    # decoder related
-    parser.add_argument('--context-residual', default='', nargs='?',
-                        help='')
-    # multilingual speech translation related
     parser.add_argument('--replace-sos', default=False, nargs='?',
                         help='Replace <sos> in the decoder with a target language ID \
                              (the first token in the target sequence)')
-    args = parser.parse_args(args)
+
+    parser.add_argument('--use-frontend', type=strtobool, default=False,
+                        help='The flag to switch to use frontend system.')
+
+    # WPE related
+    parser.add_argument('--use-wpe', type=strtobool, default=False,
+                        help='Apply Weighted Prediction Error')
+    parser.add_argument('--wtype', default='blstmp', type=str,
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                        help='Type of encoder network architecture '
+                             'of the mask estimator for WPE. '
+                             '')
+    parser.add_argument('--wlayers', type=int, default=2,
+                        help='')
+    parser.add_argument('--wunits', type=int, default=300,
+                        help='')
+    parser.add_argument('--wprojs', type=int, default=300,
+                        help='')
+    parser.add_argument('--wdropout-rate', type=float, default=0.0,
+                        help='')
+    parser.add_argument('--wpe-taps', type=int, default=5,
+                        help='')
+    parser.add_argument('--wpe-delay', type=int, default=3,
+                        help='')
+    parser.add_argument('--use-dnn-mask-for-wpe', type=strtobool,
+                        default=False,
+                        help='Use DNN to estimate the power spectrogram. '
+                             'This option is experimental.')
+
+    # Beamformer related
+    parser.add_argument('--use-beamformer', type=strtobool,
+                        default=True, help='')
+    parser.add_argument('--btype', default='blstmp', type=str,
+                        choices=['lstm', 'blstm', 'lstmp', 'blstmp', 'vgglstmp', 'vggblstmp', 'vgglstm', 'vggblstm',
+                                 'gru', 'bgru', 'grup', 'bgrup', 'vgggrup', 'vggbgrup', 'vgggru', 'vggbgru'],
+                        help='Type of encoder network architecture '
+                             'of the mask estimator for Beamformer.')
+    parser.add_argument('--blayers', type=int, default=2,
+                        help='')
+    parser.add_argument('--bunits', type=int, default=300,
+                        help='')
+    parser.add_argument('--bprojs', type=int, default=300,
+                        help='')
+    parser.add_argument('--badim', type=int, default=320,
+                        help='')
+    parser.add_argument('--ref-channel', type=int, default=-1,
+                        help='The reference channel used for beamformer. '
+                             'By default, the channel is estimated by DNN.')
+    parser.add_argument('--bdropout-rate', type=float, default=0.0,
+                        help='')
+
+    # Feature transform: Normalization
+    parser.add_argument('--stats-file', type=str, default=None,
+                        help='The stats file for the feature normalization')
+    parser.add_argument('--apply-uttmvn', type=strtobool, default=True,
+                        help='Apply utterance level mean '
+                             'variance normalization.')
+    parser.add_argument('--uttmvn-norm-means', type=strtobool,
+                        default=True, help='')
+    parser.add_argument('--uttmvn-norm-vars', type=strtobool, default=False,
+                        help='')
+
+    # Feature transform: Fbank
+    parser.add_argument('--fbank-fs', type=int, default=16000,
+                        help='The sample frequency used for '
+                             'the mel-fbank creation.')
+    parser.add_argument('--n-mels', type=int, default=80,
+                        help='The number of mel-frequency bins.')
+    parser.add_argument('--fbank-fmin', type=float, default=0.,
+                        help='')
+    parser.add_argument('--fbank-fmax', type=float, default=None,
+                        help='')
+
+    args, _ = parser.parse_known_args(cmd_args)
+
+    from espnet.utils.dynamic_import import dynamic_import
+    if args.model_module is not None:
+        model_class = dynamic_import(args.model_module)
+        model_class.add_arguments(parser)
+    args = parser.parse_args(cmd_args)
+    if args.model_module is None:
+        args.model_module = "espnet.nets." + args.backend + "_backend.e2e_asr:E2E"
+    if 'chainer_backend' in args.model_module:
+        args.backend = 'chainer'
+    if 'pytorch_backend' in args.model_module:
+        args.backend = 'pytorch'
+>>>>>>> upstream/v.0.4.0
 
     # logging info
     if args.verbose > 0:

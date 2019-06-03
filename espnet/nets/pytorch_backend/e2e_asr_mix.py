@@ -11,27 +11,24 @@ import logging
 import math
 import sys
 
-import editdistance
-
 import chainer
+from chainer import reporter
+import editdistance
 import numpy as np
 import six
 import torch
 
-from chainer import reporter
-
+from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.e2e_asr_common import label_smoothing_dist
-
-from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import RNNP
-from espnet.nets.pytorch_backend.encoders import VGG2L
-
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.pytorch_backend.rnn.attentions import att_for
+from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import RNNP
+from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -110,7 +107,7 @@ class PIT(object):
         return torch.mean(loss_perm), permutation
 
 
-class E2E(torch.nn.Module):
+class E2E(ASRInterface, torch.nn.Module):
     """E2E module
 
     :param int idim: dimension of inputs
@@ -119,7 +116,7 @@ class E2E(torch.nn.Module):
     """
 
     def __init__(self, idim, odim, args):
-        super(E2E, self).__init__()
+        torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
@@ -283,7 +280,7 @@ class E2E(torch.nn.Module):
             else:
                 lpz_sd = None
 
-            wers, cers = [], []
+            word_eds, char_eds, word_ref_lens, char_ref_lens = [], [], [], []
             nbest_hyps_sd = [self.dec.recognize_beam_batch(hs_pad_sd[i], torch.tensor(hlens), lpz_sd[i],
                                                            self.recog_args, self.char_list, self.rnnlm, strm_idx=i)
                              for i in range(self.num_spkrs)]
@@ -309,16 +306,18 @@ class E2E(torch.nn.Module):
                     hyp_chars.append(seq_hat_text.replace(' ', ''))
                     ref_chars.append(seq_true_text.replace(' ', ''))
 
-                tmp_wers = [editdistance.eval(hyp_words[ns // self.num_spkrs], ref_words[ns % self.num_spkrs])
-                            for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
-                tmp_cers = [editdistance.eval(hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs])
-                            for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
+                tmp_word_ed = [editdistance.eval(hyp_words[ns // self.num_spkrs], ref_words[ns % self.num_spkrs])
+                               for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
+                tmp_char_ed = [editdistance.eval(hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs])
+                               for ns in range(self.num_spkrs ** 2)]  # h1r1,h1r2,h2r1,h2r2
 
-                wers.append(self.pit.min_pit_sample(torch.tensor(tmp_wers))[0] / len(sum(ref_words, [])))
-                cers.append(self.pit.min_pit_sample(torch.tensor(tmp_cers))[0] / len(sum(ref_words, [])))
+                word_eds.append(self.pit.min_pit_sample(torch.tensor(tmp_word_ed))[0])
+                word_ref_lens.append(len(sum(ref_words, [])))
+                char_eds.append(self.pit.min_pit_sample(torch.tensor(tmp_char_ed))[0])
+                char_ref_lens.append(len(''.join(ref_chars)))
 
-            wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
-            cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
+            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         alpha = self.mtlalpha
         if alpha == 0:
@@ -339,17 +338,7 @@ class E2E(torch.nn.Module):
             self.reporter.report(loss_ctc_data, loss_att_data, acc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
-
-        # Note(kamo): In order to work with DataParallel, on pytorch==0.4,
-        # the return value must be torch.CudaTensor, or tuple/list/dict of it.
-        # Neither CPUTensor nor float/int value can be used
-        # because NCCL communicates between GPU devices.
-        device = next(self.parameters()).device
-
-        acc = torch.tensor([acc], device=device) if acc is not None else None
-        cer = torch.tensor([cer], device=device)
-        wer = torch.tensor([wer], device=device)
-        return self.loss, loss_ctc, loss_att, acc, cer, wer
+        return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search

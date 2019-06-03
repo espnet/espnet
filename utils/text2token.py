@@ -40,6 +40,14 @@ def main():
                         help='list of non-linguistic symobles, e.g., <NOISE> etc.')
     parser.add_argument('text', type=str, default=False, nargs='?',
                         help='input text')
+    parser.add_argument('--trans_type', '-t', type=str, default="char",
+                        choices=["char", "phn"],
+                        help="""Transcript type. char/phn. e.g., for TIMIT FADG0_SI1279 -
+                        If trans_type is char,
+                        read from SI1279.WRD file -> "bricks are an alternative"
+                        Else if trans_type is phn,
+                        read from SI1279.PHN file -> "sil b r ih sil k s aa r er n aa l
+                        sil t er n ih sil t ih v sil" """)
     args = parser.parse_args()
 
     rs = []
@@ -86,13 +94,18 @@ def main():
                     i += 1
             a = chars
 
-        a = [a[j:j + n] for j in range(0, len(a), n)]
+        if(args.trans_type == "phn"):
+            a = a.split(" ")
+        else:
+            a = [a[j:j + n] for j in range(0, len(a), n)]
 
         a_flat = []
         for z in a:
             a_flat.append("".join(z))
 
         a_chars = [z.replace(' ', args.space) for z in a_flat]
+        if(args.trans_type == "phn"):
+            a_chars = [z.replace("sil", args.space) for z in a_chars]
         print(' '.join(a_chars))
         line = f.readline()
 

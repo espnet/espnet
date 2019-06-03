@@ -26,13 +26,15 @@ class LoadInputsAndTargets(object):
     >>> feat, target = l(batch)
 
     :param: str mode: Specify the task mode, "asr" or "tts"
-    :param: str preproces_conf: The path of a json file for pre-processing
+    :param: str preprocess_conf: The path of a json file for pre-processing
     :param: bool load_input: If False, not to load the input data
     :param: bool load_output: If False, not to load the output data
     :param: bool sort_in_input_length: Sort the mini-batch in descending order
         of the input length
     :param: bool use_speaker_embedding: Used for tts mode only
     :param: bool use_second_target: Used for tts mode only
+    :param: dict preprocess_args: Set some optional arguments for preprocessing
+    :param: Optional[dict] preprocess_args: Used for tts mode only
     """
 
     def __init__(self, mode='asr',
@@ -42,6 +44,7 @@ class LoadInputsAndTargets(object):
                  sort_in_input_length=True,
                  use_speaker_embedding=False,
                  use_second_target=False,
+                 preprocess_args=None
                  ):
         self._loaders = {}
         if mode not in ['asr', 'tts', 'mt']:
@@ -50,7 +53,7 @@ class LoadInputsAndTargets(object):
         if preprocess_conf is not None:
             self.preprocessing = Transformation(preprocess_conf)
             logging.warning(
-                '[Experimental feature] Some pre-transform will be done '
+                '[Experimental feature] Some preprocessing will be done '
                 'for the mini-batch creation using {}'
                 .format(self.preprocessing))
         else:
@@ -71,6 +74,11 @@ class LoadInputsAndTargets(object):
         self.sort_in_input_length = sort_in_input_length
         self.use_speaker_embedding = use_speaker_embedding
         self.use_second_target = use_second_target
+        if preprocess_args is None:
+            self.preprocess_args = {}
+        else:
+            assert isinstance(preprocess_args, dict), type(preprocess_args)
+            self.preprocess_args = dict(preprocess_args)
 
     def __call__(self, batch):
         """Function to load inputs and targets from list of dicts
@@ -93,10 +101,12 @@ class LoadInputsAndTargets(object):
             uttid_list.append(uttid)
 
             if self.load_input:
+                # Note(kamo): This for-loop is for multiple inputs
                 for idx, inp in enumerate(info['input']):
                     # {"input":
                     #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                     #    "filetype": "hdf5",
+                    #    "name": "input1", ...}], ...}
                     x = self._get_from_loader(
                         filepath=inp['feat'],
                         filetype=inp.get('filetype', 'mat'))
@@ -128,6 +138,7 @@ class LoadInputsAndTargets(object):
                         # {"input":
                         #  [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
                         #    "filetype": "hdf5",
+                        #    "name": "target1", ...}], ...}
                         x = self._get_from_loader(
                             filepath=inp['feat'],
                             filetype=inp.get('filetype', 'mat'))
@@ -152,8 +163,8 @@ class LoadInputsAndTargets(object):
             # Apply pre-processing only to input1 feature, now
             if 'input1' in return_batch:
                 return_batch['input1'] = \
-                    self.preprocessing(return_batch['input1'],
-                                       uttid_list)
+                    self.preprocessing(return_batch['input1'], uttid_list,
+                                       **self.preprocess_args)
 
         # Doesn't return the names now.
         return tuple(return_batch.values())
@@ -162,7 +173,13 @@ class LoadInputsAndTargets(object):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
+            e.g. {"input1": [ndarray, ndarray, ...],
+                  "input2": [ndarray, ndarray, ...]}
         :param OrderedDict y_feats_dict:
+            e.g. {"target1": [ndarray, ndarray, ...],
+                  "target2": [ndarray, ndarray, ...]}
+        :param: List[str] uttid_list:
+            Give uttid_list to sort in the same order as the mini-batch
         :return: batch, uttid_list
         :rtype: Tuple[OrderedDict, List[str]]
         """
@@ -185,7 +202,8 @@ class LoadInputsAndTargets(object):
                 for n in range(1, len(y_feats_dict)):
                     nonzero_idx = filter(lambda i: len(ys[n][i]) > 0, nonzero_idx)
         else:
-            nonzero_idx = range(len(xs))
+            # Note(kamo): Be careful not to make nonzero_idx to a generator
+            nonzero_idx = list(range(len(xs)))
 
         if self.sort_in_input_length:
             # sort in input lengths
@@ -210,6 +228,8 @@ class LoadInputsAndTargets(object):
                 ys = zip(*[[y[i] for i in nonzero_sorted_idx] for y in ys])
 
             y_name = list(y_feats_dict.keys())[0]
+
+            # Keepng x_name and y_name, e.g. input1, for future extension
             return_batch = OrderedDict([(x_name, xs), (y_name, ys)])
         else:
             return_batch = OrderedDict([(x_name, xs)])
@@ -264,7 +284,12 @@ class LoadInputsAndTargets(object):
         """Create a OrderedDict for the mini-batch
 
         :param OrderedDict x_feats_dict:
+            e.g. {"input1": [ndarray, ndarray, ...],
+                  "input2": [ndarray, ndarray, ...]}
         :param OrderedDict y_feats_dict:
+            e.g. {"target1": [ndarray, ndarray, ...],
+                  "target2": [ndarray, ndarray, ...]}
+        :param: List[str] uttid_list:
         :param int eos:
         :return: batch, uttid_list
         :rtype: Tuple[OrderedDict, List[str]]
@@ -333,59 +358,82 @@ class LoadInputsAndTargets(object):
         In order to make the fds to be opened only at the first referring,
         the loader are stored in self._loaders
 
+        >>> ndarray = loader.get_from_loader(
+        ...     'some/path.h5:F01_050C0101_PED_REAL', filetype='hdf5')
+
         :param: str filepath:
         :param: str filetype:
         :return:
         :rtype: np.ndarray
         """
         if filetype == 'hdf5':
+            # e.g.
+            #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
+            #                "filetype": "hdf5",
+            # -> filepath = "some/path.h5", key = "F01_050C0101_PED_REAL"
             filepath, key = filepath.split(':', 1)
+
             loader = self._loaders.get(filepath)
             if loader is None:
-                #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                #                "filetype": "hdf5",
+                # To avoid disk access, create loader only for the first time
                 loader = h5py.File(filepath, 'r')
                 self._loaders[filepath] = loader
             return loader[key][()]
         elif filetype == 'sound.hdf5':
+            # e.g.
+            #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
+            #                "filetype": "sound.hdf5",
+            # -> filepath = "some/path.h5", key = "F01_050C0101_PED_REAL"
             filepath, key = filepath.split(':', 1)
+
             loader = self._loaders.get(filepath)
             if loader is None:
-                #    {"input": [{"feat": "some/path.h5:F01_050C0101_PED_REAL",
-                #                "filetype": "sound.hdf5",
+                # To avoid disk access, create loader only for the first time
                 loader = SoundHDF5File(filepath, 'r', dtype='int16')
                 self._loaders[filepath] = loader
             array, rate = loader[key]
             return array
         elif filetype == 'sound':
+            # e.g.
+            #    {"input": [{"feat": "some/path.wav",
+            #                "filetype": "sound"},
             # Assume PCM16
             array, rate = soundfile.read(filepath, dtype='int16')
             return array
         elif filetype == 'npz':
+            # e.g.
+            #    {"input": [{"feat": "some/path.npz:F01_050C0101_PED_REAL",
+            #                "filetype": "npz",
             filepath, key = filepath.split(':', 1)
+
             loader = self._loaders.get(filepath)
             if loader is None:
-                #    {"input": [{"feat": "some/path.npz:F01_050C0101_PED_REAL",
-                #                "filetype": "npz",
+                # To avoid disk access, create loader only for the first time
                 loader = np.load(filepath)
                 self._loaders[filepath] = loader
             return loader[key]
         elif filetype == 'npy':
+            # e.g.
             #    {"input": [{"feat": "some/path.npy",
             #                "filetype": "npy"},
             return np.load(filepath)
         elif filetype in ['mat', 'vec']:
+            # e.g.
             #    {"input": [{"feat": "some/path.ark:123",
             #                "filetype": "mat"}]},
+            # In this case, "123" indicates the starting points of the matrix
             # load_mat can load both matrix and vector
             return kaldiio.load_mat(filepath)
         elif filetype == 'scp':
+            # e.g.
+            #    {"input": [{"feat": "some/path.scp:F01_050C0101_PED_REAL",
+            #                "filetype": "scp",
             filepath, key = filepath.split(':', 1)
             loader = self._loaders.get(filepath)
             if loader is None:
-                #    {"input": [{"feat": "some/path.scp:F01_050C0101_PED_REAL",
-                #                "filetype": "scp",
+                # To avoid disk access, create loader only for the first time
                 loader = kaldiio.load_scp(filepath)
+                self._loaders[filepath] = loader
             return loader[key]
         else:
             raise NotImplementedError(

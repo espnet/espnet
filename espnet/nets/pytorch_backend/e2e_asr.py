@@ -22,15 +22,15 @@ from itertools import groupby
 
 from chainer import reporter
 
+from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
-
-from espnet.nets.pytorch_backend.attentions import att_for
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import encoder_for
-
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+from espnet.nets.pytorch_backend.rnn.attentions import att_for
+from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -49,7 +49,7 @@ class Reporter(chainer.Chain):
         reporter.report({'loss': mtl_loss}, self)
 
 
-class E2E(torch.nn.Module):
+class E2E(ASRInterface, torch.nn.Module):
     """E2E module
 
     :param int idim: dimension of inputs
@@ -62,6 +62,7 @@ class E2E(torch.nn.Module):
 
     def __init__(self, idim, odim, args, asr_model=None, mt_model=None):
         super(E2E, self).__init__()
+        torch.nn.Module.__init__(self)
         self.mtlalpha = args.mtlalpha
         assert 0.0 <= self.mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
         self.etype = args.etype
@@ -99,6 +100,19 @@ class E2E(torch.nn.Module):
 
         # multilingual speech translation related
         self.replace_sos = args.replace_sos
+
+        if args.use_frontend:
+            # Relative importing because of using python3 syntax
+            from espnet.nets.pytorch_backend.frontends.feature_transform \
+                import feature_transform_for
+            from espnet.nets.pytorch_backend.frontends.frontend \
+                import frontend_for
+
+            self.frontend = frontend_for(args, idim)
+            self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
+            idim = args.n_mels
+        else:
+            self.frontend = None
 
         # encoder
         self.enc = encoder_for(args, idim, self.subsample)
@@ -173,7 +187,7 @@ class E2E(torch.nn.Module):
                     n = data.size(1)
                     stdv = 1. / math.sqrt(n)
                     data.normal_(0, stdv)
-                elif data.dim() == 4:
+                elif data.dim() in (3, 4):
                     # conv weight
                     n = data.size(1)
                     for k in data.size()[2:]:
@@ -210,25 +224,34 @@ class E2E(torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
-        # 1. encoder
+        # 0. Frontend
+        if self.frontend is not None:
+            hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
+            hs_pad, hlens = self.feature_transform(hs_pad, hlens)
+        else:
+            hs_pad, hlens = xs_pad, ilens
+
+        # 1. Encoder
         if self.replace_sos:
             tgt_lang_ids = ys_pad[:, 0:1]
             ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
         else:
             tgt_lang_ids = None
-        hs_pad, hlens, _ = self.enc(xs_pad, ilens)
+
+        hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
         # 2. CTC loss
         if self.mtlalpha == 0:
-            loss_ctc = None
+            self.loss_ctc = None
         else:
-            loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
+            self.loss_ctc = self.ctc(hs_pad, hlens, ys_pad)
 
         # 3. attention loss
         if self.mtlalpha == 1:
-            loss_att, acc = None, None
+            self.loss_att, acc = None, None
         else:
-            loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
+            # self.loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
+            self.loss_att, acc = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
         self.acc = acc
 
         # 4. compute cer without beam search
@@ -265,12 +288,11 @@ class E2E(torch.nn.Module):
             else:
                 lpz = None
 
-            wers, cers = [], []
-            nbest_hyps = self.dec.recognize_beam_batch(
-                hs_pad, torch.tensor(hlens), lpz,
-                self.recog_args, self.char_list,
-                self.rnnlm,
-                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
+            word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
+            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), lpz,
+                                                       self.recog_args, self.char_list,
+                                                       self.rnnlm,
+                                                       tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
@@ -284,44 +306,36 @@ class E2E(torch.nn.Module):
 
                 hyp_words = seq_hat_text.split()
                 ref_words = seq_true_text.split()
-                wers.append(editdistance.eval(hyp_words, ref_words) / len(ref_words))
+                word_eds.append(editdistance.eval(hyp_words, ref_words))
+                word_ref_lens.append(len(ref_words))
                 hyp_chars = seq_hat_text.replace(' ', '')
                 ref_chars = seq_true_text.replace(' ', '')
-                cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+                char_eds.append(editdistance.eval(hyp_chars, ref_chars))
+                char_ref_lens.append(len(ref_chars))
 
-            wer = 0.0 if not self.report_wer else sum(wers) / len(wers)
-            cer = 0.0 if not self.report_cer else sum(cers) / len(cers)
+            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         alpha = self.mtlalpha
         if alpha == 0:
-            self.loss = loss_att
-            loss_att_data = float(loss_att)
+            self.loss = self.loss_att
+            loss_att_data = float(self.loss_att)
             loss_ctc_data = None
         elif alpha == 1:
-            self.loss = loss_ctc
+            self.loss = self.loss_ctc
             loss_att_data = None
-            loss_ctc_data = float(loss_ctc)
+            loss_ctc_data = float(self.loss_ctc)
         else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-            loss_att_data = float(loss_att)
-            loss_ctc_data = float(loss_ctc)
+            self.loss = alpha * self.loss_ctc + (1 - alpha) * self.loss_att
+            loss_att_data = float(self.loss_att)
+            loss_ctc_data = float(self.loss_ctc)
 
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             self.reporter.report(loss_ctc_data, loss_att_data, acc, cer_ctc, cer, wer, loss_data)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
-
-        # Note(kamo): In order to work with DataParallel, on pytorch==0.4,
-        # the return value must be torch.CudaTensor, or tuple/list/dict of it.
-        # Neither CPUTensor nor float/int value can be used
-        # because NCCL communicates between GPU devices.
-        device = next(self.parameters()).device
-
-        acc = torch.tensor([acc], device=device) if acc is not None else None
-        cer = torch.tensor([cer], device=device)
-        wer = torch.tensor([wer], device=device)
-        return self.loss, loss_ctc, loss_att, acc, cer, wer
+        return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
@@ -335,31 +349,43 @@ class E2E(torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        ilens = [x.shape[0]]
+
         # subsample frame
-        h, ilen = self.subsample_frames(x)
+        x = x[::self.subsample[0], :]
+        h = to_device(self, to_torch_tensor(x).float())
+        # make a utt list (1) to use the same interface for encoder
+        hs = h.contiguous().unsqueeze(0)
+
+        # 0. Frontend
+        if self.frontend is not None:
+            enhanced, hlens, mask = self.frontend(hs, ilens)
+            hs, hlens = self.feature_transform(enhanced, hlens)
+        else:
+            hs, hlens = hs, ilens
 
         # 1. encoder
-        # make a utt list (1) to use the same interface for encoder
-        h, _, _ = self.enc(h.unsqueeze(0), ilen)
+        hs, _, _ = self.enc(hs, hlens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(h)[0]
+            lpz = self.ctc.log_softmax(hs)[0]
         else:
             lpz = None
 
-        # 2. decoder
+        # 2. Decoder
         # decode the first utterance
-        y = self.dec.recognize_beam(h[0], lpz, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(hs[0], lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
+
         return y
 
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
         """E2E beam search
 
-        :param ndarray xs: input acoustic feature (T, D)
+        :param list xs: list of input acoustic feature arrays [(T_1, D), (T_2, D), ...]
         :param Namespace recog_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
@@ -368,28 +394,57 @@ class E2E(torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
-        hs = [to_device(self, torch.from_numpy(np.array(xx, dtype=np.float32)))
-              for xx in xs]
+        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
+        xs_pad = pad_list(xs, 0.0)
+
+        # 0. Frontend
+        if self.frontend is not None:
+            enhanced, hlens, mask = self.frontend(xs_pad, ilens)
+            hs_pad, hlens = self.feature_transform(enhanced, hlens)
+        else:
+            hs_pad, hlens = xs_pad, ilens
 
         # 1. encoder
-        xpad = pad_list(hs, 0.0)
-        hpad, hlens, _ = self.enc(xpad, ilens)
+        hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
         # calculate log P(z_t|X) for CTC scores
         if recog_args.ctc_weight > 0.0:
-            lpz = self.ctc.log_softmax(hpad)
+            lpz = self.ctc.log_softmax(hs_pad)
         else:
             lpz = None
 
         # 2. decoder
-        y = self.dec.recognize_beam_batch(hpad, hlens, lpz, recog_args, char_list, rnnlm)
+        hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
+        y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
         return y
+
+    def enhance(self, xs):
+        """Forwarding only the frontend stage
+
+        :param ndarray xs: input acoustic feature (T, C, F)
+        """
+
+        if self.frontend is None:
+            raise RuntimeError('Frontend does\'t exist')
+        prev = self.training
+        self.eval()
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+
+        # subsample frame
+        xs = [xx[::self.subsample[0], :] for xx in xs]
+        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
+        xs_pad = pad_list(xs, 0.0)
+        enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
+        if prev:
+            self.train()
+        return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         """E2E attention calculation
@@ -403,15 +458,22 @@ class E2E(torch.nn.Module):
         :rtype: float ndarray
         """
         with torch.no_grad():
-            # encoder
+            # 0. Frontend
+            if self.frontend is not None:
+                hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
+                hs_pad, hlens = self.feature_transform(hs_pad, hlens)
+            else:
+                hs_pad, hlens = xs_pad, ilens
+
+            # 1. Encoder
             if self.replace_sos:
                 tgt_lang_ids = ys_pad[:, 0:1]
                 ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
             else:
                 tgt_lang_ids = None
-            hpad, hlens, _ = self.enc(xs_pad, ilens)
+            hpad, hlens, _ = self.enc(hs_pad, hlens)
 
-            # decoder
+            # 2. Decoder
             att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
 
         return att_ws
@@ -424,79 +486,3 @@ class E2E(torch.nn.Module):
             np.array(x, dtype=np.float32)))
         h.contiguous()
         return h, ilen
-
-
-# TODO(pzelasko): Currently allows half-streaming only; needs streaming attention decoder implementation
-class StreamingE2E(object):
-    """Convenience wrapper over E2E class for streaming recognitions.
-
-    Not recommended for GPUs.
-    """
-
-    def __init__(self, e2e, recog_args, char_list, rnnlm=None):
-        """StreamingE2E constructor.
-
-        :param E2E e2e: E2E ASR object
-        :param recog_args: arguments for "recognize" method of E2E
-        """
-        self._e2e = e2e
-        self._recog_args = recog_args
-        self._char_list = char_list
-        self._rnnlm = rnnlm
-
-        self._e2e.eval()
-
-        self._offset = 0
-        self._previous_encoder_recurrent_state = None
-        self._encoder_states = []
-        self._ctc_posteriors = []
-        self._last_recognition = None
-
-        assert self._recog_args.ctc_weight > 0.0, "StreamingE2E works only with combined CTC and attention decoders."
-
-    def accept_input(self, x):
-        """Call this method each time a new batch of input is available."""
-
-        h, ilen = self._e2e.subsample_frames(x)
-
-        # Streaming encoder
-        h, _, self._previous_encoder_recurrent_state = self._e2e.enc(
-            h.unsqueeze(0),
-            ilen,
-            self._previous_encoder_recurrent_state
-        )
-        self._encoder_states.append(h.squeeze(0))
-
-        # CTC posteriors for the incoming audio
-        self._ctc_posteriors.append(self._e2e.ctc.log_softmax(h).squeeze(0))
-
-    def _input_window_for_decoder(self, use_all=False):
-        if use_all:
-            return torch.cat(self._encoder_states, dim=0), torch.cat(self._ctc_posteriors, dim=0)
-
-        def select_unprocessed_windows(window_tensors):
-            last_offset = self._offset
-            offset_traversed = 0
-            selected_windows = []
-            for es in window_tensors:
-                if offset_traversed > last_offset:
-                    selected_windows.append(es)
-                    continue
-                offset_traversed += es.size(1)
-            return torch.cat(selected_windows, dim=0)
-
-        return (
-            select_unprocessed_windows(self._encoder_states),
-            select_unprocessed_windows(self._ctc_posteriors)
-        )
-
-    def decode_with_attention_offline(self):
-        """Run the attention decoder offline.
-
-        Works even if the previous layers (encoder and CTC decoder) were being run in the online mode.
-        This method should be run after all the audio has been consumed.
-        This is used mostly to compare the results between offline and online implementation of the previous layers.
-        """
-        h, lpz = self._input_window_for_decoder(use_all=True)
-
-        return self._e2e.dec.recognize_beam(h, lpz, self._recog_args, self._char_list, self._rnnlm)
