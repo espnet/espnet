@@ -30,6 +30,7 @@ subsample=1_2_2_1_1 # skip every n frame from input to nth layers
 # decoder related
 dlayers=2
 dunits=1024
+context_residual=true
 # attention related
 atype=location
 adim=1024
@@ -46,6 +47,10 @@ lsm_weight=0.1
 drop_enc=0.3
 drop_dec=0.0
 weight_decay=0
+
+# transfer learning ralated
+asr_model=
+mt_model=
 
 # minibatch related
 batchsize=15
@@ -107,6 +112,11 @@ set -o pipefail
 train_set=train_sp.es
 train_dev=dev_sp.es
 recog_set="fisher_dev.es fisher_dev2.es fisher_test.es callhome_devtest.es callhome_evltest.es"
+recog_set="fisher_dev.es"
+recog_set="fisher_dev2.es"
+recog_set="fisher_test.es"
+recog_set="callhome_devtest.es"
+# recog_set="callhome_evltest.es"
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
 feat_dt_dir=${dumpdir}/${train_dev}/delta${do_delta}; mkdir -p ${feat_dt_dir}
@@ -216,6 +226,15 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ ! -z ${context_residual} ]; then
+      expname=${expname}_cres
+    fi
+    if [ ! -z ${asr_model} ]; then
+      expname=${expname}_asrtrans
+    fi
+    if [ ! -z ${mt_model} ]; then
+      expname=${expname}_mttrans
+    fi
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -262,7 +281,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --sortagrad ${sortagrad} \
         --epochs ${epochs} \
         --patience ${patience} \
-        --weight-decay ${weight_decay}
+        --weight-decay ${weight_decay} \
+        --asr-model ${asr_model} \
+        --mt-model ${mt_model} \
+        --context-residual ${context_residual}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
