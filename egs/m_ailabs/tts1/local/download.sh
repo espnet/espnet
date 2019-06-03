@@ -11,21 +11,21 @@ available_langs=(
 )
 
 # check arguments
-if [ $# != 2 ];then
+if [ $# != 2 ]; then
     echo "Usage: $0 <tar_dir> <lang_tag>"
     echo "Available languages: ${available_langs[*]}"
     exit 1
 fi
 
 # check language
-if ! $(echo ${available_langs[*]} | grep -q ${lang});then
+if ! $(echo ${available_langs[*]} | grep -q ${lang}); then
     echo "Specified language is not available or not supported."
     exit 1
 fi
 
 # download dataset
 cwd=`pwd`
-if [ ! -e ${db}/${lang} ];then
+if [ ! -e ${db}/${lang} ]; then
     mkdir -p ${db}
     cd ${db}
     wget http://www.caito.de/data/Training/stt_tts/${lang}.tgz

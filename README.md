@@ -33,11 +33,11 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 
-- Python 2.7+, 3.7+ (mainly support Python3.7+)
+- Python 3.6+
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.1, 1.0.0
-- gcc>=4.9 for PyTorch1.0.0
+- gcc 4.9+ for PyTorch1.0.0
 - Chainer 6.0.0
 
 Optionally, GPU environment requires the following libraries:
@@ -323,8 +323,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Aishell dev | 6.8 | N/A |
 | Aishell test | 8.0 | N/A |
 | CSJ eval1 | 5.7 | N/A  |
-| CSJ eval2 | 4.3 | N/A  |
-| CSJ eval3 | 4.8 | N/A  |
+| CSJ eval2 | 4.1 | N/A  |
+| CSJ eval3 | 4.5 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 4.0 |
 | Librispeech test_clean | N/A | 4.0 |
