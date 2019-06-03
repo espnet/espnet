@@ -163,7 +163,7 @@ class Decoder(torch.nn.Module):
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(' scheduled sampling ')
                 z_out = self.output(z_all[-1])
-                z_out = np.argmax(z_out.detach(), axis=1)
+                z_out = np.argmax(z_out.detach().cpu(), axis=1)
                 z_out = self.dropout_emb(self.embed(z_out.cuda()))
                 ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
             else:
