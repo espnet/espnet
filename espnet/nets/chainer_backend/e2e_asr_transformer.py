@@ -14,6 +14,7 @@ from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.decoder import Decoder
 from espnet.nets.chainer_backend.transformer.encoder import Encoder
+from espnet.nets.chainer_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
 from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 
 MAX_DECODER_OUTPUT = 5
@@ -107,33 +108,25 @@ class E2E(ASRInterface, chainer.Chain):
             self.dropout = args.dropout_rate
         else:
             self.dropout = args.transformer_attn_dropout_rate
-        self.n_target_vocab = len(args.char_list)
         self.use_label_smoothing = False
         self.char_list = args.char_list
         self.scale_emb = args.adim ** 0.5
         self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = [0]
-        self.verbose = 0 if 'verbose' not in args else args.verbose
         self.ignore_id = ignore_id
         self.reset_parameters(args)
         with self.init_scope():
-            self.encoder = Encoder(args.transformer_input_layer, idim, args.elayers, args.adim,
-                                   d_units=args.eunits, h=args.aheads, dropout=self.dropout,
-                                   initialW=self.initialW, initial_bias=self.initialB)
-            self.decoder = Decoder(odim, args.dlayers, args.adim, d_units=args.dunits,
-                                   h=args.aheads, dropout=self.dropout,
-                                   initialW=self.initialW, initial_bias=self.initialB)
+            self.encoder = Encoder(idim, args, initialW=self.initialW, initial_bias=self.initialB)
+            self.decoder = Decoder(odim, args, initialW=self.initialW, initial_bias=self.initialB)
+            self.criterion = LabelSmoothingLoss(args.lsm_weight, len(args.char_list),
+                                                args.transformer_length_normalized_loss)
         if args.mtlalpha > 0.0:
             raise NotImplementedError('Joint CTC/Att training. WIP')
-        self.normalize_length = args.transformer_length_normalized_loss
         self.dims = args.adim
         self.odim = odim
-        if args.lsm_weight > 0:
-            logging.info("Use label smoothing")
-            self.use_label_smoothing = True
-            self.lsm_weight = args.lsm_weight
         self.flag_return = flag_return
+        self.verbose = 0 if 'verbose' not in args else args.verbose
 
     def reset_parameters(self, args):
         type_init = args.transformer_init
@@ -177,53 +170,6 @@ class E2E(ASRInterface, chainer.Chain):
             history_mask, (batch, length, length))
         return history_mask
 
-    def output_and_loss(self, concat_logit_block, t_block, batch, length):
-        # Output (all together at once for efficiency)
-        rebatch, _ = concat_logit_block.shape
-        # Make target
-        concat_t_block = t_block.reshape((rebatch)).data
-        ignore_mask = (concat_t_block >= 0)
-        n_token = ignore_mask.sum()
-        normalizer = n_token if self.normalize_length else batch
-        if not self.use_label_smoothing:
-            loss = F.softmax_cross_entropy(concat_logit_block, concat_t_block)
-            loss = loss * n_token / normalizer
-        else:
-            p_lsm = self.lsm_weight
-            p_loss = 1. - p_lsm
-            log_prob = F.log_softmax(concat_logit_block)
-            broad_ignore_mask = self.xp.broadcast_to(
-                ignore_mask[:, None],
-                concat_logit_block.shape)
-            pre_loss = ignore_mask * \
-                log_prob[self.xp.arange(rebatch), concat_t_block]
-            loss = - F.sum(pre_loss) / normalizer
-            label_smoothing = broad_ignore_mask * \
-                - 1. / self.n_target_vocab * log_prob
-            label_smoothing = F.sum(label_smoothing) / normalizer
-            loss = p_loss * loss + p_lsm * label_smoothing
-        accuracy = F.accuracy(
-            concat_logit_block, concat_t_block, ignore_label=-1)
-
-        if self.verbose > 0 and self.char_list is not None:
-            with chainer.no_backprop_mode():
-                rc_block = F.transpose(concat_logit_block.reshape((batch, length, -1)), (0, 2, 1))
-                rc_block.to_cpu()
-                t_block.to_cpu()
-                for (i, y_hat_), y_true_ in zip(enumerate(rc_block.data), t_block.data):
-                    if i == MAX_DECODER_OUTPUT:
-                        break
-                    idx_hat = np.argmax(y_hat_[:, y_true_ != -1], axis=0)
-                    idx_true = y_true_[y_true_ != -1]
-                    eos_true = np.where(y_true_ == self.eos)[0][0]
-                    seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
-                    seq_true = [self.char_list[int(idx)] for idx in idx_true[: eos_true]]
-                    seq_hat = "".join(seq_hat).replace('<space>', ' ')
-                    seq_true = "".join(seq_true).replace('<space>', ' ')
-                    logging.info("groundtruth[%d]: " % i + seq_true)
-                    logging.info("prediction [%d]: " % i + seq_hat)
-        return loss, accuracy
-
     def forward(self, xs, ilens, ys, calculate_attentions=False):
         xp = self.xp
         ilens = np.array([int(x) for x in ilens])
@@ -259,7 +205,10 @@ class E2E(ASRInterface, chainer.Chain):
         ys = self.decoder(ys, yy_mask, xs, xy_mask)
         if calculate_attentions:
             return xs
-        loss_att, acc = self.output_and_loss(ys, ys_out, batch, length)
+        # Compute loss
+        loss_att = self.criterion(ys, ys_out, batch, length)
+        acc = F.accuracy(ys, ys_out.reshape((-1)).data, ignore_label=self.ignore_id)
+
         alpha = self.mtlalpha
         loss_ctc = None
         if alpha == 0:
@@ -277,6 +226,25 @@ class E2E(ASRInterface, chainer.Chain):
             reporter.report({'loss': self.loss}, self)
         else:
             logging.warning('loss (=%f) is not correct', self.loss.data)
+
+        if self.verbose > 0 and self.char_list is not None:
+            with chainer.no_backprop_mode():
+                rc_block = F.transpose(ys.reshape((batch, length, -1)), (0, 2, 1))
+                rc_block.to_cpu()
+                ys_out.to_cpu()
+                for (i, y_hat_), y_true_ in zip(enumerate(rc_block.data), ys_out.data):
+                    if i == MAX_DECODER_OUTPUT:
+                        break
+                    idx_hat = np.argmax(y_hat_[:, y_true_ != -1], axis=0)
+                    idx_true = y_true_[y_true_ != -1]
+                    eos_true = np.where(y_true_ == self.eos)[0][0]
+                    seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
+                    seq_true = [self.char_list[int(idx)] for idx in idx_true[: eos_true]]
+                    seq_hat = "".join(seq_hat).replace('<space>', ' ')
+                    seq_true = "".join(seq_true).replace('<space>', ' ')
+                    logging.info("groundtruth[%d]: " % i + seq_true)
+                    logging.info("prediction [%d]: " % i + seq_hat)
+
         if self.flag_return:
             loss_ctc = None
             return self.loss, loss_ctc, loss_att, acc
