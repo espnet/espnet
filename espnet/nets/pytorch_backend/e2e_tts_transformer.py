@@ -2,7 +2,7 @@
 
 # Copyright 2019 Shigeki Karita and Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
+import logging
 
 import numpy as np
 import torch
@@ -20,6 +20,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEn
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+from espnet.nets.pytorch_backend.transformer.plot import _plot_and_save_attention
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 
@@ -64,10 +65,39 @@ class TransformerLoss(torch.nn.Module):
 
         # calculate loss
         l1_loss = F.l1_loss(after_outs, ys) + F.l1_loss(before_outs, ys)
+        l2_loss = F.mse_loss(after_outs, ys) + F.mse_loss(before_outs, ys)
         bce_loss = F.binary_cross_entropy_with_logits(
             logits, labels, pos_weight=torch.tensor(self.bce_pos_weight, device=ys.device))
 
-        return l1_loss, bce_loss
+        return l1_loss, l2_loss, bce_loss
+
+
+class TTSPlot(PlotAttentionReport):
+    def plotfn(self, data, attn_dict, outdir, suffix="png", savefn=None):
+        """Plot multi head attentions
+
+        :param dict data: utts info from json file
+        :param dict[str, torch.Tensor] attn_dict: multi head attention dict.
+            values should be torch.Tensor (head, input_length, output_length)
+        :param str outdir: dir to save fig
+        :param str suffix: filename suffix including image type (e.g., png)
+        :param savefn: function to save
+        """
+        import matplotlib.pyplot as plt
+        for name, att_ws in attn_dict.items():
+            for idx, att_w in enumerate(att_ws):
+                filename = "%s/%s.%s.%s" % (
+                    outdir, data[idx][0], name, suffix)
+                if "fbank" in name:
+                    fig = plt.Figure()
+                    ax = fig.subplots(1, 1)
+                    ax.imshow(att_w, aspect="auto")
+                    ax.set_xlabel("frames")
+                    ax.set_ylabel("fbank coeff")
+                    fig.tight_layout()
+                else:
+                    fig = _plot_and_save_attention(att_w, filename)
+                savefn(fig, filename)
 
 
 class Transformer(TTSInterface, torch.nn.Module):
@@ -181,13 +211,15 @@ class Transformer(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument('--use-masking', default=True, type=strtobool,
                            help='Whether to use masking in calculation of loss')
+        group.add_argument('--loss-type', default="L1", choices=["L1", "L2", "L1+L2"],
+                           help='How to calc loss')
         group.add_argument('--bce-pos-weight', default=5.0, type=float,
                            help='Positive sample weight in BCE calculation (only for use-masking=True)')
         return parser
 
     @property
     def attention_plot_class(self):
-        return PlotAttentionReport
+        return TTSPlot
 
     def __init__(self, idim, odim, args):
         # initialize base classes
@@ -300,7 +332,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(self.adim, self.odim * self.reduction_factor, bias=False)
+        self.feat_out = torch.nn.Linear(self.adim, self.odim * self.reduction_factor)
         self.prob_out = torch.nn.Linear(self.adim, self.reduction_factor)
 
         # define postnet
@@ -316,6 +348,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # define loss function
         self.criterion = TransformerLoss(args)
+        self.loss_type = args.loss_type
 
         # initialize parameters
         self._reset_parameters(args)
@@ -406,13 +439,21 @@ class Transformer(TTSInterface, torch.nn.Module):
             labels[:, -1] = 1.0  # make sure at least one frame has 1
 
         # caluculate loss values
-        l1_loss, bce_loss = self.criterion(
+        l1_loss, l2_loss, bce_loss = self.criterion(
             after_outs, before_outs, logits, ys, labels, olens)
-        loss = l1_loss + bce_loss
+        if self.loss_type == "L1":
+            loss = l1_loss + bce_loss
+        elif self.loss_type == "L2":
+            loss = l2_loss + bce_loss
+        elif self.loss_type == "L1+L2":
+            loss = l1_loss + l2_loss + bce_loss
+        else:
+            raise ValueError("unknown --loss-type " + self.loss_type)
 
         # report for chainer reporter
         report_keys = [
             {'l1_loss': l1_loss.item()},
+            {'l2_loss': l2_loss.item()},
             {'bce_loss': bce_loss.item()},
             {'loss': loss.item()},
         ]
@@ -500,12 +541,31 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # forward decoder
             y_masks = self._target_mask(olens)
-            self.decoder(ys, y_masks, hs, h_masks)
+            zs, zs_mask = self.decoder(ys, y_masks, hs, h_masks)
+            # (B, Lmax//r * r, odim) -> (B, Lmax//r, odim * r)
+            before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
+            # postnet
+            after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         att_ws_dict = dict()
         for name, m in self.named_modules():
             if isinstance(m, MultiHeadedAttention):
-                att_ws_dict[name] = m.attn.cpu().numpy()
+                attn = m.attn.cpu().numpy()
+                if "encoder" in name:
+                    attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
+                elif "decoder" in name:
+                    if "src" in name:
+                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens.tolist())]
+                    elif "self" in name:
+                        attn = [a[:, :l, :l] for a, l in zip(attn, olens.tolist())]
+                    else:
+                        logging.warning("unknown attention module: " + name)
+                else:
+                    logging.warning("unknown attention module: " + name)
+                att_ws_dict[name] = attn
+
+        att_ws_dict["before_postnet_fbank"] = [m[:l].T for m, l in zip(before_outs.cpu().numpy(), olens.tolist())]
+        att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs.cpu().numpy(), olens.tolist())]
         return att_ws_dict
 
     def _target_mask(self, olens):
@@ -522,7 +582,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         :rtype list[str] plot_keys: base keys to plot during training
         """
-        plot_keys = ['loss', 'l1_loss', 'bce_loss']
+        plot_keys = ['loss', 'l1_loss', 'l2_loss', 'bce_loss']
         if self.use_scaled_pos_enc:
             plot_keys += ['encoder_alpha', 'decoder_alpha']
 
