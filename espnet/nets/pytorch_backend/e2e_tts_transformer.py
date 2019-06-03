@@ -395,13 +395,13 @@ class Transformer(TTSInterface, torch.nn.Module):
         :rtype: torch.Tensor
         """
         # remove unnecessary padded part (for multi-gpus)
-        max_in = max(ilens)
-        max_out = max(olens)
-        if max_in != xs.shape[1]:
-            xs = xs[:, :max_in]
-        if max_out != ys.shape[1]:
-            ys = ys[:, :max_out]
-            labels = labels[:, :max_out]
+        max_ilen = max(ilens)
+        max_olen = max(olens)
+        if max_ilen != xs.shape[1]:
+            xs = xs[:, :max_ilen]
+        if max_olen != ys.shape[1]:
+            ys = ys[:, :max_olen]
+            labels = labels[:, :max_olen]
 
         # forward encoder
         x_masks = self._source_mask(ilens)
@@ -410,7 +410,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
             ys_ = ys[:, self.reduction_factor - 1::self.reduction_factor]
-            olens_ = [olen // self.reduction_factor for olen in olens]
+            olens_ = olens.new([olen // self.reduction_factor for olen in olens])
         else:
             ys_, olens_ = ys, olens
 
@@ -429,9 +429,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
             olens = [olen - olen % self.reduction_factor for olen in olens]
-            max_out = max(olens)
-            ys = ys[:, :max_out]
-            labels = labels[:, :max_out]
+            max_olen = max(olens)
+            ys = ys[:, :max_olen]
+            labels = labels[:, :max_olen]
             labels[:, -1] = 1.0  # make sure at least one frame has 1
 
         # caluculate loss values
@@ -537,15 +537,13 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:
-                ys_ = ys[:, self.reduction_factor - 1::self.reduction_factor]
-                olens_ = [olen // self.reduction_factor for olen in olens]
-            else:
-                ys_, olens_ = ys, olens
+                ys = ys[:, self.reduction_factor - 1::self.reduction_factor]
+                olens = olens.new([olen // self.reduction_factor for olen in olens])
 
             # forward decoder
-            y_masks = self._target_mask(olens_)
-            xy_masks = self._source_to_target_mask(ilens, olens_)
-            zs, _ = self.decoder(ys_, y_masks, hs, xy_masks)
+            y_masks = self._target_mask(olens)
+            xy_masks = self._source_to_target_mask(ilens, olens)
+            zs, _ = self.decoder(ys, y_masks, hs, xy_masks)
             # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
             before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
             # postnet -> (B, Lmax//r * r, odim)
