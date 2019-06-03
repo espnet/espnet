@@ -394,12 +394,6 @@ class Transformer(TTSInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
-        # check ilens and olens type (should be list of int)
-        if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
-            ilens = list(map(int, ilens))
-        if isinstance(olens, torch.Tensor) or isinstance(olens, np.ndarray):
-            olens = list(map(int, olens))
-
         # remove unnecessary padded part (for multi-gpus)
         max_in = max(ilens)
         max_out = max(olens)
@@ -411,7 +405,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # forward encoder
         x_masks = self._source_mask(ilens)
-        hs, h_masks = self.encoder(xs, x_masks)
+        hs, _ = self.encoder(xs, x_masks)
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -422,7 +416,8 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # forward decoder
         y_masks = self._target_mask(olens_)
-        zs, _ = self.decoder(ys_, y_masks, hs, h_masks)
+        xy_masks = self._source_to_target_mask(ilens, olens_)
+        zs, _ = self.decoder(ys_, y_masks, hs, xy_masks)
         # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
         before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
         # (B, Lmax//r, r) -> (B, Lmax//r * r)
@@ -538,11 +533,19 @@ class Transformer(TTSInterface, torch.nn.Module):
         with torch.no_grad():
             # forward encoder
             x_masks = self._source_mask(ilens)
-            hs, h_masks = self.encoder(xs, x_masks)
+            hs, _ = self.encoder(xs, x_masks)
+
+            # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
+            if self.reduction_factor > 1:
+                ys_ = ys[:, self.reduction_factor - 1::self.reduction_factor]
+                olens_ = [olen // self.reduction_factor for olen in olens]
+            else:
+                ys_, olens_ = ys, olens
 
             # forward decoder
-            y_masks = self._target_mask(olens)
-            zs, _ = self.decoder(ys, y_masks, hs, h_masks)
+            y_masks = self._target_mask(olens_)
+            xy_masks = self._source_to_target_mask(ilens, olens_)
+            zs, _ = self.decoder(ys_, y_masks, hs, xy_masks)
             # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
             before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
             # postnet -> (B, Lmax//r * r, odim)
@@ -609,6 +612,27 @@ class Transformer(TTSInterface, torch.nn.Module):
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks
+
+    def _source_to_target_mask(self, ilens, olens):
+        """Make source to target mask for MultiHeadedAttention using padded sequences
+
+        >>> ilens = [4, 2]
+        >>> olens = [5, 3]
+        >>> self._source_to_target_mask(ilens)
+        tensor([[[1, 1, 1, 1],
+                 [1, 1, 1, 1],
+                 [1, 1, 1, 1],
+                 [1, 1, 1, 1],
+                 [1, 1, 1, 1]],
+
+                [[1, 1, 0, 0],
+                 [1, 1, 0, 0],
+                 [1, 1, 0, 0],
+                 [1, 1, 0, 0],
+                 [1, 1, 0, 0]]], dtype=torch.uint8)
+        """
+        x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
+        return x_masks.unsqueeze(-2).repeat(1, max(olens), 1)
 
     @property
     def base_plot_keys(self):
