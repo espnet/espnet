@@ -11,6 +11,7 @@ import chainer.functions as F
 from chainer.training import extension
 
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.chainer_backend import ctc
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.decoder import Decoder
 from espnet.nets.chainer_backend.transformer.encoder import Encoder
@@ -18,7 +19,6 @@ from espnet.nets.chainer_backend.transformer.label_smoothing_loss import LabelSm
 from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 
 MAX_DECODER_OUTPUT = 5
-MIN_VALUE = float(np.finfo(np.float32).min)
 
 
 class VaswaniRule(extension.Extension):
@@ -121,12 +121,25 @@ class E2E(ASRInterface, chainer.Chain):
             self.decoder = Decoder(odim, args, initialW=self.initialW, initial_bias=self.initialB)
             self.criterion = LabelSmoothingLoss(args.lsm_weight, len(args.char_list),
                                                 args.transformer_length_normalized_loss)
-        if args.mtlalpha > 0.0:
-            raise NotImplementedError('Joint CTC/Att training. WIP')
+            if args.mtlalpha > 0.0:
+                if args.ctc_type == 'builtin':
+                    logging.info("Using chainer CTC implementation")
+                    self.ctc = ctc.CTC(odim, args.adim, args.dropout_rate)
+                elif args.ctc_type == 'warpctc':
+                    logging.info("Using warpctc CTC implementation")
+                    self.ctc = ctc.WarpCTC(odim, args.adim, args.dropout_rate)
+                else:
+                    raise ValueError('ctc_type must be "builtin" or "warpctc": {}'
+                                     .format(args.ctc_type))
+            else:
+                self.ctc = None
         self.dims = args.adim
         self.odim = odim
         self.flag_return = flag_return
-        self.verbose = 0 if 'verbose' not in args else args.verbose
+        if 'Namespace' in str(type(args)):
+            self.verbose = 0 if 'verbose' not in args else args.verbose
+        else:
+            self.verbose = 0 if args.verbose is None else args.verbose
 
     def reset_parameters(self, args):
         type_init = args.transformer_init
@@ -170,15 +183,15 @@ class E2E(ASRInterface, chainer.Chain):
             history_mask, (batch, length, length))
         return history_mask
 
-    def forward(self, xs, ilens, ys, calculate_attentions=False):
+    def forward(self, xs, ilens, ys_pad, calculate_attentions=False):
         xp = self.xp
         ilens = np.array([int(x) for x in ilens])
 
         with chainer.no_backprop_mode():
             eos = xp.array([self.eos], 'i')
             sos = xp.array([self.sos], 'i')
-            ys_out = [F.concat([y, eos], axis=0) for y in ys]
-            ys = [F.concat([sos, y], axis=0) for y in ys]
+            ys_out = [F.concat([y, eos], axis=0) for y in ys_pad]
+            ys = [F.concat([sos, y], axis=0) for y in ys_pad]
             # Labels int32 is not supported
             ys = F.pad_sequence(ys, padding=self.eos).data.astype(xp.int64)
             xs = F.pad_sequence(xs, padding=-1)
@@ -208,24 +221,36 @@ class E2E(ASRInterface, chainer.Chain):
         # Compute loss
         loss_att = self.criterion(ys, ys_out, batch, length)
         acc = F.accuracy(ys, ys_out.reshape((-1)).data, ignore_label=self.ignore_id)
-
+        if self.ctc is None:
+            loss_ctc = None
+        else:
+            xs = xs.reshape(batch, -1, self.dims)
+            xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+            loss_ctc = self.ctc(xs, ys_pad)
         alpha = self.mtlalpha
-        loss_ctc = None
-        if alpha == 0:
+        if alpha == 0.0:
             self.loss = loss_att
-        elif alpha == 1:
-            self.loss = None  # WIP
+            loss_att_data = loss_att.data
+            loss_ctc_data = None
+        elif alpha == 1.0:
+            self.loss = loss_ctc
+            loss_att_data = None
+            loss_ctc_data = loss_ctc.data
         else:
             self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
-        if not math.isnan(self.loss.data):
-            reporter.report({'loss_ctc': loss_ctc}, self)
-            reporter.report({'loss_att': loss_att}, self)
+            loss_att_data = loss_att.data
+            loss_ctc_data = loss_ctc.data
+        loss_data = self.loss.data
+
+        if not math.isnan(loss_data):
+            reporter.report({'loss_ctc': loss_ctc_data}, self)
+            reporter.report({'loss_att': loss_att_data}, self)
             reporter.report({'acc': acc}, self)
 
-            logging.info('mtl loss:' + str(self.loss.data))
-            reporter.report({'loss': self.loss}, self)
+            logging.info('mtl loss:' + str(loss_data))
+            reporter.report({'loss': loss_data}, self)
         else:
-            logging.warning('loss (=%f) is not correct', self.loss.data)
+            logging.warning('loss (=%f) is not correct', loss_data)
 
         if self.verbose > 0 and self.char_list is not None:
             with chainer.no_backprop_mode():
@@ -251,7 +276,7 @@ class E2E(ASRInterface, chainer.Chain):
         else:
             return self.loss
 
-    def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
+    def recognize(self, x_block, recog_args, char_list=None, rnnlm=None, use_jit=False):
         '''E2E beam search
 
         :param ndarray x: input acouctic feature (B, T, D) or (T, D)
