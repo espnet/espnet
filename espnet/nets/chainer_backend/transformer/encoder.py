@@ -2,125 +2,39 @@
 
 import chainer
 
-import chainer.functions as F
-import chainer.links as L
-
-from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
-from espnet.nets.chainer_backend.transformer.nets_utils import FeedForwardLayer
-from espnet.nets.chainer_backend.transformer.nets_utils import LayerNorm
-from espnet.nets.chainer_backend.transformer.nets_utils import PositionalEncoding
+from espnet.nets.chainer_backend.transformer.encoder_layer import EncoderLayer
+from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.chainer_backend.transformer.subsampling import Conv2dSubsampling
+from espnet.nets.chainer_backend.transformer.subsampling import LinearSampling
 
 import logging
 import numpy as np
 
 
-class Conv2dSubsampling(chainer.Chain):
-    def __init__(self, channels, idim, dims, dropout=0.1,
-                 initialW=None, initial_bias=None):
-        super(Conv2dSubsampling, self).__init__()
-        n = 1 * 3 * 3
-        stvd = 1. / np.sqrt(n)
-        layer = L.Convolution2D(1, channels, 3, stride=2, pad=1,
-                                initialW=initialW(scale=stvd),
-                                initial_bias=initial_bias(scale=stvd))
-        self.add_link('conv.0', layer)
-        n = channels * 3 * 3
-        stvd = 1. / np.sqrt(n)
-        layer = L.Convolution2D(channels, channels, 3, stride=2, pad=1,
-                                initialW=initialW(scale=stvd),
-                                initial_bias=initial_bias(scale=stvd))
-        self.add_link('conv.2', layer)
-        stvd = 1. / np.sqrt(dims)
-        layer = L.Linear(idim, dims, initialW=initialW(scale=stvd),
-                         initial_bias=initial_bias(scale=stvd))
-        self.add_link('out.0', layer)
-        self.dropout = dropout
-        with self.init_scope():
-            self.pe = PositionalEncoding(dims, dropout)
-
-    def __call__(self, xs, ilens):
-        xs = F.expand_dims(xs, axis=1).data
-        xs = F.relu(self['conv.{}'.format(0)](xs))
-        xs = F.relu(self['conv.{}'.format(2)](xs))
-        batch, _, length, _ = xs.shape
-        xs = self['out.0'](F.swapaxes(xs, 1, 2).reshape(batch * length, -1))
-        xs = self.pe(xs.reshape(batch, length, -1))
-        # change ilens accordingly
-        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
-        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
-        return xs, ilens
-
-
-class LinearSampling(chainer.Chain):
-    def __init__(self, idim, dims, dropout=0.1,
-                 initialW=None, initial_bias=None):
-        super(LinearSampling, self).__init__()
-        stvd = 1. / np.sqrt(dims)
-        self.dropout = dropout
-        with self.init_scope():
-            self.linear = L.Linear(idim, dims, initialW=initialW(scale=stvd),
-                                   initial_bias=initial_bias(scale=stvd))
-            self.pe = PositionalEncoding(dims, dropout)
-
-    def __call__(self, xs, ilens):
-        logging.info(xs.shape)
-        xs = self.linear(xs, n_batch_axes=2)
-        logging.info(xs.shape)
-        xs = self.pe(xs)
-        return xs, ilens
-
-
-class EncoderLayer(chainer.Chain):
-    def __init__(self, n_units, d_units=0, h=8, dropout=0.1,
-                 initialW=None, initial_bias=None):
-        super(EncoderLayer, self).__init__()
-        with self.init_scope():
-            self.self_attn = MultiHeadAttention(n_units, h, dropout=dropout,
-                                                initialW=initialW,
-                                                initial_bias=initial_bias)
-            self.feed_forward = FeedForwardLayer(n_units, d_units=d_units,
-                                                 dropout=dropout,
-                                                 initialW=initialW,
-                                                 initial_bias=initial_bias)
-            self.norm1 = LayerNorm(n_units)
-            self.norm2 = LayerNorm(n_units)
-        self.dropout = dropout
-        self.n_units = n_units
-
-    def __call__(self, e, xx_mask, batch):
-        n_e = self.norm1(e)
-        n_e = self.self_attn(n_e, mask=xx_mask, batch=batch)
-        e = e + F.dropout(n_e, self.dropout)
-
-        n_e = self.norm2(e)
-        n_e = self.feed_forward(n_e)
-        e = e + F.dropout(n_e, self.dropout)
-        return e
-
-
 class Encoder(chainer.Chain):
-    def __init__(self, input_type, idim, n_layers, n_units, d_units=0, h=8, dropout=0.1,
-                 initialW=None, initial_bias=None):
+    def __init__(self, idim, args, initialW=None, initial_bias=None):
         super(Encoder, self).__init__()
+        initialW = chainer.initializers.Uniform if initialW is None else initialW
+        initial_bias = chainer.initializers.Uniform if initial_bias is None else initial_bias
         with self.init_scope():
             channels = 64  # Based in paper
-            if input_type == 'conv2d':
+            if args.transformer_input_layer == 'conv2d':
                 idim = int(np.ceil(np.ceil(idim / 2) / 2)) * channels
-                self.input_layer = Conv2dSubsampling(channels, idim, n_units, dropout=dropout,
+                self.input_layer = Conv2dSubsampling(channels, idim, args.adim, dropout=args.dropout_rate,
                                                      initialW=initialW, initial_bias=initial_bias)
-            elif input_type == 'linear':
-                self.input_layer = LinearSampling(idim, n_units, initialW=initialW, initial_bias=initial_bias)
+            elif args.transformer_input_layer == 'linear':
+                self.input_layer = LinearSampling(idim, args.adim, initialW=initialW, initial_bias=initial_bias)
             else:
                 raise ValueError('Incorrect type of input layer')
-            self.norm = LayerNorm(n_units)
-        for i in range(n_layers):
+            self.norm = LayerNorm(args.adim)
+        for i in range(args.elayers):
             name = 'encoders.' + str(i)
-            layer = EncoderLayer(n_units, d_units=d_units,
-                                 h=h, dropout=dropout,
+            layer = EncoderLayer(args.adim, d_units=args.eunits,
+                                 h=args.aheads, dropout=args.dropout_rate,
                                  initialW=initialW,
                                  initial_bias=initial_bias)
             self.add_link(name, layer)
-        self.n_layers = n_layers
+        self.n_layers = args.elayers
 
     def __call__(self, e, ilens):
         e, ilens = self.input_layer(e, ilens)

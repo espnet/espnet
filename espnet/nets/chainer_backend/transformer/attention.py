@@ -13,6 +13,9 @@ MIN_VALUE = float(np.finfo(np.float32).min)
 class MultiHeadAttention(chainer.Chain):
     """Multi Head Attention Layer
 
+    :param int h: the number of head s
+    :param int n_units: the number of features
+    :param float dropout_rate: dropout rate
     """
 
     def __init__(self, n_units, h=8, dropout=0.1,
@@ -38,7 +41,16 @@ class MultiHeadAttention(chainer.Chain):
         self.dropout = dropout
         self.attn = None
 
-    def __call__(self, e_var, s_var=None, mask=None, batch=1):
+    def forward(self, e_var, s_var=None, mask=None, batch=1):
+        """Compute 'Scaled Dot Product Attention'
+
+        :param xp.array query: (batch, time1, size)
+        :param xp.array key: (batch, time2, size)
+        :param xp.array value: (batch, time2, size)
+        :param xp.array mask: (batch, time1)
+        :return chainer.Variable: attentined and transformed `value` (batch, time1, d_model)
+             weighted by the query dot key attention (batch, head, time1, time2)
+        """
         xp = self.xp
         if s_var is None:
             # batch, head, time1/2, d_k)
