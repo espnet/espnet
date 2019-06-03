@@ -35,7 +35,7 @@ class MultiHeadedAttention(nn.Module):
         :param torch.Tensor query: (batch, time1, size)
         :param torch.Tensor key: (batch, time2, size)
         :param torch.Tensor value: (batch, time2, size)
-        :param torch.Tensor mask: (batch, time1)
+        :param torch.Tensor mask: (batch, time1, time2)
         :param torch.nn.Dropout dropout:
         :return torch.Tensor: attentined and transformed `value` (batch, time1, d_model)
              weighted by the query dot key attention (batch, head, time1, time2)
@@ -51,8 +51,10 @@ class MultiHeadedAttention(nn.Module):
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)  # (batch, head, time1, time2)
         if mask is not None:
             mask = mask.unsqueeze(1)
-            scores = scores.masked_fill(mask == 0, MIN_VALUE)
+            scores = scores.masked_fill(~mask, MIN_VALUE)
         self.attn = torch.softmax(scores, dim=-1)  # (batch, head, time1, time2)
+        if mask is not None:
+            self.attn = self.attn.masked_fill(~mask, 0.0)
 
         p_attn = self.dropout(self.attn)
         x = torch.matmul(p_attn, v)  # (batch, head, time1, d_k)

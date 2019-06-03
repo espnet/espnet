@@ -584,11 +584,11 @@ class Transformer(TTSInterface, torch.nn.Module):
                 [[1, 1, 1, 0, 0],
                  [1, 1, 1, 0, 0],
                  [1, 1, 1, 0, 0],
-                 [1, 1, 1, 0, 0],
-                 [1, 1, 1, 0, 0]]], dtype=torch.uint8)
+                 [0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0]]], dtype=torch.uint8)
         """
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
-        return x_masks.unsqueeze(-2).repeat(1, max(ilens), 1)
+        return x_masks.unsqueeze(-2) & x_masks.unsqueeze(-1)
 
     def _target_mask(self, olens):
         """Make mask for MaskedMultiHeadedAttention using padded sequences
@@ -604,12 +604,12 @@ class Transformer(TTSInterface, torch.nn.Module):
                 [[1, 0, 0, 0, 0],
                  [1, 1, 0, 0, 0],
                  [1, 1, 1, 0, 0],
-                 [1, 1, 1, 0, 0],
-                 [1, 1, 1, 0, 0]]], dtype=torch.uint8)
+                 [0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0]]], dtype=torch.uint8)
         """
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
-        return y_masks.unsqueeze(-2) & s_masks
+        return y_masks.unsqueeze(-2) & s_masks & y_masks.unsqueeze(-1)
 
     def _source_to_target_mask(self, ilens, olens):
         """Make source to target mask for MultiHeadedAttention using padded sequences
@@ -626,11 +626,12 @@ class Transformer(TTSInterface, torch.nn.Module):
                 [[1, 1, 0, 0],
                  [1, 1, 0, 0],
                  [1, 1, 0, 0],
-                 [1, 1, 0, 0],
-                 [1, 1, 0, 0]]], dtype=torch.uint8)
+                 [0, 0, 0, 0],
+                 [0, 0, 0, 0]]], dtype=torch.uint8)
         """
         x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
-        return x_masks.unsqueeze(-2).repeat(1, max(olens), 1)
+        y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
+        return x_masks.unsqueeze(-2) & y_masks.unsqueeze(-1)
 
     @property
     def base_plot_keys(self):
