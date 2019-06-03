@@ -144,17 +144,17 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mfccdir=mfcc
     vaddir=mfcc
     for name in ${train_set} ${dev_set} ${eval_set}; do
-        utils/copy_data_dir.sh data/${name} data/${name}_mfcc
-        utils/data/resample_data_dir.sh 16000 data/${name}_mfcc
+        utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
+        utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
         steps/make_mfcc.sh \
             --write-utt2num-frames true \
             --mfcc-config conf/mfcc.conf \
             --nj ${nj} --cmd "$train_cmd" \
-            data/${name}_mfcc exp/make_mfcc ${mfccdir}
-        utils/fix_data_dir.sh data/${name}_mfcc
+            data/${name}_mfcc_16k exp/make_mfcc_16k ${mfccdir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
         sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
-            data/${name}_mfcc exp/make_vad ${vaddir}
-        utils/fix_data_dir.sh data/${name}_mfcc
+            data/${name}_mfcc_16k exp/make_vad ${vaddir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
     done
 
     # Check pretrained model existence
@@ -169,7 +169,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Extract x-vector
     for name in ${train_set} ${dev_set} ${eval_set}; do
         sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
-            ${nnet_dir} data/${name}_mfcc \
+            ${nnet_dir} data/${name}_mfcc_16k \
             ${nnet_dir}/xvectors_${name}
     done
     # Update json
