@@ -318,6 +318,159 @@ class E2E(ASRInterface, chainer.Chain):
                 raise NotImplementedError('use beam search implementation. WIP')
         return nbest_hyps
 
+    def recognize_beam(self, xs, mask, batch, lpz, recog_args, char_list, rnnlm=None):
+        xp = self.xp 
+        beam = recog_args.beam_size
+        penalty = recog_args.penalty
+        ctc_weight = recog_args.ctc_weight
+
+        # prepare sos
+        y = self.sos
+        vy = xp.zeros(1, dtype=xp.int64)
+
+        if recog_args.maxlenratio == 0:
+            maxlen = xs.shape[0]
+        else:
+            maxlen = max(1, int(recog_args.maxlenratio * xs.shape[0]))
+        minlen = int(recog_args.minlenratio * xs.shape[0])
+        logging.info('max output length: ' + str(maxlen))
+        logging.info('min output length: ' + str(minlen))
+
+        # initialize hypothesis
+        if rnnlm:
+            hyp = {'score': 0.0, 'yseq': [y], 'rnnlm_prev': None}
+        else:
+            hyp = {'score': 0.0, 'yseq': [y]}
+
+        if lpz is not None:
+            ctc_prefix_score = CTCPrefixScore(lpz, 0, self.eos, self.xp)
+            hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
+            hyp['ctc_score_prev'] = 0.0
+            if ctc_weight != 1.0:
+                # pre-pruning based on attention scores
+                ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
+            else:
+                ctc_beam = lpz.shape[-1]
+
+        hyps = [hyp]
+        ended_hyps = []
+
+        for i in six.moves.range(maxlen):
+            logging.debug('position ' + str(i))
+
+            hyps_best_kept = []
+            for hyp in hyps:
+                vy[0] = hyp['yseq'][i]
+
+                yy_mask = self.make_history_mask(xp.ones((batch, i + 1), dtype=xp.float32))
+                ys = F.expand_dims(xp.array(hyp['yseq']), axis=0)
+                xy_mask = self.make_attention_mask(ys.data, mask)
+                out = self.decoder(ys, yy_mask, xs, xy_mask).reshape(batch, -1, self.odim)
+                local_att_scores = F.log_softmax(out[:, -1], axis=-1)
+
+                if rnnlm:
+                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
+                    local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
+                else:
+                    local_scores = local_att_scores
+
+                if lpz is not None:
+                    local_best_scores, local_best_ids = get_topk(xp, local_att_scores.data, ctc_beam, axis=1)
+                    ctc_scores, ctc_states = ctc_prefix_score(
+                        hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                    local_scores = \
+                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
+                        + ctc_weight * ctc_scores - hyp['ctc_score_prev']
+                    if rnnlm:
+                        # raise ValueError('WIP')
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
+                    local_best_scores, joint_best_ids = get_topk(xp, local_scores.data, beam,  axis=1)
+                    local_best_ids = local_best_ids[:, joint_best_ids[0]]
+                else:
+                    local_best_scores, local_best_ids = get_topk(xp, local_scores.data, beam, axis=1)
+
+                for j in six.moves.range(beam):
+                    new_hyp = {}
+                    new_hyp['score'] = hyp['score'] + float(local_best_scores[0, j])
+                    new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
+                    new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
+                    new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
+                    if rnnlm:
+                        # raise ValueError('WIP')
+                        new_hyp['rnnlm_prev'] = rnnlm_state
+                    if lpz is not None:
+                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
+                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
+                    # will be (2 x beam hyps at most?)
+                    hyps_best_kept.append(new_hyp)
+
+                hyps_best_kept = sorted(
+                    hyps_best_kept, key=lambda x: x['score'], reverse=True)[:beam]
+
+            # sort and get nbest
+            hyps = hyps_best_kept
+            logging.debug('number of pruned hypothesis: ' + str(len(hyps)))
+            logging.debug(
+                'best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]) + ' score: ' + str(hyps[0]['score']))
+
+            # add eos in the final loop to avoid that there are no ended hyps
+            if i == maxlen - 1:
+                logging.info('adding <eos> in the last postion in the loop')
+                for hyp in hyps:
+                    hyp['yseq'].append(self.eos)
+
+            # add ended hypothes to a final list, and removed them from current hypothes
+            # (this will be a probmlem, number of hyps < beam)
+            remained_hyps = []
+            for hyp in hyps:
+                if hyp['yseq'][-1] == self.eos:
+                    # only store the sequence that has more than minlen outputs
+                    # also add penalty
+                    if len(hyp['yseq']) > minlen:
+                        hyp['score'] += (i + 1) * penalty
+                        if rnnlm:  # Word LM needs to add final <eos> score
+                            hyp['score'] += recog_args.lm_weight * rnnlm.final(
+                                hyp['rnnlm_prev'])
+                        ended_hyps.append(hyp)
+                else:
+                    remained_hyps.append(hyp)
+
+            # end detection
+            
+            if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
+                logging.info('end detected at %d', i)
+                break
+
+            hyps = remained_hyps
+            if len(hyps) > 0:
+                logging.debug('remained hypothes: ' + str(len(hyps)))
+            else:
+                logging.info('no hypothesis. Finish decoding.')
+                break
+
+            for hyp in hyps:
+                logging.debug(
+                    'hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
+
+            logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
+
+        nbest_hyps = sorted(
+            ended_hyps, key=lambda x: x['score'], reverse=True)  # [:min(len(ended_hyps), recog_args.nbest)]
+
+        logging.debug(nbest_hyps)
+        # check number of hypotheis
+        if len(nbest_hyps) == 0:
+            logging.warn('there is no N-best results, perform recognition again with smaller minlenratio.')
+            # should copy becasuse Namespace will be overwritten globally
+            recog_args = Namespace(**vars(recog_args))
+            recog_args.minlenratio = max(0.0, recog_args.minlenratio - 0.1)
+            return self.recognize_beam(xs, mask, batch, lpz, recog_args, char_list, rnnlm)
+
+        logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
+        logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
+        # remove sos
+        return nbest_hyps
+
     def calculate_all_attentions(self, xs, ilens, ys):
         '''E2E attention calculation
 
