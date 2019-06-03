@@ -32,6 +32,7 @@ use_wordlm=true     # false means to train/use a character LM
 lm_vocabsize=65000  # effective only for word LMs
 lm_resume=          # specify a snapshot file to resume LM training
 lmtag=              # tag for managing LMs
+lm_weight=0
 
 # decoding parameter
 n_average=10 # use 1 for RNN models
@@ -56,6 +57,7 @@ set -u
 set -o pipefail
 
 ln -sfn ${PWD}/conf/tuning/train_${backend}_transformer.yaml  ./conf/train.yaml
+ln -sfn ${PWD}/conf/tuning/decode_${backend}_transformer.yaml  ./conf/decode.yaml
 
 train_set=train_si284
 train_dev=test_dev93
@@ -250,11 +252,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
-        if [ ${use_wordlm} = true ]; then
-            recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
+        if [ ${lm_weight} == 0 ]; then
+            recog_opts=""
         else
-            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+            decode_dir=${decode_dir}_${lmtag}
+            if [ ${use_wordlm} = true ]; then
+                recog_opts="--word-rnnlm ${lmexpdir}/rnnlm.model.best"
+            else
+                recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+            fi
         fi
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 

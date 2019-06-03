@@ -10,7 +10,7 @@ adim: 256
 aheads: 4
 
 # hybrid CTC/attention
-mtlalpha: 0.0
+mtlalpha: 0.3
 
 # label smoothing
 lsm-weight: 0.1
@@ -36,5 +36,5 @@ transformer-input-layer: conv2d     # encoder architecture type
 transformer-lr: 10.0
 transformer-warmup-steps: 25000
 transformer-attn-dropout-rate: 0.0
-transformer-length-normalized-loss: true
+transformer-length-normalized-loss: false
 transformer-init: pytorch
