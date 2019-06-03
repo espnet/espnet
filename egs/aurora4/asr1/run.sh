@@ -272,7 +272,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             ${recog_opts}
 
         score_sclite.sh --wer true --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
-
+	local/score_sclite.sh ${expdir}/${decode_dir}
     ) &
     pids+=($!) # store background pids
     done
