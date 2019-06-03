@@ -7,7 +7,6 @@ import torch
 
 from argparse import Namespace
 
-from espnet.nets.pytorch_backend.e2e_tts_transformer import make_non_pad_mask
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -220,3 +219,46 @@ def test_transformer_multi_gpu_trainable(model_dict):
     if model.module.use_scaled_pos_enc:
         assert model.module.encoder.embed[1].alpha.grad is not None
         assert model.module.decoder.embed[1].alpha.grad is not None
+
+
+@pytest.mark.parametrize(
+    "model_dict", [
+        ({}),
+    ])
+def test_attention_masking(model_dict):
+    # make args
+    model_args = make_transformer_args(**model_dict)
+
+    # setup batch
+    idim = 5
+    odim = 10
+    ilens = [10, 5]
+    olens = [20, 15]
+    batch = prepare_inputs(idim, odim, ilens, olens)
+
+    # define model
+    model = Transformer(idim, odim, Namespace(**model_args))
+
+    # test encoder self-attention
+    xs = model.encoder.embed(batch["xs"])
+    xs[1, ilens[1]:] = float("nan")
+    x_masks = model._source_mask(batch["ilens"])
+    a = model.encoder.encoders[0].self_attn
+    a(xs, xs, xs, x_masks)
+    assert not np.isnan(a.attn.detach().numpy()).any()
+
+    # test encoder-decoder attention
+    ys = model.decoder.embed(batch["ys"])
+    ys[1, olens[1]:] = float("nan")
+    xy_masks = model._source_to_target_mask(batch["ilens"], batch["olens"])
+    a = model.decoder.decoders[0].src_attn
+    a(ys, xs, xs, xy_masks)
+    assert not np.isnan(a.attn.detach().numpy()).any()
+
+    # test decoder self-attention
+    ys = model.decoder.embed(batch["ys"])
+    ys[1, olens[1]:] = float("nan")
+    y_masks = model._target_mask(batch["olens"])
+    a = model.decoder.decoders[0].self_attn
+    a(ys, ys, ys, y_masks)
+    assert not np.isnan(a.attn.detach().numpy()).any()
