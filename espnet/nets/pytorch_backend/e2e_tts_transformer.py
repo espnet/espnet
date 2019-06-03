@@ -124,9 +124,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         (int) postnet_chans: number of postnet channels
         (int) postnet_filts: filter size of postnet
         (bool) use_scaled_pos_enc: whether to use trainable scaled positional encoding instead of the fixed scale one
-        (bool) use_batch_norm: whether to use batch normalization')
-        (float) transformer_init: how to initialize transformer parameters')
-        (float) transformer_lr': initial value of learning rate
+        (bool) use_batch_norm: whether to use batch normalization
+        (float) transformer_init: how to initialize transformer parameters
+        (float) transformer_lr: initial value of learning rate
         (int) transformer_warmup_steps: optimizer warmup steps
         (float) transformer_attn_dropout_rate: dropout in transformer attention. use dropout if none is set
         (float) eprenet_dropout_rate: dropout rate in encoder prenet. use dropout if none is set
@@ -135,86 +135,87 @@ class Transformer(TTSInterface, torch.nn.Module):
         (float) dropout_rate: dropout rate in the other module
         (bool) use_masking: whether to use masking in calculation of loss
         (float) bce_pos_weight: positive sample weight in bce calculation (only for use_masking=true)
+        (str) loss_type: how to calculate loss
     """
 
     @staticmethod
     def add_arguments(parser):
         group = parser.add_argument_group("transformer model setting")
         # network structure related
-        group.add_argument('--embed-dim', default=512, type=int,
-                           help='Dimension of character embedding')
-        group.add_argument('--eprenet-conv-layers', default=3, type=int,
-                           help='Number of encoder prenet convolution layers')
-        group.add_argument('--eprenet-conv-chans', default=512, type=int,
-                           help='Number of encoder prenet convolution channels')
-        group.add_argument('--eprenet-conv-filts', default=5, type=int,
-                           help='Filter size of encoder prenet convolution')
-        group.add_argument('--dprenet-layers', default=2, type=int,
-                           help='Number of decoder prenet layers')
-        group.add_argument('--dprenet-units', default=256, type=int,
-                           help='Number of decoder prenet hidden units')
-        group.add_argument('--elayers', default=12, type=int,
-                           help='Number of encoder layers')
-        group.add_argument('--eunits', default=2048, type=int,
-                           help='Number of encoder hidden units')
-        group.add_argument('--adim', default=256, type=int,
-                           help='Number of attention transformation dimensions')
-        group.add_argument('--aheads', default=4, type=int,
-                           help='Number of heads for multi head attention')
-        group.add_argument('--dlayers', default=6, type=int,
-                           help='Number of decoder layers')
-        group.add_argument('--dunits', default=2048, type=int,
-                           help='Number of decoder hidden units')
-        group.add_argument('--postnet-layers', default=5, type=int,
-                           help='Number of postnet layers')
-        group.add_argument('--postnet-chans', default=512, type=int,
-                           help='Number of postnet channels')
-        group.add_argument('--postnet-filts', default=5, type=int,
-                           help='Filter size of postnet')
-        group.add_argument('--use-scaled-pos-enc', default=True, type=strtobool,
-                           help='use trainable scaled positional encoding instead of the fixed scale one.')
-        group.add_argument('--use-batch-norm', default=True, type=strtobool,
-                           help='Whether to use batch normalization')
-        group.add_argument('--encoder-normalize-before', default=True, type=strtobool,
-                           help='Whether to apply layer norm before encoder block')
-        group.add_argument('--decoder-normalize-before', default=True, type=strtobool,
-                           help='Whether to apply layer norm before decoder block')
-        group.add_argument('--encoder-concate-after', default=False, type=strtobool,
-                           help='Whether to concate attention layer\'s input and output in encoder')
-        group.add_argument('--decoder-concate-after', default=False, type=strtobool,
-                           help='Whether to concate attention layer\'s input and output in decoder')
-        parser.add_argument('--reduction-factor', default=1, type=int,
-                            help='Reduction factor')
+        group.add_argument("--embed-dim", default=512, type=int,
+                           help="Dimension of character embedding")
+        group.add_argument("--eprenet-conv-layers", default=3, type=int,
+                           help="Number of encoder prenet convolution layers")
+        group.add_argument("--eprenet-conv-chans", default=512, type=int,
+                           help="Number of encoder prenet convolution channels")
+        group.add_argument("--eprenet-conv-filts", default=5, type=int,
+                           help="Filter size of encoder prenet convolution")
+        group.add_argument("--dprenet-layers", default=2, type=int,
+                           help="Number of decoder prenet layers")
+        group.add_argument("--dprenet-units", default=256, type=int,
+                           help="Number of decoder prenet hidden units")
+        group.add_argument("--elayers", default=12, type=int,
+                           help="Number of encoder layers")
+        group.add_argument("--eunits", default=2048, type=int,
+                           help="Number of encoder hidden units")
+        group.add_argument("--adim", default=256, type=int,
+                           help="Number of attention transformation dimensions")
+        group.add_argument("--aheads", default=4, type=int,
+                           help="Number of heads for multi head attention")
+        group.add_argument("--dlayers", default=6, type=int,
+                           help="Number of decoder layers")
+        group.add_argument("--dunits", default=2048, type=int,
+                           help="Number of decoder hidden units")
+        group.add_argument("--postnet-layers", default=5, type=int,
+                           help="Number of postnet layers")
+        group.add_argument("--postnet-chans", default=512, type=int,
+                           help="Number of postnet channels")
+        group.add_argument("--postnet-filts", default=5, type=int,
+                           help="Filter size of postnet")
+        group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
+                           help="use trainable scaled positional encoding instead of the fixed scale one.")
+        group.add_argument("--use-batch-norm", default=True, type=strtobool,
+                           help="Whether to use batch normalization")
+        group.add_argument("--encoder-normalize-before", default=True, type=strtobool,
+                           help="Whether to apply layer norm before encoder block")
+        group.add_argument("--decoder-normalize-before", default=True, type=strtobool,
+                           help="Whether to apply layer norm before decoder block")
+        group.add_argument("--encoder-concate-after", default=False, type=strtobool,
+                           help="Whether to concate attention layer\"s input and output in encoder")
+        group.add_argument("--decoder-concate-after", default=False, type=strtobool,
+                           help="Whether to concate attention layer\"s input and output in decoder")
+        parser.add_argument("--reduction-factor", default=1, type=int,
+                            help="Reduction factor")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
                                     "kaiming_uniform", "kaiming_normal"],
-                           help='how to initialize transformer parameters')
+                           help="how to initialize transformer parameters")
         group.add_argument("--initial-encoder-alpha", type=float, default=1.0,
-                           help='initial alpha value in encoder\'s ScaledPositionalEncoding')
+                           help="initial alpha value in encoder\"s ScaledPositionalEncoding")
         group.add_argument("--initial-decoder-alpha", type=float, default=1.0,
-                           help='initial alpha value in decoder\'s ScaledPositionalEncoding')
-        group.add_argument('--transformer-lr', default=10.0, type=float,
-                           help='Initial value of learning rate')
-        group.add_argument('--transformer-warmup-steps', default=25000, type=int,
-                           help='optimizer warmup steps')
-        group.add_argument('--transformer-attn-dropout-rate', default=0.0, type=float,
-                           help='dropout in transformer attention. use --dropout if None is set')
-        group.add_argument('--eprenet-dropout-rate', default=0.5, type=float,
-                           help='dropout rate in encoder prenet. use --dropout if None is set')
-        group.add_argument('--dprenet-dropout-rate', default=0.5, type=float,
-                           help='dropout rate in decoder prenet. use --dropout if None is set')
-        group.add_argument('--postnet-dropout-rate', default=0.5, type=float,
-                           help='dropout rate in postnet. use --dropout-rate if None is set')
-        group.add_argument('--dropout-rate', default=0.1, type=float,
-                           help='dropout rate in the other module')
+                           help="initial alpha value in decoder\"s ScaledPositionalEncoding")
+        group.add_argument("--transformer-lr", default=10.0, type=float,
+                           help="Initial value of learning rate")
+        group.add_argument("--transformer-warmup-steps", default=25000, type=int,
+                           help="optimizer warmup steps")
+        group.add_argument("--transformer-attn-dropout-rate", default=0.0, type=float,
+                           help="dropout in transformer attention. use --dropout if None is set")
+        group.add_argument("--eprenet-dropout-rate", default=0.5, type=float,
+                           help="dropout rate in encoder prenet. use --dropout if None is set")
+        group.add_argument("--dprenet-dropout-rate", default=0.5, type=float,
+                           help="dropout rate in decoder prenet. use --dropout if None is set")
+        group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
+                           help="dropout rate in postnet. use --dropout-rate if None is set")
+        group.add_argument("--dropout-rate", default=0.1, type=float,
+                           help="dropout rate in the other module")
         # loss related
-        group.add_argument('--use-masking', default=True, type=strtobool,
-                           help='Whether to use masking in calculation of loss')
-        group.add_argument('--loss-type', default="L1", choices=["L1", "L2", "L1+L2"],
-                           help='How to calc loss')
-        group.add_argument('--bce-pos-weight', default=5.0, type=float,
-                           help='Positive sample weight in BCE calculation (only for use-masking=True)')
+        group.add_argument("--use-masking", default=True, type=strtobool,
+                           help="Whether to use masking in calculation of loss")
+        group.add_argument("--loss-type", default="L1", choices=["L1", "L2", "L1+L2"],
+                           help="How to calc loss")
+        group.add_argument("--bce-pos-weight", default=5.0, type=float,
+                           help="Positive sample weight in BCE calculation (only for use-masking=True)")
         return parser
 
     @property
@@ -409,8 +410,8 @@ class Transformer(TTSInterface, torch.nn.Module):
             labels = labels[:, :max_out]
 
         # forward encoder
-        src_masks = make_non_pad_mask(ilens).to(xs.device).unsqueeze(-2)
-        hs, h_masks = self.encoder(xs, src_masks)
+        x_masks = self._source_mask(ilens)
+        hs, h_masks = self.encoder(xs, x_masks)
 
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
@@ -421,13 +422,13 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # forward decoder
         y_masks = self._target_mask(olens_)
-        zs, z_masks = self.decoder(ys_, y_masks, hs, h_masks)
-        # (B, Lmax//r * r, odim) -> (B, Lmax//r, odim * r)
+        zs, _ = self.decoder(ys_, y_masks, hs, h_masks)
+        # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
         before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
         # (B, Lmax//r, r) -> (B, Lmax//r * r)
         logits = self.prob_out(zs).view(zs.size(0), -1)
 
-        # postnet
+        # postnet -> (B, Lmax//r * r, odim)
         after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         # modifiy mod part of groundtruth
@@ -452,15 +453,15 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # report for chainer reporter
         report_keys = [
-            {'l1_loss': l1_loss.item()},
-            {'l2_loss': l2_loss.item()},
-            {'bce_loss': bce_loss.item()},
-            {'loss': loss.item()},
+            {"l1_loss": l1_loss.item()},
+            {"l2_loss": l2_loss.item()},
+            {"bce_loss": bce_loss.item()},
+            {"loss": loss.item()},
         ]
         if self.use_scaled_pos_enc:
             report_keys += [
-                {'encoder_alpha': self.encoder.embed[-1].alpha.data.item()},
-                {'decoder_alpha': self.decoder.embed[-1].alpha.data.item()},
+                {"encoder_alpha": self.encoder.embed[-1].alpha.data.item()},
+                {"decoder_alpha": self.decoder.embed[-1].alpha.data.item()},
             ]
         self.reporter.report(report_keys)
 
@@ -525,7 +526,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         return outs, probs
 
     def calculate_all_attentions(self, xs, ilens, ys, olens, *args, **kwargs):
-        '''Calculate attention weights
+        """Calculate attention weights
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
@@ -533,18 +534,18 @@ class Transformer(TTSInterface, torch.nn.Module):
         :param torch.Tensor ilens: list of lengths of each output batch (B)
         :return: attention weights dict
         :rtype: dict
-        '''
+        """
         with torch.no_grad():
             # forward encoder
-            src_masks = make_non_pad_mask(ilens).to(xs.device).unsqueeze(-2)
-            hs, h_masks = self.encoder(xs, src_masks)
+            x_masks = self._source_mask(ilens)
+            hs, h_masks = self.encoder(xs, x_masks)
 
             # forward decoder
             y_masks = self._target_mask(olens)
-            zs, zs_mask = self.decoder(ys, y_masks, hs, h_masks)
-            # (B, Lmax//r * r, odim) -> (B, Lmax//r, odim * r)
+            zs, _ = self.decoder(ys, y_masks, hs, h_masks)
+            # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
             before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
-            # postnet
+            # postnet -> (B, Lmax//r * r, odim)
             after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         att_ws_dict = dict()
@@ -568,7 +569,43 @@ class Transformer(TTSInterface, torch.nn.Module):
         att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs.cpu().numpy(), olens.tolist())]
         return att_ws_dict
 
+    def _source_mask(self, ilens):
+        """Make mask for MultiHeadedAttention using padded sequences
+
+        >>> ilens = [5, 3]
+        >>> self._source_mask(ilens)
+        tensor([[[1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1]],
+
+                [[1, 1, 1, 0, 0],
+                 [1, 1, 1, 0, 0],
+                 [1, 1, 1, 0, 0],
+                 [1, 1, 1, 0, 0],
+                 [1, 1, 1, 0, 0]]], dtype=torch.uint8)
+        """
+        x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
+        return x_masks.unsqueeze(-2).repeat(1, max(ilens), 1)
+
     def _target_mask(self, olens):
+        """Make mask for MaskedMultiHeadedAttention using padded sequences
+
+        >>> olens = [5, 3]
+        >>> self._target_mask(olens)
+        tensor([[[1, 0, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [1, 1, 1, 0, 0],
+                 [1, 1, 1, 1, 0],
+                 [1, 1, 1, 1, 1]],
+
+                [[1, 0, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [1, 1, 1, 0, 0],
+                 [1, 1, 1, 0, 0],
+                 [1, 1, 1, 0, 0]]], dtype=torch.uint8)
+        """
         y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks
@@ -582,8 +619,8 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         :rtype list[str] plot_keys: base keys to plot during training
         """
-        plot_keys = ['loss', 'l1_loss', 'l2_loss', 'bce_loss']
+        plot_keys = ["loss", "l1_loss", "l2_loss", "bce_loss"]
         if self.use_scaled_pos_enc:
-            plot_keys += ['encoder_alpha', 'decoder_alpha']
+            plot_keys += ["encoder_alpha", "decoder_alpha"]
 
         return plot_keys
