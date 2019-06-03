@@ -20,53 +20,15 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network architecture
-# encoder related
-etype=vggblstm     # encoder architecture type
-elayers=5
-eunits=1024
-eprojs=1024
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=2
-dunits=1024
-context_residual=true
-# attention related
-atype=add
-adim=1024
+train_config=conf/tuning/train_rnn_spm.yaml
+decode_config=conf/tuning/decode_rnn_spm.yaml
 
-# regualrization option
-samp_prob=0.2
-lsm_type=unigram
-lsm_weight=0.1
-drop_enc=0.3
-drop_dec=0.0
-weight_decay=0.000001
-
-# transfer learning ralated
-asr_model=
-mt_model=
-
-# minibatch related
-batchsize=25
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
-# optimization related
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-opt=adadelta
-epochs=15
-patience=3
-
-# decoding parameter
-beam_size=20
-penalty=1.0
-maxlenratio=0.5
-minlenratio=0.0
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # preprocessing related
 case=lc.rm  # tc/lc/lc.rm
+
+# decoding parameter
+recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
@@ -191,12 +153,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish_st/st1/dump/${train_set}/delta${do_delta}/storage \
+          /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/st1/dump/${train_set}/delta${do_delta}/storage \
           ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/fisher_callhome_spanish_st/st1/dump/${train_dev}/delta${do_delta}/storage \
+          /export/a{11,12,13,14}/${USER}/espnet-data/egs/fisher_callhome_spanish/st1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
@@ -211,9 +173,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1spm/train_${bpemode}${nbpe}_units_${case}.txt
-nlsyms=data/lang_1spm/non_lang_syms_${case}.txt
-bpemodel=data/lang_1spm/train_${bpemode}${nbpe}_${case}
+dict=data/lang_1char/${train_set_prefix}_units_${case}.txt
+if [ ${sp_prtb} = true ]; then
+    dict=data/lang_1char/${train_set_ori_prefix}_units.txt
+fi
+nlsyms=data/lang_1char/non_lang_syms_${case}.txt
+bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${case}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
@@ -221,18 +186,26 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1spm/
 
     echo "make a non-linguistic symbol list for all languages"
-    cat data/train_sp.*/text.${case} | grep sp1.0 | cut -f 2- -d " " | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
+    if [ ${sp_prtb} = true ]; then
+        cut -f 2- -d' ' data/${train_set_ori}/text.${case} | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+    else
+        cut -f 2- -d' ' data/${train_set}/text.${case} | tr " " "\n" | sort | uniq | grep "\[" | awk -F"]" '{print $1"]"}' | uniq > ${nlsyms}
+    fi
     cat ${nlsyms}
 
-    # Share the same dictinary between source and target languages
+    echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     offset=$(cat ${dict} | wc -l)
-    cat data/train_sp.*/text.${case} | grep sp1.0 | cut -f 2- -d " " | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    if [ ${sp_prtb} = true ]; then
+        cut -f 2- -d' ' data/${train_set_ori}/text.${case} | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    else
+        cut -f 2- -d' ' data/${train_set}/text.${case} | grep -v -e '^\s*$' > data/lang_1spm/input.txt
+    fi
     spm_train --user_defined_symbols=$(cat ${nlsyms} | tr "\n" ",") --input=data/lang_1spm/input.txt --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input.txt | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
     wc -l ${dict}
 
-    # make json labels
+    echo "make json files"
     local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json
     local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --bpecode ${bpemodel}.model \
@@ -263,17 +236,17 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${case}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}_${bpemode}${nbpe}
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
     if [ ! -z ${context_residual} ]; then
       expname=${expname}_cres
     fi
-    if [ ! -z ${asr_model} ]; then
+    if [ -n "${asr_model}" ]; then
       expname=${expname}_asrtrans
     fi
-    if [ ! -z ${mt_model} ]; then
+    if [ -n "${mt_model}" ]; then
       expname=${expname}_mttrans
     fi
 else
@@ -284,8 +257,10 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
+
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
+        --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -294,36 +269,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dict ${dict} \
         --debugdir ${expdir} \
         --minibatches ${N} \
+        --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${case}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${case}.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --mtlalpha 0 \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --lsm-type ${lsm_type} \
-        --lsm-weight ${lsm_weight} \
-        --dropout-rate ${drop_enc} \
-        --dropout-rate-decoder ${drop_dec} \
-        --opt ${opt} \
-        --sortagrad ${sortagrad} \
-        --epochs ${epochs} \
-        --patience ${patience} \
-        --weight-decay ${weight_decay} \
-        --asr-model ${asr_model} \
-        --mt-model ${mt_model} \
-        --context-residual ${context_residual}
+        --train-json ${feat_tr_dir}/data.${case}.json \
+        --valid-json ${feat_dt_dir}/data.${case}.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -333,28 +283,24 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}
-        mkdir -p ${expdir}/${decode_dir}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})_${lmtag}
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.${case}.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data.${case}.json
 
         #### use CPU for decoding
         ngpu=0
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --batchsize 0 \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model} \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio}
+            ${recog_opts}
 
         # Fisher has 4 references per utterance
         if [ ${rtask} = "fisher_dev.en" ] || [ ${rtask} = "fisher_dev2.en" ] || [ ${rtask} = "fisher_test.en" ]; then
