@@ -100,9 +100,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=tr
-train_dev=cv
-recog_set=tt
+train_set="tr"
+train_dev="cv"
+recog_set="tt"
 
 if [ ${stage} -le 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -139,6 +139,7 @@ if [ ${stage} -le 1 ]; then
     for x in tr cv tt; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 10 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
     done
 
     # compute global CMVN

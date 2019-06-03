@@ -1,0 +1,105 @@
+#!/bin/bash
+grep -e Avg -e SPKR -m 3 exp/*/decode_*/result.txt
+grep -e Avg -e SPKR -m 3 exp/*/decode_*/result.wrd.txt
+exit
+
+
+<< EOF
+
+## Baseline: egs/asr1: beamformit batchsize==25
+tr05_multi_noisy_si284_pytorch_vggblstmp_e3_subsample1_1_1_unit1024_proj1024_d1_unit1024_location1024_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs25_mli600_mlo150/decode_*_beam20_emodel.acc.best_p0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/result.txt:|
+
+### 2mic
+CER       | # Snt  # Wrd  | Corr    Sub    Del    Ins   Err   S.Err |
+dt05_real | 1640   160390 | 94.8    2.7    2.5    1.4   6.6   67.9  |
+dt05_simu | 1640   160400 | 93.9    3.3    2.9    1.5   7.6   68.6  |
+et05_real | 1320   126796 | 89.1    6.0    4.9    2.8   13.7  79.2  |
+et05_simu | 1320   126812 | 88.9    6.0    5.2    2.8   14.0  80.2  |
+WER       | # Snt  # Wrd  | Corr    Sub    Del    Ins   Err   S.Err |
+dt05_real | 1640   27119  | 89.0    8.9    2.1    1.7   12.6  67.9  |
+dt05_simu | 1640   27120  | 87.7    10.1   2.2    1.8   14.1  68.6  |
+et05_real | 1320   21409  | 78.8    17.7   3.5    3.2   24.4  79.2  |
+et05_simu | 1320   21416  | 78.8    17.6   3.6    3.3   24.5  80.2  |
+
+### 5mic
+CER       | # Snt  # Wrd  | Corr    Sub    Del    Ins   Err   S.Err |
+dt05_real | 1640   160390 | 96.0    2.0    2.0    1.1   5.1   62.1  |
+dt05_simu | 1640   160400 | 95.3    2.3    2.3    1.1   5.8   64.3  |
+et05_real | 1320   126796 | 91.4    4.6    3.9    2.2   10.7  75.7  |
+et05_simu | 1320   126812 | 90.9    4.8    4.3    2.3   11.4  78.3  |
+WER       | # Snt  # Wrd  | Corr    Sub    Del    Ins   Err   S.Err |
+dt05_real | 1640   27119  | 91.2    7.2    1.7    1.2   10.1  62.1  |
+dt05_simu | 1640   27120  | 90.2    8.0    1.8    1.3   11.1  64.3  |
+et05_real | 1320   21409  | 82.8    14.3   2.9    2.5   19.8  75.7  |
+et05_simu | 1320   21416  | 82.2    14.6   3.2    2.9   20.6  78.3  |
+
+
+## With DNN[blstmp-3layer]-MVDR 5mic batchsize==10
+The encoder and decoder are same with the baseline.
+
+tr05_multi_noisy_si284_multich_pytorch_vggblstmp_e3_subsample1_1_1_unit1024_proj1024_d1_unit1024_location1024_aconvc10_aconvf100_mtlalpha0.5_adadelta_sampprob0.0_bs10_mli600_mlo150_usebftrue/decode_*_beam20_emodel.acc.best_p0_len0.0-0.0_ctcw0.3_rnnlm1.0_1layer_unit1000_sgd_bs300_word65000/result.txt:
+
+### DNN-MVDR
+
+CER       | # Snt # Wrd   | Corr    Sub    Del    Ins   Err   S.Err |
+dt05_real | 1640  160390  | 96.8    1.7    1.5    1.0   4.2   56.8  |
+dt05_simu | 1640  160400  | 96.8    1.8    1.4    0.9   4.2   54.5  |
+et05_real | 1320  126796  | 93.3    3.8    3.0    2.1   8.8   70.8  |
+et05_simu | 1320  126812  | 94.7    2.9    2.4    1.4   6.7   63.6  |
+WER       | # Snt # Wrd   | Corr    Sub    Del    Ins   Err   S.Err |
+dt05_real | 1640  27119   | 92.5    6.3    1.2    1.0   8.5   56.8  |
+dt05_simu | 1640  27120   | 92.5    6.3    1.1    1.0   8.4   54.5  |
+et05_real | 1320  21409   | 86.0    11.7   2.3    2.4   16.4  70.8  |
+et05_simu | 1320  21416   | 88.6    9.7    1.6    1.5   12.9  63.6  |
+
+
+## Evaluation for ehnaced speech
+SDR was evaluated by using museval, i.e. BSSEval-V4, with bsseval_sources version and BSSEval-V3 compatible mode.
+
+### Noisy speech
+#### SDR
+                              PED    CAF    STR    BUS
+dt05_simu_isolated_6ch_track: 8.468 6.848 4.449 2.961
+                              PED    CAF    STR    BUS
+et05_simu_isolated_6ch_track: 8.326 7.745 6.56 6.754
+#### STOI
+                              PED    CAF    STR    BUS
+dt05_simu_isolated_6ch_track: 0.6629 0.6272 0.6375 0.6465
+                              PED    CAF    STR    BUS
+et05_simu_isolated_6ch_track: 0.6143 0.6016 0.6056 0.6237
+#### ESTOI
+                              PED    CAF    STR    BUS
+dt05_simu_isolated_6ch_track: 0.532 0.4727 0.4827 0.501
+                              PED    CAF    STR    BUS
+et05_simu_isolated_6ch_track: 0.4765 0.4564 0.4615 0.4924
+#### PESQ
+                              PED    CAF    STR    BUS
+dt05_simu_isolated_6ch_track: 2.261 2.005 2.14 2.267
+                              PED    CAF    STR    BUS
+et05_simu_isolated_6ch_track: 2.128 2.086 2.187 2.321
+
+
+### With DNN[blstmp-3layer]-MVDR 5mic batchsize==10
+#### SDR
+                                      PED    CAF    STR    BUS
+dt05_simu_isolated_6ch_track_multich: 15.35 13.52 13.26 14.23
+                                      PED    CAF    STR    BUS
+et05_simu_isolated_6ch_track_multich: 16.02 15.49 14.9 16.98
+#### STOI
+                                      PED    CAF    STR    BUS
+dt05_simu_isolated_6ch_track_multich: 0.7021 0.6826 0.6967 0.7101
+                                      PED    CAF    STR    BUS
+et05_simu_isolated_6ch_track_multich: 0.6594 0.6566 0.6573 0.6716
+#### ESTOI
+                                      PED    CAF    STR    BUS
+dt05_simu_isolated_6ch_track_multich: 0.6092 0.568 0.5962 0.6283
+                                      PED    CAF    STR    BUS
+et05_simu_isolated_6ch_track_multich: 0.5645 0.5584 0.5616 0.5909
+#### PESQ
+                                      PED    CAF    STR    BUS
+dt05_simu_isolated_6ch_track_multich: 2.74 2.507 2.661 2.824
+                                      PED    CAF    STR    BUS
+et05_simu_isolated_6ch_track_multich: 2.661 2.588 2.671 2.854
+
+
+EOF

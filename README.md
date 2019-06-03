@@ -3,6 +3,7 @@
 # ESPnet: end-to-end speech processing toolkit
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
+[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
@@ -14,7 +15,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-- Encoder: VGG-like CNN + BiRNN (LSTM/GRU) or sub-sampling BiRNN (LSTM/GRU)
+- Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU) or Transformer
 - Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
@@ -32,19 +33,22 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 
-- Python 2.7+, 3.7+ (mainly support Python3.7+)
-- Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library (for the use of GPU)
-- Cudnn 6+ (for the use of GPU)
-- NCCL 2.0+ (for the use of multi-GPUs)
+- Python 3.6+
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.1, 1.0.0
-- gcc>=4.9 for PyTorch1.0.0
-- Chainer 5.0.0
+- gcc 4.9+ for PyTorch1.0.0
+- Chainer 6.0.0
+
+Optionally, GPU environment requires the following libraries:
+
+- Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library
+- Cudnn 6+
+- NCCL 2.0+ (for the use of multi-GPUs)
 
 ## Installation
 
-### Step 1) setting of the environment
+### Step 1) setting of the environment for GPU support
 
 To use cuda (and cudnn), make sure to set paths in your `.bashrc` or `.bash_profile` appropriately.
 ```
@@ -71,25 +75,28 @@ export CUDA_PATH=$CUDAROOT
 
 ### Step 2-A) installation with compiled Kaldi
 
+#### using miniconda (default)
+
 Install Python libraries and other required tools with [miniconda](https://conda.io/docs/glossary.html#miniconda-glossary)
 ```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi
 ```
 
-Or using specified python and virtualenv
+You can also specify the Python (`PYTHON_VERSION` default 3.7), PyTorch (`TH_VERSION` default 1.0.0) and CUDA versions (`CUDA_VERSION` default 10.0), for example:
+```sh
+$ cd tools
+$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
+```
+
+#### using existing python
+
+If you do not want to use miniconda, you need to specify your python interpreter to setup `virtualenv`
+
 ```sh
 $ cd tools
 $ make KALDI=/path/to/kaldi PYTHON=/usr/bin/python2.7
 ```
-
-Or install specific Python version with miniconda
-```sh
-$ cd tools
-$ make KALDI=/path/to/kaldi PYTHON_VERSION=3.6
-```
-
-v0.3.0: Changed to use miniconda by default installation.
 
 ### Step 2-B) installation including Kaldi installation
 
@@ -99,17 +106,27 @@ $ cd tools
 $ make -j 10
 ```
 
-Or using specified python and virtualenv
+As seen above, you can also specify the Python and CUDA versions, and Python path (based on `virtualenv`), for example:
+```sh
+$ cd tools
+$ make -j 10 PYTHON_VERSION=3.6 TH_VERSION=0.4.1 CUDA_VERSION=9.0
+```
 ```sh
 $ cd tools
 $ make -j 10 PYTHON=/usr/bin/python2.7
 ```
 
-Or install specific Python version with miniconda
+
+### Step 2-C) installation for CPU-only
+
+To install in a terminal that does not have a GPU installed, just clear the version of `CUPY` as follows:
+
 ```sh
 $ cd tools
-$ make PYTHON_VERSION=3.6
+$ make CUPY_VERSION='' -j 10
 ```
+
+This option is enabled for any of the install configuration.
 
 ### Step 3) installation check
 
@@ -118,6 +135,7 @@ You can check whether the install is succeeded via the following commands
 $ cd tools
 $ make check_install
 ```
+or `make check_install CUPY_VERSION=''` if you do not have a GPU on your terminal.
 If you have no warning, ready to run the recipe!
 
 If there are some problems in python libraries, you can re-setup only python environment via following commands
@@ -173,7 +191,7 @@ this epoch [#####.............................................] 10.84%
 ```
 
 In addition [Tensorboard](https://www.tensorflow.org/guide/summaries_and_tensorboard) events are automatically logged in the `tensorboard/${expname}` folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using
-```sh 
+```sh
 $ tensorboard --logdir tensorboard
 ```
 and connecting to the given address (default : localhost:6006). This will provide the following information:
@@ -201,6 +219,44 @@ Default setup uses CPU (`--ngpu 0`).
 
 Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
 is required before setup.
+
+
+### Changing the configuration
+The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
+
+```bash
+# e.g.
+asr_train.py --config conf/train.yaml --batch-size 24
+# e.g.--config2 and --config3 are also provided and the latter option can overwrite the former.
+asr_train.py --config conf/train.yaml --config2 conf/new.yaml
+```
+
+In this way, you need to edit `run.sh` and it might be inconvenient sometimes.
+Instead of giving arguments directly, we recommend you to modify the yaml file and give it to `run.sh`:
+
+```bash
+# e.g.
+./run.sh --train-config conf/train_modified.yaml
+# e.g.
+./run.sh --train-config conf/train_modified.yaml --decode-config conf/decode_modified.yaml
+```
+
+We also provide a utility to generate a yaml file from the input yaml file:
+
+```bash
+# e.g. You can give any parameters as '-a key=value' and '-a' is repeatable. 
+#      This generates new file at 'conf/train_batch-size24_epochs10.yaml'
+./run.sh --train-config $(change_yaml.py conf/train.yaml -a batch-size=24 -a epochs=10)
+# e.g. '-o' option specfies the output file name instead of auto named file.
+./run.sh --train-config $(change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size=24)
+```
+
+### How to set minibatch
+
+From espnet v0.4.0, we have three options in `--batch-count` to specify minibatch size (see `espnet.utils.batchfy` for implementation);
+1. `--batch-count seq --batch-seqs 32 --batch-seq-maxlen-in 800 --batch-seq-maxlen-out 150`. This option is compatible to the old setting before v0.4.0. This counts the minibatch size as the number of sequences and reduces the size when the maximum length of the input or output sequences is greater than 800 or 150, respectively.
+2. `--batch-count bin --batch-bins 100000`. This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., `max(ilen) * idim + max(olen) * odim`). Basically, this option makes trainining iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-bins $((x * (mean(ilen) * idim + mean(olen) * odim)))`.
+3. `--batch-count frame --batch-frames-in 800 --batch-frames-out 100 --batch-frames-inout 900`. This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes trainining iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
 
 ### Error due to ACS (Multiple GPUs)
 
@@ -264,17 +320,18 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| WSJ dev93 | 3.2 | 7.0 |
-| WSJ eval92| 2.1 | 4.7 |
-| CSJ eval1 | 6.6 | N/A  |
-| CSJ eval2 | 4.8 | N/A  |
-| CSJ eval3 | 5.0 | N/A  |
 | Aishell dev | 6.8 | N/A |
 | Aishell test | 8.0 | N/A |
-| HKUST train_dev | 28.8 | N/A  |
+| CSJ eval1 | 5.7 | N/A  |
+| CSJ eval2 | 4.1 | N/A  |
+| CSJ eval3 | 4.5 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 4.0 |
 | Librispeech test_clean | N/A | 4.0 |
+| TEDLIUM2 dev  | N/A | 12.8 |
+| TEDLIUM2 test | N/A | 12.6 |
+| WSJ dev93 | 3.2 | 7.0 |
+| WSJ eval92| 2.1 | 4.7 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
@@ -286,6 +343,7 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 | Speed | ○ | ◎ |
 | Multi-GPU | supported | supported |
 | VGG-like encoder | supported | supported |
+| Transformer | supported | supported |
 | RNNLM integration | supported | supported |
 | #Attention types | 3 (no attention, dot, location) | 12 including variants of multihead |
 | TTS recipe support | no support | supported |
@@ -297,3 +355,16 @@ Note that the performance of the CSJ, HKUST, and Librispeech tasks was significa
 
 [3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
 
+## Citation
+
+```
+@inproceedings{watanabe2018espnet,
+  author={Shinji Watanabe and Takaaki Hori and Shigeki Karita and Tomoki Hayashi and Jiro Nishitoba and Yuya Unno and Nelson {Enrique Yalta Soplin} and Jahn Heymann and Matthew Wiesner and Nanxin Chen and Adithya Renduchintala and Tsubasa Ochiai},
+  title={ESPnet: End-to-End Speech Processing Toolkit},
+  year=2018,
+  booktitle={Interspeech},
+  pages={2207--2211},
+  doi={10.21437/Interspeech.2018-1456},
+  url={http://dx.doi.org/10.21437/Interspeech.2018-1456}
+}
+```

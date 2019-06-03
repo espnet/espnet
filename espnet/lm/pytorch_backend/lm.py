@@ -32,9 +32,9 @@ from espnet.lm.lm_utils import ParallelSentenceIterator
 from espnet.lm.lm_utils import read_tokens
 from espnet.nets.pytorch_backend.e2e_asr import to_device
 
+from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_save
 from espnet.asr.asr_utils import torch_snapshot
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
@@ -296,6 +296,7 @@ class LMEvaluator(extensions.Evaluator):
         super(LMEvaluator, self).__init__(
             val_iter, reporter, device=device)
         self.model = eval_model
+        self.device = device
 
     def evaluate(self):
         val_iter = self.get_iterator('main')
@@ -374,7 +375,7 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps(vars(args), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps(vars(args), indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
     if args.opt == 'sgd':
@@ -398,8 +399,7 @@ def train(args):
     trainer.extend(extensions.ProgressBar(update_interval=REPORT_INTERVAL))
     # Save best models
     trainer.extend(torch_snapshot(filename='snapshot.ep.{.updater.epoch}'))
-    trainer.extend(extensions.snapshot_object(
-        model, 'rnnlm.model.{.updater.epoch}', savefun=torch_save))
+    trainer.extend(snapshot_object(model, 'rnnlm.model.{.updater.epoch}'))
     # T.Hori: MinValueTrigger should be used, but it fails when resuming
     trainer.extend(MakeSymlinkToBestModel('validation/main/loss', 'rnnlm.model'))
 
@@ -412,7 +412,7 @@ def train(args):
 
     set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        writer = SummaryWriter(log_dir=args.tensorboard_dir)
+        writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer))
 
     trainer.run()

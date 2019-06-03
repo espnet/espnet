@@ -20,59 +20,20 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
-# network architecture
-# encoder related
-etype=vggblstmp     # encoder architecture type
-elayers=6
-eunits=320
-eprojs=320
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=1
-dunits=300
-# attention related
-atype=location
-adim=320
-aconv_chans=10
-aconv_filts=100
-
-# hybrid CTC/attention
-mtlalpha=0.5
-
-# minibatch related
-batchsize=30
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
-# optimization related
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-opt=adadelta
-epochs=15
-patience=3
+train_config=conf/train.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 
 # rnnlm related
-lm_layers=2
-lm_units=650
-lm_opt=sgd        # or adam
-lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-lm_batchsize=1024 # batch size in LM training
-lm_epochs=20      # if the data size is large, we can reduce this
-lm_patience=3
-lm_maxlen=150     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
-lm_weight=1.0
-beam_size=20
-penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
-# scheduled sampling option
-samp_prob=0.0
+# bpemode (unigram or bpe)
+nbpe=500
+bpemode=unigram
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -88,7 +49,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_trim
+train_set=train_trim_sp
 train_dev=dev_trim
 recog_set="dev test"
 
@@ -118,12 +79,23 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in test dev train; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
+        utils/fix_data_dir.sh data/${x}
     done
 
     # remove utt having > 2000 frames or < 10 frames or
     # remove utt having > 400 characters or 0 characters
-    remove_longshortdata.sh --maxchars 400 data/train data/${train_set}
+    remove_longshortdata.sh --maxchars 400 data/train data/train_trim
     remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
+
+    # speed-perturbed
+    utils/perturb_data_dir_speed.sh 0.9 data/train_trim data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/train_trim data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/train_trim data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    utils/fix_data_dir.sh data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -141,31 +113,35 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1char/${train_set}_units.txt
+dict=data/lang_char/${train_set}_${bpemode}${nbpe}_units.txt
+bpemodel=data/lang_char/${train_set}_${bpemode}${nbpe}
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
-    mkdir -p data/lang_1char/
+    mkdir -p data/lang_char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    text2token.py -s 1 -n 1 data/${train_set}/text | cut -f 2- -d" " | tr " " "\n" \
-    | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
+    spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} \
+        --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | \
+        tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
     # make json labels
-    data2json.sh --feat ${feat_tr_dir}/feats.scp \
-         data/${train_set} ${dict} > ${feat_tr_dir}/data.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp \
-         data/${train_dev} ${dict} > ${feat_dt_dir}/data.json
+    data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
+         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
+         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp \
-            data/${rtask} ${dict} > ${feat_recog_dir}/data.json
+        data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
+            data/${rtask} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
     done
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}_adim${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -178,27 +154,27 @@ mkdir -p ${expdir}
 # It takes a few days. If you just want to end-to-end ASR without LM,
 # you can skip this and remove --rnnlm option in the recognition (stage 5)
 if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+    lmtag=$(basename ${lm_config%.*})
 fi
-lmexpname=train_rnnlm_${backend}_${lmtag}
+lmexpname=train_rnnlm_${backend}_${lmtag}_${bpemode}${nbpe}
 lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
-    lmdatadir=data/local/lm_train
+    lmdatadir=data/local/lm_train_${bpemode}${nbpe}
     [ ! -e ${lmdatadir} ] && mkdir -p ${lmdatadir}
-    gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py \
-        | text2token.py -n 1 \
-        > ${lmdatadir}/train.txt
-    text2token.py -s 1 -n 1 data/dev/text | cut -f 2- -d" " \
-        > ${lmdatadir}/valid.txt
+    gunzip -c db/TEDLIUM_release2/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py |\
+	spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
+    cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece \
+	> ${lmdatadir}/valid.txt
     # use only 1 gpu
     if [ ${ngpu} -gt 1 ]; then
         echo "LM training does not support multi-gpu. signle gpu will be used."
     fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
+        --config ${lm_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
@@ -207,14 +183,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --sortagrad ${lm_sortagrad} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --patience ${lm_patience} \
-        --maxlen ${lm_maxlen} \
         --dict ${dict}
 fi
 
@@ -223,6 +191,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
+        --config ${train_config} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
@@ -232,28 +201,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --resume ${resume} \
-        --train-json ${feat_tr_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --opt ${opt} \
-        --sortagrad ${sortagrad} \
-        --epochs ${epochs} \
-        --patience ${patience}
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -263,33 +212,27 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}_${lmtag}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_recog_dir}/data.json
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
 
         #### use CPU for decoding
         ngpu=0
-
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
             --debugmode ${debugmode} \
             --verbose ${verbose} \
-            --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
+            --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight}
+            --rnnlm ${lmexpdir}/rnnlm.model.best
 
-        score_sclite.sh --wer true ${expdir}/${decode_dir} ${dict}
+        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
     ) &
     pids+=($!) # store background pids
