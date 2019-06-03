@@ -7,6 +7,7 @@ import torch
 
 from argparse import Namespace
 
+from espnet.nets.pytorch_backend.e2e_tts_transformer import make_non_pad_mask
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -45,6 +46,7 @@ def make_transformer_args(**kwargs):
         initial_encoder_alpha=1.0,
         initial_decoder_alpha=1.0,
         reduction_factor=1,
+        loss_type="L1",
     )
     defaults.update(kwargs)
     return defaults
@@ -60,10 +62,8 @@ def make_inference_args(**kwargs):
     return defaults
 
 
-def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
-                   spk_embed_dim=None, spc_dim=None, device=torch.device('cpu')):
-    ilens = np.sort(np.random.randint(1, maxin_len, bs))[::-1].tolist()
-    olens = np.sort(np.random.randint(1, maxout_len, bs))[::-1].tolist()
+def prepare_inputs(idim, odim, ilens, olens,
+                   device=torch.device('cpu')):
     ilens = torch.LongTensor(ilens).to(device)
     olens = torch.LongTensor(olens).to(device)
     xs = [np.random.randint(0, idim, l) for l in ilens]
@@ -98,6 +98,9 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
         ({"decoder_concate_after": True}),
         ({"encoder_concate_after": True, "decoder_concate_after": True}),
+        ({"loss_type": "L1"}),
+        ({"loss_type": "L2"}),
+        ({"loss_type": "L1+L2"}),
     ])
 def test_transformer_trainable_and_decodable(model_dict):
     # make args
@@ -105,12 +108,11 @@ def test_transformer_trainable_and_decodable(model_dict):
     inference_args = make_inference_args()
 
     # setup batch
-    bs = 2
-    maxin_len = 10
-    maxout_len = 10
     idim = 5
     odim = 10
-    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len)
+    ilens = [10, 5]
+    olens = [20, 15]
+    batch = prepare_inputs(idim, odim, ilens, olens)
 
     # define model
     model = Transformer(idim, odim, Namespace(**model_args))
@@ -151,14 +153,12 @@ def test_transformer_gpu_trainable(model_dict):
     # make args
     model_args = make_transformer_args(**model_dict)
 
-    # setup batch
-    bs = 2
-    maxin_len = 10
-    maxout_len = 10
     idim = 5
     odim = 10
+    ilens = [10, 5]
+    olens = [20, 15]
     device = torch.device('cuda')
-    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len, device=device)
+    batch = prepare_inputs(idim, odim, ilens, olens, device=device)
 
     # define model
     model = Transformer(idim, odim, Namespace(**model_args))
@@ -194,19 +194,17 @@ def test_transformer_multi_gpu_trainable(model_dict):
     # make args
     model_args = make_transformer_args(**model_dict)
 
-    ngpu = 2
-    device_ids = list(range(ngpu))
-
     # setup batch
-    bs = 4
-    maxin_len = 10
-    maxout_len = 10
     idim = 5
     odim = 10
+    ilens = [10, 5]
+    olens = [20, 15]
     device = torch.device('cuda')
-    batch = prepare_inputs(bs, idim, odim, maxin_len, maxout_len, device=device)
+    batch = prepare_inputs(idim, odim, ilens, olens, device=device)
 
     # define model
+    ngpu = 2
+    device_ids = list(range(ngpu))
     model = Transformer(idim, odim, Namespace(**model_args))
     model = torch.nn.DataParallel(model, device_ids)
     model.to(device)
