@@ -360,9 +360,6 @@ class Transformer(TTSInterface, torch.nn.Module):
             self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
 
         if args.transformer_init == "pytorch":
-            for m in self.modules():
-                if hasattr(m, "reset_parameters"):
-                    m.reset_parameters()
             return
         # weight init
         for p in self.parameters():
