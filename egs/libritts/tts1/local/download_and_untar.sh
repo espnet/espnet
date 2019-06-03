@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright   2014  Johns Hopkins University (author: Daniel Povey)
-# Modicifations Copyright   2019  Nagoya University (author: Takenori Yoshimura)
+# Modifications Copyright   2019  Nagoya University (author: Takenori Yoshimura)
 # Apache 2.0
 
 remove_archive=false
@@ -17,6 +17,7 @@ if [ $# -ne 3 ]; then
   echo "With --remove-archive it will remove the archive after successfully un-tarring it."
   echo "<corpus-part> can be one of: dev-clean, test-clean, dev-other, test-other,"
   echo "          train-clean-100, train-clean-360, train-other-500."
+  exit 1
 fi
 
 data=$1
@@ -25,7 +26,7 @@ part=$3
 
 if [ ! -d "$data" ]; then
   echo "$0: no such directory $data"
-  exit 1;
+  exit 1
 fi
 
 part_ok=false
@@ -35,17 +36,17 @@ for x in $list; do
 done
 if ! $part_ok; then
   echo "$0: expected <corpus-part> to be one of $list, but got '$part'"
-  exit 1;
+  exit 1
 fi
 
 if [ -z "$url" ]; then
   echo "$0: empty URL base."
-  exit 1;
+  exit 1
 fi
 
 if [ -f $data/LibriTTS/$part/.complete ]; then
   echo "$0: data part $part was already successfully extracted, nothing to do."
-  exit 0;
+  exit 0
 fi
 
 
@@ -68,20 +69,20 @@ fi
 if [ ! -f $data/$part.tar.gz ]; then
   if ! which wget >/dev/null; then
     echo "$0: wget is not installed."
-    exit 1;
+    exit 1
   fi
   full_url=$url/$part.tar.gz
   echo "$0: downloading data from $full_url.  This may take some time, please be patient."
 
   if ! wget -P $data --no-check-certificate $full_url; then
     echo "$0: error executing wget $full_url"
-    exit 1;
+    exit 1
   fi
 fi
 
 if ! tar -C $data -xvzf $data/$part.tar.gz; then
   echo "$0: error un-tarring archive $data/$part.tar.gz"
-  exit 1;
+  exit 1
 fi
 
 touch $data/LibriTTS/$part/.complete
