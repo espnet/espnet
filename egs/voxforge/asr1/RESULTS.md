@@ -1,85 +1,53 @@
 # Transformer 300 epochs, decoder 6 layer 2048 unitsns
-- Environments
-
-  - config file: `conf/tuning/train_pytorch_transformer_d6-2048.yaml`
-
-  - system information
-
-  - ```bash
-    $ uname -a
-    Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux
-    ```
-
-  - python version
-
-  - ```bash
-    $ . ./path.sh; python --version
-    Python 3.7.3
-    ```
-
-  - Git hash
-
-  - ```bash
-    $ git log | head -n 1 | awk '{print $2}'
-    5f72850ea313dc18fc0518fa4f3a95c3d8b44f09
-    ```
-
-- Models https://drive.google.com/open?id=1G57uPd1yO3FNx5C6uFG4raIFE_qpI1jp
-
-- Results
-
-- ```bash
-  write a CER (or TER) result in exp/tr_it_pytorch_train_d6-2048/decode_dt_it_decode/result.txt
-  | SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-  | Sum/Avg               | 1082   79133 | 92.5    3.8    3.7    1.9    9.4   95.0 |
-  write a CER (or TER) result in exp/tr_it_pytorch_train_d6-2048/decode_et_it_decode/result.txt
-  | SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-  | Sum/Avg               | 1055   77966 | 92.6    3.7    3.7    1.7    9.1   95.6 |
-  ```
-- It takes a very long time for the decoding and I don't recommend to use this setup without speed improvement during decoding
-
-
+  - Environments (obtained by `$ get_sys_info.sh`)
+      - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
+	  - python version: `Python 3.7.3`
+	  - espnet version: `espnet 0.3.1`
+	  - chainer version: `chainer 6.0.0`
+	  - pytorch version: `pytorch 1.0.1.post2`
+	  - Git hash: `2525193c2c25dea5683086ef1b69f45bd1e050af`
+  - It takes a very long time for the decoding and I don't recommend to use this setup without speed improvement during decoding
+  - Model files (archived to v2.tgz by `$ pack_model.sh`)
+      - model link: https://drive.google.com/open?id=1qtCKSHLZdGdLaZVZ-33NoX3nf_L3Pto8
+	  - training config file: `conf/tuning/train_pytorch_transformer_d6-2048.yaml`
+	  - decoding conf-if file: `conf/tuning/decode_pytorch_transformer.yaml`
+      - cmvn file: `data/tr_it/cmvn.ark`
+      - e2e file: `exp/tr_it_pytorch_train_d6-2048/results/model.last10.avg.best`
+      - e2e JSON file: `exp/tr_it_pytorch_train_d6-2048/results/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/tr_it_pytorch_train_d6-2048/decode_dt_it_decode/result.txt
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1082   79133 | 92.5    3.8    3.7    1.9    9.4   95.0 |
+exp/tr_it_pytorch_train_d6-2048/decode_et_it_decode/result.txt
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1055   77966 | 92.6    3.7    3.7    1.7    9.1   95.6 |
+```
 
 # Transformer 300 epochs, decoder 1 layer 1024 units 
-- Environments
-
-  - config file: `conf/tuning/train_pytorch_transformer.yaml`
-
-  - system information
-
-  - ```bash
-    $ uname -a
-    Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux
-    ```
-
-  - python version
-
-  - ```bash
-    $ . ./path.sh; python --version
-    Python 3.7.3
-    ```
-
-  - Git hash
-
-  - ```bash
-    $ git log | head -n 1 | awk '{print $2}'
-    5f72850ea313dc18fc0518fa4f3a95c3d8b44f09
-    ```
-
-- Models https://drive.google.com/open?id=1R56HL9pUNlTNzXdXutk4Ugu6NwQ9onif 
-
-- Results
-
-- ```bash
-  write a CER (or TER) result in exp/tr_it_pytorch_ep300pa10/decode_dt_it_decode/result.txt
-  | SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-  | Sum/Avg               | 1082   79133 | 92.0    3.9    4.1    1.8    9.8   96.2 |
-  write a CER (or TER) result in exp/tr_it_pytorch_ep300pa10/decode_et_it_decode/result.txt
-  | SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-  | Sum/Avg               | 1055   77966 | 92.1    3.9    4.0    1.7    9.6   95.7 |
-  ```
-
-
+  - Environments (obtained by `$ get_sys_info.sh`)
+      - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
+	  - python version: `Python 3.7.3`
+	  - espnet version: `espnet 0.3.1`
+	  - chainer version: `chainer 6.0.0`
+	  - pytorch version: `pytorch 1.0.1.post2`
+	  - Git hash: `2525193c2c25dea5683086ef1b69f45bd1e050af`
+  - Model files (archived to v1.tgz by `$ pack_model.sh`)
+      - model link: https://drive.google.com/open?id=1xgTpS7dqcZs75CvH4OihbXdAJtOM43Fe
+      - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+      - decoding conf-if file: `conf/tuning/decode_pytorch_transformer.yaml`
+      - cmvn file: `data/tr_it/cmvn.ark`
+      - e2e file: `exp/tr_it_pytorch_train/results/model.last10.avg.best`
+      - e2e JSON file: `exp/tr_it_pytorch_train/results/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/tr_it_pytorch_train/decode_dt_it_decode/result.txt
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1082   79133 | 92.0    3.9    4.1    1.8    9.8   96.7 |
+exp/tr_it_pytorch_train/decode_et_it_decode/result.txt
+| SPKR                  | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg               | 1055   77966 | 92.0    3.9    4.0    1.7    9.6   96.7 |
+```
 
 # Transformer 100 epochs
 ```bash
