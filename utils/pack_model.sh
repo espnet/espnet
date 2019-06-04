@@ -15,10 +15,10 @@ outdir=""
 
 if [ $# != 4 ]; then
     echo "Usage: $0 <tr_conf> <rec_conf> <cmvn> <e2e>, for example:";
-    echo '<tr_conf>:  conf/train.yaml'
-    echo '<rec_conf>: conf/decode.yaml'
-    echo '<cmvn>:     data/tr_it/cmvn.ark'
-    echo '<e2e>:      exp/tr_it_pytorch_train/results/model.last10.avg.best'
+    echo "<tr_conf>:  conf/train.yaml"
+    echo "<rec_conf>: conf/decode.yaml"
+    echo "<cmvn>:     data/tr_it/cmvn.ark"
+    echo "<e2e>:      exp/tr_it_pytorch_train/results/model.last10.avg.best"
     exit 1;
 fi
 
@@ -35,23 +35,22 @@ fi
 #echo "will write files in ${PWD}/${dir}"
 mkdir -p ${dir}/{cmvn,conf,lm,e2e,results}
 
-echo -n "  - Model files (archived to ${dir}.tgz by "
-echo '`$ pack_model.sh`)'
-echo '    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)'
+echo "  - Model files (archived to ${dir}.tgz by \`\$ pack_model.sh\`)"
+echo "    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)"
 
 # configs
 if [ -e ${tr_conf} ]; then
     cp -L ${tr_conf} ${dir}/conf/
-    echo -n '    - training config file: `'
-    ls ${tr_conf} | sed -e "s/$/\`/" 
+    echo -n "    - training config file: \`"
+    echo ${tr_conf} | sed -e "s/$/\`/" 
 else
     echo "missing ${tr_conf}"
     exit 1
 fi
 if [ -e ${rec_conf} ]; then
     cp -L ${rec_conf} ${dir}/conf/
-    echo -n '    - decoding conf-if file: `'
-    ls ${rec_conf} | sed -e "s/$/\`/" 
+    echo -n "    - decoding config file: \`"
+    echo ${rec_conf} | sed -e "s/$/\`/" 
 else
     echo "missing ${rec_conf}"
     exit 1
@@ -60,8 +59,8 @@ fi
 # cmvn
 if [ -e ${cmvn} ]; then
     cp -L ${cmvn} ${dir}/cmvn/
-    echo -n '    - cmvn file: `'
-    ls ${cmvn} | sed -e "s/$/\`/" 
+    echo -n "    - cmvn file: \`"
+    echo ${cmvn} | sed -e "s/$/\`/" 
 else
     echo "missing ${cmvn}"
     exit 1
@@ -70,16 +69,16 @@ fi
 # e2e
 if [ -e ${e2e} ]; then
     cp -L ${e2e} ${dir}/e2e/
-    echo -n '    - e2e file: `'
-    ls ${e2e} | sed -e "s/$/\`/"
+    echo -n "    - e2e file: \`"
+    echo ${e2e} | sed -e "s/$/\`/"
 
-    e2e_conf=`dirname ${e2e}`/model.json
+    e2e_conf=$(dirname ${e2e})/model.json
     if [ ! -e ${e2e_conf} ]; then
 	echo missing ${e2e_conf}
 	exit 1
     else
-	echo -n '    - e2e JSON file: `'
-	ls ${e2e_conf} | sed -e "s/$/\`/"
+	echo -n "    - e2e JSON file: \`"
+	echo ${e2e_conf} | sed -e "s/$/\`/"
 	cp ${e2e_conf} ${dir}/e2e/
     fi
 else
@@ -91,16 +90,16 @@ fi
 if [ -n "${lm}" ]; then
     if [ -e ${lm} ]; then
 	cp -L ${lm} ${dir}/lm/
-	echo -n '    - lm file: `'
-	ls ${lm} | sed -e "s/$/\`/"
+	echo -n "    - lm file: \`"
+	echo ${lm} | sed -e "s/$/\`/"
 
 	lm_conf=`dirname ${lm}`/model.json
 	if [ ! -e ${lm_conf} ]; then
 	    echo missing ${lm_conf}
 	    exit 1
 	else
-	    echo -n '    - lm JSON file: `'
-	    ls ${lm_conf} | sed -e "s/$/\`/"
+	    echo -n "    - lm JSON file: \`"
+	    echo ${lm_conf} | sed -e "s/$/\`/"
 	    cp ${lm_conf} ${dir}/lm/
 	fi
     else
@@ -115,14 +114,14 @@ tar zcvf ${dir}.tgz ${dir} > /dev/null
 
 # results
 if [ -n "${results}" ]; then
-    echo '  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)'
+    echo "  - Results (paste them by yourself or obtained by \`\$ pack_model.sh --results <results>\`)"
 fi
 for x in ${results}; do
     if [ -e ${x} ]; then
-	echo '```'
+	echo "\`\`\`"
 	echo "${x}"
 	grep -e Avg -e SPKR -m 2 ${x}
-	echo '```'
+	echo "\`\`\`"
     else
 	echo "missing ${x}"
 	exit 1

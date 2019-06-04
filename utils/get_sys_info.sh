@@ -7,26 +7,26 @@
 
 . utils/parse_options.sh
 
-echo '  - Environments (obtained by `$ get_sys_info.sh`)'
+echo "  - Environments (obtained by \`\$ get_sys_info.sh\`)"
 
 # get system info
-echo -n '    - system information: `'
+echo -n "    - system information: \`"
 uname -a | sed -e "s/$/\`/" 
 # get python version
-echo -n '    - python version: `'
+echo -n "    - python version: \`"
 python --version | sed -e "s/$/\`/"
 # get espnet version
-echo -n '    - espnet version: `'
+echo -n "    - espnet version: \`"
 python -c 'import espnet; print("espnet " + espnet.__version__);' | sed -e "s/$/\`/"
 # get chainer version
-echo -n '    - chainer version: `'
+echo -n "    - chainer version: \`"
 python -c 'import chainer; print("chainer " + chainer.__version__);' | sed -e "s/$/\`/"
 # get pytorch version
-echo -n '    - pytorch version: `'
+echo -n "    - pytorch version: \`"
 python -c 'import torch; print("pytorch " + torch.__version__);' | sed -e "s/$/\`/"
 
 # get Git hash
-echo -n '    - Git hash: `'
+echo -n "    - Git hash: \`"
 git log | head -n 1 | awk '{print $2}' | sed -e "s/$/\`/"
 
 exit 0
