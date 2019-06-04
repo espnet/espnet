@@ -7,7 +7,7 @@ import numpy as np
 def batchfy_by_seq(
         sorted_data, batch_size, max_length_in, max_length_out,
         min_batch_size=1, shortest_first=False,
-        ikey="input", okey="output"):
+        ikey="input", iaxis=0, okey="output", oaxis=0):
     """Make batch set from json dictionary
 
     :param Dict[str, Dict[str, Any]] sorted_data: dictionary loaded from data.json
@@ -17,8 +17,11 @@ def batchfy_by_seq(
     :param int min_batch_size: mininum batch size (for multi-gpu)
     :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
 
-    :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
-    :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
+    :param str ikey: key to access input (for ASR ikey="input", for TTS, MT ikey="output".)
+    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
+    :param str okey: key to access output (for ASR, MT okey="output". for TTS okey="input".)
+    :param int oaxis: dimension to access input (for ASR, TTS, MT iaxis=0, reserved for future research.)
+
     :return: List[List[Tuple[str, dict]]] list of batches
     """
     if batch_size <= 0:
@@ -33,8 +36,8 @@ def batchfy_by_seq(
     start = 0
     while True:
         _, info = sorted_data[start]
-        ilen = int(info[ikey][0]['shape'][0])
-        olen = int(info[okey][0]['shape'][0])
+        ilen = int(info[ikey][iaxis]['shape'][0])
+        olen = int(info[okey][oaxis]['shape'][0])
         factor = max(int(ilen / max_length_in), int(olen / max_length_out))
         # change batchsize depending on the input and output length
         # if ilen = 1000 and max_length_in = 800
