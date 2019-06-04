@@ -20,14 +20,15 @@ import torch
 from chainer import reporter
 from nltk.translate import bleu_score
 
+from espnet.nets.mt_interface import MTInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 
-from espnet.nets.pytorch_backend.attentions import att_for
-from espnet.nets.pytorch_backend.decoders import decoder_for
-from espnet.nets.pytorch_backend.encoders import encoder_for
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet.nets.pytorch_backend.rnn.attentions import att_for
+from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 
 
 class Reporter(chainer.Chain):
@@ -40,7 +41,7 @@ class Reporter(chainer.Chain):
         reporter.report({'bleu': bleu}, self)
 
 
-class E2E(torch.nn.Module):
+class E2E(MTInterface, torch.nn.Module):
     """E2E module
 
     :param int idim: dimension of inputs
@@ -50,6 +51,7 @@ class E2E(torch.nn.Module):
 
     def __init__(self, idim, odim, args):
         super(E2E, self).__init__()
+        torch.nn.Module.__init__(self)
         self.etype = args.etype
         self.verbose = args.verbose
         self.char_list = args.char_list
@@ -80,15 +82,14 @@ class E2E(torch.nn.Module):
         self.replace_sos = args.replace_sos
 
         # encoder
+        self.embed_src = torch.nn.Embedding(idim + 1, args.eunits, padding_idx=idim)
+        # NOTE: +1 means the padding index
+        self.dropout_emb_src = torch.nn.Dropout(p=args.dropout_rate)
         self.enc = encoder_for(args, args.dunits, self.subsample)
         # attention
         self.att = att_for(args)
         # decoder
         self.dec = decoder_for(args, odim, self.sos, self.eos, self.att, labeldist)
-
-        self.embed_src = torch.nn.Embedding(idim + 1, args.dunits, padding_idx=idim)
-        # NOTE: +1 means the padding index
-        self.dropout_emb_src = torch.nn.Dropout(p=args.dropout_rate)
 
         # weight initialization
         self.init_like_chainer()
@@ -134,7 +135,7 @@ class E2E(torch.nn.Module):
                     n = data.size(1)
                     stdv = 1. / math.sqrt(n)
                     data.normal_(0, stdv)
-                elif data.dim() == 4:
+                elif data.dim() in (3, 4):
                     # conv weight
                     n = data.size(1)
                     for k in data.size()[2:]:
@@ -170,7 +171,7 @@ class E2E(torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
-        # 1. encoder
+        # 1. Encoder
         if self.replace_sos:
             # remove source language ID in the beggining
             tgt_lang_ids = ys_pad[:, 0:1]
@@ -180,22 +181,22 @@ class E2E(torch.nn.Module):
         else:
             xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
             tgt_lang_ids = None
-        hs_pad, hlens = self.enc(xs_pad_emb, ilens)
+        hs_pad, hlens, _ = self.enc(xs_pad_emb, ilens)
 
         # 3. attention loss
-        loss, acc, ppl = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids)
+        loss, acc, ppl = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
+        self.acc = acc
+        self.ppl = ppl
 
-        # 5. compute bleu
+        # 5. compute bleu without beam search
         if self.training or not self.report_bleu:
             bleu = 0.0
-            # oracle_bleu = 0.0
         else:
             bleus = []
-            nbest_hyps = self.dec.recognize_beam_batch(
-                hs_pad, torch.tensor(hlens), None,
-                self.recog_args, self.char_list,
-                self.rnnlm,
-                tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
+            nbest_hyps = self.dec.recognize_beam_batch(hs_pad, torch.tensor(hlens), None,
+                                                       self.recog_args, self.char_list,
+                                                       self.rnnlm,
+                                                       tgt_lang_ids=tgt_lang_ids.squeeze(1).tolist() if self.replace_sos else None)
             # remove <sos> and <eos>
             y_hats = [nbest_hyp[0]['yseq'][1:-1] for nbest_hyp in nbest_hyps]
             for i, y_hat in enumerate(y_hats):
@@ -221,16 +222,7 @@ class E2E(torch.nn.Module):
             self.reporter.report(loss_data, acc, ppl, bleu)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
-
-        # Note(kamo): In order to work with DataParallel, on pytorch==0.4,
-        # the return value must be torch.CudaTensor, or tuple/list/dict of it.
-        # Neither CPUTensor nor float/int value can be used
-        # because NCCL communicates between GPU devices.
-        device = next(self.parameters()).device
-        acc = torch.tensor([acc], device=device)
-        ppl = torch.tensor([ppl], device=device)
-        bleu = torch.tensor([bleu], device=device)
-        return loss, acc, ppl, bleu
+        return self.loss
 
     def recognize(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
@@ -244,6 +236,7 @@ class E2E(torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        ilen = [x.shape[0]]
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
@@ -257,12 +250,11 @@ class E2E(torch.nn.Module):
             h = to_device(self, torch.from_numpy(np.fromiter(map(int, x[0]), dtype=np.int64)))
             h = h.contiguous()
             h_emb = self.dropout_emb_src(self.embed_src(h.unsqueeze(0)))
-        ilen = [h_emb.size(1)]
-        h, _ = self.enc(h_emb, ilen)
+        hs, _, _ = self.enc(h_emb, ilen)
 
         # 2. decoder
         # decode the first utterance
-        y = self.dec.recognize_beam(h[0], None, recog_args, char_list, rnnlm)
+        y = self.dec.recognize_beam(hs[0], None, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -271,7 +263,7 @@ class E2E(torch.nn.Module):
     def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
         """E2E beam search
 
-        :param ndarray xs: input acoustic feature (T, D)
+        :param list xs: list of input source text feature arrays [(T_1, D), (T_2, D), ...]
         :param Namespace recog_args: argument Namespace containing options
         :param list char_list: list of characters
         :param torch.nn.Module rnnlm: language model module
@@ -280,21 +272,22 @@ class E2E(torch.nn.Module):
         """
         prev = self.training
         self.eval()
+        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
 
-        # 1. encoder
-        ilens = np.array([x.shape[0] for x in xs], dtype=np.int64)
+        # 1. Encoder
         if self.replace_sos:
-            hs = [to_device(self, torch.from_numpy(xx).long()) for xx in xs]
+            hs = [to_device(self, torch.from_numpy(xx)) for xx in xs]
             xpad = pad_list(hs, self.pad)
             xpad_emb = self.dropout_emb_src(self.embed_src(xpad))
         else:
-            hs = [to_device(self, torch.from_numpy(xx).long()) for xx in xs]
+            hs = [to_device(self, torch.from_numpy(xx)) for xx in xs]
             xpad = pad_list(hs, self.pad)
             xpad_emb = self.dropout_emb_src(self.embed_src(xpad))
-        hpad, hlens = self.enc(xpad_emb, ilens)
+        hs_pad, hlens, _ = self.enc(xpad_emb, ilens)
 
-        # 2. decoder
-        y = self.dec.recognize_beam_batch(hpad, hlens, None, recog_args, char_list, rnnlm)
+        # 2. Decoder
+        hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
+        y = self.dec.recognize_beam_batch(hs_pad, hlens, None, recog_args, char_list, rnnlm)
 
         if prev:
             self.train()
@@ -312,7 +305,7 @@ class E2E(torch.nn.Module):
         :rtype: float ndarray
         """
         with torch.no_grad():
-            # encoder
+            # 1. Encoder
             if self.replace_sos:
                 # remove source language ID in the beggining
                 tgt_lang_ids = ys_pad[:, 0:1]
@@ -322,9 +315,9 @@ class E2E(torch.nn.Module):
             else:
                 xs_pad_emb = self.dropout_emb_src(self.embed_src(xs_pad))
                 tgt_lang_ids = None
-            hpad, hlens = self.enc(xs_pad_emb, ilens)
+            hpad, hlens, _ = self.enc(xs_pad_emb, ilens)
 
-            # decoder
-            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids)
+            # 2. Decoder
+            att_ws = self.dec.calculate_all_attentions(hpad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
 
         return att_ws

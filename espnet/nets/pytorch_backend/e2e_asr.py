@@ -98,7 +98,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             labeldist = None
 
-        # multilingual speech translation related
+        # speech translation related
         self.replace_sos = args.replace_sos
 
         if args.use_frontend:
@@ -408,7 +408,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             hs_pad, hlens = xs_pad, ilens
 
-        # 1. encoder
+        # 1. Encoder
         hs_pad, hlens, _ = self.enc(hs_pad, hlens)
 
         # calculate log P(z_t|X) for CTC scores
@@ -417,7 +417,7 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             lpz = None
 
-        # 2. decoder
+        # 2. Decoder
         hlens = torch.tensor(list(map(int, hlens)))  # make sure hlens is tensor
         y = self.dec.recognize_beam_batch(hs_pad, hlens, lpz, recog_args, char_list, rnnlm)
 
