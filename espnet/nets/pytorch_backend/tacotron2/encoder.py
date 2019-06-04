@@ -45,7 +45,8 @@ class Encoder(torch.nn.Module):
                  econv_filts=5,
                  use_batch_norm=True,
                  use_residual=False,
-                 dropout_rate=0.5):
+                 dropout_rate=0.5,
+                 padding_idx=0):
         super(Encoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
@@ -59,7 +60,7 @@ class Encoder(torch.nn.Module):
         self.use_residual = use_residual
         self.dropout_rate = dropout_rate
         # define network layer modules
-        self.embed = torch.nn.Embedding(self.idim, self.embed_dim)
+        self.embed = torch.nn.Embedding(self.idim, self.embed_dim, padding_idx=padding_idx)
         if self.econv_layers > 0:
             self.convs = torch.nn.ModuleList()
             for layer in six.moves.range(self.econv_layers):
