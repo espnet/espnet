@@ -248,7 +248,7 @@ def test_attention_masking(model_dict):
     aws = a.attn.detach().numpy()
     assert not np.isnan(aws).any()
     for aw, ilen in zip(aws, batch["ilens"]):
-        np.testing.assert_almost_equal(aw[:, :ilen, :ilen].sum(), float(aw.shape[0] * ilen), decimal=6)
+        np.testing.assert_almost_equal(aw[:, :ilen, :ilen].sum(), float(aw.shape[0] * ilen), decimal=4)
         assert aw[:, ilen:, ilen:].sum() == 0.0
 
     # test encoder-decoder attention
@@ -260,7 +260,7 @@ def test_attention_masking(model_dict):
     aws = a.attn.detach().numpy()
     assert not np.isnan(aws).any()
     for aw, ilen, olen in zip(aws, batch["ilens"], batch["olens"]):
-        np.testing.assert_almost_equal(aw[:, :olen, :ilen].sum(), float(aw.shape[0] * olen), decimal=6)
+        np.testing.assert_almost_equal(aw[:, :olen, :ilen].sum(), float(aw.shape[0] * olen), decimal=4)
         assert aw[:, olen:, ilen:].sum() == 0.0
 
     # test decoder self-attention
@@ -272,5 +272,5 @@ def test_attention_masking(model_dict):
     aws = a.attn.detach().numpy()
     assert not np.isnan(aws).any()
     for aw, olen in zip(aws, batch["olens"]):
-        np.testing.assert_almost_equal(aw[:, :olen, :olen].sum(), float(aw.shape[0] * olen), decimal=6)
+        np.testing.assert_almost_equal(aw[:, :olen, :olen].sum(), float(aw.shape[0] * olen), decimal=4)
         assert aw[:, olen:, olen:].sum() == 0.0
