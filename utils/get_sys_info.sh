@@ -9,6 +9,9 @@
 
 echo "  - Environments (obtained by \`\$ get_sys_info.sh\`)"
 
+# get date info
+echo -n "    - date: \`"
+date | sed -e "s/$/\`/" 
 # get system info
 echo -n "    - system information: \`"
 uname -a | sed -e "s/$/\`/" 
