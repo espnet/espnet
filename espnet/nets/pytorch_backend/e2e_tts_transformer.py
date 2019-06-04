@@ -263,12 +263,17 @@ class Transformer(TTSInterface, torch.nn.Module):
         else:
             self.transformer_attn_dropout_rate = args.transformer_attn_dropout_rate
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
-        self.pos_enc_class = ScaledPositionalEncoding if args.use_scaled_pos_enc else PositionalEncoding
         self.reduction_factor = args.reduction_factor
         self.encoder_normalize_before = args.encoder_normalize_before
         self.decoder_normalize_before = args.decoder_normalize_before
         self.encoder_concate_after = args.encoder_concate_after
         self.decoder_concate_after = args.decoder_concate_after
+
+        # use idx 0 as padding idx
+        self.padding_idx = 0
+
+        # get positional encoding class
+        self.pos_enc_class = ScaledPositionalEncoding if self.use_scaled_pos_enc else PositionalEncoding
 
         # define transformer encoder
         if self.eprenet_conv_layers != 0:
@@ -282,12 +287,17 @@ class Transformer(TTSInterface, torch.nn.Module):
                     econv_chans=self.eprenet_conv_chans,
                     econv_filts=self.eprenet_conv_filts,
                     use_batch_norm=self.use_batch_norm,
-                    dropout_rate=self.eprenet_dropout_rate
+                    dropout_rate=self.eprenet_dropout_rate,
+                    padding_idx=self.padding_idx
                 ),
                 torch.nn.Linear(self.eprenet_conv_chans, self.adim)
             )
         else:
-            encoder_input_layer = "embed"
+            encoder_input_layer = torch.nn.Embedding(
+                num_embeddings=self.idim,
+                embedding_dim=self.adim,
+                padding_idx=self.padding_idx
+            )
         self.encoder = Encoder(
             idim=self.idim,
             attention_dim=self.adim,
