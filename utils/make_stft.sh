@@ -70,7 +70,7 @@ else
   write_num_frames_opt=
 fi
 
-if [ "${filetype}" == hdf5 ];then
+if [ "${filetype}" == hdf5 ]; then
     ext=h5
 else
     ext=ark

@@ -27,7 +27,7 @@ if [ ${stage} -le 1 ]; then
             docker_cuda=""
             gpu=-1
             ngpu=0
-            if [ "${cuda_ver}" != "cpu" ];then
+            if [ "${cuda_ver}" != "cpu" ]; then
                 docker_cuda="--docker_cuda ${cuda_ver}"
                 gpu=2
                 ngpu=1

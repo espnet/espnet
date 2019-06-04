@@ -33,11 +33,11 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 
 ## Requirements
 
-- Python 2.7+, 3.7+ (mainly support Python3.7+)
+- Python 3.6+
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.1, 1.0.0
-- gcc>=4.9 for PyTorch1.0.0
+- gcc 4.9+ for PyTorch1.0.0
 - Chainer 6.0.0
 
 Optionally, GPU environment requires the following libraries:
