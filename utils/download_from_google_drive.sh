@@ -31,9 +31,10 @@ decompress () {
     decompress_dir=$2
     if echo "${filename}" | grep -q ".zip"; then
         unzip "${filename}" -d "${decompress_dir}"
-    elif echo "${filename}" | grep -q ".tar"; then
+    elif echo "${filename}" | grep -q -e ".tar" -e ".tar.gz" -e ".tgz"; then
         tar xvzf "${filename}" -C "${decompress_dir}"
     else
+        echo ${filename}
         echo "Unsupported file extension." >&2 && exit 1
     fi
 }
