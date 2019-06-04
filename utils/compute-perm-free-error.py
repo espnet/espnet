@@ -22,7 +22,7 @@ is_python2 = sys.version_info[0] == 2
 
 def get_results(ref, hyp, args):
     result_key = 'r{}h{}'.format(ref, hyp)
-    result_file = getattr(args, 'result_'+result_key)
+    result_file = getattr(args, 'result_' + result_key)
 
     re_id = r'^id: '
     re_strings = {'Speaker': r'^Speaker sentences',
@@ -77,8 +77,8 @@ def merge_results(results):
             intersec_keys = set(ks)
         rslt_lst.append(j)
 
-    logging.info('After merge, the result has ' + str(len(intersec_keys))
-                 + ' utterances')
+    logging.info('After merge, the result has ' + str(len(intersec_keys)) +
+                 ' utterances')
 
     # merging results
     dic = dict()
