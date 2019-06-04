@@ -84,7 +84,8 @@ class E2E(ASRInterface, torch.nn.Module):
             linear_units=args.dunits,
             num_blocks=args.dlayers,
             dropout_rate=args.dropout_rate,
-            attention_dropout_rate=args.transformer_attn_dropout_rate
+            self_attention_dropout_rate=args.transformer_attn_dropout_rate,
+            src_attention_dropout_rate=args.transformer_attn_dropout_rate
         )
         self.sos = odim - 1
         self.eos = odim - 1
