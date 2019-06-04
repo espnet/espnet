@@ -96,7 +96,8 @@ teardown() {
 }
 
 @test "compute-perm-free-error.sh" {
-    $utils/compute-perm-free-error.sh --num_spkrs 2 --wrd true ${tmpdir}/result_r1h1.wrd.txt ${tmpdir}/result_r1h2.wrd.txt ${tmpdir}/result_r2h1.wrd.txt ${tmpdir}/result_r2h2.wrd.txt > ${tmpdir}/min_perm_result.wrd.json
-    sed -n '2,4p' ${tmpdir}/min_perm_result.wrd.json > ${tmpdir}/min_perm_result.wrd.txt
+    python $utils/compute-perm-free-error.py --num-spkrs 2 ${tmpdir}/result_r1h1.wrd.txt \
+      ${tmpdir}/result_r1h2.wrd.txt ${tmpdir}/result_r2h1.wrd.txt ${tmpdir}/result_r2h2.wrd.txt | \
+      sed -n '2,4p' > ${tmpdir}/min_perm_result.wrd.txt
     diff ${tmpdir}/min_perm_result.wrd.txt ${tmpdir}/result_wer.txt
 }
