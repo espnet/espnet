@@ -1,8 +1,4 @@
-grep -e Avg -e SPKR -m 2 exp/train_no_dev_pytorch_train/decode_eval_decode/result.txt
-      | SPKR   | # Snt  # Wrd  | Corr    Sub    Del    Ins    Err  S.Err |
-      | Sum/Avg|  250   10627  | 96.1    1.8    2.2    1.7    5.7   78.4 |
+write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
+      | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+      | Sum/Avg|  250    5928 | 74.3   21.7    4.0    3.2   28.8   99.2 |
 
-
-grep -e Avg -e SPKR -m 2 exp/train_no_dev_pytorch_train/decode_eval_decode/result.wrd.txt
-     | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-     | Sum/Avg|  250    3574 | 86.6    9.8    3.6    2.9   16.3   78.4 |
