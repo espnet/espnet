@@ -53,6 +53,8 @@ set -u
 set -o pipefail
 
 train_set=train_mix
+# Mix train_si84_multi(noisy data) and train_si284(clean data) as training set.
+# You could also just use train_si84_multi. You only need to change train_mix to train_si84_multi and remove line88-89.(combine_data.sh)
 train_dev=dev_0330
 train_test=test_0166
 recog_set=dev_0330
