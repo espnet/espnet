@@ -19,7 +19,7 @@ tmpzip=$(mktemp "${download_dir}/XXXXXX.zip")
 
 # file id in google drive can be obtain from sharing link
 # ref: https://qiita.com/namakemono/items/c963e75e0af3f7eed732
-file_id=$(echo "${share_url}" | sed -e "s|.*open?id=||g")
+file_id=$(echo "${share_url}" | cut -d"=" -f 2)
 
 # Try-catch like processing
 (
