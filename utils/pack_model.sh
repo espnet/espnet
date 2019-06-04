@@ -93,7 +93,7 @@ if [ -n "${lm}" ]; then
 	echo -n "    - lm file: \`"
 	echo ${lm} | sed -e "s/$/\`/"
 
-	lm_conf=`dirname ${lm}`/model.json
+	lm_conf=$(dirname ${lm})/model.json
 	if [ ! -e ${lm_conf} ]; then
 	    echo missing ${lm_conf}
 	    exit 1
