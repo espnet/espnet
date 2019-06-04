@@ -26,7 +26,6 @@ from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
 from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
-import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
@@ -363,24 +362,6 @@ def recog(args):
         rnnlm.eval()
     else:
         rnnlm = None
-
-    if args.word_rnnlm:
-        rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
-        word_dict = rnnlm_args.char_list_dict
-        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
-            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
-        torch_load(args.word_rnnlm, word_rnnlm)
-        word_rnnlm.eval()
-
-        if rnnlm is not None:
-            rnnlm = lm_pytorch.ClassifierWithState(
-                extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
-                                           rnnlm.predictor, word_dict, char_dict))
-        else:
-            rnnlm = lm_pytorch.ClassifierWithState(
-                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
-                                              word_dict, char_dict))
 
     # gpu
     if args.ngpu == 1:
