@@ -39,11 +39,14 @@ transformer-warmup-steps: 4000
 transformer-lr: 1.0
 initial-encoder-alpha: 1.0
 initial-decoder-alpha: 1.0
-dropout-rate: 0.1
 eprenet-dropout-rate: 0.5
 dprenet-dropout-rate: 0.5
 postnet-dropout-rate: 0.5
-transformer-attn-dropout-rate: 0.1
+transformer-enc-dropout-rate: 0.1
+transformer-enc-attn-dropout-rate: 0.1
+transformer-dec-dropout-rate: 0.1
+transformer-dec-attn-dropout-rate: 0.1
+transformer-enc-dec-attn-dropout-rate: 0.1
 
 # optimization related
 opt: noam
