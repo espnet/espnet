@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Copyright 2019 Johns Hopkins University (Ziyan Jiang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
