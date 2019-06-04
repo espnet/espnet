@@ -171,12 +171,11 @@ class RNNLM(nn.Module):
     def __init__(self, n_vocab, n_layers, n_units, typ="lstm"):
         super(RNNLM, self).__init__()
         self.embed = nn.Embedding(n_vocab, n_units)
-        if typ == "lstm":
-            rnn = nn.ModuleList([nn.LSTMCell(n_units, n_units) for _ in range(n_layers)])
-        else:
-            rnn = nn.ModuleList([nn.GRUCell(n_units, n_units) for _ in range(n_layers)])
-        setattr(self, typ, rnn)
-        self.dropout = nn.ModuleList([nn.Dropout() for _ in range(n_layers + 1)])
+        self.rnn = nn.ModuleList(
+            [nn.LSTMCell(n_units, n_units) for _ in range(n_layers)] if typ == "lstm" else [nn.GRUCell(n_units, n_units)
+                                                                                            for _ in range(n_layers)])
+        self.dropout = nn.ModuleList(
+            [nn.Dropout() for _ in range(n_layers + 1)])
         self.lo = nn.Linear(n_units, n_vocab)
         self.n_layers = n_layers
         self.n_units = n_units
@@ -199,17 +198,16 @@ class RNNLM(nn.Module):
 
         h = [None] * self.n_layers
         emb = self.embed(x)
-        rnn = getattr(self, self.typ)
         if self.typ == "lstm":
             c = [None] * self.n_layers
-            h[0], c[0] = rnn[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
+            h[0], c[0] = self.rnn[0](self.dropout[0](emb), (state['h'][0], state['c'][0]))
             for n in six.moves.range(1, self.n_layers):
-                h[n], c[n] = rnn[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
+                h[n], c[n] = self.rnn[n](self.dropout[n](h[n - 1]), (state['h'][n], state['c'][n]))
             state = {'c': c, 'h': h}
         else:
-            h[0] = rnn[0](self.dropout[0](emb), state['h'][0])
+            h[0] = self.rnn[0](self.dropout[0](emb), state['h'][0])
             for n in six.moves.range(1, self.n_layers):
-                h[n] = rnn[n](self.dropout[n](h[n - 1]), state['h'][n])
+                h[n] = self.rnn[n](self.dropout[n](h[n - 1]), state['h'][n])
             state = {'h': h}
         y = self.lo(self.dropout[-1](h[-1]))
         return state, y
