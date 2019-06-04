@@ -9,7 +9,7 @@ results=""
 # e.g., "exp/tr_it_pytorch_train/decode_dt_it_decode/result.wrd.txt
 #        exp/tr_it_pytorch_train/decode_et_it_decode/result.wrd.txt"'
 lm=""
-outdir=""
+outfile="model"
 
 . utils/parse_options.sh
 
@@ -27,20 +27,12 @@ rec_conf=$2
 cmvn=$3
 e2e=$4
 
-if [ -z ${outdir} ]; then
-    dir=archive
-else
-    dir=${outdir}
-fi
-#echo "will write files in ${PWD}/${dir}"
-mkdir -p ${dir}/{cmvn,conf,lm,e2e,results}
-
-echo "  - Model files (archived to ${dir}.tgz by \`\$ pack_model.sh\`)"
+echo "  - Model files (archived to ${outfile}.tar.gz by \`\$ pack_model.sh\`)"
 echo "    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)"
 
 # configs
 if [ -e ${tr_conf} ]; then
-    cp -L ${tr_conf} ${dir}/conf/
+    tar cfh ${outfile}.tar ${tr_conf}
     echo -n "    - training config file: \`"
     echo ${tr_conf} | sed -e "s/$/\`/" 
 else
@@ -48,7 +40,7 @@ else
     exit 1
 fi
 if [ -e ${rec_conf} ]; then
-    cp -L ${rec_conf} ${dir}/conf/
+    tar rfh ${outfile}.tar ${rec_conf}
     echo -n "    - decoding config file: \`"
     echo ${rec_conf} | sed -e "s/$/\`/" 
 else
@@ -58,7 +50,7 @@ fi
 
 # cmvn
 if [ -e ${cmvn} ]; then
-    cp -L ${cmvn} ${dir}/cmvn/
+    tar rfh ${outfile}.tar ${cmvn}
     echo -n "    - cmvn file: \`"
     echo ${cmvn} | sed -e "s/$/\`/" 
 else
@@ -68,7 +60,7 @@ fi
 
 # e2e
 if [ -e ${e2e} ]; then
-    cp -L ${e2e} ${dir}/e2e/
+    tar rfh ${outfile}.tar ${e2e}
     echo -n "    - e2e file: \`"
     echo ${e2e} | sed -e "s/$/\`/"
 
@@ -79,7 +71,7 @@ if [ -e ${e2e} ]; then
     else
 	echo -n "    - e2e JSON file: \`"
 	echo ${e2e_conf} | sed -e "s/$/\`/"
-	cp ${e2e_conf} ${dir}/e2e/
+	tar rfh ${outfile}.tar ${e2e_conf}
     fi
 else
     echo "missing ${e2e}"
@@ -89,7 +81,7 @@ fi
 # lm
 if [ -n "${lm}" ]; then
     if [ -e ${lm} ]; then
-	cp -L ${lm} ${dir}/lm/
+	tar rfh ${outfile}.tar ${lm}
 	echo -n "    - lm file: \`"
 	echo ${lm} | sed -e "s/$/\`/"
 
@@ -100,7 +92,7 @@ if [ -n "${lm}" ]; then
 	else
 	    echo -n "    - lm JSON file: \`"
 	    echo ${lm_conf} | sed -e "s/$/\`/"
-	    cp ${lm_conf} ${dir}/lm/
+	    tar rfh ${outfile}.tar ${lm_conf}
 	fi
     else
 	echo "missing ${lm}"
@@ -108,24 +100,25 @@ if [ -n "${lm}" ]; then
     fi
 fi
 
-# compress
-# echo "compress model files to ${dir}.tgz"
-tar zcvf ${dir}.tgz ${dir} > /dev/null
+# finally compress the tar file
+gzip -f ${outfile}.tar
 
 # results
 if [ -n "${results}" ]; then
     echo "  - Results (paste them by yourself or obtained by \`\$ pack_model.sh --results <results>\`)"
+    echo "\`\`\`"
 fi
 for x in ${results}; do
     if [ -e ${x} ]; then
-	echo "\`\`\`"
 	echo "${x}"
 	grep -e Avg -e SPKR -m 2 ${x}
-	echo "\`\`\`"
     else
 	echo "missing ${x}"
 	exit 1
     fi
 done
+if [ -n "${results}" ]; then
+    echo "\`\`\`"
+fi
 
 exit 0
