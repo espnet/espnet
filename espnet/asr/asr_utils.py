@@ -82,9 +82,13 @@ class PlotAttentionReport(extension.Extension):
     :param CustomConverter converter: function to convert data
     :param int | torch.device device: device
     :param bool reverse: If True, input and output length are reversed
+    :param str ikey: key to access input (for ASR ikey="input".)
+    :param int iaxis: dimension to access input (for ASR iaxis=0, for MT iaxis="1".)
+    :param str okey: key to access output (for ASR, MT okey="output".)
     """
 
-    def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False):
+    def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False,
+                 ikey="input", iaxis=0, okey="output"):
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
@@ -92,6 +96,9 @@ class PlotAttentionReport(extension.Extension):
         self.transform = transform
         self.device = device
         self.reverse = reverse
+        self.ikey = ikey
+        self.iaxis = iaxis
+        self.okey = okey
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
@@ -121,11 +128,11 @@ class PlotAttentionReport(extension.Extension):
 
     def get_attention_weight(self, idx, att_w):
         if self.reverse:
-            dec_len = int(self.data[idx][1]['input'][0]['shape'][0])
-            enc_len = int(self.data[idx][1]['output'][0]['shape'][0])
+            dec_len = int(self.data[idx][1][self.ikey][self.iaxis]['shape'][0])
+            enc_len = int(self.data[idx][1][self.okey][self.oaxis]['shape'][0])
         else:
-            dec_len = int(self.data[idx][1]['output'][0]['shape'][0])
-            enc_len = int(self.data[idx][1]['input'][0]['shape'][0])
+            dec_len = int(self.data[idx][1][self.okey][self.oaxis]['shape'][0])
+            enc_len = int(self.data[idx][1][self.ikey][self.iaxis]['shape'][0])
         if len(att_w.shape) == 3:
             att_w = att_w[:, :dec_len, :enc_len]
         else:
