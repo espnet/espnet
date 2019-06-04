@@ -513,7 +513,12 @@ def recog(args):
 
     # specify model architecture
     logging.info('reading model parameters from ' + args.model)
-    model_class = dynamic_import(train_args.model_module)
+    # To be compatible with v.0.3.0 models
+    if hasattr(train_args, "model_module"):
+        model_module = train_args.model_module
+    else:
+        model_module = "espnet.nets.chainer_backend.e2e_asr:E2E"
+    model_class = dynamic_import(model_module)
     model = model_class(idim, odim, train_args)
     assert isinstance(model, ASRInterface)
     chainer_load(args.model, model)
