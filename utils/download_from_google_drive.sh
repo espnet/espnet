@@ -34,7 +34,6 @@ decompress () {
     elif echo "${filename}" | grep -q -e ".tar" -e ".tar.gz" -e ".tgz"; then
         tar xvzf "${filename}" -C "${decompress_dir}"
     else
-        echo ${filename}
         echo "Unsupported file extension." >&2 && exit 1
     fi
 }
