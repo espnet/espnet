@@ -491,8 +491,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         hs, _ = self.encoder(xs, None)
 
         # set limits of length
-        maxlen = int(hs.size(1) * maxlenratio)
-        minlen = int(hs.size(1) * minlenratio)
+        maxlen = int(hs.size(1) * maxlenratio / self.reduction_factor)
+        minlen = int(hs.size(1) * minlenratio / self.reduction_factor)
 
         # initialize
         idx = 0
