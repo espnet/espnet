@@ -544,17 +544,23 @@ class Transformer(TTSInterface, torch.nn.Module):
 
             # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:
-                ys = ys[:, self.reduction_factor - 1::self.reduction_factor]
-                olens = olens.new([olen // self.reduction_factor for olen in olens])
+                ys_ = ys[:, self.reduction_factor - 1::self.reduction_factor]
+                olens_ = olens.new([olen // self.reduction_factor for olen in olens])
+            else:
+                ys_, olens_ = ys, olens
 
             # forward decoder
-            y_masks = self._target_mask(olens)
-            xy_masks = self._source_to_target_mask(ilens, olens)
-            zs, _ = self.decoder(ys, y_masks, hs, xy_masks)
+            y_masks = self._target_mask(olens_)
+            xy_masks = self._source_to_target_mask(ilens, olens_)
+            zs, _ = self.decoder(ys_, y_masks, hs, xy_masks)
             # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
             before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
             # postnet -> (B, Lmax//r * r, odim)
             after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
+
+        # modifiy mod part of groundtruth
+        if self.reduction_factor > 1:
+            olens = [olen - olen % self.reduction_factor for olen in olens]
 
         att_ws_dict = dict()
         for name, m in self.named_modules():
