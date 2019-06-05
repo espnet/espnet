@@ -435,7 +435,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
-            olens = [olen - olen % self.reduction_factor for olen in olens]
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_olen = max(olens)
             ys = ys[:, :max_olen]
             labels = labels[:, :max_olen]
@@ -560,7 +560,7 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
-            olens = [olen - olen % self.reduction_factor for olen in olens]
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
 
         att_ws_dict = dict()
         for name, m in self.named_modules():
