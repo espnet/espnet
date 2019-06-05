@@ -4,18 +4,47 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #           2018 Xuankai Chang (Shanghai Jiao Tong University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-from __future__ import print_function
-from __future__ import unicode_literals
 
-import argparse
-import codecs
-import json
 import logging
-import numpy as np
 import re
 import sys
 
-is_python2 = sys.version_info[0] == 2
+
+# pre-set the permutation scheme (ref_idx, hyp_idx)
+def permutation_schemes(num_spkrs):
+    perm = [(i / num_spkrs + 1, i % num_spkrs + 1) for i in range(num_spkrs ** 2)]
+
+    # [r1h1, r1h2, r2h1, r2h2]
+    if num_spkrs == 2:
+        keys = [['r%dh%d' % (perm[0][0], perm[0][1]),
+                 'r%dh%d' % (perm[3][0], perm[3][1])],
+                ['r%dh%d' % (perm[1][0], perm[1][1]),
+                 'r%dh%d' % (perm[2][0], perm[2][1])]]
+    # [r1h1, r1h2, r1h3, r2h1, r2h2, r2h3, r3h1, r3h2, r3h3]
+    elif num_spkrs == 3:
+        keys = [['r%dh%d' % (perm[0][0], perm[0][1]),
+                 'r%dh%d' % (perm[4][0], perm[4][1]),
+                 'r%dh%d' % (perm[8][0], perm[8][1])],  # r1h1, r2h2, r3h3
+                ['r%dh%d' % (perm[0][0], perm[0][1]),
+                 'r%dh%d' % (perm[5][0], perm[5][1]),
+                 'r%dh%d' % (perm[7][0], perm[7][1])],  # r1h1, r2h3, r3h2
+                ['r%dh%d' % (perm[1][0], perm[1][1]),
+                 'r%dh%d' % (perm[3][0], perm[3][1]),
+                 'r%dh%d' % (perm[8][0], perm[8][1])],  # r1h2, r2h1, r3h3
+                ['r%dh%d' % (perm[1][0], perm[1][1]),
+                 'r%dh%d' % (perm[5][0], perm[5][1]),
+                 'r%dh%d' % (perm[6][0], perm[6][1])],  # r1h2, r2h3, r3h2
+                ['r%dh%d' % (perm[2][0], perm[2][1]),
+                 'r%dh%d' % (perm[4][0], perm[4][1]),
+                 'r%dh%d' % (perm[6][0], perm[6][1])],  # r1h3, r2h2, r3h1
+                ['r%dh%d' % (perm[2][0], perm[2][1]),
+                 'r%dh%d' % (perm[3][0], perm[3][1]),
+                 'r%dh%d' % (perm[7][0], perm[7][1])]]  # r1h3, r2h1, r3h2
+    else:
+        logging.error("Only support less than 3 speakers.")
+        sys.exit()
+
+    return sum(keys, []), keys
 
 
 def convert_score(keys, dic):
@@ -29,52 +58,10 @@ def convert_score(keys, dic):
     return ret
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('json', type=str,
-                        help='json file')
-    parser.add_argument('--num_spkrs', default=2, type=int,
-                        help='json file')
-    parser.add_argument('--verbose', '-V', default=0, type=int,
-                        help='Verbose option')
-    args = parser.parse_args()
+def get_utt_permutation(old_dic, num_spkrs=2):
+    perm, keys = permutation_schemes(num_spkrs)
+    new_dic = {}
 
-    # logging info
-    if args.verbose > 0:
-        logging.basicConfig(
-            level=logging.INFO, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
-    else:
-        logging.basicConfig(
-            level=logging.WARN, format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s")
-    # permutation scheme (ind_ref, ind_hyp)
-    perm = [(i / args.num_spkrs + 1, i % args.num_spkrs + 1) for i in range(args.num_spkrs ** 2)]
-    if args.num_spkrs == 2:  # [r1h1, r1h2, r2h1, r2h2]
-        keys = [['r%dh%d' % (perm[0][0], perm[0][1]), 'r%dh%d' % (perm[3][0], perm[3][1])],
-                ['r%dh%d' % (perm[1][0], perm[1][1]), 'r%dh%d' % (perm[2][0], perm[2][1])]]
-    elif args.num_spkrs == 3:  # [r1h1, r1h2, r1h3, r2h1, r2h2, r2h3, r3h1, r3h2, r3h3]
-        keys = [['r%dh%d' % (perm[0][0], perm[0][1]), 'r%dh%d' % (perm[4][0], perm[4][1]),
-                 'r%dh%d' % (perm[8][0], perm[8][1])],
-                ['r%dh%d' % (perm[0][0], perm[0][1]), 'r%dh%d' % (perm[5][0], perm[5][1]),
-                 'r%dh%d' % (perm[7][0], perm[7][1])],
-                ['r%dh%d' % (perm[1][0], perm[1][1]), 'r%dh%d' % (perm[3][0], perm[3][1]),
-                 'r%dh%d' % (perm[8][0], perm[8][1])],
-                ['r%dh%d' % (perm[1][0], perm[1][1]), 'r%dh%d' % (perm[5][0], perm[5][1]),
-                 'r%dh%d' % (perm[6][0], perm[6][1])],
-                ['r%dh%d' % (perm[2][0], perm[2][1]), 'r%dh%d' % (perm[4][0], perm[4][1]),
-                 'r%dh%d' % (perm[6][0], perm[6][1])],
-                ['r%dh%d' % (perm[2][0], perm[2][1]), 'r%dh%d' % (perm[3][0], perm[3][1]),
-                 'r%dh%d' % (perm[7][0], perm[7][1])]]
-    else:
-        logging.error("Only support less than 3 speakers.")
-        sys.exit()
-
-    perm = sum(keys, [])
-
-    with codecs.open(args.json, 'r', encoding="utf-8") as f:
-        j = json.load(f)
-
-    old_dic = j['utts']
-    new_dic = dict()
     for id in old_dic.keys():
         # compute error rate for each utt
         in_dic = old_dic[id]
@@ -95,17 +82,4 @@ if __name__ == '__main__':
         dic['Scores'] = '(#C #S #D #I) ' + ' '.join(map(str, perm_score[min_idx]))
         new_dic[id] = dic
 
-    score = np.zeros((len(new_dic.keys()), 4))
-    pat = re.compile(r'\d+')
-    for idx, key in enumerate(new_dic.keys()):
-        tmp_score = list(map(int, pat.findall(new_dic[key]['Scores'])))  # [c,s,d,i]
-        score[idx] = tmp_score
-    score_sum = np.sum(score, axis=0, dtype=int)
-
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout if is_python2 else sys.stdout.buffer)
-
-    print("Total Scores: (#C #S #D #I) " + ' '.join(map(str, list(score_sum))))
-    print("Error Rate:   {:0.2f}".format(100 * sum(score_sum[1:4]) / float(sum(score_sum[0:3]))))
-    print("Total Utts: ", str(len(new_dic.keys())))
-
-    print(json.dumps({'utts': new_dic}, indent=4, ensure_ascii=False, sort_keys=True, separators=(',', ': ')))
+    return new_dic
