@@ -11,7 +11,7 @@ nlsyms=""
 bpe=""
 bpemodel=""
 filter=""
-lc=false
+case=lc.rm
 
 . utils/parse_options.sh
 
@@ -56,15 +56,15 @@ grep "<seg id" ${xml_tgt} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e '
 # cat ${dir}/ref.wrd.trn | normalize-punctuation.perl -l de | sed -e "s/‒/ - /g" | sed -e "s/‟/\"/g" | sed -e "s/，/,/g" | \
 #   local/normalize_punctuation.pl > ${dir}/ref.wrd.trn.tmp
 # TODO(hirofumi): remove later
-cat ${dir}/ref.wrd.trn | normalize-punctuation.perl -l de | sed -e "s/‒/ - /g" | sed -e "s/‟/\"/g" | sed -e "s/，/,/g" | sed -e "s/\.//g" | \
-  local/normalize_punctuation.pl > ${dir}/ref.wrd.trn.tmp
-cat ${dir}/src.wrd.trn | normalize-punctuation.perl -l de | sed -e "s/‒/ - /g" | sed -e "s/‟/\"/g" | sed -e "s/，/,/g" | \
-  local/normalize_punctuation.pl > ${dir}/src.wrd.trn.tmp
+normalize-punctuation.perl -l de < ${dir}/ref.wrd.trn | sed -e "s/‒/ - /g" | sed -e "s/‟/\"/g" | sed -e "s/，/,/g" | sed -e "s/\.//g" | \
+    local/normalize_punctuation.pl > ${dir}/ref.wrd.trn.tmp
+normalize-punctuation.perl -l de < ${dir}/src.wrd.trn | sed -e "s/‒/ - /g" | sed -e "s/‟/\"/g" | sed -e "s/，/,/g" | \
+    local/normalize_punctuation.pl > ${dir}/src.wrd.trn.tmp
 mv ${dir}/src.wrd.trn.tmp ${dir}/src.wrd.trn
 mv ${dir}/ref.wrd.trn.tmp ${dir}/ref.wrd.trn
 
 # lowercase
-if ${lc}; then
+if [ ${case} = "lc" ] || [ ${case} = "lc.rm" ]; then
     lowercase.perl < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.tmp
     lowercase.perl < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.tmp
     mv ${dir}/src.wrd.trn.tmp ${dir}/src.wrd.trn
@@ -99,26 +99,26 @@ detokenizer.perl -l de -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
 # cat $xml_src > ${dir}/xml.en.org
 # cat $xml_tgt > ${dir}/xml.de.org
 
-if ${lc}; then
-  ### case-insensitive
-  # segment hypotheses with RWTH tool
-  # segmentBasedOnMWER.sh ${xml_src} ${dir}/xml.de ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
-  # segmentBasedOnMWER.sh ${dir}/xml.en.org ${dir}/xml.de.org ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
-  # segmentBasedOnMWER.sh ${dir}/src.xml ${dir}/hyp.xml ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
-  # segmentBasedOnMWER.sh ${xml_src} ${xml_tgt} ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
-  segmentBasedOnMWER.sh ${dir}/src.xml ${dir}/ref.xml ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
-  sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.sgm.xml > ${dir}/hyp.wrd.trn.detok.sgm
-  multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn < ${dir}/hyp.wrd.trn.detok.sgm > ${dir}/result.txt
+if [ ${case} = "lc" ] || [ ${case} = "lc.rm" ]; then
+    ### case-insensitive
+    # segment hypotheses with RWTH tool
+    # segmentBasedOnMWER.sh ${xml_src} ${dir}/xml.de ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
+    # segmentBasedOnMWER.sh ${dir}/xml.en.org ${dir}/xml.de.org ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
+    # segmentBasedOnMWER.sh ${dir}/src.xml ${dir}/hyp.xml ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
+    # segmentBasedOnMWER.sh ${xml_src} ${xml_tgt} ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
+    segmentBasedOnMWER.sh ${dir}/src.xml ${dir}/ref.xml ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 0 || exit 1;
+    sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.sgm.xml > ${dir}/hyp.wrd.trn.detok.sgm
+    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn < ${dir}/hyp.wrd.trn.detok.sgm > ${dir}/result.txt
 
   echo "write a case-insensitive word-level BLUE result in ${dir}/result.txt"
 else
-  ### case-sensitive
-  # segment hypotheses with RWTH tool
-  # segmentBasedOnMWER.sh ${dir}/xml.en ${dir}/xml.de ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 1 || exit 1;
-  # sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.sgm.xml > ${dir}/hyp.wrd.trn.detok.sgm
-  # multi-bleu-detok.perl ${dir}/ref.wrd.trn < ${dir}/hyp.wrd.trn.detok.sgm > ${dir}/result.case.txt
+    ### case-sensitive
+    # segment hypotheses with RWTH tool
+    # segmentBasedOnMWER.sh ${dir}/xml.en ${dir}/xml.de ${dir}/hyp.wrd.trn.detok ${system} de ${dir}/hyp.wrd.trn.detok.sgm.xml "" 1 || exit 1;
+    # sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.sgm.xml > ${dir}/hyp.wrd.trn.detok.sgm
+    # multi-bleu-detok.perl ${dir}/ref.wrd.trn < ${dir}/hyp.wrd.trn.detok.sgm > ${dir}/result.case.txt
 
-  echo "write a case-insensitive BLEU result in ${dir}/result.txt"
+    echo "write a case-insensitive BLEU result in ${dir}/result.txt"
 fi
 cat ${dir}/result.txt
 
