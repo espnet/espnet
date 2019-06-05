@@ -33,8 +33,6 @@ requirements = {
         'tensorboardX>=1.4',
         'pillow>=5.3.0',
         'nara_wpe',
-        'nltk',
-        'kaldiio'
         'museval',
         'pystoi',
         'kaldiio',
