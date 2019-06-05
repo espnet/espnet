@@ -570,9 +570,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                     attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
                 elif "decoder" in name:
                     if "src" in name:
-                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens.tolist())]
+                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens_.tolist())]
                     elif "self" in name:
-                        attn = [a[:, :l, :l] for a, l in zip(attn, olens.tolist())]
+                        attn = [a[:, :l, :l] for a, l in zip(attn, olens_.tolist())]
                     else:
                         logging.warning("unknown attention module: " + name)
                 else:
