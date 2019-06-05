@@ -1,3 +1,4 @@
+verbose: 1
 beam-size: 20
 penalty: 0
 maxlenratio: 0.0
