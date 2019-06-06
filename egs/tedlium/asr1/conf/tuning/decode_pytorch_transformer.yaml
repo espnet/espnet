@@ -1,6 +1,6 @@
 verbose: 1
 batchsize: 0
-lm-weight: 1.0
+lm-weight: 0.5
 beam-size: 20
 penalty: 0.0
 maxlenratio: 0.0
