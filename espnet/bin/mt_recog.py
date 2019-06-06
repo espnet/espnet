@@ -112,14 +112,14 @@ def main(args):
     np.random.seed(args.seed)
     logging.info('set random seed = %d' % args.seed)
 
-    # recog
+    # trans
     logging.info('backend = ' + args.backend)
     if args.backend == "chainer":
         raise NotImplementedError("chainer is not supported for MT now.")
         # TODO(hirofumi): support chainer backend
     elif args.backend == "pytorch":
-        from espnet.mt.pytorch_backend.mt import train
-        train(args)
+        from espnet.mt.pytorch_backend.mt import trans
+        trans(args)
     else:
         raise ValueError("Only chainer and pytorch are supported.")
 
