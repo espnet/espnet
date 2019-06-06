@@ -22,6 +22,7 @@ def permutationDFS(source, start, res):
         # reverse the swap
         source[start], source[i] = source[i], source[start]
 
+
 # pre-set the permutation scheme (ref_idx, hyp_idx)
 def permutation_schemes(num_spkrs):
     src = [x for x in range(1, num_spkrs + 1)]
