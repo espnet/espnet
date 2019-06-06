@@ -2,18 +2,18 @@
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer
-embed-dim: 256
-eprenet-conv-layers: 5  # one more linear layer w/o non-linear will be added for 0-centor
+embed-dim: 512
+eprenet-conv-layers: 3  # one more linear layer w/o non-linear will be added for 0-centor
 eprenet-conv-filts: 5
 eprenet-conv-chans: 256
 dprenet-layers: 2  # one more linear layer w/o non-linear will be added for 0-centor
 dprenet-units: 256
-adim: 256
-aheads: 4
+adim: 384
+aheads: 8
 elayers: 4
-eunits: 1024
+eunits: 1536
 dlayers: 4
-dunits: 1024
+dunits: 1536
 postnet-layers: 5
 postnet-filts: 5
 postnet-chans: 256
@@ -25,7 +25,7 @@ encoder-normalize-before: True
 decoder-normalize-before: True
 encoder-concate-after: False
 decoder-concate-after: False
-reduction-factor: 1
+reduction-factor: 2
 
 # minibatch related
 batch-sort-key: input # shuffle or input or output
@@ -43,8 +43,10 @@ eprenet-dropout-rate: 0.5
 dprenet-dropout-rate: 0.5
 postnet-dropout-rate: 0.5
 transformer-enc-dropout-rate: 0.1
+transformer-enc-positional-dropout-rate: 0.1
 transformer-enc-attn-dropout-rate: 0.1
 transformer-dec-dropout-rate: 0.1
+transformer-dec-positional-dropout-rate: 0.1
 transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
 
