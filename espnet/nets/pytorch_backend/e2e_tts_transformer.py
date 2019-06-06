@@ -49,8 +49,8 @@ class GuidedAttentionLoss(torch.nn.Module):
         :return torch.tensor: guided attention loss value
         """
         if self.guided_attn_masks is None:
-            self.guided_attn_masks = self._make_guided_attentions(ilens, olens).to(att_ws.device)
-        if self.masks in None:
+            self.guided_attn_masks = self._make_guided_attention_masks(ilens, olens).to(att_ws.device)
+        if self.masks is None:
             self.masks = self._make_masks(ilens, olens).to(att_ws.device)
         masked_guided_attn_masks = self.guided_attn_masks.masked_select(self.masks)
         masked_att_ws = att_ws.masked_select(self.masks)
@@ -324,6 +324,17 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="How to calc loss")
         group.add_argument("--bce-pos-weight", default=5.0, type=float,
                            help="Positive sample weight in BCE calculation (only for use-masking=True)")
+        group.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
+                           help="Whether to use guided attention loss")
+        group.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
+                           help="Sigma in guided attention loss")
+        group.add_argument("--num-heads-applied-guided-attn", default=2, type=int,
+                           help="Number of heads in each layer to be applied guided attention loss")
+        group.add_argument("--num-layers-applied-guided-attn", default=2, type=int,
+                           help="Number of layers to be applied guided attention loss")
+        group.add_argument("--modules-applied-guided-attn", type=str, nargs="+",
+                           default=["encoder", "decoder", "encoder-decoder"],
+                           help="Module name list to be applied guided attention loss")
         return parser
 
     @property
@@ -341,6 +352,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.reduction_factor = args.reduction_factor
         self.loss_type = args.loss_type
+        self.use_guided_attention_loss = args.use_guided_attention_loss
+        if self.use_guided_attention_loss:
+            self.num_heads_applied_guided_attention_loss = args.num_heads_applied_guided_attention_loss
+            self.num_layers_applied_guided_attention_loss = args.num_layers_applied_guided_attention_loss
 
         # use idx 0 as padding idx
         padding_idx = 0
@@ -434,6 +449,8 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # define loss function
         self.criterion = TransformerLoss(args)
+        if self.use_guided_attention_loss:
+            self.attn_criterion = GuidedAttentionLoss(args.guided_attention_loss_sigma)
 
         # initialize parameters
         self._reset_parameters(args)
@@ -530,6 +547,40 @@ class Transformer(TTSInterface, torch.nn.Module):
         else:
             raise ValueError("unknown --loss-type " + self.loss_type)
 
+        # calculate guided attention loss for encoder
+        if self.use_guided_attention_loss:
+            # calculate for encoder
+            for layer_idx in reversed(range(len(self.encoder.encoders))):
+                att_ws = self.encoder.encoders[layer_idx].self_attn.attn
+                enc_attn_loss = 0.0
+                for head_idx in range(self.num_heads_applied_guided_attention_loss):
+                    enc_attn_loss_ = self.attn_criterion(att_ws[:, head_idx], ilens, ilens)
+                    enc_attn_loss = enc_attn_loss + enc_attn_loss_
+                if layer_idx + 1 == self.num_layers_applied_guided_attention_loss:
+                    self.attn_criterion.reset_masks()
+                    break
+            # calculate for decoder
+            for layer_idx in reversed(range(len(self.encoder.encoders))):
+                att_ws = self.decoder.decoders[layer_idx].self_attn.attn
+                dec_attn_loss = 0.0
+                for head_idx in range(self.num_heads_applied_guided_attention_loss):
+                    dec_attn_loss_ = self.attn_criterion(att_ws[:, head_idx], olens_, olens_)
+                    dec_attn_loss = dec_attn_loss + dec_attn_loss_
+                if layer_idx + 1 == self.num_layers_applied_guided_attention_loss:
+                    self.attn_criterion.reset_masks()
+                    break
+            # calculate for encoder-decoder
+            for layer_idx in reversed(range(len(self.encoder.encoders))):
+                att_ws = self.decoder.decoders[layer_idx].src_attn.attn
+                enc_dec_attn_loss = 0.0
+                for head_idx in range(self.num_heads_applied_guided_attention_loss):
+                    enc_dec_attn_loss_ = self.attn_criterion(att_ws[:, head_idx], ilens, olens_)
+                    enc_dec_attn_loss = enc_dec_attn_loss + enc_dec_attn_loss_
+                if layer_idx + 1 == self.num_layers_applied_guided_attention_loss:
+                    self.attn_criterion.reset_masks()
+                    break
+            loss = loss + enc_attn_loss + dec_attn_loss + enc_dec_attn_loss
+
         # report for chainer reporter
         report_keys = [
             {"l1_loss": l1_loss.item()},
@@ -537,6 +588,12 @@ class Transformer(TTSInterface, torch.nn.Module):
             {"bce_loss": bce_loss.item()},
             {"loss": loss.item()},
         ]
+        if self.use_guided_attention_loss:
+            report_keys += [
+                {"enc_attn_loss": enc_attn_loss},
+                {"dec_attn_loss": dec_attn_loss},
+                {"enc_dec_attn_loss": enc_dec_attn_loss},
+            ]
         if self.use_scaled_pos_enc:
             report_keys += [
                 {"encoder_alpha": self.encoder.embed[-1].alpha.data.item()},
@@ -735,5 +792,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         plot_keys = ["loss", "l1_loss", "l2_loss", "bce_loss"]
         if self.use_scaled_pos_enc:
             plot_keys += ["encoder_alpha", "decoder_alpha"]
+        if self.use_guided_attention_loss:
+            plot_keys += ["enc_attn_loss", "dec_attn_loss", "enc_dec_attn_loss"]
 
         return plot_keys
