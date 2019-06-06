@@ -24,6 +24,105 @@ from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 
 
+class GuidedAttentionLoss(torch.nn.Module):
+    """Guided attention loss function
+
+    :param float sigma: standard deviation to control how close attention to a diagonal
+    """
+
+    def __init__(self, sigma=0.4):
+        super(GuidedAttentionLoss, self).__init__()
+        self.sigma = torch.tensor(sigma)
+        self.guided_attn_masks = None
+        self.masks = None
+
+    def reset_masks(self):
+        self.guided_attn_masks = None
+        self.masks = None
+
+    def forward(self, att_ws, ilens, olens):
+        """GuidedAttentionLoss forward calculation
+
+        :param torch.Tenosr att_ws: attention weights (B, T_max_out, T_max_in)
+        :param torch.Tensor ilens: bath of input lenghts (B,)
+        :param torch.Tensor olens: bath of output lenghts (B,)
+        :return torch.tensor: guided attention loss value
+        """
+        if self.guided_attn_masks is None:
+            self.guided_attn_masks = self._make_guided_attentions(ilens, olens).to(att_ws.device)
+        if self.masks in None:
+            self.masks = self._make_masks(ilens, olens).to(att_ws.device)
+        masked_guided_attn_masks = self.guided_attn_masks.masked_select(self.masks)
+        masked_att_ws = att_ws.masked_select(self.masks)
+
+        return torch.mean(masked_guided_attn_masks * masked_att_ws)
+
+    def _make_guided_attention_masks(self, ilens, olens):
+        n_batches = len(ilens)
+        max_ilen = max(ilens)
+        max_olen = max(olens)
+        guided_attn_masks = torch.zeros((n_batches, max_olen, max_ilen))
+        for idx, (ilen, olen) in enumerate(zip(ilens, olens)):
+            guided_attn_masks[idx, :olen, :ilen] = self._make_guided_attention_mask(ilen, olen, self.sigma)
+        return guided_attn_masks
+
+    @staticmethod
+    def _make_guided_attention_mask(ilen, olen, sigma):
+        """Make guided attention mask
+
+        >>> guided_attn_mask =_make_guided_attention(5, 5, 0.4)
+        >>> guided_attn_mask.shape
+        torch.Size([5, 5])
+        >>> guided_attn_mask
+        tensor([[0.0000, 0.1175, 0.3935, 0.6753, 0.8647],
+                [0.1175, 0.0000, 0.1175, 0.3935, 0.6753],
+                [0.3935, 0.1175, 0.0000, 0.1175, 0.3935],
+                [0.6753, 0.3935, 0.1175, 0.0000, 0.1175],
+                [0.8647, 0.6753, 0.3935, 0.1175, 0.0000]])
+        >>> guided_attn_mask =_make_guided_attention(6, 3, 0.4)
+        >>> guided_attn_mask.shape
+        torch.Size([6, 3])
+        >>> guided_attn_mask
+        tensor([[0.0000, 0.2934, 0.7506],
+                [0.0831, 0.0831, 0.5422],
+                [0.2934, 0.0000, 0.2934],
+                [0.5422, 0.0831, 0.0831],
+                [0.7506, 0.2934, 0.0000],
+                [0.8858, 0.5422, 0.0831]])
+        """
+        grid_x, grid_y = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
+        grid_x, grid_y = grid_x.float(), grid_y.float()
+        return 1.0 - torch.exp(-(grid_y / ilen - grid_x / olen) ** 2 / (2 * (sigma ** 2)))
+
+    @staticmethod
+    def _make_masks(ilens, olens):
+        """Make masks
+
+        >>> ilens, olens = [5, 2], [8, 5]
+        >>> _make_mask(ilens, olens)
+        tensor([[[1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1]],
+
+                [[1, 1, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+        """
+        in_masks = make_non_pad_mask(ilens)  # (B, T_in)
+        out_masks = make_non_pad_mask(olens)  # (B, T_out)
+        return out_masks.unsqueeze(-1) & in_masks.unsqueeze(-2)  # (B, T_out, T_in)
+
+
 class TransformerLoss(torch.nn.Module):
     """Transformer loss function
 
