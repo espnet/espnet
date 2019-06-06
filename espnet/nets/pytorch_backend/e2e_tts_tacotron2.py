@@ -258,39 +258,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.idim = idim
         self.odim = odim
         self.spk_embed_dim = args.spk_embed_dim
-        self.embed_dim = args.embed_dim
-        self.elayers = args.elayers
-        self.eunits = args.eunits
-        self.econv_layers = args.econv_layers
-        self.econv_filts = args.econv_filts
-        self.econv_chans = args.econv_chans
-        self.dlayers = args.dlayers
-        self.dunits = args.dunits
-        self.prenet_layers = args.prenet_layers
-        self.prenet_units = args.prenet_units
-        self.postnet_layers = args.postnet_layers
-        self.postnet_chans = args.postnet_chans
-        self.postnet_filts = args.postnet_filts
-        self.adim = args.adim
-        self.aconv_filts = args.aconv_filts
-        self.aconv_chans = args.aconv_chans
         self.cumulate_att_w = args.cumulate_att_w
-        self.use_batch_norm = args.use_batch_norm
-        self.use_concate = args.use_concate
-        self.dropout_rate = args.dropout_rate
-        self.zoneout_rate = args.zoneout_rate
         self.reduction_factor = args.reduction_factor
-        self.atype = args.atype
         self.use_cbhg = args.use_cbhg
-        if self.use_cbhg:
-            self.spc_dim = args.spc_dim
-            self.cbhg_conv_bank_layers = args.cbhg_conv_bank_layers
-            self.cbhg_conv_bank_chans = args.cbhg_conv_bank_chans
-            self.cbhg_conv_proj_filts = args.cbhg_conv_proj_filts
-            self.cbhg_conv_proj_chans = args.cbhg_conv_proj_chans
-            self.cbhg_highway_layers = args.cbhg_highway_layers
-            self.cbhg_highway_units = args.cbhg_highway_units
-            self.cbhg_gru_units = args.cbhg_gru_units
 
         # define activation function for the final output
         if args.output_activation is None:
@@ -300,71 +270,71 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         else:
             raise ValueError('there is no such an activation function. (%s)' % args.output_activation)
         # define network modules
-        self.enc = Encoder(idim=self.idim,
-                           embed_dim=self.embed_dim,
-                           elayers=self.elayers,
-                           eunits=self.eunits,
-                           econv_layers=self.econv_layers,
-                           econv_chans=self.econv_chans,
-                           econv_filts=self.econv_filts,
-                           use_batch_norm=self.use_batch_norm,
-                           dropout_rate=self.dropout_rate)
-        dec_idim = self.eunits if self.spk_embed_dim is None else self.eunits + self.spk_embed_dim
-        if self.atype == "location":
+        self.enc = Encoder(idim=idim,
+                           embed_dim=args.embed_dim,
+                           elayers=args.elayers,
+                           eunits=args.eunits,
+                           econv_layers=args.econv_layers,
+                           econv_chans=args.econv_chans,
+                           econv_filts=args.econv_filts,
+                           use_batch_norm=args.use_batch_norm,
+                           dropout_rate=args.dropout_rate)
+        dec_idim = args.eunits if args.spk_embed_dim is None else args.eunits + args.spk_embed_dim
+        if args.atype == "location":
             att = AttLoc(dec_idim,
-                         self.dunits,
-                         self.adim,
-                         self.aconv_chans,
-                         self.aconv_filts)
-        elif self.atype == "forward":
+                         args.dunits,
+                         args.adim,
+                         args.aconv_chans,
+                         args.aconv_filts)
+        elif args.atype == "forward":
             att = AttForward(dec_idim,
-                             self.dunits,
-                             self.adim,
-                             self.aconv_chans,
-                             self.aconv_filts)
+                             args.dunits,
+                             args.adim,
+                             args.aconv_chans,
+                             args.aconv_filts)
             if self.cumulate_att_w:
                 logging.warning("cumulation of attention weights is disabled in forward attention.")
                 self.cumulate_att_w = False
-        elif self.atype == "forward_ta":
+        elif args.atype == "forward_ta":
             att = AttForwardTA(dec_idim,
-                               self.dunits,
-                               self.adim,
-                               self.aconv_chans,
-                               self.aconv_filts,
-                               self.odim)
+                               args.dunits,
+                               args.adim,
+                               args.aconv_chans,
+                               args.aconv_filts,
+                               odim)
             if self.cumulate_att_w:
                 logging.warning("cumulation of attention weights is disabled in forward attention.")
                 self.cumulate_att_w = False
         else:
             raise NotImplementedError("Support only location or forward")
         self.dec = Decoder(idim=dec_idim,
-                           odim=self.odim,
+                           odim=odim,
                            att=att,
-                           dlayers=self.dlayers,
-                           dunits=self.dunits,
-                           prenet_layers=self.prenet_layers,
-                           prenet_units=self.prenet_units,
-                           postnet_layers=self.postnet_layers,
-                           postnet_chans=self.postnet_chans,
-                           postnet_filts=self.postnet_filts,
+                           dlayers=args.dlayers,
+                           dunits=args.dunits,
+                           prenet_layers=args.prenet_layers,
+                           prenet_units=args.prenet_units,
+                           postnet_layers=args.postnet_layers,
+                           postnet_chans=args.postnet_chans,
+                           postnet_filts=args.postnet_filts,
                            output_activation_fn=self.output_activation_fn,
                            cumulate_att_w=self.cumulate_att_w,
-                           use_batch_norm=self.use_batch_norm,
-                           use_concate=self.use_concate,
-                           dropout_rate=self.dropout_rate,
-                           zoneout_rate=self.zoneout_rate,
-                           reduction_factor=self.reduction_factor)
+                           use_batch_norm=args.use_batch_norm,
+                           use_concate=args.use_concate,
+                           dropout_rate=args.dropout_rate,
+                           zoneout_rate=args.zoneout_rate,
+                           reduction_factor=args.reduction_factor)
         self.taco2_loss = Tacotron2Loss(args)
         if self.use_cbhg:
-            self.cbhg = CBHG(idim=self.odim,
-                             odim=self.spc_dim,
-                             conv_bank_layers=self.cbhg_conv_bank_layers,
-                             conv_bank_chans=self.cbhg_conv_bank_chans,
-                             conv_proj_filts=self.cbhg_conv_proj_filts,
-                             conv_proj_chans=self.cbhg_conv_proj_chans,
-                             highway_layers=self.cbhg_highway_layers,
-                             highway_units=self.cbhg_highway_units,
-                             gru_units=self.cbhg_gru_units)
+            self.cbhg = CBHG(idim=odim,
+                             odim=args.spc_dim,
+                             conv_bank_layers=args.cbhg_conv_bank_layers,
+                             conv_bank_chans=args.cbhg_conv_bank_chans,
+                             conv_proj_filts=args.cbhg_conv_proj_filts,
+                             conv_proj_chans=args.cbhg_conv_proj_chans,
+                             highway_layers=args.cbhg_highway_layers,
+                             highway_units=args.cbhg_highway_units,
+                             gru_units=args.cbhg_gru_units)
             self.cbhg_loss = CBHGLoss(args)
 
     def forward(self, xs, ilens, ys, labels, olens, spembs=None, spcs=None, *args, **kwargs):
