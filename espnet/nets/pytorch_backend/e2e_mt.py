@@ -224,7 +224,7 @@ class E2E(MTInterface, torch.nn.Module):
             logging.warning('loss (=%f) is not correct', loss_data)
         return self.loss
 
-    def recognize(self, x, recog_args, char_list, rnnlm=None):
+    def translate(self, x, recog_args, char_list, rnnlm=None):
         """E2E beam search
 
         :param ndarray x: input source text feature (T, D)
@@ -260,7 +260,7 @@ class E2E(MTInterface, torch.nn.Module):
             self.train()
         return y
 
-    def recognize_batch(self, xs, recog_args, char_list, rnnlm=None):
+    def translate_batch(self, xs, recog_args, char_list, rnnlm=None):
         """E2E beam search
 
         :param list xs: list of input source text feature arrays [(T_1, D), (T_2, D), ...]

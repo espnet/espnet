@@ -342,7 +342,7 @@ def train(args):
     check_early_stop(trainer, args.epochs)
 
 
-def recog(args):
+def trans(args):
     """Decode with the given args
 
     :param Namespace args: The program arguments
@@ -387,7 +387,7 @@ def recog(args):
             for idx, name in enumerate(js.keys(), 1):
                 logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
                 feat = [js[name]['output'][1]['tokenid'].split()]
-                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
+                nbest_hyps = model.translate(feat, args, train_args.char_list, rnnlm)
                 new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
     else:
         def grouper(n, iterable, fillvalue=None):
@@ -405,7 +405,7 @@ def recog(args):
                 names = [name for name in names if name]
                 feats = [np.fromiter(map(int, js[name]['output'][1]['tokenid'].split()), dtype=np.int64)
                          for name in names]
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
+                nbest_hyps = model.translate_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
                     new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
