@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2019 Johns Hopkins University (Xuankai Chang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -20,10 +20,7 @@ from minpermwer import get_utt_permutation
 is_python2 = sys.version_info[0] == 2
 
 
-def get_results(ref, hyp, args):
-    result_key = 'r{}h{}'.format(ref, hyp)
-    result_file = getattr(args, 'result_' + result_key)
-
+def get_results(result_file, result_key):
     re_id = r'^id: '
     re_strings = {'Speaker': r'^Speaker sentences',
                   'Scores': r'^Scores: ',
@@ -57,7 +54,7 @@ def get_results(ref, hyp, args):
     if tmp_ret != {}:
         results[tmp_id] = {result_key: tmp_ret}
 
-    return result_key, {'utts': results}
+    return {'utts': results}
 
 
 def merge_results(results):
@@ -95,17 +92,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--num-spkrs', type=int, default=2,
                         help='number of mixed speakers.')
-    parser.add_argument('result_r1h1', type=str,
-                        help='the scores between reference 1 and hypothesis 1')
-    parser.add_argument('result_r1h2', type=str,
-                        help='the scores between reference 1 and hypothesis 2')
-    parser.add_argument('result_r2h1', type=str,
-                        help='the scores between reference 2 and hypothesis 1')
-    parser.add_argument('result_r2h2', type=str,
-                        help='the scores between reference 2 and hypothesis 2')
+    parser.add_argument('results', type=str, nargs='+',
+                        help='the scores between references and hypotheses, '
+                             'in ascending order of references (1st) and hypotheses (2nd), '
+                             'e.g. [r1h1, r1h2, r2h1, r2h2] in 2-speaker-mix case.')
     args = parser.parse_args()
 
-    if len(sys.argv) < 4:
+    if len(args.results) != args.num_spkrs ** 2:
         parser.print_help()
         sys.exit(1)
 
@@ -113,7 +106,10 @@ def main():
     results = {}
     for r in six.moves.range(1, args.num_spkrs + 1):
         for h in six.moves.range(1, args.num_spkrs + 1):
-            key, result = get_results(ref=r, hyp=h, args=args)
+            idx = (r - 1) * args.num_spkrs + h - 1
+            key = 'r{}h{}'.format(r, h)
+
+            result = get_results(args.results[idx], key)
             results[key] = result
 
     # Merge the results of every permutation

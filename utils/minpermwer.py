@@ -6,43 +6,39 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import logging
+import numpy as np
 import re
 import sys
 
 
+def permutationDFS(source, start, res):
+    # get permutations with DFS
+    # return order in [[1, 2], [2, 1]] or
+    # [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 2, 1], [3, 1, 2]]
+    if start == len(source) - 1: # reach final state
+        res.append(source.tolist())
+    for i in range(start, len(source)):
+        # swap values at position start and i
+        source[start], source[i] = source[i], source[start]
+        permutationDFS(source, start + 1, res)
+        # reverse the swap
+        source[start], source[i] = source[i], source[start]
+
 # pre-set the permutation scheme (ref_idx, hyp_idx)
 def permutation_schemes(num_spkrs):
-    perm = [(i / num_spkrs + 1, i % num_spkrs + 1) for i in range(num_spkrs ** 2)]
+    src = [x for x in range(1, num_spkrs + 1)]
+    perms = []
 
-    # [r1h1, r1h2, r2h1, r2h2]
-    if num_spkrs == 2:
-        keys = [['r%dh%d' % (perm[0][0], perm[0][1]),
-                 'r%dh%d' % (perm[3][0], perm[3][1])],
-                ['r%dh%d' % (perm[1][0], perm[1][1]),
-                 'r%dh%d' % (perm[2][0], perm[2][1])]]
-    # [r1h1, r1h2, r1h3, r2h1, r2h2, r2h3, r3h1, r3h2, r3h3]
-    elif num_spkrs == 3:
-        keys = [['r%dh%d' % (perm[0][0], perm[0][1]),
-                 'r%dh%d' % (perm[4][0], perm[4][1]),
-                 'r%dh%d' % (perm[8][0], perm[8][1])],  # r1h1, r2h2, r3h3
-                ['r%dh%d' % (perm[0][0], perm[0][1]),
-                 'r%dh%d' % (perm[5][0], perm[5][1]),
-                 'r%dh%d' % (perm[7][0], perm[7][1])],  # r1h1, r2h3, r3h2
-                ['r%dh%d' % (perm[1][0], perm[1][1]),
-                 'r%dh%d' % (perm[3][0], perm[3][1]),
-                 'r%dh%d' % (perm[8][0], perm[8][1])],  # r1h2, r2h1, r3h3
-                ['r%dh%d' % (perm[1][0], perm[1][1]),
-                 'r%dh%d' % (perm[5][0], perm[5][1]),
-                 'r%dh%d' % (perm[6][0], perm[6][1])],  # r1h2, r2h3, r3h2
-                ['r%dh%d' % (perm[2][0], perm[2][1]),
-                 'r%dh%d' % (perm[4][0], perm[4][1]),
-                 'r%dh%d' % (perm[6][0], perm[6][1])],  # r1h3, r2h2, r3h1
-                ['r%dh%d' % (perm[2][0], perm[2][1]),
-                 'r%dh%d' % (perm[3][0], perm[3][1]),
-                 'r%dh%d' % (perm[7][0], perm[7][1])]]  # r1h3, r2h1, r3h2
-    else:
-        logging.error("Only support less than 3 speakers.")
-        sys.exit()
+    # get all permutations of [1, ..., num_spkrs]
+    # [[r1h1, r2h2], [r1h2, r2h1]]
+    # [[r1h1, r2h2, r3h3], [r1h1, r2h3, r3h2], [r1h2, r2h1, r3h3],
+    #  [r1h2, r2h3, r3h2], [r1h3, r2h2, r3h1], [r1h3, r2h1, r3h2]]]
+    # ...
+    permutationDFS(np.array(src), 0, perms)
+
+    keys = []
+    for perm in perms:
+        keys.append(['r%dh%d' % (i, j) for i, j in enumerate(perm, 1)])
 
     return sum(keys, []), keys
 
