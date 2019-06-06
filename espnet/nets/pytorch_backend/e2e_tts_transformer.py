@@ -199,15 +199,19 @@ class Transformer(TTSInterface, torch.nn.Module):
         group.add_argument("--transformer-warmup-steps", default=4000, type=int,
                            help="optimizer warmup steps")
         group.add_argument("--transformer-enc-dropout-rate", default=0.1, type=float,
-                           help="dropout rate in transformer encoder except for attention")
+                           help="dropout rate for transformer encoder except for attention")
+        group.add_argument("--transformer-enc-positional-dropout-rate", default=0.1, type=float,
+                           help="dropout rate for transformer encoder positional encoding")
         group.add_argument("--transformer-enc-attn-dropout-rate", default=0.0, type=float,
-                           help="dropout in transformer encoder self-attention.")
+                           help="dropout rate for transformer encoder self-attention")
         group.add_argument("--transformer-dec-dropout-rate", default=0.1, type=float,
-                           help="dropout rate in transformer decoder except for attention")
+                           help="dropout rate for transformer decoder except for attention and pos encoding")
+        group.add_argument("--transformer-dec-positional-dropout-rate", default=0.1, type=float,
+                           help="dropout rate for transformer decoder positional encoding")
         group.add_argument("--transformer-dec-attn-dropout-rate", default=0.3, type=float,
-                           help="dropout in transformer decoder attention except for attention")
+                           help="dropout rate for transformer decoder self-attention")
         group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.0, type=float,
-                           help="dropout in transformer encoder-decoder attention")
+                           help="dropout rate for transformer encoder-decoder attention")
         group.add_argument("--eprenet-dropout-rate", default=0.1, type=float,
                            help="dropout rate in encoder prenet")
         group.add_argument("--dprenet-dropout-rate", default=0.5, type=float,
@@ -235,128 +239,102 @@ class Transformer(TTSInterface, torch.nn.Module):
         # store hyperparameters
         self.idim = idim
         self.odim = odim
-        self.embed_dim = args.embed_dim
-        self.eprenet_conv_layers = args.eprenet_conv_layers
-        self.eprenet_conv_filts = args.eprenet_conv_filts
-        self.eprenet_conv_chans = args.eprenet_conv_chans
-        self.dprenet_layers = args.dprenet_layers
-        self.dprenet_units = args.dprenet_units
-        self.postnet_layers = args.postnet_layers
-        self.postnet_chans = args.postnet_chans
-        self.postnet_filts = args.postnet_filts
-        self.adim = args.adim
-        self.aheads = args.aheads
-        self.elayers = args.elayers
-        self.eunits = args.eunits
-        self.dlayers = args.dlayers
-        self.dunits = args.dunits
-        self.use_batch_norm = args.use_batch_norm
-        self.eprenet_dropout_rate = args.eprenet_dropout_rate
-        self.dprenet_dropout_rate = args.dprenet_dropout_rate
-        self.postnet_dropout_rate = args.postnet_dropout_rate
-        self.transformer_enc_dropout_rate = args.transformer_enc_dropout_rate
-        self.transformer_enc_attn_dropout_rate = args.transformer_enc_attn_dropout_rate
-        self.transformer_dec_dropout_rate = args.transformer_dec_dropout_rate
-        self.transformer_dec_attn_dropout_rate = args.transformer_dec_attn_dropout_rate
-        self.transformer_enc_dec_attn_dropout_rate = args.transformer_enc_dec_attn_dropout_rate
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
         self.reduction_factor = args.reduction_factor
-        self.encoder_normalize_before = args.encoder_normalize_before
-        self.decoder_normalize_before = args.decoder_normalize_before
-        self.encoder_concate_after = args.encoder_concate_after
-        self.decoder_concate_after = args.decoder_concate_after
+        self.loss_type = args.loss_type
 
         # use idx 0 as padding idx
-        self.padding_idx = 0
+        padding_idx = 0
 
         # get positional encoding class
-        self.pos_enc_class = ScaledPositionalEncoding if self.use_scaled_pos_enc else PositionalEncoding
+        pos_enc_class = ScaledPositionalEncoding if self.use_scaled_pos_enc else PositionalEncoding
 
         # define transformer encoder
-        if self.eprenet_conv_layers != 0:
+        if args.eprenet_conv_layers != 0:
             # encoder prenet
             encoder_input_layer = torch.nn.Sequential(
                 EncoderPrenet(
-                    idim=self.idim,
-                    embed_dim=self.embed_dim,
+                    idim=idim,
+                    embed_dim=args.embed_dim,
                     elayers=0,
-                    econv_layers=self.eprenet_conv_layers,
-                    econv_chans=self.eprenet_conv_chans,
-                    econv_filts=self.eprenet_conv_filts,
-                    use_batch_norm=self.use_batch_norm,
-                    dropout_rate=self.eprenet_dropout_rate,
-                    padding_idx=self.padding_idx
+                    econv_layers=args.eprenet_conv_layers,
+                    econv_chans=args.eprenet_conv_chans,
+                    econv_filts=args.eprenet_conv_filts,
+                    use_batch_norm=args.use_batch_norm,
+                    dropout_rate=args.eprenet_dropout_rate,
+                    padding_idx=padding_idx
                 ),
-                torch.nn.Linear(self.eprenet_conv_chans, self.adim)
+                torch.nn.Linear(args.eprenet_conv_chans, args.adim)
             )
         else:
             encoder_input_layer = torch.nn.Embedding(
-                num_embeddings=self.idim,
-                embedding_dim=self.adim,
-                padding_idx=self.padding_idx
+                num_embeddings=idim,
+                embedding_dim=args.adim,
+                padding_idx=padding_idx
             )
         self.encoder = Encoder(
-            idim=self.idim,
-            attention_dim=self.adim,
-            attention_heads=self.aheads,
-            linear_units=self.eunits,
-            num_blocks=self.elayers,
+            idim=idim,
+            attention_dim=args.adim,
+            attention_heads=args.aheads,
+            linear_units=args.eunits,
+            num_blocks=args.elayers,
             input_layer=encoder_input_layer,
-            dropout_rate=self.transformer_enc_dropout_rate,
-            attention_dropout_rate=self.transformer_enc_attn_dropout_rate,
-            pos_enc_class=self.pos_enc_class,
-            normalize_before=self.encoder_normalize_before,
-            concate_after=self.encoder_concate_after
+            dropout_rate=args.transformer_enc_dropout_rate,
+            positional_dropout_rate=args.transformer_enc_positional_dropout_rate,
+            attention_dropout_rate=args.transformer_enc_attn_dropout_rate,
+            pos_enc_class=pos_enc_class,
+            normalize_before=args.encoder_normalize_before,
+            concate_after=args.encoder_concate_after
         )
 
         # define transformer decoder
-        if self.dprenet_layers != 0:
+        if args.dprenet_layers != 0:
             # decoder prenet
             decoder_input_layer = torch.nn.Sequential(
                 DecoderPrenet(
-                    idim=self.odim,
-                    n_layers=self.dprenet_layers,
-                    n_units=self.dprenet_units,
-                    dropout_rate=self.dprenet_dropout_rate
+                    idim=odim,
+                    n_layers=args.dprenet_layers,
+                    n_units=args.dprenet_units,
+                    dropout_rate=args.dprenet_dropout_rate
                 ),
-                torch.nn.Linear(self.dprenet_units, self.adim)
+                torch.nn.Linear(args.dprenet_units, args.adim)
             )
         else:
             decoder_input_layer = "linear"
         self.decoder = Decoder(
             odim=-1,
-            attention_dim=self.adim,
-            attention_heads=self.aheads,
-            linear_units=self.dunits,
-            num_blocks=self.dlayers,
-            dropout_rate=self.transformer_dec_dropout_rate,
-            self_attention_dropout_rate=self.transformer_dec_attn_dropout_rate,
-            src_attention_dropout_rate=self.transformer_enc_dec_attn_dropout_rate,
+            attention_dim=args.adim,
+            attention_heads=args.aheads,
+            linear_units=args.dunits,
+            num_blocks=args.dlayers,
+            dropout_rate=args.transformer_dec_dropout_rate,
+            positional_dropout_rate=args.transformer_dec_positional_dropout_rate,
+            self_attention_dropout_rate=args.transformer_dec_attn_dropout_rate,
+            src_attention_dropout_rate=args.transformer_enc_dec_attn_dropout_rate,
             input_layer=decoder_input_layer,
             use_output_layer=False,
-            pos_enc_class=self.pos_enc_class,
-            normalize_before=self.decoder_normalize_before,
-            concate_after=self.decoder_concate_after
+            pos_enc_class=pos_enc_class,
+            normalize_before=args.decoder_normalize_before,
+            concate_after=args.decoder_concate_after
         )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(self.adim, self.odim * self.reduction_factor)
-        self.prob_out = torch.nn.Linear(self.adim, self.reduction_factor)
+        self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
+        self.prob_out = torch.nn.Linear(args.adim, args.reduction_factor)
 
         # define postnet
         self.postnet = Postnet(
-            idim=self.idim,
-            odim=self.odim,
-            n_layers=self.postnet_layers,
-            n_chans=self.postnet_chans,
-            n_filts=self.postnet_filts,
-            use_batch_norm=self.use_batch_norm,
-            dropout_rate=self.postnet_dropout_rate
+            idim=idim,
+            odim=odim,
+            n_layers=args.postnet_layers,
+            n_chans=args.postnet_chans,
+            n_filts=args.postnet_filts,
+            use_batch_norm=args.use_batch_norm,
+            dropout_rate=args.postnet_dropout_rate
         )
 
         # define loss function
         self.criterion = TransformerLoss(args)
-        self.loss_type = args.loss_type
 
         # initialize parameters
         self._reset_parameters(args)
@@ -364,8 +342,8 @@ class Transformer(TTSInterface, torch.nn.Module):
     def _reset_parameters(self, args):
         if self.use_scaled_pos_enc:
             # alpha in scaled positional encoding init
-            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
-            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
+            self.encoder.embed[-2].alpha.data = torch.tensor(args.initial_encoder_alpha)
+            self.decoder.embed[-2].alpha.data = torch.tensor(args.initial_decoder_alpha)
 
         if args.transformer_init == "pytorch":
             return
@@ -462,8 +440,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         ]
         if self.use_scaled_pos_enc:
             report_keys += [
-                {"encoder_alpha": self.encoder.embed[-1].alpha.data.item()},
-                {"decoder_alpha": self.decoder.embed[-1].alpha.data.item()},
+                {"encoder_alpha": self.encoder.embed[-2].alpha.data.item()},
+                {"decoder_alpha": self.decoder.embed[-2].alpha.data.item()},
             ]
         self.reporter.report(report_keys)
 

@@ -18,7 +18,8 @@ class Encoder(torch.nn.Module):
     :param int linear_units: the number of units of position-wise feed forward
     :param int num_blocks: the number of decoder blocks
     :param float dropout_rate: dropout rate
-    :param float attention_dropout_rate: dropout rate for attention
+    :param float attention_dropout_rate: dropout rate in attention
+    :param float positional_dropout_rate: dropout rate after adding positional encoding
     :param str or torch.nn.Module input_layer: input layer type
     :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
     :param bool normalize_before: whether to use layer_norm before the first block
@@ -33,6 +34,7 @@ class Encoder(torch.nn.Module):
                  linear_units=2048,
                  num_blocks=6,
                  dropout_rate=0.1,
+                 positional_dropout_rate=0.0,
                  attention_dropout_rate=0.0,
                  input_layer="conv2d",
                  pos_enc_class=PositionalEncoding,
@@ -45,19 +47,22 @@ class Encoder(torch.nn.Module):
                 torch.nn.LayerNorm(attention_dim),
                 torch.nn.Dropout(dropout_rate),
                 torch.nn.ReLU(),
-                pos_enc_class(attention_dim, dropout_rate)
+                pos_enc_class(attention_dim, dropout_rate),
+                torch.nn.Dropout(positional_dropout_rate)
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(idim, attention_dim, dropout_rate)
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(idim, attention_dim),
-                pos_enc_class(attention_dim, dropout_rate)
+                pos_enc_class(attention_dim, dropout_rate),
+                torch.nn.Dropout(positional_dropout_rate)
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
                 input_layer,
-                pos_enc_class(attention_dim, dropout_rate)
+                pos_enc_class(attention_dim, dropout_rate),
+                torch.nn.Dropout(positional_dropout_rate)
             )
         else:
             raise ValueError("unknown input_layer: " + input_layer)
