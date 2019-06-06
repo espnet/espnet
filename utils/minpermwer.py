@@ -5,17 +5,15 @@
 #           2018 Xuankai Chang (Shanghai Jiao Tong University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import logging
 import numpy as np
 import re
-import sys
 
 
 def permutationDFS(source, start, res):
     # get permutations with DFS
     # return order in [[1, 2], [2, 1]] or
     # [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 2, 1], [3, 1, 2]]
-    if start == len(source) - 1: # reach final state
+    if start == len(source) - 1:  # reach final state
         res.append(source.tolist())
     for i in range(start, len(source)):
         # swap values at position start and i
