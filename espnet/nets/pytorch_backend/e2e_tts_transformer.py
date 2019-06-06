@@ -77,7 +77,7 @@ class GuidedAttentionLoss(torch.nn.Module):
                 [0.3935, 0.1175, 0.0000, 0.1175, 0.3935],
                 [0.6753, 0.3935, 0.1175, 0.0000, 0.1175],
                 [0.8647, 0.6753, 0.3935, 0.1175, 0.0000]])
-        >>> guided_attn_mask =_make_guided_attention(6, 3, 0.4)
+        >>> guided_attn_mask =_make_guided_attention(3, 6, 0.4)
         >>> guided_attn_mask.shape
         torch.Size([6, 3])
         >>> guided_attn_mask
@@ -576,7 +576,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         else:
             raise ValueError("unknown --loss-type " + self.loss_type)
 
-        # calculate guided attention loss for encoder
+        # calculate guided attention loss
         if self.use_guided_attn_loss:
             # calculate for encoder
             if "encoder" in self.modules_applied_guided_attn:
