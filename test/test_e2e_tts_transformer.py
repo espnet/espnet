@@ -51,6 +51,11 @@ def make_transformer_args(**kwargs):
         initial_decoder_alpha=1.0,
         reduction_factor=1,
         loss_type="L1",
+        use_guided_attn_loss=False,
+        num_heads_applied_guided_attn=2,
+        num_layers_applied_guided_attn=2,
+        guided_attn_loss_sigma=0.4,
+        modules_applied_guided_attn=["encoder", "decoder", "encoder-decoder"]
     )
     defaults.update(kwargs)
     return defaults
@@ -105,6 +110,11 @@ def prepare_inputs(idim, odim, ilens, olens,
         ({"loss_type": "L1"}),
         ({"loss_type": "L2"}),
         ({"loss_type": "L1+L2"}),
+        ({"use_guided_attn_loss": True}),
+        ({"use_guided_attn_loss": True, "modules_applied_guided_attn": ["encoder-decoder"]}),
+        ({"use_guided_attn_loss": True, "modules_applied_guided_attn": ["encoder", "decoder"]}),
+        ({"use_guided_attn_loss": True, "num_heads_applied_guided_attn": -1}),
+        ({"use_guided_attn_loss": True, "num_layers_applied_guided_attn": -1}),
     ])
 def test_transformer_trainable_and_decodable(model_dict):
     # make args
