@@ -9,9 +9,31 @@ ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end 
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
+* [Key Features](#key-features)
+* [Requirements](#requirements)
+* [Installation](#installation)
+  * [Step 1) setting of the environment for GPU support](#step-1-setting-of-the-environment-for-gpu-support)
+  * [Step 2\-A) installation with compiled Kaldi](#step-2-a-installation-with-compiled-kaldi)
+    * [using miniconda (default)](#using-miniconda-default)
+    * [using existing python](#using-existing-python)
+  * [Step 2\-B) installation including Kaldi installation](#step-2-b-installation-including-kaldi-installation)
+  * [Step 2\-C) installation for CPU\-only](#step-2-c-installation-for-cpu-only)
+  * [Step 3) installation check](#step-3-installation-check)
+* [Execution of example scripts](#execution-of-example-scripts)
+  * [Use of GPU](#use-of-gpu)
+  * [Changing the configuration](#changing-the-configuration)
+  * [How to set minibatch](#how-to-set-minibatch)
+  * [Error due to ACS (Multiple GPUs)](#error-due-to-acs-multiple-gpus)
+  * [Docker Container](#docker-container)
+  * [Setup in your cluster](#setup-in-your-cluster)
+  * [Error due to matplotlib](#error-due-to-matplotlib)
+* [CTC, attention, and hybrid CTC/attention](#ctc-attention-and-hybrid-ctcattention)
+* [Results](#results)
+* [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
+* [References](#references)
+* [Citation](#citation)
 
 ## Key Features
-
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
@@ -29,7 +51,6 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - State-of-the-art performance in several benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
 - Tensorboard based monitoring
-
 
 ## Requirements
 
