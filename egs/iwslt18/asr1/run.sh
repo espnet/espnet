@@ -7,73 +7,29 @@
 . ./cmd.sh
 
 # general configuration
-backend=pytorch
-stage=-1       # start from -1 if you need to start from data download
+backend=pytorch # chainer or pytorch
+stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1          # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
-dumpdir=dump   # directory to dump full features
-N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=0      # verbose option
-resume=        # Resume the training from snapshot
-
+dumpdir=dump    # directory to dump full features
+N=0             # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
+verbose=0       # verbose option
+resume=         # Resume the training from snapshot
+seed=1          # seed to generate random number
+sp_prtb=true    # Speed perturbation
 # feature configuration
 do_delta=false
 
-# network architecture
-# encoder related
-etype=vggblstm     # encoder architecture type
-elayers=5
-eunits=1024
-eprojs=1024
-subsample=1_2_2_1_1 # skip every n frame from input to nth layers
-# decoder related
-dlayers=2
-dunits=1024
-# attention related
-atype=location
-adim=1024
-aconv_chans=10
-aconv_filts=100
+train_config=conf/train.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 
-# hybrid CTC/attention
-mtlalpha=0.5
-
-# regualrization option
-samp_prob=0
-lsm_type=unigram
-lsm_weight=0.1
-drop_enc=0.3
-drop_dec=0.0
-weight_decay=0
-
-# minibatch related
-batchsize=15
-maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
-
-# optimization related
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-opt=adadelta
-epochs=10
-patience=3
-
-lm_layers=2
-lm_units=650
-lm_opt=adam       # or sgd
-lm_batchsize=256  # batch size in LM training
-lm_epochs=60      # if the data size is large, we can reduce this
-lm_maxlen=150     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
+# rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
 # decoding parameter
-lm_weight=0.3
-beam_size=20
-penalty=0.0
-maxlenratio=0.0
-minlenratio=0.0
-ctc_weight=0.3
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
 # preprocessing related
@@ -102,7 +58,13 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodevtest_sp.en
+train_set=train_nodevtest.en
+train_set_prefix=train_nodevtest
+if [ ${sp_prtb} = true ]; then
+    train_set=train_nodevtest_sp.en
+    train_set_ori_prefix=train_nodevtest
+    train_set_prefix=train_nodevtest_sp
+fi
 train_dev=train_dev.en
 recog_set="dev.en test.en dev2010.en tst2010.en tst2013.en tst2014.en tst2015.en"
 
@@ -116,23 +78,23 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
-    echo "stage 0: Data preparation"
+    echo "stage 0: Data Preparation"
     local/data_prep_train.sh ${st_ted}
+
+    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
+        local/data_prep_eval.sh ${st_ted} ${part}
+    done
 
     # data cleaning
     ### local/forced_align.sh ${st_ted} data/train
     cp -rf data/train data/train.tmp
-    reduce_data_dir.sh data/train.tmp local/reclist data/train
+    reduce_data_dir.sh data/train.tmp data/local/downloads/reclist data/train
     for lang in en de; do
         utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.tc.${lang} >data/train/text.tc.${lang}
         utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.lc.${lang} >data/train/text.lc.${lang}
         utils/filter_scp.pl data/train/utt2spk <data/train.tmp/text.lc.rm.${lang} >data/train/text.lc.rm.${lang}
     done
     rm -rf data/train.tmp
-
-    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
-        local/data_prep_eval.sh ${st_ted} ${part}
-    done
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -172,38 +134,44 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/filter_scp.pl data/test/utt2spk <data/train_nodev/text.lc.rm.${lang} >data/test/text.lc.rm.${lang}
     done
 
-    # speed-perturbed
-    utils/perturb_data_dir_speed.sh 0.9 data/train_nodevtest data/temp1
-    utils/perturb_data_dir_speed.sh 1.0 data/train_nodevtest data/temp2
-    utils/perturb_data_dir_speed.sh 1.1 data/train_nodevtest data/temp3
-    utils/combine_data.sh --extra-files utt2uniq data/train_nodevtest_sp data/temp1 data/temp2 data/temp3
-    rm -r data/temp1 data/temp2 data/temp3
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
-        data/train_nodevtest_sp exp/make_fbank/train_nodevtest_sp ${fbankdir}
-    for lang in en de; do
-        awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >data/train_nodevtest_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >data/train_nodevtest_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >data/train_nodevtest_sp/text.lc.rm.${lang}
-        awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
-        awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
-        utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
-    done
+    if [ ${sp_prtb} = true ]; then
+        # speed-perturbed
+        utils/perturb_data_dir_speed.sh 0.9 data/train_nodevtest data/temp1
+        utils/perturb_data_dir_speed.sh 1.0 data/train_nodevtest data/temp2
+        utils/perturb_data_dir_speed.sh 1.1 data/train_nodevtest data/temp3
+        utils/combine_data.sh --extra-files utt2uniq data/train_nodevtest_sp data/temp1 data/temp2 data/temp3
+        rm -r data/temp1 data/temp2 data/temp3
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/train_nodevtest_sp exp/make_fbank/train_nodevtest_sp ${fbankdir}
+        for lang in en de; do
+            awk -v p="sp0.9-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >data/train_nodevtest_sp/text.tc.${lang}
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >data/train_nodevtest_sp/text.lc.${lang}
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >data/train_nodevtest_sp/text.lc.rm.${lang}
+            awk -v p="sp1.0-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
+            awk -v p="sp1.1-" '{printf("%s %s%s\n", $1, p, $1);}' data/train_nodevtest/utt2spk > data/train_nodevtest_sp/utt_map
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.tc.${lang} >>data/train_nodevtest_sp/text.tc.${lang}
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.${lang} >>data/train_nodevtest_sp/text.lc.${lang}
+            utils/apply_map.pl -f 1 data/train_nodevtest_sp/utt_map <data/train_nodevtest/text.lc.rm.${lang} >>data/train_nodevtest_sp/text.lc.rm.${lang}
+        done
+    fi
 
     # Divide into source and target languages
-    for x in train_nodevtest_sp dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
         local/divide_lang.sh ${x}
     done
 
-    cp -rf data/dev.en data/train_dev.en
-    cp -rf data/dev.de data/train_dev.de
+    for lang in en de; do
+        if [ -d data/train_dev.${lang} ];then
+            rm -rf data/train_dev.${lang}
+        fi
+        cp -rf data/dev.${lang} data/train_dev.${lang}
+    done
 
-    for x in train_nodevtest_sp train_dev; do
+    for x in ${train_set_prefix} train_dev; do
         # remove utt having more than 3000 frames
         # remove utt having more than 400 characters
         for lang in en de; do
@@ -229,12 +197,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18st/st1/dump/${train_set}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18/asr1/dump/${train_set}/delta${do_delta}/storage \
           ${feat_tr_dir}/storage
     fi
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
       utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18st/st1/dump/${train_dev}/delta${do_delta}/storage \
+          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18/asr1/dump/${train_dev}/delta${do_delta}/storage \
           ${feat_dt_dir}/storage
     fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
@@ -249,7 +217,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1char/train_units_${case}.txt
+dict=data/lang_1char/${train_set_prefix}_units_${case}.txt
+if [ ${sp_prtb} = true ]; then
+    dict=data/lang_1char/${train_set_ori_prefix}_units_${case}.txt
+fi
 nlsyms=data/lang_1char/non_lang_syms_${case}.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -258,16 +229,25 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_1char/
 
     echo "make a non-linguistic symbol list for all languages"
-    grep sp1.0 data/train_nodevtest_sp.*/text.${case} | cut -f 2- -d " " | grep -o -P '&[^;]*;' | sort | uniq > ${nlsyms}
+    if [ ${sp_prtb} = true ]; then
+          grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+      else
+          cut -f 2- -d' ' data/${train_set}/text.${case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+    fi
     cat ${nlsyms}
 
-    # Share the same dictinary between source and target languages
+    echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
-    grep sp1.0 data/train_nodevtest_sp.*/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " | tr " " "\n" \
-      | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    if [ ${sp_prtb} = true ]; then
+        grep sp1.0 data/${train_set}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    else
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text.${case} | cut -f 2- -d" " | tr " " "\n" \
+            | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
+    fi
     wc -l ${dict}
 
-    # make json labels
+    echo "make json files"
     local/data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${case} --nlsyms ${nlsyms} \
         data/${train_set} ${dict} > ${feat_tr_dir}/data.${case}.json
     local/data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${case} --nlsyms ${nlsyms} \
@@ -286,16 +266,23 @@ fi
 
 # You can skip this and remove --rnnlm option in the recognition (stage 3)
 if [ -z ${lmtag} ]; then
-    lmtag=${lm_layers}layer_unit${lm_units}_${lm_opt}_bs${lm_batchsize}
+    lmtag=$(basename ${lm_config%.*})_${case}
 fi
-lmexpdir=exp/${train_set}_${case}_rnnlm_${backend}_${lmtag}
+lmexpname=${train_set}_${case}_rnnlm_${backend}_${lmtag}
+lmexpdir=exp/${lmexpname}
 mkdir -p ${lmexpdir}
+
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: LM Preparation"
     lmdatadir=data/local/lm_${train_set}
     mkdir -p ${lmdatadir}
-    grep sp1.0 data/${train_set}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " \
-        > ${lmdatadir}/train_${case}.txt
+    if [ ${sp_prtb} = true ]; then
+        grep sp1.0 data/${train_set}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d " " \
+            > ${lmdatadir}/train_${case}.txt
+    else
+        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text.${case}  | cut -f 2- -d " " \
+            > ${lmdatadir}/train_${case}.txt
+    fi
     text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_dev}/text.${case} | cut -f 2- -d " " \
         > ${lmdatadir}/valid_${case}.txt
     # use only 1 gpu
@@ -304,24 +291,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
+        --config ${lm_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
+        --tensorboard-dir tensorboard/${lmexpname} \
         --train-label ${lmdatadir}/train_${case}.txt \
         --valid-label ${lmdatadir}/valid_${case}.txt \
         --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --maxlen ${lm_maxlen} \
         --dict ${dict}
 fi
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${case}_${backend}_${etype}_e${elayers}_subsample${subsample}_unit${eunits}_proj${eprojs}_d${dlayers}_unit${dunits}_${atype}${adim}_aconvc${aconv_chans}_aconvf${aconv_filts}_mtlalpha${mtlalpha}_${opt}_sampprob${samp_prob}_lsm${lsm_weight}_drop${drop_enc}${drop_dec}_bs${batchsize}_mli${maxlen_in}_mlo${maxlen_out}_wd${weight_decay}
+    expname=${train_set}_${case}_${backend}_$(basename ${train_config%.*})
     if ${do_delta}; then
         expname=${expname}_delta
     fi
@@ -333,8 +316,10 @@ mkdir -p ${expdir}
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Network Training"
+
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
+        --config ${train_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -343,35 +328,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --dict ${dict} \
         --debugdir ${expdir} \
         --minibatches ${N} \
+        --seed ${seed} \
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.${case}.json \
-        --valid-json ${feat_dt_dir}/data.${case}.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --lsm-type ${lsm_type} \
-        --lsm-weight ${lsm_weight} \
-        --dropout-rate ${drop_enc} \
-        --dropout-rate-decoder ${drop_dec} \
-        --opt ${opt} \
-        --sortagrad ${sortagrad} \
-        --epochs ${epochs} \
-        --patience ${patience} \
-        --weight-decay ${weight_decay}
+        --valid-json ${feat_dt_dir}/data.${case}.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -381,8 +342,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
-        decode_dir=decode_${rtask}_beam${beam_size}_e${recog_model}_p${penalty}_len${minlenratio}-${maxlenratio}_ctcw${ctc_weight}_rnnlm${lm_weight}
-        mkdir -p ${expdir}/${decode_dir}
+        decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
 
         # split data
@@ -393,25 +353,19 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
+            --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
-            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model} \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best \
-            --lm-weight ${lm_weight}
+            ${recog_opts}
 
         if [ ${rtask} = "dev.en" ] || [ ${rtask} = "test.en" ]; then
-          local/score_sclite.sh --case ${case} --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict}
+            local/score_sclite.sh --case ${case} --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict}
         else
-          set=$(echo ${rtask} | cut -f -1 -d ".")
-          local/score_sclite_reseg.sh --case ${case} --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
+            set=$(echo ${rtask} | cut -f -1 -d ".")
+            local/score_sclite_reseg.sh --case ${case} --nlsyms ${nlsyms} --wer true ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
         fi
     ) &
     pids+=($!) # store background pids
