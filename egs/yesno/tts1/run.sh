@@ -7,7 +7,7 @@
 backend=pytorch
 stage=-1
 stop_stage=100
-ngpu=1       # number of gpu in training
+ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
 nj=2         # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 0, get more log)
@@ -16,7 +16,7 @@ seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=8000      # sampling frequency
+fs=8000     # sampling frequency
 fmax=""     # maximum frequency
 fmin=""     # minimum frequency
 n_mels=80   # number of mel basis
@@ -153,7 +153,7 @@ fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
-    for sets in ${train_dev} ${eval_set};do
+    for sets in ${train_dev} ${eval_set}; do
         [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
@@ -176,7 +176,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Synthesis"
-    for sets in ${train_dev} ${eval_set};do
+    for sets in ${train_dev} ${eval_set}; do
         [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
