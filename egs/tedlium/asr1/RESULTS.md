@@ -1,3 +1,32 @@
+# Transformer (default)
+
+  - Environments (obtained by `$ get_sys_info.sh`)
+    - date: `Wed Jun  5 22:37:01 EDT 2019`
+    - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
+    - python version: `Python 3.7.3`
+    - espnet version: `espnet 0.3.1`
+    - chainer version: `chainer 6.0.0`
+    - pytorch version: `pytorch 1.0.1.post2`
+    - Git hash: `f1a69c2d6ffb34e4c008f951449157ef7caaf0e9`
+  - Model files (archived to model.v2.tar.gz by `$ pack_model.sh`)
+    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_trim_sp/cmvn.ark`
+    - e2e file: `../asr2/exp/train_trim_sp_pytorch_train_d6-2048_lr5.0/results/model.last10.avg.best`
+    - e2e JSON file: `../asr2/exp/train_trim_sp_pytorch_train_d6-2048_lr5.0/results/model.json`
+    - lm file: `../asr2/exp/train_rnnlm_pytorch_2layer_unit650_sgd_bs512_unigram500/rnnlm.model.best`
+    - lm JSON file: `../asr2/exp/train_rnnlm_pytorch_2layer_unit650_sgd_bs512_unigram500/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+../asr2/exp/train_trim_sp_pytorch_train_d6-2048_lr5.0/decode_dev_decode_lmw0.3/result.wrd.txt
+| SPKR                      | # Snt # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+| Sum/Avg                   |  507  17783 | 89.7    7.2    3.1    1.9   12.2   80.5 |
+../asr2/exp/train_trim_sp_pytorch_train_d6-2048_lr5.0/decode_test_decode_lmw0.3/result.wrd.txt
+| SPKR                  | # Snt  # Wrd | Corr     Sub    Del     Ins    Err   S.Err |
+| Sum/Avg               | 1155   27500 | 90.9     5.9    3.2     1.3   10.4    73.8 |
+```
+
 # Transformer (small decoder (6 layers 1024 units))
 
 - Environments (obtained by `$ get_sys_info.sh`)
