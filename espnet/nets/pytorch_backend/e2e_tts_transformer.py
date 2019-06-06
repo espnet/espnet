@@ -126,6 +126,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
 
     :param float sigma: standard deviation to control how close attention to a diagonal
     """
+
     def forward(self, att_ws, ilens, olens):
         """GuidedMultiHeadAttentionLoss forward calculation
 
