@@ -9,7 +9,7 @@
     - pytorch version: `pytorch 1.0.1.post2`
     - Git hash: `f1a69c2d6ffb34e4c008f951449157ef7caaf0e9`
   - Model files (archived to model.v2.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: https://drive.google.com/open?id=1rdRY-S7FbtkZuxwLMn2Z-Aps-q2bthEV
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_trim_sp/cmvn.ark`
