@@ -334,8 +334,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --backend ${backend} \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model} \
-            ${recog_opts}
+            --model ${expdir}/results/${recog_model}
 
         if [ ${rtask} = "dev.de" ] || [ ${rtask} = "test.de" ]; then
             local/score_bleu.sh --case ${case} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
