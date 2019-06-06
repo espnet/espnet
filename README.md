@@ -220,27 +220,34 @@ and connecting to the given address (default : localhost:6006). This will provid
 Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (`pip install tensorflow; pip install tensorboard`) when you want to use Tensorboard.
 
 ### Use of GPU
-
-If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g.,
-```sh
-# use single gpu
-$ ./run.sh --ngpu 1
-
-# use multi-gpu
-$ ./run.sh --ngpu 3
-
-# if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows
-# (Note that if you use slurm, this specification is not needed)
-$ CUDA_VISIBLE_DEVICES=0,1,2 ./run.sh --ngpu 3
-
-# use cpu
-$ ./run.sh --ngpu 0
-```
-Default setup uses CPU (`--ngpu 0`).
-
-Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
-is required before setup.
-
+- Training: 
+  If you want to use GPUs in your experiment, please set `--ngpu` option in `run.sh` appropriately, e.g.,
+  ```bash
+    # use single gpu
+    $ ./run.sh --ngpu 1
+	    
+    # use multi-gpu
+    $ ./run.sh --ngpu 3
+			  
+    # if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows
+    # (Note that if you use slurm, this specification is not needed)
+    $ CUDA_VISIBLE_DEVICES=0,1,2 ./run.sh --ngpu 3
+					  
+    # use cpu
+    $ ./run.sh --ngpu 0
+  ```
+  - Default setup uses a single GPU (`--ngpu 1`).
+- ASR decoding: 
+  ESPnet also supports the GPU-based decoding for fast recognition. 
+  - Please manually remove the following lines in `run.sh`:
+    ```bash
+    #### use CPU for decoding
+    ngpu=0
+    ```
+  - Set 1 or more values for `—batchsize` option in `asr_recog.py` to enable GPU decoding
+  - And execute the script (e.g., `run.sh —stage 5 —ngpu 1`)
+  - You'll achieve significant speed improvement by using the GPU decoding
+- Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
 
 ### Changing the configuration
 The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
@@ -268,7 +275,7 @@ We also provide a utility to generate a yaml file from the input yaml file:
 # e.g. You can give any parameters as '-a key=value' and '-a' is repeatable. 
 #      This generates new file at 'conf/train_batch-size24_epochs10.yaml'
 ./run.sh --train-config $(change_yaml.py conf/train.yaml -a batch-size=24 -a epochs=10)
-# e.g. '-o' option specfies the output file name instead of auto named file.
+# e.g. '-o' option specifies the output file name instead of auto named file.
 ./run.sh --train-config $(change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size=24)
 ```
 
@@ -276,8 +283,8 @@ We also provide a utility to generate a yaml file from the input yaml file:
 
 From espnet v0.4.0, we have three options in `--batch-count` to specify minibatch size (see `espnet.utils.batchfy` for implementation);
 1. `--batch-count seq --batch-seqs 32 --batch-seq-maxlen-in 800 --batch-seq-maxlen-out 150`. This option is compatible to the old setting before v0.4.0. This counts the minibatch size as the number of sequences and reduces the size when the maximum length of the input or output sequences is greater than 800 or 150, respectively.
-2. `--batch-count bin --batch-bins 100000`. This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., `max(ilen) * idim + max(olen) * odim`). Basically, this option makes trainining iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-bins $((x * (mean(ilen) * idim + mean(olen) * odim)))`.
-3. `--batch-count frame --batch-frames-in 800 --batch-frames-out 100 --batch-frames-inout 900`. This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes trainining iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
+2. `--batch-count bin --batch-bins 100000`. This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., `max(ilen) * idim + max(olen) * odim`). Basically, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-bins $((x * (mean(ilen) * idim + mean(olen) * odim)))`.
+3. `--batch-count frame --batch-frames-in 800 --batch-frames-out 100 --batch-frames-inout 900`. This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
 
 ### Error due to ACS (Multiple GPUs)
 
