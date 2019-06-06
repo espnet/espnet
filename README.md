@@ -32,6 +32,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 * [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
 * [References](#references)
 * [Citation](#citation)
+
+## Key Features
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
