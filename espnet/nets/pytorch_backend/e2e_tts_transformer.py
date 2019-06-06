@@ -342,8 +342,8 @@ class Transformer(TTSInterface, torch.nn.Module):
     def _reset_parameters(self, args):
         if self.use_scaled_pos_enc:
             # alpha in scaled positional encoding init
-            self.encoder.embed[-2].alpha.data = torch.tensor(args.initial_encoder_alpha)
-            self.decoder.embed[-2].alpha.data = torch.tensor(args.initial_decoder_alpha)
+            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
+            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
 
         if args.transformer_init == "pytorch":
             return
@@ -440,8 +440,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         ]
         if self.use_scaled_pos_enc:
             report_keys += [
-                {"encoder_alpha": self.encoder.embed[-2].alpha.data.item()},
-                {"decoder_alpha": self.decoder.embed[-2].alpha.data.item()},
+                {"encoder_alpha": self.encoder.embed[-1].alpha.data.item()},
+                {"decoder_alpha": self.decoder.embed[-1].alpha.data.item()},
             ]
         self.reporter.report(report_keys)
 

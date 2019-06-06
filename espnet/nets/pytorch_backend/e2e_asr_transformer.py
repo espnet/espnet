@@ -75,6 +75,7 @@ class E2E(ASRInterface, torch.nn.Module):
             num_blocks=args.elayers,
             input_layer=args.transformer_input_layer,
             dropout_rate=args.dropout_rate,
+            positional_dropout_rate=args.dropout_rate,
             attention_dropout_rate=args.transformer_attn_dropout_rate
         )
         self.decoder = Decoder(
@@ -84,6 +85,7 @@ class E2E(ASRInterface, torch.nn.Module):
             linear_units=args.dunits,
             num_blocks=args.dlayers,
             dropout_rate=args.dropout_rate,
+            positional_dropout_rate=args.dropout_rate,
             self_attention_dropout_rate=args.transformer_attn_dropout_rate,
             src_attention_dropout_rate=args.transformer_attn_dropout_rate
         )
