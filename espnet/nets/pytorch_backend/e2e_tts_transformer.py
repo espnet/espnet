@@ -621,11 +621,11 @@ class Transformer(TTSInterface, torch.nn.Module):
         ]
         if self.use_guided_attn_loss:
             if "encoder" in self.modules_applied_guided_attn:
-                report_keys += [{"enc_attn_loss": enc_attn_loss}]
+                report_keys += [{"enc_attn_loss": enc_attn_loss.item()}]
             if "decoder" in self.modules_applied_guided_attn:
-                report_keys += [{"dec_attn_loss": dec_attn_loss}]
+                report_keys += [{"dec_attn_loss": dec_attn_loss.item()}]
             if "encoder-decoder" in self.modules_applied_guided_attn:
-                report_keys += [{"enc_dec_attn_loss": enc_dec_attn_loss}]
+                report_keys += [{"enc_dec_attn_loss": enc_dec_attn_loss.item()}]
         if self.use_scaled_pos_enc:
             report_keys += [
                 {"encoder_alpha": self.encoder.embed[-1].alpha.data.item()},
