@@ -11,35 +11,30 @@ backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+debugmode=1
 verbose=1      # verbose option
 
 # feature configuration
 do_delta=false
-cmvn=cmvn.ark
+cmvn=
 
 # rnnlm related
-use_wordlm=false     # false means to use a character LM
-lang_model=rnnlm.model.best
+use_lang_model=true
+lang_model=
 
 # decoding parameter
-lm_weight=0
-beam_size=20
-penalty=0.0
-maxlenratio=0.9
-minlenratio=0.1
-ctc_weight=0.3
-streaming_mode=segment
-min_blank_dur=10
-onset_margin=4
-offset_margin=4
-recog_model=model.acc.best
+decode_config=
+recog_model=
 decode_dir=decode
+
+# download related
+share_url=https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe
 
 . utils/parse_options.sh || exit 1;
 
 wav=$1
 
-if [ $# != 1 ]; then
+if [ $# -gt 1 ]; then
     echo "Usage: $0 <wav>"
     exit 1;
 fi
@@ -50,17 +45,52 @@ set -e
 set -u
 set -o pipefail
 
-# existence check
+function download_models () {
+    download_dir=${decode_dir}/download
+    mkdir -p ${download_dir}
+    if [ ! -e ${download_dir}/.complete ]; then
+        download_from_google_drive.sh ${share_url} ${download_dir} ".tar.gz"
+	touch ${download_dir}/.complete
+    fi
+}
+
+# Download trained models
+if [ -z "${cmvn}" ]; then
+    download_models
+    cmvn=${download_dir}/data/train_trim_sp/cmvn.ark
+fi
+if [ -z "${lang_model}" -a ${use_lang_model} ]; then
+    download_models
+    lang_model=${download_dir}/exp/train_rnnlm_pytorch_lm_unigram500/rnnlm.model.best
+fi
+if [ -z "${recog_model}" ]; then
+    download_models
+    recog_model=${download_dir}/exp/train_trim_sp_pytorch_train/results/model.acc.best
+fi
+if [ -z "${decode_config}" ]; then
+    download_models
+    decode_config=${download_dir}/conf/decode_streaming.yaml
+fi
+if [ -z "${wav}" ]; then
+    download_models
+    wav=${download_dir}/etc/wav/TomWujec_2010U.wav
+fi
+
+# Check file existence
 if [ ! -f "${cmvn}" ]; then
     echo "No such CMVN file: ${cmvn}"
     exit 1
 fi
-if [ ! -f "${lang_model}" -a `echo "${lm_weight} > 0.0" | bc` -eq 1 ]; then
+if [ ! -f "${lang_model}" -a ${use_lang_model} ]; then
     echo "No such language model: ${lang_model}"
     exit 1
 fi
 if [ ! -f "${recog_model}" ]; then
     echo "No such E2E model: ${recog_model}"
+    exit 1
+fi
+if [ ! -f "${decode_config}" ]; then
+    echo "No such config file: ${decode_config}"
     exit 1
 fi
 if [ ! -f "${wav}" ]; then
@@ -104,35 +134,23 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Decoding"
 
-    if [ ${use_wordlm} = true ]; then
-        recog_opts="--word-rnnlm ${lang_model}"
-    else
+    if [ ${use_lang_model} ]; then
         recog_opts="--rnnlm ${lang_model}"
-    fi
-    if [ ${lm_weight} == 0 ]; then
+    else
         recog_opts=""
     fi
     feat_recog_dir=${decode_dir}/dump
 
     ${decode_cmd} ${decode_dir}/log/decode.log \
         asr_recog.py \
+        --config ${decode_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
+        --debugmode ${debugmode} \
         --verbose ${verbose} \
         --recog-json ${feat_recog_dir}/data.json \
         --result-label ${decode_dir}/result.json \
         --model ${recog_model} \
-        --beam-size ${beam_size} \
-        --penalty ${penalty} \
-        --maxlenratio ${maxlenratio} \
-        --minlenratio ${minlenratio} \
-        --ctc-weight ${ctc_weight} \
-        --lm-weight ${lm_weight} \
-        --streaming-mode ${streaming_mode} \
-        --streaming-min-blank-dur ${min_blank_dur} \
-        --streaming-onset-margin ${onset_margin} \
-        --streaming-offset-margin ${offset_margin} \
-        --batchsize 0 \
         ${recog_opts}
 
     echo ""

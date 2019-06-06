@@ -9,17 +9,18 @@ results=""
 # e.g., "exp/tr_it_pytorch_train/decode_dt_it_decode/result.wrd.txt
 #        exp/tr_it_pytorch_train/decode_et_it_decode/result.wrd.txt"'
 lm=""
+etc=""
 outfile="model"
 
 . utils/parse_options.sh
 
 if [ $# != 4 ]; then
-    echo "Usage: $0 <tr_conf> <rec_conf> <cmvn> <e2e>, for example:";
+    echo "Usage: $0 <tr_conf> <rec_conf> <cmvn> <e2e>, for example:"
     echo "<tr_conf>:  conf/train.yaml"
     echo "<rec_conf>: conf/decode.yaml"
     echo "<cmvn>:     data/tr_it/cmvn.ark"
     echo "<e2e>:      exp/tr_it_pytorch_train/results/model.last10.avg.best"
-    exit 1;
+    exit 1
 fi
 
 tr_conf=$1
@@ -34,7 +35,7 @@ echo "    - model link: (put the model link manually. please contact Shinji Wata
 if [ -e ${tr_conf} ]; then
     tar cfh ${outfile}.tar ${tr_conf}
     echo -n "    - training config file: \`"
-    echo ${tr_conf} | sed -e "s/$/\`/" 
+    echo ${tr_conf} | sed -e "s/$/\`/"
 else
     echo "missing ${tr_conf}"
     exit 1
@@ -42,7 +43,7 @@ fi
 if [ -e ${rec_conf} ]; then
     tar rfh ${outfile}.tar ${rec_conf}
     echo -n "    - decoding config file: \`"
-    echo ${rec_conf} | sed -e "s/$/\`/" 
+    echo ${rec_conf} | sed -e "s/$/\`/"
 else
     echo "missing ${rec_conf}"
     exit 1
@@ -52,7 +53,7 @@ fi
 if [ -e ${cmvn} ]; then
     tar rfh ${outfile}.tar ${cmvn}
     echo -n "    - cmvn file: \`"
-    echo ${cmvn} | sed -e "s/$/\`/" 
+    echo ${cmvn} | sed -e "s/$/\`/"
 else
     echo "missing ${cmvn}"
     exit 1
@@ -99,6 +100,18 @@ if [ -n "${lm}" ]; then
 	exit 1
     fi
 fi
+
+# etc
+for x in ${etc}; do
+    if [ -e ${x} ]; then
+	tar rfh ${outfile}.tar ${x}
+	echo -n "    - etc file: \`"
+	echo ${x} | sed -e "s/$/\`/"
+    else
+	echo "missing ${x}"
+	exit 1
+    fi
+done
 
 # finally compress the tar file
 gzip -f ${outfile}.tar
