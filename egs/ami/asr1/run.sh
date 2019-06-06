@@ -101,7 +101,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # beamforming
     if [ "$base_mic" == "mdm" ]; then
 	PROCESSED_AMI_DIR=${PWD}/beamformed
-	if [ -z ${BEAMFORMIT} ] ; then
+	if [ -z ${BEAMFORMIT} ]; then
 	    export BEAMFORMIT=${KALDI_ROOT}/tools/BeamformIt
 	fi
 	export PATH=${PATH}:${BEAMFORMIT}

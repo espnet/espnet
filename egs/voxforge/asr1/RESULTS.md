@@ -8,7 +8,7 @@
 	  - Git hash: `2525193c2c25dea5683086ef1b69f45bd1e050af`
   - It takes a very long time for the decoding and I don't recommend to use this setup without speed improvement during decoding
   - Model files (archived to v2.tgz by `$ pack_model.sh`)
-      - model link: https://drive.google.com/open?id=1qtCKSHLZdGdLaZVZ-33NoX3nf_L3Pto8
+      - model link: https://drive.google.com/open?id=1xdNm0-SFcZHwHdYX3-O395-9bNFf-w5G
 	  - training config file: `conf/tuning/train_pytorch_transformer_d6-2048.yaml`
 	  - decoding conf-if file: `conf/tuning/decode_pytorch_transformer.yaml`
       - cmvn file: `data/tr_it/cmvn.ark`
@@ -33,7 +33,7 @@ exp/tr_it_pytorch_train_d6-2048/decode_et_it_decode/result.txt
 	  - pytorch version: `pytorch 1.0.1.post2`
 	  - Git hash: `2525193c2c25dea5683086ef1b69f45bd1e050af`
   - Model files (archived to v1.tgz by `$ pack_model.sh`)
-      - model link: https://drive.google.com/open?id=1xgTpS7dqcZs75CvH4OihbXdAJtOM43Fe
+      - model link: https://drive.google.com/open?id=1b_dVbjh4H0Tfi2ZlCvG8RnQ8FPoVbfHc
       - training config file: `conf/tuning/train_pytorch_transformer.yaml`
       - decoding conf-if file: `conf/tuning/decode_pytorch_transformer.yaml`
       - cmvn file: `data/tr_it/cmvn.ark`
