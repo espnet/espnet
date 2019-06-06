@@ -1,4 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
+# Copyright 2019 Tomoki Hayashi
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from __future__ import print_function
 from __future__ import division
