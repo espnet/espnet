@@ -282,7 +282,7 @@ class Decoder(torch.nn.Module):
         self.att.reset()
 
         # loop for an output sequence
-        outs, logits = [], []
+        outs, logits, att_ws = [], [], []
         for y in ys.transpose(0, 1):
             if self.use_att_extra_inputs:
                 att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
@@ -297,6 +297,7 @@ class Decoder(torch.nn.Module):
             zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
             outs += [self.feat_out(zcs).view(hs.size(0), self.odim, -1)]
             logits += [self.prob_out(zcs)]
+            att_ws += [att_w]
             prev_out = y  # teacher forcing
             if self.cumulate_att_w and prev_att_w is not None:
                 prev_att_w = prev_att_w + att_w  # Note: error when use +=
@@ -305,6 +306,7 @@ class Decoder(torch.nn.Module):
 
         logits = torch.cat(logits, dim=1)  # (B, Lmax)
         before_outs = torch.cat(outs, dim=2)  # (B, odim, Lmax)
+        att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
 
         if self.reduction_factor > 1:
             before_outs = before_outs.view(before_outs.size(0), self.odim, -1)  # (B, odim, Lmax)
@@ -322,7 +324,7 @@ class Decoder(torch.nn.Module):
             before_outs = self.output_activation_fn(before_outs)
             after_outs = self.output_activation_fn(after_outs)
 
-        return after_outs, before_outs, logits
+        return after_outs, before_outs, logits, att_ws
 
     def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0):
         """Generate the sequence of features given the encoder hidden states
