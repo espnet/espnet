@@ -57,7 +57,9 @@ def make_taco2_args(**kwargs):
         cbhg_highway_units=128,
         cbhg_gru_units=256,
         use_masking=True,
-        bce_pos_weight=1.0
+        bce_pos_weight=1.0,
+        use_guided_attn_loss=False,
+        guided_attn_loss_sigma=0.4,
     )
     defaults.update(kwargs)
     return defaults
@@ -124,6 +126,7 @@ def prepare_inputs(bs, idim, odim, maxin_len, maxout_len,
         ({"reduction_factor": 3}),
         ({"use_speaker_embedding": True}),
         ({"use_cbhg": True}),
+        ({"use_guided_attn_loss": True}),
     ])
 def test_tacotron2_trainable_and_decodable(model_dict):
     # make args
@@ -168,6 +171,7 @@ def test_tacotron2_trainable_and_decodable(model_dict):
         ({"use_speaker_embedding": True, "spk_embed_dim": 128}),
         ({"use_cbhg": True, "spc_dim": 128}),
         ({"reduction_factor": 3}),
+        ({"use_guided_attn_loss": True}),
     ])
 def test_tacotron2_gpu_trainable(model_dict):
     bs = 2
@@ -200,6 +204,7 @@ def test_tacotron2_gpu_trainable(model_dict):
         ({"use_speaker_embedding": True, "spk_embed_dim": 128}),
         ({"use_cbhg": True, "spc_dim": 128}),
         ({"reduction_factor": 3}),
+        ({"use_guided_attn_loss": True}),
     ])
 def test_tacotron2_multi_gpu_trainable(model_dict):
     ngpu = 2
