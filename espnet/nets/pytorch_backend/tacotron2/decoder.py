@@ -184,75 +184,67 @@ class Decoder(torch.nn.Module):
                  use_concate=True,
                  dropout_rate=0.5,
                  zoneout_rate=0.1,
-                 threshold=0.5,
-                 reduction_factor=1,
-                 maxlenratio=5.0,
-                 minlenratio=0.0):
+                 reduction_factor=1):
         super(Decoder, self).__init__()
+
         # store the hyperparameters
         self.idim = idim
         self.odim = odim
         self.att = att
-        self.dlayers = dlayers
-        self.dunits = dunits
-        self.prenet_layers = prenet_layers
-        self.prenet_units = prenet_units if prenet_layers != 0 else self.odim
-        self.postnet_layers = postnet_layers
-        self.postnet_chans = postnet_chans if postnet_layers != 0 else -1
-        self.postnet_filts = postnet_filts if postnet_layers != 0 else -1
         self.output_activation_fn = output_activation_fn
         self.cumulate_att_w = cumulate_att_w
-        self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
-        self.dropout_rate = dropout_rate
-        self.zoneout_rate = zoneout_rate
         self.reduction_factor = reduction_factor
-        self.threshold = threshold
-        self.maxlenratio = maxlenratio
-        self.minlenratio = minlenratio
+
         # check attention type
         if isinstance(self.att, AttForwardTA):
             self.use_att_extra_inputs = True
         else:
             self.use_att_extra_inputs = False
+
         # define lstm network
+        prenet_units = prenet_units if prenet_layers != 0 else self.odim
         self.lstm = torch.nn.ModuleList()
-        for layer in six.moves.range(self.dlayers):
-            iunits = self.idim + self.prenet_units if layer == 0 else self.dunits
-            lstm = torch.nn.LSTMCell(iunits, self.dunits)
+        for layer in six.moves.range(dlayers):
+            iunits = idim + prenet_units if layer == 0 else dunits
+            lstm = torch.nn.LSTMCell(iunits, dunits)
             if zoneout_rate > 0.0:
-                lstm = ZoneOutCell(lstm, self.zoneout_rate)
+                lstm = ZoneOutCell(lstm, zoneout_rate)
             self.lstm += [lstm]
+
         # define prenet
-        if self.prenet_layers > 0:
+        if prenet_layers > 0:
             self.prenet = Prenet(
-                idim=self.odim,
-                n_layers=self.prenet_layers,
-                n_units=self.prenet_units,
-                dropout_rate=self.dropout_rate)
+                idim=odim,
+                n_layers=prenet_layers,
+                n_units=prenet_units,
+                dropout_rate=dropout_rate)
         else:
             self.prenet = None
+
         # define postnet
-        if self.postnet_layers > 0:
+        if postnet_layers > 0:
             self.postnet = Postnet(
-                idim=self.idim,
-                odim=self.odim,
-                n_layers=self.postnet_layers,
-                n_chans=self.postnet_chans,
-                n_filts=self.postnet_filts,
-                use_batch_norm=self.use_batch_norm,
-                dropout_rate=self.dropout_rate)
+                idim=idim,
+                odim=odim,
+                n_layers=postnet_layers,
+                n_chans=postnet_chans,
+                n_filts=postnet_filts,
+                use_batch_norm=use_batch_norm,
+                dropout_rate=dropout_rate)
         else:
             self.postnet = None
+
         # define projection layers
-        iunits = self.idim + self.dunits if self.use_concate else self.dunits
-        self.feat_out = torch.nn.Linear(iunits, self.odim * self.reduction_factor, bias=False)
-        self.prob_out = torch.nn.Linear(iunits, self.reduction_factor)
+        iunits = idim + dunits if use_concate else dunits
+        self.feat_out = torch.nn.Linear(iunits, odim * reduction_factor, bias=False)
+        self.prob_out = torch.nn.Linear(iunits, reduction_factor)
+
         # initialize
         self.apply(decoder_init)
 
     def zero_state(self, hs):
-        init_hs = hs.new_zeros(hs.size(0), self.dunits)
+        init_hs = hs.new_zeros(hs.size(0), self.lstm[0].hidden_size)
         return init_hs
 
     def forward(self, hs, hlens, ys):
@@ -280,7 +272,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, len(self.lstm)):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
@@ -299,7 +291,7 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
+            for l in six.moves.range(1, len(self.lstm)):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
@@ -358,7 +350,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, len(self.lstm)):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(1, self.odim)
@@ -383,7 +375,7 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
+            for l in six.moves.range(1, len(self.lstm)):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
@@ -435,7 +427,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, len(self.lstm)):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
@@ -455,7 +447,7 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
+            for l in six.moves.range(1, len(self.lstm)):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             prev_out = y  # teacher forcing
