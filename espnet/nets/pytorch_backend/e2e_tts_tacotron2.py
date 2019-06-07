@@ -74,9 +74,10 @@ class GuidedAttentionLoss(torch.nn.Module):
         if self.masks is None:
             self.masks = self._make_masks(ilens, olens).to(att_ws.device)
         losses = self.guided_attn_masks * att_ws
+        loss = torch.mean(losses.masked_select(self.masks))
         if self.reset_always:
             self.reset_masks()
-        return torch.mean(losses.masked_select(self.masks))
+        return loss
 
     def _make_guided_attention_masks(self, ilens, olens):
         n_batches = len(ilens)
@@ -348,6 +349,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                             help='Whether to use masking in calculation of loss')
         parser.add_argument('--bce-pos-weight', default=20.0, type=float,
                             help='Positive sample weight in BCE calculation (only for use-masking=True)')
+        parser.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
+                            help="Whether to use guided attention loss")
+        parser.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
+                            help="Sigma in guided attention loss")
         return
 
     def __init__(self, idim, odim, args):
@@ -362,6 +367,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.cumulate_att_w = args.cumulate_att_w
         self.reduction_factor = args.reduction_factor
         self.use_cbhg = args.use_cbhg
+        self.use_guided_attn_loss = getattr(args, "use_guided_attn_loss", False)
 
         # define activation function for the final output
         if args.output_activation is None:
@@ -431,6 +437,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            zoneout_rate=args.zoneout_rate,
                            reduction_factor=args.reduction_factor)
         self.taco2_loss = Tacotron2Loss(args)
+        if self.use_guided_attn_loss:
+            self.attn_loss = GuidedAttentionLoss(sigma=args.guided_attn_loss_sigma)
         if self.use_cbhg:
             self.cbhg = CBHG(idim=odim,
                              odim=args.spc_dim,
@@ -483,13 +491,21 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
             after_outs, before_outs, logits, ys, labels, olens)
         loss = l1_loss + mse_loss + bce_loss
-        report_keys = []
-        report_keys += [
+        report_keys = [
             {'l1_loss': l1_loss.item()},
             {'mse_loss': mse_loss.item()},
             {'bce_loss': bce_loss.item()},
         ]
 
+        # caluculate attention loss
+        if self.use_guided_attn_loss:
+            attn_loss = self.attn_loss(att_ws, ilens, olens)
+            loss = loss + attn_loss
+            report_keys += [
+                {'attn_loss': attn_loss.item()},
+            ]
+
+        # caluculate cbhg loss
         if self.use_cbhg:
             # remove unnecessary padded part (for multi-gpus)
             if max_out != spcs.shape[1]:
@@ -578,6 +594,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         :rtype list[str] plot_keys: base keys to plot during training
         """
         plot_keys = ['loss', 'l1_loss', 'mse_loss', 'bce_loss']
+        if self.use_guided_attn_loss:
+            plot_keys += ['attn_loss']
         if self.use_cbhg:
             plot_keys += ['cbhg_l1_loss', 'cbhg_mse_loss']
         return plot_keys
