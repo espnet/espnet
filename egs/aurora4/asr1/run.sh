@@ -41,7 +41,7 @@ wsj0=/export/corpora5/LDC/LDC93S6B
 wsj1=/export/corpora5/LDC/LDC94S13B
 
 # exp tag
-tag="transformer_initial" # tag for managing experiments.
+tag="transformer_100epoch" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 

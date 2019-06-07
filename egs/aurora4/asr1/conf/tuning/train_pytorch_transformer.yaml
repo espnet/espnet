@@ -26,7 +26,7 @@ opt: noam
 accum-grad: 2
 grad-clip: 5
 patience: 0
-epochs: 20
+epochs: 100
 dropout-rate: 0.1
 
 # transformer specific setting
