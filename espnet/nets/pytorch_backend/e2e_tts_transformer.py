@@ -577,6 +577,12 @@ class Transformer(TTSInterface, torch.nn.Module):
             loss = l1_loss + l2_loss + bce_loss
         else:
             raise ValueError("unknown --loss-type " + self.loss_type)
+        report_keys = [
+            {"l1_loss": l1_loss.item()},
+            {"l2_loss": l2_loss.item()},
+            {"bce_loss": bce_loss.item()},
+            {"loss": loss.item()},
+        ]
 
         # calculate guided attention loss
         if self.use_guided_attn_loss:
@@ -591,6 +597,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 enc_attn_loss = self.attn_criterion(att_ws, ilens, ilens)
                 self.attn_criterion.reset_masks()
                 loss = loss + enc_attn_loss
+                report_keys += [{"enc_attn_loss": enc_attn_loss.item()}]
             # calculate for decoder
             if "decoder" in self.modules_applied_guided_attn:
                 att_ws = []
@@ -602,6 +609,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                 dec_attn_loss = self.attn_criterion(att_ws, olens_, olens_)
                 self.attn_criterion.reset_masks()
                 loss = loss + dec_attn_loss
+                report_keys += [{"dec_attn_loss": dec_attn_loss.item()}]
             # calculate for encoder-decoder
             if "encoder-decoder" in self.modules_applied_guided_attn:
                 att_ws = []
@@ -613,21 +621,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                 enc_dec_attn_loss = self.attn_criterion(att_ws, ilens, olens_)
                 self.attn_criterion.reset_masks()
                 loss = loss + enc_dec_attn_loss
-
-        # report for chainer reporter
-        report_keys = [
-            {"l1_loss": l1_loss.item()},
-            {"l2_loss": l2_loss.item()},
-            {"bce_loss": bce_loss.item()},
-            {"loss": loss.item()},
-        ]
-        if self.use_guided_attn_loss:
-            if "encoder" in self.modules_applied_guided_attn:
-                report_keys += [{"enc_attn_loss": enc_attn_loss.item()}]
-            if "decoder" in self.modules_applied_guided_attn:
-                report_keys += [{"dec_attn_loss": dec_attn_loss.item()}]
-            if "encoder-decoder" in self.modules_applied_guided_attn:
                 report_keys += [{"enc_dec_attn_loss": enc_dec_attn_loss.item()}]
+
+        # report extra information
         if self.use_scaled_pos_enc:
             report_keys += [
                 {"encoder_alpha": self.encoder.embed[-1].alpha.data.item()},
