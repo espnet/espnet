@@ -7,9 +7,9 @@
 
 # general configuration
 backend=pytorch
-stage=0        # start from 0 if you need to start from data preparation
-stop_stage=100
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+stage=4        # start from 0 if you need to start from data preparation
+stop_stage=4
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -20,9 +20,11 @@ seed=1
 # feature configuration
 do_delta=false
 
-train_config=conf/train.yaml
+# train_config=conf/train.yaml
 lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
+# decode_config=conf/decode.yaml
+train_config=conf/tuning/train_pytorch_transformer.yaml
+decode_config=conf/tuning/decode_pytorch_transformer.yaml
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
@@ -39,7 +41,7 @@ wsj0=/export/corpora5/LDC/LDC93S6B
 wsj1=/export/corpora5/LDC/LDC94S13B
 
 # exp tag
-tag="" # tag for managing experiments.
+tag="transformer_initial" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 

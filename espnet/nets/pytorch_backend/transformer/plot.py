@@ -1,5 +1,6 @@
 import logging
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from espnet.asr import asr_utils
