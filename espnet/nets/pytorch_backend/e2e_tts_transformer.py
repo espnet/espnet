@@ -496,9 +496,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             # calculate for encoder
             if "encoder" in self.modules_applied_guided_attn:
                 att_ws = []
-                for layer_idx in reversed(range(len(self.encoder.encoders))):
+                for idx, layer_idx in enumerate(reversed(range(len(self.decoder.decoders)))):
                     att_ws += [self.encoder.encoders[layer_idx].self_attn.attn[:, :self.num_heads_applied_guided_attn]]
-                    if layer_idx + 1 == self.num_layers_applied_guided_attn:
+                    if idx + 1 == self.num_layers_applied_guided_attn:
                         break
                 att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_in, T_in)
                 enc_attn_loss = self.attn_criterion(att_ws, ilens, ilens)
@@ -507,9 +507,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             # calculate for decoder
             if "decoder" in self.modules_applied_guided_attn:
                 att_ws = []
-                for layer_idx in reversed(range(len(self.decoder.decoders))):
+                for idx, layer_idx in enumerate(reversed(range(len(self.decoder.decoders)))):
                     att_ws += [self.decoder.decoders[layer_idx].self_attn.attn[:, :self.num_heads_applied_guided_attn]]
-                    if layer_idx + 1 == self.num_layers_applied_guided_attn:
+                    if idx + 1 == self.num_layers_applied_guided_attn:
                         break
                 att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_out)
                 dec_attn_loss = self.attn_criterion(att_ws, olens_, olens_)
@@ -518,9 +518,9 @@ class Transformer(TTSInterface, torch.nn.Module):
             # calculate for encoder-decoder
             if "encoder-decoder" in self.modules_applied_guided_attn:
                 att_ws = []
-                for layer_idx in reversed(range(len(self.decoder.decoders))):
+                for idx, layer_idx in enumerate(reversed(range(len(self.decoder.decoders)))):
                     att_ws += [self.decoder.decoders[layer_idx].src_attn.attn[:, :self.num_heads_applied_guided_attn]]
-                    if layer_idx + 1 == self.num_layers_applied_guided_attn:
+                    if idx + 1 == self.num_layers_applied_guided_attn:
                         break
                 att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_in)
                 enc_dec_attn_loss = self.attn_criterion(att_ws, ilens, olens_)
