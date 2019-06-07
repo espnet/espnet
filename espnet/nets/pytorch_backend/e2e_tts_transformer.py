@@ -46,7 +46,10 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
         if self.masks is None:
             self.masks = self._make_masks(ilens, olens).to(att_ws.device).unsqueeze(1)
         losses = self.guided_attn_masks * att_ws
-        return torch.mean(losses.masked_select(self.masks))
+        loss = torch.mean(losses.masked_select(self.masks))
+        if self.reset_always:
+            self.reset_masks()
+        return loss
 
 
 class TransformerLoss(torch.nn.Module):
