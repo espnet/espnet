@@ -29,7 +29,7 @@
 
 # Select the backend used by run.sh from "local", "sge", "slurm", or "ssh"
 # cmd_backend='jhu'
-cmd_backend='local'
+cmd_backend='jhu'
 
 # Local machine, without any Job scheduling system
 if [ "${cmd_backend}" = local ]; then
