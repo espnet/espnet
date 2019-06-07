@@ -269,6 +269,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             self.output_activation_fn = getattr(F, args.output_activation)
         else:
             raise ValueError('there is no such an activation function. (%s)' % args.output_activation)
+
+        # set padding idx
+        padding_idx = 0
+
         # define network modules
         self.enc = Encoder(idim=idim,
                            embed_dim=args.embed_dim,
@@ -278,7 +282,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            econv_chans=args.econv_chans,
                            econv_filts=args.econv_filts,
                            use_batch_norm=args.use_batch_norm,
-                           dropout_rate=args.dropout_rate)
+                           dropout_rate=args.dropout_rate,
+                           padding_idx=padding_idx)
         dec_idim = args.eunits if args.spk_embed_dim is None else args.eunits + args.spk_embed_dim
         if args.atype == "location":
             att = AttLoc(dec_idim,

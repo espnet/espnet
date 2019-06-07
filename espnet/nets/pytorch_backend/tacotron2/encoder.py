@@ -50,44 +50,38 @@ class Encoder(torch.nn.Module):
         super(Encoder, self).__init__()
         # store the hyperparameters
         self.idim = idim
-        self.embed_dim = embed_dim
-        self.elayers = elayers
-        self.eunits = eunits
-        self.econv_layers = econv_layers
-        self.econv_chans = econv_chans if econv_layers != 0 else -1
-        self.econv_filts = econv_filts if econv_layers != 0 else -1
-        self.use_batch_norm = use_batch_norm
         self.use_residual = use_residual
-        self.dropout_rate = dropout_rate
+
         # define network layer modules
-        self.embed = torch.nn.Embedding(self.idim, self.embed_dim, padding_idx=padding_idx)
-        if self.econv_layers > 0:
+        self.embed = torch.nn.Embedding(idim, embed_dim, padding_idx=padding_idx)
+        if econv_layers > 0:
             self.convs = torch.nn.ModuleList()
-            for layer in six.moves.range(self.econv_layers):
-                ichans = self.embed_dim if layer == 0 else self.econv_chans
-                if self.use_batch_norm:
+            for layer in six.moves.range(econv_layers):
+                ichans = embed_dim if layer == 0 else econv_chans
+                if use_batch_norm:
                     self.convs += [torch.nn.Sequential(
-                        torch.nn.Conv1d(ichans, self.econv_chans, self.econv_filts, stride=1,
-                                        padding=(self.econv_filts - 1) // 2, bias=False),
-                        torch.nn.BatchNorm1d(self.econv_chans),
+                        torch.nn.Conv1d(ichans, econv_chans, econv_filts, stride=1,
+                                        padding=(econv_filts - 1) // 2, bias=False),
+                        torch.nn.BatchNorm1d(econv_chans),
                         torch.nn.ReLU(),
-                        torch.nn.Dropout(self.dropout_rate))]
+                        torch.nn.Dropout(dropout_rate))]
                 else:
                     self.convs += [torch.nn.Sequential(
-                        torch.nn.Conv1d(ichans, self.econv_chans, self.econv_filts, stride=1,
-                                        padding=(self.econv_filts - 1) // 2, bias=False),
+                        torch.nn.Conv1d(ichans, econv_chans, econv_filts, stride=1,
+                                        padding=(econv_filts - 1) // 2, bias=False),
                         torch.nn.ReLU(),
-                        torch.nn.Dropout(self.dropout_rate))]
+                        torch.nn.Dropout(dropout_rate))]
         else:
             self.convs = None
         if elayers > 0:
-            iunits = econv_chans if self.econv_layers != 0 else self.embed_dim
+            iunits = econv_chans if econv_layers != 0 else embed_dim
             self.blstm = torch.nn.LSTM(
-                iunits, self.eunits // 2, self.elayers,
+                iunits, eunits // 2, elayers,
                 batch_first=True,
                 bidirectional=True)
         else:
             self.blstm = None
+
         # initialize
         self.apply(encoder_init)
 
@@ -102,11 +96,12 @@ class Encoder(torch.nn.Module):
         :rtype: list
         """
         xs = self.embed(xs).transpose(1, 2)
-        for l in six.moves.range(self.econv_layers):
-            if self.use_residual:
-                xs += self.convs[l](xs)
-            else:
-                xs = self.convs[l](xs)
+        if self.convs is not None:
+            for l in six.moves.range(len(self.convs)):
+                if self.use_residual:
+                    xs += self.convs[l](xs)
+                else:
+                    xs = self.convs[l](xs)
         if self.blstm is None:
             return xs.transpose(1, 2)
         xs = pack_padded_sequence(xs.transpose(1, 2), ilens, batch_first=True)
