@@ -162,7 +162,7 @@ class VGG2L(torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :return: batch of padded hidden state sequences (B, Tmax // 4, 128)
+        :return: batch of padded hidden state sequences (B, Tmax // 4, 128 * D // 4)
         :rtype: torch.Tensor
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
