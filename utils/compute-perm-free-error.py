@@ -15,7 +15,7 @@ import re
 import six
 import sys
 
-from minpermwer import get_utt_permutation
+from min_perm_wer import get_utt_permutation
 
 is_python2 = sys.version_info[0] == 2
 
