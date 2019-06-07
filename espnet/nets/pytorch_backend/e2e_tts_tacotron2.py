@@ -480,10 +480,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
-        # check ilens type (should be list of int)
-        if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
-            ilens = list(map(int, ilens))
-
         # remove unnecessary padded part (for multi-gpus)
         max_in = max(ilens)
         max_out = max(olens)
@@ -498,11 +494,11 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         if self.spk_embed_dim is not None:
             spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
             hs = torch.cat([hs, spembs], dim=-1)
-        after_outs, before_outs, logits = self.dec(hs, hlens, ys)
+        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
-            olens = [olen - olen % self.reduction_factor for olen in olens]
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
