@@ -1,0 +1,11 @@
+# pytorch VGG-3BLSTM 1024 units, #BPE 100, dropout 0.2
+# train_pytorch_vggblstm_e5_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_location_aconvc10_aconvf100_mtlalpha0.5_drop0.2_adadelta_sampprob0.0_bs20_mli800_mlo150
+# WER
+decode_test_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.3_1layer_unit1024_sgd_bs1024: 16.0
+decode_test_private_buriy_audiobooks_2_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.3_1layer_unit1024_sgd_bs1024: 13.0
+decode_test_public_lecture_1_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.3_1layer_unit1024_sgd_bs1024: 18.4
+decode_test_public_series_1_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.3_1layer_unit1024_sgd_bs1024: 28.8
+decode_test_public_youtube700_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.3_1layer_unit1024_sgd_bs1024: 22.3
+decode_test_ru_RU_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.3_1layer_unit1024_sgd_bs1024: 2.4
+decode_test_russian_single_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.3_1layer_unit1024_sgd_bs1024: 9.8
+decode_test_voxforge_ru_beam20_emodel.acc.best_p0.0_len0.0-0.0_ctcw0.5_rnnlm0.3_1layer_unit1024_sgd_bs1024: 6.1
