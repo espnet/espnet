@@ -216,11 +216,14 @@ class CustomConverter(object):
         return xs_pad, ilens, ys_pad
 
 
-def load_pretrained_model(model_path):
+def load_trained_model(model_path):
+    """Load the trained model
+
+    :param str model_path: Path to model.***.best
+    """
     # read training config
-    # idim, odim, train_args = get_model_conf(model_path, args.model_conf)
-    idim, odim, train_args = get_model_conf(model_path,
-                                            os.path.join(model_path, 'model.json'))
+    idim, odim, train_args = get_model_conf(
+        model_path, os.path.join(os.path.dirname(model_path), 'model.json'))
 
     # load trained model parameters
     logging.info('reading model parameters from ' + model_path)
@@ -270,12 +273,12 @@ def train(args):
     asr_model, mt_model = None, None
     # Initialize encoder with pre-trained ASR encoder
     if args.asr_model:
-        asr_model, _ = load_pretrained_model(args.asr_model)
+        asr_model, _ = load_trained_model(args.asr_model)
         assert isinstance(asr_model, ASRInterface)
 
     # Initialize decoder with pre-trained MT decoder
     if args.mt_model:
-        mt_model, _ = load_pretrained_model(args.mt_model)
+        mt_model, _ = load_trained_model(args.mt_model)
         assert isinstance(mt_model, MTInterface)
 
     # specify model architecture
@@ -507,7 +510,7 @@ def recog(args):
     :param Namespace args: The program arguments
     """
     set_deterministic_pytorch(args)
-    model, train_args = load_pretrained_model(args.model)
+    model, train_args = load_trained_model(args.model)
     assert isinstance(model, ASRInterface)
     model.recog_args = args
 
