@@ -88,7 +88,7 @@ class PlotAttentionReport(extension.Extension):
     """
 
     def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False,
-                 ikey="input", iaxis=0, okey="output"):
+                 ikey="input", iaxis=0, okey="output", oaxis=0):
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
@@ -99,6 +99,7 @@ class PlotAttentionReport(extension.Extension):
         self.ikey = ikey
         self.iaxis = iaxis
         self.okey = okey
+        self.oaxis = oaxis
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
 
