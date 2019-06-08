@@ -46,6 +46,10 @@ def make_non_pad_mask(lengths):
 class GuidedAttentionLoss(torch.nn.Module):
     """Guided attention loss function
 
+    Reference:
+        Efficiently Trainable Text-to-Speech System Based on Deep Convolutional Networks with Guided Attention
+        (https://arxiv.org/abs/1710.08969)
+
     :param float sigma: standard deviation to control how close attention to a diagonal
     :param bool reset_always: whether to always reset masks
     """
@@ -64,9 +68,9 @@ class GuidedAttentionLoss(torch.nn.Module):
     def forward(self, att_ws, ilens, olens):
         """GuidedAttentionLoss forward calculation
 
-        :param torch.Tenosr att_ws: attention weights (B, T_max_out, T_max_in)
-        :param torch.Tensor ilens: bath of input lenghts (B,)
-        :param torch.Tensor olens: bath of output lenghts (B,)
+        :param torch.Tenosr att_ws: batch of attention weights (B, T_max_out, T_max_in)
+        :param torch.Tensor ilens: batch of input lenghts (B,)
+        :param torch.Tensor olens: batch of output lenghts (B,)
         :return torch.tensor: guided attention loss value
         """
         if self.guided_attn_masks is None:
