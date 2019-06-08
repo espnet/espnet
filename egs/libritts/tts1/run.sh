@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2019 Nagoya University (Takenori Yoshimura)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1
 stop_stage=100
-ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
 verbose=0    # verbose option (if set > 1, get more log)
@@ -18,7 +18,7 @@ seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=16000      # sampling frequency
+fs=24000      # sampling frequency
 fmax=""       # maximum frequency
 fmin=""       # minimum frequency
 n_mels=80     # number of mel basis
@@ -35,12 +35,12 @@ model=model.loss.best
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # Set this to somewhere where you want to put your data, or where
-# someone else has already put it.  You'll want to change this
+# someone else has already put it. You'll want to change this
 # if you're not on the CLSP grid.
 datadir=/export/a15/vpanayotov/data
 
 # base url for downloads.
-data_url=www.openslr.org/resources/12
+data_url=www.openslr.org/resources/60
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -54,12 +54,13 @@ set -u
 set -o pipefail
 
 train_set=train_clean_460
-dev_set=dev
+dev_set=dev_clean
 eval_set=test_clean
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+    mkdir -p ${datadir}
+    for part in dev-clean test-clean train-clean-100 train-clean-360; do
         local/download_and_untar.sh ${datadir} ${data_url} ${part}
     done
 fi
@@ -68,9 +69,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+    for part in dev-clean test-clean train-clean-100 train-clean-360; do
         # use underscore-separated names in data directories.
-        local/data_prep.sh ${datadir}/LibriSpeech/${part} data/${part//-/_}
+        local/data_prep.sh ${datadir}/LibriTTS/${part} data/${part//-/_}
     done
 fi
 
@@ -105,7 +106,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${dev_set}_org data/${dev_set}
 
-    # compute global CMVN
+    # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
@@ -143,17 +144,19 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mfccdir=mfcc
     vaddir=mfcc
     for name in ${train_set} ${dev_set} ${eval_set}; do
-        utils/copy_data_dir.sh data/${name} data/${name}_mfcc
+        utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
+        utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
         steps/make_mfcc.sh \
             --write-utt2num-frames true \
             --mfcc-config conf/mfcc.conf \
             --nj ${nj} --cmd "$train_cmd" \
-            data/${name}_mfcc exp/make_mfcc ${mfccdir}
-        utils/fix_data_dir.sh data/${name}_mfcc
+            data/${name}_mfcc_16k exp/make_mfcc_16k ${mfccdir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
         sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
-            data/${name}_mfcc exp/make_vad ${vaddir}
-        utils/fix_data_dir.sh data/${name}_mfcc
+            data/${name}_mfcc_16k exp/make_vad ${vaddir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
     done
+
     # Check pretrained model existence
     nnet_dir=exp/xvector_nnet_1a
     if [ ! -e ${nnet_dir} ]; then
@@ -166,7 +169,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Extract x-vector
     for name in ${train_set} ${dev_set} ${eval_set}; do
         sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
-            ${nnet_dir} data/${name}_mfcc \
+            ${nnet_dir} data/${name}_mfcc_16k \
             ${nnet_dir}/xvectors_${name}
     done
     # Update json
@@ -174,7 +177,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
     done
 fi
-
 
 if [ -z ${tag} ]; then
     expname=${train_set}_${backend}_$(basename ${train_config%.*})
