@@ -2,24 +2,19 @@
 
 # Copyright 2014  Vassil Panayotov
 #           2014  Johns Hopkins University (author: Daniel Povey)
+# Modifications Copyright 2019  Nagoya University (author: Takenori Yoshimura)
 # Apache 2.0
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <src-dir> <dst-dir>"
-  echo "e.g.: $0 /export/a15/vpanayotov/data/LibriSpeech/dev-clean data/dev-clean"
+  echo "e.g.: $0 /export/a15/vpanayotov/data/LibriTTS/dev-clean data/dev-clean"
   exit 1
 fi
 
 src=$1
 dst=$2
 
-# all utterances are FLAC compressed
-if ! which flac >&/dev/null; then
-   echo "Please install 'flac' on ALL worker nodes!"
-   exit 1
-fi
-
-spk_file=$src/../SPEAKERS.TXT
+spk_file=$src/../SPEAKERS.txt
 
 mkdir -p $dst || exit 1
 
@@ -32,7 +27,8 @@ trans=$dst/text; [[ -f "$trans" ]] && rm $trans
 utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
 spk2gender=$dst/spk2gender; [[ -f $spk2gender ]] && rm $spk2gender
 
-for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
+for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sed -e "s/$/_/" | sort); do
+  reader_dir=$(echo $reader_dir | sed -e "s/_$//")
   reader=$(basename $reader_dir)
   if ! [ $reader -eq $reader ]; then  # not integer.
     echo "$0: unexpected subdirectory name $reader"
@@ -52,21 +48,23 @@ for reader_dir in $(find -L $src -mindepth 1 -maxdepth 1 -type d | sort); do
       exit 1
     fi
 
-    find -L $chapter_dir/ -iname "*.flac" | sort | xargs -I% basename % .flac | \
-      awk -v "dir=$chapter_dir" '{printf "%s flac -c -d -s %s/%s.flac |\n", $0, dir, $0}' >>$wav_scp|| exit 1
+    spk="${reader}_${chapter}"
 
-    chapter_trans=$chapter_dir/${reader}-${chapter}.trans.txt
-    [ ! -f  $chapter_trans ] && echo "$0: expected file $chapter_trans to exist" && exit 1
-    cat $chapter_trans >>$trans
+    find -L $chapter_dir/ -iname "*.wav" | sort | while read -r wav_file; do
+       id=$(basename $wav_file .wav)
+       echo "$id $wav_file" >>$wav_scp
 
-    # NOTE: For now we are using per-chapter utt2spk. That is each chapter is considered
-    #       to be a different speaker. This is done for simplicity and because we want
-    #       e.g. the CMVN to be calculated per-chapter
-    awk -v "reader=$reader" -v "chapter=$chapter" '{printf "%s %s-%s\n", $1, reader, chapter}' \
-      <$chapter_trans >>$utt2spk || exit 1
+       txt=$(cat $(echo $wav_file | sed -e "s/\.wav$/.normalized.txt/"))
+       echo "$id $txt" >>$trans
+
+       # NOTE: For now we are using per-chapter utt2spk. That is each chapter is considered
+       #       to be a different speaker. This is done for simplicity and because we want
+       #       e.g. the CMVN to be calculated per-chapter
+       echo "$id $spk" >>$utt2spk
+    done
 
     # reader -> gender map (again using per-chapter granularity)
-    echo "${reader}-${chapter} $reader_gender" >>$spk2gender
+    echo "$spk $reader_gender" >>$spk2gender
   done
 done
 
