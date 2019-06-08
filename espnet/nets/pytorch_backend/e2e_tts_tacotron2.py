@@ -43,6 +43,112 @@ def make_non_pad_mask(lengths):
     return seq_range_expand < seq_length_expand
 
 
+class GuidedAttentionLoss(torch.nn.Module):
+    """Guided attention loss function
+
+    Reference:
+        Efficiently Trainable Text-to-Speech System Based on Deep Convolutional Networks with Guided Attention
+        (https://arxiv.org/abs/1710.08969)
+
+    :param float sigma: standard deviation to control how close attention to a diagonal
+    :param bool reset_always: whether to always reset masks
+    """
+
+    def __init__(self, sigma=0.4, reset_always=True):
+        super(GuidedAttentionLoss, self).__init__()
+        self.sigma = torch.tensor(sigma)
+        self.reset_always = reset_always
+        self.guided_attn_masks = None
+        self.masks = None
+
+    def reset_masks(self):
+        self.guided_attn_masks = None
+        self.masks = None
+
+    def forward(self, att_ws, ilens, olens):
+        """GuidedAttentionLoss forward calculation
+
+        :param torch.Tenosr att_ws: batch of attention weights (B, T_max_out, T_max_in)
+        :param torch.Tensor ilens: batch of input lenghts (B,)
+        :param torch.Tensor olens: batch of output lenghts (B,)
+        :return torch.tensor: guided attention loss value
+        """
+        if self.guided_attn_masks is None:
+            self.guided_attn_masks = self._make_guided_attention_masks(ilens, olens).to(att_ws.device)
+        if self.masks is None:
+            self.masks = self._make_masks(ilens, olens).to(att_ws.device)
+        losses = self.guided_attn_masks * att_ws
+        loss = torch.mean(losses.masked_select(self.masks))
+        if self.reset_always:
+            self.reset_masks()
+        return loss
+
+    def _make_guided_attention_masks(self, ilens, olens):
+        n_batches = len(ilens)
+        max_ilen = max(ilens)
+        max_olen = max(olens)
+        guided_attn_masks = torch.zeros((n_batches, max_olen, max_ilen))
+        for idx, (ilen, olen) in enumerate(zip(ilens, olens)):
+            guided_attn_masks[idx, :olen, :ilen] = self._make_guided_attention_mask(ilen, olen, self.sigma)
+        return guided_attn_masks
+
+    @staticmethod
+    def _make_guided_attention_mask(ilen, olen, sigma):
+        """Make guided attention mask
+
+        >>> guided_attn_mask =_make_guided_attention(5, 5, 0.4)
+        >>> guided_attn_mask.shape
+        torch.Size([5, 5])
+        >>> guided_attn_mask
+        tensor([[0.0000, 0.1175, 0.3935, 0.6753, 0.8647],
+                [0.1175, 0.0000, 0.1175, 0.3935, 0.6753],
+                [0.3935, 0.1175, 0.0000, 0.1175, 0.3935],
+                [0.6753, 0.3935, 0.1175, 0.0000, 0.1175],
+                [0.8647, 0.6753, 0.3935, 0.1175, 0.0000]])
+        >>> guided_attn_mask =_make_guided_attention(3, 6, 0.4)
+        >>> guided_attn_mask.shape
+        torch.Size([6, 3])
+        >>> guided_attn_mask
+        tensor([[0.0000, 0.2934, 0.7506],
+                [0.0831, 0.0831, 0.5422],
+                [0.2934, 0.0000, 0.2934],
+                [0.5422, 0.0831, 0.0831],
+                [0.7506, 0.2934, 0.0000],
+                [0.8858, 0.5422, 0.0831]])
+        """
+        grid_x, grid_y = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
+        grid_x, grid_y = grid_x.float(), grid_y.float()
+        return 1.0 - torch.exp(-(grid_y / ilen - grid_x / olen) ** 2 / (2 * (sigma ** 2)))
+
+    @staticmethod
+    def _make_masks(ilens, olens):
+        """Make masks
+
+        >>> ilens, olens = [5, 2], [8, 5]
+        >>> _make_mask(ilens, olens)
+        tensor([[[1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1],
+                 [1, 1, 1, 1, 1]],
+
+                [[1, 1, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [1, 1, 0, 0, 0],
+                 [0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 0]]], dtype=torch.uint8)
+        """
+        in_masks = make_non_pad_mask(ilens)  # (B, T_in)
+        out_masks = make_non_pad_mask(olens)  # (B, T_out)
+        return out_masks.unsqueeze(-1) & in_masks.unsqueeze(-2)  # (B, T_out, T_in)
+
+
 class CBHGLoss(torch.nn.Module):
     """Loss function for CBHG module
 
@@ -247,6 +353,10 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                             help='Whether to use masking in calculation of loss')
         parser.add_argument('--bce-pos-weight', default=20.0, type=float,
                             help='Positive sample weight in BCE calculation (only for use-masking=True)')
+        parser.add_argument("--use-guided-attn-loss", default=False, type=strtobool,
+                            help="Whether to use guided attention loss")
+        parser.add_argument("--guided-attn-loss-sigma", default=0.4, type=float,
+                            help="Sigma in guided attention loss")
         return
 
     def __init__(self, idim, odim, args):
@@ -261,6 +371,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         self.cumulate_att_w = args.cumulate_att_w
         self.reduction_factor = args.reduction_factor
         self.use_cbhg = args.use_cbhg
+        self.use_guided_attn_loss = getattr(args, "use_guided_attn_loss", False)
 
         # define activation function for the final output
         if args.output_activation is None:
@@ -330,6 +441,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                            zoneout_rate=args.zoneout_rate,
                            reduction_factor=args.reduction_factor)
         self.taco2_loss = Tacotron2Loss(args)
+        if self.use_guided_attn_loss:
+            self.attn_loss = GuidedAttentionLoss(sigma=args.guided_attn_loss_sigma)
         if self.use_cbhg:
             self.cbhg = CBHG(idim=odim,
                              odim=args.spc_dim,
@@ -354,10 +467,6 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
-        # check ilens type (should be list of int)
-        if isinstance(ilens, torch.Tensor) or isinstance(ilens, np.ndarray):
-            ilens = list(map(int, ilens))
-
         # remove unnecessary padded part (for multi-gpus)
         max_in = max(ilens)
         max_out = max(olens)
@@ -372,11 +481,11 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         if self.spk_embed_dim is not None:
             spembs = F.normalize(spembs).unsqueeze(1).expand(-1, hs.size(1), -1)
             hs = torch.cat([hs, spembs], dim=-1)
-        after_outs, before_outs, logits = self.dec(hs, hlens, ys)
+        after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
-            olens = [olen - olen % self.reduction_factor for olen in olens]
+            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
@@ -386,13 +495,21 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
             after_outs, before_outs, logits, ys, labels, olens)
         loss = l1_loss + mse_loss + bce_loss
-        report_keys = []
-        report_keys += [
+        report_keys = [
             {'l1_loss': l1_loss.item()},
             {'mse_loss': mse_loss.item()},
             {'bce_loss': bce_loss.item()},
         ]
 
+        # caluculate attention loss
+        if self.use_guided_attn_loss:
+            attn_loss = self.attn_loss(att_ws, ilens, olens)
+            loss = loss + attn_loss
+            report_keys += [
+                {'attn_loss': attn_loss.item()},
+            ]
+
+        # caluculate cbhg loss
         if self.use_cbhg:
             # remove unnecessary padded part (for multi-gpus)
             if max_out != spcs.shape[1]:
@@ -481,6 +598,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         :rtype list[str] plot_keys: base keys to plot during training
         """
         plot_keys = ['loss', 'l1_loss', 'mse_loss', 'bce_loss']
+        if self.use_guided_attn_loss:
+            plot_keys += ['attn_loss']
         if self.use_cbhg:
             plot_keys += ['cbhg_l1_loss', 'cbhg_mse_loss']
         return plot_keys
