@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2018 Nagoya University (Tomoki Hayashi)
+# Copyright 2019 Nagoya University (Takenori Yoshimura)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -10,32 +10,37 @@
 backend=pytorch
 stage=-1
 stop_stage=100
-ngpu=1       # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1       # number of gpu in training
 nj=32        # numebr of parallel jobs
 dumpdir=dump # directory to dump full features
-verbose=0    # verbose option (if set > 0, get more log)
-N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
+verbose=0    # verbose option (if set > 1, get more log)
 seed=1       # random seed number
 resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # feature extraction related
-fs=22050    # sampling frequency
-fmax=""     # maximum frequency
-fmin=""     # minimum frequency
-n_mels=80   # number of mel basis
-n_fft=1024  # number of fft points
-n_shift=256 # number of shift points
+fs=24000      # sampling frequency
+fmax=""       # maximum frequency
+fmin=""       # minimum frequency
+n_mels=80     # number of mel basis
+n_fft=1024    # number of fft points
+n_shift=256   # number of shift points
 win_length="" # window length
 
 # config files
-train_config=conf/train_pytorch_tacotron2+cbhg.yaml
+train_config=conf/train_pytorch_tacotron2+spkemb.yaml
 decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
+griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
-# root directory of db
-db_root=downloads
+# Set this to somewhere where you want to put your data, or where
+# someone else has already put it. You'll want to change this
+# if you're not on the CLSP grid.
+datadir=/export/a15/vpanayotov/data
+
+# base url for downloads.
+data_url=www.openslr.org/resources/60
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -48,21 +53,26 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train_no_dev"
-dev_set="dev"
-eval_set="eval"
+train_set=train_clean_460
+dev_set=dev_clean
+eval_set=test_clean
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    local/download.sh ${db_root}
+    mkdir -p ${datadir}
+    for part in dev-clean test-clean train-clean-100 train-clean-360; do
+        local/download_and_untar.sh ${datadir} ${data_url} ${part}
+    done
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/data_prep.sh ${db_root}/LJSpeech-1.1 data/train
-    utils/validate_data_dir.sh --no-feats data/train
+    for part in dev-clean test-clean train-clean-100 train-clean-360; do
+        # use underscore-separated names in data directories.
+        local/data_prep.sh ${datadir}/LibriTTS/${part} data/${part//-/_}
+    done
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
@@ -73,26 +83,28 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
-    # Generate the fbank features; by default 80-dimensional fbanks on each frame
     fbankdir=fbank
-    make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
-        --fs ${fs} \
-        --fmax "${fmax}" \
-        --fmin "${fmin}" \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        --win_length "${win_length}" \
-        --n_mels ${n_mels} \
-        data/train \
-        exp/make_fbank/train \
-        ${fbankdir}
+    for x in dev_clean test_clean train_clean_100 train_clean_360; do
+        make_fbank.sh --cmd "${train_cmd}" --nj ${nj} \
+            --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft ${n_fft} \
+            --n_shift ${n_shift} \
+            --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            data/${x} \
+            exp/make_fbank/${x} \
+            ${fbankdir}
+    done
 
-    # make a dev set
-    utils/subset_data_dir.sh --last data/train 500 data/deveval
-    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 250 data/${dev_set}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
+    utils/combine_data.sh data/${train_set}_org data/train_clean_100 data/train_clean_360
+    utils/combine_data.sh data/${dev_set}_org data/dev_clean
+
+    # remove utt having more than 3000 frames
+    # remove utt having more than 400 characters
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train_set}_org data/${train_set}
+    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${dev_set}_org data/${dev_set}
 
     # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -127,33 +139,42 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "stage 3: Spectrogram extraction"
-    stftdir=stft
+    echo "stage 3: x-vector extraction"
+    # Make MFCCs and compute the energy-based VAD for each dataset
+    mfccdir=mfcc
+    vaddir=mfcc
     for name in ${train_set} ${dev_set} ${eval_set}; do
-        utils/copy_data_dir.sh data/${name} data/${name}_stft
-        make_stft.sh --nj ${nj} --cmd "$train_cmd" \
-            --n_fft ${n_fft} \
-            --n_shift ${n_shift} \
-            --win_length "${win_length}" \
-            data/${name}_stft \
-            exp/make_stft/${name} \
-            ${stftdir}
-        utils/fix_data_dir.sh data/${name}_stft
+        utils/copy_data_dir.sh data/${name} data/${name}_mfcc_16k
+        utils/data/resample_data_dir.sh 16000 data/${name}_mfcc_16k
+        steps/make_mfcc.sh \
+            --write-utt2num-frames true \
+            --mfcc-config conf/mfcc.conf \
+            --nj ${nj} --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_mfcc_16k ${mfccdir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
+        sid/compute_vad_decision.sh --nj ${nj} --cmd "$train_cmd" \
+            data/${name}_mfcc_16k exp/make_vad ${vaddir}
+        utils/fix_data_dir.sh data/${name}_mfcc_16k
     done
 
-    # compute global CMVN
-    compute-cmvn-stats scp:data/${train_set}_stft/feats.scp data/${train_set}_stft/cmvn.ark
-
+    # Check pretrained model existence
+    nnet_dir=exp/xvector_nnet_1a
+    if [ ! -e ${nnet_dir} ]; then
+        echo "X-vector model does not exist. Download pre-trained model."
+        wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+        tar xvf 0008_sitw_v2_1a.tar.gz
+        mv 0008_sitw_v2_1a/exp/xvector_nnet_1a exp
+        rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
+    fi
+    # Extract x-vector
     for name in ${train_set} ${dev_set} ${eval_set}; do
-        # dump features for training
-        dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-            data/${name}_stft/feats.scp \
-            data/${train_set}_stft/cmvn.ark \
-            exp/dump_feats/${name}_stft \
-            ${dumpdir}/${name}_stft
-        # update json
-        local/update_json.sh ${dumpdir}/${name}/data.json \
-            ${dumpdir}/${name}_stft/feats.scp
+        sid/nnet3/xvector/extract_xvectors.sh --cmd "$train_cmd --mem 4G" --nj ${nj} \
+            ${nnet_dir} data/${name}_mfcc_16k \
+            ${nnet_dir}/xvectors_${name}
+    done
+    # Update json
+    for name in ${train_set} ${dev_set} ${eval_set}; do
+        local/update_json.sh ${dumpdir}/${name}/data.json ${nnet_dir}/xvectors_${name}/xvector.scp
     done
 fi
 
@@ -172,7 +193,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         tts_train.py \
            --backend ${backend} \
            --ngpu ${ngpu} \
-           --minibatches ${N} \
            --outdir ${expdir}/results \
            --tensorboard-dir tensorboard/${expname} \
            --verbose ${verbose} \
@@ -180,7 +200,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
            --resume ${resume} \
            --train-json ${tr_json} \
            --valid-json ${dt_json} \
-           --config ${decode_config}
+           --config ${train_config}
 fi
 
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
@@ -211,14 +231,18 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     echo "stage 6: Synthesis"
     for name in ${dev_set} ${eval_set}; do
         [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
-        apply-cmvn --norm-vars=true --reverse=true data/${train_set}_stft/cmvn.ark \
+        apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${name}/feats.scp \
             ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
         convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
             --fs ${fs} \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
             --n_fft ${n_fft} \
             --n_shift ${n_shift} \
             --win_length "${win_length}" \
+            --n_mels ${n_mels} \
+            --iters ${griffin_lim_iters} \
             ${outdir}_denorm/${name} \
             ${outdir}_denorm/${name}/log \
             ${outdir}_denorm/${name}/wav
