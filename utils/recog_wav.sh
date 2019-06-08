@@ -84,7 +84,7 @@ if [ -z "${cmvn}" ]; then
     download_models
     cmvn=${download_dir}/${cmvn_file}
 fi
-if [ -z "${lang_model}"] && [ ${use_lang_model} ]; then
+if [ -z "${lang_model}" ] && [ ${use_lang_model} ]; then
     download_models
     lang_model=${download_dir}/${lang_model_file}
 fi
