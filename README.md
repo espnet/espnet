@@ -23,11 +23,12 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   * [Use of GPU](#use-of-gpu)
   * [Changing the configuration](#changing-the-configuration)
   * [How to set minibatch](#how-to-set-minibatch)
-  * [Error due to ACS (Multiple GPUs)](#error-due-to-acs-multiple-gpus)
-  * [Docker Container](#docker-container)
   * [Setup in your cluster](#setup-in-your-cluster)
+  * [CTC, attention, and hybrid CTC/attention](#ctc-attention-and-hybrid-ctcattention)
+* [Known issues](#known-issues)
+  * [Error due to ACS (Multiple GPUs)](#error-due-to-acs-multiple-gpus)
   * [Error due to matplotlib](#error-due-to-matplotlib)
-* [CTC, attention, and hybrid CTC/attention](#ctc-attention-and-hybrid-ctcattention)
+* [Docker Container](#docker-container)
 * [Results](#results)
 * [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
 * [References](#references)
@@ -282,20 +283,17 @@ We also provide a utility to generate a yaml file from the input yaml file:
 ### How to set minibatch
 
 From espnet v0.4.0, we have three options in `--batch-count` to specify minibatch size (see `espnet.utils.batchfy` for implementation);
-1. `--batch-count seq --batch-seqs 32 --batch-seq-maxlen-in 800 --batch-seq-maxlen-out 150`. This option is compatible to the old setting before v0.4.0. This counts the minibatch size as the number of sequences and reduces the size when the maximum length of the input or output sequences is greater than 800 or 150, respectively.
-2. `--batch-count bin --batch-bins 100000`. This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., `max(ilen) * idim + max(olen) * odim`). Basically, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-bins $((x * (mean(ilen) * idim + mean(olen) * odim)))`.
-3. `--batch-count frame --batch-frames-in 800 --batch-frames-out 100 --batch-frames-inout 900`. This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
+1. `--batch-count seq --batch-seqs 32 --batch-seq-maxlen-in 800 --batch-seq-maxlen-out 150`. 
 
-### Error due to ACS (Multiple GPUs)
+    This option is compatible to the old setting before v0.4.0. This counts the minibatch size as the number of sequences and reduces the size when the maximum length of the input or output sequences is greater than 800 or 150, respectively.
+1. `--batch-count bin --batch-bins 100000`. 
 
-When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
-Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
-To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
+    This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., `max(ilen) * idim + max(olen) * odim`). 
+Basically, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-bins $((x * (mean(ilen) * idim + mean(olen) * odim)))`.
+1. `--batch-count frame --batch-frames-in 800 --batch-frames-out 100 --batch-frames-inout 900`. 
 
+    This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
 
-### Docker Container
-
-go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
 
 ### Setup in your cluster
 
@@ -303,6 +301,34 @@ Change `cmd.sh` according to your cluster setup.
 If you run experiments with your local machine, please use default `cmd.sh`.
 For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
 It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
+
+
+### CTC, attention, and hybrid CTC/attention
+
+ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
+
+```sh
+# hybrid CTC/attention (default)
+#  --mtlalpha 0.5 and --ctc_weight 0.3 in most cases
+$ ./run.sh
+
+# CTC mode
+$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
+
+# attention mode
+$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
+```
+
+The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
+(i.e., `--recog_model model.loss.best`).
+About the effectiveness of the hybrid CTC/attention during training and recognition, see [2] and [3].
+
+## Known issues
+### Error due to ACS (Multiple GPUs)
+
+When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
+Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
+To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
 
 ### Error due to matplotlib
 If you have the following error (or other numpy related errors),
@@ -322,25 +348,11 @@ $ . ./path.sh
 $ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
 ```
 
-## CTC, attention, and hybrid CTC/attention
 
-ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
+## Docker Container
 
-```sh
-# hybrid CTC/attention (default)
-#  --mtlalpha 0.5 and --ctc_weight 0.3 in most cases
-$ ./run.sh
+go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
 
-# CTC mode
-$ ./run.sh --mtlalpha 1.0 --ctc_weight 1.0 --recog_model model.loss.best
-
-# attention mode
-$ ./run.sh --mtlalpha 0.0 --ctc_weight 0.0
-```
-
-The CTC training mode does not output the validation accuracy, and the optimum model is selected with its loss value
-(i.e., `--recog_model model.loss.best`).
-About the effectiveness of the hybrid CTC/attention during training and recognition, see [2] and [3].
 
 ## Results
 
