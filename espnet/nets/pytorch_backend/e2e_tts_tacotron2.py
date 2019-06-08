@@ -46,6 +46,9 @@ def make_non_pad_mask(lengths):
 class GuidedAttentionLoss(torch.nn.Module):
     """Guided attention loss function
 
+    Reference: Efficiently Trainable Text-to-Speech System Based on Deep Convolutional Networks with Guided Attention
+               (https://arxiv.org/abs/1710.08969)
+
     :param float sigma: standard deviation to control how close attention to a diagonal
     :param bool reset_always: whether to always reset masks
     """
