@@ -3,13 +3,12 @@
 # Copyright 2019 Nagoya University (Takenori Yoshimura)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-if [ ! -f path.sh -o ! -f cmd.sh ]; then
+if [ ! -f path.sh ] || [ ! -f cmd.sh ]; then
     echo "Please change directory to e.g., egs/tedlium/asr1"
     exit 1
 fi
 
 . ./path.sh
-. ./cmd.sh
 
 # general configuration
 backend=pytorch
@@ -37,6 +36,12 @@ recipe_with_ver=tedlium.demo
 
 . utils/parse_options.sh || exit 1;
 
+# make shellcheck happy
+train_cmd=
+decode_cmd=
+
+. ./cmd.sh
+
 wav=$1
 
 if [ $# -gt 1 ]; then
@@ -52,7 +57,7 @@ set -o pipefail
 
 case "${recipe_with_ver}" in
     "tedlium.demo")
-        share_url=https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe
+        share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe"
         cmvn_file=data/train_trim_sp/cmvn.ark
         lang_model_file=exp/train_rnnlm_pytorch_lm_unigram500/rnnlm.model.best
         recog_model_file=exp/train_trim_sp_pytorch_train/results/model.acc.best
@@ -66,7 +71,7 @@ case "${recipe_with_ver}" in
 esac
 
 function download_models () {
-    download_dir=${decode_dir}/download
+    download_dir=${decode_dir}/download/${recipe_with_ver}
     mkdir -p ${download_dir}
     if [ ! -e ${download_dir}/.complete ]; then
         download_from_google_drive.sh ${share_url} ${download_dir} ".tar.gz"
@@ -79,7 +84,7 @@ if [ -z "${cmvn}" ]; then
     download_models
     cmvn=${download_dir}/${cmvn_file}
 fi
-if [ -z "${lang_model}" -a ${use_lang_model} ]; then
+if [ -z "${lang_model}"] && [ ${use_lang_model} ]; then
     download_models
     lang_model=${download_dir}/${lang_model_file}
 fi
@@ -101,7 +106,7 @@ if [ ! -f "${cmvn}" ]; then
     echo "No such CMVN file: ${cmvn}"
     exit 1
 fi
-if [ ! -f "${lang_model}" -a ${use_lang_model} ]; then
+if [ ! -f "${lang_model}" ] && [ ${use_lang_model} ]; then
     echo "No such language model: ${lang_model}"
     exit 1
 fi
@@ -118,7 +123,7 @@ if [ ! -f "${wav}" ]; then
     exit 1
 fi
 
-base=`basename $wav .wav`
+base=$(basename $wav .wav)
 decode_dir=${decode_dir}/${base}
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -174,7 +179,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         ${recog_opts}
 
     echo ""
-    recog_text=`grep rec_text ${decode_dir}/result.json | sed -e 's/.*: "\(.*\)<eos>.*/\1/'`
+    recog_text=$(grep rec_text ${decode_dir}/result.json | sed -e 's/.*: "\(.*\)<eos>.*/\1/')
     echo "Recognized text: ${recog_text}"
     echo ""
 
