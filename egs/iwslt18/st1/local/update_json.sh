@@ -88,7 +88,7 @@ done
 
 # add to json
 addjson.py --verbose ${verbose} -i false \
-    ${json} ${tmpdir}/output/text.json ${tmpdir}/output/token.json ${tmpdir}/output/tokenid.json ${tmpdir}/output/olen.json ${tmpdir}/output/odim.json > ${tmpdir}/data.json
+  ${json} ${tmpdir}/output/text.json ${tmpdir}/output/token.json ${tmpdir}/output/tokenid.json ${tmpdir}/output/olen.json ${tmpdir}/output/odim.json > ${tmpdir}/data.json
 mkdir -p ${json_dir}/.backup
 echo "json updated. original json is kept in ${json_dir}/.backup."
 cp ${json} ${json_dir}/.backup/$(basename ${json})
