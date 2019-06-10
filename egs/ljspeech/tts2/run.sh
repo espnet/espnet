@@ -33,6 +33,7 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
+n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 
 # root directory of db
 db_root=downloads
@@ -183,11 +184,20 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
            --config ${decode_config}
 fi
 
+if [ ${n_average} -gt 0 ]; then
+    model=model.last${n_average}.avg.best
+fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
+    if [ ${n_average} -gt 0 ]; then
+        average_checkpoints.py --backend ${backend} \
+                               --snapshots ${expdir}/results/snapshot.ep.* \
+                               --out ${expdir}/results/${model} \
+                               --num ${n_average}
+    fi
     for name in ${dev_set} ${eval_set}; do
-        [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
+        [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
         cp ${dumpdir}/${name}/data.json ${outdir}/${name}
         splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel
