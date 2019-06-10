@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2019 Nagoya University (MAsao Someki)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -38,9 +38,6 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-. ./path.sh
-. ./cmd.sh
-
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -64,6 +61,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # Initial normalization of the data
     local/data_prep.sh ${db_root}/jsut_ver1.1 data/train
     utils/validate_data_dir.sh --no-feats data/train
+    
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
