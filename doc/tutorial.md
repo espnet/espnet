@@ -48,6 +48,12 @@ $ ./run.sh --gpu 0
 ```
 Default setup uses CPU (`--gpu -1`).
 
+### Setup in your cluster
+Change `cmd.sh` according to your cluster setup.
+If you run experiments with your local machine, you don't have to change it.
+For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
+It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
+
 ## Demonstration using pretrained models
 ESPnet provides some pretrained models.
  You can easily perform speech recognition using them through a demo script. For example, 
@@ -56,13 +62,7 @@ cd egs/tedlium/asr1
 ../../../utils/recog_wav.sh --models tedlium.demo foo.wav
 ```
 where `foo.wav` is a WAV file that contains speech to be recognized and `tedlium.demo` is a model name.
-The name list of available models will be summarized.
-
-### Setup in your cluster
-Change `cmd.sh` according to your cluster setup.
-If you run experiments with your local machine, you don't have to change it.
-For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
-It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
+The name list of available pretrained models will be summarized.
 
 ## Installation using Docker
 
