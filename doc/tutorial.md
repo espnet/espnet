@@ -48,6 +48,16 @@ $ ./run.sh --gpu 0
 ```
 Default setup uses CPU (`--gpu -1`).
 
+## Demonstration using pretrained models
+ESPnet provides some pretrained models.
+ You can easily perform speech recognition using them through a demo script. For example, 
+```sh
+cd egs/tedlium/asr1
+../../../utils/recog_wav.sh --models tedlium.demo foo.wav
+```
+where `foo.wav` is a WAV file that contains speech to be recognized and `tedlium.demo` is a model name.
+The name list of available models will be summarized.
+
 ### Setup in your cluster
 Change `cmd.sh` according to your cluster setup.
 If you run experiments with your local machine, you don't have to change it.

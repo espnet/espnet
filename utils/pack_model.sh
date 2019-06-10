@@ -15,16 +15,16 @@ outfile="model"
 . utils/parse_options.sh
 
 if [ $# != 4 ]; then
-    echo "Usage: $0 <tr_conf> <rec_conf> <cmvn> <e2e>, for example:"
+    echo "Usage: $0 <tr_conf> <dec_conf> <cmvn> <e2e>, for example:"
     echo "<tr_conf>:  conf/train.yaml"
-    echo "<rec_conf>: conf/decode.yaml"
+    echo "<dec_conf>: conf/decode.yaml"
     echo "<cmvn>:     data/tr_it/cmvn.ark"
     echo "<e2e>:      exp/tr_it_pytorch_train/results/model.last10.avg.best"
     exit 1
 fi
 
 tr_conf=$1
-rec_conf=$2
+dec_conf=$2
 cmvn=$3
 e2e=$4
 
@@ -40,12 +40,12 @@ else
     echo "missing ${tr_conf}"
     exit 1
 fi
-if [ -e ${rec_conf} ]; then
-    tar rfh ${outfile}.tar ${rec_conf}
+if [ -e ${dec_conf} ]; then
+    tar rfh ${outfile}.tar ${dec_conf}
     echo -n "    - decoding config file: \`"
-    echo ${rec_conf} | sed -e "s/$/\`/"
+    echo ${dec_conf} | sed -e "s/$/\`/"
 else
-    echo "missing ${rec_conf}"
+    echo "missing ${dec_conf}"
     exit 1
 fi
 

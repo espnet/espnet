@@ -66,6 +66,17 @@ To test:
 
 See [doc](doc/README.md).
 
+
+## Adding pretrained models
+
+Pack your traind models using `utils/pack_model.sh and upload it [here](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF) (You require permission).
+Add the shared link to `utils/recog_wav.sh` as follows:
+```sh
+    "tedlium.demo") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
+```
+The model name is arbitrary for now.
+
+
 ## Python 2 and 3 portability tips
 
 See matplotlib's guideline https://matplotlib.org/devel/portable_code.html
