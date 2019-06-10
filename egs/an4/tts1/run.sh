@@ -33,6 +33,7 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
+n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # data
@@ -169,11 +170,22 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
            --config ${train_config}
 fi
 
+if [ ${n_average} -gt 0 ]; then
+    model=model.last${n_average}.avg.best
+fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
+    if [ ${n_average} -gt 0 ]; then
+        average_checkpoints.py --backend ${backend} \
+                               --snapshots ${expdir}/results/snapshot.ep.* \
+                               --out ${expdir}/results/${model} \
+                               --num ${n_average}
+    fi
+    pids=() # initialize pids
     for sets in ${train_dev} ${eval_set}; do
-        [ ! -e  ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
+    (
+        [ ! -e ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
         # decode in parallel
@@ -190,12 +202,18 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         for n in $(seq ${nj}); do
             cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
+    ) &
+    pids+=($!) # store background pids
     done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Synthesis"
+    pids=() # initialize pids
     for sets in ${train_dev} ${eval_set}; do
+    (
         [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
@@ -212,5 +230,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             ${outdir}_denorm/${sets} \
             ${outdir}_denorm/${sets}/log \
             ${outdir}_denorm/${sets}/wav
+    ) &
+    pids+=($!) # store background pids
     done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished."
 fi
