@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -52,9 +52,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodev
-train_dev=train_dev
-lm_test=test
+train_set="train_nodev"
+train_dev="train_dev"
+lm_test="test"
 recog_set="train_dev test"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then

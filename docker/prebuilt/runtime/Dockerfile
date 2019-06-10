@@ -72,6 +72,7 @@ RUN pip install -U virtualenv
 RUN git clone https://github.com/kaldi-asr/kaldi
 
 RUN cd /kaldi/tools && \
+    ./extras/install_mkl.sh -sp debian intel-mkl-64bit-2019.2-057 && \
     make all && \
     rm -r openfst-*/src && \
     ./extras/install_beamformit.sh && \

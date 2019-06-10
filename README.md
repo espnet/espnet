@@ -3,14 +3,38 @@
 # ESPnet: end-to-end speech processing toolkit
 
 [![Build Status](https://travis-ci.org/espnet/espnet.svg?branch=master)](https://travis-ci.org/espnet/espnet)
+[![CircleCI](https://circleci.com/gh/espnet/espnet.svg?style=svg)](https://circleci.com/gh/espnet/espnet)
 
 ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
 ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
 and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
 
+* [Key Features](#key-features)
+* [Requirements](#requirements)
+* [Installation](#installation)
+  * [Step 1) setting of the environment for GPU support](#step-1-setting-of-the-environment-for-gpu-support)
+  * [Step 2\-A) installation with compiled Kaldi](#step-2-a-installation-with-compiled-kaldi)
+    * [using miniconda (default)](#using-miniconda-default)
+    * [using existing python](#using-existing-python)
+  * [Step 2\-B) installation including Kaldi installation](#step-2-b-installation-including-kaldi-installation)
+  * [Step 2\-C) installation for CPU\-only](#step-2-c-installation-for-cpu-only)
+  * [Step 3) installation check](#step-3-installation-check)
+* [Execution of example scripts](#execution-of-example-scripts)
+  * [Use of GPU](#use-of-gpu)
+  * [Changing the configuration](#changing-the-configuration)
+  * [How to set minibatch](#how-to-set-minibatch)
+  * [Setup in your cluster](#setup-in-your-cluster)
+  * [CTC, attention, and hybrid CTC/attention](#ctc-attention-and-hybrid-ctcattention)
+* [Known issues](#known-issues)
+  * [Error due to ACS (Multiple GPUs)](#error-due-to-acs-multiple-gpus)
+  * [Error due to matplotlib](#error-due-to-matplotlib)
+* [Docker Container](#docker-container)
+* [Results](#results)
+* [Chainer and Pytorch backends](#chainer-and-pytorch-backends)
+* [References](#references)
+* [Citation](#citation)
 
 ## Key Features
-
 - Hybrid CTC/attention based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
@@ -29,14 +53,13 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
 - Tensorboard based monitoring
 
-
 ## Requirements
 
-- Python 2.7+, 3.7+ (mainly support Python3.7+)
+- Python 3.6+
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
 - PyTorch 0.4.1, 1.0.0
-- gcc>=4.9 for PyTorch1.0.0
+- gcc 4.9+ for PyTorch1.0.0
 - Chainer 6.0.0
 
 Optionally, GPU environment requires the following libraries:
@@ -198,27 +221,34 @@ and connecting to the given address (default : localhost:6006). This will provid
 Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (`pip install tensorflow; pip install tensorboard`) when you want to use Tensorboard.
 
 ### Use of GPU
-
-If you use GPU in your experiment, set `--ngpu` option in `run.sh` appropriately, e.g.,
-```sh
-# use single gpu
-$ ./run.sh --ngpu 1
-
-# use multi-gpu
-$ ./run.sh --ngpu 3
-
-# if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows
-# (Note that if you use slurm, this specification is not needed)
-$ CUDA_VISIBLE_DEVICES=0,1,2 ./run.sh --ngpu 3
-
-# use cpu
-$ ./run.sh --ngpu 0
-```
-Default setup uses CPU (`--ngpu 0`).
-
-Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl)
-is required before setup.
-
+- Training: 
+  If you want to use GPUs in your experiment, please set `--ngpu` option in `run.sh` appropriately, e.g.,
+  ```bash
+    # use single gpu
+    $ ./run.sh --ngpu 1
+	    
+    # use multi-gpu
+    $ ./run.sh --ngpu 3
+			  
+    # if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows
+    # (Note that if you use slurm, this specification is not needed)
+    $ CUDA_VISIBLE_DEVICES=0,1,2 ./run.sh --ngpu 3
+					  
+    # use cpu
+    $ ./run.sh --ngpu 0
+  ```
+  - Default setup uses a single GPU (`--ngpu 1`).
+- ASR decoding: 
+  ESPnet also supports the GPU-based decoding for fast recognition. 
+  - Please manually remove the following lines in `run.sh`:
+    ```bash
+    #### use CPU for decoding
+    ngpu=0
+    ```
+  - Set 1 or more values for `—batchsize` option in `asr_recog.py` to enable GPU decoding
+  - And execute the script (e.g., `run.sh —stage 5 —ngpu 1`)
+  - You'll achieve significant speed improvement by using the GPU decoding
+- Note that if you want to use multi-gpu, the installation of [nccl](https://developer.nvidia.com/nccl) is required before setup.
 
 ### Changing the configuration
 The default configurations for training and decoding are written in `conf/train.yaml` and `conf/decode.yaml` respectively.  It can be overwritten by specific arguments: e.g.
@@ -246,20 +276,24 @@ We also provide a utility to generate a yaml file from the input yaml file:
 # e.g. You can give any parameters as '-a key=value' and '-a' is repeatable. 
 #      This generates new file at 'conf/train_batch-size24_epochs10.yaml'
 ./run.sh --train-config $(change_yaml.py conf/train.yaml -a batch-size=24 -a epochs=10)
-# e.g. '-o' option specfies the output file name instead of auto named file.
+# e.g. '-o' option specifies the output file name instead of auto named file.
 ./run.sh --train-config $(change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size=24)
 ```
 
-### Error due to ACS (Multiple GPUs)
+### How to set minibatch
 
-When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
-Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
-To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
+From espnet v0.4.0, we have three options in `--batch-count` to specify minibatch size (see `espnet.utils.batchfy` for implementation);
+1. `--batch-count seq --batch-seqs 32 --batch-seq-maxlen-in 800 --batch-seq-maxlen-out 150`. 
 
+    This option is compatible to the old setting before v0.4.0. This counts the minibatch size as the number of sequences and reduces the size when the maximum length of the input or output sequences is greater than 800 or 150, respectively.
+1. `--batch-count bin --batch-bins 100000`. 
 
-### Docker Container
+    This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., `max(ilen) * idim + max(olen) * odim`). 
+Basically, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-bins $((x * (mean(ilen) * idim + mean(olen) * odim)))`.
+1. `--batch-count frame --batch-frames-in 800 --batch-frames-out 100 --batch-frames-inout 900`. 
 
-go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
+    This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of `--batch-frames-xxx` partially. Like `--batch-bins`, this option makes training iteration faster than `--batch-count seq`. If you already has the best `--batch-seqs x` config, try `--batch-frames-in $((x * (mean(ilen) * idim)) --batch-frames-out $((x * mean(olen) * odim))`.
+
 
 ### Setup in your cluster
 
@@ -268,25 +302,8 @@ If you run experiments with your local machine, please use default `cmd.sh`.
 For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
 It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
 
-### Error due to matplotlib
-If you have the following error (or other numpy related errors),
-```
-RuntimeError: module compiled against API version 0xc but this version of numpy is 0xb
-Exception in main training loop: numpy.core.multiarray failed to import
-Traceback (most recent call last):
-;
-:
-from . import _path, rcParams
-ImportError: numpy.core.multiarray failed to import
-```
-Then, please reinstall matplotlib with the following command:
-```sh
-$ cd egs/an4/asr1
-$ . ./path.sh
-$ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
-```
 
-## CTC, attention, and hybrid CTC/attention
+### CTC, attention, and hybrid CTC/attention
 
 ESPnet can completely switch the mode from CTC, attention, and hybrid CTC/attention
 
@@ -306,6 +323,37 @@ The CTC training mode does not output the validation accuracy, and the optimum m
 (i.e., `--recog_model model.loss.best`).
 About the effectiveness of the hybrid CTC/attention during training and recognition, see [2] and [3].
 
+## Known issues
+### Error due to ACS (Multiple GPUs)
+
+When using multiple GPUs, if the training freezes or lower performance than expected is observed, verify that PCI Express Access Control Services (ACS) are disabled.
+Larger discussions can be found at: [link1](https://devtalk.nvidia.com/default/topic/883054/multi-gpu-peer-to-peer-access-failing-on-tesla-k80-/?offset=26) [link2](https://www.linuxquestions.org/questions/linux-newbie-8/howto-list-all-users-in-system-380426/) [link3](https://github.com/pytorch/pytorch/issues/1637).
+To disable the PCI Express ACS follow instructions written [here](https://github.com/NVIDIA/caffe/issues/10). You need to have a ROOT user access or request to your administrator for it.
+
+### Error due to matplotlib
+If you have the following error (or other numpy related errors),
+```
+RuntimeError: module compiled against API version 0xc but this version of numpy is 0xb
+Exception in main training loop: numpy.core.multiarray failed to import
+Traceback (most recent call last):
+;
+:
+from . import _path, rcParams
+ImportError: numpy.core.multiarray failed to import
+```
+Then, please reinstall matplotlib with the following command:
+```sh
+$ cd egs/an4/asr1
+$ . ./path.sh
+$ pip install pip --upgrade; pip uninstall matplotlib; pip --no-cache-dir install matplotlib
+```
+
+
+## Docker Container
+
+go to docker/ and follow [README.md](https://github.com/espnet/espnet/tree/master/docker/README.md) instructions there.
+
+
 ## Results
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
@@ -315,13 +363,13 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Aishell dev | 6.8 | N/A |
 | Aishell test | 8.0 | N/A |
 | CSJ eval1 | 5.7 | N/A  |
-| CSJ eval2 | 4.3 | N/A  |
-| CSJ eval3 | 4.8 | N/A  |
+| CSJ eval2 | 4.1 | N/A  |
+| CSJ eval3 | 4.5 | N/A  |
 | HKUST dev       | 27.4 | N/A  |
 | Librispeech dev_clean  | N/A | 4.0 |
 | Librispeech test_clean | N/A | 4.0 |
-| TEDLIUM2 dev  | N/A | 12.8 |
-| TEDLIUM2 test | N/A | 12.6 |
+| TEDLIUM2 dev  | N/A | 12.2 |
+| TEDLIUM2 test | N/A | 10.4 |
 | WSJ dev93 | 3.2 | 7.0 |
 | WSJ eval92| 2.1 | 4.7 |
 

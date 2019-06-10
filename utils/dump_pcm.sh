@@ -76,13 +76,13 @@ else
     opts=
 fi
 
-if [ "${filetype}" == hdf5 ];then
+if [ "${filetype}" == hdf5 ]; then
     ext=.h5
-elif [ "${filetype}" == sound.hdf5 ];then
+elif [ "${filetype}" == sound.hdf5 ]; then
     ext=.flac.h5
     opts+="--format ${format} "
 
-elif [ "${filetype}" == sound ];then
+elif [ "${filetype}" == sound ]; then
     ext=
     opts+="--format wav "
 else
