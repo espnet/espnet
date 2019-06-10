@@ -23,7 +23,7 @@ text=${data_dir}/text
 # make scp, utt2spk, and spk2utt
 find ${db} -name "*.wav" | sort | while read -r filename; do
     id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
-    echo "${id} ${filename}" >> ${scp}
+    echo "${id} sox ${filename} -t wav -r 16000 - |" >> ${scp}
     echo "${id} JS" >> ${utt2spk}
 done
 utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
