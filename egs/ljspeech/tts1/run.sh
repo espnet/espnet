@@ -33,6 +33,7 @@ decode_config=conf/decode.yaml
 
 # decoding related
 model=model.loss.best
+n_average=0 # if > 0, the model averaged with n_average ckpts will be used instead of model.loss.best
 griffin_lim_iters=1000  # the number of iterations of Griffin-Lim
 
 # root directory of db
@@ -95,7 +96,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     n=$(( $(wc -l < data/train/wav.scp) - 500 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
-    # compute global CMVN
+    # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
@@ -154,13 +155,22 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
            --config ${train_config}
 fi
 
+if [ ${n_average} -gt 0 ]; then
+    model=model.last${n_average}.avg.best
+fi
 outdir=${expdir}/outputs_${model}_$(basename ${decode_config%.*})
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "stage 4: Decoding"
+    if [ ${n_average} -gt 0 ]; then
+        average_checkpoints.py --backend ${backend} \
+                               --snapshots ${expdir}/results/snapshot.ep.* \
+                               --out ${expdir}/results/${model} \
+                               --num ${n_average}
+    fi
     pids=() # initialize pids
     for name in ${dev_set} ${eval_set}; do
     (
-        [ ! -e  ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
+        [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
         cp ${dumpdir}/${name}/data.json ${outdir}/${name}
         splitjson.py --parts ${nj} ${outdir}/${name}/data.json
         # decode in parallel

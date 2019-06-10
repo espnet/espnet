@@ -43,4 +43,4 @@ weight-decay: 0.0
 dropout-rate: 0.5
 zoneout-rate: 0.1
 epochs: 200
-patience: 20
+patience: 0
