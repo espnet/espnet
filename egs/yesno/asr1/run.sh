@@ -23,8 +23,8 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 # exp tag
 tag="" # tag for managing experiments.
 
-
 . utils/parse_options.sh || exit 1;
+
 . ./path.sh
 . ./cmd.sh
 

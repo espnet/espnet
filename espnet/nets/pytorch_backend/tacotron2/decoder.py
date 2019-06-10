@@ -23,20 +23,20 @@ class ZoneOutCell(torch.nn.Module):
     This code is modified from https://github.com/eladhoffer/seq2seq.pytorch
 
     :param torch.nn.Module cell: pytorch recurrent cell
-    :param float zoneout_prob: probability of zoneout
+    :param float zoneout_rate: probability of zoneout
     """
 
-    def __init__(self, cell, zoneout_prob=0.1):
+    def __init__(self, cell, zoneout_rate=0.1):
         super(ZoneOutCell, self).__init__()
         self.cell = cell
         self.hidden_size = cell.hidden_size
-        self.zoneout_prob = zoneout_prob
-        if zoneout_prob > 1.0 or zoneout_prob < 0.0:
+        self.zoneout_rate = zoneout_rate
+        if zoneout_rate > 1.0 or zoneout_rate < 0.0:
             raise ValueError("zoneout probability must be in the range from 0.0 to 1.0.")
 
     def forward(self, inputs, hidden):
         next_hidden = self.cell(inputs, hidden)
-        next_hidden = self._zoneout(hidden, next_hidden, self.zoneout_prob)
+        next_hidden = self._zoneout(hidden, next_hidden, self.zoneout_rate)
         return next_hidden
 
     def _zoneout(self, h, next_h, prob):
@@ -63,14 +63,14 @@ class Prenet(torch.nn.Module):
     :param int n_units: the number of prenet units
     """
 
-    def __init__(self, idim, n_layers=2, n_units=256, dropout=0.5):
+    def __init__(self, idim, n_layers=2, n_units=256, dropout_rate=0.5):
         super(Prenet, self).__init__()
-        self.dropout = dropout
+        self.dropout_rate = dropout_rate
         self.prenet = torch.nn.ModuleList()
         for layer in six.moves.range(n_layers):
             n_inputs = idim if layer == 0 else n_units
             self.prenet += [torch.nn.Sequential(
-                torch.nn.Linear(n_inputs, n_units, bias=False),
+                torch.nn.Linear(n_inputs, n_units),
                 torch.nn.ReLU())]
 
     def forward(self, x):
@@ -81,7 +81,7 @@ class Prenet(torch.nn.Module):
         :rtype: torch.Tensor
         """
         for l in six.moves.range(len(self.prenet)):
-            x = F.dropout(self.prenet[l](x), self.dropout)
+            x = F.dropout(self.prenet[l](x), self.dropout_rate)
         return x
 
 
@@ -94,10 +94,10 @@ class Postnet(torch.nn.Module):
     :param int n_filts: the number of postnet filter size
     :param int n_chans: the number of postnet filter channels
     :param bool use_batch_norm: whether to use batch normalization
-    :param float dropout: dropout rate
+    :param float dropout_rate: dropout_rate rate
     """
 
-    def __init__(self, idim, odim, n_layers=5, n_chans=512, n_filts=5, dropout=0.5, use_batch_norm=True):
+    def __init__(self, idim, odim, n_layers=5, n_chans=512, n_filts=5, dropout_rate=0.5, use_batch_norm=True):
         super(Postnet, self).__init__()
         self.postnet = torch.nn.ModuleList()
         for layer in six.moves.range(n_layers - 1):
@@ -109,25 +109,25 @@ class Postnet(torch.nn.Module):
                                     padding=(n_filts - 1) // 2, bias=False),
                     torch.nn.BatchNorm1d(ochans),
                     torch.nn.Tanh(),
-                    torch.nn.Dropout(dropout))]
+                    torch.nn.Dropout(dropout_rate))]
             else:
                 self.postnet += [torch.nn.Sequential(
                     torch.nn.Conv1d(ichans, ochans, n_filts, stride=1,
                                     padding=(n_filts - 1) // 2, bias=False),
                     torch.nn.Tanh(),
-                    torch.nn.Dropout(dropout))]
+                    torch.nn.Dropout(dropout_rate))]
         ichans = n_chans if n_layers != 1 else odim
         if use_batch_norm:
             self.postnet += [torch.nn.Sequential(
                 torch.nn.Conv1d(ichans, odim, n_filts, stride=1,
                                 padding=(n_filts - 1) // 2, bias=False),
                 torch.nn.BatchNorm1d(odim),
-                torch.nn.Dropout(dropout))]
+                torch.nn.Dropout(dropout_rate))]
         else:
             self.postnet += [torch.nn.Sequential(
                 torch.nn.Conv1d(ichans, odim, n_filts, stride=1,
                                 padding=(n_filts - 1) // 2, bias=False),
-                torch.nn.Dropout(dropout))]
+                torch.nn.Dropout(dropout_rate))]
 
     def forward(self, xs):
         """Postnet forward calculation
@@ -162,8 +162,8 @@ class Decoder(torch.nn.Module):
     :param bool cumulate_att_w: whether to cumulate previous attention weight
     :param bool use_batch_norm: whether to use batch normalization
     :param bool use_concate: whether to concatenate encoder embedding with decoder lstm outputs
-    :param float dropout: dropout rate
-    :param float zoneout: zoneout rate
+    :param float dropout_rate: dropout rate
+    :param float zoneout_rate: zoneout rate
     :param int reduction_factor: reduction factor
     :param float threshold: threshold in inference
     :param float minlenratio: minimum length ratio in inference
@@ -182,77 +182,69 @@ class Decoder(torch.nn.Module):
                  cumulate_att_w=True,
                  use_batch_norm=True,
                  use_concate=True,
-                 dropout=0.5,
-                 zoneout=0.1,
-                 threshold=0.5,
-                 reduction_factor=1,
-                 maxlenratio=5.0,
-                 minlenratio=0.0):
+                 dropout_rate=0.5,
+                 zoneout_rate=0.1,
+                 reduction_factor=1):
         super(Decoder, self).__init__()
+
         # store the hyperparameters
         self.idim = idim
         self.odim = odim
         self.att = att
-        self.dlayers = dlayers
-        self.dunits = dunits
-        self.prenet_layers = prenet_layers
-        self.prenet_units = prenet_units if prenet_layers != 0 else self.odim
-        self.postnet_layers = postnet_layers
-        self.postnet_chans = postnet_chans if postnet_layers != 0 else -1
-        self.postnet_filts = postnet_filts if postnet_layers != 0 else -1
         self.output_activation_fn = output_activation_fn
         self.cumulate_att_w = cumulate_att_w
-        self.use_batch_norm = use_batch_norm
         self.use_concate = use_concate
-        self.dropout = dropout
-        self.zoneout = zoneout
         self.reduction_factor = reduction_factor
-        self.threshold = threshold
-        self.maxlenratio = maxlenratio
-        self.minlenratio = minlenratio
+
         # check attention type
         if isinstance(self.att, AttForwardTA):
             self.use_att_extra_inputs = True
         else:
             self.use_att_extra_inputs = False
+
         # define lstm network
+        prenet_units = prenet_units if prenet_layers != 0 else odim
         self.lstm = torch.nn.ModuleList()
-        for layer in six.moves.range(self.dlayers):
-            iunits = self.idim + self.prenet_units if layer == 0 else self.dunits
-            lstm = torch.nn.LSTMCell(iunits, self.dunits)
-            if zoneout > 0.0:
-                lstm = ZoneOutCell(lstm, self.zoneout)
+        for layer in six.moves.range(dlayers):
+            iunits = idim + prenet_units if layer == 0 else dunits
+            lstm = torch.nn.LSTMCell(iunits, dunits)
+            if zoneout_rate > 0.0:
+                lstm = ZoneOutCell(lstm, zoneout_rate)
             self.lstm += [lstm]
+
         # define prenet
-        if self.prenet_layers > 0:
+        if prenet_layers > 0:
             self.prenet = Prenet(
-                idim=self.odim,
-                n_layers=self.prenet_layers,
-                n_units=self.prenet_units,
-                dropout=self.dropout)
+                idim=odim,
+                n_layers=prenet_layers,
+                n_units=prenet_units,
+                dropout_rate=dropout_rate)
         else:
             self.prenet = None
+
         # define postnet
-        if self.postnet_layers > 0:
+        if postnet_layers > 0:
             self.postnet = Postnet(
-                idim=self.idim,
-                odim=self.odim,
-                n_layers=self.postnet_layers,
-                n_chans=self.postnet_chans,
-                n_filts=self.postnet_filts,
-                use_batch_norm=self.use_batch_norm,
-                dropout=self.dropout)
+                idim=idim,
+                odim=odim,
+                n_layers=postnet_layers,
+                n_chans=postnet_chans,
+                n_filts=postnet_filts,
+                use_batch_norm=use_batch_norm,
+                dropout_rate=dropout_rate)
         else:
             self.postnet = None
+
         # define projection layers
-        iunits = self.idim + self.dunits if self.use_concate else self.dunits
-        self.feat_out = torch.nn.Linear(iunits, self.odim * self.reduction_factor, bias=False)
-        self.prob_out = torch.nn.Linear(iunits, self.reduction_factor)
+        iunits = idim + dunits if use_concate else dunits
+        self.feat_out = torch.nn.Linear(iunits, odim * reduction_factor, bias=False)
+        self.prob_out = torch.nn.Linear(iunits, reduction_factor)
+
         # initialize
         self.apply(decoder_init)
 
     def zero_state(self, hs):
-        init_hs = hs.new_zeros(hs.size(0), self.dunits)
+        init_hs = hs.new_zeros(hs.size(0), self.lstm[0].hidden_size)
         return init_hs
 
     def forward(self, hs, hlens, ys):
@@ -280,7 +272,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, len(self.lstm)):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
@@ -290,7 +282,7 @@ class Decoder(torch.nn.Module):
         self.att.reset()
 
         # loop for an output sequence
-        outs, logits = [], []
+        outs, logits, att_ws = [], [], []
         for y in ys.transpose(0, 1):
             if self.use_att_extra_inputs:
                 att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
@@ -299,12 +291,13 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
+            for l in six.moves.range(1, len(self.lstm)):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
             outs += [self.feat_out(zcs).view(hs.size(0), self.odim, -1)]
             logits += [self.prob_out(zcs)]
+            att_ws += [att_w]
             prev_out = y  # teacher forcing
             if self.cumulate_att_w and prev_att_w is not None:
                 prev_att_w = prev_att_w + att_w  # Note: error when use +=
@@ -313,6 +306,7 @@ class Decoder(torch.nn.Module):
 
         logits = torch.cat(logits, dim=1)  # (B, Lmax)
         before_outs = torch.cat(outs, dim=2)  # (B, odim, Lmax)
+        att_ws = torch.stack(att_ws, dim=1)  # (B, Lmax, Tmax)
 
         if self.reduction_factor > 1:
             before_outs = before_outs.view(before_outs.size(0), self.odim, -1)  # (B, odim, Lmax)
@@ -330,7 +324,7 @@ class Decoder(torch.nn.Module):
             before_outs = self.output_activation_fn(before_outs)
             after_outs = self.output_activation_fn(after_outs)
 
-        return after_outs, before_outs, logits
+        return after_outs, before_outs, logits, att_ws
 
     def inference(self, h, threshold=0.5, minlenratio=0.0, maxlenratio=10.0):
         """Generate the sequence of features given the encoder hidden states
@@ -356,7 +350,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, len(self.lstm)):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(1, self.odim)
@@ -381,7 +375,7 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
+            for l in six.moves.range(1, len(self.lstm)):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             zcs = torch.cat([z_list[-1], att_c], dim=1) if self.use_concate else z_list[-1]
@@ -433,7 +427,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self.zero_state(hs)]
         z_list = [self.zero_state(hs)]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in six.moves.range(1, len(self.lstm)):
             c_list += [self.zero_state(hs)]
             z_list += [self.zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
@@ -453,7 +447,7 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for l in six.moves.range(1, self.dlayers):
+            for l in six.moves.range(1, len(self.lstm)):
                 z_list[l], c_list[l] = self.lstm[l](
                     z_list[l - 1], (z_list[l], c_list[l]))
             prev_out = y  # teacher forcing

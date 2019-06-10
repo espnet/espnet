@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -30,6 +30,7 @@ lmtag=            # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
 
 # bpemode (unigram or bpe)
 nbpe=500
@@ -123,8 +124,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cut -f 2- -d" " data/${train_set}/text > data/lang_char/input.txt
     spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} \
-        --model_prefix=${bpemodel%%.*} --input_sentence_size=100000000
-    spm_encode --model=${bpemodel} --output_format=piece < data/lang_char/input.txt | \
+        --model_prefix=${bpemodel} --input_sentence_size=100000000
+    spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | \
         tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}
     wc -l ${dict}
 
@@ -208,7 +209,13 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     nj=32
-
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+	recog_model=model.last${n_average}.avg.best
+	average_checkpoints.py --backend ${backend} \
+			       --snapshots ${expdir}/results/snapshot.ep.* \
+			       --out ${expdir}/results/${recog_model} \
+			       --num ${n_average}
+    fi
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (

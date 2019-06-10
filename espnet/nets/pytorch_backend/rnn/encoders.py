@@ -65,7 +65,7 @@ class RNNP(torch.nn.Module):
             rnn.flatten_parameters()
             if prev_state is not None and rnn.bidirectional:
                 prev_state = reset_backward_rnn_state(prev_state)
-            ys, states = rnn(xs_pack, hx=prev_state)
+            ys, states = rnn(xs_pack, hx=None if prev_state is None else prev_state[layer])
             elayer_states.append(states)
             # ys: utt list of frame x cdim x 2 (2: means bidirectional)
             ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
@@ -162,7 +162,7 @@ class VGG2L(torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :return: batch of padded hidden state sequences (B, Tmax // 4, 128)
+        :return: batch of padded hidden state sequences (B, Tmax // 4, 128 * D // 4)
         :rtype: torch.Tensor
         """
         logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens))
