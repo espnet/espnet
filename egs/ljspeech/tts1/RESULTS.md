@@ -15,7 +15,7 @@
 
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
   - model link: https://drive.google.com/open?id=1zVMwNZ0-VMILm83UEQ2oUqWI89y39Y_b
-  - sample link: https://drive.google.com/open?id=1qDGqVvXGuKTJBKSoetZ6wg33aZ0Qc_bC
+  - sample link: https://drive.google.com/open?id=1ZIDPpb1Bt9V8mrnJCCptMcpIH3SpuyrD
   - training config file: `conf/tuning/train_pytorch_tacotron2.v1.yaml`
   - decoding config file: `conf/decode.yaml`
   - cmvn file: `data/train_no_dev/cmvn.ark`
