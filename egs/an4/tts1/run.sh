@@ -111,7 +111,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     n=$(( $(wc -l < data/train/wav.scp) - 100 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 
-    # compute global CMVN
+    # compute statistics for global mean-variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
