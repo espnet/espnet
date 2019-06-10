@@ -54,6 +54,16 @@ If you run experiments with your local machine, you don't have to change it.
 For more information about `cmd.sh` see http://kaldi-asr.org/doc/queue.html.
 It supports Grid Engine (`queue.pl`), SLURM (`slurm.pl`), etc.
 
+## Demonstration using pretrained models
+ESPnet provides some pretrained models.
+ You can easily perform speech recognition using them through a demo script. For example, 
+```sh
+cd egs/tedlium/asr1
+../../../utils/recog_wav.sh --models tedlium.demo foo.wav
+```
+where `foo.wav` is a WAV file that contains speech to be recognized and `tedlium.demo` is a model name.
+The name list of available pretrained models will be summarized.
+
 ## Installation using Docker
 
 For GPU support nvidia-docker should be installed.
