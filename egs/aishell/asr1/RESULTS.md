@@ -1,6 +1,6 @@
 # Transformer result (default transformer with initial learning rate = 1.0 and epochs = 50)
 
-- Environments (obtained by `$ get_sys_info.sh`)
+  - Environments (obtained by `$ get_sys_info.sh`)
     - date: `Mon Jun 10 12:34:41 EDT 2019`
     - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
     - python version: `Python 3.7.3`
