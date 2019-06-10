@@ -20,11 +20,9 @@ seed=1
 # feature configuration
 do_delta=false
 
-# train_config=conf/train.yaml
+train_config=conf/train.yaml
 lm_config=conf/lm.yaml
-# decode_config=conf/decode.yaml
-train_config=conf/tuning/train_pytorch_transformer.yaml
-decode_config=conf/tuning/decode_pytorch_transformer.yaml
+decode_config=conf/decode.yaml
 
 # rnnlm related
 use_wordlm=true     # false means to train/use a character LM
