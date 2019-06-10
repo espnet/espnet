@@ -166,7 +166,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
                                --out ${expdir}/results/${model} \
                                --num ${n_average}
     fi
+    pids=() # initialize pids
     for sets in ${train_dev} ${eval_set}; do
+    (
         [ ! -e ${outdir}/${sets} ] && mkdir -p ${outdir}/${sets}
         cp ${dumpdir}/${sets}/data.json ${outdir}/${sets}
         splitjson.py --parts ${nj} ${outdir}/${sets}/data.json
@@ -184,12 +186,18 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         for n in $(seq ${nj}); do
             cat "${outdir}/${sets}/feats.$n.scp" || exit 1;
         done > ${outdir}/${sets}/feats.scp
+    ) &
+    pids+=($!) # store background pids
     done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Synthesis"
+    pids=() # initialize pids
     for sets in ${train_dev} ${eval_set}; do
+    (
         [ ! -e ${outdir}_denorm/${sets} ] && mkdir -p ${outdir}_denorm/${sets}
         apply-cmvn --norm-vars=true --reverse=true data/${train_set}/cmvn.ark \
             scp:${outdir}/${sets}/feats.scp \
@@ -206,5 +214,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             ${outdir}_denorm/${sets} \
             ${outdir}_denorm/${sets}/log \
             ${outdir}_denorm/${sets}/wav
+    ) &
+    pids+=($!) # store background pids
     done
+    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
+    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+    echo "Finished."
 fi

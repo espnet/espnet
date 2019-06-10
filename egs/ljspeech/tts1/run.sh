@@ -167,6 +167,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
                                --out ${expdir}/results/${model} \
                                --num ${n_average}
     fi
+    pids=() # initialize pids
     for name in ${dev_set} ${eval_set}; do
     (
         [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
