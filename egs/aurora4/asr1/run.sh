@@ -7,8 +7,8 @@
 
 # general configuration
 backend=pytorch
-stage=4        # start from 0 if you need to start from data preparation
-stop_stage=4
+stage=0        # start from 0 if you need to start from data preparation
+stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
@@ -34,6 +34,7 @@ lmtag=              # tag for managing LMs
 
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
 
 # data
 aurora4=/export/corpora5/AURORA
@@ -41,7 +42,7 @@ wsj0=/export/corpora5/LDC/LDC93S6B
 wsj1=/export/corpora5/LDC/LDC94S13B
 
 # exp tag
-tag="transformer_100epoch" # tag for managing experiments.
+tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
@@ -246,8 +247,16 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
-    nj=32
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+	recog_model=model.last${n_average}.avg.best
+	average_checkpoints.py \
+	    --backend ${backend} \
+	    --snapshots ${expdir}/results/snapshot.ep.* \
+	    --out ${expdir}/results/${recog_model} \
+	    --num ${n_average}
+    fi
 
+    nj=32
     pids=() # initialize pids
     for rtask in ${recog_set}; do
     (
