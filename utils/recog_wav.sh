@@ -32,7 +32,7 @@ recog_model=
 decode_dir=decode
 
 # download related
-recipe_with_ver=tedlium.demo
+models=tedlium.demo
 
 . utils/parse_options.sh || exit 1;
 
@@ -55,23 +55,16 @@ set -e
 set -u
 set -o pipefail
 
-case "${recipe_with_ver}" in
-    "tedlium.demo")
-        share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe"
-        cmvn_file=data/train_trim_sp/cmvn.ark
-        lang_model_file=exp/train_rnnlm_pytorch_lm_unigram500/rnnlm.model.best
-        recog_model_file=exp/train_trim_sp_pytorch_train/results/model.acc.best
-        decode_config_file=conf/decode_streaming.yaml
-        wav_file=etc/wav/TomWujec_2010U.wav
-        ;;
+case "${models}" in
+    "tedlium.demo") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
     *)
-        echo "No such recipe: ${recipe_with_ver}"
+        echo "No such models: ${models}"
         exit 1
         ;;
 esac
 
 function download_models () {
-    download_dir=${decode_dir}/download/${recipe_with_ver}
+    download_dir=${decode_dir}/download/${models}
     mkdir -p ${download_dir}
     if [ ! -e ${download_dir}/.complete ]; then
         download_from_google_drive.sh ${share_url} ${download_dir} ".tar.gz"
@@ -82,23 +75,23 @@ function download_models () {
 # Download trained models
 if [ -z "${cmvn}" ]; then
     download_models
-    cmvn=${download_dir}/${cmvn_file}
+    cmvn=$(find ${decode_dir}/download/${models} -name "cmvn.ark" | head -n 1)
 fi
 if [ -z "${lang_model}" ] && [ ${use_lang_model} ]; then
     download_models
-    lang_model=${download_dir}/${lang_model_file}
+    lang_model=$(find ${decode_dir}/download/${models} -name "rnnlm*.best" | head -n 1)
 fi
 if [ -z "${recog_model}" ]; then
     download_models
-    recog_model=${download_dir}/${recog_model_file}
+    recog_model=$(find ${decode_dir}/download/${models} -name "model*.best" | head -n 1)
 fi
 if [ -z "${decode_config}" ]; then
     download_models
-    decode_config=${download_dir}/${decode_config_file}
+    decode_config=$(find ${decode_dir}/download/${models} -name "decode*.yaml" | head -n 1)
 fi
 if [ -z "${wav}" ]; then
     download_models
-    wav=${download_dir}/${wav_file}
+    wav=$(find ${decode_dir}/download/${models} -name "*.wav" | head -n 1)
 fi
 
 # Check file existence
