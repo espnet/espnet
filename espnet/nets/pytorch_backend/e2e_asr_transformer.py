@@ -224,7 +224,7 @@ class E2E(ASRInterface, torch.nn.Module):
             for i, y_hat in enumerate(y_hats):
                 y_true = ys_pad[i]
                 eos_true = np.where(y_true.cpu() == -1)[0]
-                eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true) 
+                eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
                 seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
                 seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
                 seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')

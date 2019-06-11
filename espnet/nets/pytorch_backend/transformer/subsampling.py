@@ -20,7 +20,7 @@ class Conv2dSubsampling(torch.nn.Module):
             torch.nn.ReLU()
         )
         self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * ((idim - 1)// 4), odim),
+            torch.nn.Linear(odim * ((idim - 1) // 4), odim),
             PositionalEncoding(odim, dropout_rate)
         )
 
