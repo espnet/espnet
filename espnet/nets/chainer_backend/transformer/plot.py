@@ -43,6 +43,7 @@ def plot_multi_head_attention(data, attn_dict, outdir, suffix="png", savefn=save
     :param str suffix: filename suffix including image type (e.g., png)
     :param savefn: function to save
     """
+
     for name, att_ws in attn_dict.items():
         for idx, att_w in enumerate(att_ws):
             filename = "%s/%s.%s.%s" % (

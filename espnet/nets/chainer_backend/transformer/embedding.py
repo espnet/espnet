@@ -13,6 +13,7 @@ class PositionalEncoding(chainer.Chain):
     :param float dropout: dropout rate
     :param int length: maximum input length
     """
+
     def __init__(self, n_units, dropout=0.1, length=5000):
         # Implementation described in the paper
         super(PositionalEncoding, self).__init__()

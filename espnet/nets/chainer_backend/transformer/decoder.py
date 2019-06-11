@@ -35,6 +35,7 @@ class Decoder(chainer.Chain):
     :param int odim: output dim
     :param argparse.Namespace args:  experiment setting
     """
+
     def __init__(self, odim, args, initialW=None, initial_bias=None):
         super(Decoder, self).__init__()
         initialW = chainer.initializers.Uniform if initialW is None else initialW
