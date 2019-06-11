@@ -1,9 +1,16 @@
 # Copyright 2019 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+import argparse
 from argparse import Namespace
 from distutils.util import strtobool
 import logging
 import math
+
+import editdistance
+
+from itertools import groupby
+
+import numpy as np
 
 import torch
 
@@ -79,7 +86,9 @@ class E2E(ASRInterface, torch.nn.Module):
         # self.lsm_weight = a
         self.criterion = LabelSmoothingLoss(self.odim, self.ignore_id, args.lsm_weight,
                                             args.transformer_length_normalized_loss)
-        # self.char_list = args.char_list
+        self.char_list = args.char_list
+        self.space = args.sym_space
+        self.blank = args.sym_blank
         # self.verbose = args.verbose
         self.reset_parameters(args)
         self.recog_args = None  # unused
@@ -89,6 +98,21 @@ class E2E(ASRInterface, torch.nn.Module):
             self.ctc = CTC(odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True)
         else:
             self.ctc = None
+
+        if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
+            recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
+                          'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
+                          'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
+                          'rnnlm': args.rnnlm, 'nbest': args.nbest,
+                          'space': args.sym_space, 'blank': args.sym_blank}
+
+            self.recog_args = argparse.Namespace(**recog_args)
+            self.report_cer = args.report_cer
+            self.report_wer = args.report_wer
+        else:
+            self.report_cer = False
+            self.report_wer = False
+        self.rnnlm = None
 
     def reset_parameters(self, args):
         if args.transformer_init == "pytorch":
@@ -142,32 +166,82 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         '''
-        # forward encoder
+        # 1. forward encoder
         xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
         src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
         hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 
-        # forward decoder
+        # 2. forward decoder
         ys_in_pad, ys_out_pad = self.add_sos_eos(ys_pad)
         ys_mask = self.target_mask(ys_in_pad)
         pred_pad, pred_mask = self.decoder(ys_in_pad, ys_mask, hs_pad, hs_mask)
         self.pred_pad = pred_pad
 
-        # compute loss
+        # 3. compute attenttion loss
         loss_att = self.criterion(pred_pad, ys_out_pad)
         self.acc = th_accuracy(pred_pad.view(-1, self.odim), ys_out_pad,
                                ignore_label=self.ignore_id)
 
-        # TODO(karita) show predected text
+        # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
-        cer, cer_ctc, wer = 0.0, 0.0, 0.0
-        if self.ctc is None:
+        # 4. compute ctc loss   || compute cer without beam search
+        if self.mtlalpha == 0:
             loss_ctc = None
+            cer_ctc = None
         else:
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
+
+            cers = []
+
+            y_hats = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
+            for i, y in enumerate(y_hats):
+                y_hat = [x[0] for x in groupby(y)]
+                y_true = ys_pad[i]
+
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
+                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+                seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.space, ' ')
+
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                if len(ref_chars) > 0:
+                    cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+
+            cer_ctc = sum(cers) / len(cers) if cers else None
+
+        # 5. compute cer/wer
+        if self.training or not (self.report_cer or self.report_wer):
+            cer, wer = 0.0, 0.0
+            # oracle_cer, oracle_wer = 0.0, 0.0
+        else:
+            word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
+            y_hats = pred_pad.argmax(dim=2)
+            for i, y_hat in enumerate(y_hats):
+                y_true = ys_pad[i]
+                eos_true = np.where(y_true.cpu() == -1)[0]
+                eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true) 
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
+                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+                seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.recog_args.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.recog_args.space, ' ')
+
+                hyp_words = seq_hat_text.split()
+                ref_words = seq_true_text.split()
+                word_eds.append(editdistance.eval(hyp_words, ref_words))
+                word_ref_lens.append(len(ref_words))
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                char_eds.append(editdistance.eval(hyp_chars, ref_chars))
+                char_ref_lens.append(len(ref_chars))
+
+            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         # copyied from e2e_asr
         alpha = self.mtlalpha
