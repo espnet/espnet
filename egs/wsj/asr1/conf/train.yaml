@@ -1,1 +1,1 @@
-./tuning/train_pytorch_transformer.yaml
+/export/db01/espnet/transf/egs/wsj/asr1/conf/tuning/train_chainer_transformer.yaml

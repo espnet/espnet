@@ -1,4 +1,5 @@
 # encoding: utf-8
+from argparse import Namespace
 from distutils.util import strtobool
 import logging
 import math
@@ -319,7 +320,9 @@ class E2E(ASRInterface, chainer.Chain):
         return nbest_hyps
 
     def recognize_beam(self, xs, mask, batch, lpz, recog_args, char_list, rnnlm=None):
-        xp = self.xp 
+        from espnet.nets.chainer_backend.transformer.decoder import get_topk
+        import six
+        xp = self.xp
         beam = recog_args.beam_size
         penalty = recog_args.penalty
         ctc_weight = recog_args.ctc_weight
@@ -343,11 +346,13 @@ class E2E(ASRInterface, chainer.Chain):
             hyp = {'score': 0.0, 'yseq': [y]}
 
         if lpz is not None:
+            from espnet.nets.ctc_prefix_score import CTCPrefixScore
             ctc_prefix_score = CTCPrefixScore(lpz, 0, self.eos, self.xp)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
             hyp['ctc_score_prev'] = 0.0
             if ctc_weight != 1.0:
                 # pre-pruning based on attention scores
+                from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
                 ctc_beam = min(lpz.shape[-1], int(beam * CTC_SCORING_RATIO))
             else:
                 ctc_beam = lpz.shape[-1]
@@ -384,7 +389,7 @@ class E2E(ASRInterface, chainer.Chain):
                     if rnnlm:
                         # raise ValueError('WIP')
                         local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
-                    local_best_scores, joint_best_ids = get_topk(xp, local_scores.data, beam,  axis=1)
+                    local_best_scores, joint_best_ids = get_topk(xp, local_scores.data, beam, axis=1)
                     local_best_ids = local_best_ids[:, joint_best_ids[0]]
                 else:
                     local_best_scores, local_best_ids = get_topk(xp, local_scores.data, beam, axis=1)
@@ -411,7 +416,8 @@ class E2E(ASRInterface, chainer.Chain):
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothesis: ' + str(len(hyps)))
             logging.debug(
-                'best hypo: ' + ''.join([char_list[int(x)] for x in hyps[0]['yseq'][1:]]) + ' score: ' + str(hyps[0]['score']))
+                'best hypo: ' + ''.join([
+                    char_list[int(x)] for x in hyps[0]['yseq'][1:]]) + ' score: ' + str(hyps[0]['score']))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -436,7 +442,7 @@ class E2E(ASRInterface, chainer.Chain):
                     remained_hyps.append(hyp)
 
             # end detection
-            
+            from espnet.nets.e2e_asr_common import end_detect
             if end_detect(ended_hyps, i) and recog_args.maxlenratio == 0.0:
                 logging.info('end detected at %d', i)
                 break
