@@ -204,7 +204,7 @@ class E2E(torch.nn.Module):
         if self.mtlalpha == 0:
             cer_ctc = None
         else:
-            cers = []
+            cers, char_ref_lens = [], []
 
             y_hats = self.ctc.argmax(hs_pad).data
             for i, y in enumerate(y_hats):
@@ -220,9 +220,10 @@ class E2E(torch.nn.Module):
                 hyp_chars = seq_hat_text.replace(' ', '')
                 ref_chars = seq_true_text.replace(' ', '')
                 if len(ref_chars) > 0:
-                    cers.append(editdistance.eval(hyp_chars, ref_chars) / len(ref_chars))
+                    cers.append(editdistance.eval(hyp_chars, ref_chars))
+                    char_ref_lens.append(len(ref_chars))
 
-            cer_ctc = sum(cers) / len(cers) if cers else None
+            cer_ctc = float(sum(cers)) / sum(char_ref_lens) if cers else None
 
         # 5. compute cer/wer
         if self.training or not (self.report_cer or self.report_wer):
