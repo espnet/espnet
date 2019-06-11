@@ -36,7 +36,7 @@ for set in dev test train; do
 ;; LABEL "female" "Female" "Female Talkers"
 ;;'
     # Process the STMs
-    cat ../asr1/db/TEDLIUM_release-3/${data_type}/$set/stm/*.stm | sort -k1,1 -k2,2 -k4,4n | \
+    cat db/TEDLIUM_release-3/${data_type}/$set/stm/*.stm | sort -k1,1 -k2,2 -k4,4n | \
       sed -e 's:<F0_M>:<o,f0,male>:' \
           -e 's:<F0_F>:<o,f0,female>:' \
           -e 's:([0-9])::g' \
@@ -59,7 +59,7 @@ for set in dev test train; do
   cat $dir/utt2spk | utils/utt2spk_to_spk2utt.pl > $dir/spk2utt
 
   # Prepare 'wav.scp', 'reco2file_and_channel'
-  cat $dir/spk2utt | awk -v data_type=$data_type -v set=$set -v pwd=$PWD '{ printf("%s '$sph2pipe' -f wav -p %s/../asr1/db/TEDLIUM_release-3/%s/%s/sph/%s.sph |\n", $1, pwd, data_type, set, $1); }' > $dir/wav.scp
+  cat $dir/spk2utt | awk -v data_type=$data_type -v set=$set -v pwd=$PWD '{ printf("%s '$sph2pipe' -f wav -p %s/db/TEDLIUM_release-3/%s/%s/sph/%s.sph |\n", $1, pwd, data_type, set, $1); }' > $dir/wav.scp
   cat $dir/wav.scp | awk '{ print $1, $1, "A"; }' > $dir/reco2file_and_channel
 
   # Create empty 'glm' file
