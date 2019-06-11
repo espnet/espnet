@@ -360,8 +360,8 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 |           | CER (%) | WER (%)  |
 |-----------|:----:|:----:|
-| Aishell dev | 6.8 | N/A |
-| Aishell test | 8.0 | N/A |
+| Aishell dev | 6.0 | N/A |
+| Aishell test | 6.7 | N/A |
 | CSJ eval1 | 5.7 | N/A  |
 | CSJ eval2 | 4.1 | N/A  |
 | CSJ eval3 | 4.5 | N/A  |
