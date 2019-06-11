@@ -36,3 +36,6 @@ patience: 3
 
 # scheduled sampling option
 sampling-probability: 0.0
+
+# SpecAug
+use-specaug: True
