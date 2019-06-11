@@ -287,6 +287,7 @@ class E2E(ASRInterface, chainer.Chain):
         :return: N-best decoding results
         :rtype: list
         '''
+
         xp = self.xp
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             ilens = [x_block.shape[0]]
@@ -486,6 +487,7 @@ class E2E(ASRInterface, chainer.Chain):
         :return: attention weights (B, Lmax, Tmax)
         :rtype: float ndarray
         '''
+
         with chainer.no_backprop_mode():
             results = self(xs, ilens, ys, calculate_attentions=True)  # NOQA
         ret = dict()
