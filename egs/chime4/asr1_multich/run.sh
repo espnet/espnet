@@ -9,7 +9,7 @@
 # general configuration
 backend=pytorch
 stage=0        # start from 0 if you need to start from data preparation
-stop_stage=1000000
+stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -100,7 +100,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Dump wav files into a HDF5 file"
 
     utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy
-    for setname in tr05_multi_noisy ${recog_set};do
+    for setname in tr05_multi_noisy ${recog_set}; do
         mkdir -p data/${setname}_multich
         <data/${setname}/utt2spk sed -r 's/^(.*?).CH[0-9](_?.*?) /\1\2 /g' | sort -u >data/${setname}_multich/utt2spk
         <data/${setname}/text sed -r 's/^(.*?).CH[0-9](_?.*?) /\1\2 /g' | sort -u > data/${setname}_multich/text

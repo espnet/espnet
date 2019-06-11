@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe) and Nagoya University (Someki Masao)
+# Copyright 2019 Nagoya University (Masao Someki)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh
@@ -8,7 +8,7 @@
 
 # general configuration
 backend=pytorch
-stage=0       # start from -1 if you need to start from data download
+stage=0        # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
@@ -89,10 +89,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data Preparation"
     # Initial normalization of the data
     local/jnas_train_prep.sh ${jnas_train_root} ./conf/train_speakers.txt
-    for rtask in ${recog_set};do
+    for rtask in ${recog_set}; do
         local/jnas_eval_prep.sh ${jnas_eval_root} ${rtask}
     done
-
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -113,7 +112,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # following split consider prompt duplication (but does not consider speaker overlap instead)
     local/split_tr_dt.sh --perdt 5 data/train_trim \
 	    data/${train_set} data/${train_dev}
-    
+
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
