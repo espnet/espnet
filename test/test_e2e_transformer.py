@@ -56,14 +56,16 @@ def prepare(backend):
         eunits=64,
         dlayers=3,
         dunits=64,
+        sym_space='<space>',
+        sym_blank='<blank>',
         transformer_init="pytorch",
-        transformer_input_layer="linear",
+        transformer_input_layer="conv2d",
         transformer_length_normalized_loss=True,
         mtlalpha=0.0,
         lsm_weight=0.001,
         char_list=['a', 'e', 'i', 'o', 'u']
     )
-    idim = 83
+    idim = 80
     odim = 5
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(backend))
 
@@ -132,7 +134,6 @@ def test_transformer_synth(module):
             optim.step()
             max_acc = max(model.acc, max_acc)
         assert max_acc > 0.8
-
         # test attention plot
         attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
         from espnet.nets.pytorch_backend.transformer import plot
