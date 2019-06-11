@@ -161,6 +161,11 @@ class CustomUpdater(training.StandardUpdater):
             optimizer.step()
         optimizer.zero_grad()
 
+    def update(self):
+        self.update_core()
+        if self.forward_count == 0:
+            self.iteration += 1
+
 
 class CustomConverter(object):
     """Custom batch converter for Pytorch
