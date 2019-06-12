@@ -656,4 +656,4 @@ def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
                    args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
-                   args.context_residual,)
+                   args.context_residual)
