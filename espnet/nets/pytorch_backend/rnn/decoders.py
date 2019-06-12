@@ -45,15 +45,17 @@ class Decoder(torch.nn.Module):
     :param float lsm_weight: label smoothing weight
     :param float sampling_probability: scheduled sampling probability
     :param float dropout: dropout rate
+    :param float context_residual: if True, use context vector for token generation
     """
 
     def __init__(self, eprojs, odim, dtype, dlayers, dunits, sos, eos, att, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0,
-                 dropout=0.0):
+                 dropout=0.0, context_residual=False):
         super(Decoder, self).__init__()
         self.dtype = dtype
         self.dunits = dunits
         self.dlayers = dlayers
+        self.context_residual = context_residual
         self.embed = torch.nn.Embedding(odim, dunits)
         self.dropout_emb = torch.nn.Dropout(p=dropout)
 
@@ -71,7 +73,10 @@ class Decoder(torch.nn.Module):
             # NOTE: dropout is applied only for the vertical connections
             # see https://arxiv.org/pdf/1409.2329.pdf
         self.ignore_id = -1
-        self.output = torch.nn.Linear(dunits, odim)
+        if context_residual:
+            self.output = torch.nn.Linear(dunits + eprojs, odim)
+        else:
+            self.output = torch.nn.Linear(dunits, odim)
 
         self.loss = None
         self.att = att
@@ -169,9 +174,12 @@ class Decoder(torch.nn.Module):
             else:
                 ey = torch.cat((eys[:, i, :], att_c), dim=1)  # utt x (zdim + hdim)
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
-            z_all.append(self.dropout_dec[-1](z_list[-1]))
+            if self.context_residual:
+                z_all.append(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1))  # utt x (zdim + hdim)
+            else:
+                z_all.append(self.dropout_dec[-1](z_list[-1]))  # utt x (zdim)
 
-        z_all = torch.stack(z_all, dim=1).view(batch * olength, self.dunits)
+        z_all = torch.stack(z_all, dim=1).view(batch * olength, -1)
         # compute loss
         y_all = self.output(z_all)
         if LooseVersion(torch.__version__) < LooseVersion('1.0'):
@@ -285,7 +293,11 @@ class Decoder(torch.nn.Module):
                 z_list, c_list = self.rnn_forward(ey, z_list, c_list, hyp['z_prev'], hyp['c_prev'])
 
                 # get nbest local scores and their ids
-                local_att_scores = F.log_softmax(self.output(self.dropout_dec[-1](z_list[-1])), dim=1)
+                if self.context_residual:
+                    logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1))
+                else:
+                    logits = self.output(self.dropout_dec[-1](z_list[-1]))
+                local_att_scores = F.log_softmax(logits, dim=1)
                 if rnnlm:
                     rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
@@ -459,7 +471,11 @@ class Decoder(torch.nn.Module):
 
             # attention decoder
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_prev, c_prev)
-            local_scores = att_weight * F.log_softmax(self.output(self.dropout_dec[-1](z_list[-1])), dim=1)
+            if self.context_residual:
+                logits = self.output(torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1))
+            else:
+                logits = self.output(self.dropout_dec[-1](z_list[-1]))
+            local_scores = att_weight * F.log_softmax(logits, dim=1)
 
             # rnnlm
             if rnnlm:
@@ -487,7 +503,7 @@ class Decoder(torch.nn.Module):
             local_scores = to_device(self, torch.from_numpy(local_scores).float()).view(batch, beam, self.odim)
 
             # (or indexing)
-            # local_scores = to_cuda(self, torch.full((batch, beam, self.odim), self.logzero))
+            # local_scores = to_device(self, torch.full((batch, beam, self.odim), self.logzero))
             # _best_odims = local_best_odims
             # _best_score = local_best_scores
             # for si in six.moves.range(batch):
@@ -639,4 +655,5 @@ class Decoder(torch.nn.Module):
 def decoder_for(args, odim, sos, eos, att, labeldist):
     return Decoder(args.eprojs, odim, args.dtype, args.dlayers, args.dunits, sos, eos, att, args.verbose,
                    args.char_list, labeldist,
-                   args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder)
+                   args.lsm_weight, args.sampling_probability, args.dropout_rate_decoder,
+                   args.context_residual,)
