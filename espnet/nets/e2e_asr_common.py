@@ -94,6 +94,8 @@ def calculate_cer_wer(y_hats, y_pads, char_list, sym_space, sym_blank):
     :return:
     """
 
+    logging.info('Correct input')
+
     word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
     for i, y_hat in enumerate(y_hats):
         y_true = y_pads[i]
