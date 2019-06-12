@@ -100,11 +100,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.ctc = None
 
         if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
-            recog_args = {'beam_size': args.beam_size, 'penalty': args.penalty,
-                          'ctc_weight': args.ctc_weight, 'maxlenratio': args.maxlenratio,
-                          'minlenratio': args.minlenratio, 'lm_weight': args.lm_weight,
-                          'rnnlm': args.rnnlm, 'nbest': args.nbest,
-                          'space': args.sym_space, 'blank': args.sym_blank}
+            recog_args = {'space': args.sym_space, 'blank': args.sym_blank}
 
             self.recog_args = argparse.Namespace(**recog_args)
             self.report_cer = args.report_cer
@@ -185,8 +181,8 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # TODO(karita) show predicted text
         # TODO(karita) calculate these stats
-        # 4. compute ctc loss   || compute cer without beam search
-        if self.mtlalpha == 0:
+        # 4. compute ctc loss
+        if self.mtlalpha == 0.0:
             loss_ctc = None
             cer_ctc = None
         else:
@@ -217,7 +213,6 @@ class E2E(ASRInterface, torch.nn.Module):
         # 5. compute cer/wer
         if self.training or not (self.report_cer or self.report_wer):
             cer, wer = 0.0, 0.0
-            # oracle_cer, oracle_wer = 0.0, 0.0
         else:
             word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
             y_hats = pred_pad.argmax(dim=2)
@@ -230,7 +225,6 @@ class E2E(ASRInterface, torch.nn.Module):
                 seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')
                 seq_hat_text = seq_hat_text.replace(self.recog_args.blank, '')
                 seq_true_text = "".join(seq_true).replace(self.recog_args.space, ' ')
-
                 hyp_words = seq_hat_text.split()
                 ref_words = seq_true_text.split()
                 word_eds.append(editdistance.eval(hyp_words, ref_words))

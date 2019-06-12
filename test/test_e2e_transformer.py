@@ -56,8 +56,8 @@ def prepare(backend):
         eunits=64,
         dlayers=3,
         dunits=64,
-        sym_space='<space>',
-        sym_blank='<blank>',
+        sym_space="<space>",
+        sym_blank="<blank>",
         transformer_init="pytorch",
         transformer_input_layer="conv2d",
         transformer_length_normalized_loss=True,
@@ -65,7 +65,7 @@ def prepare(backend):
         lsm_weight=0.001,
         char_list=['a', 'e', 'i', 'o', 'u']
     )
-    idim = 80
+    idim = 84
     odim = 5
     T = importlib.import_module('espnet.nets.{}_backend.e2e_asr_transformer'.format(backend))
 
