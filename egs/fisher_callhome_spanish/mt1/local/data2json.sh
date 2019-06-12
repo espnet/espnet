@@ -1,1 +1,0 @@
-../../st1/local/data2json.sh
