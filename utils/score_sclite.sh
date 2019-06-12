@@ -92,7 +92,7 @@ elif [ ${num_spkrs} -eq 2 ]; then
   done
 
   echo "write CER (or TER) results in ${dir}/result_r*h*.txt"
-  compute-perm-free-error.sh --num_spkrs ${num_spkrs} ${dir}/result_r1h1.txt ${dir}/result_r1h2.txt \
+  eval_perm_free_error.py --num-spkrs ${num_spkrs} ${dir}/result_r1h1.txt ${dir}/result_r1h2.txt \
       ${dir}/result_r2h1.txt ${dir}/result_r2h2.txt > ${dir}/min_perm_result.json
   sed -n '2,4p' ${dir}/min_perm_result.json
 
@@ -113,7 +113,7 @@ elif [ ${num_spkrs} -eq 2 ]; then
       done
 
       echo "write WER results in ${dir}/result_r*h*.wrd.txt"
-      compute-perm-free-error.sh --num_spkrs ${num_spkrs} --wrd true ${dir}/result_r1h1.wrd.txt ${dir}/result_r1h2.wrd.txt \
+      eval_perm_free_error.py --num-spkrs ${num_spkrs} ${dir}/result_r1h1.wrd.txt ${dir}/result_r1h2.wrd.txt \
           ${dir}/result_r2h1.wrd.txt ${dir}/result_r2h2.wrd.txt > ${dir}/min_perm_result.wrd.json
       sed -n '2,4p' ${dir}/min_perm_result.wrd.json
   fi
