@@ -13,7 +13,7 @@ export LC_ALL=C
 
 sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
 
-data_type=legacy
+data_type=$1
 
 # Prepare: test, train,
 for set in dev test train; do

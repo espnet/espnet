@@ -92,9 +92,19 @@ set -e
 set -u
 set -o pipefail
 
+
+# legacy setup
+data_type=legacy
 train_set=train_trim_sp
 train_dev=dev_trim
 recog_set="dev test"
+
+#adaptation setup
+#data_type=speaker-adaptation
+#train_set=train_adapt_trim_sp
+#train_dev=dev_adapt_trim
+#recog_set="dev_adapt test_adapt"
+
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
@@ -105,7 +115,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    local/prepare_data.sh
+    local/prepare_data.sh $data_type
     for dset in dev test train; do
     utils/data/modify_speaker_info.sh --seconds-per-spk-max 180 data/${dset}.orig data/${dset}
     done
