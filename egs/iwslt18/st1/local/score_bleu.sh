@@ -11,7 +11,7 @@ nlsyms=""
 bpe=""
 bpemodel=""
 filter=""
-case=lc.rm
+case=lc
 
 . utils/parse_options.sh
 
