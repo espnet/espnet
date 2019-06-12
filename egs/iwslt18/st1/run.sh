@@ -61,7 +61,6 @@ train_set=train_nodevtest.de
 train_set_prefix=train_nodevtest
 if [ ${sp_prtb} = true ]; then
     train_set=train_nodevtest_sp.de
-    train_set_ori_prefix=train_nodevtest
     train_set_prefix=train_nodevtest_sp
 fi
 train_dev=train_dev.de
@@ -216,10 +215,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1char/${train_set_prefix}_units_${case}.txt
-if [ ${sp_prtb} = true ]; then
-    dict=data/lang_1char/${train_set_ori_prefix}_units_${case}.txt
-fi
+dict=data/lang_1char/${train_set}_units_${case}.txt
 nlsyms=data/lang_1char/non_lang_syms_${case}.txt
 echo "dictionary: ${dict}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -229,19 +225,19 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make a non-linguistic symbol list for all languages"
     if [ ${sp_prtb} = true ]; then
-          grep sp1.0 data/${train_set}/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+          grep sp1.0 data/${train_set_prefix}.*/text.${case} | cut -f 2- -d' ' | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
       else
-          cut -f 2- -d' ' data/${train_set}/text.${case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
+          cut -f 2- -d' ' data/${train_set_prefix}.*/text.${case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     fi
     cat ${nlsyms}
 
     echo "make a dictionary"
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     if [ ${sp_prtb} = true ]; then
-        grep sp1.0 data/${train_set}/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+        grep sp1.0 data/${train_set_prefix}.*/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
             | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     else
-        text2token.py -s 1 -n 1 -l ${nlsyms} data/${train_set}/text.${case} | cut -f 2- -d" " | tr " " "\n" \
+        cat data/${train_set_prefix}.*/text.${case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
             | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
     fi
     wc -l ${dict}
@@ -279,10 +275,10 @@ if [ -z ${tag} ]; then
         expname=${expname}_delta
     fi
     if [ -n "${asr_model}" ]; then
-      expname=${expname}_asrtrans
+        expname=${expname}_asrtrans
     fi
     if [ -n "${mt_model}" ]; then
-      expname=${expname}_mttrans
+        expname=${expname}_mttrans
     fi
 else
     expname=${train_set}_${backend}_${tag}
@@ -308,7 +304,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data.${case}.json \
-        --valid-json ${feat_dt_dir}/data.${case}.json
+        --valid-json ${feat_dt_dir}/data.${case}.json \
+        --asr-model ${asr_model} \
+        --mt-model ${mt_model}
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -332,6 +330,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --config ${decode_config} \
             --ngpu ${ngpu} \
             --backend ${backend} \
+            --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
