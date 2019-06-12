@@ -304,7 +304,7 @@ def test_attention_masking(model_dict):
         ({"decoder_concate_after": True}),
         ({"encoder_concate_after": True, "decoder_concate_after": True}),
     ])
-def test_incremental_inference(model_dict):
+def test_forward_and_inference_are_equal(model_dict):
     # make args
     model_args = make_transformer_args(dprenet_dropout_rate=0.0, **model_dict)
     print(model_args)
