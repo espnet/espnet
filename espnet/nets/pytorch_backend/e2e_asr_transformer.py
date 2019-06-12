@@ -6,8 +6,6 @@ from distutils.util import strtobool
 import logging
 import math
 
-import editdistance
-
 from itertools import groupby
 
 import numpy as np
@@ -186,6 +184,8 @@ class E2E(ASRInterface, torch.nn.Module):
             loss_ctc = None
             cer_ctc = None
         else:
+            import editdistance
+
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
@@ -214,25 +214,10 @@ class E2E(ASRInterface, torch.nn.Module):
         if self.training or not (self.report_cer or self.report_wer):
             cer, wer = 0.0, 0.0
         else:
-            word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
-            y_hats = pred_pad.argmax(dim=2)
-            for i, y_hat in enumerate(y_hats):
-                y_true = ys_pad[i]
-                eos_true = np.where(y_true.cpu() == -1)[0]
-                eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
-                seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
-                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
-                seq_hat_text = "".join(seq_hat).replace(self.recog_args.space, ' ')
-                seq_hat_text = seq_hat_text.replace(self.recog_args.blank, '')
-                seq_true_text = "".join(seq_true).replace(self.recog_args.space, ' ')
-                hyp_words = seq_hat_text.split()
-                ref_words = seq_true_text.split()
-                word_eds.append(editdistance.eval(hyp_words, ref_words))
-                word_ref_lens.append(len(ref_words))
-                hyp_chars = seq_hat_text.replace(' ', '')
-                ref_chars = seq_true_text.replace(' ', '')
-                char_eds.append(editdistance.eval(hyp_chars, ref_chars))
-                char_ref_lens.append(len(ref_chars))
+            from espnet.nets.e2e_asr_common import calculate_cer_wer
+
+            y_hats = pred_pad.argmax(dim=2).cpu()
+            word_eds, word_ref_lens, char_eds, char_ref_lens = calculate_cer_wer(y_hats, ys_pad.cpu())
 
             wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
             cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
