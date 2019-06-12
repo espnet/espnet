@@ -19,6 +19,8 @@ from espnet.nets.chainer_backend.transformer.encoder import Encoder
 from espnet.nets.chainer_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
 from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 
+from itertools import groupby
+
 MAX_DECODER_OUTPUT = 5
 
 
@@ -111,6 +113,8 @@ class E2E(ASRInterface, chainer.Chain):
             self.dropout = args.transformer_attn_dropout_rate
         self.use_label_smoothing = False
         self.char_list = args.char_list
+        self.space = args.sym_space
+        self.blank = args.sym_blank
         self.scale_emb = args.adim ** 0.5
         self.sos = odim - 1
         self.eos = odim - 1
@@ -137,6 +141,12 @@ class E2E(ASRInterface, chainer.Chain):
         self.dims = args.adim
         self.odim = odim
         self.flag_return = flag_return
+        if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
+            self.report_cer = args.report_cer
+            self.report_wer = args.report_wer
+        else:
+            self.report_cer = False
+            self.report_wer = False
         if 'Namespace' in str(type(args)):
             self.verbose = 0 if 'verbose' not in args else args.verbose
         else:
@@ -219,15 +229,76 @@ class E2E(ASRInterface, chainer.Chain):
         ys = self.decoder(ys, yy_mask, xs, xy_mask)
         if calculate_attentions:
             return xs
-        # Compute loss
+
+        # Compute Attention Loss
         loss_att = self.criterion(ys, ys_out, batch, length)
         acc = F.accuracy(ys, ys_out.reshape((-1)).data, ignore_label=self.ignore_id)
+
+        # Compute CTC Loss and CER CTC
         if self.ctc is None:
             loss_ctc = None
+            cer_ctc = None
         else:
+            import editdistance
+
             xs = xs.reshape(batch, -1, self.dims)
             xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
             loss_ctc = self.ctc(xs, ys_pad)
+            cers, char_ref_lens = [], []
+
+            with chainer.no_backprop_mode():
+                y_hats = self.ctc.argmax(xs).data
+                ys_pad = [chainer.backends.cuda.to_cpu(y.data) for y in ys_pad]
+
+            for i, y in enumerate(y_hats):
+                y_hat = [x[0] for x in groupby(y)]
+                y_true = ys_pad[i]
+
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
+                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+                seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.space, ' ')
+
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                if len(ref_chars) > 0:
+                    cers.append(editdistance.eval(hyp_chars, ref_chars))
+                    char_ref_lens.append(len(ref_chars))
+
+            cer_ctc = float(sum(cers)) / sum(char_ref_lens) if cers else None
+
+        # Compute cer/wer
+        with chainer.no_backprop_mode():
+            y_hats = ys.reshape((batch, length, -1))
+            y_hats = chainer.backends.cuda.to_cpu(F.argmax(y_hats, axis=2).data)
+
+        if chainer.config.train or not (self.report_cer or self.report_wer):
+            cer, wer = 0.0, 0.0
+        else:
+            from espnet.nets.e2e_asr_common import calculate_cer_wer
+
+            word_eds, word_ref_lens, char_eds, char_ref_lens = calculate_cer_wer(
+                y_hats, ys_pad, self.char_list, self.space, self.blank)
+
+            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
+
+        # Print Output
+        if chainer.config.train and (self.verbose > 0 and self.char_list is not None):
+            for i, y_hat in enumerate(y_hats):
+                y_true = ys_pad[i]
+                if i == MAX_DECODER_OUTPUT:
+                    break
+                eos_true = np.where(y_true == -1)[0]
+                eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat[:eos_true]]
+                seq_true = [self.char_list[int(idx)] for idx in y_true[y_true != -1]]
+                seq_hat = "".join(seq_hat).replace(self.space, ' ')
+                seq_true = "".join(seq_true).replace(self.space, ' ')
+                logging.info("groundtruth[%d]: " % i + seq_true)
+                logging.info("prediction [%d]: " % i + seq_hat)
+
         alpha = self.mtlalpha
         if alpha == 0.0:
             self.loss = loss_att
@@ -248,28 +319,14 @@ class E2E(ASRInterface, chainer.Chain):
             reporter.report({'loss_att': loss_att_data}, self)
             reporter.report({'acc': acc}, self)
 
+            reporter.report({'cer_ctc': cer_ctc}, self)
+            reporter.report({'cer': cer}, self)
+            reporter.report({'wer': wer}, self)
+
             logging.info('mtl loss:' + str(loss_data))
             reporter.report({'loss': loss_data}, self)
         else:
             logging.warning('loss (=%f) is not correct', loss_data)
-
-        if self.verbose > 0 and self.char_list is not None:
-            with chainer.no_backprop_mode():
-                rc_block = F.transpose(ys.reshape((batch, length, -1)), (0, 2, 1))
-                rc_block.to_cpu()
-                ys_out.to_cpu()
-                for (i, y_hat_), y_true_ in zip(enumerate(rc_block.data), ys_out.data):
-                    if i == MAX_DECODER_OUTPUT:
-                        break
-                    idx_hat = np.argmax(y_hat_[:, y_true_ != -1], axis=0)
-                    idx_true = y_true_[y_true_ != -1]
-                    eos_true = np.where(y_true_ == self.eos)[0][0]
-                    seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
-                    seq_true = [self.char_list[int(idx)] for idx in idx_true[: eos_true]]
-                    seq_hat = "".join(seq_hat).replace('<space>', ' ')
-                    seq_true = "".join(seq_true).replace('<space>', ' ')
-                    logging.info("groundtruth[%d]: " % i + seq_true)
-                    logging.info("prediction [%d]: " % i + seq_hat)
 
         if self.flag_return:
             loss_ctc = None

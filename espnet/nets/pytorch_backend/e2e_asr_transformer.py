@@ -1,14 +1,11 @@
 # Copyright 2019 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-import argparse
 from argparse import Namespace
 from distutils.util import strtobool
 import logging
 import math
 
 from itertools import groupby
-
-import numpy as np
 
 import torch
 
@@ -98,9 +95,6 @@ class E2E(ASRInterface, torch.nn.Module):
             self.ctc = None
 
         if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
-            recog_args = {'space': args.sym_space, 'blank': args.sym_blank}
-
-            self.recog_args = argparse.Namespace(**recog_args)
             self.report_cer = args.report_cer
             self.report_wer = args.report_wer
         else:
@@ -217,8 +211,9 @@ class E2E(ASRInterface, torch.nn.Module):
         else:
             from espnet.nets.e2e_asr_common import calculate_cer_wer
 
-            y_hats = pred_pad.argmax(dim=2).cpu()
-            word_eds, word_ref_lens, char_eds, char_ref_lens = calculate_cer_wer(y_hats, ys_pad.cpu())
+            y_hats = pred_pad.argmax(dim=-1).cpu()
+            word_eds, word_ref_lens, char_eds, char_ref_lens = calculate_cer_wer(
+                y_hats, ys_pad.cpu(), self.char_list, self.space, self.blank)
 
             wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
             cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)

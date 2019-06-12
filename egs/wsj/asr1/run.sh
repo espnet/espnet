@@ -56,9 +56,6 @@ set -e
 set -u
 set -o pipefail
 
-ln -sfn ${PWD}/conf/tuning/train_${backend}_transformer.yaml  ./conf/train.yaml
-ln -sfn ${PWD}/conf/tuning/decode_${backend}_transformer.yaml  ./conf/decode.yaml
-
 train_set=train_si284
 train_dev=test_dev93
 train_test=test_eval92

@@ -38,3 +38,7 @@ transformer-warmup-steps: 25000
 transformer-attn-dropout-rate: 0.0
 transformer-length-normalized-loss: false
 transformer-init: pytorch
+
+# Report CER & WER
+report-cer: true
+report-wer: true
