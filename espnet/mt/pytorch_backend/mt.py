@@ -43,7 +43,7 @@ from espnet.utils.training.train_utils import set_early_stop
 # duplicate
 from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
-from espnet.asr.pytorch_backend.asr import load_pretrained_model
+from espnet.asr.pytorch_backend.asr import load_trained_model
 
 import matplotlib
 matplotlib.use('Agg')
@@ -184,8 +184,7 @@ def train(args):
                           batch_frames_in=args.batch_frames_in,
                           batch_frames_out=args.batch_frames_out,
                           batch_frames_inout=args.batch_frames_inout,
-                          ikey='output',
-                          iaxis=1)
+                          mt=True)
     valid = make_batchset(valid_json, args.batch_size,
                           args.maxlen_in, args.maxlen_out, args.minibatches,
                           min_batch_size=args.ngpu if args.ngpu > 1 else 1,
@@ -194,8 +193,7 @@ def train(args):
                           batch_frames_in=args.batch_frames_in,
                           batch_frames_out=args.batch_frames_out,
                           batch_frames_inout=args.batch_frames_inout,
-                          ikey='output',
-                          iaxis=1)
+                          mt=True)
 
     load_tr = LoadInputsAndTargets(
         mode='mt', load_output=True, preprocess_conf=args.preprocess_conf,
@@ -348,7 +346,7 @@ def trans(args):
     :param Namespace args: The program arguments
     """
     set_deterministic_pytorch(args)
-    model, train_args = load_pretrained_model(args.model)
+    model, train_args = load_trained_model(args.model)
     assert isinstance(model, MTInterface)
     model.recog_args = args
 
