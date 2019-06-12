@@ -9,7 +9,7 @@
   - Git hash: `2679f69a46f5cfa103325ceffb53793d6af4af2b`
 
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - model link: https://drive.google.com/open?id=11NSQyvzw94mJdWi3erO_IZaOr1dgLb1b
     - training config file: `./conf/train.yaml`
     - decoding config file: `./conf/decode.yaml`
     - cmvn file: `./data/train_trim_sp/cmvn.ark`
