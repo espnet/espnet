@@ -39,7 +39,8 @@ requirements = {
         # A backport of inspect.signature for python2
         'funcsigs',
         'configargparse',
-        'PyYAML'
+        'PyYAML',
+        'nltk'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
