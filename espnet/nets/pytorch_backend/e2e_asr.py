@@ -250,8 +250,7 @@ class E2E(ASRInterface, torch.nn.Module):
         if self.mtlalpha == 1:
             self.loss_att, acc = None, None
         else:
-            # self.loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
-            self.loss_att, acc = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
+            self.loss_att, acc, _ = self.dec(hs_pad, hlens, ys_pad, tgt_lang_ids=tgt_lang_ids)
         self.acc = acc
 
         # 4. compute cer without beam search
