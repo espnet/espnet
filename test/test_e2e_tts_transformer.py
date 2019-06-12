@@ -10,8 +10,8 @@ import torch
 
 from argparse import Namespace
 
-from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import subsequent_mask
+from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
