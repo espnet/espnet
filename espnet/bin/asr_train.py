@@ -112,7 +112,7 @@ def main(cmd_args):
                         help='Number of decoder layers')
     parser.add_argument('--dunits', default=320, type=int,
                         help='Number of decoder hidden units')
-    parser.add_argument('--mtlalpha', default=0.0, type=float,
+    parser.add_argument('--mtlalpha', default=0.5, type=float,
                         help='Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ')
     parser.add_argument('--lsm-type', const='', default='', type=str, nargs='?', choices=['', 'unigram'],
                         help='Apply label smoothing with a specified distribution type')
@@ -137,13 +137,13 @@ def main(cmd_args):
                         to automatically find maximum hypothesis lengths""")
     parser.add_argument('--minlenratio', default=0.0, type=float,
                         help='Input length ratio to obtain min output length')
-    parser.add_argument('--ctc-weight', default=0.0, type=float,
+    parser.add_argument('--ctc-weight', default=0.3, type=float,
                         help='CTC weight in joint decoding')
     parser.add_argument('--rnnlm', type=str, default=None,
                         help='RNNLM model file to read')
     parser.add_argument('--rnnlm-conf', type=str, default=None,
                         help='RNNLM model config file to read')
-    parser.add_argument('--lm-weight', default=0.0, type=float,
+    parser.add_argument('--lm-weight', default=0.1, type=float,
                         help='RNNLM weight.')
     parser.add_argument('--sym-space', default='<space>', type=str,
                         help='Space symbol')
