@@ -1,4 +1,5 @@
 # network architecture
+use-frontend: true   # Enable frontend and feature transform part in E2E forwarding
 # beamformer related
 use-beamformer: true
 blayers: 3

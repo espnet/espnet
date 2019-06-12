@@ -590,6 +590,7 @@ def recog(args):
                         if hyps is not None:
                             text = ''.join([train_args.char_list[int(x)]
                                             for x in hyps[0]['yseq'][1:-1] if int(x) != -1])
+                            text = text.replace('\u2581', ' ').strip()  # for SentencePiece
                             text = text.replace(model.space, ' ')
                             text = text.replace(model.blank, '')
                             logging.info(text)
