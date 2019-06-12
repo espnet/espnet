@@ -423,6 +423,10 @@ class Transformer(TTSInterface, torch.nn.Module):
             if isinstance(m, (torch.nn.Embedding, LayerNorm)):
                 m.reset_parameters()
 
+    def _add_first_frame_and_remove_last_frame(self, ys):
+        ys_in = torch.cat([ys.new_zeros((ys.shape[0], 1, ys.shape[2])), ys[:, :-1]], dim=1)
+        return ys_in
+
     def forward(self, xs, ilens, ys, labels, olens, *args, **kwargs):
         """Transformer forward computation
 
@@ -446,17 +450,20 @@ class Transformer(TTSInterface, torch.nn.Module):
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)
 
+        # add first zero frame and remove last frame for auto-regressive
+        ys_in = self._add_first_frame_and_remove_last_frame(ys)
+
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
-            ys_ = ys[:, self.reduction_factor - 1::self.reduction_factor]
-            olens_ = olens.new([olen // self.reduction_factor for olen in olens])
+            ys_in = ys_in[:, self.reduction_factor - 1::self.reduction_factor]
+            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
         else:
-            ys_, olens_ = ys, olens
+            olens_in = olens
 
         # forward decoder
-        y_masks = self._target_mask(olens_)
-        xy_masks = self._source_to_target_mask(ilens, olens_)
-        zs, _ = self.decoder(ys_, y_masks, hs, xy_masks)
+        y_masks = self._target_mask(olens_in)
+        xy_masks = self._source_to_target_mask(ilens, olens_in)
+        zs, _ = self.decoder(ys_in, y_masks, hs, xy_masks)
         # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
         before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
         # (B, Lmax//r, r) -> (B, Lmax//r * r)
@@ -512,7 +519,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
                 att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_out)
-                dec_attn_loss = self.attn_criterion(att_ws, olens_, olens_)
+                dec_attn_loss = self.attn_criterion(att_ws, olens_in, olens_in)
                 loss = loss + dec_attn_loss
                 report_keys += [{"dec_attn_loss": dec_attn_loss.item()}]
             # calculate for encoder-decoder
@@ -523,7 +530,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
                 att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_in)
-                enc_dec_attn_loss = self.attn_criterion(att_ws, ilens, olens_)
+                enc_dec_attn_loss = self.attn_criterion(att_ws, ilens, olens_in)
                 loss = loss + enc_dec_attn_loss
                 report_keys += [{"enc_dec_attn_loss": enc_dec_attn_loss.item()}]
 
@@ -610,17 +617,20 @@ class Transformer(TTSInterface, torch.nn.Module):
             x_masks = self._source_mask(ilens)
             hs, _ = self.encoder(xs, x_masks)
 
+            # add first zero frame and remove last frame for auto-regressive
+            ys_in = self._add_first_frame_and_remove_last_frame(ys)
+
             # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
             if self.reduction_factor > 1:
-                ys_ = ys[:, self.reduction_factor - 1::self.reduction_factor]
-                olens_ = olens.new([olen // self.reduction_factor for olen in olens])
+                ys_in = ys_in[:, self.reduction_factor - 1::self.reduction_factor]
+                olens_in = olens.new([olen // self.reduction_factor for olen in olens])
             else:
-                ys_, olens_ = ys, olens
+                olens_in = olens
 
             # forward decoder
-            y_masks = self._target_mask(olens_)
-            xy_masks = self._source_to_target_mask(ilens, olens_)
-            zs, _ = self.decoder(ys_, y_masks, hs, xy_masks)
+            y_masks = self._target_mask(olens_in)
+            xy_masks = self._source_to_target_mask(ilens, olens_in)
+            zs, _ = self.decoder(ys_in, y_masks, hs, xy_masks)
             # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
             before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
             # postnet -> (B, Lmax//r * r, odim)
@@ -638,9 +648,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                     attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
                 elif "decoder" in name:
                     if "src" in name:
-                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens_.tolist())]
+                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens_in.tolist())]
                     elif "self" in name:
-                        attn = [a[:, :l, :l] for a, l in zip(attn, olens_.tolist())]
+                        attn = [a[:, :l, :l] for a, l in zip(attn, olens_in.tolist())]
                     else:
                         logging.warning("unknown attention module: " + name)
                 else:
