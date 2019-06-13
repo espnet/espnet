@@ -8,7 +8,13 @@
     - chainer version: `chainer 5.0.0`
     - pytorch version: `pytorch 1.0.0`
     - Git hash: `04b9e1a71b3272cdf6502e40679ab17f3f3f22f6`
-
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: (put the model link manually. please contact Shinji Watanabe <shinjiw@ieee.org> if you want a web storage to put your files)
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_mix/cmvn.ark`
+    - e2e file: `exp/train_mix_pytorch_transformer_100epoch/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_mix_pytorch_transformer_100epoch/results/model.json`
 ```
 exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_A.txt:|  SPKR     |  # Snt    # Wrd   |  Corr        Sub       Del       Ins       Err     S.Err   |
 exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_A.txt:|  Sum/Avg  |   330      5467   |  96.6        3.1       0.3       0.3       3.7      33.0   |
