@@ -346,7 +346,7 @@ def make_batchset(data, batch_size=0, max_length_in=float("inf"), max_length_out
             continue
 
         # sort it by input lengths (long to short)
-        sorted_data = sorted(data.items(), key=lambda data: int(
+        sorted_data = sorted(d.items(), key=lambda data: int(
             data[1][batch_sort_key][batch_sort_axis]['shape'][0]), reverse=not shortest_first)
         logging.info('# utts: ' + str(len(sorted_data)))
         if count == "seq":
