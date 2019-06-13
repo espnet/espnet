@@ -7,7 +7,24 @@
     - chainer version: `chainer 6.0.0`
     - pytorch version: `pytorch 1.0.1.post2`
     - Git hash: `d299bf4c88d11dbce4aef8c28db2ffe7f48b7c07`
-
+  - Model files (archived to model.v1.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1mcu-wPw7TOFnz0V__-_0jsTD_zDX_8QN
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
+    - cmvn file: `data/train_nodup_sp/cmvn.ark`
+    - e2e file: `exp/train_nodup_sp_pytorch_train_pytorch_transformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_nodup_sp_pytorch_train_pytorch_transformer/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_lm/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_lm/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_nodup_sp_pytorch_train_pytorch_transformer/decode_train_dev_decode_pytorch_transformer_lm/result.txt
+|  SPKR                               | # Snt    # Wrd  |  Corr     Sub      Del      Ins     Err    S.Err  |
+|  Sum/Avg                            | 4000     47147  |  78.9    17.2      3.9      3.2    24.3     74.2  |
+exp/train_nodup_sp_pytorch_train_pytorch_transformer/decode_dev_decode_pytorch_transformer_lm/result.txt
+| SPKR                               | # Snt   # Wrd  | Corr     Sub     Del     Ins     Err   S.Err  |
+| Sum/Avg                            | 5413    56154  | 78.9    17.5     3.6     2.7    23.8    69.1  |
+```
 
 # use wide and shallow network
 ```
