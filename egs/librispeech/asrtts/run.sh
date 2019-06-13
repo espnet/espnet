@@ -110,7 +110,6 @@ unpair=dualp
 policy_gradient=true
 use_rnnlm=false
 rnnlm_loss=none
-embed_dim=512
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -447,7 +446,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     maxlenratio=10.0 # maximum length of generated samples = input length * maxlenratio
     minlenratio=0.0  # minimum length of generated samples = input length * minlenratio
     train_config=conf/train_pytorch_tacotron2+spkemb.yaml
-    decode_config=conf/decode.yaml
+    #decode_config=conf/decode.yaml
 
     for name in ${train_paired_set} ${dev_set}; do
         cp ${dumpdir}/${name}/data.json ${dumpdir}/${name}/data_tts.json

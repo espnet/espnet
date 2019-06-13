@@ -460,7 +460,8 @@ class E2E(torch.nn.Module):
         loss_data = float(self.loss)
         if loss_data < CTC_LOSS_THRESHOLD and not math.isnan(loss_data):
             if self.loss_fn is not None:
-                self.reporter.report(None, loss_att_data, None, None, None, None, None, float(taco_loss.mean().cpu()), None)
+                self.reporter.report(None, loss_att_data, None, None, None, None,
+                                     None, float(taco_loss.mean().cpu()), None)
             else:
                 self.reporter.report(loss_att_data, None, None, None, acc, cer, wer, None, None)
         else:

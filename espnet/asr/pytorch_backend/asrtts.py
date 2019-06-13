@@ -496,7 +496,7 @@ def train(args):
     else:
         train_iter = ToggleableShufflingMultiprocessIterator(
             TransformDataset(train, load_tr),
-            batch_size=1, shuffle=False) #not use_sortagrad)
+            batch_size=1, shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingSerialIterator(
             TransformDataset(valid, load_cv),
             batch_size=1, repeat=False, shuffle=False)
@@ -541,7 +541,8 @@ def train(args):
             trigger=(1, 'epoch'))
 
     # Make a plot for training and validation values
-    trainer.extend(extensions.PlotReport(['main/pa_loss_att', 'main/sa_loss_att', 'main/ta_loss_att', 'main/sa_loss_mse',
+    trainer.extend(extensions.PlotReport(['main/pa_loss_att', 'main/sa_loss_att',
+                                          'main/ta_loss_att', 'main/sa_loss_mse',
                                           'main/ta_loss_bce', 'main/ta_acc', 'main/acc',
                                           'validation/main/loss'],
                                          'epoch', file_name='loss.png'))
@@ -583,8 +584,10 @@ def train(args):
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport(trigger=(REPORT_INTERVAL, 'iteration')))
-    report_keys = ['epoch', 'iteration', 'main/pa_loss_att', 'main/sa_loss_att', 'main/ta_loss_att', 'main/sa_loss_mse',
-                   'main/ta_loss_bce', 'main/ta_acc', 'main/acc', 'validation/main/loss', 'validation/main/acc', 'elapsed_time']
+    report_keys = ['epoch', 'iteration', 'main/pa_loss_att', 'main/sa_loss_att',
+                   'main/ta_loss_att', 'main/sa_loss_mse',
+                   'main/ta_loss_bce', 'main/ta_acc', 'main/acc', 'validation/main/loss',
+                   'validation/main/acc', 'elapsed_time']
     if args.opt == 'adadelta':
         trainer.extend(extensions.observe_value(
             'eps', lambda trainer: trainer.updater.get_optimizer('main').param_groups[0]["eps"]),
