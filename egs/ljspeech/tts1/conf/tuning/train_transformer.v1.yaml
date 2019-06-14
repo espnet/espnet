@@ -25,8 +25,8 @@ use-batch-norm: True
 use-scaled-pos-enc: True
 encoder-normalize-before: False
 decoder-normalize-before: False
-encoder-concate-after: False
-decoder-concate-after: False
+encoder-concat-after: False
+decoder-concat-after: False
 reduction-factor: 1
 
 # minibatch related
