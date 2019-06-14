@@ -207,10 +207,10 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Whether to apply layer norm before encoder block")
         group.add_argument("--decoder-normalize-before", default=True, type=strtobool,
                            help="Whether to apply layer norm before decoder block")
-        group.add_argument("--encoder-concate-after", default=False, type=strtobool,
-                           help="Whether to concate attention layer\"s input and output in encoder")
-        group.add_argument("--decoder-concate-after", default=False, type=strtobool,
-                           help="Whether to concate attention layer\"s input and output in decoder")
+        group.add_argument("--encoder-concat-after", default=False, type=strtobool,
+                           help="Whether to concatenate attention layer\"s input and output in encoder")
+        group.add_argument("--decoder-concat-after", default=False, type=strtobool,
+                           help="Whether to concatenate attention layer\"s input and output in decoder")
         parser.add_argument("--reduction-factor", default=1, type=int,
                             help="Reduction factor")
         # training related
