@@ -22,7 +22,7 @@ class Decoder(torch.nn.Module):
     :param bool use_output_layer: whether to use output layer
     :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
     :param bool normalize_before: whether to use layer_norm before the first block
-    :param bool concate_after: whether to concat attention layer's input and output
+    :param bool concat_after: whether to concat attention layer's input and output
         if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     """
@@ -40,7 +40,7 @@ class Decoder(torch.nn.Module):
                  use_output_layer=True,
                  pos_enc_class=PositionalEncoding,
                  normalize_before=True,
-                 concate_after=False):
+                 concat_after=False):
         super(Decoder, self).__init__()
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
@@ -72,7 +72,7 @@ class Decoder(torch.nn.Module):
                 PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
                 dropout_rate,
                 normalize_before,
-                concate_after
+                concat_after
             )
         )
         if self.normalize_before:
