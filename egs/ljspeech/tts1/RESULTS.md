@@ -2,8 +2,7 @@
 
 ## v.0.3.0: 1024 pt window / 256 pt shift + default taco2 + GL 1000 iters
 
-- Samples files
-  - sample link: https://drive.google.com/open?id=1NclM7_WaoL_Joy71e1bAUfsn_Hcy6HZD
+- Samples: https://drive.google.com/open?id=1NclM7_WaoL_Joy71e1bAUfsn_Hcy6HZD
 
 ## v.0.4.0: tacotron2.v1 1024 pt window / 256 pt shift / GL 1000 iters
 
@@ -18,15 +17,13 @@
 
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
   - model link: https://drive.google.com/open?id=1zVMwNZ0-VMILm83UEQ2oUqWI89y39Y_b
-  - sample link: https://drive.google.com/open?id=1ZIDPpb1Bt9V8mrnJCCptMcpIH3SpuyrD
   - training config file: `conf/tuning/train_pytorch_tacotron2.v1.yaml`
   - decoding config file: `conf/decode.yaml`
   - cmvn file: `data/train_no_dev/cmvn.ark`
   - e2e file: `exp/train_no_dev_pytorch_train_pytorch_tacotron2.v1/results/model.last1.avg.best`
   - e2e JSON file: `exp/train_no_dev_pytorch_train_pytorch_tacotron2.v1/results/model.json`
 
-- Samples files
-  - sample link: https://drive.google.com/open?id=1ZIDPpb1Bt9V8mrnJCCptMcpIH3SpuyrD
+- Samples: https://drive.google.com/open?id=1ZIDPpb1Bt9V8mrnJCCptMcpIH3SpuyrD
 
 ## v.0.4.0: tacotron2.v2 1024 pt window / 256 pt shift / GL 1000 iters
 
@@ -47,5 +44,4 @@
   - e2e file: `exp/train_no_dev_pytorch_train_pytorch_tacotron2.v2/results/model.last1.avg.best`
   - e2e JSON file: `exp/train_no_dev_pytorch_train_pytorch_tacotron2.v2/results/model.json`
 
-- Samples files
-  - sample link: https://drive.google.com/open?id=1cKPDQjLGs7OD8xopSK3YWIGGth37GRSm
+- Samples: https://drive.google.com/open?id=1cKPDQjLGs7OD8xopSK3YWIGGth37GRSm
