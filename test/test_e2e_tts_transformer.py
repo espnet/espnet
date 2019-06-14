@@ -299,6 +299,7 @@ def test_attention_masking(model_dict):
     "model_dict", [
         ({}),
         ({"reduction_factor": 3}),
+        ({"reduction_factor": 4}),
         ({"decoder_normalize_before": False}),
         ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
         ({"decoder_concat_after": True}),
@@ -327,12 +328,12 @@ def test_forward_and_inference_are_equal(model_dict):
         # --------- forward calculation ---------
         x_masks = model._source_mask(ilens)
         hs_fp, _ = model.encoder(xs, x_masks)
-        ys_in = model._add_first_frame_and_remove_last_frame(ys)
         if model.reduction_factor > 1:
-            ys_in = ys_in[:, model.reduction_factor - 1::model.reduction_factor]
+            ys_in = ys[:, model.reduction_factor - 1::model.reduction_factor]
             olens_in = olens.new([olen // model.reduction_factor for olen in olens])
         else:
-            olens_in = olens
+            ys_in, olens_in = ys, olens
+        ys_in = model._add_first_frame_and_remove_last_frame(ys_in)
         y_masks = model._target_mask(olens_in)
         xy_masks = model._source_to_target_mask(ilens, olens_in)
         zs, _ = model.decoder(ys_in, y_masks, hs_fp, xy_masks)
@@ -347,7 +348,11 @@ def test_forward_and_inference_are_equal(model_dict):
         minlen = ys_in.shape[1]
         idx = 0
         # this is the inferene calculation but we use groundtruth to check the behavior
-        ys_in_ = ys_in[0, 0].view(1, 1, model.odim)
+        ys_in_ = ys_in[0, idx].view(1, 1, model.odim)
+        np.testing.assert_array_equal(
+            ys_in_.new_zeros(1, 1, model.odim).detach().cpu().numpy(),
+            ys_in_.detach().cpu().numpy(),
+        )
         outs, probs = [], []
         while True:
             idx += 1

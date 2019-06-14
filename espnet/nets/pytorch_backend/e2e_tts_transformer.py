@@ -450,15 +450,15 @@ class Transformer(TTSInterface, torch.nn.Module):
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)
 
-        # add first zero frame and remove last frame for auto-regressive
-        ys_in = self._add_first_frame_and_remove_last_frame(ys)
-
         # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
         if self.reduction_factor > 1:
-            ys_in = ys_in[:, self.reduction_factor - 1::self.reduction_factor]
+            ys_in = ys[:, self.reduction_factor - 1::self.reduction_factor]
             olens_in = olens.new([olen // self.reduction_factor for olen in olens])
         else:
-            olens_in = olens
+            ys_in, olens_in = ys, olens
+
+        # add first zero frame and remove last frame for auto-regressive
+        ys_in = self._add_first_frame_and_remove_last_frame(ys_in)
 
         # forward decoder
         y_masks = self._target_mask(olens_in)
