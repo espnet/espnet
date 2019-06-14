@@ -1,18 +1,20 @@
-# This is the Transformer TTS configuration
+# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB.
+# If you cannot use 3 gpus, it is better to make batch-bins small, increase accum_grad and epochs.
+# This model should be able to genearate speeech from around 40k iterations.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer
-embed-dim: 512
-eprenet-conv-layers: 3  # one more linear layer w/o non-linear will be added for 0-centor
-eprenet-conv-filts: 5
-eprenet-conv-chans: 512
+embed-dim: 0
+eprenet-conv-layers: 0  # one more linear layer w/o non-linear will be added for 0-centor
+eprenet-conv-filts: 0
+eprenet-conv-chans: 0
 dprenet-layers: 2  # one more linear layer w/o non-linear will be added for 0-centor
 dprenet-units: 256
 adim: 384
 aheads: 4
-elayers: 3
+elayers: 6
 eunits: 1536
-dlayers: 3
+dlayers: 6
 dunits: 1536
 postnet-layers: 5
 postnet-filts: 5
@@ -21,17 +23,17 @@ use-masking: True
 bce-pos-weight: 5.0
 use-batch-norm: True
 use-scaled-pos-enc: True
-encoder-normalize-before: True
-decoder-normalize-before: True
+encoder-normalize-before: False
+decoder-normalize-before: False
 encoder-concate-after: False
 decoder-concate-after: False
-reduction-factor: 4
+reduction-factor: 1
 
 # minibatch related
 batch-sort-key: input # shuffle or input or output
-batch-bins: 4554000   # 60 * (870 * 80 + 180 * 35)
+batch-bins: 2277000   # 30 * (870 * 80 + 180 * 35)
                       # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # resuling in 39 ~ 209 samples (avg 74 samples) in batch (169 batches per epochs) for ljspeech
+                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
 
 # training related
 transformer-init: pytorch
@@ -39,7 +41,7 @@ transformer-warmup-steps: 4000
 transformer-lr: 1.0
 initial-encoder-alpha: 1.0
 initial-decoder-alpha: 1.0
-eprenet-dropout-rate: 0.5
+eprenet-dropout-rate: 0.0
 dprenet-dropout-rate: 0.5
 postnet-dropout-rate: 0.5
 transformer-enc-dropout-rate: 0.1
@@ -49,15 +51,18 @@ transformer-dec-dropout-rate: 0.1
 transformer-dec-positional-dropout-rate: 0.1
 transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
-use-guided-attn-loss: false
+use-guided-attn-loss: true
+num-heads-applied-guided-attn: 2
+num-layers-applied-guided-attn: 2
+modules-applied-guided-attn: ["encoder-decoder"]
 
 # optimization related
 opt: noam
-accum-grad: 1
+accum-grad: 2
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 1,000 epochs * 169 batches / 1 accum-grad = 169,000 iters
+epochs: 1000  # 1,000 epochs * 330 batches / 2 accum-grad = 165,000 iters
 
 # other
 save-interval-epoch: 10
