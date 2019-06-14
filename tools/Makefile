@@ -83,7 +83,7 @@ endif
 
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
-	git clone https://github.com/jnishi/warp-ctc.git
+	git clone https://github.com/espnet/warp-ctc.git
 	# Note(kamo): Requires gcc>=4.9 to build extensions with pytorch>=1.0
 	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
         . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'"; \
@@ -124,7 +124,7 @@ nkf.done:
 sentencepiece.done:
 	rm -rf sentencepiece
 	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
+	cd sentencepiece && git checkout v0.1.82 && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 	touch sentencepiece.done
 
 mecab.done: espnet.done
