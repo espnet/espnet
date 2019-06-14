@@ -1,3 +1,0 @@
-write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
-      | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-      | Sum/Avg|  250    5928 | 81.8   15.7    2.5    2.4   20.6   97.2 |
