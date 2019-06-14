@@ -336,7 +336,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_enc_attn_dropout_rate,
             pos_enc_class=pos_enc_class,
             normalize_before=args.encoder_normalize_before,
-            concate_after=args.encoder_concate_after
+            concat_after=args.encoder_concat_after
         )
 
         # define transformer decoder
@@ -367,7 +367,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             use_output_layer=False,
             pos_enc_class=pos_enc_class,
             normalize_before=args.decoder_normalize_before,
-            concate_after=args.decoder_concate_after
+            concat_after=args.decoder_concat_after
         )
 
         # define final projection
