@@ -284,6 +284,61 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return loss
 
+    def calculate_all_attentions(self, xs, ilens, ys, olens, *args, **kwargs):
+        """Calculate attention weights
+
+        :param torch.Tensor xs: batch of padded character ids (B, Tmax)
+        :param torch.Tensor ilens: list of lengths of each input batch (B)
+        :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
+        :param torch.Tensor ilens: list of lengths of each output batch (B)
+        :return: attention weights dict
+        :rtype: dict
+        """
+        with torch.no_grad():
+            # remove unnecessary padded part (for multi-gpus)
+            max_ilen = max(ilens)
+            max_olen = max(olens)
+            if max_ilen != xs.shape[1]:
+                xs = xs[:, :max_ilen]
+            if max_olen != ys.shape[1]:
+                ys = ys[:, :max_olen]
+
+            # forward encoder
+            x_masks = self._source_mask(ilens)
+            hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
+
+            # calculate groundtruth duration
+            with torch.no_grad():
+                ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
+
+            # apply length regularizer
+            hs = self.length_regularizer(hs, ds, ilens)  # (B, Lmax, adim)
+
+            # forward decoder
+            h_masks = self._source_mask(olens)
+            zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
+            outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+
+        att_ws_dict = dict()
+        for name, m in self.named_modules():
+            if isinstance(m, MultiHeadedAttention):
+                attn = m.attn.cpu().numpy()
+                if "encoder" in name:
+                    attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
+                elif "decoder" in name:
+                    if "src" in name:
+                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens.tolist())]
+                    elif "self" in name:
+                        attn = [a[:, :l, :l] for a, l in zip(attn, olens.tolist())]
+                    else:
+                        logging.warning("unknown attention module: " + name)
+                else:
+                    logging.warning("unknown attention module: " + name)
+                att_ws_dict[name] = attn
+
+        att_ws_dict["predicted_fbank"] = [m[:l].T for m, l in zip(outs.cpu().numpy(), olens.tolist())]
+        return att_ws_dict
+
     def _source_mask(self, ilens):
         """Make mask for MultiHeadedAttention using padded sequences
 

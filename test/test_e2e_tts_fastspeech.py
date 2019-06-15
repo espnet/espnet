@@ -148,11 +148,15 @@ def test_trainable_and_decodable(model_dict):
     model.duration_calculator = DurationCalculator(model.teacher)
     optimizer = torch.optim.Adam(model.parameters())
 
-    # tranable
+    # trainable
     loss = model(**batch).mean()
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+    model.eval()
+    with torch.no_grad():
+        model.calculate_all_attentions(**batch)
 
 
 def test_length_regularizer():
