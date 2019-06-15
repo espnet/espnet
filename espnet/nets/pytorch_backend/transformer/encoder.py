@@ -27,7 +27,6 @@ class Encoder(torch.nn.Module):
         if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     """
-
     def __init__(self, idim,
                  attention_dim=256,
                  attention_heads=4,
@@ -61,6 +60,8 @@ class Encoder(torch.nn.Module):
                 input_layer,
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
+        elif input_layer is None:
+            self.embed = pos_enc_class(attention_dim, positional_dropout_rate)
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
