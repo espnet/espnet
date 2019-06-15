@@ -87,7 +87,7 @@ class Encoder(torch.nn.Module):
         :rtype Tuple[torch.Tensor, torch.Tensor]:
         """
         if isinstance(self.embed, Conv2dSubsampling):
-            xs, masks = self.embded(xs, masks)
+            xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)
         xs, masks = self.encoders(xs, masks)
