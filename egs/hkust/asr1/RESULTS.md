@@ -1,3 +1,32 @@
+# transformer (only 20 epochs)
+  - This recipe seems to be over-trained at more than 20 epochs. It may require some tuning to avoid it.
+  - Environments (obtained by `$ get_sys_info.sh`)
+    - date: `Fri Jun 14 19:49:54 EDT 2019`
+    - system information: `Linux b14 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux`
+    - python version: `Python 3.7.3`
+    - espnet version: `espnet 0.3.1`
+    - chainer version: `chainer 6.0.0`
+    - pytorch version: `pytorch 1.0.1.post2`
+    - Git hash: `b32af59f229b54801a2cf7e4b8a48cadccd5fe5a`
+  - Model files (archived to model.v2.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/open?id=1x96BTGXpphdZU9_Ahb4hOqttQ5x-iuw1
+    - training config file: `conf/tuning/train_pytorch_transformer.yaml`
+    - decoding config file: `conf/tuning/decode_pytorch_transformer.yaml`
+    - cmvn file: `data/train_nodup_sp/cmvn.ark`
+    - e2e file: `exp/train_nodup_sp_pytorch_train_pytorch_transformer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_nodup_sp_pytorch_train_pytorch_transformer/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_lm/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_lm/model.json`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_nodup_sp_pytorch_train_pytorch_transformer/decode_train_dev_decode_pytorch_transformer_lm/result.txt
+|  SPKR                               | # Snt    # Wrd  |  Corr     Sub      Del      Ins     Err    S.Err  |
+|  Sum/Avg                            | 4000     47147  |  79.1    17.1      3.8      3.2    24.1     73.6  |
+exp/train_nodup_sp_pytorch_train_pytorch_transformer/decode_dev_decode_pytorch_transformer_lm/result.txt
+| SPKR                               | # Snt   # Wrd  | Corr     Sub     Del     Ins     Err   S.Err  |
+| Sum/Avg                            | 5413    56154  | 79.1    17.3     3.6     2.6    23.5    68.7  |
+```
+
 # transformer
   - Environments (obtained by `$ get_sys_info.sh`)
     - date: `Thu Jun 13 17:58:03 EDT 2019`
@@ -66,4 +95,3 @@ exp/train_nodup_sp_a01/decode_dev_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Su
 exp/train_nodup_sp_a01/decode_train_dev_beam20_eacc.best_p0_len0.0-0.8/result.txt:| SPKR                              | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
 exp/train_nodup_sp_a01/decode_train_dev_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg                           | 3999   47130 | 62.6   20.6   16.8    2.5   39.9   78.7 |
 ```
-
