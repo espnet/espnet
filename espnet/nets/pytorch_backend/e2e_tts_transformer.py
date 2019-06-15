@@ -375,7 +375,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.prob_out = torch.nn.Linear(args.adim, args.reduction_factor)
 
         # define postnet
-        self.postnet = Postnet(
+        self.postnet = None if args.postnet_layers == 0 else Postnet(
             idim=idim,
             odim=odim,
             n_layers=args.postnet_layers,
@@ -470,7 +470,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         logits = self.prob_out(zs).view(zs.size(0), -1)
 
         # postnet -> (B, Lmax//r * r, odim)
-        after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
+        if self.postnet is None:
+            after_outs = before_outs
+        else:
+            after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
@@ -634,7 +637,10 @@ class Transformer(TTSInterface, torch.nn.Module):
             # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
             before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
             # postnet -> (B, Lmax//r * r, odim)
-            after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
+            if self.postnet is None:
+                after_outs = before_outs
+            else:
+                after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
