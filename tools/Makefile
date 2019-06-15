@@ -29,7 +29,7 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done pytorch_complex.done pytorch_wpe.done
+python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done pesq
 
@@ -103,16 +103,6 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && chmod +x install_warp-ctc.sh && ./install_warp-ctc.sh ; true
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
-
-pytorch_complex.done: venv
-	# Require python>=3.6, pytorch>=1.0
-	. venv/bin/activate; pip install git+https://github.com/kamo-naoyuki/pytorch_complex
-	touch pytorch_complex.done
-
-pytorch_wpe.done: venv
-	. venv/bin/activate; pip install git+https://github.com/nttcslab-sp/dnn_wpe
-	touch pytorch_wpe.done
-
 
 nkf.done:
 	rm -rf nkf
