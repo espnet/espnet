@@ -35,7 +35,7 @@ jobs:
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
-            bash <(curl -s https://codecov.io/bash)
+            source ./tools/venv/bin/activate && pip install codecov && codecov
 
   test-ubuntu16:
     docker:
@@ -61,7 +61,7 @@ jobs:
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
-            bash <(curl -s https://codecov.io/bash)
+            source ./tools/venv/bin/activate && pip install codecov && codecov
 
   test-centos7:
     docker:
@@ -92,7 +92,7 @@ jobs:
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
-            bash <(curl -s https://codecov.io/bash)
+            source ./tools/venv/bin/activate && pip install codecov && codecov
 
   test-debian9:
     docker:
@@ -116,4 +116,4 @@ jobs:
             ./ci/install.sh
             ./ci/test_shell.sh
             ./ci/test_python.sh
-            bash <(curl -s https://codecov.io/bash)
+            source ./tools/venv/bin/activate && pip install codecov && codecov

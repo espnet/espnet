@@ -14,7 +14,8 @@ tmp*
 .pytest_cache/
 __pycache__/
 check_autopep8
-.coverage
+.coverage*
+coverage.xml*
 
 # recipe related
 egs/*/*/data*
