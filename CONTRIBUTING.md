@@ -48,18 +48,12 @@ $ test ! -s check_autopep8
 
 You can find pytest fixtures in `test/conftest.py`. [They finalize unit tests.](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects)
 
-You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core).  
-To install:
-
-``` console
-$ git clone https://github.com/bats-core/bats-core.git
-$ export PATH=$(pwd)/bats-core/bin:$PATH
-```
+You can also test the scripts in `utils` with [bats-core](https://github.com/bats-core/bats-core) and [shellcheck](https://github.com/koalaman/shellcheck).
 
 To test:
 
 ``` console
-$ bats test_utils
+./ci/test_bash.sh
 ```
 
 ### Configuration files
@@ -72,7 +66,33 @@ $ bats test_utils
 
 See [doc](doc/README.md).
 
+
+## Adding pretrained models
+
+Pack your traind models using `utils/pack_model.sh` and upload it [here](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF) (You require permission).
+Add the shared link to `utils/recog_wav.sh` as follows:
+```sh
+    "tedlium.demo") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
+```
+The model name is arbitrary for now.
+
+
 ## Python 2 and 3 portability tips
 
 See matplotlib's guideline https://matplotlib.org/devel/portable_code.html
 We do not block your PR even if it is not portable.
+
+
+## On CI failure
+
+### Travis CI
+
+1. read log from PR checks > details
+
+### Circle CI
+
+1. read log from PR checks > details
+2. turn on Reurn workflow > Rerun job with SSH
+3. open your local terminal and `ssh -p xxx xxx` (check circle ci log for the exact address)
+4. try anything you can to pass the CI
+

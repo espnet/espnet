@@ -13,21 +13,21 @@ def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-cupy', action='store_true', default=False,
                         help='Disable CUPY tests')
-    args = parser.parse_args(args)                
+    args = parser.parse_args(args)
 
     # you should add the libraries which are not included in setup.py
     MANUALLY_INSTALLED_LIBRARIES = [
         ('espnet', None),
         ('kaldiio', None),
         ('matplotlib', None),
-        ('torch', ("0.4.1", "1.0.0")),
-        ('chainer', ("5.0.0")),
+        ('torch', ("0.4.1", "1.0.0", "1.0.1.post2")),
+        ('chainer', ("6.0.0")),
         ('chainer_ctc', None),
         ('warpctc_pytorch', ("0.1.1"))
     ]
 
     if not args.no_cupy:
-        MANUALLY_INSTALLED_LIBRARIES.append(('cupy', ("5.0.0")))
+        MANUALLY_INSTALLED_LIBRARIES.append(('cupy', ("6.0.0")))
 
     logging.basicConfig(
         level=logging.INFO,

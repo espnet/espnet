@@ -19,7 +19,7 @@ requirements = {
         'h5py',
         # Installation from anaconda is recommended for PyTorch
         # 'torch==0.4.1',
-        'chainer==5.0.0',
+        'chainer==6.0.0',
         # 'cupy==5.0.0',
         'python_speech_features>=0.6',
         'setuptools>=38.5.1',
@@ -33,7 +33,13 @@ requirements = {
         'tensorboardX>=1.4',
         'pillow>=5.3.0',
         'nara_wpe',
-        'kaldiio'
+        'museval',
+        'pystoi',
+        'kaldiio',
+        # A backport of inspect.signature for python2
+        'funcsigs',
+        'configargparse',
+        'PyYAML'
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
