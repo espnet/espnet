@@ -10,9 +10,9 @@ import numpy as np
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.e2e_tts_fast_speech import DurationCalculator
-from espnet.nets.pytorch_backend.e2e_tts_fast_speech import FeedForwardTransformer
-from espnet.nets.pytorch_backend.e2e_tts_fast_speech import LengthRegularizer
+from espnet.nets.pytorch_backend.e2e_tts_fastspeech import DurationCalculator
+from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformer
+from espnet.nets.pytorch_backend.e2e_tts_fastspeech import LengthRegularizer
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
