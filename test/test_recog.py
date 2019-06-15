@@ -45,7 +45,8 @@ def make_arg(**kwargs):
         outdir=None,
         ctc_type="warpctc",
         sym_space="<space>",
-        sym_blank="<blank>"
+        sym_blank="<blank>",
+        use_frontend=False
     )
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)

@@ -337,7 +337,7 @@ def train(args):
     model_conf = args.outdir + '/model.json'
     with open(model_conf, 'wb') as f:
         logging.info('writing a model config file to ' + model_conf)
-        f.write(json.dumps(vars(args), indent=4, sort_keys=True).encode('utf_8'))
+        f.write(json.dumps(vars(args), indent=4, ensure_ascii=False, sort_keys=True).encode('utf_8'))
 
     # Set up an optimizer
     if args.opt == 'sgd':

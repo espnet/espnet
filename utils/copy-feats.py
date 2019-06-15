@@ -21,7 +21,7 @@ def main():
                         help='Specify the file format for the rspecifier. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--out-filetype', type=str, default='mat',
-                        choices=['mat', 'hdf5'],
+                        choices=['mat', 'hdf5', 'sound.hdf5', 'sound'],
                         help='Specify the file format for the wspecifier. '
                              '"mat" is the matrix format in kaldi')
     parser.add_argument('--write-num-frames', type=str,
@@ -62,9 +62,16 @@ def main():
             if is_scipy_wav_style(mat):
                 # If data is sound file, then got as Tuple[int, ndarray]
                 rate, mat = mat
+
             if preprocessing is not None:
                 mat = preprocessing(mat, uttid_list=utt)
-            writer[utt] = mat
+
+            # shape = (Time, Channel)
+            if args.out_filetype in ['sound.hdf5', 'sound']:
+                # Write Tuple[int, numpy.ndarray] (scipy style)
+                writer[utt] = (rate, mat)
+            else:
+                writer[utt] = mat
 
 
 if __name__ == "__main__":

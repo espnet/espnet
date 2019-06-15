@@ -6,9 +6,6 @@ import numpy as np
 
 
 class CMVN(object):
-    # The marker used by "Transformation"
-    accept_uttid = False
-
     def __init__(self, stats, norm_means=True, norm_vars=False,
                  filetype='mat', utt2spk=None, spk2utt=None,
                  reverse=False, std_floor=1.0e-20):
@@ -114,7 +111,7 @@ class UtteranceCMVN(object):
         self.std_floor = std_floor
 
     def __repr__(self):
-        return ('{name}(norm_means={norm_means}, norm_vars={norm_vars}, '
+        return ('{name}(norm_means={norm_means}, norm_vars={norm_vars})'
                 .format(name=self.__class__.__name__,
                         norm_means=self.norm_means, norm_vars=self.norm_vars))
 
