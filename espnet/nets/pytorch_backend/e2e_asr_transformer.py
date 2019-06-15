@@ -196,6 +196,7 @@ class E2E(ASRInterface, torch.nn.Module):
             loss_ctc = None
         else:
             import editdistance
+            from itertools import groupby
 
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
