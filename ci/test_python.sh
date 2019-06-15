@@ -11,4 +11,3 @@ autopep8 -r espnet test utils --global-config .pep8 --diff --max-line-length 120
 test ! -s check_autopep8
 
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/chainer_ctc/ext/warp-ctc/build" pytest --cov=espnet
-
