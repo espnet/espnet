@@ -80,3 +80,38 @@ def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
     idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
     idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
     return int(idim) * out_channel  # numer of channels
+
+
+def calculate_cer_wer(y_hats, y_pads, char_list, sym_space, sym_blank):
+    """Calculate CER and WER for E2E_ASR models during training
+
+    :param y_hats: numpy array with predicted text
+    :param y_pads: numpy array with true (target) text
+    :param char_list:
+    :param sym_space:
+    :param sym_blank:
+    :return:
+    """
+
+    word_eds, word_ref_lens, char_eds, char_ref_lens = [], [], [], []
+    for i, y_hat in enumerate(y_hats):
+        y_true = y_pads[i]
+        eos_true = np.where(y_true == -1)[0]
+        eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
+        # To avoid wrong higger WER than the one obtained from the decoding
+        # eos from y_true is used to mark the eos in y_hat
+        # because of that y_hats has not padded outs with -1.
+        seq_hat = [char_list[int(idx)] for idx in y_hat[:eos_true]]
+        seq_true = [char_list[int(idx)] for idx in y_true if int(idx) != -1]
+        seq_hat_text = "".join(seq_hat).replace(sym_space, ' ')
+        seq_hat_text = seq_hat_text.replace(sym_blank, '')
+        seq_true_text = "".join(seq_true).replace(sym_space, ' ')
+        hyp_words = seq_hat_text.split()
+        ref_words = seq_true_text.split()
+        word_eds.append(editdistance.eval(hyp_words, ref_words))
+        word_ref_lens.append(len(ref_words))
+        hyp_chars = seq_hat_text.replace(' ', '')
+        ref_chars = seq_true_text.replace(' ', '')
+        char_eds.append(editdistance.eval(hyp_chars, ref_chars))
+        char_ref_lens.append(len(ref_chars))
+    return word_eds, word_ref_lens, char_eds, char_ref_lens

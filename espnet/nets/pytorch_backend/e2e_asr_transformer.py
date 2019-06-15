@@ -99,7 +99,9 @@ class E2E(ASRInterface, torch.nn.Module):
         # self.lsm_weight = a
         self.criterion = LabelSmoothingLoss(self.odim, self.ignore_id, args.lsm_weight,
                                             args.transformer_length_normalized_loss)
-        # self.char_list = args.char_list
+        self.char_list = args.char_list
+        self.space = args.sym_space
+        self.blank = args.sym_blank
         # self.verbose = args.verbose
         self.reset_parameters(args)
         self.recog_args = None  # unused
@@ -109,6 +111,14 @@ class E2E(ASRInterface, torch.nn.Module):
             self.ctc = CTC(odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True)
         else:
             self.ctc = None
+
+        if 'report_cer' in vars(args) and (args.report_cer or args.report_wer):
+            self.report_cer = args.report_cer
+            self.report_wer = args.report_wer
+        else:
+            self.report_cer = False
+            self.report_wer = False
+        self.rnnlm = None
 
     def reset_parameters(self, args):
         if args.transformer_init == "pytorch":
@@ -185,9 +195,45 @@ class E2E(ASRInterface, torch.nn.Module):
         if self.ctc is None:
             loss_ctc = None
         else:
+            import editdistance
+
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
+
+            cers, char_ref_lens = [], []
+
+            y_hats = self.ctc.argmax(hs_pad.view(batch_size, -1, self.adim)).data
+            for i, y in enumerate(y_hats):
+                y_hat = [x[0] for x in groupby(y)]
+                y_true = ys_pad[i]
+
+                seq_hat = [self.char_list[int(idx)] for idx in y_hat if int(idx) != -1]
+                seq_true = [self.char_list[int(idx)] for idx in y_true if int(idx) != -1]
+                seq_hat_text = "".join(seq_hat).replace(self.space, ' ')
+                seq_hat_text = seq_hat_text.replace(self.blank, '')
+                seq_true_text = "".join(seq_true).replace(self.space, ' ')
+
+                hyp_chars = seq_hat_text.replace(' ', '')
+                ref_chars = seq_true_text.replace(' ', '')
+                if len(ref_chars) > 0:
+                    cers.append(editdistance.eval(hyp_chars, ref_chars))
+                    char_ref_lens.append(len(ref_chars))
+
+            cer_ctc = float(sum(cers)) / sum(char_ref_lens) if cers else None
+
+        # 5. compute cer/wer
+        if self.training or not (self.report_cer or self.report_wer):
+            cer, wer = 0.0, 0.0
+        else:
+            from espnet.nets.e2e_asr_common import calculate_cer_wer
+
+            y_hats = pred_pad.argmax(dim=-1).cpu()
+            word_eds, word_ref_lens, char_eds, char_ref_lens = calculate_cer_wer(
+                y_hats, ys_pad.cpu(), self.char_list, self.space, self.blank)
+
+            wer = 0.0 if not self.report_wer else float(sum(word_eds)) / sum(word_ref_lens)
+            cer = 0.0 if not self.report_cer else float(sum(char_eds)) / sum(char_ref_lens)
 
         # copyied from e2e_asr
         alpha = self.mtlalpha
