@@ -10,7 +10,7 @@
 backend=pytorch
 stage=-1       # start from -1 if you need to start from data download
 stop_stage=100
-ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
+ngpu=1         # number of gpus ("0" uses cpu, otherwise use gpu)
 debugmode=1
 dumpdir=dump   # directory to dump full features
 N=0            # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
@@ -286,10 +286,10 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
-    if [ ! -z ${asr_model} ]; then
+    if [ -n "${asr_model}" ]; then
       expname=${expname}_asrtrans
     fi
-    if [ ! -z ${mt_model} ]; then
+    if [ -n "${mt_model}" ]; then
       expname=${expname}_mttrans
     fi
 else
