@@ -31,7 +31,7 @@ all: kaldi.done python check_install
 
 python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done
 
-extra: nkf.done sentencepiece.done mecab.done moses.done pesq
+extra: nkf.done sentencepiece.done mecab.done moses.done mwerSegmenter.done pesq
 
 ifneq ($(strip $(KALDI)),)
 kaldi.done:
@@ -148,6 +148,12 @@ moses.done:
 	git clone https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
 
+mwerSegmenter.done:
+	wget https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
+	tar zxvf mwerSegmenter.tar.gz
+	rm mwerSegmenter.tar.gz
+	touch mwerSegmenter.done
+
 check_install: kaldi.done python
 ifneq ($(strip $(CUPY_VERSION)),)
 	. venv/bin/activate; python check_install.py
@@ -177,6 +183,6 @@ clean_python:
 	find . -iname "*.pyc" -delete
 
 clean_extra:
-	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done
-	rm -rf nkf sentencepiece mecab swig moses
+	rm -rf nkf.done sentencepiece.done mecab.done swig.done moses.done mwerSegmenter.done
+	rm -rf nkf sentencepiece mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip
