@@ -59,12 +59,12 @@ REPORT_INTERVAL = 100
 class CustomConverter(object):
     """Custom batch converter for Pytorch
 
-    :param int odim : index for <pad>
+    :param int idim : index for <pad> in the source language
     """
 
-    def __init__(self, odim):
+    def __init__(self, idim):
         self.ignore_id = -1
-        self.pad = odim
+        self.pad = idim
 
     def __call__(self, batch, device):
         """Transforms a batch and send it to a device
@@ -165,7 +165,7 @@ def train(args):
     setattr(optimizer, "serialize", lambda s: reporter.serialize(s))
 
     # Setup a converter
-    converter = CustomConverter(odim=odim)
+    converter = CustomConverter(idim=idim)
 
     # read json data
     with open(args.train_json, 'rb') as f:
@@ -253,7 +253,8 @@ def train(args):
             plot_class = model.attention_plot_class
         att_reporter = plot_class(
             att_vis_fn, data, args.outdir + "/att_ws",
-            converter=converter, transform=load_cv, device=device)
+            converter=converter, transform=load_cv, device=device,
+            ikey="output", iaxis=1)
         trainer.extend(att_reporter, trigger=(1, 'epoch'))
     else:
         att_reporter = None
