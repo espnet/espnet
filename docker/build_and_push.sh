@@ -21,22 +21,21 @@ fi
 
 #Test Docker Containers with cpu setup
 if [ ${stage} -le 1 ]; then
+    run_stage=-1
     for cuda_ver in cpu 8.0 9.0 9.1 9.2 10.0;do
         for backend in pytorch chainer;do
-            if [ "${cuda_ver}" != "cpu" ];then
+            docker_cuda=""
+            gpu=-1
+            ngpu=0
+            if [ "${cuda_ver}" != "cpu" ]; then
                 docker_cuda="--docker_cuda ${cuda_ver}"
-                gpu=0
+                gpu=2
                 ngpu=1
-                run_stage=3
-            else
-                docker_cuda=""
-                gpu=-1
-                ngpu=0
-                run_stage=-1
             fi
-            ( ./run.sh --docker_egs an4/asr1 ${docker_cuda} --docker_cmd run.sh --docker_gpu ${gpu} \
-                        --verbose 1 --backend ${backend} --ngpu ${ngpu} \
-                        --stage ${run_stage} --tag train_nodev_${backend}_cuda${cuda_ver}) || exit 1
+            ( ./run.sh --docker_egs an4/asr1 ${docker_cuda} --docker_cmd run.sh --docker_gpu ${gpu} --verbose 1 --backend ${backend} --ngpu ${ngpu} --stage ${run_stage} ) || exit 1
+            if [ ${run_stage} -eq -1 ]; then
+                run_stage=3
+            fi
         done
     done
 fi
