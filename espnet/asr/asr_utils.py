@@ -82,7 +82,7 @@ class PlotAttentionReport(extension.Extension):
     :param CustomConverter converter: function to convert data
     :param int | torch.device device: device
     :param bool reverse: If True, input and output length are reversed
-    :param str ikey: key to access input (for ASR ikey="input".)
+    :param str ikey: key to access input (for ASR ikey="input", for MT ikey="output".)
     :param int iaxis: dimension to access input (for ASR iaxis=0, for MT iaxis="1".)
     :param str okey: key to access output (for ASR, MT okey="output".)
     """
