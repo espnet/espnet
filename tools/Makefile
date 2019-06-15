@@ -29,7 +29,7 @@ endif
 
 all: kaldi.done python check_install
 
-python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done pytorch_complex.done
+python: venv $(CUDA_DEPS) warp-ctc.done chainer_ctc.done pytorch_complex.done pytorch_wpe.done
 
 extra: nkf.done sentencepiece.done mecab.done moses.done mwerSegmenter.done pesq
 
@@ -83,7 +83,7 @@ endif
 
 warp-ctc.done: espnet.done
 	rm -rf warp-ctc
-	git clone https://github.com/jnishi/warp-ctc.git
+	git clone https://github.com/espnet/warp-ctc.git
 	# Note(kamo): Requires gcc>=4.9 to build extensions with pytorch>=1.0
 	if . venv/bin/activate && python -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; then \
         . venv/bin/activate && python -c "from distutils.version import LooseVersion as V;assert V('$(GCC_VERSION)') >= V('4.9'), 'Requires gcc>=4.9'"; \
@@ -104,15 +104,15 @@ chainer_ctc.done: espnet.done
 	. venv/bin/activate; cd chainer_ctc && pip install .
 	touch chainer_ctc.done
 
-ifeq ($(PYTHON_VERSION),2.7)
-# Nothing to do
-pytorch_complex.done:
-else
 pytorch_complex.done: venv
 	# Require python>=3.6, pytorch>=1.0
 	. venv/bin/activate; pip install git+https://github.com/kamo-naoyuki/pytorch_complex
 	touch pytorch_complex.done
-endif
+
+pytorch_wpe.done: venv
+	. venv/bin/activate; pip install git+https://github.com/nttcslab-sp/dnn_wpe
+	touch pytorch_wpe.done
+
 
 nkf.done:
 	rm -rf nkf
@@ -124,7 +124,7 @@ nkf.done:
 sentencepiece.done:
 	rm -rf sentencepiece
 	git clone https://github.com/google/sentencepiece.git
-	cd sentencepiece && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
+	cd sentencepiece && git checkout v0.1.82 && mkdir build && cd build && (cmake3 .. || cmake ..) && $(MAKE)
 	touch sentencepiece.done
 
 mecab.done: espnet.done

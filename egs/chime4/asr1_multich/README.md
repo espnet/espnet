@@ -2,44 +2,23 @@
 
 [Warining] **Not all components are enough tested.**
 
-## Requirements
-
-- pytorch>=1.0
-- python>=3.6
-- https://github.com/kamo-naoyuki/pytorch_complex
-
-
 ## Components
 All components are implemented using PyTorch, thus they can perform with its autograd mechanism.
 
-1. DNN-WPE and conventional WPE
+1. DNN-WPE and conventional WPE: [1], [2]
 
-    Based on https://github.com/fgnt/nara_wpe
-    Note that DNN-WPE didn't result significant gains comparing with offline-WPE.
+    Based on https://github.com/nttcslab-sp/dnn_wpe
 
-    Reference:
-    The DNN based spectrogram estimation for WPE was proposed by
-    *Neural network-based spectrum estimation for online WPE dereverberation; K. Kinoshita et al.. 2017;*
-    https://pdfs.semanticscholar.org/f156/c1b463ad2b41c65220e09aa40e970be271d8.pdf
-
-1. DNN-Beamformer
+1. DNN-Beamformer: [3]
 
     Based on https://github.com/fgnt/nn-gev
-    There are also gev implementation, but it can't work now
-    because complex eigen value decomposition in pytorch version 
-    is not implemented.
-    
-    Reference:
-    Implemented DNN MVDR based on
-    *Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;*
-    https://arxiv.org/abs/1703.04783
 
 1. Feature transformation
     - Stft -> Fbank
     - Global/Utterance level mean variance normalization
 
 
-## The traning strategy
+## The training strategy
 
 1. Using Chime4 data and WSJ0 data as training set.
 
@@ -55,3 +34,9 @@ All components are implemented using PyTorch, thus they can perform with its aut
     To traing the backend part with nolsy data,
     passing the multi-channel data to the backend part without the frontend,
     and the backend cannot handle multi-channel, so selecting 1-channel randomly.
+
+
+## Reference
+- [1] *Neural network-based spectrum estimation for online WPE dereverberation; K. Kinoshita et al.. 2017;* http://www.kecl.ntt.co.jp/icl/signal/kinoshita/publications/Interspeech17/Neural%20Network-Based%20Spectrum%20Estimation%20for%20Online%20WPE%20Dereverberation.pdf
+- [2] *Joint Optimization of Neural Network-based WPE Dereverberation and Acoustic Model for Robust Online ASR; J. Heymann et al.. 2019* https://ieeexplore.ieee.org/abstract/document/8683294
+- [3] *Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;* https://dl.acm.org/citation.cfm?id=3305953
