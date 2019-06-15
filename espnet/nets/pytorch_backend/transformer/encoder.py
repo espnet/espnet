@@ -27,6 +27,7 @@ class Encoder(torch.nn.Module):
         if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     """
+
     def __init__(self, idim,
                  attention_dim=256,
                  attention_heads=4,
