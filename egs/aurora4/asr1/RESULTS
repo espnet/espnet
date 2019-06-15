@@ -1,4 +1,4 @@
-# Best result: mix SI284 + wordlm 
+# Best result for RNN based: mix SI284 + shallow_wide network + wordlm
 exp/train_mix_pytorch_mix_shallow_wide/decode_dev_0330_decode_wordlm/result.wrd_A.txt:|  SPKR    |  # Snt   # Wrd  |  Corr      Sub      Del      Ins      Err    S.Err  |
 exp/train_mix_pytorch_mix_shallow_wide/decode_dev_0330_decode_wordlm/result.wrd_A.txt:|  Sum/Avg |   330     5467  |  96.3      3.2      0.5      0.4      4.1     30.0  |
 exp/train_mix_pytorch_mix_shallow_wide/decode_dev_0330_decode_wordlm/result.wrd_B.txt:|  SPKR    |  # Snt    # Wrd  |  Corr     Sub      Del      Ins      Err    S.Err  |
@@ -8,6 +8,16 @@ exp/train_mix_pytorch_mix_shallow_wide/decode_dev_0330_decode_wordlm/result.wrd_
 exp/train_mix_pytorch_mix_shallow_wide/decode_dev_0330_decode_wordlm/result.wrd_D.txt:|  SPKR    |  # Snt    # Wrd  |  Corr     Sub      Del      Ins      Err    S.Err  |
 exp/train_mix_pytorch_mix_shallow_wide/decode_dev_0330_decode_wordlm/result.wrd_D.txt:|  Sum/Avg |  1980     32802  |  83.6    14.3      2.0      2.2     18.5     65.0  |
 
+
+# Best result: Transformer + model averaging(n_average=10)
+exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_A.txt:|  SPKR     |  # Snt    # Wrd   |  Corr        Sub       Del       Ins       Err     S.Err   |
+exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_A.txt:|  Sum/Avg  |   330      5467   |  96.6        3.1       0.3       0.3       3.7      33.0   |
+exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_B.txt:|  SPKR     |  # Snt     # Wrd   |  Corr       Sub       Del       Ins       Err     S.Err   |
+exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_B.txt:|  Sum/Avg  |  1980      32802   |  92.4       6.4       1.2       1.0       8.6      53.3   |
+exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_C.txt:|  SPKR     |  # Snt    # Wrd   |  Corr        Sub       Del       Ins       Err     S.Err   |
+exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_C.txt:|  Sum/Avg  |   330      5467   |  93.9        5.3       0.7       0.7       6.7      43.6   |
+exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_D.txt:|  SPKR     |  # Snt     # Wrd   |  Corr       Sub       Del       Ins       Err     S.Err   |
+exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/result.wrd_D.txt:|  Sum/Avg  |  1980      32802   |  85.7      12.2       2.1       2.0      16.3      65.2   |
 
 # First result
 exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_A.txt: | SPKR    |  # Snt  # Wrd  | Corr      Sub     Del     Ins      Err   S.Err  |
@@ -20,7 +30,7 @@ exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_D.txt:
 exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_D.txt: | Sum/Avg | 1980     32802  | 39.0    56.7     4.3      9.3    70.3    99.9  |
 
 
-# Wide-shallow network without lm
+# Shallow_wide network without wordlm
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_lm/result.wrd_A.txt:|  SPKR     |  # Snt    # Wrd  |  Corr       Sub       Del       Ins      Err     S.Err   |
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_lm/result.wrd_A.txt:|  Sum/Avg  |   330      5467  |  74.5      22.9       2.6       3.7     29.3      93.6   |
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_lm/result.wrd_B.txt:|  SPKR     |  # Snt    # Wrd   |  Corr       Sub      Del       Ins       Err    S.Err   |
@@ -31,7 +41,7 @@ exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_lm/resu
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_lm/result.wrd_D.txt:|  Sum/Avg  |  1980     32802   |  53.5      42.5      4.1       6.3      52.9     98.8   |
 
 
-# Wide-shallow network + wordlm
+# Shallow_wide network with wordlm
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_wordlm/result.wrd_A.txt:|  SPKR     |  # Snt     # Wrd   |  Corr       Sub       Del        Ins       Err     S.Err   |
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_wordlm/result.wrd_A.txt:|  Sum/Avg  |   330       5467   |  91.2       7.4       1.4        1.1      10.0      57.9   |
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_wordlm/result.wrd_B.txt:|  SPKR     |  # Snt     # Wrd   |  Corr        Sub       Del       Ins       Err     S.Err   |
