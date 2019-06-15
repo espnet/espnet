@@ -53,4 +53,5 @@ script:
 sudo: false
 
 after_success:
-    - travis-sphinx deploy
+  - pip install codecov && codecov
+  - travis-sphinx deploy
