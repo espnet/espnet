@@ -125,6 +125,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="dropout rate for transformer decoder self-attention")
         group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.0, type=float,
                            help="dropout rate for transformer encoder-decoder attention")
+        group.add_argument("--duration-predictor-dropout-rate", default=0.0, type=float,
+                           help="dropout rate for duration predictor")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
