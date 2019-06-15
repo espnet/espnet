@@ -44,7 +44,8 @@ requirements = {
     'setup': ['numpy', 'pytest-runner'],
     'test': [
         'pytest>=3.3.0',
-        'pytest-pythonpath>=0.7.1',
+        'pytest-pythonpath>=0.7.3',
+        'pytest-cov>=2.7.1',
         'hacking>=1.1.0',
         'mock>=2.0.0',
         'autopep8>=1.3.3',
