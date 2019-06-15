@@ -4,6 +4,8 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
+
 import torch
 
 from espnet.asr.asr_utils import get_model_conf
@@ -208,9 +210,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # define final projection
         self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
 
-        # initialize parameters
-        self._reset_parameters(args)
-
         # define teacher model
         if args.teacher_model is not None:
             self.teacher = self._load_teacher_model(args.teacher_model)
@@ -259,15 +258,15 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # apply length regularizer
         hs = self.length_regularizer(hs, ds, ilens)  # (B, Lmax, adim)
-        h_masks = self._source_mask(olens)
 
         # forward decoder
+        h_masks = self._source_mask(olens)
         zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
         outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
 
         # calculate loss
         l1_loss = self.criterion(outs, ys)
-        duration_loss = self.duration_criterion(d_preds, ds, d_masks)
+        duration_loss = self.duration_criterion(d_preds, ds, ~d_masks)
         loss = l1_loss + duration_loss
         report_keys = [
             {"l1_loss": l1_loss.item()},
@@ -284,36 +283,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.reporter.report(report_keys)
 
         return loss
-
-    def _reset_parameters(self, args):
-        if self.use_scaled_pos_enc:
-            # alpha in scaled positional encoding init
-            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
-            self.decoder.embed.alpha.data = torch.tensor(args.initial_decoder_alpha)
-
-        if args.transformer_init == "pytorch":
-            return
-        # weight init
-        for p in self.parameters():
-            if p.dim() > 1:
-                if args.transformer_init == "xavier_uniform":
-                    torch.nn.init.xavier_uniform_(p.data)
-                elif args.transformer_init == "xavier_normal":
-                    torch.nn.init.xavier_normal_(p.data)
-                elif args.transformer_init == "kaiming_uniform":
-                    torch.nn.init.kaiming_uniform_(p.data, nonlinearity="relu")
-                elif args.transformer_init == "kaiming_normal":
-                    torch.nn.init.kaiming_normal_(p.data, nonlinearity="relu")
-                else:
-                    raise ValueError("Unknown initialization: " + args.transformer_init)
-        # bias init
-        for p in self.parameters():
-            if p.dim() == 1:
-                p.data.zero_()
-        # reset some modules with default init
-        for m in self.modules():
-            if isinstance(m, (torch.nn.Embedding, LayerNorm)):
-                m.reset_parameters()
 
     def _source_mask(self, ilens):
         """Make mask for MultiHeadedAttention using padded sequences
@@ -397,14 +366,31 @@ class DurationCalculator(torch.nn.Module):
         :return torch.Tensor: batch of durations (B, Tmax)
         """
         att_ws_dict = self._calculate_att_ws_dict(xs, ilens, ys, olens)
+        # TODO(kan-bayashi): fixed this isssue
+        # this cache is not worked in multi-gpu case
+        # self.diag_head_info is not updated, always be None
         if self.diag_head_info is None:
-            self._decide_diogonal_head(att_ws_dict)
+            self._init_diagonal_head(att_ws_dict)
         att_ws = att_ws_dict[self.diag_head_info[0]][:, self.diag_head_info[1]]  # (B, Lmax, Tmax)
-        masks = make_pad_mask(olens).to(att_ws.device)
-        durations = torch.stack(
-            [att_ws.argmax(-1).eq(i).masked_fill(masks, 0).sum(-1) for i in range(max(ilens))], dim=-1)
+        durations = [self._calculate_duration(att_w, ilen, olen) for att_w, ilen, olen in zip(att_ws, ilens, olens)]
 
-        return durations
+        return pad_list(durations, 0)
+
+    def _init_diagonal_head(self, att_ws_dict):
+        best_diagonal_score = 0.0
+        for key in att_ws_dict.keys():
+            if "src_attn" not in key:
+                continue
+            att_ws = att_ws_dict[key]
+            diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (H,)
+            if best_diagonal_score < diagonal_scores.max():
+                best_diagonal_score = diagonal_scores.max()
+                self.diag_head_info = (key, int(diagonal_scores.argmax()))
+        logging.info("%s %d-th head attention will be used as reference." % (
+            self.diag_head_info[0], self.diag_head_info[1]))
+
+    def _calculate_duration(self, att_w, ilen, olen):
+        return torch.stack([att_w[:olen, :ilen].argmax(-1).eq(i).sum() for i in range(ilen)])
 
     def _calculate_att_ws_dict(self, xs, ilens, ys, olens):
         with torch.no_grad():
@@ -425,17 +411,6 @@ class DurationCalculator(torch.nn.Module):
                 att_ws_dict[name] = m.attn
 
         return att_ws_dict
-
-    def _decide_diogonal_head(self, att_ws_dict):
-        best_diagonal_score = 0.0
-        for key in att_ws_dict.keys():
-            if "src_attn" not in key:
-                continue
-            att_ws = att_ws_dict[key]
-            diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (H,)
-            if best_diagonal_score < diagonal_scores.max():
-                best_diagonal_score = diagonal_scores.max()
-                self.diag_head_info = (key, int(diagonal_scores.argmax()))
 
 
 class LengthRegularizer(torch.nn.Module):
