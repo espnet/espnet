@@ -45,7 +45,7 @@ accum-grad: 4
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 1000  # 1,000 epochs * 841 batches / 4 accum-grad = 165,000 iters
+epochs: 500  # 1,000 epochs * 841 batches / 4 accum-grad = 105125 iters
 teacher-model: exp/train_no_dev_pytorch_train_transformer.v1/results/model.loss.best
 
 # other
