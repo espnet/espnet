@@ -12,6 +12,7 @@ tmp*
 .hypothesis/
 .idea
 .pytest_cache/
+__pycache__/
 check_autopep8
 
 # recipe related
@@ -40,4 +41,4 @@ tools/sentencepiece/
 tools/swig/
 tools/warp-ctc/
 tools/*.done
-
+tools/PESQ*

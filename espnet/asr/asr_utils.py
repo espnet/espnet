@@ -24,75 +24,10 @@ from chainer.serializers.npz import NpzDeserializer
 import matplotlib
 import numpy as np
 import torch
-
 matplotlib.use('Agg')
 
 
 # * -------------------- training iterator related -------------------- *
-def make_batchset(data, batch_size, max_length_in, max_length_out,
-                  num_batches=0, min_batch_size=1, shortest_first=False):
-    """Make batch set from json dictionary
-
-    :param Dict[str, Dict[str, Any]] data: dictionary loaded from data.json
-    :param int batch_size: batch size
-    :param int max_length_in: maximum length of input to decide adaptive batch size
-    :param int max_length_out: maximum length of output to decide adaptive batch size
-    :param int num_batches: # number of batches to use (for debug)
-    :param int min_batch_size: minimum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
-    :return: List[Tuple[str, Dict[str, List[Dict[str, Any]]]] list of batches
-    """
-    # sort it by input lengths (long to short)
-    sorted_data = sorted(data.items(), key=lambda data: int(
-        data[1]['input'][0]['shape'][0]), reverse=not shortest_first)
-    logging.info('# utts: ' + str(len(sorted_data)))
-
-    # check #utts is more than min_batch_size
-    if len(sorted_data) < min_batch_size:
-        raise ValueError("#utts is less than min_batch_size.")
-
-    # make list of minibatches
-    minibatches = []
-    start = 0
-    while True:
-        _, info = sorted_data[start]
-        ilen = int(info['input'][0]['shape'][0])
-        olen = int(info['output'][0]['shape'][0])
-        factor = max(int(ilen / max_length_in), int(olen / max_length_out))
-        # change batchsize depending on the input and output length
-        # if ilen = 1000 and max_length_in = 800
-        # then b = batchsize / 2
-        # and max(min_batches, .) avoids batchsize = 0
-        bs = max(min_batch_size, int(batch_size / (1 + factor)))
-        end = min(len(sorted_data), start + bs)
-        minibatch = sorted_data[start:end]
-        if shortest_first:
-            minibatch.reverse()
-
-        # check each batch is more than minimum batchsize
-        if len(minibatch) < min_batch_size:
-            mod = min_batch_size - len(minibatch) % min_batch_size
-            additional_minibatch = [sorted_data[i]
-                                    for i in np.random.randint(0, start, mod)]
-            if shortest_first:
-                additional_minibatch.reverse()
-            minibatch.extend(additional_minibatch)
-        minibatches.append(minibatch)
-
-        if end == len(sorted_data):
-            break
-        start = end
-
-    # for debugging
-    if num_batches > 0:
-        minibatches = minibatches[:num_batches]
-    logging.info('# minibatches: ' + str(len(minibatches)))
-
-    # such like: [('uttid1',
-    #              {'input': [{'shape': ...}],
-    #               'output': [{'shape': ...}]}),
-    #             ...]
-    return minibatches
 
 
 class CompareValueTrigger(object):
@@ -149,11 +84,12 @@ class PlotAttentionReport(extension.Extension):
     :param bool reverse: If True, input and output length are reversed
     """
 
-    def __init__(self, att_vis_fn, data, outdir, converter, device, reverse=False):
+    def __init__(self, att_vis_fn, data, outdir, converter, transform, device, reverse=False):
         self.att_vis_fn = att_vis_fn
         self.data = copy.deepcopy(data)
         self.outdir = outdir
         self.converter = converter
+        self.transform = transform
         self.device = device
         self.reverse = reverse
         if not os.path.exists(self.outdir):
@@ -176,8 +112,11 @@ class PlotAttentionReport(extension.Extension):
             plot.clf()
 
     def get_attention_weights(self):
-        batch = self.converter([self.converter.transform(self.data)], self.device)
-        att_ws = self.att_vis_fn(*batch)
+        batch = self.converter([self.transform(self.data)], self.device)
+        if isinstance(batch, tuple):
+            att_ws = self.att_vis_fn(*batch)
+        else:
+            att_ws = self.att_vis_fn(**batch)
         return att_ws
 
     def get_attention_weight(self, idx, att_w):
@@ -374,6 +313,28 @@ def torch_save(path, model):
         torch.save(model.state_dict(), path)
 
 
+def snapshot_object(target, filename):
+    """Returns a trainer extension to take snapshots of a given object.
+
+    Args:
+        target: Object to serialize.
+        filename (str): Name of the file into which the object is serialized.
+            It can be a format string, where the trainer object is passed to
+            the :meth:`str.format` method. For example,
+            ``'snapshot_{.updater.iteration}'`` is converted to
+            ``'snapshot_10000'`` at the 10,000th iteration.
+        savefun: Function to save the object. It takes two arguments: the
+            output file path and the object to serialize.
+    Returns:
+        An extension function.
+    """
+    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
+    def snapshot_object(trainer):
+        torch_save(os.path.join(trainer.out, filename.format(trainer)), target)
+
+    return snapshot_object
+
+
 def torch_load(path, model):
     """Function to load torch model states
 
@@ -488,3 +449,62 @@ def add_results_to_json(js, nbest_hyps, char_list):
             logging.info('prediction : %s' % out_dic['rec_text'])
 
     return new_js
+
+
+def plot_spectrogram(plt, spec, mode='db', fs=None, frame_shift=None,
+                     bottom=True, left=True, right=True, top=False,
+                     labelbottom=True, labelleft=True, labelright=True,
+                     labeltop=False, cmap='inferno'):
+    """Plot spectrogram using matplotlib
+
+    :param matplotlib.pyplot plt:
+    :param np.ndarray spec: Input stft (Freq, Time)
+    :param str mode: db or linear.
+    :param int fs: Sample frequency. To convert y-axis to kHz unit.
+    :param int frame_shift: The frame shift of stft. To convert x-axis to second unit.
+    :param bool bottom:
+    :param bool left:
+    :param bool right:
+    :param bool top:
+    :param bool labelbottom:
+    :param bool labelleft:
+    :param bool labelright:
+    :param bool labeltop:
+    :param str cmap: colormap defined in matplotlib
+
+    """
+    spec = np.abs(spec)
+    if mode == 'db':
+        x = 20 * np.log10(spec + np.finfo(spec.dtype).eps)
+    elif mode == 'linear':
+        x = spec
+    else:
+        raise ValueError(mode)
+
+    if fs is not None:
+        ytop = fs / 2000
+        ylabel = 'kHz'
+    else:
+        ytop = x.shape[0]
+        ylabel = 'bin'
+
+    if frame_shift is not None and fs is not None:
+        xtop = x.shape[1] * frame_shift / fs
+        xlabel = 's'
+    else:
+        xtop = x.shape[1]
+        xlabel = 'frame'
+
+    extent = (0, xtop, 0, ytop)
+    plt.imshow(x[::-1], cmap=cmap, extent=extent)
+
+    if labelbottom:
+        plt.xlabel('time [{}]'.format(xlabel))
+    if labelleft:
+        plt.ylabel('freq [{}]'.format(ylabel))
+    plt.colorbar().set_label('{}'.format(mode))
+
+    plt.tick_params(bottom=bottom, left=left, right=right, top=top,
+                    labelbottom=labelbottom, labelleft=labelleft,
+                    labelright=labelright, labeltop=labeltop)
+    plt.axis('auto')
