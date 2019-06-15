@@ -65,8 +65,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # Initial normalization of the data
     local/data_prep.sh ${db_root}/jsut_ver1.1 data/train $sampling_rate
     utils/validate_data_dir.sh --no-feats data/train
-    # rebuilding the pitch.conf and fbank.conf
-    local/make_pitch.sh $sampling_rate
+    # changing the sampling rate option in pitch.conf and fbank.conf
+    local/change_sampling_rate.sh $sampling_rate
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
