@@ -25,12 +25,12 @@ We basically maintain the `master` and `v.0.X.0` branches for our major developm
 
 1. We will keep the first version digit `0` until we have some super major changes in the project organization level.
 
-2. The second version deg-it will be updated when we have major updates including new functions and refactoring, and 
+2. The second version digit will be updated when we have major updates including new functions and refactoring, and 
    their related bug fix and recipe changes.
    This version update will be done roughly at every half year so far (but it depends on the development plan).
-   This is developed at the `v.0.X.0` branch to avoid confusions in the master.
+   This is developed at the `v.0.X.0` branch to avoid confusions in the `master` branch.
 
-3. The third version deg-it will be updated when we fix serious bugs or accumulate some minor changes including
+3. The third version digit will be updated when we fix serious bugs or accumulate some minor changes including
    recipe related changes periodically (every two months or so).
    This is developed at the `master` branch, and these changes are also reflected to the `v.0.X.0` branch frequently.
 
