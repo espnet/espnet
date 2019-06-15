@@ -6,6 +6,7 @@
 
 import torch
 
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.tts_interface import TTSInterface
 
@@ -48,11 +49,31 @@ class LengthRegularizer(torch.nn.Module):
         - FastSpeech: Fast, Robust and Controllable Text to Speech
           (https://arxiv.org/pdf/1905.09263.pdf)
     """
+
     def __init__(self):
         super(LengthRegularizer, self).__init__()
 
-    def forward(self):
-        pass
+    def forward(self, xs, ds, ilens):
+        """Apply length regularizer
+
+        :param torch.Tensor x: input tensor with the shape (B, Tmax, D)
+        :param torch.Tensor d: duration of each components of each sequence with the shape (B, T,)
+        :param torch.Tensor d: batch of input lengths with the shape (B,)
+        :return torch.Tensor: length regularized input tensor (B, T*, D)
+        """
+        xs = [x[:ilen] for x, ilen in zip(xs, ilens)]
+        ds = [d[:ilen] for d, ilen in zip(ds, ilens)]
+        xs = [self._repeat_one_sequence(x, d) for x, d in zip(xs, ds)]
+        return pad_list(xs, 0)
+
+    def _repeat_one_sequence(self, x, d):
+        """Repeat each frame according to duration
+
+        :param torch.Tensor x: (T, D)
+        :param torch.Tensor d: (T,)
+        :return torch.Tensor: (T*, D)
+        """
+        return torch.cat([x_.repeat(int(d_), 1) for x_, d_ in zip(x, d)], dim=0)
 
 
 class DurationPredictor(torch.nn.Module):
