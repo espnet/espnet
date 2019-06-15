@@ -57,8 +57,8 @@ class LengthRegularizer(torch.nn.Module):
         """Apply length regularizer
 
         :param torch.Tensor x: input tensor with the shape (B, Tmax, D)
-        :param torch.Tensor d: duration of each components of each sequence with the shape (B, T,)
-        :param torch.Tensor d: batch of input lengths with the shape (B,)
+        :param torch.Tensor d: duration of each components of each sequence B, T,)
+        :param torch.Tensor d: batch of input lengths (B,)
         :return torch.Tensor: length regularized input tensor (B, T*, D)
         """
         xs = [x[:ilen] for x, ilen in zip(xs, ilens)]
@@ -69,9 +69,23 @@ class LengthRegularizer(torch.nn.Module):
     def _repeat_one_sequence(self, x, d):
         """Repeat each frame according to duration
 
-        :param torch.Tensor x: (T, D)
-        :param torch.Tensor d: (T,)
-        :return torch.Tensor: (T*, D)
+        >>> x = torch.tensor([[1], [2], [3]])
+        tensor([[1],
+                [2],
+                [3]])
+        >>> d = torch.tensor([1, 2, 3])
+        tensor([1, 2, 3])
+        >>> self._repeat_one_sequence(x, d)
+        tensor([[1],
+                [2],
+                [2],
+                [3],
+                [3],
+                [3]])
+
+        :param torch.Tensor x: input tensor with the shape (T, D)
+        :param torch.Tensor d: duration of each frame of input tensor (T,)
+        :return torch.Tensor: length regularized input tensor (T*, D)
         """
         return torch.cat([x_.repeat(int(d_), 1) for x_, d_ in zip(x, d)], dim=0)
 
