@@ -206,6 +206,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # define final projection
         self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
 
+        # initialize parameters
+        self._reset_parameters(args)
+
         # define teacher model
         if args.teacher_model is not None:
             self.teacher = self._load_teacher_model(args.teacher_model)
@@ -221,9 +224,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # define criterions
         self.duration_criterion = DurationPredictorLoss()
         self.criterion = torch.nn.L1Loss()
-
-        # initialize parameters
-        self._reset_parameters(args)
 
     def forward(self, xs, ilens, ys, labels, olens, *args, **kwargs):
         """Transformer forward computation
