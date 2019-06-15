@@ -17,6 +17,7 @@ N=0            # number of minibatches to be used (mainly for debugging). "0" us
 verbose=0      # verbose option
 resume=        # Resume the training from snapshot
 nj=10
+sampling_rate=48000
 
 # feature configuration
 do_delta=false
@@ -62,9 +63,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
     # Initial normalization of the data
-    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train
+    local/data_prep.sh ${db_root}/jsut_ver1.1 data/train $sampling_rate
     utils/validate_data_dir.sh --no-feats data/train
-    
+    # rebuilding the pitch.conf and fbank.conf
+    local/make_pitch.sh $sampling_rate
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}; mkdir -p ${feat_tr_dir}
