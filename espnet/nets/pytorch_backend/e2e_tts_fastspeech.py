@@ -237,6 +237,14 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
+        # remove unnecessary padded part (for multi-gpus)
+        max_ilen = max(ilens)
+        max_olen = max(olens)
+        if max_ilen != xs.shape[1]:
+            xs = xs[:, :max_ilen]
+        if max_olen != ys.shape[1]:
+            ys = ys[:, :max_olen]
+
         # forward encoder
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
@@ -246,7 +254,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             ds = self.duration_calculator(xs, ilens, ys, olens)  # (B, Tmax)
 
         # calculate predicted duration
-        d_masks = make_pad_mask(ilens)
+        d_masks = make_pad_mask(ilens).to(xs.device)
         d_preds = self.duration_predictor(hs, d_masks)  # (B, Tmax)
 
         # apply length regularizer
