@@ -9,7 +9,7 @@
     - pytorch version: `pytorch 1.0.0`
     - Git hash: `04b9e1a71b3272cdf6502e40679ab17f3f3f22f6`
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: 
+    - model link: https://drive.google.com/drive/u/0/folders/1x9MgfXI4quWhOweRtPFdnjh1YAM2yywQ
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_mix/cmvn.ark`
@@ -38,7 +38,7 @@ exp/train_mix_pytorch_transformer_100epoch/decode_dev_0330_decode_lm_word65000/r
     - pytorch version: `pytorch 1.0.0`
     - Git hash: `04b9e1a71b3272cdf6502e40679ab17f3f3f22f6`
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: 
+    - model link: https://drive.google.com/drive/u/0/folders/1x9MgfXI4quWhOweRtPFdnjh1YAM2yywQ
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_mix/cmvn.ark`
@@ -68,7 +68,7 @@ exp/train_mix_pytorch_transformer_small_encoder/decode_dev_0330_decode_lm_word65
     - pytorch version: `pytorch 1.0.0`
     - Git hash: `04b9e1a71b3272cdf6502e40679ab17f3f3f22f6`
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: 
+    - model link: https://drive.google.com/drive/u/0/folders/1x9MgfXI4quWhOweRtPFdnjh1YAM2yywQ
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_mix/cmvn.ark`
@@ -100,18 +100,6 @@ exp/train_mix_pytorch_mix_shallow_wide/decode_dev_0330_decode_wordlm/result.wrd_
 exp/train_mix_pytorch_mix_shallow_wide/decode_dev_0330_decode_wordlm/result.wrd_D.txt:|  Sum/Avg |  1980     32802  |  83.6    14.3      2.0      2.2     18.5     65.0  |
 ```
 
-# First result
-```
-exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_A.txt: | SPKR    |  # Snt  # Wrd  | Corr      Sub     Del     Ins      Err   S.Err  |
-exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_A.txt: | Sum/Avg |   330    5467  | 57.3     39.5     3.2     7.2     49.9    99.7  |
-exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_B.txt: | SPKR    | # Snt    # Wrd  | Corr     Sub     Del      Ins     Err   S.Err  |
-exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_B.txt: | Sum/Avg | 1980     32802  | 49.1    46.7     4.2      8.2    59.2    99.9  |
-exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_C.txt: | SPKR    |  # Snt  # Wrd  | Corr      Sub     Del     Ins      Err   S.Err  |
-exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_C.txt: | Sum/Avg |   330    5467  | 49.0     47.7     3.3     8.8     59.7   100.0  |
-exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_D.txt: | SPKR    | # Snt    # Wrd  | Corr     Sub     Del      Ins     Err   S.Err  |
-exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_D.txt: | Sum/Avg | 1980     32802  | 39.0    56.7     4.3      9.3    70.3    99.9  |
-```
-
 # Shallow_wide network without wordlm
 ```
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_lm/result.wrd_A.txt:|  SPKR     |  # Snt    # Wrd  |  Corr       Sub       Del       Ins      Err     S.Err   |
@@ -134,4 +122,16 @@ exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_wordlm/
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_wordlm/result.wrd_C.txt:|  Sum/Avg  |   330       5467   |  87.0      11.5       1.5        2.2      15.2      65.2   |
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_wordlm/result.wrd_D.txt:|  SPKR     |  # Snt     # Wrd   |  Corr        Sub       Del       Ins       Err     S.Err   |
 exp/train_si84_multi_pytorch_wide_shallow_network/decode_dev_0330_decode_wordlm/result.wrd_D.txt:|  Sum/Avg  |  1980      32802   |  75.6       21.5       2.9       3.8      28.2      79.8   |
+```
+
+# First result
+```
+exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_A.txt: | SPKR    |  # Snt  # Wrd  | Corr      Sub     Del     Ins      Err   S.Err  |
+exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_A.txt: | Sum/Avg |   330    5467  | 57.3     39.5     3.2     7.2     49.9    99.7  |
+exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_B.txt: | SPKR    | # Snt    # Wrd  | Corr     Sub     Del      Ins     Err   S.Err  |
+exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_B.txt: | Sum/Avg | 1980     32802  | 49.1    46.7     4.2      8.2    59.2    99.9  |
+exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_C.txt: | SPKR    |  # Snt  # Wrd  | Corr      Sub     Del     Ins      Err   S.Err  |
+exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_C.txt: | Sum/Avg |   330    5467  | 49.0     47.7     3.3     8.8     59.7   100.0  |
+exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_D.txt: | SPKR    | # Snt    # Wrd  | Corr     Sub     Del      Ins     Err   S.Err  |
+exp/train_si84_multi_pytorch_first/decode_dev_0330_decode_nolm/result.wrd_D.txt: | Sum/Avg | 1980     32802  | 39.0    56.7     4.3      9.3    70.3    99.9  |
 ```
