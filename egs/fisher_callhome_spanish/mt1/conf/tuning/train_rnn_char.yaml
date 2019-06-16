@@ -15,15 +15,14 @@ adim: 1024
 
 # minibatch related
 batch-size: 32
-maxlen-in: 100  # if input length  > maxlen_in, batchsize is automatically reduced
-maxlen-out: 100 # if output length > maxlen_out, batchsize is automatically reduced
+maxlen-in: 100  # if input length  > maxlen-in, batchsize is automatically reduced
+maxlen-out: 100 # if output length > maxlen-out, batchsize is automatically reduced
 
 # other config
-dropout-rate: 0.2
-lsm_weight: 0.1
-dropout_rate: 0.3
-dropout_rate_decoder: 0.3
-weight_decay: 1e-6
+dropout-rate: 0.3
+dropout-rate-decoder: 0.3
+lsm-weight: 0.1
+weight-decay: 1e-6
 
 # optimization related
 sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
@@ -33,7 +32,3 @@ patience: 3
 
 # scheduled sampling option
 sampling-probability: 0.0
-
-# pre-training related
-asr_model: ''
-mt_model: ''
