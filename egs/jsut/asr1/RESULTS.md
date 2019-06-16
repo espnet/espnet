@@ -8,7 +8,7 @@
     - pytorch version: `pytorch 1.0.0`
     - Git hash: `1e56f57bfb57cd49988e4a62417ab27bf2a0013b`
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: 
+    - model link:https://drive.google.com/open?id=1dboEtdxanufX3w0zVcX2B2JhBmbrsHHO
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/tr_no_dev/cmvn.ark`
@@ -39,7 +39,7 @@ write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/r
     - Git hash: `00b87ac02e9b3ba759b22ccef359aa77a356e347`
 
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: 
+    - model link: https://drive.google.com/open?id=1dboEtdxanufX3w0zVcX2B2JhBmbrsHHO
     - training config file: `conf/train.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/tr_no_dev/cmvn.ark`
@@ -47,8 +47,14 @@ write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/r
     - e2e JSON file: `exp/tr_no_dev_pytorch_train/results/model.json`
 
 ```
+#48k
+write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
+      | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+      | Sum/Avg|  250    5928 | 78.8   15.8    5.4    2.2   23.4   96.8 |
+
 #16k
 write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
       | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
       | Sum/Avg|  250    5928 | 80.7   14.6    4.7    2.2   21.5   97.2 |
+
 ```
