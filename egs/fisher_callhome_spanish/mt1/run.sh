@@ -83,6 +83,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
+    cp -rf data/fisher_train data/train
+
     # Divide into source and target languages
     for x in ${train_set_prefix} fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest; do
         local/divide_lang.sh ${x}
@@ -113,9 +115,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 fi
 
-dict=data/lang_1char/${train_set}_units_${tgt_case}.txt
+dict_src=data/lang_1char/${train_set}_units_${src_case}.txt
+dict_tgt=data/lang_1char/${train_set}_units_${tgt_case}.txt
 nlsyms=data/lang_1char/non_lang_syms_${tgt_case}.txt
-echo "dictionary: ${dict}"
+echo "dictionary (src): ${dict_src}"
+echo "dictionary (tgt): ${dict_tgt}"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to check non-linguistic symbols used in the corpus.
     echo "stage 2: Dictionary and Json Data Preparation"
@@ -125,21 +129,27 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     cut -f 2- -d' ' data/${train_set_prefix}.*/text.${tgt_case} | grep -o -P '&[^;]*;'| sort | uniq > ${nlsyms}
     cat ${nlsyms}
 
-    echo "make a dictionary"
-    echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
+    echo "make a target dictionary"
+    echo "<unk> 1" > ${dict_tgt} # <unk> must be 1, 0 will be used for "blank" in CTC
     cat data/${train_set_prefix}.*/text.${tgt_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
-        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict}
-    wc -l ${dict}
+        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_tgt}
+    wc -l ${dict_tgt}
+
+    echo "make a source dictionary"
+    echo "<unk> 1" > ${dict_src} # <unk> must be 1, 0 will be used for "blank" in CTC
+    cat data/${train_set_prefix}.*/text.${src_case} | text2token.py -s 1 -n 1 -l ${nlsyms} | cut -f 2- -d" " | tr " " "\n" \
+        | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' >> ${dict_src}
+    wc -l ${dict_src}
 
     echo "make json files"
     local/data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --nlsyms ${nlsyms} \
-        data/${train_set} ${dict} > ${feat_tr_dir}/data.${src_case}_${tgt_case}.json
+        data/${train_set} ${dict_tgt} > ${feat_tr_dir}/data.${src_case}_${tgt_case}.json
     local/data2json.sh --text data/${train_dev}/text.${tgt_case} --nlsyms ${nlsyms} \
-        data/${train_dev} ${dict} > ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
+        data/${train_dev} ${dict_tgt} > ${feat_dt_dir}/data.${src_case}_${tgt_case}.json
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         local/data2json.sh --text data/${rtask}/text.${tgt_case} --nlsyms ${nlsyms} \
-            data/${rtask} ${dict} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
+            data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data.${src_case}_${tgt_case}.json
     done
 
     # update json (add source references)
@@ -147,7 +157,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/$(echo ${x} | cut -f -1 -d ".").es
         local/update_json.sh --text ${data_dir}/text.${src_case} --nlsyms ${nlsyms} \
-            ${feat_dir}/data.${src_case}_${tgt_case}.json ${data_dir} ${dict}
+            ${feat_dir}/data.${src_case}_${tgt_case}.json ${data_dir} ${dict_src}
     done
 
     # Fisher has 4 references per utterance
@@ -155,7 +165,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}
         for no in 1 2 3; do
           local/data2json.sh --text data/${rtask}/text.${tgt_case}.${no} --nlsyms ${nlsyms} \
-              data/${rtask} ${dict} > ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json
+              data/${rtask} ${dict_tgt} > ${feat_recog_dir}/data_${no}.${src_case}_${tgt_case}.json
         done
     done
 fi
@@ -181,8 +191,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
         --debugmode ${debugmode} \
-        --dict-src ${dict} \
-        --dict-tgt ${dict} \
+        --dict-src ${dict_src} \
+        --dict-tgt ${dict_tgt} \
         --debugdir ${expdir} \
         --minibatches ${N} \
         --seed ${seed} \
@@ -225,7 +235,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --case ${tgt_case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict}
+        local/score_bleu.sh --case ${tgt_case} --set ${rtask} --nlsyms ${nlsyms} ${expdir}/${decode_dir} ${dict_tgt} ${dict_src}
 
     ) &
     pids+=($!) # store background pids
