@@ -62,7 +62,9 @@ class Encoder(torch.nn.Module):
                 pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer is None:
-            self.embed = pos_enc_class(attention_dim, positional_dropout_rate)
+            self.embed = torch.nn.Sequential(
+                pos_enc_class(attention_dim, positional_dropout_rate)
+            )
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
