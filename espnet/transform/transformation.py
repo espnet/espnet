@@ -6,7 +6,6 @@ import sys
 
 import yaml
 
-from espnet.utils.check_kwargs import check_kwargs
 from espnet.utils.dynamic_import import dynamic_import
 
 
