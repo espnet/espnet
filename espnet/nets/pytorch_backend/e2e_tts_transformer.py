@@ -28,17 +28,18 @@ from espnet.utils.cli_utils import strtobool
 
 
 class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
-    """Guided multi head attention loss function
+    """Guided attention loss for multi head attention
 
     :param float sigma: standard deviation to control how close attention to a diagonal
+    :param bool reset_always: whether to always reset mask
     """
 
     def forward(self, att_ws, ilens, olens):
-        """GuidedMultiHeadAttentionLoss forward calculation
+        """Calculate guided attention loss for multi head attention
 
         :param torch.Tenosr att_ws: attention weights (B, H, T_max_out, T_max_in)
-        :param torch.Tensor ilens: bath of input lenghts (B,)
-        :param torch.Tensor olens: bath of output lenghts (B,)
+        :param torch.Tensor ilens: batch of input lenghts (B,)
+        :param torch.Tensor olens: batch of output lenghts (B,)
         :return torch.tensor: guided attention loss value
         """
         if self.guided_attn_masks is None:
@@ -49,6 +50,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
         loss = torch.mean(losses.masked_select(self.masks))
         if self.reset_always:
             self.reset_masks()
+
         return loss
 
 
@@ -66,7 +68,7 @@ class TransformerLoss(torch.nn.Module):
         self.bce_pos_weight = args.bce_pos_weight
 
     def forward(self, after_outs, before_outs, logits, ys, labels, olens):
-        """Transformer loss forward computation
+        """Calculate trasnformer loss
 
         :param torch.Tensor after_outs: outputs with postnets (B, Lmax, odim)
         :param torch.Tensor before_outs: outputs without postnets (B, Lmax, odim)
@@ -128,9 +130,11 @@ class TTSPlot(PlotAttentionReport):
 
 
 class Transformer(TTSInterface, torch.nn.Module):
-    """Transformer for TTS
+    """Text-to-Speech Transformer
 
-    - Reference: Neural Speech Synthesis with Transformer Network (https://arxiv.org/pdf/1809.08895.pdf)
+    Reference:
+        Neural Speech Synthesis with Transformer Network
+        (https://arxiv.org/pdf/1809.08895.pdf)
 
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
@@ -151,18 +155,32 @@ class Transformer(TTSInterface, torch.nn.Module):
         (int) postnet_chans: number of postnet channels
         (int) postnet_filts: filter size of postnet
         (bool) use_scaled_pos_enc: whether to use trainable scaled positional encoding instead of the fixed scale one
-        (bool) use_batch_norm: whether to use batch normalization
+        (bool) use_batch_norm: whether to use batch normalization in encoder prenet
+        (bool) encoder_normalize_before: whether to perform layer normalization before encoder block
+        (bool) decoder_normalize_before: whether to perform layer normalization before decoder block
+        (bool) encoder_concat_after: whether to concatenate attention layer's input and output in encoder
+        (bool) decoder_concat_after: whether to concatenate attention layer's input and output in decoder
+        (int) reduction_factor: reduction factor
         (float) transformer_init: how to initialize transformer parameters
         (float) transformer_lr: initial value of learning rate
         (int) transformer_warmup_steps: optimizer warmup steps
-        (float) transformer_attn_dropout_rate: dropout in transformer attention. use dropout if none is set
-        (float) eprenet_dropout_rate: dropout rate in encoder prenet. use dropout if none is set
-        (float) dprenet_dropout_rate: dropout rate in decoder prenet. use dropout if none is set
-        (float) postnet_dropout_rate: dropout rate in postnet. use dropout_rate if none is set
-        (float) dropout_rate: dropout rate in the other module
+        (float) transformer_enc_dropout_rate: dropout rate in encoder except for attention and positional encoding
+        (float) transformer_enc_positional_dropout_rate: dropout rate after encoder positional encoding
+        (float) transformer_enc_attn_dropout_rate: dropout rate in encoder self-attention module
+        (float) transformer_dec_dropout_rate: dropout rate in decoder except for attention and positional encoding
+        (float) transformer_dec_positional_dropout_rate:  dropout rate after decoder positional encoding
+        (float) transformer_dec_attn_dropout_rate: dropout rate in deocoder self-attention module
+        (float) transformer_enc_dec_attn_dropout_rate: dropout rate in encoder-deocoder attention module
+        (float) eprenet_dropout_rate: dropout rate in encoder prenet
+        (float) dprenet_dropout_rate: dropout rate in decoder prenet
+        (float) postnet_dropout_rate: dropout rate in postnet
         (bool) use_masking: whether to use masking in calculation of loss
         (float) bce_pos_weight: positive sample weight in bce calculation (only for use_masking=true)
         (str) loss_type: how to calculate loss
+        (bool) use_guided_attn_loss: whether to use guided attention loss
+        (int) num_heads_applied_guided_attn: number of heads in each layer to be applied guided attention loss
+        (int) num_layers_applied_guided_attn: number of layers to be applied guided attention loss
+        (list) modules_applied_guided_attn: list of module names to be applied guided attention loss
     """
 
     @staticmethod
@@ -170,10 +188,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         group = parser.add_argument_group("transformer model setting")
         # network structure related
         group.add_argument("--embed-dim", default=512, type=int,
-                           help="Dimension of character embedding")
+                           help="Dimension of character embedding in encoder prenet")
         group.add_argument("--eprenet-conv-layers", default=3, type=int,
                            help="Number of encoder prenet convolution layers")
-        group.add_argument("--eprenet-conv-chans", default=512, type=int,
+        group.add_argument("--eprenet-conv-chans", default=256, type=int,
                            help="Number of encoder prenet convolution channels")
         group.add_argument("--eprenet-conv-filts", default=5, type=int,
                            help="Filter size of encoder prenet convolution")
@@ -183,29 +201,29 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder prenet hidden units")
         group.add_argument("--elayers", default=3, type=int,
                            help="Number of encoder layers")
-        group.add_argument("--eunits", default=2048, type=int,
+        group.add_argument("--eunits", default=1536, type=int,
                            help="Number of encoder hidden units")
-        group.add_argument("--adim", default=512, type=int,
+        group.add_argument("--adim", default=384, type=int,
                            help="Number of attention transformation dimensions")
         group.add_argument("--aheads", default=4, type=int,
                            help="Number of heads for multi head attention")
         group.add_argument("--dlayers", default=3, type=int,
                            help="Number of decoder layers")
-        group.add_argument("--dunits", default=2048, type=int,
+        group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
         group.add_argument("--postnet-layers", default=5, type=int,
                            help="Number of postnet layers")
-        group.add_argument("--postnet-chans", default=512, type=int,
+        group.add_argument("--postnet-chans", default=256, type=int,
                            help="Number of postnet channels")
         group.add_argument("--postnet-filts", default=5, type=int,
                            help="Filter size of postnet")
         group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
-                           help="use trainable scaled positional encoding instead of the fixed scale one.")
+                           help="Use trainable scaled positional encoding instead of the fixed scale one.")
         group.add_argument("--use-batch-norm", default=True, type=strtobool,
                            help="Whether to use batch normalization")
-        group.add_argument("--encoder-normalize-before", default=True, type=strtobool,
+        group.add_argument("--encoder-normalize-before", default=False, type=strtobool,
                            help="Whether to apply layer norm before encoder block")
-        group.add_argument("--decoder-normalize-before", default=True, type=strtobool,
+        group.add_argument("--decoder-normalize-before", default=False, type=strtobool,
                            help="Whether to apply layer norm before decoder block")
         group.add_argument("--encoder-concat-after", default=False, type=strtobool,
                            help="Whether to concatenate attention layer's input and output in encoder")
@@ -217,35 +235,35 @@ class Transformer(TTSInterface, torch.nn.Module):
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
                                     "kaiming_uniform", "kaiming_normal"],
-                           help="how to initialize transformer parameters")
+                           help="How to initialize transformer parameters")
         group.add_argument("--initial-encoder-alpha", type=float, default=1.0,
-                           help="initial alpha value in encoder's ScaledPositionalEncoding")
+                           help="Initial alpha value in encoder's ScaledPositionalEncoding")
         group.add_argument("--initial-decoder-alpha", type=float, default=1.0,
-                           help="initial alpha value in decoder's ScaledPositionalEncoding")
+                           help="Initial alpha value in decoder's ScaledPositionalEncoding")
         group.add_argument("--transformer-lr", default=1.0, type=float,
                            help="Initial value of learning rate")
         group.add_argument("--transformer-warmup-steps", default=4000, type=int,
-                           help="optimizer warmup steps")
+                           help="Optimizer warmup steps")
         group.add_argument("--transformer-enc-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer encoder except for attention")
+                           help="Dropout rate for transformer encoder except for attention")
         group.add_argument("--transformer-enc-positional-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer encoder positional encoding")
-        group.add_argument("--transformer-enc-attn-dropout-rate", default=0.0, type=float,
-                           help="dropout rate for transformer encoder self-attention")
+                           help="Dropout rate for transformer encoder positional encoding")
+        group.add_argument("--transformer-enc-attn-dropout-rate", default=0.1, type=float,
+                           help="Dropout rate for transformer encoder self-attention")
         group.add_argument("--transformer-dec-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer decoder except for attention and pos encoding")
+                           help="Dropout rate for transformer decoder except for attention and pos encoding")
         group.add_argument("--transformer-dec-positional-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer decoder positional encoding")
-        group.add_argument("--transformer-dec-attn-dropout-rate", default=0.3, type=float,
-                           help="dropout rate for transformer decoder self-attention")
-        group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.0, type=float,
-                           help="dropout rate for transformer encoder-decoder attention")
-        group.add_argument("--eprenet-dropout-rate", default=0.1, type=float,
-                           help="dropout rate in encoder prenet")
+                           help="Dropout rate for transformer decoder positional encoding")
+        group.add_argument("--transformer-dec-attn-dropout-rate", default=0.1, type=float,
+                           help="Dropout rate for transformer decoder self-attention")
+        group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.1, type=float,
+                           help="Dropout rate for transformer encoder-decoder attention")
+        group.add_argument("--eprenet-dropout-rate", default=0.5, type=float,
+                           help="Dropout rate in encoder prenet")
         group.add_argument("--dprenet-dropout-rate", default=0.5, type=float,
-                           help="dropout rate in decoder prenet")
-        group.add_argument("--postnet-dropout-rate", default=0.1, type=float,
-                           help="dropout rate in postnet")
+                           help="Dropout rate in decoder prenet")
+        group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
+                           help="Dropout rate in postnet")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
@@ -264,7 +282,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of layers to be applied guided attention loss"
                                 "if set -1, all of the layers will be applied.")
         group.add_argument("--modules-applied-guided-attn", type=str, nargs="+",
-                           default=["encoder", "decoder", "encoder-decoder"],
+                           default=["encoder-decoder"],
                            help="Module name list to be applied guided attention loss")
         return parser
 
@@ -428,7 +446,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         return ys_in
 
     def forward(self, xs, ilens, ys, labels, olens, *args, **kwargs):
-        """Transformer forward computation
+        """Calculate forward propagation
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
@@ -548,9 +566,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         return loss
 
     def inference(self, x, inference_args, *args, **kwargs):
-        """Generates the sequence of features given the sequences of characters
+        """Generates the sequence of features from given a sequences of characters
 
-        :param torch.Tensor x: the sequence of characters (T)
+        :param torch.Tensor x: the sequence of character ids (T)
         :param Namespace inference_args: argments containing following attributes
             (float) threshold: threshold in inference
             (float) minlenratio: minimum length ratio in inference
@@ -606,7 +624,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         return outs, probs
 
     def calculate_all_attentions(self, xs, ilens, ys, olens, skip_output=False, keep_tensor=False, *args, **kwargs):
-        """Calculate attention weights
+        """Calculate attention weights of all of the layers
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
