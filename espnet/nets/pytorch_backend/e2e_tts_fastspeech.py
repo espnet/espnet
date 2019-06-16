@@ -275,6 +275,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
 
         # calculate loss
+        y_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+        outs = outs.masked_select(y_masks)
+        ys = outs.masked_select(ys)
         l1_loss = self.criterion(outs, ys)
         duration_loss = self.duration_criterion(d_preds, ds, ~d_masks)
         loss = l1_loss + duration_loss
