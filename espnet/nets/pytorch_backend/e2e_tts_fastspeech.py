@@ -484,8 +484,9 @@ class DurationCalculator(torch.nn.Module):
         self.register_buffer("diag_head_idx", diagonal_scores.argmax())
 
     def _calculate_attentions(self, xs, ilens, ys, olens):
-        att_dict = self.teacher_model.calculate_all_attentions(xs, ilens, ys, olens, skip_outputs=True)
-        return torch.stack([att_dict[k] for k in att_dict.keys() if "src_attn" in k], dim=1)  # (B, H*L, Lmax, Tmax)
+        att_dict = self.teacher_model.calculate_all_attentions(
+            xs, ilens, ys, olens, skip_output=True, keep_tensor=True)
+        return torch.cat([att_dict[k] for k in att_dict.keys() if "src_attn" in k], dim=1)  # (B, H*L, Lmax, Tmax)
 
 
 class LengthRegularizer(torch.nn.Module):
