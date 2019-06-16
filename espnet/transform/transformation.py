@@ -83,7 +83,6 @@ class Transformation(object):
                 process_type = opts.pop('type')
                 class_obj = dynamic_import(process_type, import_alias)
                 # TODO(karita): assert issubclass(class_obj, TransformInterface)
-                check_kwargs(class_obj, opts)
                 try:
                     self.functions[idx] = class_obj(**opts)
                 except TypeError:
