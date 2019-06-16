@@ -15,13 +15,17 @@ lang=""
 feat="" # feat.scp
 oov="<unk>"
 bpecode=""
+allow_one_column=false
 verbose=0
+trans_type=char
 filetype=""
 preprocess_conf=""
+category=""
 out="" # If omitted, write in stdout
 
 text=""
 no_text=false
+skip_utt2spk=false
 
 . utils/parse_options.sh
 
@@ -73,14 +77,10 @@ if [ -n "${feat}" ]; then
     sort ${tmpdir}/input/shape.scp.tmp > ${tmpdir}/input/shape.scp
 fi
 
-if [ ! -n "${feat}" ] && grep sp1.0 ${text} > /dev/null; then
-    grep sp1.0 ${text} > ${text}.tmp
-    mv ${text}.tmp ${text}
-fi
 
 # 2. Create scp files for outputs
 mkdir -p ${tmpdir}/output
-if ! ${no_text}; then
+if [ ${no_text} = false ]; then
     if [ -n "${bpecode}" ]; then
         paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} \
             | spm_encode --model=${bpecode} --output_format=piece) \
@@ -102,24 +102,31 @@ mkdir -p ${tmpdir}/other
 if [ -n "${lang}" ]; then
     awk -v lang=${lang} '{print $1 " " lang}' ${text} > ${tmpdir}/other/lang.scp
 fi
-# if grep sp1.0 ${dir}/utt2spk > /dev/null; then
-#     cat ${dir}/utt2spk | grep sp1.0 > ${tmpdir}/other/utt2spk.scp
-# else
-#     cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
-# fi
-cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
 
+if [ -n "${category}" ]; then
+    awk -v category=${category} '{print $1 " " category}' ${dir}/text \
+        > ${tmpdir}/other/category.scp
+fi
+if [ ${skip_utt2spk} = false ]; then
+    cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
+fi
 
 # 4. Merge scp files into a JSON file
 opts=""
 if [ -n "${feat}" ]; then
-    if ${no_text}; then
+    if [ ${no_text} = true ]; then
+        # ASR, ST for dev2010, tst2010...
         intypes="input other"
     else
         intypes="input output other"
     fi
 else
-    intypes="output other"
+    if [ ${skip_utt2spk} = true ]; then
+        # MT for dev2010, tst2010...
+        intypes="output"
+    else
+        intypes="output other"
+    fi
 fi
 for intype in ${intypes}; do
     if [ ${intype} != other ]; then
@@ -128,7 +135,7 @@ for intype in ${intypes}; do
         opts+="--scps "
     fi
 
-    for x in ${tmpdir}/${intype}/*.scp; do
+    for x in "${tmpdir}/${intype}"/*.scp; do
         k=$(basename ${x} .scp)
         if [ ${k} = shape ]; then
             opts+="shape:${x}:shape "
@@ -138,9 +145,15 @@ for intype in ${intypes}; do
     done
 done
 
+if ${allow_one_column}; then
+    opts+="--allow-one-column true "
+else
+    opts+="--allow-one-column false "
+fi
+
 if [ -n "${out}" ]; then
     opts+="-O ${out}"
 fi
-
 merge_scp2json.py --verbose ${verbose} ${opts}
+
 rm -fr ${tmpdir}

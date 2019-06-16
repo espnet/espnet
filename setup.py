@@ -1,15 +1,20 @@
 #!/usr/bin/env python
-import io
+from distutils.version import LooseVersion
 import os
+import pip
 from setuptools import find_packages
 from setuptools import setup
+import sys
 
 
-def get_all_scripts(dirname):
-    return [os.path.join(root, f)
-            for root, _, files in os.walk(dirname) for f in files
-            if os.path.splitext(f)[1] == '.py' and f != '__init__.py']
-
+if LooseVersion(sys.version) < LooseVersion('3.6'):
+    raise RuntimeError(
+        'ESPnet requires Python>=3.6, '
+        'but your Python is {}'.format(sys.version))
+if LooseVersion(pip.__version__) < LooseVersion('19'):
+    raise RuntimeError(
+        'pip>=19.0.0 is required, but your pip is {}. '
+        'Try again after "pip install -U pip"'.format(pip.__version__))
 
 requirements = {
     'install': [
@@ -39,12 +44,15 @@ requirements = {
         # A backport of inspect.signature for python2
         'funcsigs',
         'configargparse',
-        'PyYAML'
+        'PyYAML',
+        'torch_complex@git+https://github.com/kamo-naoyuki/pytorch_complex.git',
+        'pytorch_wpe@git+https://github.com/nttcslab-sp/dnn_wpe.git',
     ],
     'setup': ['numpy', 'pytest-runner'],
     'test': [
         'pytest>=3.3.0',
-        'pytest-pythonpath>=0.7.1',
+        'pytest-pythonpath>=0.7.3',
+        'pytest-cov>=2.7.1',
         'hacking>=1.1.0',
         'mock>=2.0.0',
         'autopep8>=1.3.3',
@@ -68,8 +76,8 @@ setup(name='espnet',
       author='Shinji Watanabe',
       author_email='shinjiw@ieee.org',
       description='ESPnet: end-to-end speech processing toolkit',
-      long_description=io.open(os.path.join(dirname, 'README.md'),
-                               encoding='utf-8').read(),
+      long_description=open(os.path.join(dirname, 'README.md'),
+                            encoding='utf-8').read(),
       license='Apache Software License',
       packages=find_packages(include=['espnet*']),
       # #448: "scripts" is inconvenient for developping because they are copied
