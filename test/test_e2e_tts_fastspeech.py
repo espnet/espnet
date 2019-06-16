@@ -42,18 +42,18 @@ def prepare_inputs(idim, odim, ilens, olens,
 
 def make_transformer_args(**kwargs):
     defaults = dict(
-        embed_dim=512,
-        eprenet_conv_layers=2,
-        eprenet_conv_filts=5,
-        eprenet_conv_chans=512,
+        embed_dim=0,
+        eprenet_conv_layers=0,
+        eprenet_conv_filts=0,
+        eprenet_conv_chans=0,
         dprenet_layers=2,
         dprenet_units=256,
         adim=32,
         aheads=4,
         elayers=2,
-        eunits=512,
+        eunits=128,
         dlayers=2,
-        dunits=512,
+        dunits=128,
         postnet_layers=5,
         postnet_filts=5,
         postnet_chans=512,
@@ -95,9 +95,9 @@ def make_feedforward_transformer_args(**kwargs):
         adim=32,
         aheads=4,
         elayers=2,
-        eunits=512,
+        eunits=128,
         dlayers=2,
-        dunits=512,
+        dunits=128,
         duration_predictor_layers=2,
         duration_predictor_chans=128,
         duration_predictor_kernel_size=3,
@@ -118,6 +118,7 @@ def make_feedforward_transformer_args(**kwargs):
         transformer_init="pytorch",
         initial_encoder_alpha=1.0,
         initial_decoder_alpha=1.0,
+        init_encoder_from_teacher=False,
         reduction_factor=1,
         loss_type="L1",
         teacher_model=None,
@@ -147,6 +148,11 @@ def test_trainable_and_decodable(model_dict):
     model.teacher = teacher_model
     model.duration_calculator = DurationCalculator(model.teacher)
     optimizer = torch.optim.Adam(model.parameters())
+
+    # check initialization
+    model._init_encoder_from_teacher()
+    for p1, p2 in zip(model.encoder.parameters(), model.teacher.encoder.parameters()):
+        np.testing.assert_array_equal(p1.data.cpu().numpy(), p2.data.cpu().numpy())
 
     # trainable
     loss = model(**batch).mean()
