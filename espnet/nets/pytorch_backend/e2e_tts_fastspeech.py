@@ -80,16 +80,14 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder hidden units")
         group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
                            help="use trainable scaled positional encoding instead of the fixed scale one.")
-        group.add_argument("--use-batch-norm", default=True, type=strtobool,
-                           help="Whether to use batch normalization")
         group.add_argument("--encoder-normalize-before", default=True, type=strtobool,
                            help="Whether to apply layer norm before encoder block")
         group.add_argument("--decoder-normalize-before", default=True, type=strtobool,
                            help="Whether to apply layer norm before decoder block")
         group.add_argument("--encoder-concat-after", default=False, type=strtobool,
-                           help="Whether to concatenate attention layer\"s input and output in encoder")
+                           help="Whether to concatenate attention layer's input and output in encoder")
         group.add_argument("--decoder-concat-after", default=False, type=strtobool,
-                           help="Whether to concatenate attention layer\"s input and output in decoder")
+                           help="Whether to concatenate attention layer's input and output in decoder")
         group.add_argument("--duration-predictor-layers", default=2, type=int,
                            help="Number of layers in duration predictor.")
         group.add_argument("--duration-predictor-chans", default=384, type=int,
@@ -106,9 +104,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                                     "kaiming_uniform", "kaiming_normal"],
                            help="how to initialize transformer parameters")
         group.add_argument("--initial-encoder-alpha", type=float, default=1.0,
-                           help="initial alpha value in encoder\"s ScaledPositionalEncoding")
+                           help="initial alpha value in encoder's ScaledPositionalEncoding")
         group.add_argument("--initial-decoder-alpha", type=float, default=1.0,
-                           help="initial alpha value in decoder\"s ScaledPositionalEncoding")
+                           help="initial alpha value in decoder's ScaledPositionalEncoding")
         group.add_argument("--transformer-lr", default=1.0, type=float,
                            help="Initial value of learning rate")
         group.add_argument("--transformer-warmup-steps", default=4000, type=int,
@@ -134,8 +132,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
-        group.add_argument("--loss-type", default="L1", choices=["L1", "L2", "L1+L2"],
-                           help="How to calc loss")
 
         return parser
 
@@ -149,6 +145,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         self.odim = odim
         self.reduction_factor = args.reduction_factor
         self.use_scaled_pos_enc = args.use_scaled_pos_enc
+        self.use_masking = args.use_masking
 
         # TODO(kan-bayashi): support reduction_factor > 1
         if self.reduction_factor != 1:
