@@ -233,6 +233,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # define criterions
         self.duration_criterion = DurationPredictorLoss()
+        # TODO(kan-bayashi): support knowledge distillation loss
         self.criterion = torch.nn.L1Loss()
 
     def forward(self, xs, ilens, ys, labels, olens, *args, **kwargs):
