@@ -3,33 +3,32 @@
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
-from __future__ import division
-
 import argparse
+from itertools import groupby
 import logging
 import math
 
-import editdistance
-
 import chainer
+from chainer import reporter
+import editdistance
 import numpy as np
 import six
 import torch
 
-from itertools import groupby
-
-from chainer import reporter
-
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
+from espnet.nets.pytorch_backend.frontends.feature_transform \
+    import feature_transform_for
+from espnet.nets.pytorch_backend.frontends.frontend \
+    import frontend_for
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -94,12 +93,6 @@ class E2E(ASRInterface, torch.nn.Module):
             labeldist = None
 
         if args.use_frontend:
-            # Relative importing because of using python3 syntax
-            from espnet.nets.pytorch_backend.frontends.feature_transform \
-                import feature_transform_for
-            from espnet.nets.pytorch_backend.frontends.frontend \
-                import frontend_for
-
             self.frontend = frontend_for(args, idim)
             self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
             idim = args.n_mels
