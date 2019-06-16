@@ -1,0 +1,13 @@
+# NOTE: apostrophe is included both in hyp and ref
+
+# baseline: exp/train_sp.en_pytorch_vggblstm_e5_subsample1_2_2_1_1_unit1024_proj1024_d2_unit1024_add1024_adadelta_sampprob0.2_lsm0.1_drop0.30.0_bs15_mli800_mlo150_wd0.000001
+fisher_dev.en
+BLEU = 44.87
+fisher_dev2.en
+BLEU = 45.21
+fisher_test.en
+BLEU = 47.30
+callhome_devtest.en
+BLEU = 15.96
+callhome_evltest.en
+BLEU = 16.18

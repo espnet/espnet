@@ -3,8 +3,6 @@
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# NOTE: this is made for machine translation
-
 echo "$0 $*" >&2 # Print the command line for logging
 . ./path.sh
 
@@ -21,12 +19,13 @@ preprocess_conf=""
 out="" # If omitted, write in stdout
 
 text=""
+filter_speed_perturbation=false
 
 . utils/parse_options.sh
 
-if [ $# != 2 ]; then
+if [ $# != 3 ]; then
     cat << EOF 1>&2
-Usage: $0 <data-dir> <dict>
+Usage: $0 <json> <data-dir> <dict>
 e.g. $0 data/train data/lang_1char/train_units.txt
 Options:
   --nj <nj>                                        # number of parallel jobs
@@ -43,31 +42,15 @@ fi
 
 set -euo pipefail
 
-dir=$1
-dic=$2
-tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
+json=$1
+dir=$2
+dic=$3
+json_dir=$(dirname ${json})
+tmpdir=`mktemp -d ${dir}/tmp-XXXXX`
 trap 'rm -rf ${tmpdir}' EXIT
 
 if [ -z ${text} ]; then
     text=${dir}/text
-fi
-
-# 1. Create scp files for inputs
-#   These are not necessary for decoding mode, and make it as an option
-mkdir -p ${tmpdir}/input
-if [ -n "${feat}" ]; then
-    cat ${feat} > ${tmpdir}/input/feat.scp
-
-    # Dump in the "legacy" style JSON format
-    if [ -n "${filetype}" ]; then
-        awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
-            > ${tmpdir}/input/filetype.scp
-    fi
-
-    feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
-        --filetype "${filetype}" \
-        --preprocess-conf "${preprocess_conf}" \
-        --verbose ${verbose} ${feat} ${tmpdir}/input/shape.scp
 fi
 
 # 2. Create scp files for outputs
@@ -82,39 +65,33 @@ else
     text2token.py -s 1 -n 1 ${text} > ${tmpdir}/output/token.scp
 fi
 < ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
+cat ${tmpdir}/output/tokenid.scp | awk '{print $1 " " NF-1}' > ${tmpdir}/output/olen.scp
 # +2 comes from CTC blank and EOS
 vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
-< ${tmpdir}/output/tokenid.scp awk -v odim=${odim} '{print $1 " " NF-1 "," odim}' > ${tmpdir}/output/shape.scp
+awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/output/odim.scp
 
-cat ${dir}/text > ${tmpdir}/output/text.scp
-
-
-# 3. Create scp files for the others
-mkdir -p ${tmpdir}/other
-if [ -n "${lang}" ]; then
-    awk -v lang=${lang} '{print $1 " " lang}' ${dir}/text > ${tmpdir}/other/lang.scp
+if ${filter_speed_perturbation}; then
+    cat ${text} | grep sp1.0 > ${tmpdir}/output/text.scp
+else
+    cat ${text} > ${tmpdir}/output/text.scp
 fi
-cat ${dir}/utt2spk  > ${tmpdir}/other/utt2spk.scp
 
 # 4. Create JSON files from each scp files
 rm -f ${tmpdir}/*/*.json
-for intype in 'output' 'other'; do
+for intype in 'output'; do
     for x in "${tmpdir}/${intype}"/*.scp; do
         k=$(basename ${x} .scp)
         < ${x} scp2json.py --key ${k} > ${tmpdir}/${intype}/${k}.json
     done
 done
 
-# 5. Merge JSON files into one and output to stdout
-if [ -n "${out}" ]; then
-    out_opt="-O ${out}"
-else
-    out_opt=""
-fi
-local/mergejson.py --verbose ${verbose} \
-    --input-jsons ${tmpdir}/input/*.json \
-    --output-jsons ${tmpdir}/output/*.json \
-    --jsons ${tmpdir}/other/*.json ${out_opt}
+# add to json
+addjson.py --verbose ${verbose} -i false \
+  ${json} ${tmpdir}/output/text.json ${tmpdir}/output/token.json ${tmpdir}/output/tokenid.json ${tmpdir}/output/olen.json ${tmpdir}/output/odim.json > ${tmpdir}/data.json
+mkdir -p ${json_dir}/.backup
+echo "json updated. original json is kept in ${json_dir}/.backup."
+cp ${json} ${json_dir}/.backup/$(basename ${json})
+cp ${tmpdir}/data.json ${json}
 
 rm -fr ${tmpdir}
