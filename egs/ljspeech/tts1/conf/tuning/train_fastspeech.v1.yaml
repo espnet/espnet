@@ -1,4 +1,4 @@
-# This configuration reuqires 1 gpus in the case of each gpu memory = 12GB.
+# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
@@ -19,10 +19,10 @@ decoder-concat-after: False
 reduction-factor: 1
 
 # minibatch related
-batch-sort-key: output # shuffle or input or output
-batch-bins: 759000    # 10 * (870 * 80 + 180 * 35)
+batch-sort-key: input # shuffle or input or output
+batch-bins: 2277000   # 30 * (870 * 80 + 180 * 35)
                       # batch-size * (max_out * dim_out + max_in * dim_in)
-                      # resuling in 10 ~ 66 samples (avg 14 samples) in batch (841 batches per epochs) for ljspeech
+                      # resuling in 38 ~ 127 samples (avg 38 samples) in batch (330 batches per epochs) for ljspeech
 
 # training related
 transformer-init: pytorch
@@ -38,15 +38,16 @@ transformer-dec-positional-dropout-rate: 0.1
 transformer-dec-attn-dropout-rate: 0.1
 transformer-enc-dec-attn-dropout-rate: 0.1
 duration-predictor-dropout-rate: 0.1
+init-encoder-from-teacher: true
 
 # optimization related
 opt: noam
-accum-grad: 4
+accum-grad: 2
 grad-clip: 1.0
 weight-decay: 0.0
 patience: 0
-epochs: 500  # 1,000 epochs * 841 batches / 4 accum-grad = 105125 iters
-teacher-model: exp/train_no_dev_pytorch_train_transformer.v1/results/model.loss.best
+epochs: 1000  # 1,000 epochs * 330 batches / 2 accum-grad = 165,000 iters
+teacher-model: exp/train_no_dev_pytorch_train_transformer.v1/results/model.last1.avg.best
 
 # other
 save-interval-epoch: 10
