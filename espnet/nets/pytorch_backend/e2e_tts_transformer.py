@@ -208,9 +208,9 @@ class Transformer(TTSInterface, torch.nn.Module):
         group.add_argument("--decoder-normalize-before", default=True, type=strtobool,
                            help="Whether to apply layer norm before decoder block")
         group.add_argument("--encoder-concat-after", default=False, type=strtobool,
-                           help="Whether to concatenate attention layer\"s input and output in encoder")
+                           help="Whether to concatenate attention layer's input and output in encoder")
         group.add_argument("--decoder-concat-after", default=False, type=strtobool,
-                           help="Whether to concatenate attention layer\"s input and output in decoder")
+                           help="Whether to concatenate attention layer's input and output in decoder")
         parser.add_argument("--reduction-factor", default=1, type=int,
                             help="Reduction factor")
         # training related
@@ -219,9 +219,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                                     "kaiming_uniform", "kaiming_normal"],
                            help="how to initialize transformer parameters")
         group.add_argument("--initial-encoder-alpha", type=float, default=1.0,
-                           help="initial alpha value in encoder\"s ScaledPositionalEncoding")
+                           help="initial alpha value in encoder's ScaledPositionalEncoding")
         group.add_argument("--initial-decoder-alpha", type=float, default=1.0,
-                           help="initial alpha value in decoder\"s ScaledPositionalEncoding")
+                           help="initial alpha value in decoder's ScaledPositionalEncoding")
         group.add_argument("--transformer-lr", default=1.0, type=float,
                            help="Initial value of learning rate")
         group.add_argument("--transformer-warmup-steps", default=4000, type=int,
@@ -605,16 +605,18 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         return outs, probs
 
-    def calculate_all_attentions(self, xs, ilens, ys, olens, *args, **kwargs):
+    def calculate_all_attentions(self, xs, ilens, ys, olens, skip_outputs=False, *args, **kwargs):
         """Calculate attention weights
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor ilens: list of lengths of each output batch (B)
+        :param bool skip_outputs: whether to skip calculate outputs
         :return: attention weights dict
         :rtype: dict
         """
+        att_ws_dict = dict()
         with torch.no_grad():
             # forward encoder
             x_masks = self._source_mask(ilens)
@@ -634,19 +636,19 @@ class Transformer(TTSInterface, torch.nn.Module):
             y_masks = self._target_mask(olens_in)
             xy_masks = self._source_to_target_mask(ilens, olens_in)
             zs, _ = self.decoder(ys_in, y_masks, hs, xy_masks)
-            # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
-            before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
-            # postnet -> (B, Lmax//r * r, odim)
-            if self.postnet is None:
-                after_outs = before_outs
-            else:
-                after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
 
-        # modifiy mod part of groundtruth
+            # calculate final outputs
+            if not skip_outputs:
+                before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
+                if self.postnet is None:
+                    after_outs = before_outs
+                else:
+                    after_outs = before_outs + self.postnet(before_outs.transpose(1, 2)).transpose(1, 2)
+
+        # modifiy mod part of output lengths due to reduction factor > 1
         if self.reduction_factor > 1:
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
 
-        att_ws_dict = dict()
         for name, m in self.named_modules():
             if isinstance(m, MultiHeadedAttention):
                 attn = m.attn.cpu().numpy()
@@ -663,8 +665,11 @@ class Transformer(TTSInterface, torch.nn.Module):
                     logging.warning("unknown attention module: " + name)
                 att_ws_dict[name] = attn
 
-        att_ws_dict["before_postnet_fbank"] = [m[:l].T for m, l in zip(before_outs.cpu().numpy(), olens.tolist())]
-        att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs.cpu().numpy(), olens.tolist())]
+        # store in dict
+        if not skip_outputs:
+            att_ws_dict["before_postnet_fbank"] = [m[:l].T for m, l in zip(before_outs.cpu().numpy(), olens.tolist())]
+            att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs.cpu().numpy(), olens.tolist())]
+
         return att_ws_dict
 
     def _source_mask(self, ilens):
