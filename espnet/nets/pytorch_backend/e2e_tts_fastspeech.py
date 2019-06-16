@@ -466,6 +466,8 @@ class DurationCalculator(torch.nn.Module):
         :return torch.Tensor: batch of durations (B, Tmax)
         """
         att_ws = self._calculate_attentions(xs, ilens, ys, olens)
+        # TODO(kan-bayashi): fix this issue
+        # this does not work in multi-gpu case. registered buffer is not saved.
         if not hasattr(self, "diag_head_idx"):
             self._init_diagonal_head(att_ws)
         att_ws = att_ws[:, self.diag_head_idx]
@@ -480,7 +482,6 @@ class DurationCalculator(torch.nn.Module):
     def _init_diagonal_head(self, att_ws):
         diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (H * L,)
         self.register_buffer("diag_head_idx", diagonal_scores.argmax())
-        logging.info("%d-th head attention will be used as reference." % (self.diag_head_idx))
 
     def _calculate_attentions(self, xs, ilens, ys, olens):
         with torch.no_grad():
