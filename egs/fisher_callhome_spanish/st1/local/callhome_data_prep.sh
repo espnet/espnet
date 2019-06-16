@@ -22,18 +22,18 @@ if [ $# -lt 2 ]; then
     exit 1;
 fi
 
-cdir=`pwd`
-dir=`pwd`/data/local/data
-local=`pwd`/local
-utils=`pwd`/utils
-tmpdir=`pwd`/data/local/tmp
+cdir=$(pwd)
+dir=$(pwd)/data/local/data
+local=$(pwd)/local
+utils=$(pwd)/utils
+tmpdir=$(pwd)/data/local/tmp
 
 . ./path.sh || exit 1; # Needed for KALDI_ROOT
 export PATH=$PATH:$KALDI_ROOT/tools/irstlm/bin
 sph2pipe=$KALDI_ROOT/tools/sph2pipe_v2.5/sph2pipe
 if [ ! -x $sph2pipe ]; then
-   echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
-   exit 1;
+    echo "Could not find (or execute) the sph2pipe program at $sph2pipe";
+    exit 1;
 fi
 cd $dir
 
@@ -64,16 +64,16 @@ if [ -d links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST -o -d links/LDC96S35/CALL
     speech_train=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/TRAIN
     speech_dev=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/DEVTEST
     speech_test=$dir/links/LDC96S35/CALLHOME/SPANISH/SPEECH/EVLTEST
-    fcount_train=`find ${speech_train} -iname '*.SPH' | wc -l`
-    fcount_dev=`find ${speech_dev} -iname '*.SPH' | wc -l`
-    fcount_test=`find ${speech_test} -iname '*.SPH' | wc -l`
+    fcount_train=$(find ${speech_train} -iname '*.SPH' | wc -l)
+    fcount_dev=$(find ${speech_dev} -iname '*.SPH' | wc -l)
+    fcount_test=$(find ${speech_test} -iname '*.SPH' | wc -l)
 elif [ -d links/LDC96S35/callhome/spanish/speech/devtest -o -d links/LDC96S35/callhome/spanish/speech/evltest -o -d links/LDC96S35/callhome/spanish/speech/train ]; then
     speech_train=$dir/links/LDC96S35/callhome/spanish/speech/train
     speech_dev=$dir/links/LDC96S35/callhome/spanish/speech/devtest
     speech_test=$dir/links/LDC96S35/callhome/spanish/speech/evltest
-    fcount_train=`find ${speech_train} -iname '*.sph' | wc -l`
-    fcount_dev=`find ${speech_dev} -iname '*.sph' | wc -l`
-    fcount_test=`find ${speech_test} -iname '*.sph' | wc -l`
+    fcount_train=$(find ${speech_train} -iname '*.sph' | wc -l)
+    fcount_dev=$(find ${speech_dev} -iname '*.sph' | wc -l)
+    fcount_test=$(find ${speech_test} -iname '*.sph' | wc -l)
 else
     echo "Dev, Eval or Train directories missing or not properly organised within the speech data dir"
     exit 1;
@@ -83,9 +83,9 @@ transcripts_train=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/tra
 transcripts_dev=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/devtest
 transcripts_test=$dir/links/LDC96T17/callhome_spanish_trans_970711/transcrp/evltest
 
-fcount_t_train=`find ${transcripts_train} -iname '*.txt' | wc -l`
-fcount_t_dev=`find ${transcripts_dev} -iname '*.txt' | wc -l`
-fcount_t_test=`find ${transcripts_test} -iname '*.txt' | wc -l`
+fcount_t_train=$(find ${transcripts_train} -iname '*.txt' | wc -l)
+fcount_t_dev=$(find ${transcripts_dev} -iname '*.txt' | wc -l)
+fcount_t_test=$(find ${transcripts_test} -iname '*.txt' | wc -l)
 
 #Now check if we got all the files that we needed
 if [ $fcount_train != 80 -o $fcount_dev != 20 -o $fcount_test != 20 -o $fcount_t_train != 80 -o $fcount_t_dev != 20 -o $fcount_t_test != 20 ]; then
@@ -123,7 +123,7 @@ if [ $stage -le 2 ]; then
 
     #Create segments file and utt2spk file
     ! cat $dir/callhome_train_all/callhome.text | perl -ane 'm:([^-]+)-([AB])-(\S+): || die "Bad line $_;"; print "$1-$2-$3 $1-$2\n"; ' > $dir/callhome_train_all/callhome_utt2spk \
-    && echo "Error producing utt2spk file" && exit 1;
+        && echo "Error producing utt2spk file" && exit 1;
 
     cat $dir/callhome_train_all/callhome.text | perl -ane 'm:((\S+-[AB])-(\d+)-(\d+))\s: || die; $utt = $1; $reco = $2;
     $s = sprintf("%.2f", 0.01*$3); $e = sprintf("%.2f", 0.01*$4); print "$utt $reco $s $e\n"; ' >$dir/callhome_train_all/callhome_segments
@@ -132,21 +132,21 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-    for f in `cat $tmpdir/callhome_train_sph.flist`; do
+    for f in $(cat $tmpdir/callhome_train_sph.flist); do
         # convert to absolute path
         make_absolute.sh $f
     done > $tmpdir/callhome_train_sph_abs.flist
 
     cat $tmpdir/callhome_train_sph_abs.flist | perl -ane 'm:/([^/]+)\.(SPH|sph)$: || die "bad line $_; ";  print lc($1)," $_"; ' > $tmpdir/callhome_sph.scp
     cat $tmpdir/callhome_sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2); printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
-    sort -k1,1 -u  > $dir/callhome_train_all/callhome_wav.scp || exit 1;
+        sort -k1,1 -u  > $dir/callhome_train_all/callhome_wav.scp || exit 1;
 fi
 
 if [ $stage -le 4 ]; then
-      # Build the speaker to gender map, the temporary file with the speaker in gender information is already created by fsp_make_trans.pl.
-      cd $cdir
-      #TODO: needs to be rewritten
-      $local/callhome_make_spk2gender.py > $dir/callhome_train_all/callhome_spk2gender
+    # Build the speaker to gender map, the temporary file with the speaker in gender information is already created by fsp_make_trans.pl.
+    cd $cdir
+    #TODO: needs to be rewritten
+    $local/callhome_make_spk2gender.py > $dir/callhome_train_all/callhome_spk2gender
 fi
 
 # Rename files from the callhome directory
