@@ -11,7 +11,7 @@ dunits: 1536
 duration-predictor-layers: 2
 duration-predictor-chans: 384
 duration-predictor-kernel-size: 3
-use-scaled-pos-enc: False
+use-scaled-pos-enc: True
 encoder-normalize-before: False
 decoder-normalize-before: False
 encoder-concat-after: False
@@ -48,6 +48,8 @@ weight-decay: 0.0
 patience: 0
 epochs: 1000  # 1,000 epochs * 330 batches / 2 accum-grad = 165,000 iters
 teacher-model: exp/train_no_dev_pytorch_train_transformer.v1/results/model.last1.avg.best
+               # you can download pretrained teacher model from google drive
+               # https://drive.google.com/open?id=1arZAxZOLep-1W5ByQMD1lCX2tEASnw7p
 
 # other
 save-interval-epoch: 10
