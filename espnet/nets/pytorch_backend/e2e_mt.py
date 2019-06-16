@@ -236,7 +236,7 @@ class E2E(MTInterface, torch.nn.Module):
         """
         prev = self.training
         self.eval()
-        ilen = [x.shape[0]]
+        ilen = [len(x[0])]
 
         # 1. encoder
         # make a utt list (1) to use the same interface for encoder
@@ -272,7 +272,7 @@ class E2E(MTInterface, torch.nn.Module):
         """
         prev = self.training
         self.eval()
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+        ilens = np.fromiter((len(xx) for xx in xs), dtype=np.int64)
 
         # 1. Encoder
         if self.replace_sos:
