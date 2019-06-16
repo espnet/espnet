@@ -21,6 +21,7 @@ from espnet.nets.pytorch_backend.frontends.frontend \
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -432,7 +433,7 @@ class E2E(ASRInterface, torch.nn.Module):
             raise RuntimeError('Frontend does\'t exist')
         prev = self.training
         self.eval()
-        ilens = np.fromiter((xx.shape[0] for xx in xs), dtype=np.int64)
+        ilens = numpy.fromiter((xx.shape[0] for xx in xs), dtype=numpy.int64)
 
         # subsample frame
         xs = [xx[::self.subsample[0], :] for xx in xs]
