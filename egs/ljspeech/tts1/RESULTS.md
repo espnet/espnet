@@ -78,15 +78,15 @@
   - pytorch version: `pytorch 1.0.1.post2`
   - Git hash: `267da3161cefeae72e9a44bd15e74c0d18591fb6`
 
-- Model files (archived to train_no_dev_pytorch_train_transformer.v3.tar.gz by `$ pack_model.sh`)
-  - model link:
-  - training config file: `conf/tuning/train_pytorch_tacotron2.v3.yaml`
+- Model files (archived to train_no_dev_pytorch_train_transformer.v1.tar.gz by `$ pack_model.sh`)
+  - model link: https://drive.google.com/open?id=1arZAxZOLep-1W5ByQMD1lCX2tEASnw7p
+  - training config file: `conf/tuning/train_transformer.v1.yaml`
   - decoding config file: `conf/decode.yaml`
   - cmvn file: `data/train_no_dev/cmvn.ark`
-  - e2e file: `exp/train_no_dev_pytorch_train_transformer.v3/results/model.last1.avg.best`
-  - e2e JSON file: `exp/train_no_dev_pytorch_train_transformer.v3/results/model.json`
+  - e2e file: `exp/train_no_dev_pytorch_train_transformer.v1/results/model.last1.avg.best`
+  - e2e JSON file: `exp/train_no_dev_pytorch_train_transformer.v1/results/model.json`
 
-- Samples:
+- Samples: https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X
 
 ## v.0.4.0: transofrmer.v2 1024 pt window / 256 pt shift / GL 1000 iters / R=3 / Small
 
@@ -100,8 +100,8 @@
   - Git hash: `267da3161cefeae72e9a44bd15e74c0d18591fb6`
 
 - Model files (archived to train_no_dev_pytorch_train_transformer.v2.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1YQp6flNf3od1xzOCShveUEvUSiaQSftw
-  - training config file: `conf/tuning/train_pytorch_tacotron2.v3.yaml`
+  - model link: https://drive.google.com/open?id=1aEqpUx0QIRa8YgKqm1olM3MSR6v3fbqf
+  - training config file: `conf/tuning/train_transformer.v2.yaml`
   - decoding config file: `conf/decode.yaml`
   - cmvn file: `data/train_no_dev/cmvn.ark`
   - e2e file: `exp/train_no_dev_pytorch_train_transformer.v2/results/model.last1.avg.best`
