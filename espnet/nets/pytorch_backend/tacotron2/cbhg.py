@@ -13,6 +13,10 @@ from torch.nn.utils.rnn import pad_packed_sequence
 class CBHG(torch.nn.Module):
     """CBHG module to convert log mel-fbank to linear spectrogram
 
+    Reference:
+        Tacotron: Towards End-to-End Speech Synthesis
+        (https://arxiv.org/abs/1703.10135)
+
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
     :param int conv_bank_layers: the number of convolution bank layers
