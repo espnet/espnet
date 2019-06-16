@@ -37,12 +37,7 @@ class DurationPredictorLoss(torch.nn.Module):
         self.criterion = torch.nn.MSELoss()
         self.offset = offset
 
-    def forward(self, outputs, targets, masks=None):
-        # apply mask to remove padded part
-        if masks is not None:
-            outputs = outputs.masked_select(masks)
-            targets = targets.masked_select(masks)
-
+    def forward(self, outputs, targets):
         # NOTE: outputs is in log domain while targets in linear
         targets = torch.log(targets.float() + self.offset)
         loss = self.criterion(outputs, targets)
@@ -261,7 +256,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # calculate predicted duration
         d_masks = make_pad_mask(ilens).to(xs.device)
-        d_preds = self.duration_predictor(hs, d_masks)  # (B, Tmax)
+        d_outs = self.duration_predictor(hs, d_masks)  # (B, Tmax)
 
         # apply length regularizer
         hs = self.length_regularizer(hs, ds, ilens)  # (B, Lmax, adim)
@@ -271,12 +266,17 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
         outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
 
+        # apply mask to remove padded part
+        if self.use_masking:
+            y_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            outs = outs.masked_select(y_masks)
+            ys = ys.masked_select(y_masks)
+            d_outs = d_outs.masked_select(~d_masks)
+            ds = ds.masked_select(~d_masks)
+
         # calculate loss
-        y_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
-        outs = outs.masked_select(y_masks)
-        ys = outs.masked_select(ys)
         l1_loss = self.criterion(outs, ys)
-        duration_loss = self.duration_criterion(d_preds, ds, ~d_masks)
+        duration_loss = self.duration_criterion(d_outs, ds)
         loss = l1_loss + duration_loss
         report_keys = [
             {"l1_loss": l1_loss.item()},
@@ -484,27 +484,8 @@ class DurationCalculator(torch.nn.Module):
         self.register_buffer("diag_head_idx", diagonal_scores.argmax())
 
     def _calculate_attentions(self, xs, ilens, ys, olens):
-        with torch.no_grad():
-            x_masks = self.teacher_model._source_mask(ilens)
-            hs, _ = self.teacher_model.encoder(xs, x_masks)
-            if self.teacher_model.reduction_factor > 1:
-                ys_in = ys[:, self.teacher_model.reduction_factor - 1::self.teacher_model.reduction_factor]
-                olens_in = olens.new([olen // self.teacher_model.reduction_factor for olen in olens])
-            else:
-                ys_in, olens_in = ys, olens
-            ys_in = self.teacher_model._add_first_frame_and_remove_last_frame(ys_in)
-            y_masks = self.teacher_model._target_mask(olens_in)
-            xy_masks = self.teacher_model._source_to_target_mask(ilens, olens_in)
-            self.teacher_model.decoder(ys_in, y_masks, hs, xy_masks)
-        att_ws = []
-        for name, m in self.teacher_model.named_modules():
-            if isinstance(m, MultiHeadedAttention):
-                if "src_attn" not in name:
-                    continue
-                att_ws += [m.attn]
-        att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, Lmax, Tmax)
-
-        return att_ws
+        att_dict = self.teacher_model.calculate_all_attentions(xs, ilens, ys, olens, skip_outputs=True)
+        return torch.stack([att_dict[k] for k in att_dict.keys() if "src_attn" in k], dim=1)  # (B, H*L, Lmax, Tmax)
 
 
 class LengthRegularizer(torch.nn.Module):
