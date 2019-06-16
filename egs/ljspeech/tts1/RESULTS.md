@@ -58,7 +58,7 @@
   - Git hash: `267da3161cefeae72e9a44bd15e74c0d18591fb6`
 
 - Model files (archived to train_no_dev_pytorch_train_pytorch_tacotron2.v3.tar.gz by `$ pack_model.sh`)
-  - model link: https://drive.google.com/open?id=1glB2rA2PHMB9kFc8jx9S_fxvfZg3Svp6
+  - model link: https://drive.google.com/open?id=1mfSXIjTx4nV8WE3o2RPgA51xf7I9Nxqe
   - training config file: `conf/tuning/train_pytorch_tacotron2.v3.yaml`
   - decoding config file: `conf/decode.yaml`
   - cmvn file: `data/train_no_dev/cmvn.ark`
