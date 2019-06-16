@@ -61,7 +61,8 @@ def prepare(backend):
         transformer_length_normalized_loss=True,
         mtlalpha=0.0,
         lsm_weight=0.001,
-        char_list=['a', 'e', 'i', 'o', 'u']
+        char_list=['a', 'e', 'i', 'o', 'u'],
+        use_frontend=False
     )
     idim = 83
     odim = 5
