@@ -605,18 +605,18 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         return outs, probs
 
-    def calculate_all_attentions(self, xs, ilens, ys, olens, skip_outputs=False, *args, **kwargs):
+    def calculate_all_attentions(self, xs, ilens, ys, olens, skip_output=False, keep_tensor=False, *args, **kwargs):
         """Calculate attention weights
 
         :param torch.Tensor xs: batch of padded character ids (B, Tmax)
         :param torch.Tensor ilens: list of lengths of each input batch (B)
         :param torch.Tensor ys: batch of padded target features (B, Lmax, odim)
         :param torch.Tensor ilens: list of lengths of each output batch (B)
-        :param bool skip_outputs: whether to skip calculate outputs
+        :param bool skip_output: whether to skip calculate the final output
+        :param bool keep_tensor: whether to keep original tensor
         :return: attention weights dict
         :rtype: dict
         """
-        att_ws_dict = dict()
         with torch.no_grad():
             # forward encoder
             x_masks = self._source_mask(ilens)
@@ -638,7 +638,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             zs, _ = self.decoder(ys_in, y_masks, hs, xy_masks)
 
             # calculate final outputs
-            if not skip_outputs:
+            if not skip_output:
                 before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
                 if self.postnet is None:
                     after_outs = before_outs
@@ -649,26 +649,36 @@ class Transformer(TTSInterface, torch.nn.Module):
         if self.reduction_factor > 1:
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
 
-        for name, m in self.named_modules():
-            if isinstance(m, MultiHeadedAttention):
-                attn = m.attn.cpu().numpy()
-                if "encoder" in name:
-                    attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
-                elif "decoder" in name:
-                    if "src" in name:
-                        attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens_in.tolist())]
-                    elif "self" in name:
-                        attn = [a[:, :l, :l] for a, l in zip(attn, olens_in.tolist())]
+        # store into dict
+        att_ws_dict = dict()
+        if keep_tensor:
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention):
+                    att_ws_dict[name] = m.attn
+            if not skip_output:
+                att_ws_dict["before_postnet_fbank"] = before_outs
+                att_ws_dict["after_postnet_fbank"] = after_outs
+        else:
+            for name, m in self.named_modules():
+                if isinstance(m, MultiHeadedAttention):
+                    attn = m.attn.cpu().numpy()
+                    if "encoder" in name:
+                        attn = [a[:, :l, :l] for a, l in zip(attn, ilens.tolist())]
+                    elif "decoder" in name:
+                        if "src" in name:
+                            attn = [a[:, :ol, :il] for a, il, ol in zip(attn, ilens.tolist(), olens_in.tolist())]
+                        elif "self" in name:
+                            attn = [a[:, :l, :l] for a, l in zip(attn, olens_in.tolist())]
+                        else:
+                            logging.warning("unknown attention module: " + name)
                     else:
                         logging.warning("unknown attention module: " + name)
-                else:
-                    logging.warning("unknown attention module: " + name)
-                att_ws_dict[name] = attn
-
-        # store in dict
-        if not skip_outputs:
-            att_ws_dict["before_postnet_fbank"] = [m[:l].T for m, l in zip(before_outs.cpu().numpy(), olens.tolist())]
-            att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs.cpu().numpy(), olens.tolist())]
+                    att_ws_dict[name] = attn
+            if not skip_output:
+                before_outs = before_outs.cpu().numpy()
+                after_outs = after_outs.cpu().numpy()
+                att_ws_dict["before_postnet_fbank"] = [m[:l].T for m, l in zip(before_outs, olens.tolist())]
+                att_ws_dict["after_postnet_fbank"] = [m[:l].T for m, l in zip(after_outs, olens.tolist())]
 
         return att_ws_dict
 
