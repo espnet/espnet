@@ -19,7 +19,6 @@ preprocess_conf=""
 out="" # If omitted, write in stdout
 
 text=""
-filter_speed_perturbation=false
 
 . utils/parse_options.sh
 
@@ -71,11 +70,7 @@ vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
 odim=$(echo "$vocsize + 2" | bc)
 awk -v odim=${odim} '{print $1 " " odim}' ${text} > ${tmpdir}/output/odim.scp
 
-if ${filter_speed_perturbation}; then
-    cat ${text} | grep sp1.0 > ${tmpdir}/output/text.scp
-else
-    cat ${text} > ${tmpdir}/output/text.scp
-fi
+cp ${text} ${tmpdir}/output/text.scp
 
 # 4. Create JSON files from each scp files
 rm -f ${tmpdir}/*/*.json
