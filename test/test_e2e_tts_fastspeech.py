@@ -120,7 +120,6 @@ def make_feedforward_transformer_args(**kwargs):
         initial_decoder_alpha=1.0,
         init_encoder_from_teacher=False,
         reduction_factor=1,
-        loss_type="L1",
         teacher_model=None,
     )
     defaults.update(kwargs)
