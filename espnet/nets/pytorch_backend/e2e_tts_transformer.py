@@ -31,7 +31,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
     """Guided attention loss for multi head attention
 
     :param float sigma: standard deviation to control how close attention to a diagonal
-    :param bool reset_always: whether to alway reset mask
+    :param bool reset_always: whether to always reset mask
     """
 
     def forward(self, att_ws, ilens, olens):
