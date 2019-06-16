@@ -44,6 +44,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Incorporate RNNLM/LSTMLM trained only with text data
 - Batch GPU decoding
 - Tacotron2 based end-to-end TTS
+- Transformer based end-to-end TTS (new!)
 - Flexible network architecture thanks to chainer and pytorch
 - Kaldi style complete recipe
   - Support numbers of ASR recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
@@ -59,8 +60,8 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Python 3.6+
 - protocol buffer (for the sentencepiece, you need to install via package manager e.g. `sudo apt-get install libprotobuf9v5 protobuf-compiler libprotobuf-dev`. See details `Installation` of https://github.com/google/sentencepiece/blob/master/README.md)
 
-- PyTorch 0.4.1, 1.0.0
-- gcc 4.9+ for PyTorch1.0.0
+- PyTorch 0.4.1, 1.0.0, 1.0.1
+- gcc 4.9+ for PyTorch1.0.0+
 - Chainer 6.0.0
 
 Optionally, GPU environment requires the following libraries:
@@ -375,6 +376,17 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | WSJ eval92| 2.1 | 4.7 |
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
+
+You can access the samples of TTS recips from following links:
+
+- [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
+- [Single Japanese speaker Tacotron2](https://drive.google.com/open?id=1fEgS4-K4dtgVxwI4Pr7uOA1h4PE-zN7f)
+- [Single other language speaker Tacotron2](https://drive.google.com/open?id=1q_66kyxVZGU99g8Xb5a0Q8yZ1YVm2tN0)
+- [Multi Engligh speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
+- [Single English speaker Transformer (New!)](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
+
+Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
+
 
 ## Chainer and Pytorch backends
 
