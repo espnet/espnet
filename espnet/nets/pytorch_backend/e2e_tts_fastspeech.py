@@ -129,6 +129,8 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="dropout rate for transformer encoder-decoder attention")
         group.add_argument("--duration-predictor-dropout-rate", default=0.0, type=float,
                            help="dropout rate for duration predictor")
+        group.add_argument("--init-encoder-from-teacher", default=True, type=strtobool,
+                           help="whether to initialize encoder using teacher's parameters.")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
@@ -210,6 +212,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         # define final projection
         self.feat_out = torch.nn.Linear(args.adim, odim * args.reduction_factor)
 
+        # initialize parameters
+        self._reset_parameters(args)
+
         # define teacher model
         if args.teacher_model is not None:
             self.teacher = self._load_teacher_model(args.teacher_model)
@@ -221,6 +226,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             self.duration_calculator = DurationCalculator(self.teacher)
         else:
             self.duration_calculator = None
+
+        # transfer teacher encoder parameters
+        if args.init_encoder_from_teacher:
+            self._init_encoder_from_teacher()
 
         # define criterions
         self.duration_criterion = DurationPredictorLoss()
@@ -278,7 +287,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         if self.use_scaled_pos_enc:
             report_keys += [
                 {"encoder_alpha": self.encoder.embed[-1].alpha.data.item()},
-                {"decoder_alpha": self.decoder.embed.alpha.data.item()},
+                {"decoder_alpha": self.decoder.embed[-1].alpha.data.item()},
             ]
         self.reporter.report(report_keys)
 
@@ -378,6 +387,42 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return model
 
+    def _init_encoder_from_teacher(self):
+        for (n1, p1), (n2, p2) in zip(self.encoder.named_parameters(), self.teacher.encoder.named_parameters()):
+            assert n1 == n2
+            assert p1.shape == p2.shape
+            p1.data.copy_(p2.data)
+
+    def _reset_parameters(self, args):
+        if self.use_scaled_pos_enc:
+            # alpha in scaled positional encoding init
+            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
+            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
+
+        if args.transformer_init == "pytorch":
+            return
+        # weight init
+        for p in self.parameters():
+            if p.dim() > 1:
+                if args.transformer_init == "xavier_uniform":
+                    torch.nn.init.xavier_uniform_(p.data)
+                elif args.transformer_init == "xavier_normal":
+                    torch.nn.init.xavier_normal_(p.data)
+                elif args.transformer_init == "kaiming_uniform":
+                    torch.nn.init.kaiming_uniform_(p.data, nonlinearity="relu")
+                elif args.transformer_init == "kaiming_normal":
+                    torch.nn.init.kaiming_normal_(p.data, nonlinearity="relu")
+                else:
+                    raise ValueError("Unknown initialization: " + args.transformer_init)
+        # bias init
+        for p in self.parameters():
+            if p.dim() == 1:
+                p.data.zero_()
+        # reset some modules with default init
+        for m in self.modules():
+            if isinstance(m, (torch.nn.Embedding, LayerNorm)):
+                m.reset_parameters()
+
     @property
     def attention_plot_class(self):
         return TTSPlot
@@ -409,7 +454,6 @@ class DurationCalculator(torch.nn.Module):
         if not isinstance(teacher_model, Transformer):
             raise ValueError("teacher model should be the instance of e2e_tts_transformer.Transformer")
         self.teacher_model = teacher_model
-        self.diag_head_info = None
 
     def forward(self, xs, ilens, ys, olens):
         """Calculate duration of each inputs
@@ -420,52 +464,45 @@ class DurationCalculator(torch.nn.Module):
         :param torch.Tensor ilens: list of lengths of each output batch (B)
         :return torch.Tensor: batch of durations (B, Tmax)
         """
-        att_ws_dict = self._calculate_att_ws_dict(xs, ilens, ys, olens)
-        # TODO(kan-bayashi): fixed this isssue
-        # this cache is not worked in multi-gpu case
-        # self.diag_head_info is not updated, always be None
-        if self.diag_head_info is None:
-            self._init_diagonal_head(att_ws_dict)
-        att_ws = att_ws_dict[self.diag_head_info[0]][:, self.diag_head_info[1]]  # (B, Lmax, Tmax)
+        att_ws = self._calculate_attentions(xs, ilens, ys, olens)
+        if not hasattr(self, "diag_head_idx"):
+            self._init_diagonal_head(att_ws)
+        att_ws = att_ws[:, self.diag_head_idx]
         durations = [self._calculate_duration(att_w, ilen, olen) for att_w, ilen, olen in zip(att_ws, ilens, olens)]
 
         return pad_list(durations, 0)
 
-    def _init_diagonal_head(self, att_ws_dict):
-        best_diagonal_score = 0.0
-        for key in att_ws_dict.keys():
-            if "src_attn" not in key:
-                continue
-            att_ws = att_ws_dict[key]
-            diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (H,)
-            if best_diagonal_score < diagonal_scores.max():
-                best_diagonal_score = diagonal_scores.max()
-                self.diag_head_info = (key, int(diagonal_scores.argmax()))
-        logging.info("%s %d-th head attention will be used as reference." % (
-            self.diag_head_info[0], self.diag_head_info[1]))
-
-    def _calculate_duration(self, att_w, ilen, olen):
+    @staticmethod
+    def _calculate_duration(att_w, ilen, olen):
         return torch.stack([att_w[:olen, :ilen].argmax(-1).eq(i).sum() for i in range(ilen)])
 
-    def _calculate_att_ws_dict(self, xs, ilens, ys, olens):
+    def _init_diagonal_head(self, att_ws):
+        diagonal_scores = att_ws.max(dim=-1)[0].mean(dim=-1).mean(dim=0)  # (H * L,)
+        self.register_buffer("diag_head_idx", diagonal_scores.argmax())
+        logging.info("%d-th head attention will be used as reference." % (self.diag_head_idx))
+
+    def _calculate_attentions(self, xs, ilens, ys, olens):
         with torch.no_grad():
             x_masks = self.teacher_model._source_mask(ilens)
             hs, _ = self.teacher_model.encoder(xs, x_masks)
-            ys_in = self.teacher_model._add_first_frame_and_remove_last_frame(ys)
             if self.teacher_model.reduction_factor > 1:
-                ys_in = ys_in[:, self.teacher_model.reduction_factor - 1::self.teacher_model.reduction_factor]
+                ys_in = ys[:, self.teacher_model.reduction_factor - 1::self.teacher_model.reduction_factor]
                 olens_in = olens.new([olen // self.teacher_model.reduction_factor for olen in olens])
             else:
-                olens_in = olens
+                ys_in, olens_in = ys, olens
+            ys_in = self.teacher_model._add_first_frame_and_remove_last_frame(ys_in)
             y_masks = self.teacher_model._target_mask(olens_in)
             xy_masks = self.teacher_model._source_to_target_mask(ilens, olens_in)
             self.teacher_model.decoder(ys_in, y_masks, hs, xy_masks)
-        att_ws_dict = {}
+        att_ws = []
         for name, m in self.teacher_model.named_modules():
             if isinstance(m, MultiHeadedAttention):
-                att_ws_dict[name] = m.attn
+                if "src_attn" not in name:
+                    continue
+                att_ws += [m.attn]
+        att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, Lmax, Tmax)
 
-        return att_ws_dict
+        return att_ws
 
 
 class LengthRegularizer(torch.nn.Module):
