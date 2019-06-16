@@ -188,10 +188,10 @@ class Transformer(TTSInterface, torch.nn.Module):
         group = parser.add_argument_group("transformer model setting")
         # network structure related
         group.add_argument("--embed-dim", default=512, type=int,
-                           help="Dimension of character embedding")
+                           help="Dimension of character embedding in encoder prenet")
         group.add_argument("--eprenet-conv-layers", default=3, type=int,
                            help="Number of encoder prenet convolution layers")
-        group.add_argument("--eprenet-conv-chans", default=512, type=int,
+        group.add_argument("--eprenet-conv-chans", default=256, type=int,
                            help="Number of encoder prenet convolution channels")
         group.add_argument("--eprenet-conv-filts", default=5, type=int,
                            help="Filter size of encoder prenet convolution")
@@ -201,19 +201,19 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder prenet hidden units")
         group.add_argument("--elayers", default=3, type=int,
                            help="Number of encoder layers")
-        group.add_argument("--eunits", default=2048, type=int,
+        group.add_argument("--eunits", default=1536, type=int,
                            help="Number of encoder hidden units")
-        group.add_argument("--adim", default=512, type=int,
+        group.add_argument("--adim", default=384, type=int,
                            help="Number of attention transformation dimensions")
         group.add_argument("--aheads", default=4, type=int,
                            help="Number of heads for multi head attention")
         group.add_argument("--dlayers", default=3, type=int,
                            help="Number of decoder layers")
-        group.add_argument("--dunits", default=2048, type=int,
+        group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
         group.add_argument("--postnet-layers", default=5, type=int,
                            help="Number of postnet layers")
-        group.add_argument("--postnet-chans", default=512, type=int,
+        group.add_argument("--postnet-chans", default=256, type=int,
                            help="Number of postnet channels")
         group.add_argument("--postnet-filts", default=5, type=int,
                            help="Filter size of postnet")
@@ -221,9 +221,9 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Use trainable scaled positional encoding instead of the fixed scale one.")
         group.add_argument("--use-batch-norm", default=True, type=strtobool,
                            help="Whether to use batch normalization")
-        group.add_argument("--encoder-normalize-before", default=True, type=strtobool,
+        group.add_argument("--encoder-normalize-before", default=False, type=strtobool,
                            help="Whether to apply layer norm before encoder block")
-        group.add_argument("--decoder-normalize-before", default=True, type=strtobool,
+        group.add_argument("--decoder-normalize-before", default=False, type=strtobool,
                            help="Whether to apply layer norm before decoder block")
         group.add_argument("--encoder-concat-after", default=False, type=strtobool,
                            help="Whether to concatenate attention layer's input and output in encoder")
@@ -248,21 +248,21 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Dropout rate for transformer encoder except for attention")
         group.add_argument("--transformer-enc-positional-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for transformer encoder positional encoding")
-        group.add_argument("--transformer-enc-attn-dropout-rate", default=0.0, type=float,
+        group.add_argument("--transformer-enc-attn-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for transformer encoder self-attention")
         group.add_argument("--transformer-dec-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for transformer decoder except for attention and pos encoding")
         group.add_argument("--transformer-dec-positional-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for transformer decoder positional encoding")
-        group.add_argument("--transformer-dec-attn-dropout-rate", default=0.3, type=float,
+        group.add_argument("--transformer-dec-attn-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for transformer decoder self-attention")
-        group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.0, type=float,
+        group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for transformer encoder-decoder attention")
-        group.add_argument("--eprenet-dropout-rate", default=0.1, type=float,
+        group.add_argument("--eprenet-dropout-rate", default=0.5, type=float,
                            help="Dropout rate in encoder prenet")
         group.add_argument("--dprenet-dropout-rate", default=0.5, type=float,
                            help="Dropout rate in decoder prenet")
-        group.add_argument("--postnet-dropout-rate", default=0.1, type=float,
+        group.add_argument("--postnet-dropout-rate", default=0.5, type=float,
                            help="Dropout rate in postnet")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
@@ -282,7 +282,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                            help="Number of layers to be applied guided attention loss"
                                 "if set -1, all of the layers will be applied.")
         group.add_argument("--modules-applied-guided-attn", type=str, nargs="+",
-                           default=["encoder", "decoder", "encoder-decoder"],
+                           default=["encoder-decoder"],
                            help="Module name list to be applied guided attention loss")
         return parser
 
