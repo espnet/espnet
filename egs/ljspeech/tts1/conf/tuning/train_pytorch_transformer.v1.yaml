@@ -1,4 +1,4 @@
-# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB.
+# This configuration reuqires 3 gpus in the case of each gpu memory = 12GB, and it takes 3~4 days.
 # If you cannot use 3 gpus, it is better to make batch-bins small, increase accum_grad and epochs.
 # This model should be able to genearate speeech from around 40k iterations.
 
