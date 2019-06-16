@@ -377,12 +377,15 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 
 Note that the performance of the CSJ, HKUST, and Librispeech tasks was significantly improved by using the wide network (#units = 1024) and large subword units if necessary reported by [RWTH](https://arxiv.org/pdf/1805.03294.pdf).
 
-You can access the samples of TTS recips from following URL:
+You can access the samples of TTS recips from following links:
+
 - [Single English speaker Tacotron2](https://drive.google.com/open?id=18JgsOCWiP_JkhONasTplnHS7yaF_konr)
 - [Single Japanese speaker Tacotron2](https://drive.google.com/open?id=1fEgS4-K4dtgVxwI4Pr7uOA1h4PE-zN7f)
 - [Single other language speaker Tacotron2](https://drive.google.com/open?id=1q_66kyxVZGU99g8Xb5a0Q8yZ1YVm2tN0)
 - [Multi Engligh speaker Tacotron2](https://drive.google.com/open?id=1_fKnxuFlLBFCATCsacxKzIy6UBbUPzd0)
 - [Single English speaker Transformer (New!)](https://drive.google.com/open?id=14EboYVsMVcAq__dFP1p6lyoZtdobIL1X)
+
+Note that all of the samples uses Griffin-Lim Algorithm to convert wav. Not yet applied neural vocoders.
 
 
 ## Chainer and Pytorch backends
