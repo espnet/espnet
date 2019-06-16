@@ -11,7 +11,7 @@ nlsyms=""
 bpe=""
 bpemodel=""
 filter=""
-case=lc.rm
+case=lc
 
 . utils/parse_options.sh
 
@@ -33,20 +33,6 @@ perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn.org > ${dir}/ref.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn.org > ${dir}/hyp.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/src.trn.org > ${dir}/src.trn
 
-if [ ! -z ${nlsyms} ]; then
-    cp ${dir}/ref.trn ${dir}/ref.trn.org
-    cp ${dir}/hyp.trn ${dir}/hyp.trn.org
-    cp ${dir}/src.trn ${dir}/src.trn.org
-    filt.py -v $nlsyms ${dir}/ref.trn.org > ${dir}/ref.trn
-    filt.py -v $nlsyms ${dir}/hyp.trn.org > ${dir}/hyp.trn
-    filt.py -v $nlsyms ${dir}/src.trn.org > ${dir}/src.trn
-fi
-if [ ! -z ${filter} ]; then
-    sed -i.bak3 -f ${filter} ${dir}/hyp.trn
-    sed -i.bak3 -f ${filter} ${dir}/ref.trn
-    sed -i.bak3 -f ${filter} ${dir}/src.trn
-fi
-
 if [ ! -z ${bpemodel} ]; then
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
@@ -62,6 +48,20 @@ detokenizer.perl -l de -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
 detokenizer.perl -l de -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
 detokenizer.perl -l de -q < ${dir}/src.wrd.trn > ${dir}/src.wrd.trn.detok
 
+if [ ! -z ${nlsyms} ]; then
+    cp ${dir}/ref.wrd.trn.detok ${dir}/ref.wrd.trn.detok.org
+    cp ${dir}/hyp.wrd.trn.detok ${dir}/hyp.wrd.trn.detok.org
+    cp ${dir}/src.wrd.trn.detok ${dir}/src.wrd.trn.detok.org
+    filt.py -v $nlsyms ${dir}/ref.wrd.trn.detok.org > ${dir}/ref.wrd.trn.detok
+    filt.py -v $nlsyms ${dir}/hyp.wrd.trn.detok.org > ${dir}/hyp.wrd.trn.detok
+    filt.py -v $nlsyms ${dir}/src.wrd.trn.detok.org > ${dir}/src.wrd.trn.detok
+fi
+if [ ! -z ${filter} ]; then
+    sed -i.bak3 -f ${filter} ${dir}/hyp.wrd.trn.detok
+    sed -i.bak3 -f ${filter} ${dir}/ref.wrd.trn.detok
+    sed -i.bak3 -f ${filter} ${dir}/src.wrd.trn.detok
+fi
+
 if [ ${case} = tc ]; then
     echo ${set} > ${dir}/result.tc.txt
     multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.tc.txt
@@ -70,9 +70,9 @@ if [ ${case} = tc ]; then
 fi
 
 # detokenize
-cat ${dir}/ref.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/ref.wrd.trn.detok.lc.rm
-cat ${dir}/hyp.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/hyp.wrd.trn.detok.lc.rm
-cat ${dir}/src.wrd.trn.detok | local/remove_punctuation.pl > ${dir}/src.wrd.trn.detok.lc.rm
+local/remove_punctuation.pl < ${dir}/ref.wrd.trn.detok > ${dir}/ref.wrd.trn.detok.lc.rm
+local/remove_punctuation.pl < ${dir}/hyp.wrd.trn.detok > ${dir}/hyp.wrd.trn.detok.lc.rm
+local/remove_punctuation.pl < ${dir}/src.wrd.trn.detok > ${dir}/src.wrd.trn.detok.lc.rm
 
 echo ${set} > ${dir}/result.lc.txt
 multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt

@@ -204,15 +204,12 @@ def main(cmd_args):
                         help='Gradient norm threshold to clip')
     parser.add_argument('--num-save-attention', default=3, type=int,
                         help='Number of samples of attention to be saved')
+    # speech translation related
+    parser.add_argument('--context-residual', default=False, type=strtobool, nargs='?',
+                        help='')
 
-    # transfer learning related
-    parser.add_argument('--asr-model', default=False, nargs='?',
-                        help='Pre-trained ASR model')
-    parser.add_argument('--mt-model', default=False, nargs='?',
-                        help='Pre-trained MT model')
-    parser.add_argument(
-        '--use-frontend', type=strtobool, default=False,
-        help='The flag to switch to use frontend system.')
+    parser.add_argument('--use-frontend', type=strtobool, default=False,
+                        help='The flag to switch to use frontend system.')
 
     # WPE related
     parser.add_argument('--use-wpe', type=strtobool, default=False,
@@ -239,7 +236,6 @@ def main(cmd_args):
                         default=False,
                         help='Use DNN to estimate the power spectrogram. '
                              'This option is experimental.')
-
     # Beamformer related
     parser.add_argument('--use-beamformer', type=strtobool,
                         default=True, help='')
@@ -261,7 +257,6 @@ def main(cmd_args):
                              'By default, the channel is estimated by DNN.')
     parser.add_argument('--bdropout-rate', type=float, default=0.0,
                         help='')
-
     # Feature transform: Normalization
     parser.add_argument('--stats-file', type=str, default=None,
                         help='The stats file for the feature normalization')
@@ -272,7 +267,6 @@ def main(cmd_args):
                         default=True, help='')
     parser.add_argument('--uttmvn-norm-vars', type=strtobool, default=False,
                         help='')
-
     # Feature transform: Fbank
     parser.add_argument('--fbank-fs', type=int, default=16000,
                         help='The sample frequency used for '

@@ -1,0 +1,14 @@
+exp/train_nodevtest_sp.de_lc_pytorch_train/decode_dev.de_decode
+BLEU = 13.52, 41.1/18.3/9.2/4.8 (BP=1.000, ratio=1.068, hyp_len=30195, ref_len=28271)
+exp/train_nodevtest_sp.de_lc_pytorch_train/decode_test.de_decode
+BLEU = 14.48, 42.9/19.3/9.9/5.3 (BP=1.000, ratio=1.032, hyp_len=31036, ref_len=30081)
+exp/train_nodevtest_sp.de_lc_pytorch_train/decode_dev2010.de_decode
+BLEU = 14.11, 48.6/20.3/10.3/5.3 (BP=0.924, ratio=0.927, hyp_len=17686, ref_len=19083)
+exp/train_nodevtest_sp.de_lc_pytorch_train/decode_tst2010.de_decode
+BLEU = 13.71, 48.6/20.7/10.9/6.0 (BP=0.855, ratio=0.865, hyp_len=26352, ref_len=30475)
+exp/train_nodevtest_sp.de_lc_pytorch_train/decode_tst2013.de_decode
+BLEU = 12.43, 45.5/18.2/9.1/4.9 (BP=0.899, ratio=0.904, hyp_len=17802, ref_len=19692)
+exp/train_nodevtest_sp.de_lc_pytorch_train/decode_tst2014.de_decode
+BLEU = 11.50, 44.4/17.1/8.5/4.6 (BP=0.878, ratio=0.885, hyp_len=21126, ref_len=23883)
+exp/train_nodevtest_sp.de_lc_pytorch_train/decode_tst2015.de_decode
+BLEU = 12.75, 41.6/16.5/8.4/4.6 (BP=1.000, ratio=1.028, hyp_len=20330, ref_len=19785)
