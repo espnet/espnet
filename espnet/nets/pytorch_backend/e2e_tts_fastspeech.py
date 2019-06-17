@@ -349,6 +349,30 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         att_ws_dict["predicted_fbank"] = [m[:l].T for m, l in zip(outs.cpu().numpy(), olens.tolist())]
         return att_ws_dict
 
+    def inference(self, x, *args, **kwargs):
+        """Generates the sequence of features from given a sequences of characters
+
+        :param torch.Tensor x: the sequence of character ids (T)
+        :rtype: torch.Tensor
+        :return: the sequence of generated features (1, L, odim)
+        :rtype: torch.Tensor
+        """
+        # forward encoder
+        ilens = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
+        xs = x.unsqueeze(0)
+        hs, _ = self.encoder(xs, None)  # (B, Tmax, adim)
+
+        d_outs = self.duration_predictor.inference(hs, None)  # (B, Tmax)
+
+        # apply length regularizer
+        hs = self.length_regularizer(hs, d_outs, ilens)  # (B, Lmax, adim)
+
+        # forward decoder
+        zs, _ = self.decoder(hs, None)  # (B, Lmax, adim)
+        outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
+
+        return outs
+
     def _source_mask(self, ilens):
         """Make mask for MultiHeadedAttention using padded sequences
 
@@ -455,6 +479,7 @@ class DurationCalculator(torch.nn.Module):
         if not isinstance(teacher_model, Transformer):
             raise ValueError("teacher model should be the instance of e2e_tts_transformer.Transformer")
         self.teacher_model = teacher_model
+        self.register_buffer("diag_head_idx", torch.tensor(-1))
 
     def forward(self, xs, ilens, ys, olens):
         """Calculate duration of each inputs
@@ -468,7 +493,7 @@ class DurationCalculator(torch.nn.Module):
         att_ws = self._calculate_attentions(xs, ilens, ys, olens)
         # TODO(kan-bayashi): fix this issue
         # this does not work in multi-gpu case. registered buffer is not saved.
-        if not hasattr(self, "diag_head_idx"):
+        if int(self.diag_head_idx) == -1:
             self._init_diagonal_head(att_ws)
         att_ws = att_ws[:, self.diag_head_idx]
         durations = [self._calculate_duration(att_w, ilen, olen) for att_w, ilen, olen in zip(att_ws, ilens, olens)]
@@ -597,7 +622,8 @@ class DurationPredictor(torch.nn.Module):
         for idx in range(len(self.conv)):
             xs = self.conv[idx](xs)  # (B, C, Tmax)
         xs = self.linear(xs.transpose(1, -1))  # (B, Tmax, 1)
-        xs = torch.ceil(torch.exp(xs - self.offset)).squeeze(-1).long()  # use ceil to avoid length = 0
+        xs = torch.clamp(torch.round(torch.exp(xs) - self.offset), min=0)  # avoid negative value
+        xs = xs.squeeze(-1).long()
 
         if x_masks is not None:
             xs = xs.masked_fill(x_masks, 0)
