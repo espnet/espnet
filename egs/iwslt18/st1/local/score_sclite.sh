@@ -13,6 +13,7 @@ bpe=""
 bpemodel=""
 remove_blank=true
 filter=""
+case=lc.rm
 
 . utils/parse_options.sh
 
@@ -25,7 +26,7 @@ dir=$1
 dic=$2
 
 concatjson.py ${dir}/data.*.json > ${dir}/data.json
-json2trn.py ${dir}/data.json ${dic} ${dir}/ref.trn ${dir}/hyp.trn
+json2trn.py ${dir}/data.json ${dic} --refs ${dir}/ref.trn --hyps ${dir}/hyp.trn
 
 if ${remove_blank}; then
     sed -i.bak2 -r 's/<blank> //g' ${dir}/hyp.trn
@@ -42,40 +43,36 @@ if [ -n "${filter}" ]; then
 fi
 
 # lowercasing
-lowercase.perl < ${dir}/hyp.trn > ${dir}/hyp.trn.tmp
-lowercase.perl < ${dir}/ref.trn > ${dir}/ref.trn.tmp
-mv ${dir}/hyp.trn.tmp ${dir}/hyp.trn
-mv ${dir}/ref.trn.tmp ${dir}/ref.trn
+lowercase.perl < ${dir}/hyp.trn > ${dir}/hyp.trn.lc
+lowercase.perl < ${dir}/ref.trn > ${dir}/ref.trn.lc
 
 # remove punctuation
-paste -d "(" <(cut -d '(' -f 1 ${dir}/hyp.trn | local/remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/hyp.trn) > ${dir}/hyp.trn.tmp
-mv ${dir}/hyp.trn.tmp ${dir}/hyp.trn
-paste -d "(" <(cut -d '(' -f 1 ${dir}/ref.trn | local/remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/ref.trn) > ${dir}/ref.trn.tmp
-mv ${dir}/ref.trn.tmp ${dir}/ref.trn
+paste -d "(" <(cut -d '(' -f 1 ${dir}/hyp.trn.lc | local/remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/hyp.trn.lc) > ${dir}/hyp.trn.lc.rm
+paste -d "(" <(cut -d '(' -f 1 ${dir}/ref.trn.lc | local/remove_punctuation.pl | sed -e "s/  / /g") <(cut -d '(' -f 2- ${dir}/ref.trn.lc) > ${dir}/ref.trn.lc.rm
 
 # detokenize
-detokenizer.perl -l en -q < ${dir}/ref.trn > ${dir}/ref.trn.detok
-detokenizer.perl -l en -q < ${dir}/hyp.trn > ${dir}/hyp.trn.detok
+detokenizer.perl -l en -q < ${dir}/ref.trn.lc.rm > ${dir}/ref.trn.lc.rm.detok
+detokenizer.perl -l en -q < ${dir}/hyp.trn.lc.rm > ${dir}/hyp.trn.lc.rm.detok
 
-sclite -r ${dir}/ref.trn.detok trn -h ${dir}/hyp.trn.detok trn -i rm -o all stdout > ${dir}/result.txt
+sclite -r ${dir}/ref.trn.lc.rm.detok trn -h ${dir}/hyp.trn.lc.rm.detok trn -i rm -o all stdout > ${dir}/result.txt
 
 echo "write a CER (or TER) result in ${dir}/result.txt"
 grep -e Avg -e SPKR -m 2 ${dir}/result.txt
 
 if ${wer}; then
     if [ -n "$bpe" ]; then
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
+        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn.lc.rm | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn.lc.rm
+        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn.lc.rm | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn.lc.rm
     else
-        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
-        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn > ${dir}/hyp.wrd.trn
+        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/ref.trn.lc.rm > ${dir}/ref.wrd.trn.lc.rm
+        sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" ${dir}/hyp.trn.lc.rm > ${dir}/hyp.wrd.trn.lc.rm
     fi
 
     # detokenize
-    detokenizer.perl -l en -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
-    detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn > ${dir}/hyp.wrd.trn.detok
+    detokenizer.perl -l en -q < ${dir}/ref.wrd.trn.lc.rm > ${dir}/ref.wrd.trn.lc.rm.detok
+    detokenizer.perl -l en -q < ${dir}/hyp.wrd.trn.lc.rm > ${dir}/hyp.wrd.trn.lc.rm.detok
 
-    sclite -r ${dir}/ref.wrd.trn.detok trn -h ${dir}/hyp.wrd.trn.detok trn -i rm -o all stdout > ${dir}/result.wrd.txt
+    sclite -r ${dir}/ref.wrd.trn.lc.rm.detok trn -h ${dir}/hyp.wrd.trn.lc.rm.detok trn -i rm -o all stdout > ${dir}/result.wrd.txt
 
     echo "write a WER result in ${dir}/result.wrd.txt"
     grep -e Avg -e SPKR -m 2 ${dir}/result.wrd.txt

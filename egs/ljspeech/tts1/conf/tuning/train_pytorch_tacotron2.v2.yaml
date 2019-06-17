@@ -1,4 +1,6 @@
-# This is the basic tactron2 training settting
+# This configuration uses reduction factor = 1 and forward attention with trasition agent
+# instead of location-sensitive attention. This leads fast learning of diagonal attention
+# compared to location-sensitive, especially reduction factor = 1.
 
 # encoder related
 embed-dim: 512
