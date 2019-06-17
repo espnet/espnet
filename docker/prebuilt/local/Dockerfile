@@ -4,11 +4,18 @@ LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 WORKDIR /
 
-ARG ESPNET_LOCATION=https://github.com/espnet/espnet
+# IF using a local ESPNet repository, a temporary file containing the ESPnet git repo is copied over
+ARG ESPNET_ARCHIVE=./espnet-local.tar
+COPY  ${ESPNET_ARCHIVE} /espnet-local.tar
+
 
 # Download ESPnet
-RUN git clone ${ESPNET_LOCATION} && \
-    cd espnet && \
+RUN echo "Getting ESPnet sources from local repository, in temporary file: " ${ESPNET_ARCHIVE}
+RUN mkdir /espnet
+RUN tar xf espnet-local.tar -C /espnet/
+RUN rm espnet-local.tar
+
+RUN cd espnet && \
     rm -rf docker egs test utils
 
 # Install espnet
