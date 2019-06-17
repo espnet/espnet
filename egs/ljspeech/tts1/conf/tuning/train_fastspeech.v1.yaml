@@ -1,4 +1,9 @@
 # This configuration reuqires 3 gpus in the case of each gpu memory = 12GB.
+# To use this configuration, you need the model trained with `conf/tuning/train_transformer.v1`.
+# First, you should train the above model or download from google drive and put it in exp dirctory.
+# Make sure the `teacher-model` path is valid and the encoder structure is the same as teacher
+# when `init-encoder-from-teacher = True`. It takes 3~4 days, and it can generate speech from
+# around 170 epochs (around 30k iters).
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_fastspeech:FeedForwardTransformer
