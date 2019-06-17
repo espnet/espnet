@@ -1,7 +1,6 @@
 #!/bin/bash
 
 
-this_path=`pwd`
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 tags="runtime
@@ -29,7 +28,8 @@ cmd_usage() {
     
     USAGE
         $PROGRAM <mode>
-        $PROGRAM local [cpu|9.1|9.2|10.0]
+        $PROGRAM build_and_push
+        $PROGRAM local [cpu|9.1|9.2|10.0|10.1]
 
             mode      Select script functionality
 
@@ -38,8 +38,10 @@ cmd_usage() {
             test            test docker containers
             push            push to docker hub
             build_and_push  automated build, test and push
-            local           build a docker container from the local ESPnet repo
-                            optional parameter: cpu or CUDA version
+            local           build a docker container from the local ESPnet repository
+                            using the base image from docker hub (espnet/espnet:runtime)
+                            optional: cpu or CUDA version (default: cpu)
+            fully_local     like local, but also build the base image
 
 	_EOF
     exit 1
@@ -65,36 +67,39 @@ build(){
 
 
 build_local(){
-    echo "Building docker container based on the local repository"
-    echo "  -- this may take a while"
+    echo "Building docker container: base image, and image for $ver"
     sleep 1
-    # prepare the parameter.
-    if [[ -z "$2" ]]; then
-        ver='cpu' # standard setting
-    else
-        ver=$2
-    fi
-    # prepare espnet, assumes that this script is in folder espnet/docker
-    cd $this_path/..
+
+    # prepare espnet-repo, assuming that this script is in folder espnet/docker
+    cd $SCRIPTPATH/..
+    ESPNET_ARCHIVE="./espnet-local.tar"
     echo "Reconstructing the local repository from the last commit"
-    git archive -o docker/espnet-local.tar HEAD
-    cd $this_path
-    echo "building ESPnet base image"
-    docker build -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime .
-    if [[ $ver == "cpu" ]]; then
-        # build cpu based image
-        docker build --build-arg FROM_TAG=runtime --build-arg ESPNET_LOCATION="local" \
-                     -f prebuilt/devel/Dockerfile -t espnet/espnet:cpu .
-    elif [[ $ver =~ ^(9.1|9.2|10.0)$ ]]; then
-        # using the base image, build gpu based container
-        docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 .
-        docker build --build-arg FROM_TAG=cuda${ver}-cudnn7 --build-arg ESPNET_LOCATION="local" \
-                     -f prebuilt/devel/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7 .
-    else
-        echo "Parameter invalid: " $2
+    git archive -o docker/$ESPNET_ARCHIVE HEAD
+    cd $SCRIPTPATH
+    test -r ${ESPNET_ARCHIVE} || exit 1;
+    sleep 1
+
+    if [ "$build_base_image" = true ] ; then
+        echo "building ESPnet base image"
+        docker build -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
+        sleep 1
     fi
-    # cleanup
-    rm ./espnet-local.tar
+
+    if [[ $ver == "cpu" ]]; then
+        echo "building ESPnet CPU Image"
+        docker build --build-arg FROM_TAG=runtime  --build-arg ESPNET_ARCHIVE=$ESPNET_ARCHIVE \
+                     -f prebuilt/local/Dockerfile -t espnet/espnet:cpu .
+    elif [[ $ver =~ ^(9.1|9.2|10.0|10.1)$ ]]; then
+            echo "building ESPnet GPU Image for $ver"
+        docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 .
+        docker build --build-arg FROM_TAG=cuda${ver}-cudnn7 --build-arg ESPNET_ARCHIVE=$ESPNET_ARCHIVE \
+                     -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7 .
+    else
+        echo "Parameter invalid: " $ver
+    fi
+
+    echo "cleanup."
+    test -r ${ESPNET_ARCHIVE} && rm ${ESPNET_ARCHIVE}
 }
 
 
@@ -129,11 +134,24 @@ push(){
 }
 
 
+
+## Parameter initialization: cpu or gpu docker container (default: cpu)
+if [[ -z "$2" ]]; then
+    ver='cpu'
+else
+    ver=$2
+fi
+
+
 ## Application menu
 if   [[ $1 == "build" ]]; then
     build
 elif [[ $1 == "local" ]]; then
+    build_base_image=false
     build_local
+elif [[ $1 == "fully_local" ]]; then
+    build_base_image=true
+    build_local_gpu
 elif [[ $1 == "push" ]]; then
     push
 elif [[ $1 == "build_and_push" ]]; then
