@@ -24,29 +24,8 @@ from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 
 
-class DurationPredictorLoss(torch.nn.Module):
-    """Duration predictor loss module
-
-    Reference:
-        - FastSpeech: Fast, Robust and Controllable Text to Speech
-          (https://arxiv.org/pdf/1905.09263.pdf)
-    """
-
-    def __init__(self, offset=1.0):
-        super(DurationPredictorLoss, self).__init__()
-        self.criterion = torch.nn.MSELoss()
-        self.offset = offset
-
-    def forward(self, outputs, targets):
-        # NOTE: outputs is in log domain while targets in linear
-        targets = torch.log(targets.float() + self.offset)
-        loss = self.criterion(outputs, targets)
-
-        return loss
-
-
 class FeedForwardTransformer(TTSInterface, torch.nn.Module):
-    """Feed Forward Transformer for TTS
+    """Feed Forward Transformer for TTS a.k.a. FastSpeech
 
     Reference:
         FastSpeech: Fast, Robust and Controllable Text to Speech
@@ -55,6 +34,34 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
     :param Namespace args: argments containing following attributes
+        (int) elayers: number of encoder layers
+        (int) eunits: number of encoder hidden units
+        (int) adim: number of attention transformation dimensions
+        (int) aheads: number of heads for multi head attention
+        (int) dlayers: number of decoder layers
+        (int) dunits: number of decoder hidden units
+        (bool) use_scaled_pos_enc: whether to use trainable scaled positional encoding instead of the fixed scale one
+        (bool) encoder_normalize_before: whether to perform layer normalization before encoder block
+        (bool) decoder_normalize_before: whether to perform layer normalization before decoder block
+        (bool) encoder_concat_after: whether to concatenate attention layer's input and output in encoder
+        (bool) decoder_concat_after: whether to concatenate attention layer's input and output in decoder
+        (int) duration_predictor_layers: number of duration predictor layers
+        (int) duration_predictor_chans: number of duration predictor channels
+        (int) duration_predictor_kernel_size: kernel size of duration predictor
+        (str) teacher_model: teachder auto-regressive transformer model path
+        (int) reduction_factor: reduction factor
+        (float) transformer_init: how to initialize transformer parameters
+        (float) transformer_lr: initial value of learning rate
+        (int) transformer_warmup_steps: optimizer warmup steps
+        (float) transformer_enc_dropout_rate: dropout rate in encoder except for attention and positional encoding
+        (float) transformer_enc_positional_dropout_rate: dropout rate after encoder positional encoding
+        (float) transformer_enc_attn_dropout_rate: dropout rate in encoder self-attention module
+        (float) transformer_dec_dropout_rate: dropout rate in decoder except for attention and positional encoding
+        (float) transformer_dec_positional_dropout_rate:  dropout rate after decoder positional encoding
+        (float) transformer_dec_attn_dropout_rate: dropout rate in deocoder self-attention module
+        (float) transformer_enc_dec_attn_dropout_rate: dropout rate in encoder-deocoder attention module
+        (bool) _init_encoder_from_teacher: whether to initialize encoder using teacher encoder parameters
+        (bool) use_masking: whether to use masking in calculation of loss
     """
 
     @staticmethod
@@ -353,7 +360,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         """Generates the sequence of features from given a sequences of characters
 
         :param torch.Tensor x: the sequence of character ids (T)
-        :rtype: torch.Tensor
         :return: the sequence of generated features (1, L, odim)
         :rtype: torch.Tensor
         """
@@ -469,10 +475,34 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         return plot_keys
 
 
+class DurationPredictorLoss(torch.nn.Module):
+    """Duration predictor loss module
+
+    :param float offset: offset value to avoid nan in log domain
+    """
+
+    def __init__(self, offset=1.0):
+        super(DurationPredictorLoss, self).__init__()
+        self.criterion = torch.nn.MSELoss()
+        self.offset = offset
+
+    def forward(self, outputs, targets):
+        """Calculate loss value
+
+        :param torch.Tensor outputs: prediction duration in log domain (B, T)
+        :param torch.Tensor targets: groundtruth duration in linear domain (B, T)
+        """
+        # NOTE: outputs is in log domain while targets in linear
+        targets = torch.log(targets.float() + self.offset)
+        loss = self.criterion(outputs, targets)
+
+        return loss
+
+
 class DurationCalculator(torch.nn.Module):
     """Duration calculator using teacher model
 
-    :param e2e_tts_transformer.Transformer teacher_model: teacher auto-regressive Transformer
+    :param torch.nn.Module teacher_model: teacher auto-regressive Transformer
     """
 
     def __init__(self, teacher_model):
@@ -518,10 +548,6 @@ class DurationCalculator(torch.nn.Module):
 class LengthRegularizer(torch.nn.Module):
     """Length regularizer module
 
-    Reference:
-        - FastSpeech: Fast, Robust and Controllable Text to Speech
-          (https://arxiv.org/pdf/1905.09263.pdf)
-
     :param float pad_value: value used for padding
     """
 
@@ -535,6 +561,7 @@ class LengthRegularizer(torch.nn.Module):
         :param torch.Tensor xs: input tensor with the shape (B, Tmax, D)
         :param torch.Tensor ds: duration of each components of each sequence (B, T)
         :param torch.Tensor ilens: batch of input lengths (B,)
+        :param float alpha: alpha value to control speed of speech
         :return torch.Tensor: length regularized input tensor (B, T*, D)
         """
         assert alpha > 0
@@ -603,7 +630,7 @@ class DurationPredictor(torch.nn.Module):
 
         :param torch.Tensor xs: input tensor (B, Tmax, idim)
         :param torch.Tensor x_masks: mask for removing padded part (B, Tmax)
-        :return torch.Tensor: predicted duration tensor in log domain (B, Tmax, 1)
+        :return torch.Tensor: predicted duration tensor in log domain (B, Tmax)
         """
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
         for idx in range(len(self.conv)):
@@ -620,7 +647,7 @@ class DurationPredictor(torch.nn.Module):
 
         :param torch.Tensor xs: input tensor with tha shape (B, Tmax, idim)
         :param torch.Tensor x_masks: mask for removing padded part (B, Tmax)
-        :return torch.Tensor: predicted duration tensor with the shape (B, Tmax, 1)
+        :return torch.Tensor: predicted duration in linear domain with the shape (B, Tmax)
         """
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
         for idx in range(len(self.conv)):
