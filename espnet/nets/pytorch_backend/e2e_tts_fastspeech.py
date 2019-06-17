@@ -34,10 +34,10 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     :param int idim: dimension of the inputs
     :param int odim: dimension of the outputs
     :param Namespace args: argments containing following attributes
-        (int) elayers: number of encoder layers
-        (int) eunits: number of encoder hidden units
         (int) adim: number of attention transformation dimensions
         (int) aheads: number of heads for multi head attention
+        (int) elayers: number of encoder layers
+        (int) eunits: number of encoder hidden units
         (int) dlayers: number of decoder layers
         (int) dunits: number of decoder hidden units
         (bool) use_scaled_pos_enc: whether to use trainable scaled positional encoding instead of the fixed scale one
@@ -48,7 +48,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         (int) duration_predictor_layers: number of duration predictor layers
         (int) duration_predictor_chans: number of duration predictor channels
         (int) duration_predictor_kernel_size: kernel size of duration predictor
-        (str) teacher_model: teachder auto-regressive transformer model path
+        (str) teacher_model: teacher auto-regressive transformer model path
         (int) reduction_factor: reduction factor
         (float) transformer_init: how to initialize transformer parameters
         (float) transformer_lr: initial value of learning rate
@@ -60,7 +60,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         (float) transformer_dec_positional_dropout_rate:  dropout rate after decoder positional encoding
         (float) transformer_dec_attn_dropout_rate: dropout rate in deocoder self-attention module
         (float) transformer_enc_dec_attn_dropout_rate: dropout rate in encoder-deocoder attention module
-        (bool) _init_encoder_from_teacher: whether to initialize encoder using teacher encoder parameters
+        (bool) init_encoder_from_teacher: whether to initialize encoder using teacher encoder parameters
         (bool) use_masking: whether to use masking in calculation of loss
     """
 
@@ -68,23 +68,23 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
     def add_arguments(parser):
         group = parser.add_argument_group("feed-forward transformer model setting")
         # network structure related
-        group.add_argument("--elayers", default=3, type=int,
-                           help="Number of encoder layers")
-        group.add_argument("--eunits", default=2048, type=int,
-                           help="Number of encoder hidden units")
-        group.add_argument("--adim", default=512, type=int,
+        group.add_argument("--adim", default=384, type=int,
                            help="Number of attention transformation dimensions")
         group.add_argument("--aheads", default=4, type=int,
                            help="Number of heads for multi head attention")
-        group.add_argument("--dlayers", default=3, type=int,
+        group.add_argument("--elayers", default=6, type=int,
+                           help="Number of encoder layers")
+        group.add_argument("--eunits", default=1536, type=int,
+                           help="Number of encoder hidden units")
+        group.add_argument("--dlayers", default=6, type=int,
                            help="Number of decoder layers")
-        group.add_argument("--dunits", default=2048, type=int,
+        group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
         group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
                            help="use trainable scaled positional encoding instead of the fixed scale one.")
-        group.add_argument("--encoder-normalize-before", default=True, type=strtobool,
+        group.add_argument("--encoder-normalize-before", default=False, type=strtobool,
                            help="Whether to apply layer norm before encoder block")
-        group.add_argument("--decoder-normalize-before", default=True, type=strtobool,
+        group.add_argument("--decoder-normalize-before", default=False, type=strtobool,
                            help="Whether to apply layer norm before decoder block")
         group.add_argument("--encoder-concat-after", default=False, type=strtobool,
                            help="Whether to concatenate attention layer's input and output in encoder")
@@ -117,17 +117,17 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="dropout rate for transformer encoder except for attention")
         group.add_argument("--transformer-enc-positional-dropout-rate", default=0.1, type=float,
                            help="dropout rate for transformer encoder positional encoding")
-        group.add_argument("--transformer-enc-attn-dropout-rate", default=0.0, type=float,
+        group.add_argument("--transformer-enc-attn-dropout-rate", default=0.1, type=float,
                            help="dropout rate for transformer encoder self-attention")
         group.add_argument("--transformer-dec-dropout-rate", default=0.1, type=float,
                            help="dropout rate for transformer decoder except for attention and pos encoding")
         group.add_argument("--transformer-dec-positional-dropout-rate", default=0.1, type=float,
                            help="dropout rate for transformer decoder positional encoding")
-        group.add_argument("--transformer-dec-attn-dropout-rate", default=0.3, type=float,
+        group.add_argument("--transformer-dec-attn-dropout-rate", default=0.1, type=float,
                            help="dropout rate for transformer decoder self-attention")
-        group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.0, type=float,
+        group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.1, type=float,
                            help="dropout rate for transformer encoder-decoder attention")
-        group.add_argument("--duration-predictor-dropout-rate", default=0.0, type=float,
+        group.add_argument("--duration-predictor-dropout-rate", default=0.1, type=float,
                            help="dropout rate for duration predictor")
         group.add_argument("--init-encoder-from-teacher", default=True, type=strtobool,
                            help="whether to initialize encoder using teacher's parameters.")
