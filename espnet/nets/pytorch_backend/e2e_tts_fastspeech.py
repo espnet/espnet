@@ -371,6 +371,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         zs, _ = self.decoder(hs, None)  # (B, Lmax, adim)
         outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)  # (B, Lmax, odim)
 
+        # keep batch axis to be compatible with the other models
         return outs
 
     def _source_mask(self, ilens):
