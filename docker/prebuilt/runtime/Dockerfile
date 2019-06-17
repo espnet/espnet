@@ -76,7 +76,6 @@ RUN cd /kaldi/tools && \
     make all && \
     rm -r openfst-*/src && \
     ./extras/install_beamformit.sh && \
-    ./extras/install_mkl.sh && \
     ./extras/install_irstlm.sh && \
     cd /kaldi/src && \
     ./configure --shared --use-cuda=no && \
