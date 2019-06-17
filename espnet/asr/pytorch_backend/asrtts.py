@@ -23,7 +23,6 @@ import torch
 
 # espnet related
 from espnet.asr.asr_utils import adadelta_eps_decay
-from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
 from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import PlotAttentionReport
@@ -35,14 +34,13 @@ from espnet.asr.asr_utils import torch_snapshot
 from espnet.asr.asrtts_utils import freeze_parameters
 from espnet.asr.asrtts_utils import load_inputs_and_targets
 from espnet.asr.asrtts_utils import load_inputs_spk_and_targets
-from espnet.asr.asrtts_utils import make_batchset_asr as make_batchset
 from espnet.asr.asrtts_utils import merge_batchsets
 from espnet.asr.asrtts_utils import remove_output_layer
-from espnet.nets.pytorch_backend.e2e_asr import E2E
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_asrtts import E2E as asrtts
 from espnet.utils.io_asrttsutils import LoadInputsAndTargetsASRTTS
 from espnet.utils.io_utils import LoadInputsAndTargets
+from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ToggleableShufflingMultiprocessIterator
 from espnet.utils.training.iterators import ToggleableShufflingSerialIterator
 
@@ -50,11 +48,7 @@ from espnet.nets.pytorch_backend.e2e_asrtts import Tacotron2ASRLoss
 
 from espnet.asr.pytorch_backend.asr import CustomConverter as ASRConverter
 
-# for kaldi io
-import kaldi_io_py
-
 # rnnlm
-import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.lm.pytorch_backend.lm as lm_pytorch
 
 # matplotlib related
@@ -463,15 +457,27 @@ def train(args):
     with open(args.valid_json, 'rb') as f:
         valid_json = json.load(f)['utts']
 
+    use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # make minibatch list (variable length)
     train_subsets = []
     for tj in train_json:
         train_subsets.append(make_batchset(tj, args.batch_size, args.maxlen_in,
                                            args.maxlen_out, args.minibatches,
-                                           min_batch_size=args.ngpu if args.ngpu > 1 else 1))
+                                           min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                                           shortest_first=use_sortagrad,
+                                           count=args.batch_count,
+                                           batch_bins=args.batch_bins,
+                                           batch_frames_in=args.batch_frames_in,
+                                           batch_frames_out=args.batch_frames_out,
+                                           batch_frames_inout=args.batch_frames_inout))
     train = merge_batchsets(train_subsets, shuffle=True)
     valid = make_batchset(valid_json, args.batch_size, args.maxlen_in, args.maxlen_out,
-                          args.minibatches, min_batch_size=args.ngpu if args.ngpu > 1 else 1)
+                          args.minibatches, min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+                          count=args.batch_count,
+                          batch_bins=args.batch_bins,
+                          batch_frames_in=args.batch_frames_in,
+                          batch_frames_out=args.batch_frames_out,
+                          batch_frames_inout=args.batch_frames_inout)
     load_tr = LoadInputsAndTargetsASRTTS(
         mode='asr', use_speaker_embedding=args.use_speaker_embedding,
         load_output=True, preprocess_conf=args.preprocess_conf,
@@ -494,7 +500,7 @@ def train(args):
             batch_size=1, repeat=False, shuffle=False,
             n_processes=args.n_iter_processes, n_prefetch=8, maxtasksperchild=20)
     else:
-        train_iter = ToggleableShufflingMultiprocessIterator(
+        train_iter = ToggleableShufflingSerialIterator(
             TransformDataset(train, load_tr),
             batch_size=1, shuffle=not use_sortagrad)
         valid_iter = ToggleableShufflingSerialIterator(
@@ -604,96 +610,3 @@ def train(args):
 
     # Run the training
     trainer.run()
-
-
-def recog(args):
-    '''Run recognition'''
-    # seed setting
-    torch.manual_seed(args.seed)
-
-    # read training config
-    idim, odim, train_args = get_model_conf(args.model, args.model_conf)
-
-    # load trained model parameters
-    logging.info('reading model parameters from ' + args.model)
-    model = E2E(idim, odim, train_args)
-    torch_load(args.model, model)
-    model.recog_args = args
-    # read rnnlm
-    if args.rnnlm:
-        rnnlm_args = get_model_conf(args.rnnlm, args.rnnlm_conf)
-        rnnlm = lm_pytorch.ClassifierWithState(
-            lm_pytorch.RNNLM(
-                len(train_args.char_list), rnnlm_args.layer, rnnlm_args.unit))
-        torch_load(args.rnnlm, rnnlm)
-        rnnlm.eval()
-    else:
-        rnnlm = None
-
-    if args.word_rnnlm:
-        rnnlm_args = get_model_conf(args.word_rnnlm, args.word_rnnlm_conf)
-        word_dict = rnnlm_args.char_list_dict
-        char_dict = {x: i for i, x in enumerate(train_args.char_list)}
-        word_rnnlm = lm_pytorch.ClassifierWithState(lm_pytorch.RNNLM(
-            len(word_dict), rnnlm_args.layer, rnnlm_args.unit))
-        torch_load(args.word_rnnlm, word_rnnlm)
-        word_rnnlm.eval()
-
-        if rnnlm is not None:
-            rnnlm = lm_pytorch.ClassifierWithState(
-                extlm_pytorch.MultiLevelLM(word_rnnlm.predictor,
-                                           rnnlm.predictor, word_dict, char_dict))
-        else:
-            rnnlm = lm_pytorch.ClassifierWithState(
-                extlm_pytorch.LookAheadWordLM(word_rnnlm.predictor,
-                                              word_dict, char_dict))
-
-    # gpu
-    if args.ngpu == 1:
-        gpu_id = range(args.ngpu)
-        logging.info('gpu id: ' + str(gpu_id))
-        model.cuda()
-        if rnnlm:
-            rnnlm.cuda()
-
-    # read json data
-    with open(args.recog_json, 'rb') as f:
-        js = json.load(f)['utts']
-    new_js = {}
-
-    if args.batchsize == 0:
-        with torch.no_grad():
-            for idx, name in enumerate(js.keys(), 1):
-                logging.info('(%d/%d) decoding ' + name, idx, len(js.keys()))
-                feat = kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-                nbest_hyps = model.recognize(feat, args, train_args.char_list, rnnlm)
-                new_js[name] = add_results_to_json(js[name], nbest_hyps, train_args.char_list)
-    else:
-        try:
-            from itertools import zip_longest as zip_longest
-        except Exception:
-            from itertools import izip_longest as zip_longest
-
-        def grouper(n, iterable, fillvalue=None):
-            kargs = [iter(iterable)] * n
-            return zip_longest(*kargs, fillvalue=fillvalue)
-
-        # sort data
-        keys = list(js.keys())
-        feat_lens = [js[key]['input'][0]['shape'][0] for key in keys]
-        sorted_index = sorted(range(len(feat_lens)), key=lambda i: -feat_lens[i])
-        keys = [keys[i] for i in sorted_index]
-
-        with torch.no_grad():
-            for names in grouper(args.batchsize, keys, None):
-                names = [name for name in names if name]
-                feats = [kaldi_io_py.read_mat(js[name]['input'][0]['feat'])
-                         for name in names]
-                nbest_hyps = model.recognize_batch(feats, args, train_args.char_list, rnnlm=rnnlm)
-                for i, nbest_hyp in enumerate(nbest_hyps):
-                    name = names[i]
-                    new_js[name] = add_results_to_json(js[name], nbest_hyp, train_args.char_list)
-
-    # TODO(watanabe) fix character coding problems when saving it
-    with open(args.result_label, 'wb') as f:
-        f.write(json.dumps({'utts': new_js}, indent=4, sort_keys=True).encode('utf_8'))

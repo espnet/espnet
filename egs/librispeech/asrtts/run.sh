@@ -19,6 +19,9 @@ resume=        # Resume the training from snapshot
 
 # feature configuration
 do_delta=false
+train_config=conf/train.yaml
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 # feature extraction related
 fs=16000      # sampling frequency
 fmax=""       # maximum frequency
@@ -40,7 +43,6 @@ dlayers=1
 dunits=1024
 # attention related
 atype=location
-adim=100
 aconv_chans=10
 aconv_filts=100
 
@@ -52,24 +54,11 @@ batchsize=20
 maxlen_in=800  # if input length  > maxlen_in, batchsize is automatically reduced
 maxlen_out=150 # if output length > maxlen_out, batchsize is automatically reduced
 
-# other config
-drop=0.2
-
 # optimization related
-sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
 opt=adadelta
 epochs=10
-patience=3
 
 # rnnlm related
-lm_layers=1
-lm_units=1024
-lm_opt=sgd        # or adam
-lm_sortagrad=0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-lm_batchsize=1024 # batch size in LM training
-lm_epochs=20      # if the data size is large, we can reduce this
-lm_patience=3
-lm_maxlen=40      # if sentence length > lm_maxlen, lm_batchsize is automatically reduced
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
 
@@ -82,14 +71,11 @@ minlenratio=0.0
 ctc_weight=0.0
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 
-# scheduled sampling option
-samp_prob=0.5
-
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.  You'll want to change this
 # if you're not on the CLSP grid.
 datadir=/export/a15/vpanayotov/data
-datadir=/mnt/matylda2/data/librispeech_kaldi_download
+datadir=/mnt/matylda3/data/librispeech_kaldi_download
 
 # base url for downloads.
 data_url=www.openslr.org/resources/12
@@ -334,6 +320,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
         --ngpu ${ngpu} \
+        --config ${lm_config} \
         --backend ${backend} \
         --verbose 1 \
         --outdir ${lmexpdir} \
@@ -341,14 +328,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --train-label ${lmdatadir}/train.txt \
         --valid-label ${lmdatadir}/valid.txt \
         --resume ${lm_resume} \
-        --layer ${lm_layers} \
-        --unit ${lm_units} \
-        --opt ${lm_opt} \
-        --sortagrad ${lm_sortagrad} \
-        --batchsize ${lm_batchsize} \
-        --epoch ${lm_epochs} \
-        --patience ${lm_patience} \
-        --maxlen ${lm_maxlen} \
         --dict ${dict}
 fi
 
@@ -360,6 +339,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --ngpu ${ngpu} \
+        --config ${train_config} \
         --backend ${backend} \
         --outdir ${expdir}/results \
         --tensorboard-dir tensorboard/${expname} \
@@ -370,29 +350,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_p_dir}/data.json \
-        --valid-json ${feat_dt_dir}/data.json \
-        --etype ${etype} \
-        --elayers ${elayers} \
-        --eunits ${eunits} \
-        --eprojs ${eprojs} \
-        --subsample ${subsample} \
-        --dlayers ${dlayers} \
-        --dunits ${dunits} \
-        --atype ${atype} \
-        --adim ${adim} \
-        --aconv-chans ${aconv_chans} \
-        --aconv-filts ${aconv_filts} \
-        --mtlalpha ${mtlalpha} \
-        --batch-size ${batchsize} \
-        --maxlen-in ${maxlen_in} \
-        --maxlen-out ${maxlen_out} \
-        --sampling-probability ${samp_prob} \
-        --dropout-rate ${drop} \
-        --opt ${opt} \
-        --sortagrad ${sortagrad} \
-        --epochs ${epochs} \
-        --patience ${patience}
-
+        --valid-json ${feat_dt_dir}/data.json
     fi
     if [ $asr_decode == 'true' ]; then
     nj=32
@@ -409,16 +367,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             asr_recog.py \
             --ngpu 0 \
+            --config $decode_config \
             --backend ${backend} \
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --beam-size ${beam_size} \
-            --penalty ${penalty} \
-            --maxlenratio ${maxlenratio} \
-            --minlenratio ${minlenratio} \
-            --ctc-weight ${ctc_weight} 
+            --rnnlm ${lmexpdir}/rnnlm.model.best
 
         if [ $use_bpe == 'true' ]; then
             score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
