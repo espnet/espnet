@@ -529,14 +529,17 @@ class LengthRegularizer(torch.nn.Module):
         super(LengthRegularizer, self).__init__()
         self.pad_value = pad_value
 
-    def forward(self, xs, ds, ilens):
+    def forward(self, xs, ds, ilens, alpha=1.0):
         """Apply length regularizer
 
-        :param torch.Tensor x: input tensor with the shape (B, Tmax, D)
-        :param torch.Tensor d: duration of each components of each sequence B, T,)
-        :param torch.Tensor d: batch of input lengths (B,)
+        :param torch.Tensor xs: input tensor with the shape (B, Tmax, D)
+        :param torch.Tensor ds: duration of each components of each sequence (B, T)
+        :param torch.Tensor ilens: batch of input lengths (B,)
         :return torch.Tensor: length regularized input tensor (B, T*, D)
         """
+        assert alpha > 0
+        if alpha != 1.0:
+            ds = torch.round(ds.float() * alpha).long()
         xs = [x[:ilen] for x, ilen in zip(xs, ilens)]
         ds = [d[:ilen] for d, ilen in zip(ds, ilens)]
         xs = [self._repeat_one_sequence(x, d) for x, d in zip(xs, ds)]
