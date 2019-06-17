@@ -129,11 +129,19 @@ def make_feedforward_transformer_args(**kwargs):
 @pytest.mark.parametrize(
     "model_dict", [
         ({}),
+        ({"use_masking": False}),
+        ({"use_scaled_pos_enc": False}),
+        ({"encoder_normalize_before": False}),
+        ({"decoder_normalize_before": False}),
+        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ({"encoder_concat_after": True}),
+        ({"decoder_concat_after": True}),
+        ({"encoder_concat_after": True, "decoder_concat_after": True}),
     ])
-def test_trainable_and_decodable(model_dict):
+def test_fastspeech_trainable_and_decodable(model_dict):
     # make args
     idim, odim = 10, 25
-    teacher_model_args = make_transformer_args()
+    teacher_model_args = make_transformer_args(**model_dict)
     model_args = make_feedforward_transformer_args(**model_dict)
 
     # setup batch
@@ -161,7 +169,91 @@ def test_trainable_and_decodable(model_dict):
 
     model.eval()
     with torch.no_grad():
+        model.inference(batch["xs"][0][:batch["ilens"][0]])
         model.calculate_all_attentions(**batch)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
+@pytest.mark.parametrize(
+    "model_dict", [
+        ({}),
+        ({"use_masking": False}),
+        ({"use_scaled_pos_enc": False}),
+        ({"encoder_normalize_before": False}),
+        ({"decoder_normalize_before": False}),
+        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ({"encoder_concat_after": True}),
+        ({"decoder_concat_after": True}),
+        ({"encoder_concat_after": True, "decoder_concat_after": True}),
+    ])
+def test_fastspeech_gpu_trainable(model_dict):
+    # make args
+    idim, odim = 10, 25
+    teacher_model_args = make_transformer_args(**model_dict)
+    model_args = make_feedforward_transformer_args(**model_dict)
+
+    # setup batch
+    ilens = [10, 5]
+    olens = [20, 15]
+    device = torch.device('cuda')
+    batch = prepare_inputs(idim, odim, ilens, olens, device=device)
+
+    # define model
+    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
+    teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    model.teacher = teacher_model
+    model.duration_calculator = DurationCalculator(model.teacher)
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters())
+
+    # trainable
+    loss = model(**batch).mean()
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
+@pytest.mark.parametrize(
+    "model_dict", [
+        ({}),
+        ({"use_masking": False}),
+        ({"use_scaled_pos_enc": False}),
+        ({"encoder_normalize_before": False}),
+        ({"decoder_normalize_before": False}),
+        ({"encoder_normalize_before": False, "decoder_normalize_before": False}),
+        ({"encoder_concat_after": True}),
+        ({"decoder_concat_after": True}),
+        ({"encoder_concat_after": True, "decoder_concat_after": True}),
+    ])
+def test_fastspeech_multi_gpu_trainable(model_dict):
+    # make args
+    idim, odim = 10, 25
+    teacher_model_args = make_transformer_args(**model_dict)
+    model_args = make_feedforward_transformer_args(**model_dict)
+
+    # setup batch
+    ilens = [10, 5]
+    olens = [20, 15]
+    device = torch.device('cuda')
+    batch = prepare_inputs(idim, odim, ilens, olens, device=device)
+
+    # define model
+    ngpu = 2
+    device_ids = list(range(ngpu))
+    model = FeedForwardTransformer(idim, odim, Namespace(**model_args))
+    teacher_model = Transformer(idim, odim, Namespace(**teacher_model_args))
+    model.teacher = teacher_model
+    model.duration_calculator = DurationCalculator(model.teacher)
+    model = torch.nn.DataParallel(model, device_ids)
+    model.to(device)
+    optimizer = torch.optim.Adam(model.parameters())
+
+    # trainable
+    loss = model(**batch).mean()
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
 
 def test_length_regularizer():
