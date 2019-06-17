@@ -203,8 +203,6 @@ class Tacotron2Loss(torch.nn.Module):
             loss = l1_loss + mse_loss + bce_loss
             # report loss values for logging
             self.reporter.report(None, None, None, None, None, None, None, mse_loss, None)
-            #self.reporter.report(
-            #    mse_loss.mean(0).item(), None, None, None, None)
             logging.info(loss.mean(0).item())
         else:
             # integrate loss
@@ -420,8 +418,6 @@ class Tacotron2(torch.nn.Module):
 #        #ax3.imshow(mel_fbank_l, aspect='auto', cmap=plt.cm.jet)
 #        ax3.imshow(gt_mel_fbank, aspect='auto', cmap=plt.cm.jet)
 #        fig.savefig('images/asr2ttsfoo.%d.%d.png' % (0,name), orientation='landscape')
-
-
         if self.use_cbhg:
             if self.reduction_factor > 1:
                 olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
