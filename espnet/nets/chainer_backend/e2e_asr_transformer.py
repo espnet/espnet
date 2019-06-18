@@ -4,6 +4,7 @@ from distutils.util import strtobool
 import logging
 import math
 import numpy as np
+import six
 
 import chainer
 from chainer import reporter
@@ -12,6 +13,7 @@ import chainer.functions as F
 from chainer.training import extension
 
 from espnet.nets.asr_interface import ASRInterface
+from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.chainer_backend import ctc
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.decoder import Decoder
@@ -21,6 +23,7 @@ from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 
 from itertools import groupby
 
+CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
 
 
@@ -334,7 +337,7 @@ class E2E(ASRInterface, chainer.Chain):
         else:
             return self.loss
 
-    def recognize(self, x_block, recog_args, char_list=None, rnnlm=None, use_jit=False):
+    def recognize_beam2(self, x_block, recog_args, char_list=None, rnnlm=None, use_jit=False):
         '''E2E beam search
 
         :param ndarray x: input acouctic feature (B, T, D) or (T, D)
@@ -377,23 +380,59 @@ class E2E(ASRInterface, chainer.Chain):
                 raise NotImplementedError('use beam search implementation. WIP')
         return nbest_hyps
 
-    def recognize_beam(self, xs, mask, batch, lpz, recog_args, char_list, rnnlm=None):
-        from espnet.nets.chainer_backend.transformer.decoder import get_topk
-        import six
+    def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
+        """E2E greedy/beam search
+        :param x:
+        :param recog_args:
+        :param char_list:
+        :param rnnlm:
+        :return:
+        """
+        with chainer.no_backprop_mode(), chainer.using_config('train', False):
+            # 1. encoder
+            ilens = [x_block.shape[0]]
+            batch = len(ilens)
+            xs, _, _ = self.encoder(x_block[None, :, :], ilens)
+
+            # calculate log P(z_t|X) for CTC scores
+            if recog_args.ctc_weight > 0.0:
+                lpz = self.ctc.log_softmax(xs.reshape(batch, -1, self.dims)).data[0]
+            else:
+                lpz = None
+            # 2. decoder
+            y = self.recognize_beam(xs, lpz, recog_args, char_list, rnnlm)
+
+        return y
+
+
+    def recognize_beam(self, h, lpz, recog_args, char_list=None, rnnlm=None):
+        """beam search implementation
+        :param h:
+        :param lpz:
+        :param recog_args:
+        :param char_list:
+        :param rnnlm:
+        :return:
+        """
+        logging.info('input lengths: ' + str(h.shape[0]))
+
+        # initialization
         xp = self.xp
+        h_mask = xp.ones((1, h.shape[0]))
+        batch = 1
+        
+        # search parms
         beam = recog_args.beam_size
         penalty = recog_args.penalty
         ctc_weight = recog_args.ctc_weight
 
         # prepare sos
         y = self.sos
-        vy = xp.zeros(1, dtype=xp.int64)
-
         if recog_args.maxlenratio == 0:
-            maxlen = xs.shape[0]
+            maxlen = h.shape[0]
         else:
-            maxlen = max(1, int(recog_args.maxlenratio * xs.shape[0]))
-        minlen = int(recog_args.minlenratio * xs.shape[0])
+            maxlen = max(1, int(recog_args.maxlenratio * h.shape[0]))
+        minlen = int(recog_args.minlenratio * h.shape[0])
         logging.info('max output length: ' + str(maxlen))
         logging.info('min output length: ' + str(minlen))
 
@@ -404,7 +443,6 @@ class E2E(ASRInterface, chainer.Chain):
             hyp = {'score': 0.0, 'yseq': [y]}
 
         if lpz is not None:
-            from espnet.nets.ctc_prefix_score import CTCPrefixScore
             ctc_prefix_score = CTCPrefixScore(lpz, 0, self.eos, self.xp)
             hyp['ctc_state_prev'] = ctc_prefix_score.initial_state()
             hyp['ctc_score_prev'] = 0.0
@@ -423,48 +461,47 @@ class E2E(ASRInterface, chainer.Chain):
 
             hyps_best_kept = []
             for hyp in hyps:
-                vy[0] = hyp['yseq'][i]
+                ys = F.expand_dims(xp.array(hyp['yseq']), axis=0).data
+                yy_mask = self.make_attention_mask(ys, ys)
+                yy_mask *= self.make_history_mask(ys)
+                
+                xy_mask = self.make_attention_mask(ys, h_mask)
+                out = self.decoder(ys, yy_mask, h, xy_mask).reshape(batch, -1, self.odim)
 
-                yy_mask = self.make_history_mask(xp.ones((batch, i + 1), dtype=xp.float32))
-                ys = F.expand_dims(xp.array(hyp['yseq']), axis=0)
-                xy_mask = self.make_attention_mask(ys.data, mask)
-                out = self.decoder(ys, yy_mask, xs, xy_mask).reshape(batch, -1, self.odim)
-                local_att_scores = F.log_softmax(out[:, -1], axis=-1)
-
+                # get nbest local scores and their ids
+                local_att_scores = F.log_softmax(out[:, -1], axis=-1).data
                 if rnnlm:
-                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], vy)
+                    rnnlm_state, local_lm_scores = rnnlm.predict(hyp['rnnlm_prev'], hyp['yseq'][i])
                     local_scores = local_att_scores + recog_args.lm_weight * local_lm_scores
                 else:
                     local_scores = local_att_scores
 
                 if lpz is not None:
-                    local_best_scores, local_best_ids = get_topk(xp, local_att_scores.data, ctc_beam, axis=1)
-                    ctc_scores, ctc_states = ctc_prefix_score(
-                        hyp['yseq'], local_best_ids[0], hyp['ctc_state_prev'])
+                    local_best_ids = xp.argsort(local_scores, axis=1)[0, ::-1][:ctc_beam]
+                    ctc_scores, ctc_states = ctc_prefix_score(hyp['yseq'], local_best_ids, hyp['ctc_state_prev'])
                     local_scores = \
-                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids[0]] \
-                        + ctc_weight * ctc_scores - hyp['ctc_score_prev']
+                        (1.0 - ctc_weight) * local_att_scores[:, local_best_ids] \
+                        + ctc_weight * (ctc_scores - hyp['ctc_score_prev'])
                     if rnnlm:
-                        # raise ValueError('WIP')
-                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids[0]]
-                    local_best_scores, joint_best_ids = get_topk(xp, local_scores.data, beam, axis=1)
-                    local_best_ids = local_best_ids[:, joint_best_ids[0]]
+                        local_scores += recog_args.lm_weight * local_lm_scores[:, local_best_ids]
+                    joint_best_ids = xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_best_scores = local_scores[:, joint_best_ids]
+                    local_best_ids = local_best_ids[joint_best_ids]
                 else:
-                    local_best_scores, local_best_ids = get_topk(xp, local_scores.data, beam, axis=1)
+                    local_best_ids = self.xp.argsort(local_scores, axis=1)[0, ::-1][:beam]
+                    local_best_scores = local_scores[:, local_best_ids]
 
                 for j in six.moves.range(beam):
                     new_hyp = {}
                     new_hyp['score'] = hyp['score'] + float(local_best_scores[0, j])
                     new_hyp['yseq'] = [0] * (1 + len(hyp['yseq']))
                     new_hyp['yseq'][:len(hyp['yseq'])] = hyp['yseq']
-                    new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[0, j])
+                    new_hyp['yseq'][len(hyp['yseq'])] = int(local_best_ids[j])
                     if rnnlm:
-                        # raise ValueError('WIP')
                         new_hyp['rnnlm_prev'] = rnnlm_state
                     if lpz is not None:
-                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[0, j]]
-                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[0, j]]
-                    # will be (2 x beam hyps at most?)
+                        new_hyp['ctc_state_prev'] = ctc_states[joint_best_ids[j]]
+                        new_hyp['ctc_score_prev'] = ctc_scores[joint_best_ids[j]]
                     hyps_best_kept.append(new_hyp)
 
                 hyps_best_kept = sorted(
@@ -528,7 +565,7 @@ class E2E(ASRInterface, chainer.Chain):
             # should copy becasuse Namespace will be overwritten globally
             recog_args = Namespace(**vars(recog_args))
             recog_args.minlenratio = max(0.0, recog_args.minlenratio - 0.1)
-            return self.recognize_beam(xs, mask, batch, lpz, recog_args, char_list, rnnlm)
+            return self.recognize_beam(h, lpz, recog_args, char_list, rnnlm)
 
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))

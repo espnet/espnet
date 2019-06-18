@@ -12,23 +12,6 @@ from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
 import numpy as np
 
 
-def get_topk(xp, x, k=5, axis=1):
-    MIN_VALUE = float(np.finfo(np.float32).min)
-    ids_list = []
-    scores_list = []
-    for i in range(k):
-        ids = xp.argmax(x, axis=axis).astype('i')
-        if axis == 0:
-            scores = x[ids]
-            x[ids] = MIN_VALUE
-        else:
-            scores = x[xp.arange(ids.shape[0]), ids]
-            x[xp.arange(ids.shape[0]), ids] = MIN_VALUE
-        ids_list.append(ids)
-        scores_list.append(scores)
-    return xp.stack(scores_list, axis=1), xp.stack(ids_list, axis=1)
-
-
 class Decoder(chainer.Chain):
     """Decoder layer
 
