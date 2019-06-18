@@ -87,7 +87,7 @@ if [ -z "${decode_config}" ]; then
 fi
 if [ -z "${wav}" ]; then
     download_models
-    wav=$(find ${decode_dir}/download/${models} -name "*.wav" | head -n 1)
+    wav=$(find ${download_dir}/${models} -name "*.wav" | head -n 1)
 fi
 
 # Check file existence
