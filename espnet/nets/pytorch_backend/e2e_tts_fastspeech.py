@@ -80,8 +80,13 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Number of decoder layers")
         group.add_argument("--dunits", default=1536, type=int,
                            help="Number of decoder hidden units")
+        group.add_argument("--positionwise-layer-type", default="linear", type=str,
+                           choices=["linear", "conv1d"],
+                           help="Positionwise layer type.")
+        group.add_argument("--positionwise-conv-kernel-size", default=3, type=int,
+                           help="Kernel size of positionwise conv1d layer")
         group.add_argument("--use-scaled-pos-enc", default=True, type=strtobool,
-                           help="use trainable scaled positional encoding instead of the fixed scale one.")
+                           help="Use trainable scaled positional encoding instead of the fixed scale one")
         group.add_argument("--encoder-normalize-before", default=False, type=strtobool,
                            help="Whether to apply layer norm before encoder block")
         group.add_argument("--decoder-normalize-before", default=False, type=strtobool,
@@ -91,46 +96,46 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         group.add_argument("--decoder-concat-after", default=False, type=strtobool,
                            help="Whether to concatenate attention layer's input and output in decoder")
         group.add_argument("--duration-predictor-layers", default=2, type=int,
-                           help="Number of layers in duration predictor.")
+                           help="Number of layers in duration predictor")
         group.add_argument("--duration-predictor-chans", default=384, type=int,
-                           help="Number of channels in duration predictor.")
+                           help="Number of channels in duration predictor")
         group.add_argument("--duration-predictor-kernel-size", default=3, type=int,
-                           help="Kernel size in duration predictor.")
+                           help="Kernel size in duration predictor")
         group.add_argument("--teacher-model", default=None, type=str, nargs="?",
-                           help="Teacher model file path.")
+                           help="Teacher model file path")
         parser.add_argument("--reduction-factor", default=1, type=int,
                             help="Reduction factor")
         # training related
         group.add_argument("--transformer-init", type=str, default="pytorch",
                            choices=["pytorch", "xavier_uniform", "xavier_normal",
                                     "kaiming_uniform", "kaiming_normal"],
-                           help="how to initialize transformer parameters")
+                           help="How to initialize transformer parameters")
         group.add_argument("--initial-encoder-alpha", type=float, default=1.0,
-                           help="initial alpha value in encoder's ScaledPositionalEncoding")
+                           help="Initial alpha value in encoder's ScaledPositionalEncoding")
         group.add_argument("--initial-decoder-alpha", type=float, default=1.0,
-                           help="initial alpha value in decoder's ScaledPositionalEncoding")
+                           help="Initial alpha value in decoder's ScaledPositionalEncoding")
         group.add_argument("--transformer-lr", default=1.0, type=float,
                            help="Initial value of learning rate")
         group.add_argument("--transformer-warmup-steps", default=4000, type=int,
-                           help="optimizer warmup steps")
+                           help="Optimizer warmup steps")
         group.add_argument("--transformer-enc-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer encoder except for attention")
+                           help="Dropout rate for transformer encoder except for attention")
         group.add_argument("--transformer-enc-positional-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer encoder positional encoding")
+                           help="Dropout rate for transformer encoder positional encoding")
         group.add_argument("--transformer-enc-attn-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer encoder self-attention")
+                           help="Dropout rate for transformer encoder self-attention")
         group.add_argument("--transformer-dec-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer decoder except for attention and pos encoding")
+                           help="Dropout rate for transformer decoder except for attention and pos encoding")
         group.add_argument("--transformer-dec-positional-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer decoder positional encoding")
+                           help="Dropout rate for transformer decoder positional encoding")
         group.add_argument("--transformer-dec-attn-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer decoder self-attention")
+                           help="Dropout rate for transformer decoder self-attention")
         group.add_argument("--transformer-enc-dec-attn-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for transformer encoder-decoder attention")
+                           help="Dropout rate for transformer encoder-decoder attention")
         group.add_argument("--duration-predictor-dropout-rate", default=0.1, type=float,
-                           help="dropout rate for duration predictor")
+                           help="Dropout rate for duration predictor")
         group.add_argument("--init-encoder-from-teacher", default=True, type=strtobool,
-                           help="whether to initialize encoder using teacher's parameters.")
+                           help="Whether to initialize encoder using teacher's parameters.")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
@@ -177,7 +182,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_enc_attn_dropout_rate,
             pos_enc_class=pos_enc_class,
             normalize_before=args.encoder_normalize_before,
-            concat_after=args.encoder_concat_after
+            concat_after=args.encoder_concat_after,
+            positionwise_layer_type=args.positionwise_layer_type,
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size
         )
 
         # define duration predictor
@@ -205,7 +212,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_dec_attn_dropout_rate,
             pos_enc_class=pos_enc_class,
             normalize_before=args.decoder_normalize_before,
-            concat_after=args.decoder_concat_after
+            concat_after=args.decoder_concat_after,
+            positionwise_layer_type=args.positionwise_layer_type,
+            positionwise_conv_kernel_size=args.positionwise_conv_kernel_size
         )
 
         # define final projection
