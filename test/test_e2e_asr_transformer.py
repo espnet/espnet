@@ -59,6 +59,8 @@ def prepare(backend):
         transformer_init="pytorch",
         transformer_input_layer="linear",
         transformer_length_normalized_loss=True,
+        sym_space="<space>",
+        sym_blank="<blank>",
         mtlalpha=0.0,
         lsm_weight=0.001,
         char_list=['a', 'e', 'i', 'o', 'u']
