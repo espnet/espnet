@@ -31,9 +31,8 @@ cmvn=
 # dictionary related
 dict=
 
-# x-vector related
-use_input_wav=false
-input_wav="input.wav"
+# embedding related
+input_wav=
 
 # decoding related
 synth_model=
@@ -55,8 +54,8 @@ decode_cmd=
 txt=$1
 download_dir=${decode_dir}/download
 
-if [ $# -gt 1 ]; then
-    echo "Usage: $0 <wav>"
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <text>"
     exit 1;
 fi
 
@@ -64,18 +63,12 @@ set -e
 set -u
 set -o pipefail
 
-case "${models}" in
-    "libritts.v1")
-        share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3"
-        use_input_wav=true
-        ;;
-    *)
-        echo "No such models: ${models}"
-        exit 1
-        ;;
-esac
-
 function download_models () {
+    case "${models}" in
+        "libritts.v1") share_url="https://drive.google.com/open?id=1iAXwC0AuWusa9AcFeUVkcNLG0I-hnSr3" ;;
+        *) echo "No such models: ${models}"; exit 1 ;;
+    esac
+
     dir=${download_dir}/${models}
     mkdir -p ${dir}
     if [ ! -e ${dir}/.complete ]; then
@@ -101,9 +94,18 @@ if [ -z "${decode_config}" ]; then
     download_models
     decode_config=$(find ${download_dir}/${models} -name "decode*.yaml" | head -n 1)
 fi
-if [ -z "${txt}" ]; then
+
+synth_json=$(basename ${synth_model})
+model_json="$(dirname ${synth_model})/${synth_json%%.*}.json"
+use_speaker_embedding=$(grep use_speaker_embedding ${model_json} | sed -e "s/.*: *\([0-9]*\).*/\1/")
+if [ ${use_speaker_embedding} -eq 1 ]; then
+    use_input_wav=true
+else
+    use_input_wav=false
+fi
+if [ -z "${input_wav}" ] && ${use_input_wav}; then
     download_models
-    txt=$(find ${download_dir}/${models}/etc -name "*.txt" | head -n 1)
+    input_wav=$(find ${download_dir}/${models} -name "*.wav" | head -n 1)
 fi
 
 # Check file existence
@@ -115,16 +117,16 @@ if [ ! -f "${dict}" ]; then
     echo "No such dictionary: ${dict}"
     exit 1
 fi
-if [ ! -f "${input_wav}" ] && [ ${use_input_wav} ]; then
-    echo "No such WAV file for extracting meta information: ${input_wav}"
-    exit 1
-fi
 if [ ! -f "${synth_model}" ]; then
     echo "No such E2E model: ${synth_model}"
     exit 1
 fi
 if [ ! -f "${decode_config}" ]; then
     echo "No such config file: ${decode_config}"
+    exit 1
+fi
+if [ ! -f "${input_wav}" ] && ${use_input_wav}; then
+    echo "No such WAV file for extracting meta information: ${input_wav}"
     exit 1
 fi
 if [ ! -f "${txt}" ]; then
@@ -139,44 +141,18 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data preparation"
 
     mkdir -p ${decode_dir}/data
-    echo "$base ${decode_dir}/data/dummy.wav" > ${decode_dir}/data/wav.scp
+    echo "$base X" > ${decode_dir}/data/wav.scp
     echo "X $base" > ${decode_dir}/data/spk2utt
     echo "$base X" > ${decode_dir}/data/utt2spk
     echo -n "$base " > ${decode_dir}/data/text
     cat $txt >> ${decode_dir}/data/text
+
+    mkdir -p ${decode_dir}/dump
+    data2json.sh ${decode_dir}/data ${dict} > ${decode_dir}/dump/data.json
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    echo "stage 1: Dummy Feature Generation"
-
-    sox -n -r ${fs} -c 1 -b 16 ${decode_dir}/data/dummy.wav trim 0.000 0.001
-    make_fbank.sh --cmd "${train_cmd}" --nj 1 \
-        --fs ${fs} \
-        --fmax "${fmax}" \
-        --fmin "${fmin}" \
-        --n_fft ${n_fft} \
-        --n_shift ${n_shift} \
-        --win_length "${win_length}" \
-        --n_mels ${n_mels} \
-        ${decode_dir}/data \
-        ${decode_dir}/log \
-        ${decode_dir}/fbank
-
-    feat_synth_dir=${decode_dir}/dump; mkdir -p ${feat_synth_dir}
-    dump.sh --cmd "$train_cmd" --nj 1 --do_delta false \
-        ${decode_dir}/data/feats.scp ${cmvn} ${decode_dir}/log ${feat_synth_dir}
-fi
-
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    echo "stage 2: Json Data Preparation"
-
-    feat_synth_dir=${decode_dir}/dump
-    data2json.sh --feat ${feat_synth_dir}/feats.scp \
-        ${decode_dir}/data ${dict} > ${feat_synth_dir}/data.json
-fi
-
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && [ ${use_input_wav} ]; then
-    echo "stage 3: x-vector extraction"
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ${use_input_wav}; then
+    echo "stage 1: x-vector extraction"
 
     utils/copy_data_dir.sh ${decode_dir}/data ${decode_dir}/data2
     echo "$base ${input_wav}" > ${decode_dir}/data2/wav.scp
@@ -206,10 +182,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && [ ${use_input_wav} ]; then
     local/update_json.sh ${decode_dir}/dump/data.json ${decode_dir}/xvectors/xvector.scp
 fi
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "stage 4: Decoding"
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    echo "stage 2: Decoding"
 
-    feat_synth_dir=${decode_dir}/dump
     ${decode_cmd} ${decode_dir}/log/decode.log \
         tts_decode.py \
         --config ${decode_config} \
@@ -218,12 +193,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --debugmode ${debugmode} \
         --verbose ${verbose} \
         --out ${decode_dir}/outputs/feats \
-        --json ${feat_synth_dir}/data.json \
+        --json ${decode_dir}/dump/data.json \
         --model ${synth_model}
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "stage 5: Synthesis"
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    echo "stage 3: Synthesis"
 
     outdir=${decode_dir}/outputs; mkdir -p ${outdir}_denorm
     apply-cmvn --norm-vars=true --reverse=true ${cmvn} \

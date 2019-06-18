@@ -45,7 +45,7 @@ decode_cmd=
 wav=$1
 download_dir=${decode_dir}/download
 
-if [ $# -gt 1 ]; then
+if [ $# -ne 1 ]; then
     echo "Usage: $0 <wav>"
     exit 1;
 fi
@@ -54,15 +54,12 @@ set -e
 set -u
 set -o pipefail
 
-case "${models}" in
-    "tedlium.demo") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
-    *)
-        echo "No such models: ${models}"
-        exit 1
-        ;;
-esac
-
 function download_models () {
+    case "${models}" in
+        "tedlium.demo") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
+        *) echo "No such models: ${models}"; exit 1 ;;
+    esac
+
     dir=${download_dir}/${models}
     mkdir -p ${dir}
     if [ ! -e ${dir}/.complete ]; then
@@ -76,7 +73,7 @@ if [ -z "${cmvn}" ]; then
     download_models
     cmvn=$(find ${download_dir}/${models} -name "cmvn.ark" | head -n 1)
 fi
-if [ -z "${lang_model}" ] && [ ${use_lang_model} ]; then
+if [ -z "${lang_model}" ] && ${use_lang_model}; then
     download_models
     lang_model=$(find ${download_dir}/${models} -name "rnnlm*.best" | head -n 1)
 fi
@@ -88,17 +85,13 @@ if [ -z "${decode_config}" ]; then
     download_models
     decode_config=$(find ${download_dir}/${models} -name "decode*.yaml" | head -n 1)
 fi
-if [ -z "${wav}" ]; then
-    download_models
-    wav=$(find ${download_dir}/${models}/etc -name "*.wav" | head -n 1)
-fi
 
 # Check file existence
 if [ ! -f "${cmvn}" ]; then
     echo "No such CMVN file: ${cmvn}"
     exit 1
 fi
-if [ ! -f "${lang_model}" ] && [ ${use_lang_model} ]; then
+if [ ! -f "${lang_model}" ] && ${use_lang_model}; then
     echo "No such language model: ${lang_model}"
     exit 1
 fi
@@ -154,7 +147,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "stage 3: Decoding"
 
-    if [ ${use_lang_model} ]; then
+    if ${use_lang_model}; then
         recog_opts="--rnnlm ${lang_model}"
     else
         recog_opts=""
