@@ -2,16 +2,17 @@
 
 If you are interested in contributing to ESPnet, your contributions will fall into three categories:
 
-1. If you want to propose a new feature and implement it, post about your intended feature at the issues, 
+1. If you want to propose a new feature and implement it, please post about your intended feature at the issues, 
    or you can contact Shinji Watanabe <shinjiw@ieee.org> or other main developers. 
    We shall discuss the design and implementation.
    Once we agree that the plan looks good, go ahead and implement it.
    You can find ongoing major development plans at https://github.com/espnet/espnet/milestones
 
 2. If you want to implement a minor feature or bug-fix for an issue, please first take a look at 
-   the existing issues (https://github.com/espnet/espnet/pulls) and/or pull requests (https://github.com/espnet/espnet/pulls)
-   Pick an issue and comment on the task that you want to work on this feature
+   the existing issues (https://github.com/espnet/espnet/pulls) and/or pull requests (https://github.com/espnet/espnet/pulls).
+   Pick an issue and comment on the task that you want to work on this feature.
    If you need more context on a particular issue, please ask us and then we shall provide more information.
+   
    We also welcome if you find some bugs during your actual use of ESPnet and make a PR to fix them.
 
 3. ESPnet provides and maintains a lot of reproducible examples similar to Kaldi (called `recipe`).
@@ -20,7 +21,8 @@ If you are interested in contributing to ESPnet, your contributions will fall in
    When you port a Kaldi recipe to ESPnet, see https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F 
    
    We also encourage you to report your results with your detailed environmental info and upload the model for the reproducibility 
-   (e.g., see https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md)
+   (e.g., see https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md).
+   
    To make a report for `RESULTS.md`
 	 - execute `get_sys_info.sh` at a recipe main directory (where `run.sh` is located), as follows. 
 	   You'll get environmental information in a markdown format.
