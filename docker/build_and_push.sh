@@ -27,9 +27,9 @@ cmd_usage() {
         Also able to build containers based on local build configuration.
     
     USAGE
-        $PROGRAM <mode>
-        $PROGRAM build_and_push
-        $PROGRAM local [cpu|9.1|9.2|10.0|10.1]
+        ${PROGRAM} <mode>
+        ${PROGRAM} build_and_push
+        ${PROGRAM} local [cpu|9.1|9.2|10.0|10.1]
 
             mode      Select script functionality
 
@@ -67,35 +67,35 @@ build(){
 
 
 build_local(){
-    echo "Building docker container: base image, and image for $ver"
+    echo "Building docker container: base image, and image for ${ver}"
     sleep 1
 
     # prepare espnet-repo, assuming that this script is in folder espnet/docker
-    cd $SCRIPTPATH/..
+    cd ${SCRIPTPATH}/..
     ESPNET_ARCHIVE="./espnet-local.tar"
     echo "Reconstructing the local repository from the last commit"
-    git archive -o docker/$ESPNET_ARCHIVE HEAD
-    cd $SCRIPTPATH
+    git archive -o docker/${ESPNET_ARCHIVE} HEAD  || exit 1
+    cd ${SCRIPTPATH}
     test -r ${ESPNET_ARCHIVE} || exit 1;
     sleep 1
 
-    if [ "$build_base_image" = true ] ; then
+    if [ "${build_base_image}" = true ] ; then
         echo "building ESPnet base image"
         docker build -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime . || exit 1
         sleep 1
     fi
 
-    if [[ $ver == "cpu" ]]; then
+    if [[ ${ver} == "cpu" ]]; then
         echo "building ESPnet CPU Image"
-        docker build --build-arg FROM_TAG=runtime  --build-arg ESPNET_ARCHIVE=$ESPNET_ARCHIVE \
+        docker build --build-arg FROM_TAG=runtime  --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
                      -f prebuilt/local/Dockerfile -t espnet/espnet:cpu .
-    elif [[ $ver =~ ^(9.1|9.2|10.0|10.1)$ ]]; then
-            echo "building ESPnet GPU Image for $ver"
+    elif [[ ${ver} =~ ^(9.1|9.2|10.0|10.1)$ ]]; then
+            echo "building ESPnet GPU Image for ${ver}"
         docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 .
-        docker build --build-arg FROM_TAG=cuda${ver}-cudnn7 --build-arg ESPNET_ARCHIVE=$ESPNET_ARCHIVE \
+        docker build --build-arg FROM_TAG=cuda${ver}-cudnn7 --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
                      -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7 .
     else
-        echo "Parameter invalid: " $ver
+        echo "Parameter invalid: " ${ver}
     fi
 
     echo "cleanup."
@@ -162,4 +162,4 @@ else
     cmd_usage
 fi
 
-echo "`basename $0` done."
+echo "$(basename "$0") done."
