@@ -2,6 +2,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 from argparse import Namespace
 from distutils.util import strtobool
+import editdistance
+from itertools import groupby
 import logging
 import math
 
@@ -191,13 +193,10 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # TODO(karita) show predected text
         # TODO(karita) calculate these stats
-        cer, cer_ctc, wer = 0.0, 0.0, 0.0
-        if self.ctc is None:
+        if self.mtlalpha == 0.0:
             loss_ctc = None
+            cer_ctc = None
         else:
-            import editdistance
-            from itertools import groupby
-
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
