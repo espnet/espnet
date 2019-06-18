@@ -14,14 +14,9 @@ from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr import Reporter
-from espnet.nets.pytorch_backend.frontends.feature_transform \
-    import feature_transform_for
-from espnet.nets.pytorch_backend.frontends.frontend \
-    import frontend_for
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -78,13 +73,6 @@ class E2E(ASRInterface, torch.nn.Module):
         torch.nn.Module.__init__(self)
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
-        if args.use_frontend:
-            self.frontend = frontend_for(args, idim)
-            self.feature_transform = feature_transform_for(args, (idim - 1) * 2)
-            idim = args.n_mels
-        else:
-            self.frontend = None
-
         self.encoder = Encoder(
             idim=idim,
             attention_dim=args.adim,
@@ -179,18 +167,11 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         '''
-        # 0. Frontend
-        if self.frontend is not None:
-            # TODO(kamo): Unify the style of hlens and hs_mask to mask?
-            hs_pad, hlens, _ = self.frontend(to_torch_tensor(xs_pad), ilens)
-            hs_pad, hlens = self.feature_transform(hs_pad, hlens)
-        else:
-            hs_pad, hlens = xs_pad, ilens
-        hs_pad = hs_pad[:, :max(hlens)]  # for data parallel
-        src_mask = (~make_pad_mask(hlens.tolist())).to(hs_pad.device).unsqueeze(-2)
+        xs_pad = xs_pad[:, :max(ilens)]  # for data parallel
+        src_mask = (~make_pad_mask(ilens.tolist())).to(xs_pad.device).unsqueeze(-2)
 
         # 1. forward encoder
-        hs_pad, hs_mask = self.encoder(hs_pad, src_mask)
+        hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 
         # 2. forward decoder
@@ -210,7 +191,7 @@ class E2E(ASRInterface, torch.nn.Module):
         if self.ctc is None:
             loss_ctc = None
         else:
-            batch_size = hs_pad.size(0)
+            batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
             loss_ctc = self.ctc(hs_pad.view(batch_size, -1, self.adim), hs_len, ys_pad)
 
@@ -250,12 +231,6 @@ class E2E(ASRInterface, torch.nn.Module):
         '''
         self.eval()
         feat = to_torch_tensor(feat).unsqueeze(0)
-        # 0. Frontend
-        if self.frontend is not None:
-            # TODO(Kamo): To support batch?
-            feat, _, _ = self.frontend(feat, [feat.size(1)])
-            feat, _ = self.feature_transform(feat, [feat.size(1)])
-
         # 1. forward encoder
         enc_output, _ = self.encoder(feat, None)
         if recog_args.ctc_weight > 0.0:
@@ -422,27 +397,6 @@ class E2E(ASRInterface, torch.nn.Module):
         logging.info('total log probability: ' + str(nbest_hyps[0]['score']))
         logging.info('normalized log probability: ' + str(nbest_hyps[0]['score'] / len(nbest_hyps[0]['yseq'])))
         return nbest_hyps
-
-    def enhance(self, xs):
-        """Forwarding only the frontend stage
-
-        :param ndarray xs: input acoustic feature (T, C, F)
-        """
-
-        if self.frontend is None:
-            raise RuntimeError('Frontend does\'t exist')
-        prev = self.training
-        self.eval()
-        ilens = numpy.fromiter((xx.shape[0] for xx in xs), dtype=numpy.int64)
-
-        # subsample frame
-        xs = [xx[::self.subsample[0], :] for xx in xs]
-        xs = [to_device(self, to_torch_tensor(xx).float()) for xx in xs]
-        xs_pad = pad_list(xs, 0.0)
-        enhanced, hlensm, mask = self.frontend(xs_pad, ilens)
-        if prev:
-            self.train()
-        return enhanced.cpu().numpy(), mask.cpu().numpy(), ilens
 
     def calculate_all_attentions(self, xs_pad, ilens, ys_pad):
         '''E2E attention calculation

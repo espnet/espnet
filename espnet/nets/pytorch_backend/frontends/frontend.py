@@ -114,28 +114,3 @@ class Frontend(nn.Module):
                 h, ilens, mask = self.beamformer(h, ilens)
 
         return h, ilens, mask
-
-
-def frontend_for(args, idim):
-    return Frontend(
-        idim=idim,
-        # WPE options
-        use_wpe=args.use_wpe,
-        wtype=args.wtype,
-        wlayers=args.wlayers,
-        wunits=args.wunits,
-        wprojs=args.wprojs,
-        wdropout_rate=args.wdropout_rate,
-        taps=args.wpe_taps,
-        delay=args.wpe_delay,
-        use_dnn_mask_for_wpe=args.use_dnn_mask_for_wpe,
-
-        # Beamformer options
-        use_beamformer=args.use_beamformer,
-        btype=args.btype,
-        blayers=args.blayers,
-        bunits=args.bunits,
-        bprojs=args.bprojs,
-        badim=args.badim,
-        ref_channel=args.ref_channel,
-        bdropout_rate=args.bdropout_rate)

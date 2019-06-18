@@ -1,11 +1,24 @@
+import argparse
+from typing import List
+from typing import Union
+
+import chainer
+import configargparse
+import numpy as np
+import torch
+
+
 class ASRInterface(object):
     """ASR Interface for ESPnet model implementation"""
 
     @staticmethod
-    def add_arguments(parser):
+    def add_arguments(parser: Union[argparse.ArgumentParser,
+                                    configargparse.ArgumentParser]):
         return parser
 
-    def forward(self, xs, ilens, ys):
+    def forward(self, xs: Union[torch.Tensor, List[chainer.Variable]],
+                ilens: Union[torch.Tensor, List[int]],
+                ys: Union[torch.Tensor, List[chainer.Variable]]):
         '''compute loss for training
 
         :param xs:
@@ -22,7 +35,11 @@ class ASRInterface(object):
         '''
         raise NotImplementedError("forward method is not implemented")
 
-    def recognize(self, x, recog_args, char_list=None, rnnlm=None):
+    def recognize(self,
+                  x: Union[torch.Tensor, np.ndarray],
+                  recog_args: argparse.Namespace,
+                  char_list: list = None,
+                  rnnlm: torch.nn.Module = None):
         '''recognize x for evaluation
 
         :param ndarray x: input acouctic feature (B, T, D) or (T, D)
@@ -34,7 +51,7 @@ class ASRInterface(object):
         '''
         raise NotImplementedError("recognize method is not implemented")
 
-    def calculate_all_attentions(self, xs, ilens, ys):
+    def calculate_all_attentions(self, xs: list, ilens: np.ndarray, ys: list):
         '''attention calculation
 
         :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
@@ -49,3 +66,16 @@ class ASRInterface(object):
     def attention_plot_class(self):
         from espnet.asr.asr_utils import PlotAttentionReport
         return PlotAttentionReport
+
+
+class FrontendInterface(ASRInterface):
+    def __init__(self, idim: int, args: argparse.Namespace,
+                 asr_model: torch.nn.Module):
+        raise NotImplementedError("__init__ method is not implemented")
+
+    def enhance(self, xs: np.ndarray):
+        """Forwarding only the frontend stage
+
+        :param ndarray xs: input acoustic feature (T, C, F)
+        """
+        raise NotImplementedError("enhance method is not implemented")
