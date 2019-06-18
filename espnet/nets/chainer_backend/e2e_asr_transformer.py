@@ -13,13 +13,13 @@ import chainer.functions as F
 from chainer.training import extension
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.chainer_backend import ctc
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.decoder import Decoder
 from espnet.nets.chainer_backend.transformer.encoder import Encoder
 from espnet.nets.chainer_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
 from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
+from espnet.nets.ctc_prefix_score import CTCPrefixScore
 
 from itertools import groupby
 
@@ -382,12 +382,14 @@ class E2E(ASRInterface, chainer.Chain):
 
     def recognize(self, x_block, recog_args, char_list=None, rnnlm=None):
         """E2E greedy/beam search
+
         :param x:
         :param recog_args:
         :param char_list:
         :param rnnlm:
         :return:
         """
+
         with chainer.no_backprop_mode(), chainer.using_config('train', False):
             # 1. encoder
             ilens = [x_block.shape[0]]
@@ -404,9 +406,9 @@ class E2E(ASRInterface, chainer.Chain):
 
         return y
 
-
     def recognize_beam(self, h, lpz, recog_args, char_list=None, rnnlm=None):
         """beam search implementation
+
         :param h:
         :param lpz:
         :param recog_args:
@@ -420,7 +422,7 @@ class E2E(ASRInterface, chainer.Chain):
         xp = self.xp
         h_mask = xp.ones((1, h.shape[0]))
         batch = 1
-        
+
         # search parms
         beam = recog_args.beam_size
         penalty = recog_args.penalty
@@ -464,7 +466,7 @@ class E2E(ASRInterface, chainer.Chain):
                 ys = F.expand_dims(xp.array(hyp['yseq']), axis=0).data
                 yy_mask = self.make_attention_mask(ys, ys)
                 yy_mask *= self.make_history_mask(ys)
-                
+
                 xy_mask = self.make_attention_mask(ys, h_mask)
                 out = self.decoder(ys, yy_mask, h, xy_mask).reshape(batch, -1, self.odim)
 
