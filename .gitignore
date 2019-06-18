@@ -37,6 +37,7 @@ tools/kaldi*
 tools/mecab/
 tools/miniconda.sh
 tools/moses/
+tools/mwerSegmenter/
 tools/nkf/
 tools/venv/
 tools/sentencepiece/
