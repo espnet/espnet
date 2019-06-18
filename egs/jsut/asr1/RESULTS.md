@@ -17,15 +17,15 @@
   - Results
 
 ```
-#48k
-write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
-      | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-      | Sum/Avg|  250    5928 | 81.8   15.7    2.5    2.4   20.6   97.2 |
-
 # 16k
 write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
       | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
       | Sum/Avg|  250    5928 | 79.2   18.7    2.2    3.8   24.7   98.4 |
+
+# 48k
+write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
+      | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
+      | Sum/Avg|  250    5928 | 81.8   15.7    2.5    2.4   20.6   97.2 |
 
 ```
 # Transformer (v1 model)
@@ -47,14 +47,14 @@ write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/r
     - e2e JSON file: `exp/tr_no_dev_pytorch_train/results/model.json`
 
 ```
-#48k
+#16k transformer
 write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
       | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-      | Sum/Avg|  250    5928 | 78.8   15.8    5.4    2.2   23.4   96.8 |
+      | Sum/Avg|  250    5928 | 80.6   15.2    4.2    1.9   21.3   97.6 |
 
-#16k
+# 48k transformer
 write a CER (or TER) result in exp/tr_no_dev_pytorch_train/decode_eval1_decode/result.txt
       | SPKR   | # Snt  # Wrd | Corr    Sub    Del    Ins    Err  S.Err |
-      | Sum/Avg|  250    5928 | 80.7   14.6    4.7    2.2   21.5   97.2 |
+      | Sum/Avg|  250    5928 | 83.1   13.6    3.3    1.8   18.7   94.8 |
 
 ```
