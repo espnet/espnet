@@ -46,7 +46,7 @@ To use containers with ubuntu 16.04, empty the flag `--docker_os`.
 - CPU: Image to execute only in CPU. 
 - GPU: Image to execute examples with GPU support.
 
-# Ubuntu 16.04
+# Ubuntu 18.04
 - [`cuda10.0-cudnn7` (*docker/prebuilt/gpu/10.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/10.0/cudnn7/Dockerfile)
 - [`cuda9.2-cudnn7` (*docker/prebuilt/gpu/9.2/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.2/cudnn7/Dockerfile)
 - [`cpu` (*docker/prebuilt/devel/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/Dockerfile)
