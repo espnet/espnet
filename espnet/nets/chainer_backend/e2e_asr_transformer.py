@@ -512,9 +512,10 @@ class E2E(ASRInterface, chainer.Chain):
             # sort and get nbest
             hyps = hyps_best_kept
             logging.debug('number of pruned hypothesis: ' + str(len(hyps)))
-            logging.debug(
-                'best hypo: ' + ''.join([
-                    char_list[int(x)] for x in hyps[0]['yseq'][1:]]) + ' score: ' + str(hyps[0]['score']))
+            if char_list is not None:
+                logging.debug(
+                    'best hypo: ' + ''.join([
+                        char_list[int(x)] for x in hyps[0]['yseq'][1:]]) + ' score: ' + str(hyps[0]['score']))
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
@@ -550,10 +551,10 @@ class E2E(ASRInterface, chainer.Chain):
             else:
                 logging.info('no hypothesis. Finish decoding.')
                 break
-
-            for hyp in hyps:
-                logging.debug(
-                    'hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
+            if char_list is not None:
+                for hyp in hyps:
+                    logging.debug(
+                        'hypo: ' + ''.join([char_list[int(x)] for x in hyp['yseq'][1:]]))
 
             logging.debug('number of ended hypothes: ' + str(len(ended_hyps)))
 
