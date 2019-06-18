@@ -37,7 +37,7 @@ cat << EOF
 EOF
 
 
-for expdir in $(ls -d ${base}/*); do
+for expdir in "${base}"/*; do
     if ls ${expdir}/decode_*/result.txt &> /dev/null; then
     # 1. Show the result table
     cat << EOF
