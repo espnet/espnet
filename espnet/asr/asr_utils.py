@@ -428,7 +428,11 @@ def add_results_to_json(js, nbest_hyps, char_list):
         rec_text, rec_token, rec_tokenid, score = parse_hypothesis(hyp, char_list)
 
         # copy ground-truth
-        out_dic = dict(js['output'][0].items())
+        if len(js['output']) > 0:
+            out_dic = dict(js['output'][0].items())
+        else:
+            # for no reference case (e.g., speech translation)
+            out_dic = {'name': ''}
 
         # update name
         out_dic['name'] += '[%d]' % n
