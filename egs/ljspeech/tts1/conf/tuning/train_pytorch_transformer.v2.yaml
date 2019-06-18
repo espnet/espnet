@@ -1,4 +1,6 @@
 # This configuration requires only 1 gpus in the case of each gpu memory = 12GB.
+# It takes only 2 days to finish training.
+# I recommend to use this config for the first challenge.
 
 # network architecture related
 model-module: espnet.nets.pytorch_backend.e2e_tts_transformer:Transformer

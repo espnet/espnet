@@ -53,4 +53,5 @@ script:
 sudo: false
 
 after_success:
-    - travis-sphinx deploy
+  - bash <(curl -s https://codecov.io/bash)
+  - travis-sphinx deploy
