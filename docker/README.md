@@ -35,18 +35,18 @@ $ cd docker
 $ ./run.sh --docker_gpu 0 --docker_egs chime4/asr1 --docker_folders /export/corpus/CHiME4,/export/corpus/LDC/LDC93S6B,/export/corpus/LDC/LDC94S13B --docker_env "CHIME4_CORPUS=/export/corpus/CHiME4/CHiME3,WSJ0_CORPUS=/export/corpus/LDC/LDC93S6B,WSJ1_CORPUS=/export/corpus/LDC/LDC94S13B" --ngpu 1
 ```
 
+## Deprecated
+
+Containers build on ubuntu-16.04 will be deprecated and no longer receive support. However, these container will remain in Docker Hub.
+To use containers with ubuntu 16.04, empty the flag `--docker_os`.
+
 ## Tags
 
 - Runtime: Base image for ESPnet. It includes libraries and Kaldi installation.
 - CPU: Image to execute only in CPU. 
 - GPU: Image to execute examples with GPU support.
 
-# Ubuntu 16.04 
-
+# Ubuntu 16.04
 - [`cuda10.0-cudnn7` (*docker/prebuilt/gpu/10.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/10.0/cudnn7/Dockerfile)
 - [`cuda9.2-cudnn7` (*docker/prebuilt/gpu/9.2/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.2/cudnn7/Dockerfile)
-- [`cuda9.1-cudnn7` (*docker/prebuilt/gpu/9.1/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.1/cudnn7/Dockerfile)
-- [`cuda9.0-cudnn7` (*docker/prebuilt/gpu/9.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/9.0/cudnn7/Dockerfile)
-- [`cuda8.0-cudnn7`(*docker/prebuilt/gpu/8.0/cudnn7/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/gpu/8.0/cudnn7/Dockerfile)
 - [`cpu` (*docker/prebuilt/devel/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel/Dockerfile)
-- [`runtime` (*docker/prebuilt/runtime/Dockerfile*)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/runtime/Dockerfile)
