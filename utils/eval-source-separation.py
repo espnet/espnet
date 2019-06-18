@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 import argparse
-import shutil
-import warnings
 from collections import OrderedDict
 from distutils.util import strtobool
 import itertools
 import logging
 import os
+from pathlib import Path
+import shutil
 import subprocess
 import sys
-from pathlib import Path
 from tempfile import TemporaryDirectory
+import warnings
 
 import museval
 import numpy as np
