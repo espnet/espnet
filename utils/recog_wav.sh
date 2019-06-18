@@ -45,7 +45,7 @@ decode_cmd=
 wav=$1
 download_dir=${decode_dir}/download
 
-if [ $# -ne 1 ]; then
+if [ $# -gt 1 ]; then
     echo "Usage: $0 <wav>"
     exit 1;
 fi
@@ -84,6 +84,10 @@ fi
 if [ -z "${decode_config}" ]; then
     download_models
     decode_config=$(find ${download_dir}/${models} -name "decode*.yaml" | head -n 1)
+fi
+if [ -z "${wav}" ]; then
+    download_models
+    wav=$(find ${decode_dir}/download/${models} -name "*.wav" | head -n 1)
 fi
 
 # Check file existence
