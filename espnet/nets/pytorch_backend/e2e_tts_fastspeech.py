@@ -22,7 +22,7 @@ from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttenti
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 
@@ -140,11 +140,11 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                            help="Dropout rate for transformer encoder-decoder attention")
         group.add_argument("--duration-predictor-dropout-rate", default=0.1, type=float,
                            help="Dropout rate for duration predictor")
-        group.add_argument("--init-encoder-from-teacher", default=True, type=strtobool,
-                           help="Whether to initialize encoder using teacher's parameters")
-        group.add_argument("--init-encoder-module", default="all", type=str,
+        group.add_argument("--transfer-encoder-from-teacher", default=True, type=strtobool,
+                           help="Whether to transfer teacher's parameters")
+        group.add_argument("--transferred-encoder-module", default="all", type=str,
                            choices=["all", "embed"],
-                           help="Encoder modeules to be initilized")
+                           help="Encoder modeules to be trasferred from teacher")
         # loss related
         group.add_argument("--use-masking", default=True, type=strtobool,
                            help="Whether to use masking in calculation of loss")
@@ -245,9 +245,9 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         else:
             self.duration_calculator = None
 
-        # transfer teacher encoder parameters
-        if args.init_encoder_from_teacher:
-            self._init_encoder_from_teacher(args.init_encoder_module)
+        # transfer teacher parameters
+        if self.teacher is not None and args.transfer_encoder_from_teacher:
+            self._transfer_from_teacher(args.transferred_encoder_module)
 
         # define criterions
         self.duration_criterion = DurationPredictorLoss()
@@ -438,13 +438,23 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         return model
 
-    def _init_encoder_from_teacher(self, init_module="all"):
-        if init_module == "all":
-            for (n1, p1), (n2, p2) in zip(self.encoder.named_parameters(), self.teacher.encoder.named_parameters()):
+    def _reset_parameters(self, args):
+        # initialize parameters
+        initialize(self, args.transformer_init)
+
+        # initialize alpha in scaled positional encoding
+        if self.use_scaled_pos_enc:
+            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
+            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
+
+    def _transfer_from_teacher(self, transferred_encoder_module):
+        if transferred_encoder_module == "all":
+            for (n1, p1), (n2, p2) in zip(self.encoder.named_parameters(),
+                                          self.teacher.encoder.named_parameters()):
                 assert n1 == n2, "It seems that encoder structure is different."
                 assert p1.shape == p2.shape, "It seems that encoder size is different."
                 p1.data.copy_(p2.data)
-        elif init_module == "embed":
+        elif transferred_encoder_module == "embed":
             student_shape = self.encoder.embed[0].weight.data.shape
             teacher_shape = self.teacher.encoder.embed[0].weight.data.shape
             assert student_shape == teacher_shape, "It seems that embed dimension is different."
@@ -453,35 +463,6 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         else:
             raise NotImplementedError("Support only all or embed.")
 
-    def _reset_parameters(self, args):
-        if self.use_scaled_pos_enc:
-            # alpha in scaled positional encoding init
-            self.encoder.embed[-1].alpha.data = torch.tensor(args.initial_encoder_alpha)
-            self.decoder.embed[-1].alpha.data = torch.tensor(args.initial_decoder_alpha)
-
-        if args.transformer_init == "pytorch":
-            return
-        # weight init
-        for p in self.parameters():
-            if p.dim() > 1:
-                if args.transformer_init == "xavier_uniform":
-                    torch.nn.init.xavier_uniform_(p.data)
-                elif args.transformer_init == "xavier_normal":
-                    torch.nn.init.xavier_normal_(p.data)
-                elif args.transformer_init == "kaiming_uniform":
-                    torch.nn.init.kaiming_uniform_(p.data, nonlinearity="relu")
-                elif args.transformer_init == "kaiming_normal":
-                    torch.nn.init.kaiming_normal_(p.data, nonlinearity="relu")
-                else:
-                    raise ValueError("Unknown initialization: " + args.transformer_init)
-        # bias init
-        for p in self.parameters():
-            if p.dim() == 1:
-                p.data.zero_()
-        # reset some modules with default init
-        for m in self.modules():
-            if isinstance(m, (torch.nn.Embedding, LayerNorm)):
-                m.reset_parameters()
 
     @property
     def attention_plot_class(self):
