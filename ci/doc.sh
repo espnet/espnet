@@ -12,6 +12,6 @@ mkdir -p doc/_gen
     ../doc/argparse2rst.py ./*.py > ../doc/_gen/utils_py.rst
 )
 
-find ./utils/*.sh | head -n 12 | xargs -n 1 ./doc/usage2rst.sh | tee ./doc/_gen/utils_sh.rst
+find ./utils/*.sh -exec ./doc/usage2rst.sh {} \; | tee ./doc/_gen/utils_sh.rst
 
 travis-sphinx build --source=doc --nowarn
